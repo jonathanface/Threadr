@@ -1,1 +1,77 @@
-it works
+<!DOCTYPE html>
+<html>
+  <head>
+    <script type="text/javascript">
+    
+      const HTML_DIR = 'html/';
+      
+      function getHTML(file) {
+        return new Promise(resolve => {
+          var xhttp = new XMLHttpRequest();
+          var html = xhttp.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+              resolve(this.responseText);
+            }
+          };
+          xhttp.open("GET", HTML_DIR + file, true);
+          xhttp.send();
+        });
+      }
+    
+      async function launchWriter() {
+        try {
+          let html = await getHTML('draft.html');
+          console.log(document.getElementById('content').getElementsByTagName('article')[0]);
+          document.getElementById('content').innerHTML = html;
+          document.getElementById('content').getElementsByTagName('article')[0].onkeydown = function(event) {
+            if (event.keyCode == 9) {
+              event.preventDefault();
+            }
+          };
+          document.getElementById('content').getElementsByTagName('article')[0].onkeyup = function(event) {
+          console.log(event.keyCode);
+            if (event.keyCode == 9) {
+              document.execCommand('insertHTML', false, '&#009');
+            }
+            if (event.keyCode == 13) {
+              document.execCommand('insertHTML', false, '&#009');
+            }
+          };
+        } catch(error) {
+          console.log(error);
+        }
+        
+      }
+      
+      
+      window.onload = function() {
+        console.log("onload");
+        var form = document.getElementById("login");
+        form.onsubmit=function(event) {
+          event.preventDefault();
+          var formData = new FormData(form);
+          console.log(formData.entries());
+          var actionPath = form.getAttribute("action");
+          var xhr = new XMLHttpRequest;
+          xhr.open(form.getAttribute("method"), actionPath);
+          xhr.send(formData);
+        };
+        launchWriter();
+      };
+    </script>
+    <title>Drafty 1.0</title>
+    <link href="https://fonts.googleapis.com/css?family=PT+Sans" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="css/main.css">
+  </head>
+  <body>
+    <header>
+      <h1>DRAFTY <span>WRITING TOOL</span></h1>
+      <form id="login" method="PUT" action="/api/usr/login">
+        <p><label for="user">user:</label><input id="user" name="user" type="text"></p>
+        <p><label for="pass">pwd:</label><input id="pass" name="pass" type="password"></p>
+        <p><input type="submit" value="enter"></p>
+      </form>
+    </header>
+    <main id="content"></main>
+  </body>
+</html>

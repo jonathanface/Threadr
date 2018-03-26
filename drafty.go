@@ -8,6 +8,7 @@ import (
   mgo "gopkg.in/mgo.v2"
   "gopkg.in/mgo.v2/bson"
   "encoding/json"
+  "log"
 )
 
 
@@ -16,49 +17,85 @@ type Story struct {
 	Title       string        `bson:"title" json:"title"`
 }
 
+type User struct {
+  ID          bson.ObjectId `bson:"_id"   json:"id"`
+  Login       string        `bson:"login" json:"login"`
+  Name        string        `bson:"name"  json:"name"`
+}
 
 const (
   SERVICE_PATH = "/api"
   PORT = ":85"
+  USERNAME   = "drafter"
+  PASSWORD   = "r00tm4st3r"
+  DATABASE   = "drafty"
+  STORIES_COLLECTION = "stories"
+  USERS_COLLECTION = "users"
+  
 )
 
-
-const (
-  Username   = "drafter"
-  Password   = "r00tm4st3r"
-  Database   = "drafty"
-  Collection = "stories"
-)
-
+var host = []string{"127.0.0.1:27017"}
+var connection_info = &mgo.DialInfo{
+  Addrs:    host,
+  Timeout:  60 * time.Second,
+  Database: DATABASE,
+  Username: USERNAME,
+  Password: PASSWORD,
+}
+/*
+func setSession(w http.ResponseWriter, r *http.Request, userID int, username string, timestamp int) {
+  session, err := sessionStore.Get(r, BUMQUEST_SESSION_ID)
+  if err != nil {
+    serverError(w, err.Error())
+    return
+  }
+  session.Values["id"] = userID
+  session.Values["name"] = username
+  session.Values["timestamp"] = timestamp
+  session.Values["ip"] = r.RemoteAddr
+  session.Save(r, w)
+}*/
 
 func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
-Host := []string{
-  "127.0.0.1:27017",
-  // replica set addrs...
-}
-	info := &mgo.DialInfo{
-    Addrs:    Host,
-    Timeout:  60 * time.Second,
-    Database: Database,
-    Username: Username,
-    Password: Password,
-  }
-  session, err := mgo.DialWithInfo(info)
+  session, err := mgo.DialWithInfo(connection_info)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
   defer session.Close()
 
-	c := session.DB(Database).C(Collection)
+	c := session.DB(DATABASE).C(STORIES_COLLECTION)
   var stories []Story
 	err = c.Find(nil).All(&stories)
-  
   if (err != nil) {
     respondWithError(w, http.StatusInternalServerError, err.Error())
   }
-
 	respondWithJson(w, http.StatusOK, stories)
+}
+
+func LoginEndPoint(w http.ResponseWriter, r *http.Request) {
+  login := r.FormValue("user")
+  pass := r.FormValue("pass")
+  session, err := mgo.DialWithInfo(connection_info)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+  defer session.Close()
+  c := session.DB(DATABASE).C(USERS_COLLECTION)
+  var users []User
+	count, err := c.Find(bson.M{"login": login, "pass": pass}).Count()
+  if err != nil {
+    respondWithError(w, http.StatusInternalServerError, err.Error())
+    return
+  }
+  if count == 0 {
+    log.Print("not found")
+    respondWithError(w, http.StatusNotFound, "No such user")
+    return
+  }
+  respondWithJson(w, http.StatusOK, users)
+  //setSession(w, r, 1, "player_1", 546546)
 }
 
 func respondWithError(w http.ResponseWriter, code int, msg string) {
@@ -74,10 +111,11 @@ func respondWithJson(w http.ResponseWriter, code int, payload interface{}) {
 
 func main() {
   rtr := mux.NewRouter()
+  rtr.HandleFunc(SERVICE_PATH + "/usr/login", LoginEndPoint).Methods("PUT")
   rtr.HandleFunc(SERVICE_PATH + "/stories", AllStoriesEndPoint).Methods("GET")
   rtr.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
   http.Handle("/", rtr)
   http.ListenAndServe(PORT, context.ClearHandler(http.DefaultServeMux))
 }
-//drafter
+//root
 //L9ll0V9hASrbu1Rs

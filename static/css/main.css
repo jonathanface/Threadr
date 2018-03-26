@@ -1,0 +1,81 @@
+@font-face {
+  font-family: 'typewriter';
+  src: url('../fonts/Kingthings_Trypewriter_2.ttf');
+}
+
+* {
+  box-sizing:border-box;
+}
+
+body {
+  background-color:#989898;
+  font-size:18px;
+  color:#FFF;
+  margin:20px;
+  font-family: 'PT Sans', sans-serif;
+  letter-spacing:2px;
+}
+
+header {
+  display:flex;
+  justify-content:space-between;
+}
+
+h1 {
+  font-family: 'typewriter', cursive;
+  text-shadow:
+		-1px -1px 0 #333,
+		1px -1px 0 #333,
+		-1px 1px 0 #333,
+		1px 1px 0 #333;
+  font-size:3rem;
+  margin:0px;
+}
+h1 > span {
+  font-family:'PT Sans', sans-serif;
+  font-size:1rem;
+  text-shadow:none;
+  margin-left:-25px;
+}
+
+header > form {
+  font-size:0.8125rem;
+  font-weight:bold;
+}
+header > form p {
+  margin:3px;
+  text-align:right;
+}
+header > form label {
+  display:inline-block;
+  width:50px;
+  margin-right:5px;
+}
+
+header > form input {
+  padding:2px;
+  outline:none;
+  font-family:inherit;
+  letter-spacing:inherit;
+  width:150px;
+  background-color:#596188;
+  border:none;
+  color:#FFF;
+}
+
+main {
+  margin-top: 40px;
+}
+
+main > article {
+  min-height: 500px;
+  color: #000;
+  background-color: white;
+  padding: 40px;
+  letter-spacing: 1px;
+  border-radius: 5px;
+  box-shadow: 5px 5px 5px #666;
+  outline:none;
+  line-height:2rem;
+  white-space:pre-wrap;
+}
