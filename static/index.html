@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <script type="text/javascript" src="js/ext/rangy-core.js"></script>
     <script type="text/javascript">
     
       const HTML_DIR = 'html/';
@@ -21,15 +22,13 @@
       async function launchWriter() {
         try {
           let html = await getHTML('draft.html');
-          console.log(document.getElementById('content').getElementsByTagName('article')[0]);
-          document.getElementById('content').innerHTML = html;
-          document.getElementById('content').getElementsByTagName('article')[0].onkeydown = function(event) {
+          document.querySelector('#content').innerHTML = html;
+          document.querySelector('#content article').onkeydown = function(event) {
             if (event.keyCode == 9) {
               event.preventDefault();
             }
           };
-          document.getElementById('content').getElementsByTagName('article')[0].onkeyup = function(event) {
-          console.log(event.keyCode);
+          document.querySelector('#content article').onkeyup = function(event) {
             if (event.keyCode == 9) {
               document.execCommand('insertHTML', false, '&#009');
             }
@@ -37,15 +36,98 @@
               document.execCommand('insertHTML', false, '&#009');
             }
           };
+          var tools = document.querySelectorAll('menuitem');
+          for (var i=0; i < tools.length; i++) {
+            addMenuMouseEvents(tools[i]);
+          }
         } catch(error) {
           console.log(error);
         }
         
       }
       
+      function getFirstRange() {
+        var sel = rangy.getSelection();
+        return sel.rangeCount ? sel.getRangeAt(0) : null;
+      }
+      
+      function extractPositioning(str) {
+        var regex = /<div class="textPosition[\sa-z]*?">(.*?)<\/div>/g;
+        var matches = regex.exec(str);
+        if (matches) {
+          str = str.replace(regex, matches[1]);
+        }
+        regex = /<[^>]+>[ \n\r\t]*<\/[^>]+>/g;
+        return str.replace(regex, '');
+      }
+
+      function addMenuMouseEvents(element) {
+        element.onclick = function(event) {
+          event.preventDefault();
+          if (element.querySelector('svg').classList.contains('fa-align-left')) {
+            var range = getFirstRange();
+            if (!range) {
+              document.querySelector('#content article').classList.remove('left','right','center');
+              document.querySelector('#content article').classList.add('left');
+            } else {
+              var text = range.extractContents();
+              var temp = document.createElement('div');
+              temp.appendChild(text);
+              text = extractPositioning(temp.innerHTML);
+              var positioner = document.createElement('div');
+              positioner.classList.add('textPosition');
+              positioner.classList.add('left');
+              positioner.innerHTML = text;
+              range.insertNode(positioner);            
+            }
+          }
+          if (element.querySelector('svg').classList.contains('fa-align-center')) {
+            var range = getFirstRange();
+            if (!range) {
+              document.querySelector('#content article').classList.remove('left','right','center');
+              document.querySelector('#content article').classList.add('center');
+            } else {
+              var text = range.extractContents();
+              var temp = document.createElement('div');
+              temp.appendChild(text);
+              text = extractPositioning(temp.innerHTML);
+              var positioner = document.createElement('div');
+              positioner.classList.add('textPosition');
+              positioner.classList.add('center');
+              positioner.innerHTML = text;
+              range.insertNode(positioner);       
+            }
+          }
+          if (element.querySelector('svg').classList.contains('fa-align-right')) {
+            var range = getFirstRange();
+            if (!range) {
+              document.querySelector('#content article').classList.remove('left','right','center');
+              document.querySelector('#content article').classList.add('right');
+            } else {
+              var text = range.extractContents();
+              var temp = document.createElement('div');
+              temp.appendChild(text);
+              text = extractPositioning(temp.innerHTML);
+              var positioner = document.createElement('div');
+              positioner.classList.add('textPosition');
+              positioner.classList.add('right');
+              positioner.innerHTML = text;
+              range.insertNode(positioner);       
+            }
+          }
+          var tools = document.querySelectorAll('menuitem');
+          for (var i=0; i < tools.length; i++) {
+            tools[i].classList.remove('active');
+          }
+          this.classList.add('active');
+        };
+        
+        element.onmousedown = function(event) {
+          event.preventDefault();
+        }
+      }
       
       window.onload = function() {
-        console.log("onload");
         var form = document.getElementById("login");
         form.onsubmit=function(event) {
           event.preventDefault();
@@ -60,6 +142,10 @@
       };
     </script>
     <title>Drafty 1.0</title>
+    
+    <script defer src="https://use.fontawesome.com/releases/v5.0.8/js/solid.js" integrity="sha384-+Ga2s7YBbhOD6nie0DzrZpJes+b2K1xkpKxTFFcx59QmVPaSA8c7pycsNaFwUK6l" crossorigin="anonymous"></script>
+    <script defer src="https://use.fontawesome.com/releases/v5.0.8/js/fontawesome.js" integrity="sha384-7ox8Q2yzO/uWircfojVuCQOZl+ZZBg2D2J5nkpLqzH1HY0C1dHlTKIbpRz/LG23c" crossorigin="anonymous"></script>
+    
     <link href="https://fonts.googleapis.com/css?family=PT+Sans" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="css/main.css">
   </head>

@@ -79,3 +79,29 @@ main > article {
   line-height:2rem;
   white-space:pre-wrap;
 }
+
+main > menu {
+  text-align:right;
+  margin-right:5px;
+}
+main > menu > menuitem {
+  padding-left:5px;
+  padding-right:5px;
+  cursor:pointer;
+}
+main > menu > menuitem.active {
+  color:#252525;
+}
+main > menu > menuitem:hover {
+  opacity:0.8;
+}
+
+.textPosition.left {
+  text-align:left;
+}
+.textPosition.center {
+  text-align:center;
+}
+.textPosition.right {
+  text-align:right;
+}
