@@ -15,26 +15,29 @@ import (
 type Story struct {
 	ID          bson.ObjectId `bson:"_id" json:"id"`
 	Title       string        `bson:"title" json:"title"`
+  Body        string        `bson:"body"  json:"body"`
 }
 
 type User struct {
   ID          bson.ObjectId `bson:"_id"   json:"id"`
   Login       string        `bson:"login" json:"login"`
-  Name        string        `bson:"name"  json:"name"`
+  Name        string        `bson:"title"  json:"title"`
 }
 
 const (
   SERVICE_PATH = "/api"
   PORT = ":85"
-  USERNAME   = "drafter"
-  PASSWORD   = "r00tm4st3r"
+  DB_PORT = ":27017"
+  DB_IP = "52.4.79.128"
+  USERNAME   = "admin"
+  PASSWORD   = "melchior"
   DATABASE   = "drafty"
   STORIES_COLLECTION = "stories"
   USERS_COLLECTION = "users"
   
 )
 
-var host = []string{"127.0.0.1:27017"}
+var host = []string{DB_IP + DB_PORT}
 var connection_info = &mgo.DialInfo{
   Addrs:    host,
   Timeout:  60 * time.Second,
@@ -68,6 +71,7 @@ func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
   var stories []Story
 	err = c.Find(nil).All(&stories)
   if (err != nil) {
+  
     respondWithError(w, http.StatusInternalServerError, err.Error())
   }
 	respondWithJson(w, http.StatusOK, stories)
