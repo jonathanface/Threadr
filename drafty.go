@@ -71,10 +71,36 @@ func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
   var stories []Story
 	err = c.Find(nil).All(&stories)
   if (err != nil) {
-  
     respondWithError(w, http.StatusInternalServerError, err.Error())
+    return
   }
 	respondWithJson(w, http.StatusOK, stories)
+}
+
+func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
+  sid := mux.Vars(r)["[0-9a-zA-Z]+"]
+  if len(sid) == 0 {
+    respondWithError(w, http.StatusBadRequest, "No story ID received")
+    return
+  }
+  session, err := mgo.DialWithInfo(connection_info)
+  if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+  defer session.Close()
+  c := session.DB(DATABASE).C(STORIES_COLLECTION)
+  var story Story
+  if !bson.IsObjectIdHex(sid) {
+    respondWithError(w, http.StatusBadRequest, "invalid story id")
+    return
+  }
+  err = c.Find(bson.M{"_id":bson.ObjectIdHex(sid)}).One(&story)
+  if (err != nil) {
+    respondWithError(w, http.StatusInternalServerError, err.Error())
+    return
+  }
+	respondWithJson(w, http.StatusOK, story)
 }
 
 func LoginEndPoint(w http.ResponseWriter, r *http.Request) {
@@ -117,6 +143,7 @@ func main() {
   rtr := mux.NewRouter()
   rtr.HandleFunc(SERVICE_PATH + "/usr/login", LoginEndPoint).Methods("PUT")
   rtr.HandleFunc(SERVICE_PATH + "/stories", AllStoriesEndPoint).Methods("GET")
+  rtr.HandleFunc(SERVICE_PATH + "/story/{[0-9a-zA-Z]+}", StoryEndPoint).Methods("GET")
   rtr.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
   http.Handle("/", rtr)
   http.ListenAndServe(PORT, context.ClearHandler(http.DefaultServeMux))
