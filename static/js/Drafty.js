@@ -2,10 +2,13 @@ class Drafty {
   
   constructor() {
     this.launchWriter();
+    this.socketURL;
+    this.ws_open = false;
     
   }
   
   async launchWriter() {
+    var self = this;
     try {
       let html = await getHTML('draft.html');
       document.querySelector('#content').innerHTML = html;
@@ -26,6 +29,17 @@ class Drafty {
       for (var i=0; i < tools.length; i++) {
         this.addMenuMouseEvents(tools[i]);
       }
+      var xhttp = new XMLHttpRequest();
+      xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          let websocket_data = JSON.parse(this.responseText);
+          self.socketURL = websocket_data.url;
+          self.ws_open = true;
+        }
+      };
+      xhttp.open("GET", '/wsinit', true);
+      xhttp.send();
+    
     } catch(error) {
       console.log(error);
     }
@@ -82,7 +96,6 @@ class Drafty {
       }
       if (element.querySelector('svg').classList.contains('fa-align-center')) {
         if (!range || (!range.startOffset && !range.endOffset)) {
-          console.log("???");
           document.querySelector('#content article').classList.remove('left','right','center');
           document.querySelector('#content article').classList.add('center');
         } else {

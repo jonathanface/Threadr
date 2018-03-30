@@ -4,6 +4,7 @@ import (
   "net/http"
   "github.com/gorilla/mux"
   "github.com/gorilla/context"
+  "github.com/gorilla/websocket"
   "time"
   mgo "gopkg.in/mgo.v2"
   "gopkg.in/mgo.v2/bson"
@@ -24,9 +25,15 @@ type User struct {
   Name        string        `bson:"title"  json:"title"`
 }
 
+type incomingMessage struct {
+	Data     string
+}
+
 const (
   SERVICE_PATH = "/api"
-  PORT = ":85"
+  HTTP_PORT = ":85"
+  SOCKET_PORT = ":86"
+  SOCKET_DIR = "/ws"
   DB_PORT = ":27017"
   DB_IP = "52.4.79.128"
   USERNAME   = "admin"
@@ -34,7 +41,6 @@ const (
   DATABASE   = "drafty"
   STORIES_COLLECTION = "stories"
   USERS_COLLECTION = "users"
-  
 )
 
 var host = []string{DB_IP + DB_PORT}
@@ -45,6 +51,9 @@ var connection_info = &mgo.DialInfo{
   Username: USERNAME,
   Password: PASSWORD,
 }
+
+var conn *websocket.Conn
+
 /*
 func setSession(w http.ResponseWriter, r *http.Request, userID int, username string, timestamp int) {
   session, err := sessionStore.Get(r, BUMQUEST_SESSION_ID)
@@ -139,14 +148,48 @@ func respondWithJson(w http.ResponseWriter, code int, payload interface{}) {
 	w.Write(response)
 }
 
+func parseSocketData(w http.ResponseWriter, r *http.Request) {
+	conn, err := websocket.Upgrade(w, r, w.Header(), 1024, 1024)
+  if err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error())
+	}
+	m := incomingMessage{}
+	err = conn.ReadJSON(&m)
+	if err != nil {
+		log.Println("Error reading json.", err)
+	}
+	log.Printf("Got message: %#v\n", m)
+}
+
+func CloseWebsocket(w http.ResponseWriter, r *http.Request) {
+  cm := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Closing websocket")
+  if err := conn.WriteMessage(websocket.CloseMessage, cm); err != nil {
+     respondWithError(w, http.StatusBadRequest, err.Error())
+  }
+  conn.Close()
+}
+
+func SetupWebsocket(w http.ResponseWriter, r *http.Request) {
+	log.Println("Listening for socket on " + SOCKET_PORT)
+  http.HandleFunc(SOCKET_DIR, parseSocketData)
+	go http.ListenAndServe(SOCKET_PORT, context.ClearHandler(http.DefaultServeMux))
+  respondWithJson(w, http.StatusOK, map[string]string{"url": SOCKET_DIR + SOCKET_PORT})
+  
+}
+
 func main() {
+  log.Println("\n\n**********************START")
+  log.Println("Listening for http on " + HTTP_PORT)
   rtr := mux.NewRouter()
   rtr.HandleFunc(SERVICE_PATH + "/usr/login", LoginEndPoint).Methods("PUT")
   rtr.HandleFunc(SERVICE_PATH + "/stories", AllStoriesEndPoint).Methods("GET")
   rtr.HandleFunc(SERVICE_PATH + "/story/{[0-9a-zA-Z]+}", StoryEndPoint).Methods("GET")
+  rtr.HandleFunc("/wsinit", SetupWebsocket).Methods("GET")
+  rtr.HandleFunc("/wsclose", CloseWebsocket).Methods("GET")
   rtr.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
   http.Handle("/", rtr)
-  http.ListenAndServe(PORT, context.ClearHandler(http.DefaultServeMux))
+  http.ListenAndServe(HTTP_PORT, context.ClearHandler(http.DefaultServeMux))
+  
+  
+  
 }
-//root
-//L9ll0V9hASrbu1Rs

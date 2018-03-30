@@ -1,5 +1,7 @@
 const HTML_DIR = 'html/';
 const SERVICE_URL = 'api/';
+
+var drafty;
       
 function getHTML(file) {
   return new Promise(resolve => {
@@ -26,7 +28,19 @@ window.onload = function() {
     xhr.send(formData);
   };
   
-  var drafty = new Drafty();
+  drafty = new Drafty();
   drafty.fetchStory('5abd444d6b021182d093db25');
   
+};
+
+window.onbeforeunload = function() {
+  console.log('unload');
+  if (drafty && drafty.ws_open) {
+    var xhttp = new XMLHttpRequest();
+    if (xhttp.readyState == 4 && xhttp.status == 200) {
+      draft.ws_open = false;
+    }
+  }
+  xhttp.open("GET", '/wsclose', false);
+  xhttp.send();
 };
