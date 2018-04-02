@@ -10,6 +10,7 @@ import (
   "encoding/json"
   "log"
   "strings"
+  "github.com/microcosm-cc/bluemonday"
 )
 
 
@@ -26,7 +27,8 @@ type User struct {
 }
 
 type SocketMessage struct {
-	Data     string
+  Command  string
+	Data     Story
 }
 
 const (
@@ -162,19 +164,45 @@ func parseSocketData(w http.ResponseWriter, r *http.Request) {
       return
     }
     log.Printf("Got message: %#v\n", m)
-    if m.Data == "ping" {
-      
-      go sendPong(conn)
+    switch m.Command {
+      case "ping":
+        go sendPong(conn)
+      case "saveBody":
+        go saveBody(conn, m.Data)
     }
   }
 }
 
 func sendPong(conn *websocket.Conn) {
   m := SocketMessage{}
-  m.Data = "pong"
+  m.Command = "pong"
   if err := conn.WriteJSON(m); err != nil {
     log.Println("Error ponging")
     log.Println(err)
+  }
+}
+
+func saveBody(conn *websocket.Conn, data Story) {
+  if len(data.ID) == 0 {
+    log.Println("no story id passed")
+    return
+  }
+  session, err := mgo.DialWithInfo(connection_info)
+  if err != nil {
+    log.Println(err.Error())
+		return
+	}
+  defer session.Close()
+  c := session.DB(DATABASE).C(STORIES_COLLECTION)
+  p := bluemonday.NewPolicy()
+  p.AllowStandardURLs()
+  p.AllowAttrs("href").OnElements("a")
+  p.AllowElements("div", "i", "b")
+  p.AllowStyling()
+  html := p.Sanitize(data.Body)
+  err = c.Update(bson.M{"_id": data.ID}, bson.M{"$set": bson.M{"body": html}})
+  if err != nil {
+    log.Println(err.Error())
   }
 }
 

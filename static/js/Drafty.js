@@ -26,11 +26,13 @@ class Drafty {
         if (event.keyCode == 13) {
           document.execCommand('insertHTML', false, '&#009');
         }
+        self.saveStoryBody()
       };
       var tools = document.querySelectorAll('menuitem');
       for (var i=0; i < tools.length; i++) {
         this.addMenuMouseEvents(tools[i]);
       }
+
       var xhttp = new XMLHttpRequest();
       xhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
@@ -69,8 +71,18 @@ class Drafty {
     };
   }
   
+  saveStoryBody() {
+    if (this.ws_open) {
+      var html = document.querySelector('article').innerHTML;
+      var story = {}
+      story.ID = '5abd444d6b021182d093db25';
+      story.Body = html;
+      this.socket.send(JSON.stringify({Command:"saveBody", Data:story}));
+    }
+  }
+  
   sendPing() {
-    this.socket.send(JSON.stringify({Data:"ping"}));
+    this.socket.send(JSON.stringify({Command:"ping"}));
   }
   
   fetchStory(storyID) {
@@ -105,7 +117,6 @@ class Drafty {
     element.onclick = function(event) {
       event.preventDefault();
       var range = self.getFirstRange();
-      console.log(range);
       if (element.querySelector('svg').classList.contains('fa-align-left')) {
         if (!range || (!range.startOffset && !range.endOffset)) {
           document.querySelector('#content article').classList.remove('left','right','center');
