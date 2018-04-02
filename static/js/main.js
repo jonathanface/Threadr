@@ -32,15 +32,3 @@ window.onload = function() {
   drafty.fetchStory('5abd444d6b021182d093db25');
   
 };
-
-window.onbeforeunload = function() {
-  console.log('unload');
-  if (drafty && drafty.ws_open) {
-    var xhttp = new XMLHttpRequest();
-    if (xhttp.readyState == 4 && xhttp.status == 200) {
-      draft.ws_open = false;
-    }
-  }
-  xhttp.open("GET", '/wsclose', false);
-  xhttp.send();
-};

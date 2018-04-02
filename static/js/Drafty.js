@@ -4,7 +4,9 @@ class Drafty {
     this.launchWriter();
     this.socketURL;
     this.ws_open = false;
-    
+    this.socket;
+    this.pingInterval;
+    this.PING_INTERVAL_TIME = 3000;
   }
   
   async launchWriter() {
@@ -33,8 +35,7 @@ class Drafty {
       xhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
           let websocket_data = JSON.parse(this.responseText);
-          self.socketURL = websocket_data.url;
-          self.ws_open = true;
+          self.connect_to_socket(websocket_data.url);
         }
       };
       xhttp.open("GET", '/wsinit', true);
@@ -43,6 +44,33 @@ class Drafty {
     } catch(error) {
       console.log(error);
     }
+  }
+  
+  connect_to_socket(url) {
+    this.ws_open = true;
+    var self = this;
+    this.socket = new WebSocket(url);
+    this.socket.onopen = function() {
+      console.log('socket opened');
+      self.sendPing();
+    };
+    this.socket.onmessage = function(msg) {
+      console.log(JSON.parse(msg.data));
+      self.pingInterval = setTimeout(function() {self.sendPing();}, self.PING_INTERVAL_TIME);
+    };
+    
+    this.socket.onerror = function(err) {
+      console.error(err);
+    };
+    
+    this.socket.onclose = function() {
+      console.log("closed");
+      clearTimeout(self.pingInterval);
+    };
+  }
+  
+  sendPing() {
+    this.socket.send(JSON.stringify({Data:"ping"}));
   }
   
   fetchStory(storyID) {
