@@ -7,6 +7,22 @@ class Drafty {
     this.socket;
     this.pingInterval;
     this.PING_INTERVAL_TIME = 3000;
+    this.pages = [];
+    this.currentPage = 0;
+  }
+  
+  removeEmptyElements(page) {
+    var ps = page.childNodes;
+    for (var p = 0; p < ps.length; p++) {
+      var text = ps[p].innerText || ps[p].textContent;
+      if (text.length <= 0) {
+        try {
+          page.removeChild(ps[p].parentNode);
+        } catch(e) {
+          console.log(e);
+        }
+      }
+    }
   }
   
   async launchWriter() {
@@ -14,20 +30,6 @@ class Drafty {
     try {
       let html = await getHTML('draft.html');
       document.querySelector('#content').innerHTML = html;
-      document.querySelector('#content article').onkeydown = function(event) {
-        if (event.keyCode == 9) {
-          event.preventDefault();
-        }
-      };
-      document.querySelector('#content article').onkeyup = function(event) {
-        if (event.keyCode == 9) {
-          document.execCommand('insertHTML', false, '&#009');
-        }
-        if (event.keyCode == 13) {
-          document.execCommand('insertHTML', false, '&#009');
-        }
-        self.saveStoryBody()
-      };
       var tools = document.querySelectorAll('menuitem');
       for (var i=0; i < tools.length; i++) {
         this.addMenuMouseEvents(tools[i]);
@@ -46,6 +48,84 @@ class Drafty {
     } catch(error) {
       console.log(error);
     }
+  }
+  
+  checkOverflow(page) {
+    let computedStyle = getComputedStyle(page);
+    let elementHeight = page.clientHeight;  // height with padding
+    elementHeight -= parseFloat(computedStyle.paddingTop) + parseFloat(computedStyle.paddingBottom);
+    console.log(elementHeight + ' vs ' + page.querySelector('.heightMeasure').clientHeight);
+    return elementHeight <= page.querySelector('.heightMeasure').clientHeight;
+  }
+  
+  addPageEvents(page) {
+    self = this;
+    page.onkeydown = function(event) {
+      if (event.keyCode == 9) {
+        event.preventDefault();
+      }
+      
+    };
+    page.onkeyup = page.onpaste = function(event) {
+      self.removeEmptyElements(page);
+      if (self.checkOverflow(page)) {
+        self.newPage();
+      }
+      if (event.keyCode == 9 || event.keyCode == 13) {
+        document.execCommand('insertHTML', false, '&#009');
+      }
+      var text = self.getLastPage().querySelector('.heightMeasure').innerText || self.getLastPage().querySelector('.heightMeasure').textContent;
+      if (text.length <= 0) {
+        self.deleteLastPage();
+      }
+      self.saveStoryBody();
+    };
+  }
+  
+  getLastPage() {
+    return this.pages[this.pages.length-1];
+  }
+  
+  moveToEnd(page) {
+    var range,selection;
+    if (document.createRange) {
+      range = document.createRange();//Create a range (a range is a like the selection but invisible)
+      range.selectNodeContents(page);//Select the entire contents of the element with the range
+      range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
+      selection = window.getSelection();//get the selection object (allows you to change selection)
+      console.log(selection);
+      selection.removeAllRanges();//remove any selections already made
+      selection.addRange(range);//make the range you have just created the visible selection
+    }
+    else if (document.selection) { 
+      range = document.body.createTextRange();//Create a range (a range is a like the selection but invisible)
+      range.moveToElementText(page);//Select the entire contents of the element with the range
+      range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
+      range.select();//Select the range (make it the visible selection
+    }
+  }
+  
+  deleteLastPage() {
+    let art = self.pages[self.pages.length-1];
+    self.removeEmptyElements(art);
+    art.parentNode.removeChild(art);
+    self.pages.splice(-1,1);
+    console.log(self.pages);
+    var prevPage = self.pages[self.pages.length-1];
+    self.moveToEnd(prevPage);
+  }
+  
+  newPage() {
+    let art = document.createElement('article');
+    let div = document.createElement('div');
+    div.setAttribute('contentEditable', true);
+    div.classList.add('textPosition');
+    div.classList.add('heightMeasure');
+    art.appendChild(div)
+    this.pages.push(art);
+    document.querySelector('#content').append(art)
+    this.addPageEvents(art);
+    div.focus();
   }
   
   connect_to_socket(url) {
@@ -73,10 +153,13 @@ class Drafty {
   
   saveStoryBody() {
     if (this.ws_open) {
-      var html = document.querySelector('article').innerHTML;
+      var body = '';
+      for (var i=0; i < self.pages.length; i++) {
+        body += self.pages[i].querySelector('.heightMeasure').innerHTML;
+      }
       var story = {}
       story.ID = '5abd444d6b021182d093db25';
-      story.Body = html;
+      story.Body = body;
       this.socket.send(JSON.stringify({Command:"saveBody", Data:story}));
     }
   }
@@ -86,11 +169,16 @@ class Drafty {
   }
   
   fetchStory(storyID) {
+    var self = this;
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
       if (this.readyState == 4 && this.status == 200) {
         let story = JSON.parse(this.responseText);
-        document.querySelector('#content article').innerHTML = story.body;
+        self.newPage();
+        document.querySelector('#content article > div').innerHTML = story.body;
+        while (self.checkOverflow(self.getLastPage())) {
+          self.newPage();
+        }
       }
     };
     xhttp.open("GET", SERVICE_URL + '/story/' + storyID, true);
