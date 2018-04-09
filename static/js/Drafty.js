@@ -1,6 +1,9 @@
+var self;
+
 class Drafty {
   
   constructor() {
+    self = this;
     this.launchWriter();
     this.socketURL;
     this.ws_open = false;
@@ -26,7 +29,6 @@ class Drafty {
   }
   
   async launchWriter() {
-    var self = this;
     try {
       let html = await getHTML('draft.html');
       document.querySelector('#content').innerHTML = html;
@@ -54,23 +56,21 @@ class Drafty {
     let computedStyle = getComputedStyle(page);
     let elementHeight = page.clientHeight;  // height with padding
     elementHeight -= parseFloat(computedStyle.paddingTop) + parseFloat(computedStyle.paddingBottom);
-    console.log(elementHeight + ' vs ' + page.querySelector('.heightMeasure').clientHeight);
     return elementHeight <= page.querySelector('.heightMeasure').clientHeight;
   }
   
   addPageEvents(page) {
-    self = this;
     page.onkeydown = function(event) {
       if (event.keyCode == 9) {
         event.preventDefault();
+      }
+      if (event.keyCode != 8 && self.checkOverflow(page)) {
+        self.newPage();
       }
       
     };
     page.onkeyup = page.onpaste = function(event) {
       self.removeEmptyElements(page);
-      if (self.checkOverflow(page)) {
-        self.newPage();
-      }
       if (event.keyCode == 9 || event.keyCode == 13) {
         document.execCommand('insertHTML', false, '&#009');
       }
@@ -93,7 +93,6 @@ class Drafty {
       range.selectNodeContents(page);//Select the entire contents of the element with the range
       range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
       selection = window.getSelection();//get the selection object (allows you to change selection)
-      console.log(selection);
       selection.removeAllRanges();//remove any selections already made
       selection.addRange(range);//make the range you have just created the visible selection
     }
@@ -106,13 +105,11 @@ class Drafty {
   }
   
   deleteLastPage() {
-    let art = self.pages[self.pages.length-1];
+    let art = self.getLastPage();
     self.removeEmptyElements(art);
     art.parentNode.removeChild(art);
     self.pages.splice(-1,1);
-    console.log(self.pages);
-    var prevPage = self.pages[self.pages.length-1];
-    self.moveToEnd(prevPage);
+    self.moveToEnd(self.getLastPage());
   }
   
   newPage() {
@@ -126,11 +123,11 @@ class Drafty {
     document.querySelector('#content').append(art)
     this.addPageEvents(art);
     div.focus();
+    return art;
   }
   
   connect_to_socket(url) {
     this.ws_open = true;
-    var self = this;
     this.socket = new WebSocket(url);
     this.socket.onopen = function() {
       console.log('socket opened');
@@ -155,7 +152,7 @@ class Drafty {
     if (this.ws_open) {
       var body = '';
       for (var i=0; i < self.pages.length; i++) {
-        body += self.pages[i].querySelector('.heightMeasure').innerHTML;
+        body += self.pages[i].innerHTML;
       }
       var story = {}
       story.ID = '5abd444d6b021182d093db25';
@@ -168,21 +165,31 @@ class Drafty {
     this.socket.send(JSON.stringify({Command:"ping"}));
   }
   
+  paginate(story) {
+    var wrapper = document.createElement('div');
+    wrapper.innerHTML= story;
+    var pages = wrapper.querySelectorAll('.heightMeasure');
+    for (var i=0; i < pages.length; i++) {
+      var page = self.newPage();
+      page.querySelector('.heightMeasure').innerHTML = pages[i].innerHTML;
+    }
+  }
+  
   fetchStory(storyID) {
-    var self = this;
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
       if (this.readyState == 4 && this.status == 200) {
         let story = JSON.parse(this.responseText);
-        self.newPage();
-        document.querySelector('#content article > div').innerHTML = story.body;
-        while (self.checkOverflow(self.getLastPage())) {
-          self.newPage();
-        }
+        self.paginate(story.body);
+        
       }
     };
     xhttp.open("GET", SERVICE_URL + '/story/' + storyID, true);
     xhttp.send();
+  }
+  
+  fillNextPage() {
+    
   }
   
   getFirstRange() {
@@ -201,7 +208,6 @@ class Drafty {
   }
   
   addMenuMouseEvents(element) {
-    var self = this;
     element.onclick = function(event) {
       event.preventDefault();
       var range = self.getFirstRange();
