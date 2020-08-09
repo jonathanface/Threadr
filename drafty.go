@@ -31,9 +31,13 @@ type User struct {
   Name        string        `bson:"title"  json:"title"`
 }
 
+type PageOperation struct {
+  Page int    `json:"page"`
+  Body json.RawMessage `json:"body"`
+}
 type SocketMessage struct {
-  Command  string
-	Data     Story
+  Command  string `json:"command"`
+	Data     json.RawMessage `json:"data"`
 }
 
 const (
@@ -152,38 +156,6 @@ func respondWithJson(w http.ResponseWriter, code int, payload interface{}) {
 	w.Write(response)
 }
 
-func parseSocketData(w http.ResponseWriter, r *http.Request) {
-	conn, err := websocket.Upgrade(w, r, w.Header(), 1024, 1024)
-  if err != nil {
-		respondWithError(w, http.StatusBadRequest, err.Error())
-	}
-  for {
-    err = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
-    m := SocketMessage{}
-    err = conn.ReadJSON(&m)
-    if err != nil {
-      log.Println(err)
-      conn.Close()
-      return
-    }
-    log.Printf("Got message: %#v\n", m)
-    switch m.Command {
-      case "ping":
-        go sendPong(conn)
-      case "saveBody":
-        go saveBody(conn, m.Data)
-    }
-  }
-}
-
-func sendPong(conn *websocket.Conn) {
-  m := SocketMessage{}
-  m.Command = "pong"
-  if err := conn.WriteJSON(m); err != nil {
-    log.Println("Error ponging")
-    log.Println(err)
-  }
-}
 
 func saveBody(conn *websocket.Conn, data Story) {
 /*
@@ -217,10 +189,6 @@ func SetupWebsocket(w http.ResponseWriter, r *http.Request) {
   respondWithJson(w, http.StatusOK, map[string]string{"url": url})
 }
 
-
-  
-
-
 func getConfiguration() {
 	jsonFile, err := os.Open("config.json")
 	if err != nil {
@@ -237,12 +205,19 @@ func main() {
   log.Println("\n\n**********************START")
   log.Println("Listening for http on " + HTTP_PORT)
   getConfiguration();
+  
+  hub := newHub()
+	go hub.run()
+  
   rtr := mux.NewRouter()
   rtr.HandleFunc(SERVICE_PATH + "/usr/login", LoginEndPoint).Methods("PUT")
   rtr.HandleFunc(SERVICE_PATH + "/stories", AllStoriesEndPoint).Methods("GET")
   rtr.HandleFunc(SERVICE_PATH + "/story/{[0-9a-zA-Z]+}", StoryEndPoint).Methods("GET")
   rtr.HandleFunc("/wsinit", SetupWebsocket).Methods("GET")
-  rtr.HandleFunc(SOCKET_DIR, parseSocketData)
+  //rtr.HandleFunc(SOCKET_DIR, serveWs)
+  http.HandleFunc(SOCKET_DIR, func(w http.ResponseWriter, r *http.Request) {
+		serveWs(hub, w, r)
+	})
   rtr.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
   http.Handle("/", rtr)
   log.Fatal(http.ListenAndServe(HTTP_PORT, nil))

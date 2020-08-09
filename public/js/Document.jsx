@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import {EditorState, Editor, ContentState, SelectionState} from 'draft-js';
+import {EditorState, Editor, ContentState, SelectionState, convertToRaw} from 'draft-js';
 
 export class Document extends React.Component {
   
@@ -30,6 +30,46 @@ export class Document extends React.Component {
     this.state.pages.push(EditorState.createEmpty());
     this.currentPage = 0;
     this.hitDelete = false;
+    this.socket = null;
+    this.fetchWebsocketURL();
+  }
+  
+  setupWebsocket(url) {
+    this.socket = new WebSocket(url);
+    this.socket.isOpen = false;
+    // Connection opened
+    this.socket.onopen = (event) => {
+      console.log(this.socket);
+      this.socket.send(JSON.stringify({command:'ping'}));
+      this.socket.isOpen = true;
+    };
+    this.socket.onclose = (event) => {
+      console.log('socket closed');
+      this.socket.isOpen = false;
+    };
+    this.socket.onerror = (event) => {
+      this.socket.isOpen = false;
+      setTimeout(this.setupWebsocket, 5000, url);
+    };
+    this.socket.onmessage = (event) => {
+      console.log('Message from server ', event.data);
+      let json = JSON.parse(event.data);
+      switch (json.command) {
+        case 'pong':
+          this.socket.send(JSON.stringify({command:'ping'}));
+          break;
+      }
+    };
+  }
+  
+  fetchWebsocketURL() {
+    fetch('./wsinit').then(response => response.json()).then(data => {
+      console.log('Success:', data);
+      this.setupWebsocket(data.url);
+    })
+    .catch((error) => {
+      console.error('Error:', error);
+    });
   }
   
   addNewPage(editorState) {
@@ -62,7 +102,8 @@ export class Document extends React.Component {
     if (this.state.pages[index].getCurrentContent() === editorState.getCurrentContent()) {
       return;
     }
-    let addingPage = false;
+    let addedPage = false;
+    let deletedPage = false;
     let editor = this.refs[index].current;
     if (!this.newPagePending && !this.hitDelete &&
         editor.editorContainer.firstChild.firstChild.offsetHeight >=
@@ -72,7 +113,7 @@ export class Document extends React.Component {
       index++;
       let textStr = editorState.getCurrentContent().getPlainText();
       editorState = EditorState.moveFocusToEnd(EditorState.createWithContent(ContentState.createFromText(textStr[textStr.length-1])));
-      addingPage = true;
+      addedPage = true;
     }
     let pages = this.state.pages;
     pages[index] = editorState;
@@ -81,9 +122,7 @@ export class Document extends React.Component {
     }, () => {
       let blockDOM = this.getSelectedBlockElement();
       let domY = blockDOM.getBoundingClientRect().top;
-      console.log(blockDOM.getBoundingClientRect().top, window.scrollY);
-      if (Math.abs(domY - window.scrollY) > 400 || addingPage) {
-        console.log('scroll now');
+      if (Math.abs(domY - window.scrollY) > 400 || addedPage) {
         let scrollToY = blockDOM.getBoundingClientRect().top + window.scrollY;
         window.scrollTo({top: scrollToY-100, behavior: 'smooth'});
       }
@@ -93,6 +132,7 @@ export class Document extends React.Component {
     if (this.hitDelete) {
       this.hitDelete = false;
       if (!this.state.pages[index].getCurrentContent().hasText() && this.state.pages.length > 1) {
+        deletedPage = true;
         this.state.pages.splice(index, 1);
         this.state.pages[index-1] = EditorState.moveFocusToEnd(this.state.pages[index-1]);
         this.setState({
@@ -102,6 +142,19 @@ export class Document extends React.Component {
           this.currentPage = index-1;
         });
       }
+    }
+    if (addedPage || deletedPage) {
+      this.saveAllPages();
+    } else {
+      this.saveCurrentPage();
+    }
+  }
+  
+  saveCurrentPage() {
+    console.log('saving page ' + this.currentPage);
+    console.log(convertToRaw(this.state.pages[this.currentPage].getCurrentContent()));
+    if (this.socket.isOpen) {
+      this.socket.send(JSON.stringify({command:'savePage', data: {page:this.currentPage, body:convertToRaw(this.state.pages[this.currentPage].getCurrentContent())}}));
     }
   }
   
@@ -151,15 +204,3 @@ export class Document extends React.Component {
     );
   }
 }
-/*
-class PageBackground extends React.Component {
-  
-  constructor() {
-    super();
-  }
-  
-  render {
-    
-  }
-  
-}*/
