@@ -44,7 +44,10 @@ type Client struct {
 	// Buffered channel of outbound messages.
 	send chan []byte
 }
-
+type ClientMessage struct {
+      Client *Client
+      Message []byte
+    }
 // readPump pumps messages from the websocket connection to the hub.
 //
 // The application runs readPump in a per-connection goroutine. The application
@@ -67,7 +70,12 @@ func (c *Client) readPump() {
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		c.hub.broadcast <- message
+    log.Println(c)
+    
+    cm := ClientMessage{}
+    cm.Client = c
+    cm.Message = message
+		c.hub.broadcast <- &cm
 	}
 }
 
