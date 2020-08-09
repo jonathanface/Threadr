@@ -1,27 +1,32 @@
 package main
 
 import (
+  "context"
   "net/http"
   "github.com/gorilla/mux"
   "github.com/gorilla/websocket"
+  "os"
+  "io/ioutil"
   "time"
-  mgo "gopkg.in/mgo.v2"
-  "gopkg.in/mgo.v2/bson"
+  "go.mongodb.org/mongo-driver/bson"
+  "go.mongodb.org/mongo-driver/mongo"
+  "go.mongodb.org/mongo-driver/mongo/options"
+  //"go.mongodb.org/mongo-driver/mongo/readpref"
+
   "encoding/json"
   "log"
   "strings"
-  "github.com/microcosm-cc/bluemonday"
 )
 
 
 type Story struct {
-	ID          bson.ObjectId `bson:"_id" json:"id"`
+	//ID          bson.ObjectId `bson:"_id" json:"id"`
 	Title       string        `bson:"title" json:"title"`
   Body        string        `bson:"body"  json:"body"`
 }
 
 type User struct {
-  ID          bson.ObjectId `bson:"_id"   json:"id"`
+  //ID          bson.ObjectId `bson:"_id"   json:"id"`
   Login       string        `bson:"login" json:"login"`
   Name        string        `bson:"title"  json:"title"`
 }
@@ -35,42 +40,24 @@ const (
   SERVICE_PATH = "/api"
   HTTP_PORT = ":85"
   SOCKET_DIR = "/ws"
-  DB_PORT = ":27017"
-  DB_IP = "52.4.79.128"
-  USERNAME   = "admin"
-  PASSWORD   = "melchior"
-  DATABASE   = "drafty"
   STORIES_COLLECTION = "stories"
   USERS_COLLECTION = "users"
   PING_TIMEOUT = 5000;
 )
 
-var host = []string{DB_IP + DB_PORT}
-var connection_info = &mgo.DialInfo{
-  Addrs:    host,
-  Timeout:  60 * time.Second,
-  Database: DATABASE,
-  Username: USERNAME,
-  Password: PASSWORD,
-}
-
 var conn *websocket.Conn
 
-/*
-func setSession(w http.ResponseWriter, r *http.Request, userID int, username string, timestamp int) {
-  session, err := sessionStore.Get(r, BUMQUEST_SESSION_ID)
-  if err != nil {
-    serverError(w, err.Error())
-    return
-  }
-  session.Values["id"] = userID
-  session.Values["name"] = username
-  session.Values["timestamp"] = timestamp
-  session.Values["ip"] = r.RemoteAddr
-  session.Save(r, w)
-}*/
+type Config struct {
+  DBHost    string `json:"dbHost"`
+  DBPort    string `json:"dbPort"`
+  DBUser    string `json:"dbUser"`
+  DBPass    string `json:"dbPass"`
+  DBName    string `json:"dbName"`
+}
+var credentials = Config{}
 
 func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
+ /* 
   session, err := mgo.DialWithInfo(connection_info)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
@@ -85,10 +72,11 @@ func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
     respondWithError(w, http.StatusInternalServerError, err.Error())
     return
   }
-	respondWithJson(w, http.StatusOK, stories)
+	respondWithJson(w, http.StatusOK, stories)*/
 }
 
 func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
+/*
   sid := mux.Vars(r)["[0-9a-zA-Z]+"]
   if len(sid) == 0 {
     respondWithError(w, http.StatusBadRequest, "No story ID received")
@@ -111,31 +99,46 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
     respondWithError(w, http.StatusInternalServerError, err.Error())
     return
   }
-	respondWithJson(w, http.StatusOK, story)
+	respondWithJson(w, http.StatusOK, story)*/
 }
 
 func LoginEndPoint(w http.ResponseWriter, r *http.Request) {
   login := r.FormValue("user")
   pass := r.FormValue("pass")
-  session, err := mgo.DialWithInfo(connection_info)
-	if err != nil {
+  
+  ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+  defer cancel()
+  client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://" + credentials.DBHost + ":" + credentials.DBPort).SetAuth(options.Credential{
+    AuthSource: credentials.DBName, Username: credentials.DBUser, Password: credentials.DBPass,
+  }))
+  if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-  defer session.Close()
-  c := session.DB(DATABASE).C(USERS_COLLECTION)
-  var users []User
-	count, err := c.Find(bson.M{"login": login, "pass": pass}).Count()
-  if err != nil {
+  if err = client.Ping(ctx, nil); err != nil {
     respondWithError(w, http.StatusInternalServerError, err.Error())
     return
   }
-  if count == 0 {
-    respondWithError(w, http.StatusNotFound, "No such user")
-    return
+  log.Println("Connected to MongoDB!")
+  defer func() {
+    if err = client.Disconnect(ctx); err != nil {
+        panic(err)
+    }
+  }()
+  
+  var result struct {
+    Value float64
   }
-  respondWithJson(w, http.StatusOK, users)
-  //setSession(w, r, 1, "player_1", 546546)
+  filter := bson.M{"login": login, "pass":pass}
+  ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+  defer cancel()
+  collection := client.Database(credentials.DBName).Collection(USERS_COLLECTION)
+  err = collection.FindOne(ctx, filter).Decode(&result)
+  if err != nil {
+      log.Fatal(err)
+  }
+  log.Println(result)
+  respondWithJson(w, http.StatusOK, result)
 }
 
 func respondWithError(w http.ResponseWriter, code int, msg string) {
@@ -183,6 +186,7 @@ func sendPong(conn *websocket.Conn) {
 }
 
 func saveBody(conn *websocket.Conn, data Story) {
+/*
   if len(data.ID) == 0 {
     log.Println("no story id passed")
     return
@@ -203,7 +207,7 @@ func saveBody(conn *websocket.Conn, data Story) {
   err = c.Update(bson.M{"_id": data.ID}, bson.M{"$set": bson.M{"body": html}})
   if err != nil {
     log.Println(err.Error())
-  }
+  }*/
 }
 
 func SetupWebsocket(w http.ResponseWriter, r *http.Request) {
@@ -213,16 +217,33 @@ func SetupWebsocket(w http.ResponseWriter, r *http.Request) {
   respondWithJson(w, http.StatusOK, map[string]string{"url": url})
 }
 
+
+  
+
+
+func getConfiguration() {
+	jsonFile, err := os.Open("config.json")
+	if err != nil {
+		log.Println(err)
+	}
+	defer jsonFile.Close()
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+	json.Unmarshal(byteValue, &credentials)
+ 
+
+}
+
 func main() {
   log.Println("\n\n**********************START")
   log.Println("Listening for http on " + HTTP_PORT)
+  getConfiguration();
   rtr := mux.NewRouter()
   rtr.HandleFunc(SERVICE_PATH + "/usr/login", LoginEndPoint).Methods("PUT")
   rtr.HandleFunc(SERVICE_PATH + "/stories", AllStoriesEndPoint).Methods("GET")
   rtr.HandleFunc(SERVICE_PATH + "/story/{[0-9a-zA-Z]+}", StoryEndPoint).Methods("GET")
   rtr.HandleFunc("/wsinit", SetupWebsocket).Methods("GET")
   rtr.HandleFunc(SOCKET_DIR, parseSocketData)
-  rtr.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
+  rtr.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
   http.Handle("/", rtr)
   log.Fatal(http.ListenAndServe(HTTP_PORT, nil))
 }
