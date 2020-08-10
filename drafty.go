@@ -16,6 +16,7 @@ import (
   "encoding/json"
   "log"
   "strings"
+  "strconv"
 )
 
 
@@ -31,9 +32,10 @@ type User struct {
   Name        string        `bson:"title"  json:"title"`
 }
 
-type PageOperation struct {
-  Page int    `json:"page"`
-  Body json.RawMessage `json:"body"`
+type Page struct {
+  Page int    `json:"page" bson:"page"`
+  Body json.RawMessage `json:"body" bson:"body"`
+  NovelID int `json:"novelID" bson:"novelID"`
 }
 type SocketMessage struct {
   Command  string `json:"command"`
@@ -156,30 +158,99 @@ func respondWithJson(w http.ResponseWriter, code int, payload interface{}) {
 	w.Write(response)
 }
 
+func mongoConnect() (*mongo.Client, context.Context, error) {
+  ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+  defer cancel()
+  uri := "mongodb+srv://" + credentials.DBUser + ":" + credentials.DBPass + "@" + credentials.DBHost + "/" + credentials.DBName + "?w=majority"
+  client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
+  if err != nil {
+		return nil, nil, err
+	}
+  if err = client.Ping(ctx, nil); err != nil {
+    return nil, nil, err
+  }
+  log.Println("Connected to MongoDB!")
+  return client, ctx, nil
+}
+func mongoDisconnect(client *mongo.Client, ctx context.Context) error {
+  if err := client.Disconnect(ctx); err != nil {
+    return err
+  }
+  return nil
+}
 
-func saveBody(conn *websocket.Conn, data Story) {
-/*
-  if len(data.ID) == 0 {
-    log.Println("no story id passed")
+func AllPagesEndPoint(w http.ResponseWriter, r *http.Request) {
+  sid := mux.Vars(r)["[0-9]+"]
+  if len(sid) == 0 {
+    respondWithError(w, http.StatusBadRequest, "No story ID received")
     return
   }
-  session, err := mgo.DialWithInfo(connection_info)
+  novelID, err := strconv.Atoi(sid)
   if err != nil {
-    log.Println(err.Error())
+		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-  defer session.Close()
-  c := session.DB(DATABASE).C(STORIES_COLLECTION)
-  p := bluemonday.NewPolicy()
-  p.AllowStandardURLs()
-  p.AllowAttrs("href").OnElements("a")
-  p.AllowElements("div", "i", "b")
-  p.AllowStyling()
-  html := p.Sanitize(data.Body)
-  err = c.Update(bson.M{"_id": data.ID}, bson.M{"$set": bson.M{"body": html}})
+  
+  client, ctx, err := mongoConnect()
   if err != nil {
-    log.Println(err.Error())
-  }*/
+    respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+  }
+  defer mongoDisconnect(client, ctx)
+  pages := client.Database("Drafty").Collection("Pages")
+  filter := &bson.M{"novelID": novelID}
+  cur, err := pages.Find(context.TODO(), filter)
+  if err != nil {
+    respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+  }
+  var results []Page
+  for cur.Next(context.TODO()) {
+    //Create a value into which the single document can be decoded
+    var p Page
+    err := cur.Decode(&p)
+    if err != nil {
+      respondWithError(w, http.StatusInternalServerError, err.Error())
+      return
+    }
+    results = append(results, p)
+  }
+  respondWithJson(w, http.StatusOK, results)
+}
+  
+func savePage(pageNum int, body []byte, novelID int) error {
+  log.Println("save page", pageNum, body, novelID)
+  client, ctx, err := mongoConnect()
+  if err != nil {
+    log.Println("ERROR CONNECTING: ", err)
+    return err
+  }
+  defer mongoDisconnect(client, ctx)
+  pages := client.Database("Drafty").Collection("Pages")
+  filter := &bson.M{"novelID": novelID, "page": pageNum}
+  log.Println("filtering by ", pageNum)
+  ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+  defer cancel()
+  result := Page{}
+  err = pages.FindOne(ctx, filter).Decode(&result)
+  if (err != nil) {
+    log.Println("no page found")
+    page := Page{pageNum, body, novelID}
+
+    insertResult, err := pages.InsertOne(context.TODO(), page)
+    if err != nil {
+      log.Println("Error creating new page")
+      return err
+    }
+    log.Println("Inserted a Single Document: ", insertResult.InsertedID)
+    return nil
+  }
+  log.Println("found page", string(result.Body))
+  update := bson.D{
+    {"$set", bson.D{{"body", body}}},
+  }
+  _, err = pages.UpdateOne(context.TODO(), filter, update)
+  return err
 }
 
 func SetupWebsocket(w http.ResponseWriter, r *http.Request) {
@@ -212,9 +283,9 @@ func main() {
   rtr := mux.NewRouter()
   rtr.HandleFunc(SERVICE_PATH + "/usr/login", LoginEndPoint).Methods("PUT")
   rtr.HandleFunc(SERVICE_PATH + "/stories", AllStoriesEndPoint).Methods("GET")
-  rtr.HandleFunc(SERVICE_PATH + "/story/{[0-9a-zA-Z]+}", StoryEndPoint).Methods("GET")
+  rtr.HandleFunc(SERVICE_PATH + "/story/{[0-9]+}", StoryEndPoint).Methods("GET")
+  rtr.HandleFunc(SERVICE_PATH + "/story/{[0-9]+}/pages", AllPagesEndPoint).Methods("GET")
   rtr.HandleFunc("/wsinit", SetupWebsocket).Methods("GET")
-  //rtr.HandleFunc(SOCKET_DIR, serveWs)
   http.HandleFunc(SOCKET_DIR, func(w http.ResponseWriter, r *http.Request) {
 		serveWs(hub, w, r)
 	})

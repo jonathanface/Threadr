@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import {EditorState, Editor, ContentState, SelectionState, convertToRaw} from 'draft-js';
+import {EditorState, Editor, ContentState, SelectionState, convertToRaw, convertFromRaw} from 'draft-js';
 
 export class Document extends React.Component {
   
@@ -27,11 +27,37 @@ export class Document extends React.Component {
       rightMargin: 1 * dpi,
       bottomMargin: 1 * dpi
     }
-    this.state.pages.push(EditorState.createEmpty());
+    
     this.currentPage = 0;
+    this.SERVICE_URL = '/api';
     this.hitDelete = false;
     this.socket = null;
     this.fetchWebsocketURL();
+    this.novelID = 0;
+    this.fetchDocumentPages()
+  }
+  
+  fetchDocumentPages() {
+    fetch(this.SERVICE_URL + '/story/' + this.novelID + '/pages').then(response => response.json()).then(data => {
+      let pages = [];
+      data.forEach(item => {
+        console.log(item.body);
+        let contentState = convertFromRaw(item.body);
+        console.log(contentState);
+        let editorState = EditorState.createWithContent(contentState);
+        
+        pages.push(editorState);
+        this.setState({
+          pages:pages
+        });
+      });
+      if (!pages.length) {
+        this.state.pages.push(EditorState.createEmpty());
+      }
+    })
+    .catch((error) => {
+      console.error('Error:', error);
+    });
   }
   
   setupWebsocket(url) {
@@ -52,7 +78,7 @@ export class Document extends React.Component {
       setTimeout(this.setupWebsocket, 5000, url);
     };
     this.socket.onmessage = (event) => {
-      console.log('Message from server ', event.data);
+      console.log('Message from server', event.data);
       let json = JSON.parse(event.data);
       switch (json.command) {
         case 'pong':
@@ -100,7 +126,7 @@ export class Document extends React.Component {
   
   onChange = (editorState, index) => {
     if (this.state.pages[index].getCurrentContent() === editorState.getCurrentContent()) {
-      return;
+      //return;
     }
     let addedPage = false;
     let deletedPage = false;
@@ -114,6 +140,7 @@ export class Document extends React.Component {
       let textStr = editorState.getCurrentContent().getPlainText();
       editorState = EditorState.moveFocusToEnd(EditorState.createWithContent(ContentState.createFromText(textStr[textStr.length-1])));
       addedPage = true;
+      this.currentPage = index;
     }
     let pages = this.state.pages;
     pages[index] = editorState;
@@ -121,10 +148,12 @@ export class Document extends React.Component {
       pages:pages
     }, () => {
       let blockDOM = this.getSelectedBlockElement();
-      let domY = blockDOM.getBoundingClientRect().top;
-      if (Math.abs(domY - window.scrollY) > 400 || addedPage) {
-        let scrollToY = blockDOM.getBoundingClientRect().top + window.scrollY;
-        window.scrollTo({top: scrollToY-100, behavior: 'smooth'});
+      if (blockDOM) {
+        let domY = blockDOM.getBoundingClientRect().top;
+        if (Math.abs(domY - window.scrollY) > 400 || addedPage) {
+          let scrollToY = blockDOM.getBoundingClientRect().top + window.scrollY;
+          window.scrollTo({top: scrollToY-100, behavior: 'smooth'});
+        }
       }
     });
     
@@ -146,15 +175,20 @@ export class Document extends React.Component {
     if (addedPage || deletedPage) {
       this.saveAllPages();
     } else {
-      this.saveCurrentPage();
+      this.savePage(this.currentPage);
     }
   }
   
-  saveCurrentPage() {
-    console.log('saving page ' + this.currentPage);
-    console.log(convertToRaw(this.state.pages[this.currentPage].getCurrentContent()));
+  savePage(index) {
+    console.log('saving page ' + index);
     if (this.socket.isOpen) {
-      this.socket.send(JSON.stringify({command:'savePage', data: {page:this.currentPage, body:convertToRaw(this.state.pages[this.currentPage].getCurrentContent())}}));
+      this.socket.send(JSON.stringify({command:'savePage', data: {page:index, novelID:this.novelID, body:convertToRaw(this.state.pages[index].getCurrentContent())}}));
+    }
+  }
+  
+  saveAllPages() {
+    for (let i=0; i < this.state.pages.length; i++) {
+      this.savePage(i);
     }
   }
   

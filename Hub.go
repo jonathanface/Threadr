@@ -43,10 +43,19 @@ func (h *Hub) run() {
       json.Unmarshal(clientMessage.Message, &m)
       switch(m.Command) {
         case "savePage":
-          deets := PageOperation{}
+          deets := Page{}
           json.Unmarshal([]byte(m.Data), &deets)
-          log.Println("deets", deets)
-          clientMessage.Client.send <- []byte("thanks")
+          log.Println("page", deets.Page)
+          response := SocketMessage{}
+          response.Command = "saveFailed"
+          err := savePage(deets.Page, deets.Body, deets.NovelID)
+          if err == nil {
+            response.Command = "saveSuccessful"
+          } else {
+            log.Println(err)
+            response.Data = json.RawMessage(err.Error())
+          }
+          clientMessage.Client.conn.WriteJSON(response)
           break
       }
       /*
