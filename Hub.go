@@ -45,7 +45,7 @@ func (h *Hub) run() {
         case "savePage":
           deets := Page{}
           json.Unmarshal([]byte(m.Data), &deets)
-          log.Println("page", deets.Page)
+          log.Println("editing page", deets.Page)
           response := SocketMessage{}
           response.Command = "saveFailed"
           err := savePage(deets.Page, deets.Body, deets.NovelID)
@@ -57,16 +57,22 @@ func (h *Hub) run() {
           }
           clientMessage.Client.conn.WriteJSON(response)
           break
+        case "deletePage":
+          deets := Page{}
+          json.Unmarshal([]byte(m.Data), &deets)
+          log.Println("deleting page", deets.Page)
+          response := SocketMessage{}
+          response.Command = "deletionFailed"
+          err := deletePage(deets.Page, deets.NovelID)
+          if err == nil {
+            response.Command = "deletionSuccessful"
+          } else {
+            log.Println(err)
+            response.Data = json.RawMessage(err.Error())
+          }
+          clientMessage.Client.conn.WriteJSON(response)
+          break
       }
-      /*
-			for client := range h.clients {
-				select {
-				case client.send <- message:
-				default:
-					close(client.send)
-					delete(h.clients, client)
-				}
-			}*/
 		}
 	}
 }

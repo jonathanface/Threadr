@@ -30,30 +30,46 @@ export class Document extends React.Component {
     
     this.currentPage = 0;
     this.SERVICE_URL = '/api';
+    this.SAVE_TIME_INTERVAL = 5000;
     this.hitDelete = false;
     this.socket = null;
     this.fetchWebsocketURL();
     this.novelID = 0;
+    this.pendingEdits = [];
+    this.pendingPageAdd = false;
+    this.pendingPageDeletions = [];
     this.fetchDocumentPages()
+    this.checkSaveInterval = setInterval(() => this.checkForPendingEdits(), this.SAVE_TIME_INTERVAL);
   }
   
   fetchDocumentPages() {
-    fetch(this.SERVICE_URL + '/story/' + this.novelID + '/pages').then(response => response.json()).then(data => {
-      let pages = [];
-      data.forEach(item => {
-        console.log(item.body);
-        let contentState = convertFromRaw(item.body);
-        console.log(contentState);
-        let editorState = EditorState.createWithContent(contentState);
-        
-        pages.push(editorState);
-        this.setState({
-          pages:pages
-        });
-      });
-      if (!pages.length) {
-        this.state.pages.push(EditorState.createEmpty());
-      }
+    fetch(this.SERVICE_URL + '/story/' + this.novelID + '/pages').then(response => {
+      switch (response.status) {
+        case 200:
+          response.json().then(data => {
+            let pages = [];
+            data.forEach(item => {
+              console.log(item.body);
+              let contentState = convertFromRaw(item.body);
+              console.log(contentState);
+              let editorState = EditorState.createWithContent(contentState);
+              
+              pages.push({'editor':editorState, pageNum:item.page});
+              this.setState({
+                pages:pages
+              });
+            });
+          });
+          break;
+        case 404:
+          console.log('wtf no pages');
+          let blankpages = [];
+          blankpages.push({'editor':EditorState.createEmpty(), 'pageNum':0});
+          this.setState({
+            pages:blankpages
+          });
+          break;
+      }      
     })
     .catch((error) => {
       console.error('Error:', error);
@@ -65,13 +81,12 @@ export class Document extends React.Component {
     this.socket.isOpen = false;
     // Connection opened
     this.socket.onopen = (event) => {
-      console.log(this.socket);
-      this.socket.send(JSON.stringify({command:'ping'}));
       this.socket.isOpen = true;
     };
     this.socket.onclose = (event) => {
-      console.log('socket closed');
+      console.log('socket closed', event);
       this.socket.isOpen = false;
+      setTimeout(this.setupWebsocket, 500, url);
     };
     this.socket.onerror = (event) => {
       this.socket.isOpen = false;
@@ -79,12 +94,6 @@ export class Document extends React.Component {
     };
     this.socket.onmessage = (event) => {
       console.log('Message from server', event.data);
-      let json = JSON.parse(event.data);
-      switch (json.command) {
-        case 'pong':
-          this.socket.send(JSON.stringify({command:'ping'}));
-          break;
-      }
     };
   }
   
@@ -101,7 +110,7 @@ export class Document extends React.Component {
   addNewPage(editorState) {
     this.newPagePending = true;
     let pages = this.state.pages;
-    pages.push(EditorState.createEmpty());
+    pages.push({'editor':EditorState.createEmpty(), 'pageNum':this.state.pages.length});
     this.setState ({
       pages:pages
     }, () => {
@@ -124,14 +133,25 @@ export class Document extends React.Component {
     return null
   }
   
+  recalcPagination() {
+    let newpages = [];
+    for (let i=0; i < this.state.pages.length; i++) {
+      newpages.push({'editor':this.state.pages[i].editor, 'pageNum':i});
+    }
+    this.setState({
+      pages:newpages
+    });
+  }
+  
   onChange = (editorState, index) => {
-    if (this.state.pages[index].getCurrentContent() === editorState.getCurrentContent()) {
-      //return;
+    let cursorChange = false;
+    if (this.state.pages[index].editor.getCurrentContent() === editorState.getCurrentContent() && !this.hitDelete) {
+      cursorChange = true;
     }
     let addedPage = false;
     let deletedPage = false;
     let editor = this.refs[index].current;
-    if (!this.newPagePending && !this.hitDelete &&
+    if (editor && !this.newPagePending && !this.hitDelete && !cursorChange && 
         editor.editorContainer.firstChild.firstChild.offsetHeight >=
         this.state.pageHeight - this.state.topMargin - this.state.bottomMargin) {
       console.log('new page requested');
@@ -143,7 +163,7 @@ export class Document extends React.Component {
       this.currentPage = index;
     }
     let pages = this.state.pages;
-    pages[index] = editorState;
+    pages[index] = {'editor':editorState, 'pageNum':index};
     this.setState({
       pages:pages
     }, () => {
@@ -160,10 +180,12 @@ export class Document extends React.Component {
     
     if (this.hitDelete) {
       this.hitDelete = false;
-      if (!this.state.pages[index].getCurrentContent().hasText() && this.state.pages.length > 1) {
+      console.log('has text??', this.state.pages[index].editor.getCurrentContent().hasText());
+      if (!this.state.pages[index].editor.getCurrentContent().hasText() && this.state.pages.length > 1) {
         deletedPage = true;
         this.state.pages.splice(index, 1);
-        this.state.pages[index-1] = EditorState.moveFocusToEnd(this.state.pages[index-1]);
+        this.recalcPagination();
+        this.state.pages[index-1].editor = EditorState.moveFocusToEnd(this.state.pages[index-1].editor);
         this.setState({
           pages:this.state.pages
         }, () => {
@@ -172,23 +194,45 @@ export class Document extends React.Component {
         });
       }
     }
-    if (addedPage || deletedPage) {
-      this.saveAllPages();
-    } else {
-      this.savePage(this.currentPage);
+    if (!cursorChange) {
+      if (addedPage) {
+        this.pendingPageAdd = true;
+      } else if (deletedPage) {
+        this.deletePage(index);
+      } else {
+        this.pendingEdits.push(this.currentPage);
+      }
     }
+  }
+  
+  checkForPendingEdits() {
+    if (this.pendingPageAdd) {
+      this.pendingPageAdd = false;
+      this.saveAllPages();
+    }
+    for (let i=0; i < this.pendingEdits.length; i++) {
+      this.savePage(this.pendingEdits[i]);
+    }
+    this.pendingEdits = [];
   }
   
   savePage(index) {
     console.log('saving page ' + index);
     if (this.socket.isOpen) {
-      this.socket.send(JSON.stringify({command:'savePage', data: {page:index, novelID:this.novelID, body:convertToRaw(this.state.pages[index].getCurrentContent())}}));
+      this.socket.send(JSON.stringify({command:'savePage', data: {page:index, novelID:this.novelID, body:convertToRaw(this.state.pages[index].editor.getCurrentContent())}}));
     }
   }
   
   saveAllPages() {
     for (let i=0; i < this.state.pages.length; i++) {
       this.savePage(i);
+    }
+  }
+  
+  deletePage(index) {
+    console.log('deleting page', index);
+    if (this.socket.isOpen) {
+      this.socket.send(JSON.stringify({command:'deletePage', data: {page:index, novelID:this.novelID}}));
     }
   }
   
@@ -221,7 +265,7 @@ export class Document extends React.Component {
         <section key={i} className="margins" style={{paddingLeft:this.state.leftMargin, paddingRight:this.state.rightMargin, paddingTop:this.state.topMargin, paddingBottom:this.state.bottomMargin}}>
           <Editor 
                   handleKeyCommand={this.handleKeyCommand}
-                  editorState={this.state.pages[i]}
+                  editorState={this.state.pages[i].editor}
                   placeholder="Write something..."
                   onChange={(editorState) => {
                     this.onChange(editorState, i);

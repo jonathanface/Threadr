@@ -204,6 +204,8 @@ func AllPagesEndPoint(w http.ResponseWriter, r *http.Request) {
     respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
   }
+  defer cur.Close(ctx)
+  log.Println("cur", cur)
   var results []Page
   for cur.Next(context.TODO()) {
     //Create a value into which the single document can be decoded
@@ -215,9 +217,29 @@ func AllPagesEndPoint(w http.ResponseWriter, r *http.Request) {
     }
     results = append(results, p)
   }
+  if len(results) == 0 {
+    respondWithError(w, http.StatusNotFound, "No pages")
+    return
+  }
   respondWithJson(w, http.StatusOK, results)
 }
   
+func deletePage(pageNum int, novelID int) error {
+  log.Println("delete page", pageNum, novelID)
+  client, ctx, err := mongoConnect()
+  if err != nil {
+    log.Println("ERROR CONNECTING: ", err)
+    return err
+  }
+  defer mongoDisconnect(client, ctx)
+  pages := client.Database("Drafty").Collection("Pages")
+  filter := &bson.M{"novelID": novelID, "page": pageNum}
+  ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+  defer cancel()
+  _, err = pages.DeleteOne(ctx, filter)
+  return err
+}  
+
 func savePage(pageNum int, body []byte, novelID int) error {
   log.Println("save page", pageNum, body, novelID)
   client, ctx, err := mongoConnect()
@@ -228,7 +250,6 @@ func savePage(pageNum int, body []byte, novelID int) error {
   defer mongoDisconnect(client, ctx)
   pages := client.Database("Drafty").Collection("Pages")
   filter := &bson.M{"novelID": novelID, "page": pageNum}
-  log.Println("filtering by ", pageNum)
   ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
   defer cancel()
   result := Page{}
