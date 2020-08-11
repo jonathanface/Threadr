@@ -13,9 +13,47 @@ html, body {
   height:100%;
 }
 
-.editorContainer {
+div.editorRoot {
   margin:0px auto;
-  
+  margin-top:50px;
+}
+
+.editorRoot nav {
+  background-color: #333;
+  color: #FFF;
+  padding: 5px;
+  padding-bottom:10px;
+  border-radius: 10px;
+  border: 1px solid #000;
+  position: fixed;
+  left: 10px;
+  top: 10px;
+  vertical-align: middle;
+  font-size: 24px;
+  line-height: 24px;
+}
+.editorRoot nav svg {
+    background: #585858;
+    padding: 3px;
+    border: 1px solid #000;
+    border-radius: 5px;
+    cursor: pointer;
+    margin:3px;
+}
+.editorRoot nav svg:hover {
+  color:#333;
+}
+
+.editorRoot nav select, .editorRoot nav option {
+  background: #585858;
+  color: #FFF;
+  padding: 3px;
+}
+.editorRoot nav option["selected"] {
+  background:#333;
+}
+
+.documentContainer {
   height:100%;
 }
 section.margins {
@@ -23,7 +61,6 @@ section.margins {
   height:100%;
   border: 1px solid #000;
   background-color: #F1F1F1;
-  margin-top:50px;
   margin-bottom:50px;
 }
 div.DraftEditor-root {

@@ -1,6 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {EditorState, Editor, ContentState, SelectionState, convertToRaw, convertFromRaw} from 'draft-js';
+import FormatAlignLeftIcon from '@material-ui/icons/FormatAlignLeft';
+import FormatAlignRightIcon from '@material-ui/icons/FormatAlignRight';
+import FormatAlignCenterIcon from '@material-ui/icons/FormatAlignCenter';
+import FormatAlignJustifyIcon from '@material-ui/icons/FormatAlignJustify';
+import FormatBoldIcon from '@material-ui/icons/FormatBold';
+import FormatItalicIcon from '@material-ui/icons/FormatItalic';
+import FormatUnderlinedIcon from '@material-ui/icons/FormatUnderlined';
 
 export class Document extends React.Component {
   
@@ -276,8 +283,30 @@ export class Document extends React.Component {
     }
     
     return (
-      <div onClick={this.focus} className="editorContainer" style={{maxHeight:this.state.pageHeight, height:this.state.pageHeight, width:this.state.pageWidth}}>
-        {editors}
+      <div className="editorRoot" style={{width:this.state.pageWidth}}>
+        <nav >
+          <div>
+            <FormatAlignLeftIcon fontSize="inherit"/>
+            <FormatAlignCenterIcon fontSize="inherit"/>
+            <FormatAlignRightIcon fontSize="inherit"/>
+            <FormatAlignJustifyIcon fontSize="inherit"/>
+          </div>
+          <div>
+            <FormatBoldIcon fontSize="inherit"/>
+            <FormatItalicIcon fontSize="inherit"/>
+            <FormatUnderlinedIcon fontSize="inherit"/>
+          </div>
+          <div>
+            <select>
+              <option>Arial</option>
+              <option>Courier New</option>
+              <option>Verdana</option>
+            </select>
+          </div>
+        </nav>
+        <div onClick={this.focus} className="editorContainer" style={{maxHeight:this.state.pageHeight, height:this.state.pageHeight}}>
+          {editors}
+        </div>
       </div>
     );
   }
