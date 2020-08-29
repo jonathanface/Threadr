@@ -44,10 +44,15 @@ div.editorRoot {
   color:#333;
 }
 
-.editorRoot nav select, .editorRoot nav option {
+.editorRoot nav select, .editorRoot nav option, .editorRoot nav input.selectable {
   background: #585858;
   color: #FFF;
   padding: 3px;
+  
+}
+.editorRoot nav input.selectable {
+  width:50px;
+  margin-left:10px;
 }
 .editorRoot nav option["selected"] {
   background:#333;

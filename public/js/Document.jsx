@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import {EditorState, Editor, ContentState, SelectionState, convertToRaw, convertFromRaw} from 'draft-js';
+import {EditorState, Editor, ContentState, SelectionState, Modifier, convertToRaw, convertFromRaw} from 'draft-js';
 import FormatAlignLeftIcon from '@material-ui/icons/FormatAlignLeft';
 import FormatAlignRightIcon from '@material-ui/icons/FormatAlignRight';
 import FormatAlignCenterIcon from '@material-ui/icons/FormatAlignCenter';
@@ -61,7 +61,7 @@ export class Document extends React.Component {
               console.log(contentState);
               let editorState = EditorState.createWithContent(contentState);
               
-              pages.push({'editor':editorState, pageNum:item.page});
+              pages.push({'editorState':editorState, pageNum:item.page});
               this.setState({
                 pages:pages
               });
@@ -71,7 +71,7 @@ export class Document extends React.Component {
         case 404:
           console.log('wtf no pages');
           let blankpages = [];
-          blankpages.push({'editor':EditorState.createEmpty(), 'pageNum':0});
+          blankpages.push({'editorState':EditorState.createEmpty(), 'pageNum':0});
           this.setState({
             pages:blankpages
           });
@@ -117,7 +117,7 @@ export class Document extends React.Component {
   addNewPage(editorState) {
     this.newPagePending = true;
     let pages = this.state.pages;
-    pages.push({'editor':EditorState.createEmpty(), 'pageNum':this.state.pages.length});
+    pages.push({'editorState':EditorState.createEmpty(), 'pageNum':this.state.pages.length});
     this.setState ({
       pages:pages
     }, () => {
@@ -143,56 +143,84 @@ export class Document extends React.Component {
   recalcPagination() {
     let newpages = [];
     for (let i=0; i < this.state.pages.length; i++) {
-      newpages.push({'editor':this.state.pages[i].editor, 'pageNum':i});
+      newpages.push({'editorState':this.state.pages[i].editorState, 'pageNum':i});
     }
     this.setState({
       pages:newpages
     });
   }
   
-  onChange = (editorState, index) => {
+  removeBlockFromMap(editorState, blockKey) {
+    let contentState = editorState.getCurrentContent();
+    console.log(editorState.getCurrentContent().getPlainText());
+    let blockMap = contentState.getBlockMap();
+    console.log('pre', blockMap);
+    let newBlockMap = blockMap.remove(blockKey);
+    console.log('post', newBlockMap);
+    const newContentState = contentState.merge({
+      blockMap: newBlockMap
+    });
+    return EditorState.push(editorState, newContentState, 'remove-range');
+  }
+  
+  async checkPageHeightAndPushBlockToNextPage(pagesUpdate, index) {
+    const editor = this.refs[index].current;
+    let maxHeight = this.state.pageHeight - this.state.topMargin - this.state.bottomMargin;
+    console.log(editor.editorContainer.firstChild.firstChild.offsetHeight, " vs ", maxHeight);
+    if (editor.editorContainer.firstChild.firstChild.offsetHeight >= maxHeight) {
+      const removeBlock = pagesUpdate[index].editorState.getCurrentContent().getLastBlock();
+      let blockArray = [];
+      blockArray.push(removeBlock);
+      blockArray = blockArray.concat(pagesUpdate[index+1].editorState.getCurrentContent().getBlockMap().toArray());
+      const combinedContentState = ContentState.createFromBlockArray(blockArray);
+      pagesUpdate[index+1].editorState = EditorState.push(pagesUpdate[index+1].editorState, combinedContentState);
+      pagesUpdate[index].editorState = this.removeBlockFromMap(pagesUpdate[index].editorState, removeBlock.getKey());
+      this.setState({
+        pages:pagesUpdate
+      }, () => {
+        return this.checkPageHeightAndPushBlockToNextPage(pagesUpdate, index);
+      });
+    }
+    return pagesUpdate;
+  }
+  
+  onChange = async(editorState, index) => {
     let cursorChange = false;
-    if (this.state.pages[index].editor.getCurrentContent() === editorState.getCurrentContent() && !this.hitDelete) {
+    if (this.state.pages[index].editorState.getCurrentContent() === editorState.getCurrentContent() && !this.hitDelete) {
       cursorChange = true;
     }
     let addedPage = false;
     let deletedPage = false;
     let editor = this.refs[index].current;
-    if (editor && !this.newPagePending && !this.hitDelete && !cursorChange && 
-        editor.editorContainer.firstChild.firstChild.offsetHeight >=
-        this.state.pageHeight - this.state.topMargin - this.state.bottomMargin) {
-      console.log('new page requested');
-      this.addNewPage(editorState);
-      index++;
-      let textStr = editorState.getCurrentContent().getPlainText();
-      editorState = EditorState.moveFocusToEnd(EditorState.createWithContent(ContentState.createFromText(textStr[textStr.length-1])));
-      addedPage = true;
-      this.currentPage = index;
-    }
-    let pages = this.state.pages;
-    pages[index] = {'editor':editorState, 'pageNum':index};
-    this.setState({
-      pages:pages
-    }, () => {
-      let blockDOM = this.getSelectedBlockElement();
-      if (blockDOM) {
-        let domY = blockDOM.getBoundingClientRect().top;
-        if (Math.abs(domY - window.scrollY) > 400 || addedPage) {
-          let scrollToY = blockDOM.getBoundingClientRect().top + window.scrollY;
-          window.scrollTo({top: scrollToY-100, behavior: 'smooth'});
+    
+    console.log('change to page', this.currentPage);
+    if (editor && !this.newPagePending && !this.hitDelete) {
+      let pagesUpdate = this.state.pages;
+      pagesUpdate[index].editorState = editorState;
+      pagesUpdate = await this.checkPageHeightAndPushBlockToNextPage(pagesUpdate, index);
+      
+      this.setState({
+        pages:pagesUpdate
+      }, () => {
+        let blockDOM = this.getSelectedBlockElement();
+        if (blockDOM) {
+          let domY = blockDOM.getBoundingClientRect().top;
+          if (Math.abs(domY - window.scrollY) > 400 || addedPage) {
+            let scrollToY = blockDOM.getBoundingClientRect().top + window.scrollY;
+            window.scrollTo({top: scrollToY-100, behavior: 'smooth'});
+          }
         }
-      }
-    });
-    
-    
+      });
+    }
+/*
     if (this.hitDelete) {
       this.hitDelete = false;
-      console.log('has text??', this.state.pages[index].editor.getCurrentContent().hasText());
-      if (!this.state.pages[index].editor.getCurrentContent().hasText() && this.state.pages.length > 1) {
+      console.log('has text??', this.state.pages[index].editorState.getCurrentContent().hasText());
+      if (!this.state.pages[index].editorState.getCurrentContent().hasText() && this.state.pages.length > 1) {
         deletedPage = true;
         this.state.pages.splice(index, 1);
         this.recalcPagination();
-        this.state.pages[index-1].editor = EditorState.moveFocusToEnd(this.state.pages[index-1].editor);
+        this.state.pages[index-1].editorState = EditorState.moveFocusToEnd(this.state.pages[index-1].editorState);
         this.setState({
           pages:this.state.pages
         }, () => {
@@ -209,7 +237,7 @@ export class Document extends React.Component {
       } else {
         this.pendingEdits.push(this.currentPage);
       }
-    }
+    }*/
   }
   
   checkForPendingEdits() {
@@ -226,7 +254,7 @@ export class Document extends React.Component {
   savePage(index) {
     console.log('saving page ' + index);
     if (this.socket.isOpen) {
-      this.socket.send(JSON.stringify({command:'savePage', data: {page:index, novelID:this.novelID, body:convertToRaw(this.state.pages[index].editor.getCurrentContent())}}));
+      this.socket.send(JSON.stringify({command:'savePage', data: {page:index, novelID:this.novelID, body:convertToRaw(this.state.pages[index].editorState.getCurrentContent())}}));
     }
   }
   
@@ -262,6 +290,25 @@ export class Document extends React.Component {
     }
   }
   
+  formatText(type, e) {
+    console.log(type, e);
+    let editorState = this.state.pages[this.currentPage].editorState;
+    let selection = editorState.getSelection();
+    if (selection.size) {
+      const contentState = Modifier.applyInlineStyle(editorState.getCurrentContent(), selection, "font-weight:bold;");
+      EditorState.push(editorState, contentState, "change-inline-style");
+      
+    }
+  }
+  
+  updateSettings() {
+    
+  }
+  
+  setFocus(index) {
+    this.refs[index].current.focus();
+  }
+  
   render() {
     let editors = [];
     this.refs = [];
@@ -269,10 +316,10 @@ export class Document extends React.Component {
     for (let i=0; i < this.state.pages.length; i++) {
       this.refs.push(React.createRef());
       editors.push(
-        <section key={i} className="margins" style={{paddingLeft:this.state.leftMargin, paddingRight:this.state.rightMargin, paddingTop:this.state.topMargin, paddingBottom:this.state.bottomMargin}}>
+        <section key={i} onClick={() => {this.setFocus(i);}} className="margins" style={{paddingLeft:this.state.leftMargin, paddingRight:this.state.rightMargin, paddingTop:this.state.topMargin, paddingBottom:this.state.bottomMargin}}>
           <Editor 
                   handleKeyCommand={this.handleKeyCommand}
-                  editorState={this.state.pages[i].editor}
+                  editorState={this.state.pages[i].editorState}
                   placeholder="Write something..."
                   onChange={(editorState) => {
                     this.onChange(editorState, i);
@@ -292,7 +339,7 @@ export class Document extends React.Component {
             <FormatAlignJustifyIcon fontSize="inherit"/>
           </div>
           <div>
-            <FormatBoldIcon fontSize="inherit"/>
+            <FormatBoldIcon fontSize="inherit" onClick={(e) => this.formatText('b', e)} />
             <FormatItalicIcon fontSize="inherit"/>
             <FormatUnderlinedIcon fontSize="inherit"/>
           </div>
@@ -302,6 +349,15 @@ export class Document extends React.Component {
               <option>Courier New</option>
               <option>Verdana</option>
             </select>
+            <input className="selectable" list="fontSize" value="12" onChange={this.updateSettings} />
+            <datalist id="fontSize">
+              <option value="8"/>
+              <option value="10"/>
+              <option value="12" defaultValue/>
+              <option value="16"/>
+              <option value="20"/>
+              <option value="24"/>
+            </datalist>
           </div>
         </nav>
         <div onClick={this.focus} className="editorContainer" style={{maxHeight:this.state.pageHeight, height:this.state.pageHeight}}>
