@@ -121,8 +121,8 @@ export class Document extends React.Component {
     this.setState ({
       pages:pages
     }, () => {
-      this.refs[this.refs.length-1].current.focus();
-      this.currentPage = this.refs.length-1;
+      //this.setFocus(this.refs.length-1);
+      //this.currentPage = this.refs.length-1;
       this.newPagePending = false;
     });
     
@@ -167,8 +167,13 @@ export class Document extends React.Component {
     const editor = this.refs[index].current;
     let maxHeight = this.state.pageHeight - this.state.topMargin - this.state.bottomMargin;
     console.log(editor.editorContainer.firstChild.firstChild.offsetHeight, " vs ", maxHeight);
-    if (editor.editorContainer.firstChild.firstChild.offsetHeight >= maxHeight) {
+    if (editor.editorContainer.firstChild.firstChild.offsetHeight >= maxHeight && !this.newPagePending) {
+      if (!pagesUpdate[index+1]) {
+        this.addNewPage();
+        return this.checkPageHeightAndPushBlockToNextPage(pagesUpdate, index);
+      }
       const removeBlock = pagesUpdate[index].editorState.getCurrentContent().getLastBlock();
+      var currentSelectedKey = pagesUpdate[index].editorState.getSelection().focusKey;
       let blockArray = [];
       blockArray.push(removeBlock);
       blockArray = blockArray.concat(pagesUpdate[index+1].editorState.getCurrentContent().getBlockMap().toArray());
@@ -178,8 +183,19 @@ export class Document extends React.Component {
       this.setState({
         pages:pagesUpdate
       }, () => {
+        this.currentPage = this.refs.length-1;
+        if (currentSelectedKey == removeBlock.getKey()) {
+          this.setFocus(index+1);
+          const selection = pagesUpdate[index].editorState.getSelection();
+          pagesUpdate[index+1].editorState = EditorState.forceSelection(pagesUpdate[index+1].editorState, selection);
+          this.setState({
+            pages:pagesUpdate
+          });
+        }
         return this.checkPageHeightAndPushBlockToNextPage(pagesUpdate, index);
       });
+    } else if (this.newPagePending) {
+      return this.checkPageHeightAndPushBlockToNextPage(pagesUpdate, index);
     }
     return pagesUpdate;
   }
@@ -192,16 +208,36 @@ export class Document extends React.Component {
     let addedPage = false;
     let deletedPage = false;
     let editor = this.refs[index].current;
-    
-    console.log('change to page', this.currentPage);
-    if (editor && !this.newPagePending && !this.hitDelete) {
-      let pagesUpdate = this.state.pages;
-      pagesUpdate[index].editorState = editorState;
-      pagesUpdate = await this.checkPageHeightAndPushBlockToNextPage(pagesUpdate, index);
-      
+    let pagesUpdate = this.state.pages;
+    console.log('change to page', index);
+    if (editor) {
+      if (this.hitDelete) {
+        console.log('hit del');
+        this.hitDelete = false;
+        const selection = pagesUpdate[index].editorState.getSelection();
+        let thisBlock = pagesUpdate[index].editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
+        console.log('tried to delete', thisBlock.getText());
+        if (!thisBlock.getText().length) {
+          editorState = this.removeBlockFromMap(editorState, thisBlock.getKey());
+          if (!editorState.getCurrentContent().hasText() && pagesUpdate.length > 1) {
+            deletedPage = true;
+            pagesUpdate.splice(index, 1);
+            this.recalcPagination();
+            pagesUpdate[index-1].editorState = EditorState.moveFocusToEnd(pagesUpdate[index-1].editorState);
+          }
+        }
+      }
+      if (!deletedPage) {
+        pagesUpdate[index].editorState = editorState;
+        pagesUpdate = await this.checkPageHeightAndPushBlockToNextPage(pagesUpdate, index);
+      }
       this.setState({
         pages:pagesUpdate
       }, () => {
+        if (deletedPage) {
+          this.setFocus(index-1);
+          this.currentPage = index-1;
+        }
         let blockDOM = this.getSelectedBlockElement();
         if (blockDOM) {
           let domY = blockDOM.getBoundingClientRect().top;
@@ -211,33 +247,18 @@ export class Document extends React.Component {
           }
         }
       });
-    }
-/*
-    if (this.hitDelete) {
-      this.hitDelete = false;
-      console.log('has text??', this.state.pages[index].editorState.getCurrentContent().hasText());
-      if (!this.state.pages[index].editorState.getCurrentContent().hasText() && this.state.pages.length > 1) {
-        deletedPage = true;
-        this.state.pages.splice(index, 1);
-        this.recalcPagination();
-        this.state.pages[index-1].editorState = EditorState.moveFocusToEnd(this.state.pages[index-1].editorState);
-        this.setState({
-          pages:this.state.pages
-        }, () => {
-          this.refs[index-1].current.focus();
-          this.currentPage = index-1;
-        });
+      
+      if (!cursorChange) {
+        if (addedPage) {
+          this.pendingPageAdd = true;
+        } else if (deletedPage) {
+          this.deletePage(index);
+        } else {
+          this.pendingEdits.push(this.currentPage);
+        }
       }
     }
-    if (!cursorChange) {
-      if (addedPage) {
-        this.pendingPageAdd = true;
-      } else if (deletedPage) {
-        this.deletePage(index);
-      } else {
-        this.pendingEdits.push(this.currentPage);
-      }
-    }*/
+    
   }
   
   checkForPendingEdits() {
