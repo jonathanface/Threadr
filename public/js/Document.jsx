@@ -42,7 +42,7 @@ export class Document extends React.Component {
     this.socket = null;
     this.fetchWebsocketURL();
     this.novelID = 0;
-    this.pendingEdits = [];
+    this.pendingEdits = new Map();
     this.pendingPageAdd = false;
     this.pendingPageDeletions = [];
     this.fetchDocumentPages()
@@ -124,6 +124,7 @@ export class Document extends React.Component {
       //this.setFocus(this.refs.length-1);
       //this.currentPage = this.refs.length-1;
       this.newPagePending = false;
+      this.pendingPageAdd = true;
     });
     
   }
@@ -195,7 +196,10 @@ export class Document extends React.Component {
         return this.checkPageHeightAndPushBlockToNextPage(pagesUpdate, index);
       });
     } else if (this.newPagePending) {
-      return this.checkPageHeightAndPushBlockToNextPage(pagesUpdate, index);
+      setTimeout(() => {
+        this.checkPageHeightAndPushBlockToNextPage(pagesUpdate, index);
+      }, 50);
+      return pagesUpdate;
     }
     return pagesUpdate;
   }
@@ -219,6 +223,7 @@ export class Document extends React.Component {
         console.log('tried to delete', thisBlock.getText());
         if (!thisBlock.getText().length) {
           editorState = this.removeBlockFromMap(editorState, thisBlock.getKey());
+          console.log('ed', editorState);
           if (!editorState.getCurrentContent().hasText() && pagesUpdate.length > 1) {
             deletedPage = true;
             pagesUpdate.splice(index, 1);
@@ -249,12 +254,10 @@ export class Document extends React.Component {
       });
       
       if (!cursorChange) {
-        if (addedPage) {
-          this.pendingPageAdd = true;
-        } else if (deletedPage) {
+        if (deletedPage) {
           this.deletePage(index);
         } else {
-          this.pendingEdits.push(this.currentPage);
+          this.pendingEdits.set(this.currentPage, true);
         }
       }
     }
@@ -266,10 +269,12 @@ export class Document extends React.Component {
       this.pendingPageAdd = false;
       this.saveAllPages();
     }
-    for (let i=0; i < this.pendingEdits.length; i++) {
-      this.savePage(this.pendingEdits[i]);
-    }
-    this.pendingEdits = [];
+    this.pendingEdits.forEach((value, key) => {
+      if (value) {
+        this.savePage(key);
+        this.pendingEdits[key] = false;
+      }
+    });
   }
   
   savePage(index) {
