@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import {EditorState, Editor, ContentState, SelectionState, Modifier, convertToRaw, convertFromRaw} from 'draft-js';
+import {EditorState, Editor, ContentState, SelectionState, Modifier, convertToRaw, convertFromRaw, RichUtils} from 'draft-js';
 import FormatAlignLeftIcon from '@material-ui/icons/FormatAlignLeft';
 import FormatAlignRightIcon from '@material-ui/icons/FormatAlignRight';
 import FormatAlignCenterIcon from '@material-ui/icons/FormatAlignCenter';
@@ -32,10 +32,13 @@ export class Document extends React.Component {
       topMargin: 1 * dpi,
       leftMargin: 1 * dpi,
       rightMargin: 1 * dpi,
-      bottomMargin: 1 * dpi
+      bottomMargin: 1 * dpi,
+      fontSizes: [8,10,12,16,18,20,24]
     }
     
     this.currentPage = 0;
+    this.currentFontSize = 12;
+    
     this.SERVICE_URL = '/api';
     this.SAVE_TIME_INTERVAL = 5000;
     this.hitDelete = false;
@@ -272,7 +275,7 @@ export class Document extends React.Component {
     this.pendingEdits.forEach((value, key) => {
       if (value) {
         this.savePage(key);
-        this.pendingEdits[key] = false;
+        this.pendingEdits.set(key, false);
       }
     });
   }
@@ -316,23 +319,44 @@ export class Document extends React.Component {
     }
   }
   
-  formatText(type, e) {
-    console.log(type, e);
-    let editorState = this.state.pages[this.currentPage].editorState;
-    let selection = editorState.getSelection();
-    if (selection.size) {
-      const contentState = Modifier.applyInlineStyle(editorState.getCurrentContent(), selection, "font-weight:bold;");
-      EditorState.push(editorState, contentState, "change-inline-style");
-      
-    }
+  formatText(style, e) {
+    let pagesUpdate = this.state.pages;
+    const editorState = pagesUpdate[this.currentPage].editorState;
+    const editorStateWithSelection = EditorState.forceSelection(editorState, editorState.getSelection());
+    pagesUpdate[this.currentPage].editorState = RichUtils.toggleInlineStyle(editorStateWithSelection, style);
+    
+    this.setState({
+      pages:pagesUpdate
+    });
   }
   
-  updateSettings() {
-    
+  updateFontSize(event) {
+    console.log('font', event.target.value);
+    let intVal = parseInt(event.target.value);
+    if (!isNaN(intVal)) {
+      this.currentFontSize = intVal;
+      let editorState = this.state.pages[this.currentPage].editorState;
+      let selection = editorState.getSelection();
+      console.log(selection);
+      if (selection.anchorOffset != selection.focusOffset) {
+        const contentState = Modifier.applyInlineStyle(editorState.getCurrentContent(), selection, "font-size:" + this.currentFontSize + "px;");
+        EditorState.push(editorState, contentState, "change-inline-style");
+      }
+    }
   }
   
   setFocus(index) {
     this.refs[index].current.focus();
+  }
+  
+  getFontSizeList() {
+    return (
+      <datalist id="fontSizeList">
+        {this.state.fontSizes.map((size) => {
+          return <option value={size} key={size} />
+        })}
+      </datalist>
+    );
   }
   
   render() {
@@ -355,6 +379,7 @@ export class Document extends React.Component {
       );
     }
     
+    
     return (
       <div className="editorRoot" style={{width:this.state.pageWidth}}>
         <nav >
@@ -365,9 +390,9 @@ export class Document extends React.Component {
             <FormatAlignJustifyIcon fontSize="inherit"/>
           </div>
           <div>
-            <FormatBoldIcon fontSize="inherit" onClick={(e) => this.formatText('b', e)} />
-            <FormatItalicIcon fontSize="inherit"/>
-            <FormatUnderlinedIcon fontSize="inherit"/>
+            <FormatBoldIcon fontSize="inherit" onClick={(e) => this.formatText('BOLD', e)} />
+            <FormatItalicIcon fontSize="inherit" onClick={(e) => this.formatText('ITALIC', e)} />
+            <FormatUnderlinedIcon fontSize="inherit" onClick={(e) => this.formatText('UNDERLINE', e)} />
           </div>
           <div>
             <select>
@@ -375,15 +400,8 @@ export class Document extends React.Component {
               <option>Courier New</option>
               <option>Verdana</option>
             </select>
-            <input className="selectable" list="fontSize" value="12" onChange={this.updateSettings} />
-            <datalist id="fontSize">
-              <option value="8"/>
-              <option value="10"/>
-              <option value="12" defaultValue/>
-              <option value="16"/>
-              <option value="20"/>
-              <option value="24"/>
-            </datalist>
+            <input className="selectable" list="fontSizeList" onChange={this.updateFontSize.bind(this)} defaultValue={this.currentFontSize} />
+            {this.getFontSizeList()}
           </div>
         </nav>
         <div onClick={this.focus} className="editorContainer" style={{maxHeight:this.state.pageHeight, height:this.state.pageHeight}}>
