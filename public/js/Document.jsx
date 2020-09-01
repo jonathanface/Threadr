@@ -9,6 +9,54 @@ import FormatBoldIcon from '@material-ui/icons/FormatBold';
 import FormatItalicIcon from '@material-ui/icons/FormatItalic';
 import FormatUnderlinedIcon from '@material-ui/icons/FormatUnderlined';
 
+const styleMap = {
+  'FONT_SIZE_6': {
+    fontSize: '6px'
+  },
+  'FONT_SIZE_8': {
+    fontSize: '8px'
+  },
+  'FONT_SIZE_10': {
+    fontSize: '10px'
+  },
+  'FONT_SIZE_12': {
+    fontSize: '12px'
+  },
+  'FONT_SIZE_14': {
+    fontSize: '14px'
+  },
+  'FONT_SIZE_16': {
+    fontSize: '16px'
+  },
+  'FONT_SIZE_18': {
+    fontSize: '18px'
+  },
+  'FONT_SIZE_20': {
+    fontSize: '20px'
+  },
+  'FONT_SIZE_22': {
+    fontSize: '22px'
+  },
+  'FONT_SIZE_24': {
+    fontSize: '24px'
+  },
+  'FONT_SIZE_28': {
+    fontSize: '28px'
+  },
+  'FONT_SIZE_32': {
+    fontSize: '32px'
+  },
+  'FONT_ARIAL': {
+    fontFamily:'Arial,Helvetica Neue,Helvetica,sans-serif'
+  },
+  'FONT_VERDANA': {
+    fontFamily:'Verdana,Geneva,sans-serif'
+  },
+  'FONT_COURIER': {
+    fontFamily:'Courier,serif mono'
+  }
+};
+
 export class Document extends React.Component {
   
   constructor() {
@@ -33,12 +81,16 @@ export class Document extends React.Component {
       leftMargin: 1 * dpi,
       rightMargin: 1 * dpi,
       bottomMargin: 1 * dpi,
-      fontSizes: [8,10,12,16,18,20,24]
+      fonts: ['Arial', 'Courier', 'Verdana'],
+      fontSizes: [6,8,10,12,14,16,18,20,22,24,28,32],
+      boldOn:false,
+      italicOn:false,
+      underlineOn:false,
+      currentFont:'ARIAL',
+      currentFontSize:12
     }
     
     this.currentPage = 0;
-    this.currentFontSize = 12;
-    
     this.SERVICE_URL = '/api';
     this.SAVE_TIME_INTERVAL = 5000;
     this.hitDelete = false;
@@ -51,6 +103,7 @@ export class Document extends React.Component {
     this.fetchDocumentPages()
     this.checkSaveInterval = setInterval(() => this.checkForPendingEdits(), this.SAVE_TIME_INTERVAL);
   }
+ 
   
   fetchDocumentPages() {
     fetch(this.SERVICE_URL + '/story/' + this.novelID + '/pages').then(response => {
@@ -207,6 +260,11 @@ export class Document extends React.Component {
     return pagesUpdate;
   }
   
+  hasStyle = (editorState, style) => {
+    const currentStyle = editorState.getCurrentInlineStyle();
+    return currentStyle.has(style);
+  }
+  
   onChange = async(editorState, index) => {
     let cursorChange = false;
     if (this.state.pages[index].editorState.getCurrentContent() === editorState.getCurrentContent() && !this.hitDelete) {
@@ -239,6 +297,26 @@ export class Document extends React.Component {
         pagesUpdate[index].editorState = editorState;
         pagesUpdate = await this.checkPageHeightAndPushBlockToNextPage(pagesUpdate, index);
       }
+      
+      if (cursorChange) {
+        console.log('cursor change');
+        let b=false, i=false, u=false;
+        if (this.hasStyle(editorState, 'BOLD')) {
+          b=true;
+        }
+        if (this.hasStyle(editorState, 'ITALIC')) {
+          i = true;
+        }
+        if (this.hasStyle(editorState, 'UNDERLINE')) {
+          u=true;
+        }
+        this.setState({
+          boldOn:b,
+          italicOn:i,
+          underlineOn:u
+        });
+      }
+      
       this.setState({
         pages:pagesUpdate
       }, () => {
@@ -255,6 +333,8 @@ export class Document extends React.Component {
           }
         }
       });
+      
+      
       
       if (!cursorChange) {
         if (deletedPage) {
@@ -320,28 +400,56 @@ export class Document extends React.Component {
   }
   
   formatText(style, e) {
+    console.log('setting style', style);
     let pagesUpdate = this.state.pages;
-    const editorState = pagesUpdate[this.currentPage].editorState;
-    const editorStateWithSelection = EditorState.forceSelection(editorState, editorState.getSelection());
-    pagesUpdate[this.currentPage].editorState = RichUtils.toggleInlineStyle(editorStateWithSelection, style);
-    
+    pagesUpdate[this.currentPage].editorState = RichUtils.toggleInlineStyle(pagesUpdate[this.currentPage].editorState, style);
+    let b=false,i=false,u=false;
+    switch(style) {
+      case 'BOLD':
+        b=true;
+        break;
+      case 'ITALIC':
+        i=true;
+        break;
+      case 'UNDERLINE':
+        u=true;
+        break;
+    }
     this.setState({
-      pages:pagesUpdate
+      pages:pagesUpdate,
+      boldOn:b,
+      italicOn:i,
+      underlineOn:u
+    }, () => {
+      this.pendingEdits.set(this.currentPage, true);
+    });
+  }
+  
+  updateFont(event) {
+    this.setState({
+        currentFont:event.target.value
+    }, () => {
+      console.log('new font', this.state.currentFont);
+      let pagesUpdate = this.state.pages;
+      const selection = pagesUpdate[this.currentPage].editorState.getSelection();
+      this.state.pages[this.currentPage].editorState = EditorState.forceSelection(this.state.pages[this.currentPage].editorState, selection);
+      this.formatText('FONT_' + this.state.currentFont, event);
     });
   }
   
   updateFontSize(event) {
-    console.log('font', event.target.value);
+    event.preventDefault();
     let intVal = parseInt(event.target.value);
     if (!isNaN(intVal)) {
-      this.currentFontSize = intVal;
-      let editorState = this.state.pages[this.currentPage].editorState;
-      let selection = editorState.getSelection();
-      console.log(selection);
-      if (selection.anchorOffset != selection.focusOffset) {
-        const contentState = Modifier.applyInlineStyle(editorState.getCurrentContent(), selection, "font-size:" + this.currentFontSize + "px;");
-        EditorState.push(editorState, contentState, "change-inline-style");
-      }
+      this.setState({
+        currentFontSize:intVal
+      }, () => {
+        console.log('new font size', this.state.currentFontSize);
+        let pagesUpdate = this.state.pages;
+        const selection = pagesUpdate[this.currentPage].editorState.getSelection();
+        this.state.pages[this.currentPage].editorState = EditorState.forceSelection(this.state.pages[this.currentPage].editorState, selection);
+        this.formatText('FONT_SIZE_' + this.state.currentFontSize, event);
+      });
     }
   }
   
@@ -349,13 +457,29 @@ export class Document extends React.Component {
     this.refs[index].current.focus();
   }
   
+  getFontList() {
+    return (
+      <React.Fragment>
+        {this.state.fonts.map((font) => {
+          if (font.toUpperCase() == this.currentFont) {
+            return <option selected value={font.toUpperCase()} key={font}>{font}</option>
+          }
+          return <option value={font.toUpperCase()} key={font}>{font}</option>
+        })}
+      </React.Fragment>
+    );
+  }
+  
   getFontSizeList() {
     return (
-      <datalist id="fontSizeList">
+      <React.Fragment>
         {this.state.fontSizes.map((size) => {
-          return <option value={size} key={size} />
+          if (size == this.currentFontSize) {
+            return <option selected value={size} key={size}>{size}</option>
+          }
+          return <option value={size} key={size}>{size}</option>
         })}
-      </datalist>
+      </React.Fragment>
     );
   }
   
@@ -374,11 +498,11 @@ export class Document extends React.Component {
                   onChange={(editorState) => {
                     this.onChange(editorState, i);
                   }}
+                  customStyleMap={styleMap}
                   ref={this.refs[i]}/>
         </section>
       );
     }
-    
     
     return (
       <div className="editorRoot" style={{width:this.state.pageWidth}}>
@@ -390,18 +514,17 @@ export class Document extends React.Component {
             <FormatAlignJustifyIcon fontSize="inherit"/>
           </div>
           <div>
-            <FormatBoldIcon fontSize="inherit" onClick={(e) => this.formatText('BOLD', e)} />
-            <FormatItalicIcon fontSize="inherit" onClick={(e) => this.formatText('ITALIC', e)} />
-            <FormatUnderlinedIcon fontSize="inherit" onClick={(e) => this.formatText('UNDERLINE', e)} />
+            <FormatBoldIcon fontSize="inherit" className={this.state.boldOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.formatText('BOLD', e)} />
+            <FormatItalicIcon className={this.state.italicOn ? 'on' : ''} fontSize="inherit" onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.formatText('ITALIC', e)} />
+            <FormatUnderlinedIcon className={this.state.underlineOn ? 'on' : ''} fontSize="inherit" onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.formatText('UNDERLINE', e)} />
           </div>
           <div>
-            <select>
-              <option>Arial</option>
-              <option>Courier New</option>
-              <option>Verdana</option>
+            <select onChange={(e) => this.updateFont(e)}>
+              {this.getFontList()}
             </select>
-            <input className="selectable" list="fontSizeList" onChange={this.updateFontSize.bind(this)} defaultValue={this.currentFontSize} />
-            {this.getFontSizeList()}
+            <select onChange={(e) => this.updateFontSize(e)}>
+              {this.getFontSizeList()}
+            </select>
           </div>
         </nav>
         <div onClick={this.focus} className="editorContainer" style={{maxHeight:this.state.pageHeight, height:this.state.pageHeight}}>

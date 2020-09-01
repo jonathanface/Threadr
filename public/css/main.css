@@ -43,6 +43,9 @@ div.editorRoot {
 .editorRoot nav svg:hover {
   color:#333;
 }
+.editorRoot nav svg.on {
+  background-color:gray;
+}
 
 .editorRoot nav select, .editorRoot nav option, .editorRoot nav input.selectable {
   background: #585858;
