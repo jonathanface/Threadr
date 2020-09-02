@@ -7,6 +7,7 @@ html, body {
   height:100%;
   margin:0px;
   background:gray;
+  font-size:18px;
 }
 
 #root {
@@ -33,12 +34,12 @@ div.editorRoot {
   line-height: 24px;
 }
 .editorRoot nav svg {
-    background: #585858;
-    padding: 3px;
-    border: 1px solid #000;
-    border-radius: 5px;
-    cursor: pointer;
-    margin:3px;
+  background: #585858;
+  padding: 3px;
+  border: 1px solid #000;
+  border-radius: 5px;
+  cursor: pointer;
+  margin:3px;
 }
 .editorRoot nav svg:hover {
   color:#333;
@@ -74,8 +75,7 @@ section.margins {
 div.DraftEditor-root {
   height: 100%;
   font-family:Arial, Helvetica, sans-serif;
-  font-size:12px;
-  line-height:48px;
+  font-size:1rem;
   width:100%;
   overflow-y: hidden;
 }
@@ -85,4 +85,17 @@ div.public-DraftEditor-content {
   height: 100%;
   max-height:100%;
   overflow-y:hidden;
+}
+
+.textAlignLeft > div {
+  text-align:left;
+}
+.textAlignCenter > div {
+  text-align:center !important;
+}
+.textAlignRight > div{
+  text-align:right;
+}
+.textAlignJustify > div {
+  text-align:justify;
 }

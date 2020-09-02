@@ -1,5 +1,8 @@
+'use strict'
+
 import React from 'react';
 import ReactDOM from 'react-dom';
+import Immutable from 'immutable';
 import {EditorState, Editor, ContentState, SelectionState, Modifier, convertToRaw, convertFromRaw, RichUtils} from 'draft-js';
 import FormatAlignLeftIcon from '@material-ui/icons/FormatAlignLeft';
 import FormatAlignRightIcon from '@material-ui/icons/FormatAlignRight';
@@ -53,7 +56,28 @@ const styleMap = {
     fontFamily:'Verdana,Geneva,sans-serif'
   },
   'FONT_COURIER': {
-    fontFamily:'Courier,serif mono'
+    fontFamily:'Courier New, Courier, serif mo=no'
+  },
+  'TEXT_ALIGN_LEFT': {
+    textAlign:'left'
+  },
+  'TEXT_ALIGN_CENTER': {
+    textAlign:'center'
+  },
+  'TEXT_ALIGN_RIGHT': {
+    textAlign:'right'
+  },
+  'TEXT_ALIGN_JUSTIFY': {
+    textAlign:'justify'
+  },
+  'LINE_HEIGHT_SINGLE': {
+    lineHeight:'1rem'
+  },
+  'LINE_HEIGHT_1.5': {
+    lineHeight:'1.5rem'
+  },
+  'LINE_HEIGHT_DOUBLE': {
+    lineHeight:'2rem'
   }
 };
 
@@ -86,6 +110,10 @@ export class Document extends React.Component {
       boldOn:false,
       italicOn:false,
       underlineOn:false,
+      leftOn:true,
+      centerOn:false,
+      rightOn:false,
+      justifyOn:false,
       currentFont:'ARIAL',
       currentFontSize:12
     }
@@ -265,7 +293,7 @@ export class Document extends React.Component {
     return currentStyle.has(style);
   }
   
-  onChange = async(editorState, index) => {
+  onChange = async(editorState, index, type) => {
     let cursorChange = false;
     if (this.state.pages[index].editorState.getCurrentContent() === editorState.getCurrentContent() && !this.hitDelete) {
       cursorChange = true;
@@ -310,10 +338,35 @@ export class Document extends React.Component {
         if (this.hasStyle(editorState, 'UNDERLINE')) {
           u=true;
         }
+        
+        let selection = pagesUpdate[index].editorState.getSelection();
+        let thisBlock = pagesUpdate[index].editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
+        let data = thisBlock.getData();
+        let alignment = data.getIn(['alignment']);
+        let l=true, r=false, c=false, j = false;
+        switch(alignment) {
+          case 'CENTER':
+            l = false;
+            c = true;
+            break;
+          case 'RIGHT':
+            l=false;
+            r=true;
+            break;
+          case 'JUSTIFY':
+            l = false;
+            j = true;
+            break;
+        }
+          
         this.setState({
           boldOn:b,
           italicOn:i,
-          underlineOn:u
+          underlineOn:u,
+          leftOn:l,
+          rightOn:r,
+          centerOn:c,
+          justifyOn:j
         });
       }
       
@@ -425,6 +478,54 @@ export class Document extends React.Component {
     });
   }
   
+  blockStyle(contentBlock) {
+    const data = contentBlock.getData();
+    let alignment = data.getIn(['alignment']);
+    switch(alignment) {
+      case 'LEFT':
+        return 'textAlignLeft';
+      case 'RIGHT':
+        return 'textAlignRight';
+      case 'CENTER':
+        return 'textAlignCenter';
+      case 'JUSTIFY':
+        return 'textAlignJustify';
+    }
+
+  }
+  
+  updateTextAlignment(style, event) {
+    event.preventDefault();
+    let pagesUpdate = this.state.pages;
+    let selection = pagesUpdate[this.currentPage].editorState.getSelection();
+    console.log('sel', selection);
+    const nextContentState = Modifier.setBlockData(pagesUpdate[this.currentPage].editorState.getCurrentContent(), selection, Immutable.Map([['alignment', style]]));
+    pagesUpdate[this.currentPage].editorState = EditorState.push(pagesUpdate[this.currentPage].editorState, nextContentState, 'change-block-data');
+    let l=false,c=false,r=false,j=false;
+    switch(style) {
+      case 'LEFT':
+        l = true;
+        break;
+      case 'CENTER':
+        c = true;
+        break;
+      case 'RIGHT':
+        r = true;
+        break;
+      case 'JUSTIFY':
+        j = true;
+        break;
+    }
+      
+    this.setState({
+      pages:pagesUpdate,
+      leftOn:l,
+      centerOn:c,
+      rightOn:r,
+      justifyOn:j
+    });
+  }
+  
   updateFont(event) {
     this.setState({
         currentFont:event.target.value
@@ -495,6 +596,7 @@ export class Document extends React.Component {
                   handleKeyCommand={this.handleKeyCommand}
                   editorState={this.state.pages[i].editorState}
                   placeholder="Write something..."
+                  blockStyleFn={this.blockStyle}
                   onChange={(editorState) => {
                     this.onChange(editorState, i);
                   }}
@@ -508,10 +610,10 @@ export class Document extends React.Component {
       <div className="editorRoot" style={{width:this.state.pageWidth}}>
         <nav >
           <div>
-            <FormatAlignLeftIcon fontSize="inherit"/>
-            <FormatAlignCenterIcon fontSize="inherit"/>
-            <FormatAlignRightIcon fontSize="inherit"/>
-            <FormatAlignJustifyIcon fontSize="inherit"/>
+            <FormatAlignLeftIcon fontSize="inherit" className={this.state.leftOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('LEFT', e)}/>
+            <FormatAlignCenterIcon fontSize="inherit"  className={this.state.centerOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('CENTER', e)}/>
+            <FormatAlignRightIcon fontSize="inherit" className={this.state.rightOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('RIGHT', e)}/>
+            <FormatAlignJustifyIcon fontSize="inherit" className={this.state.justifyOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('JUSTIFY', e)} />
           </div>
           <div>
             <FormatBoldIcon fontSize="inherit" className={this.state.boldOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.formatText('BOLD', e)} />
