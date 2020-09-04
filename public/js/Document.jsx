@@ -298,22 +298,41 @@ export class Document extends React.Component {
     if (this.state.pages[index].editorState.getCurrentContent() === editorState.getCurrentContent() && !this.hitDelete) {
       cursorChange = true;
     }
+    
+    let pagesUpdate = this.state.pages;
+    const selection = editorState.getSelection();
+    let blockTree = this.state.pages[index].editorState.getBlockTree(selection.getFocusKey());
+    const thisBlock = editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
+    if (!blockTree) {
+      const prevSelection = editorState.getCurrentContent().getSelectionBefore();
+      const lastBlock = editorState.getCurrentContent().getBlockForKey(prevSelection.getFocusKey());
+      const data = lastBlock.getData();
+      let alignment = data.getIn(['alignment']);
+      let direction = 'LEFT';
+      if (alignment) {
+        direction = alignment;
+      }
+      console.log('data', data, 'alignment', alignment);
+      const nextContentState = Modifier.setBlockData(editorState.getCurrentContent(), selection, Immutable.Map([['alignment', direction]]));
+      editorState = EditorState.push(editorState, nextContentState, 'change-block-data');
+      
+    }
+    
     let addedPage = false;
     let deletedPage = false;
     let editor = this.refs[index].current;
-    let pagesUpdate = this.state.pages;
+    
     console.log('change to page', index);
     if (editor) {
       if (this.hitDelete) {
         console.log('hit del');
         this.hitDelete = false;
-        const selection = pagesUpdate[index].editorState.getSelection();
-        let thisBlock = pagesUpdate[index].editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
+        
         console.log('tried to delete', thisBlock.getText());
         if (!thisBlock.getText().length) {
           editorState = this.removeBlockFromMap(editorState, thisBlock.getKey());
           console.log('ed', editorState);
-          if (!editorState.getCurrentContent().hasText() && pagesUpdate.length > 1) {
+          if (editorState.getCurrentContent() && !editorState.getCurrentContent().hasText() && pagesUpdate.length > 1) {
             deletedPage = true;
             pagesUpdate.splice(index, 1);
             this.recalcPagination();
@@ -479,8 +498,10 @@ export class Document extends React.Component {
   }
   
   blockStyle(contentBlock) {
+    
     const data = contentBlock.getData();
     let alignment = data.getIn(['alignment']);
+    
     switch(alignment) {
       case 'LEFT':
         return 'textAlignLeft';
@@ -490,8 +511,9 @@ export class Document extends React.Component {
         return 'textAlignCenter';
       case 'JUSTIFY':
         return 'textAlignJustify';
+      default:
+        return 'textAlignLeft';
     }
-
   }
   
   updateTextAlignment(style, event) {
@@ -523,6 +545,8 @@ export class Document extends React.Component {
       centerOn:c,
       rightOn:r,
       justifyOn:j
+    }, () => {
+      this.pendingEdits.set(this.currentPage, true);
     });
   }
   
@@ -596,7 +620,7 @@ export class Document extends React.Component {
                   handleKeyCommand={this.handleKeyCommand}
                   editorState={this.state.pages[i].editorState}
                   placeholder="Write something..."
-                  blockStyleFn={this.blockStyle}
+                  blockStyleFn={this.blockStyle.bind(this)}
                   onChange={(editorState) => {
                     this.onChange(editorState, i);
                   }}
