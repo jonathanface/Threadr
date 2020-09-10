@@ -75,7 +75,7 @@ section.margins {
 div.DraftEditor-root {
   height: 100%;
   font-family:Arial, Helvetica, sans-serif;
-  font-size:1rem;
+  font-size:12px;
   width:100%;
   overflow-y: hidden;
 }
@@ -87,15 +87,15 @@ div.public-DraftEditor-content {
   overflow-y:hidden;
 }
 
-.textAlignLeft > div {
+.alignLeft > div {
   text-align:left;
 }
-.textAlignCenter > div {
+.alignCenter > div {
   text-align:center !important;
 }
-.textAlignRight > div{
+.alignRight > div{
   text-align:right;
 }
-.textAlignJustify > div {
+.alignJustify > div {
   text-align:justify;
 }

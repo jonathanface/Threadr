@@ -11,6 +11,7 @@ import FormatAlignJustifyIcon from '@material-ui/icons/FormatAlignJustify';
 import FormatBoldIcon from '@material-ui/icons/FormatBold';
 import FormatItalicIcon from '@material-ui/icons/FormatItalic';
 import FormatUnderlinedIcon from '@material-ui/icons/FormatUnderlined';
+import FormatLineSpacingIcon from '@material-ui/icons/FormatLineSpacing';
 
 const styleMap = {
   'FONT_SIZE_6': {
@@ -56,27 +57,15 @@ const styleMap = {
     fontFamily:'Verdana,Geneva,sans-serif'
   },
   'FONT_COURIER': {
-    fontFamily:'Courier New, Courier, serif mo=no'
+    fontFamily:'Courier New, Courier, serif-monospace'
   },
-  'TEXT_ALIGN_LEFT': {
-    textAlign:'left'
-  },
-  'TEXT_ALIGN_CENTER': {
-    textAlign:'center'
-  },
-  'TEXT_ALIGN_RIGHT': {
-    textAlign:'right'
-  },
-  'TEXT_ALIGN_JUSTIFY': {
-    textAlign:'justify'
-  },
-  'LINE_HEIGHT_SINGLE': {
+  'LINEHEIGHT_1': {
     lineHeight:'1rem'
   },
-  'LINE_HEIGHT_1.5': {
+  'LINEHEIGHT_1.5': {
     lineHeight:'1.5rem'
   },
-  'LINE_HEIGHT_DOUBLE': {
+  'LINEHEIGHT_2': {
     lineHeight:'2rem'
   }
 };
@@ -114,9 +103,10 @@ export class Document extends React.Component {
       centerOn:false,
       rightOn:false,
       justifyOn:false,
-      currentFont:'ARIAL',
-      currentFontSize:12
+      currentFontSize:'12'
     }
+    
+    this.lineSpacings = [1,1.5,2];
     
     this.currentPage = 0;
     this.SERVICE_URL = '/api';
@@ -240,12 +230,15 @@ export class Document extends React.Component {
     console.log(editorState.getCurrentContent().getPlainText());
     let blockMap = contentState.getBlockMap();
     console.log('pre', blockMap);
-    let newBlockMap = blockMap.remove(blockKey);
-    console.log('post', newBlockMap);
-    const newContentState = contentState.merge({
-      blockMap: newBlockMap
-    });
-    return EditorState.push(editorState, newContentState, 'remove-range');
+    if (blockMap[blockKey]) {
+      let newBlockMap = blockMap.remove(blockKey);
+      console.log('post', newBlockMap);
+      const newContentState = contentState.merge({
+        blockMap: newBlockMap
+      });
+      return EditorState.push(editorState, newContentState, 'remove-range');
+    }
+    return null;
   }
   
   async checkPageHeightAndPushBlockToNextPage(pagesUpdate, index) {
@@ -327,11 +320,12 @@ export class Document extends React.Component {
       if (this.hitDelete) {
         console.log('hit del');
         this.hitDelete = false;
-        
         console.log('tried to delete', thisBlock.getText());
         if (!thisBlock.getText().length) {
-          editorState = this.removeBlockFromMap(editorState, thisBlock.getKey());
-          console.log('ed', editorState);
+          let newEditorState = this.removeBlockFromMap(editorState, thisBlock.getKey());
+          if (newEditorState) {
+            editorState = newEditorState;
+          }
           if (editorState.getCurrentContent() && !editorState.getCurrentContent().hasText() && pagesUpdate.length > 1) {
             deletedPage = true;
             pagesUpdate.splice(index, 1);
@@ -358,6 +352,9 @@ export class Document extends React.Component {
           u=true;
         }
         
+        
+        
+        
         let selection = pagesUpdate[index].editorState.getSelection();
         let thisBlock = pagesUpdate[index].editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
         let data = thisBlock.getData();
@@ -377,7 +374,10 @@ export class Document extends React.Component {
             j = true;
             break;
         }
-          
+        
+        let fontSize = data.getIn(['fontSize']);
+        fontSize ? fontSize = fontSize : fontSize = '12';
+        console.log('currfontsize', fontSize);
         this.setState({
           boldOn:b,
           italicOn:i,
@@ -385,7 +385,8 @@ export class Document extends React.Component {
           leftOn:l,
           rightOn:r,
           centerOn:c,
-          justifyOn:j
+          justifyOn:j,
+          currentFontSize:fontSize
         });
       }
       
@@ -504,15 +505,15 @@ export class Document extends React.Component {
     
     switch(alignment) {
       case 'LEFT':
-        return 'textAlignLeft';
+        return 'alignLeft';
       case 'RIGHT':
-        return 'textAlignRight';
+        return 'alignRight';
       case 'CENTER':
-        return 'textAlignCenter';
+        return 'alignCenter';
       case 'JUSTIFY':
-        return 'textAlignJustify';
+        return 'alignJustify';
       default:
-        return 'textAlignLeft';
+        return 'alignLeft';
     }
   }
   
@@ -551,31 +552,26 @@ export class Document extends React.Component {
   }
   
   updateFont(event) {
-    this.setState({
-        currentFont:event.target.value
-    }, () => {
-      console.log('new font', this.state.currentFont);
-      let pagesUpdate = this.state.pages;
-      const selection = pagesUpdate[this.currentPage].editorState.getSelection();
-      this.state.pages[this.currentPage].editorState = EditorState.forceSelection(this.state.pages[this.currentPage].editorState, selection);
-      this.formatText('FONT_' + this.state.currentFont, event);
-    });
+    let pagesUpdate = this.state.pages;
+    const selection = pagesUpdate[this.currentPage].editorState.getSelection();
+    this.state.pages[this.currentPage].editorState = EditorState.forceSelection(this.state.pages[this.currentPage].editorState, selection);
+    this.formatText('FONT_' + event.target.value.toUpperCase(), event);
   }
   
   updateFontSize(event) {
     event.preventDefault();
-    let intVal = parseInt(event.target.value);
-    if (!isNaN(intVal)) {
-      this.setState({
-        currentFontSize:intVal
-      }, () => {
-        console.log('new font size', this.state.currentFontSize);
-        let pagesUpdate = this.state.pages;
-        const selection = pagesUpdate[this.currentPage].editorState.getSelection();
-        this.state.pages[this.currentPage].editorState = EditorState.forceSelection(this.state.pages[this.currentPage].editorState, selection);
-        this.formatText('FONT_SIZE_' + this.state.currentFontSize, event);
-      });
-    }
+    let value = event.target.value;
+    let pagesUpdate = this.state.pages;
+    const selection = pagesUpdate[this.currentPage].editorState.getSelection();
+    this.state.pages[this.currentPage].editorState = EditorState.forceSelection(this.state.pages[this.currentPage].editorState, selection);
+    const nextContentState = Modifier.setBlockData(pagesUpdate[this.currentPage].editorState.getCurrentContent(), selection, Immutable.Map([['fontSize', value]]));
+    pagesUpdate[this.currentPage].editorState = EditorState.push(pagesUpdate[this.currentPage].editorState, nextContentState, 'change-block-data');
+    this.setState({
+      pages:pagesUpdate,
+      currentFontSize:value
+    }, () => {
+      this.formatText('FONT_SIZE_' + value, event);
+    });
   }
   
   setFocus(index) {
@@ -599,13 +595,30 @@ export class Document extends React.Component {
     return (
       <React.Fragment>
         {this.state.fontSizes.map((size) => {
-          if (size == this.currentFontSize) {
-            return <option selected value={size} key={size}>{size}</option>
-          }
           return <option value={size} key={size}>{size}</option>
         })}
       </React.Fragment>
     );
+  }
+  
+  updateLineHeight(event) {
+    let pagesUpdate = this.state.pages;
+    let clicked = parseFloat(event.target.dataset.height);
+    let ind = this.lineSpacings.indexOf(clicked);
+    ind++;
+    if (ind >= this.lineSpacings.length) {
+      ind = 0;
+    }
+    let newSpacing = this.lineSpacings[ind];
+    event.target.dataset.height = newSpacing;
+    console.log('set to', newSpacing);
+    const selection = pagesUpdate[this.currentPage].editorState.getSelection();
+    this.state.pages[this.currentPage].editorState = EditorState.forceSelection(this.state.pages[this.currentPage].editorState, selection);
+    this.setState({
+      pages:pagesUpdate
+    }, () => {
+      this.formatText('LINEHEIGHT_' + newSpacing, event);
+    });
   }
   
   render() {
@@ -638,6 +651,7 @@ export class Document extends React.Component {
             <FormatAlignCenterIcon fontSize="inherit"  className={this.state.centerOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('CENTER', e)}/>
             <FormatAlignRightIcon fontSize="inherit" className={this.state.rightOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('RIGHT', e)}/>
             <FormatAlignJustifyIcon fontSize="inherit" className={this.state.justifyOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('JUSTIFY', e)} />
+            <FormatLineSpacingIcon data-height="1" fontSize="inherit" onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateLineHeight(e)}/>
           </div>
           <div>
             <FormatBoldIcon fontSize="inherit" className={this.state.boldOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.formatText('BOLD', e)} />
@@ -648,7 +662,7 @@ export class Document extends React.Component {
             <select onChange={(e) => this.updateFont(e)}>
               {this.getFontList()}
             </select>
-            <select onChange={(e) => this.updateFontSize(e)}>
+            <select value={this.state.currentFontSize} onChange={(e) => this.updateFontSize(e)}>
               {this.getFontSizeList()}
             </select>
           </div>
