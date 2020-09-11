@@ -1,7 +1,7 @@
-TITLE Drafty Builder - Dev Mode
+TITLE RichDocter Builder - Dev Mode
 ECHO OFF
 ECHO Starting...
 ECHO Compiling JavaScript...
 call npm run build
 ECHO Compiling and executing golang build...
-call go build && drafty.exe
+call go build && RichDocter.exe

@@ -2,6 +2,7 @@ package main
 
 import "log"
 import "encoding/json"
+
 // Hub maintains the set of active clients and broadcasts messages to the
 // clients.
 type Hub struct {
@@ -38,41 +39,41 @@ func (h *Hub) run() {
 				close(client.send)
 			}
 		case clientMessage := <-h.broadcast:
-      log.Println("mes", string(clientMessage.Message));
-      m := SocketMessage{}
-      json.Unmarshal(clientMessage.Message, &m)
-      switch(m.Command) {
-        case "savePage":
-          deets := Page{}
-          json.Unmarshal([]byte(m.Data), &deets)
-          log.Println("editing page", deets.Page)
-          response := SocketMessage{}
-          response.Command = "saveFailed"
-          err := savePage(deets.Page, deets.Body, deets.NovelID)
-          if err == nil {
-            response.Command = "saveSuccessful"
-          } else {
-            log.Println(err)
-            response.Data = json.RawMessage(err.Error())
-          }
-          clientMessage.Client.conn.WriteJSON(response)
-          break
-        case "deletePage":
-          deets := Page{}
-          json.Unmarshal([]byte(m.Data), &deets)
-          log.Println("deleting page", deets.Page)
-          response := SocketMessage{}
-          response.Command = "deletionFailed"
-          err := deletePage(deets.Page, deets.NovelID)
-          if err == nil {
-            response.Command = "deletionSuccessful"
-          } else {
-            log.Println(err)
-            response.Data = json.RawMessage(err.Error())
-          }
-          clientMessage.Client.conn.WriteJSON(response)
-          break
-      }
+			log.Println("mes", string(clientMessage.Message))
+			m := SocketMessage{}
+			json.Unmarshal(clientMessage.Message, &m)
+			switch m.Command {
+			case "savePage":
+				deets := Page{}
+				json.Unmarshal([]byte(m.Data), &deets)
+				log.Println("editing page", deets.Page)
+				response := SocketMessage{}
+				response.Command = "saveFailed"
+				err := savePage(deets.Page, deets.Body, deets.NovelID)
+				if err == nil {
+					response.Command = "saveSuccessful"
+				} else {
+					log.Println(err)
+					response.Data = json.RawMessage(err.Error())
+				}
+				clientMessage.Client.conn.WriteJSON(response)
+				break
+			case "deletePage":
+				deets := Page{}
+				json.Unmarshal([]byte(m.Data), &deets)
+				log.Println("deleting page", deets.Page)
+				response := SocketMessage{}
+				response.Command = "deletionFailed"
+				err := deletePage(deets.Page, deets.NovelID)
+				if err == nil {
+					response.Command = "deletionSuccessful"
+				} else {
+					log.Println(err)
+					response.Data = json.RawMessage(err.Error())
+				}
+				clientMessage.Client.conn.WriteJSON(response)
+				break
+			}
 		}
 	}
 }

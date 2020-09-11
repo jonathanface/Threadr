@@ -52,6 +52,8 @@ div.editorRoot {
   background: #585858;
   color: #FFF;
   padding: 3px;
+  border:1px solid #585858;
+  margin:5px 5px;
   
 }
 .editorRoot nav input.selectable {

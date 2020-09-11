@@ -60,13 +60,13 @@ const styleMap = {
     fontFamily:'Courier New, Courier, serif-monospace'
   },
   'LINEHEIGHT_1': {
-    lineHeight:'1rem'
+    lineHeight:'1em'
   },
   'LINEHEIGHT_1.5': {
-    lineHeight:'1.5rem'
+    lineHeight:'1.5em'
   },
   'LINEHEIGHT_2': {
-    lineHeight:'2rem'
+    lineHeight:'2em'
   }
 };
 
@@ -611,6 +611,7 @@ export class Document extends React.Component {
     }
     let newSpacing = this.lineSpacings[ind];
     event.target.dataset.height = newSpacing;
+    event.target.title = newSpacing + 'em';
     console.log('set to', newSpacing);
     const selection = pagesUpdate[this.currentPage].editorState.getSelection();
     this.state.pages[this.currentPage].editorState = EditorState.forceSelection(this.state.pages[this.currentPage].editorState, selection);
@@ -651,7 +652,7 @@ export class Document extends React.Component {
             <FormatAlignCenterIcon fontSize="inherit"  className={this.state.centerOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('CENTER', e)}/>
             <FormatAlignRightIcon fontSize="inherit" className={this.state.rightOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('RIGHT', e)}/>
             <FormatAlignJustifyIcon fontSize="inherit" className={this.state.justifyOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('JUSTIFY', e)} />
-            <FormatLineSpacingIcon data-height="1" fontSize="inherit" onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateLineHeight(e)}/>
+            <FormatLineSpacingIcon data-height="1" title="1em" fontSize="inherit" onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateLineHeight(e)}/>
           </div>
           <div>
             <FormatBoldIcon fontSize="inherit" className={this.state.boldOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.formatText('BOLD', e)} />
