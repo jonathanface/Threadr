@@ -41,11 +41,21 @@ div.editorRoot {
   cursor: pointer;
   margin:3px;
 }
+.editorRoot nav svg.on {
+  background-color:gray;
+}
 .editorRoot nav svg:hover {
   color:#333;
 }
-.editorRoot nav svg.on {
-  background-color:gray;
+.editorRoot nav > div > span {
+  vertical-align:top;
+}
+.editorRoot nav > div > span > svg,
+.editorRoot nav > div > span > span { 
+  vertical-align:middle;
+}
+.editorRoot nav > div > span > span {
+  font-size:11px;
 }
 
 .editorRoot nav select, .editorRoot nav option, .editorRoot nav input.selectable {
@@ -89,15 +99,24 @@ div.public-DraftEditor-content {
   overflow-y:hidden;
 }
 
-.alignLeft > div {
+.align_left > div {
   text-align:left;
 }
-.alignCenter > div {
-  text-align:center !important;
-}
-.alignRight > div{
+.align_right > div {
   text-align:right;
 }
-.alignJustify > div {
+.align_center > div {
+  text-align:center;
+}
+.align_justify > div {
   text-align:justify;
+}
+.height_single {
+  line-height:1em;
+}
+.height_medium {
+  line-height:1.5em;
+}
+.height_double {
+  line-height:2em;
 }

@@ -14,61 +14,58 @@ import FormatUnderlinedIcon from '@material-ui/icons/FormatUnderlined';
 import FormatLineSpacingIcon from '@material-ui/icons/FormatLineSpacing';
 
 const styleMap = {
-  'FONT_SIZE_6': {
-    fontSize: '6px'
+  'fontSize_6pt': {
+    fontSize: '6pt'
   },
-  'FONT_SIZE_8': {
-    fontSize: '8px'
+  'fontSize_8pt': {
+    fontSize: '8pt'
   },
-  'FONT_SIZE_10': {
-    fontSize: '10px'
+  'fontSize_10pt': {
+    fontSize: '10pt'
   },
-  'FONT_SIZE_12': {
-    fontSize: '12px'
+  'fontSize_12pt': {
+    fontSize: '12pt'
   },
-  'FONT_SIZE_14': {
-    fontSize: '14px'
+  'fontSize_14pt': {
+    fontSize: '14pt'
   },
-  'FONT_SIZE_16': {
-    fontSize: '16px'
+  'fontSize_16pt': {
+    fontSize: '16pt'
   },
-  'FONT_SIZE_18': {
-    fontSize: '18px'
+  'fontSize_18pt': {
+    fontSize: '18pt'
   },
-  'FONT_SIZE_20': {
-    fontSize: '20px'
+  'fontSize_20pt': {
+    fontSize: '20pt'
   },
-  'FONT_SIZE_22': {
-    fontSize: '22px'
+  'fontSize_22pt': {
+    fontSize: '22pt'
   },
-  'FONT_SIZE_24': {
-    fontSize: '24px'
+  'fontSize_24pt': {
+    fontSize: '24pt'
   },
-  'FONT_SIZE_28': {
-    fontSize: '28px'
+  'fontSize_28pt': {
+    fontSize: '28pt'
   },
-  'FONT_SIZE_32': {
-    fontSize: '32px'
+  'fontSize_32pt': {
+    fontSize: '32pt'
   },
-  'FONT_ARIAL': {
+  'fontFamily_Arial': {
     fontFamily:'Arial,Helvetica Neue,Helvetica,sans-serif'
   },
-  'FONT_VERDANA': {
+  'fontFamily_Verdana': {
     fontFamily:'Verdana,Geneva,sans-serif'
   },
-  'FONT_COURIER': {
+  'fontFamily_Courier': {
     fontFamily:'Courier New, Courier, serif-monospace'
-  },
-  'LINEHEIGHT_1': {
-    lineHeight:'1em'
-  },
-  'LINEHEIGHT_1.5': {
-    lineHeight:'1.5em'
-  },
-  'LINEHEIGHT_2': {
-    lineHeight:'2em'
   }
 };
+
+const fontNameMap = {
+  styleMap.fontFamily_Arial.fontFamily: 'Arial',
+  styleMap.fontFamily_Verdana.fontFamily : 'Verdana',
+  styleMap.fontFamily_Courier.fontFamily:'Courier'
+}
 
 export class Document extends React.Component {
   
@@ -95,7 +92,7 @@ export class Document extends React.Component {
       rightMargin: 1 * dpi,
       bottomMargin: 1 * dpi,
       fonts: ['Arial', 'Courier', 'Verdana'],
-      fontSizes: [6,8,10,12,14,16,18,20,22,24,28,32],
+      fontSizes: ['6pt','8pt','10pt','12pt','14pt','16pt','18pt','20pt','22pt','24pt','28pt','32pt'],
       boldOn:false,
       italicOn:false,
       underlineOn:false,
@@ -103,10 +100,15 @@ export class Document extends React.Component {
       centerOn:false,
       rightOn:false,
       justifyOn:false,
-      currentFontSize:'12'
+      currentFontSize:'12pt',
+      currentFontFamily:'Arial',
+      currentLineHeight:'single'
     }
     
-    this.lineSpacings = [1,1.5,2];
+    this.lineSpacings = new Map();
+    this.lineSpacings.set('single', 1);
+    this.lineSpacings.set('medium', 1.5);
+    this.lineSpacings.set('double', 2);
     
     this.currentPage = 0;
     this.SERVICE_URL = '/api';
@@ -305,17 +307,14 @@ export class Document extends React.Component {
       if (alignment) {
         direction = alignment;
       }
-      console.log('data', data, 'alignment', alignment);
       const nextContentState = Modifier.setBlockData(editorState.getCurrentContent(), selection, Immutable.Map([['alignment', direction]]));
       editorState = EditorState.push(editorState, nextContentState, 'change-block-data');
-      
     }
     
     let addedPage = false;
     let deletedPage = false;
     let editor = this.refs[index].current;
     
-    console.log('change to page', index);
     if (editor) {
       if (this.hitDelete) {
         console.log('hit del');
@@ -341,52 +340,9 @@ export class Document extends React.Component {
       
       if (cursorChange) {
         console.log('cursor change');
-        let b=false, i=false, u=false;
-        if (this.hasStyle(editorState, 'BOLD')) {
-          b=true;
-        }
-        if (this.hasStyle(editorState, 'ITALIC')) {
-          i = true;
-        }
-        if (this.hasStyle(editorState, 'UNDERLINE')) {
-          u=true;
-        }
-        
-        
-        
-        
-        let selection = pagesUpdate[index].editorState.getSelection();
-        let thisBlock = pagesUpdate[index].editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
-        let data = thisBlock.getData();
-        let alignment = data.getIn(['alignment']);
-        let l=true, r=false, c=false, j = false;
-        switch(alignment) {
-          case 'CENTER':
-            l = false;
-            c = true;
-            break;
-          case 'RIGHT':
-            l=false;
-            r=true;
-            break;
-          case 'JUSTIFY':
-            l = false;
-            j = true;
-            break;
-        }
-        
-        let fontSize = data.getIn(['fontSize']);
-        fontSize ? fontSize = fontSize : fontSize = '12';
-        console.log('currfontsize', fontSize);
-        this.setState({
-          boldOn:b,
-          italicOn:i,
-          underlineOn:u,
-          leftOn:l,
-          rightOn:r,
-          centerOn:c,
-          justifyOn:j,
-          currentFontSize:fontSize
+        const currStyles = editorState.getCurrentInlineStyle();
+        currStyles.forEach(v => {
+          this.updateTextButtons(v);
         });
       }
       
@@ -471,13 +427,40 @@ export class Document extends React.Component {
         break;
     }
   }
+
+  blockStyle(contentBlock) {
+    let classStr = '';
+    const data = contentBlock.getData();
+    const alignment = data.getIn(['alignment']);
+    if (alignment) {
+      classStr += 'align_' + data.getIn(['alignment']);
+    }
+    const lineHeight = data.getIn(['lineHeight']);
+    if (lineHeight) {
+      if (classStr.length) {
+        classStr += ' ';
+      }
+      classStr += 'height_' + lineHeight;
+    }
+    return classStr;
+  }
   
-  formatText(style, e) {
-    console.log('setting style', style);
-    let pagesUpdate = this.state.pages;
-    pagesUpdate[this.currentPage].editorState = RichUtils.toggleInlineStyle(pagesUpdate[this.currentPage].editorState, style);
+  updateTextButtons(style) {
+    let l=true,c=false,r=false,j=false;
     let b=false,i=false,u=false;
     switch(style) {
+      case 'center':
+        l = false;
+        c = true;
+        break;
+      case 'right':
+        l = false;
+        r = true;
+        break;
+      case 'justify':
+        l = false;
+        j = true;
+        break;
       case 'BOLD':
         b=true;
         break;
@@ -488,140 +471,137 @@ export class Document extends React.Component {
         u=true;
         break;
     }
+    let fontSize='12pt', fontFamily='Arial';
+    if (styleMap.hasOwnProperty(style)) {
+      if (style.indexOf('fontSize_') > -1) {
+        fontSize = styleMap[style].fontSize;
+      }
+      if (style.indexOf('fontFamily_') > -1) {
+        fontFamily = fontNameMap[styleMap[style].fontFamily];
+      }
+    }
+    console.log('fam', fontFamily);
+    console.log('sz', fontSize);
+
     this.setState({
-      pages:pagesUpdate,
+      leftOn:l,
+      centerOn:c,
+      rightOn:r,
+      justifyOn:j,
       boldOn:b,
       italicOn:i,
-      underlineOn:u
-    }, () => {
-      this.pendingEdits.set(this.currentPage, true);
+      underlineOn:u,
+      currentFontSize:fontSize,
+      currentFontFamily:fontFamily
     });
   }
   
-  blockStyle(contentBlock) {
-    
-    const data = contentBlock.getData();
-    let alignment = data.getIn(['alignment']);
-    
-    switch(alignment) {
-      case 'LEFT':
-        return 'alignLeft';
-      case 'RIGHT':
-        return 'alignRight';
-      case 'CENTER':
-        return 'alignCenter';
-      case 'JUSTIFY':
-        return 'alignJustify';
-      default:
-        return 'alignLeft';
-    }
+  formatText(style, e) {
+    console.log('setting style', style);
+    let pagesUpdate = this.state.pages;
+    this.updateTextButtons(style);
+    pagesUpdate[this.currentPage].editorState = RichUtils.toggleInlineStyle(pagesUpdate[this.currentPage].editorState, style);
+    this.setState({
+      pages:pagesUpdate,
+    }, () => {
+      this.pendingEdits.set(this.currentPage, true);
+    });
   }
   
   updateTextAlignment(style, event) {
     event.preventDefault();
     let pagesUpdate = this.state.pages;
     let selection = pagesUpdate[this.currentPage].editorState.getSelection();
-    console.log('sel', selection);
     const nextContentState = Modifier.setBlockData(pagesUpdate[this.currentPage].editorState.getCurrentContent(), selection, Immutable.Map([['alignment', style]]));
     pagesUpdate[this.currentPage].editorState = EditorState.push(pagesUpdate[this.currentPage].editorState, nextContentState, 'change-block-data');
-    let l=false,c=false,r=false,j=false;
-    switch(style) {
-      case 'LEFT':
-        l = true;
-        break;
-      case 'CENTER':
-        c = true;
-        break;
-      case 'RIGHT':
-        r = true;
-        break;
-      case 'JUSTIFY':
-        j = true;
-        break;
-    }
-      
+    this.updateTextButtons(style);
     this.setState({
-      pages:pagesUpdate,
-      leftOn:l,
-      centerOn:c,
-      rightOn:r,
-      justifyOn:j
+      pages:pagesUpdate
     }, () => {
       this.pendingEdits.set(this.currentPage, true);
     });
   }
   
-  updateFont(event) {
+  updateLineHeight(event) {
+    event.preventDefault();
+    let clicked = event.target.dataset.height;
+    let displayValue = 1, nextSpacing = 'single';
+    let prevMatch = false;
+    for (let [key, value] of this.lineSpacings) {
+      if (key == clicked) {
+        prevMatch = true;
+        continue;
+      }
+      if (prevMatch) {
+        nextSpacing = key;
+        displayValue = this.lineSpacings.get(key);
+        break;
+      }
+    }
     let pagesUpdate = this.state.pages;
     const selection = pagesUpdate[this.currentPage].editorState.getSelection();
-    this.state.pages[this.currentPage].editorState = EditorState.forceSelection(this.state.pages[this.currentPage].editorState, selection);
-    this.formatText('FONT_' + event.target.value.toUpperCase(), event);
+    pagesUpdate[this.currentPage].editorState = EditorState.forceSelection(this.state.pages[this.currentPage].editorState, selection);
+    const nextContentState = Modifier.setBlockData(pagesUpdate[this.currentPage].editorState.getCurrentContent(), selection, Immutable.Map([['lineHeight', nextSpacing]]));
+    pagesUpdate[this.currentPage].editorState = EditorState.push(pagesUpdate[this.currentPage].editorState, nextContentState, 'change-block-data');
+    this.setState({
+      pages:pagesUpdate,
+      currentLineHeight: nextSpacing,
+      currentLineHeightDisplay:displayValue
+    }, () => {
+      this.pendingEdits.set(this.currentPage, true);
+    });
   }
   
-  updateFontSize(event) {
+  updateFontDetails(event, type) {
     event.preventDefault();
     let value = event.target.value;
     let pagesUpdate = this.state.pages;
     const selection = pagesUpdate[this.currentPage].editorState.getSelection();
-    this.state.pages[this.currentPage].editorState = EditorState.forceSelection(this.state.pages[this.currentPage].editorState, selection);
-    const nextContentState = Modifier.setBlockData(pagesUpdate[this.currentPage].editorState.getCurrentContent(), selection, Immutable.Map([['fontSize', value]]));
+    pagesUpdate[this.currentPage].editorState = EditorState.forceSelection(this.state.pages[this.currentPage].editorState, selection);
+    const nextContentState = Modifier.setBlockData(pagesUpdate[this.currentPage].editorState.getCurrentContent(), selection, Immutable.Map([[type, value]]));
     pagesUpdate[this.currentPage].editorState = EditorState.push(pagesUpdate[this.currentPage].editorState, nextContentState, 'change-block-data');
+    let formatParam, field;
+    switch(type) {
+      case 'family':
+        formatParam = 'fontFamily_' + value;
+        field = 'currentFontFamily';
+        break;
+      case 'size':
+        formatParam = 'fontSize_' + value;
+        field = 'currentFontSize';
+        break;
+    }
     this.setState({
       pages:pagesUpdate,
-      currentFontSize:value
+      [field]:value
     }, () => {
-      this.formatText('FONT_SIZE_' + value, event);
+      this.formatText(formatParam, event);
     });
   }
-  
+
   setFocus(index) {
     this.refs[index].current.focus();
   }
   
-  getFontList() {
-    return (
-      <React.Fragment>
-        {this.state.fonts.map((font) => {
-          if (font.toUpperCase() == this.currentFont) {
-            return <option selected value={font.toUpperCase()} key={font}>{font}</option>
-          }
-          return <option value={font.toUpperCase()} key={font}>{font}</option>
-        })}
-      </React.Fragment>
-    );
-  }
-  
-  getFontSizeList() {
-    return (
-      <React.Fragment>
-        {this.state.fontSizes.map((size) => {
-          return <option value={size} key={size}>{size}</option>
-        })}
-      </React.Fragment>
-    );
-  }
-  
-  updateLineHeight(event) {
-    let pagesUpdate = this.state.pages;
-    let clicked = parseFloat(event.target.dataset.height);
-    let ind = this.lineSpacings.indexOf(clicked);
-    ind++;
-    if (ind >= this.lineSpacings.length) {
-      ind = 0;
+  getFormatOptions(type) {
+    var array;
+    switch(type) {
+      case 'fonts':
+        array = this.state.fonts;
+        break;
+      case 'fontSizes':
+        array = this.state.fontSizes;
+        break;
     }
-    let newSpacing = this.lineSpacings[ind];
-    event.target.dataset.height = newSpacing;
-    event.target.title = newSpacing + 'em';
-    console.log('set to', newSpacing);
-    const selection = pagesUpdate[this.currentPage].editorState.getSelection();
-    this.state.pages[this.currentPage].editorState = EditorState.forceSelection(this.state.pages[this.currentPage].editorState, selection);
-    this.setState({
-      pages:pagesUpdate
-    }, () => {
-      this.formatText('LINEHEIGHT_' + newSpacing, event);
-    });
+    return (
+      <React.Fragment>
+        {array.map((item) => {
+          return <option value={item} key={item}>{item}</option>
+        })}
+      </React.Fragment>
+    );
   }
-  
+
   render() {
     let editors = [];
     this.refs = [];
@@ -648,11 +628,14 @@ export class Document extends React.Component {
       <div className="editorRoot" style={{width:this.state.pageWidth}}>
         <nav >
           <div>
-            <FormatAlignLeftIcon fontSize="inherit" className={this.state.leftOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('LEFT', e)}/>
-            <FormatAlignCenterIcon fontSize="inherit"  className={this.state.centerOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('CENTER', e)}/>
-            <FormatAlignRightIcon fontSize="inherit" className={this.state.rightOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('RIGHT', e)}/>
-            <FormatAlignJustifyIcon fontSize="inherit" className={this.state.justifyOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('JUSTIFY', e)} />
-            <FormatLineSpacingIcon data-height="1" title="1em" fontSize="inherit" onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateLineHeight(e)}/>
+            <FormatAlignLeftIcon fontSize="inherit" className={this.state.leftOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('left', e)}/>
+            <FormatAlignCenterIcon fontSize="inherit"  className={this.state.centerOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('center', e)}/>
+            <FormatAlignRightIcon fontSize="inherit" className={this.state.rightOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('right', e)}/>
+            <FormatAlignJustifyIcon fontSize="inherit" className={this.state.justifyOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('justify', e)} />
+            <span>
+              <FormatLineSpacingIcon data-height={this.state.currentLineHeight} fontSize="inherit" onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateLineHeight(e)}/>
+              <span>{this.lineSpacings.get(this.state.currentLineHeight)}</span>
+            </span>
           </div>
           <div>
             <FormatBoldIcon fontSize="inherit" className={this.state.boldOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.formatText('BOLD', e)} />
@@ -660,11 +643,11 @@ export class Document extends React.Component {
             <FormatUnderlinedIcon className={this.state.underlineOn ? 'on' : ''} fontSize="inherit" onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.formatText('UNDERLINE', e)} />
           </div>
           <div>
-            <select onChange={(e) => this.updateFont(e)}>
-              {this.getFontList()}
+            <select value={this.state.currentFontFamily} onChange={(e) => this.updateFontDetails(e, 'family')}>
+              {this.getFormatOptions('fonts')}
             </select>
-            <select value={this.state.currentFontSize} onChange={(e) => this.updateFontSize(e)}>
-              {this.getFontSizeList()}
+            <select value={this.state.currentFontSize} onChange={(e) => this.updateFontDetails(e, 'size')}>
+              {this.getFormatOptions('fontSizes')}
             </select>
           </div>
         </nav>
