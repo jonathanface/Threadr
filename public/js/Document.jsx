@@ -123,6 +123,16 @@ export class Document extends React.Component {
     this.fetchDocumentPages()
     this.checkSaveInterval = setInterval(() => this.checkForPendingEdits(), this.SAVE_TIME_INTERVAL);
   }
+  
+  componentDidMount() {
+    window.addEventListener('beforeunload', this.beforeunload.bind(this));
+  }
+  
+  beforeunload() {
+    if (this.socket.isOpen) {
+      this.socket.close();
+    }
+  }
  
   
   fetchDocumentPages() {
@@ -161,7 +171,7 @@ export class Document extends React.Component {
   setupWebsocket(url) {
     this.socket = new WebSocket(url);
     this.socket.isOpen = false;
-    // Connection opened
+    
     this.socket.onopen = (event) => {
       this.socket.isOpen = true;
     };
@@ -229,11 +239,11 @@ export class Document extends React.Component {
   }
   
   removeBlockFromMap(editorState, blockKey) {
-    let contentState = editorState.getCurrentContent();
-    console.log(editorState.getCurrentContent().getPlainText());
+    const contentState = editorState.getCurrentContent();
+    console.log('key', blockKey);
     let blockMap = contentState.getBlockMap();
     console.log('pre', blockMap);
-    if (blockMap[blockKey]) {
+    if (blockMap.has(blockKey)) {
       let newBlockMap = blockMap.remove(blockKey);
       console.log('post', newBlockMap);
       const newContentState = contentState.merge({
@@ -252,8 +262,9 @@ export class Document extends React.Component {
     if (editor.editorContainer.firstChild.firstChild.offsetHeight >= maxHeight && !this.newPagePending) {
       if (!pagesUpdate[index+1]) {
         this.addNewPage();
-        return this.checkPageHeightAndPushBlockToNextPage(pagesUpdate, index);
+        return this.checkPageHeightAndPushBlockToNextPage(this.state.pages, index);
       }
+      
       const removeBlock = pagesUpdate[index].editorState.getCurrentContent().getLastBlock();
       var currentSelectedKey = pagesUpdate[index].editorState.getSelection().focusKey;
       let blockArray = [];
@@ -261,12 +272,20 @@ export class Document extends React.Component {
       blockArray = blockArray.concat(pagesUpdate[index+1].editorState.getCurrentContent().getBlockMap().toArray());
       const combinedContentState = ContentState.createFromBlockArray(blockArray);
       
+      
+      const slicedEditorState = this.removeBlockFromMap(pagesUpdate[index].editorState, removeBlock.getKey());
+      if (!slicedEditorState) {
+        console.log('unable to slice off last block');
+        return pagesUpdate;
+      }
       pagesUpdate[index+1].editorState = EditorState.push(pagesUpdate[index+1].editorState, combinedContentState);
-      pagesUpdate[index].editorState = this.removeBlockFromMap(pagesUpdate[index].editorState, removeBlock.getKey());
+      pagesUpdate[index].editorState = slicedEditorState;
       console.log('new page state', pagesUpdate[index+1]);
+      
       this.setState({
         pages:pagesUpdate
       }, () => {
+        
         this.currentPage = this.refs.length-1;
         if (currentSelectedKey == removeBlock.getKey()) {
           this.setFocus(index+1);
@@ -277,11 +296,13 @@ export class Document extends React.Component {
           });
         }
         return this.checkPageHeightAndPushBlockToNextPage(pagesUpdate, index);
+        
       });
+      
     } else if (this.newPagePending) {
-      console.log('wtf1', pagesUpdate, index);
+      console.log('wtf1', pagesUpdate[0].editorState, index);
       setTimeout(() => {
-        console.log('wtf2', pagesUpdate, index);
+        console.log('wtf2', pagesUpdate[0].editorState, index);
         this.checkPageHeightAndPushBlockToNextPage(pagesUpdate, index);
       }, 50);
       return pagesUpdate;
@@ -357,38 +378,43 @@ export class Document extends React.Component {
           italicOn:false,
           underlineOn:false
         });
-        const currStyles = editorState.getCurrentInlineStyle();
-        let foundFontFamily = false, foundFontSize = false;
-        currStyles.forEach(v => {
-          if (v.indexOf('fontSize_') > -1) {
-            foundFontSize = true;
-          }
-          if (v.indexOf('fontFamily_') > -1) {
-            foundFontFamily = true;
-          }
-          this.updateTextButtons(v);
-        });
-        const selection = editorState.getSelection();
-        const lastBlock = editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
-        const data = lastBlock.getData();
-        let alignment = data.getIn(['alignment']);
-        if (alignment) {
-          this.updateTextButtons(alignment);
-        }
-        let lineHeight = data.getIn(['lineHeight']);
-        if (lineHeight) {
-          this.updateTextButtons(lineHeight);
-        }
-        /*No inline styles, so toggle controls UI to defaults*/
-        if (!foundFontSize) {
-          this.setState({
-            currentFontSize:'12pt'
+        console.log('editor', editorState, 'ind', index);
+        try {
+          const currStyles = editorState.getCurrentInlineStyle();
+          let foundFontFamily = false, foundFontSize = false;
+          currStyles.forEach(v => {
+            if (v.indexOf('fontSize_') > -1) {
+              foundFontSize = true;
+            }
+            if (v.indexOf('fontFamily_') > -1) {
+              foundFontFamily = true;
+            }
+            this.updateTextButtons(v);
           });
-        }
-        if (!foundFontFamily) {
-          this.setState({
-            currentFontFamily:'Arial'
-          });
+          const selection = editorState.getSelection();
+          const lastBlock = editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
+          const data = lastBlock.getData();
+          let alignment = data.getIn(['alignment']);
+          if (alignment) {
+            this.updateTextButtons(alignment);
+          }
+          let lineHeight = data.getIn(['lineHeight']);
+          if (lineHeight) {
+            this.updateTextButtons(lineHeight);
+          }
+          /*No inline styles, so toggle controls UI to defaults*/
+          if (!foundFontSize) {
+            this.setState({
+              currentFontSize:'12pt'
+            });
+          }
+          if (!foundFontFamily) {
+            this.setState({
+              currentFontFamily:'Arial'
+            });
+          }
+        } catch(e) {
+          console.error(e);
         }
       }
       
