@@ -5,6 +5,8 @@
 *.dylib
 
 config.json
+bundle.js
+bundle.min.js
 
 # Test binary, build with `go test -c`
 *.test

@@ -463,7 +463,8 @@ export class Document extends React.Component {
   
   savePage(index) {
     console.log('saving page ' + index);
-    if (this.socket.isOpen) {
+    // Send the encoded page if the socket is open and it hasn't been subsequently deleted
+    if (this.socket.isOpen && this.state.pages[index]) {
       this.socket.send(JSON.stringify({command:'savePage', data: {page:index, novelID:this.novelID, body:convertToRaw(this.state.pages[index].editorState.getCurrentContent())}}));
     }
   }
