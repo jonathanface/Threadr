@@ -111,12 +111,12 @@ div.public-DraftEditor-content {
 .align_justify > div {
   text-align:justify;
 }
-.height_single {
-  line-height:1em;
+.lineheight_single {
+  line-height:1;
 }
-.height_medium {
-  line-height:1.5em;
+.lineheight_medium {
+  line-height:1.5;
 }
-.height_double {
-  line-height:2em;
+.lineheight_double {
+  line-height:2;
 }
