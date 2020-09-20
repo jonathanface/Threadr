@@ -255,7 +255,6 @@ export class Document extends React.Component {
   }
   
   async checkPageHeightAndPushBlockToNextPage(pagesUpdate, index) {
-    console.log('height of page', index);
     const editor = this.refs[index].current;
     let maxHeight = this.state.pageHeight - this.state.topMargin - this.state.bottomMargin;
     //console.log(editor.editorContainer.firstChild.firstChild.offsetHeight, " vs ", maxHeight);
@@ -296,16 +295,9 @@ export class Document extends React.Component {
           });
         }
         return this.checkPageHeightAndPushBlockToNextPage(pagesUpdate, index);
-        
-      });
-      
+      }); 
     } else if (this.newPagePending) {
-      console.log('wtf1', pagesUpdate[0].editorState, index);
-      setTimeout(() => {
-        console.log('wtf2', pagesUpdate[0].editorState, index);
-        this.checkPageHeightAndPushBlockToNextPage(pagesUpdate, index);
-      }, 50);
-      return pagesUpdate;
+      await new Promise(resolve => setTimeout(this.checkPageHeightAndPushBlockToNextPage.bind(this), 50, pagesUpdate, index));
     }
     return pagesUpdate;
   }
@@ -315,116 +307,114 @@ export class Document extends React.Component {
     return currentStyle.has(style);
   }
   
-  onChange = async(editorState, index, type) => {
-    let cursorChange = false;
-    if (this.state.pages[index].editorState.getCurrentContent() === editorState.getCurrentContent() && !this.hitDelete) {
-      cursorChange = true;
+  getBlockStyles(editorState) {
+    const prevSelection = editorState.getCurrentContent().getSelectionBefore();
+    const lastBlock = editorState.getCurrentContent().getBlockForKey(prevSelection.getFocusKey());
+    const data = lastBlock.getData();
+    let styles = {};
+    let alignment = data.getIn(['alignment']);
+    let direction = 'LEFT';
+    if (alignment) {
+      direction = alignment;
     }
-    
+    styles.direction = alignment;
+    let lineHeight = data.getIn(['lineHeight']);
+    let height = 'lineheight_single';
+    if (lineHeight) {
+      height = lineHeight;
+    }
+    styles.lineHeight = height;
+    return styles;
+  }
+  
+  onChange(editorState, index) {
+    if (!this.state.pages[index]) {
+      return;
+    }
     let pagesUpdate = this.state.pages;
     const selection = editorState.getSelection();
-    let blockTree = this.state.pages[index].editorState.getBlockTree(selection.getFocusKey());
-    const thisBlock = editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
-    if (!blockTree) {
-      // a new block has been added
-      const prevSelection = editorState.getCurrentContent().getSelectionBefore();
-      const lastBlock = editorState.getCurrentContent().getBlockForKey(prevSelection.getFocusKey());
-      const data = lastBlock.getData();
-      let alignment = data.getIn(['alignment']);
-      let direction = 'LEFT';
-      if (alignment) {
-        direction = alignment;
-      }
-      let lineHeight = data.getIn(['lineHeight']);
-      let height = 'lineheight_single';
-      if (lineHeight) {
-        height = lineHeight;
-      }
-      const nextContentState = Modifier.setBlockData(editorState.getCurrentContent(), selection, Immutable.Map([['alignment', direction],['lineHeight', height]]));
-      editorState = EditorState.push(editorState, nextContentState, 'change-block-data');
-    }
-    
-    let addedPage = false;
-    let deletedPage = false;
-    let editor = this.refs[index].current;
-    
-    if (editor) {
-      if (this.hitDelete) {
-        console.log('hit del');
-        this.hitDelete = false;
-        console.log('tried to delete', thisBlock.getText());
-        if (!thisBlock.getText().length) {
-          let newEditorState = this.removeBlockFromMap(editorState, thisBlock.getKey());
-          if (newEditorState) {
-            editorState = newEditorState;
-          }
-          if (editorState.getCurrentContent() && !editorState.getCurrentContent().hasText() && pagesUpdate.length > 1) {
-            deletedPage = true;
-            pagesUpdate.splice(index, 1);
-            this.recalcPagination();
-            pagesUpdate[index-1].editorState = EditorState.moveFocusToEnd(pagesUpdate[index-1].editorState);
-          }
-        }
-      }
-      if (!deletedPage) {
-        pagesUpdate[index].editorState = editorState;
-        pagesUpdate = await this.checkPageHeightAndPushBlockToNextPage(pagesUpdate, index);
-      }
-      
-      if (cursorChange) {
+    // only for cursor moves without text change
+    if (this.state.pages[index].editorState.getCurrentContent() === editorState.getCurrentContent() && !this.hitDelete) {
+      try {
         console.log('cursor change');
         this.setState({
           boldOn:false,
           italicOn:false,
           underlineOn:false
         });
-        console.log('editor', editorState, 'ind', index);
-        try {
-          const currStyles = editorState.getCurrentInlineStyle();
-          let foundFontFamily = false, foundFontSize = false;
-          currStyles.forEach(v => {
-            if (v.indexOf('fontSize_') > -1) {
-              foundFontSize = true;
-            }
-            if (v.indexOf('fontFamily_') > -1) {
-              foundFontFamily = true;
-            }
-            this.updateTextButtons(v);
+        const currStyles = editorState.getCurrentInlineStyle();
+        let foundFontFamily = false, foundFontSize = false;
+        currStyles.forEach(v => {
+          if (v.indexOf('fontSize_') > -1) {
+            foundFontSize = true;
+          }
+          if (v.indexOf('fontFamily_') > -1) {
+            foundFontFamily = true;
+          }
+          this.updateTextButtons(v);
+        });
+            
+        const lastBlock = editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
+        const data = lastBlock.getData();
+        let alignment = data.getIn(['alignment']);
+        if (alignment) {
+          this.updateTextButtons(alignment);
+        }
+        let lineHeight = data.getIn(['lineHeight']);
+        if (lineHeight) {
+          this.updateTextButtons(lineHeight);
+        }
+        /*No inline styles, so toggle controls UI to defaults*/
+        if (!foundFontSize) {
+          this.setState({
+            currentFontSize:'12pt'
           });
-          const selection = editorState.getSelection();
-          const lastBlock = editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
-          const data = lastBlock.getData();
-          let alignment = data.getIn(['alignment']);
-          if (alignment) {
-            this.updateTextButtons(alignment);
-          }
-          let lineHeight = data.getIn(['lineHeight']);
-          if (lineHeight) {
-            this.updateTextButtons(lineHeight);
-          }
-          /*No inline styles, so toggle controls UI to defaults*/
-          if (!foundFontSize) {
-            this.setState({
-              currentFontSize:'12pt'
-            });
-          }
-          if (!foundFontFamily) {
-            this.setState({
-              currentFontFamily:'Arial'
-            });
-          }
-        } catch(e) {
-          console.error(e);
         }
+        if (!foundFontFamily) {
+          this.setState({
+            currentFontFamily:'Arial'
+          });
+        }
+        pagesUpdate[index].editorState = editorState;
+        this.setState({
+          pages:pagesUpdate
+        });
+        return;
+      } catch (e) {
+        console.error(e);
+        return;
       }
-      
+    }
+    let addedPage = false;
+    const blockTree = this.state.pages[index].editorState.getBlockTree(selection.getFocusKey());
+    if (!blockTree) {
+      addedPage = true;
+      // a new block has been added, copy styles from previous block
+      const styles = this.getBlockStyles(editorState);
+      const nextContentState = Modifier.setBlockData(editorState.getCurrentContent(),
+                                                     selection,
+                                                     Immutable.Map([['alignment', styles.direction],
+                                                                    ['lineHeight', styles.lineHeight]]));
+      editorState = EditorState.push(editorState, nextContentState, 'change-block-data');
+    }
+    
+    if (this.hitDelete) {
+      this.hitDelete = false;
+      const thisBlock = editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
+      if (!thisBlock.getText().length) {
+        //flag for deletion upon next backspace keystroke
+        const nextContentState = Modifier.mergeBlockData(editorState.getCurrentContent(), selection, Immutable.Map([['previousStrokeDeletedAll', true]]));
+        editorState = EditorState.push(editorState, nextContentState, 'change-block-data');
+      }
+    }
+    pagesUpdate[index].editorState = editorState;
+    this.setState({
+      pages:pagesUpdate
+    }, async () => {
+      let adjustedPages = await this.checkPageHeightAndPushBlockToNextPage(pagesUpdate, index);
       this.setState({
-        pages:pagesUpdate
+        pages:adjustedPages
       }, () => {
-        if (deletedPage) {
-          this.setFocus(index-1);
-          this.currentPage = index-1;
-        }
         let blockDOM = this.getSelectedBlockElement();
         if (blockDOM) {
           let domY = blockDOM.getBoundingClientRect().top;
@@ -433,29 +423,19 @@ export class Document extends React.Component {
             window.scrollTo({top: scrollToY-100, behavior: 'smooth'});
           }
         }
+        this.pendingEdits.set(index, true);
       });
-      
-      
-      
-      if (!cursorChange) {
-        if (deletedPage) {
-          this.deletePage(index);
-        } else {
-          this.pendingEdits.set(this.currentPage, true);
-        }
-      }
-    }
-    
+    });
   }
   
   checkForPendingEdits() {
     if (this.pendingPageAdd) {
       this.pendingPageAdd = false;
-      this.saveAllPages();
+      //this.saveAllPages();
     }
     this.pendingEdits.forEach((value, key) => {
       if (value) {
-        this.savePage(key);
+        //this.savePage(key);
         this.pendingEdits.set(key, false);
       }
     });
@@ -491,12 +471,39 @@ export class Document extends React.Component {
     return i;
   }
   
-  handleKeyCommand = (command) => {
+  handleKeyCommand = (command, editorState, index) => {
     console.log('cmd', command);
     switch(command.toLowerCase()) {
       case 'delete':
       case 'backspace':
         this.hitDelete = true;
+        const selection = editorState.getSelection();
+        let thisBlock = editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
+        const data = thisBlock.getData();
+        const previousStrokeDeletedAll = data.hasIn(['previousStrokeDeletedAll']);
+        if (!thisBlock.getText().length && previousStrokeDeletedAll) {
+          let pagesUpdate = this.state.pages;
+          const newEditorState = this.removeBlockFromMap(editorState, thisBlock.getKey());
+          if (newEditorState) {
+            editorState = EditorState.push(newEditorState, newEditorState.getCurrentContent());
+          }
+          //the page was deleted via backspace
+          if (editorState.getCurrentContent() && !editorState.getCurrentContent().hasText() && pagesUpdate.length > 1) {
+            pagesUpdate.splice(index, 1);
+            this.refs.splice(index, 1);
+            this.recalcPagination();
+            pagesUpdate[index-1].editorState = EditorState.moveFocusToEnd(pagesUpdate[index-1].editorState);
+            this.deletePage(index);
+            this.setFocus(index-1);
+            this.currentPage = index-1;
+          }
+          if (pagesUpdate[index]) {
+            pagesUpdate[index].editorState = editorState;
+          }
+          this.setState({
+            pages:pagesUpdate
+          });
+        }
         break;
     }
   }
@@ -519,9 +526,6 @@ export class Document extends React.Component {
   }
   
   updateTextButtons(style) {
-    console.log('st', style);
-    
-
     if (lineSpacings.has(style)) {
       this.setState({
         currentLineHeight:style
@@ -704,7 +708,9 @@ export class Document extends React.Component {
       editors.push(
         <section key={i} onClick={() => {this.setFocus(i);}} className="margins" style={{paddingLeft:this.state.leftMargin, paddingRight:this.state.rightMargin, paddingTop:this.state.topMargin, paddingBottom:this.state.bottomMargin}}>
           <Editor 
-                  handleKeyCommand={this.handleKeyCommand}
+                  handleKeyCommand={(command) => {
+                    this.handleKeyCommand(command, this.state.pages[i].editorState, i);
+                  }}
                   editorState={this.state.pages[i].editorState}
                   placeholder="Write something..."
                   blockStyleFn={this.blockStyle.bind(this)}
