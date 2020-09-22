@@ -1,6 +1,9 @@
 {
-  "name": "drafty",
+  "name": "RichDocter",
   "version": "0.1.0",
+  "eslintConfig": {
+    "extends": "react-app"
+  },
   "dependencies": {
     "@babel/plugin-proposal-class-properties": "^7.10.4",
     "@babel/plugin-transform-runtime": "^7.11.0",
@@ -10,6 +13,7 @@
     "browserify": "^16.5.2",
     "draft-js": "^0.11.7",
     "immutable": "^4.0.0-rc.12",
+    "jest": "^26.4.2",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-scripts": "^3.4.3",
@@ -17,10 +21,9 @@
   },
   "scripts": {
     "minify": "uglifyjs public/js/dist/bundle.js -o public/js/dist/bundle.min.js",
-    "build": "browserify -d public/js/main.jsx public/js/Document.jsx -o public/js/dist/bundle.js -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ]"
-  },
-  "eslintConfig": {
-    "extends": "react-app"
+    "build": "browserify -d public/js/main.jsx public/js/Document.jsx -o public/js/dist/bundle.js -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ]",
+    "pretest": "eslint --ext .js,.jsx --ignore-path .gitignore .\\",
+    "test": "jest"
   },
   "browserslist": {
     "production": [
@@ -35,6 +38,9 @@
     ]
   },
   "devDependencies": {
-    "@babel/preset-react": "^7.10.4"
+    "@babel/preset-react": "^7.10.4",
+    "eslint": "^7.9.0",
+    "eslint-config-google": "^0.14.0",
+    "eslint-plugin-react": "^7.20.6"
   }
 }
