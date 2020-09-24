@@ -89,7 +89,6 @@ export class Document extends React.Component {
       }
     ]);*/
     this.refHandles = [];
-    this.newPagePending = false;
     this.state = {
       pages: [],
       pageWidth: 8.25 * dpi,
@@ -121,7 +120,7 @@ export class Document extends React.Component {
     this.fetchWebsocketURL();
     this.novelID = 0;
     this.pendingEdits = new Map();
-    this.pendingPageAdd = false;
+    this.newPageSaveRequired = false;
     this.pendingPageDeletions = [];
     this.fetchDocumentPages();
     this.checkSaveInterval = setInterval(() => this.checkForPendingEdits(), this.SAVE_TIME_INTERVAL);
@@ -211,18 +210,18 @@ export class Document extends React.Component {
   /**
    * Add a new page to the bottom of the document.
    */
-  addNewPage() {
-    this.newPagePending = true;
+  async addNewPage() {
     const pages = this.state.pages;
     const editorState = EditorState.createEmpty();
-    pages.push({'editorState': editorState, 'pageNum': this.state.pages.length});
-    this.setState({
+    pages.push({'editorState': editorState, 'pageNum': pages.length});
+    const removeBlock = pages[pages.length-1].editorState.getCurrentContent();
+    console.log('new page', removeBlock.getBlockMap());
+    //
+    await this.setState({
       pages: pages
-    }, () => {
-      // this.setFocus(this.refs.length-1);
-      // this.currentPage = this.refs.length-1;
-      this.newPagePending = false;
-      this.pendingPageAdd = true;
+    }, async () => {
+      this.newPageSaveRequired = true;
+      return;
     });
   }
 
@@ -287,24 +286,25 @@ export class Document extends React.Component {
    *
    * @param {array} pageObjectsToUpdate
    * @param {number} pageNumber
+   * @param {boolean} renderedNewPage
    */
-  async checkPageHeightAndPushBlockToNextPage(pageObjectsToUpdate, pageNumber) {
+  async checkPageHeightAndPushBlockToNextPage(pageObjectsToUpdate, pageNumber, renderedNewPage) {
     const editor = this.refHandles[pageNumber].current;
     const maxHeight = this.state.pageHeight - this.state.topMargin - this.state.bottomMargin;
     // console.log(editor.editorContainer.firstChild.firstChild.offsetHeight, " vs ", maxHeight);
-    if (editor.editorContainer.firstChild.firstChild.offsetHeight >= maxHeight && !this.newPagePending) {
+    if (editor.editorContainer.firstChild.firstChild.offsetHeight >= maxHeight ) {
       if (!pageObjectsToUpdate[pageNumber+1]) {
-        this.addNewPage();
-        return this.checkPageHeightAndPushBlockToNextPage(this.state.pages, pageNumber);
+        await this.addNewPage();
+        return this.checkPageHeightAndPushBlockToNextPage(this.state.pages, pageNumber, true);
       }
-
       const removeBlock = pageObjectsToUpdate[pageNumber].editorState.getCurrentContent().getLastBlock();
       const currentSelectedKey = pageObjectsToUpdate[pageNumber].editorState.getSelection().focusKey;
       let blockArray = [];
       blockArray.push(removeBlock);
-      blockArray = blockArray.concat(pageObjectsToUpdate[pageNumber+1].editorState.getCurrentContent().getBlockMap().toArray());
+      if (!renderedNewPage) {
+        blockArray = blockArray.concat(pageObjectsToUpdate[pageNumber+1].editorState.getCurrentContent().getBlockMap().toArray());
+      }
       const combinedContentState = ContentState.createFromBlockArray(blockArray);
-
 
       const slicedEditorState = this.removeBlockFromMap(pageObjectsToUpdate[pageNumber].editorState, removeBlock.getKey());
       if (!slicedEditorState) {
@@ -313,8 +313,6 @@ export class Document extends React.Component {
       }
       pageObjectsToUpdate[pageNumber+1].editorState = EditorState.push(pageObjectsToUpdate[pageNumber+1].editorState, combinedContentState);
       pageObjectsToUpdate[pageNumber].editorState = slicedEditorState;
-      console.log('new page state', pageObjectsToUpdate[pageNumber+1]);
-
       this.setState({
         pages: pageObjectsToUpdate
       }, () => {
@@ -329,8 +327,6 @@ export class Document extends React.Component {
         }
         return this.checkPageHeightAndPushBlockToNextPage(pageObjectsToUpdate, pageNumber);
       });
-    } else if (this.newPagePending) {
-      await new Promise((resolve) => setTimeout(this.checkPageHeightAndPushBlockToNextPage.bind(this), 50, pageObjectsToUpdate, pageNumber));
     }
     return pageObjectsToUpdate;
   }
@@ -376,13 +372,16 @@ export class Document extends React.Component {
    * @param {number} pageNumber
    */
   onChange(editorState, pageNumber) {
-    if (!this.state.pages[pageNumber]) {
+    console.log('ONCHANGE~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~', this.hitDelete);
+    if (this.hitDelete) {
+      this.handleDeletePressed(editorState, pageNumber);
       return;
     }
+
     const pagesUpdate = this.state.pages;
     const selection = editorState.getSelection();
     // only for cursor moves without text change
-    if (this.state.pages[pageNumber].editorState.getCurrentContent() === editorState.getCurrentContent() && !this.hitDelete) {
+    if (this.state.pages[pageNumber].editorState.getCurrentContent() === editorState.getCurrentContent()) {
       try {
         console.log('cursor change');
         this.setState({
@@ -435,23 +434,16 @@ export class Document extends React.Component {
       }
     }
 
+    const dataMap = [];
     const blockTree = this.state.pages[pageNumber].editorState.getBlockTree(selection.getFocusKey());
     if (!blockTree) {
       // a new block has been added, copy styles from previous block
       const styles = this.getPreviousBlockStyles(editorState);
-      const nextContentState = Modifier.setBlockData(editorState.getCurrentContent(),
-          selection, Immutable.Map([['alignment', styles.direction], ['lineHeight', styles.lineHeight]]));
+      dataMap.push(['alignment', styles.direction]);
+      dataMap.push(['lineHeight', styles.lineHeight]);
+      const iMap = Immutable.Map(dataMap);
+      const nextContentState = Modifier.mergeBlockData(editorState.getCurrentContent(), selection, iMap);
       editorState = EditorState.push(editorState, nextContentState, 'change-block-data');
-    }
-    if (this.hitDelete) {
-      this.hitDelete = false;
-      const thisBlock = editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
-      if (!thisBlock.getText().length) {
-        // Flag for deletion upon next backspace keystroke.
-        const dataMap = Immutable.Map([['previousStrokeDeletedAll', true]]);
-        const nextContentState = Modifier.mergeBlockData(editorState.getCurrentContent(), selection, dataMap);
-        editorState = EditorState.push(editorState, nextContentState, 'change-block-data');
-      }
     }
     pagesUpdate[pageNumber].editorState = editorState;
 
@@ -479,8 +471,8 @@ export class Document extends React.Component {
    * Check stored action arrays for upcoming writes
    */
   checkForPendingEdits() {
-    if (this.pendingPageAdd) {
-      this.pendingPageAdd = false;
+    if (this.newPageSaveRequired) {
+      this.newPageSaveRequired = false;
       this.saveAllPages();
     }
     this.pendingEdits.forEach((value, key) => {
@@ -541,6 +533,42 @@ export class Document extends React.Component {
   }
 
   /**
+   * fire when delete button pressed
+   *
+   * @param {EditorState} editorState
+   * @param {number} pageNumber
+   */
+  handleDeletePressed(editorState, pageNumber) {
+    const pagesUpdate = this.state.pages;
+    // const selection = editorState.getSelection();
+    const content = editorState.getCurrentContent();
+
+    // const thisBlock = content.getBlockForKey(selection.getFocusKey());
+
+    if (!content.hasText() && pagesUpdate.length > 1) {
+      console.log('deleting page');
+      pagesUpdate[pageNumber].editorState.deleted = true;
+      this.setFocus(pageNumber-1);
+      pagesUpdate.splice(pageNumber, 1);
+      this.refHandles.splice(pageNumber, 1);
+      this.recalcPagination();
+      pagesUpdate[pageNumber-1].editorState = EditorState.moveFocusToEnd(pagesUpdate[pageNumber-1].editorState);
+      this.deletePage(pageNumber);
+      this.currentPage--;
+      console.log('going to end of ', pageNumber-1);
+    } else {
+      console.log('deleting char');
+      pagesUpdate[pageNumber].editorState = editorState;
+    }
+
+    this.setState({
+      pages: pagesUpdate
+    }, () => {
+      this.hitDelete = false;
+    });
+  }
+
+  /**
    * Calls for specific keypresses
    *
    * @param {string} command
@@ -553,33 +581,6 @@ export class Document extends React.Component {
       case 'delete':
       case 'backspace': {
         this.hitDelete = true;
-        const selection = editorState.getSelection();
-        const thisBlock = editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
-        const data = thisBlock.getData();
-        const previousStrokeDeletedAll = data.hasIn(['previousStrokeDeletedAll']);
-        if (!thisBlock.getText().length && previousStrokeDeletedAll) {
-          const pagesUpdate = this.state.pages;
-          const newEditorState = this.removeBlockFromMap(editorState, thisBlock.getKey());
-          if (newEditorState) {
-            editorState = EditorState.push(newEditorState, newEditorState.getCurrentContent());
-          }
-          // The page was deleted via backspace.
-          if (editorState.getCurrentContent() && !editorState.getCurrentContent().hasText() && pagesUpdate.length > 1) {
-            pagesUpdate.splice(index, 1);
-            this.refHandles.splice(index, 1);
-            this.recalcPagination();
-            pagesUpdate[index-1].editorState = EditorState.moveFocusToEnd(pagesUpdate[index-1].editorState);
-            this.deletePage(index);
-            this.setFocus(index-1);
-            this.currentPage = index-1;
-          }
-          if (pagesUpdate[index]) {
-            pagesUpdate[index].editorState = editorState;
-          }
-          this.setState({
-            pages: pagesUpdate
-          });
-        }
         break;
       }
     }
@@ -840,10 +841,10 @@ export class Document extends React.Component {
       editors.push(
           <section key={i} onClick={() => {this.setFocus(i);}} className="margins" style={{paddingLeft: this.state.leftMargin, paddingRight: this.state.rightMargin, paddingTop: this.state.topMargin, paddingBottom: this.state.bottomMargin}}>
             <Editor
-              handleKeyCommand={(command) => {
-                this.handleKeyCommand(command, this.state.pages[i].editorState, i);
-              }}
               editorState={this.state.pages[i].editorState}
+              handleKeyCommand={(command, editorState) => {
+                this.handleKeyCommand(command, editorState, i);
+              }}
               placeholder="Write something..."
               blockStyleFn={this.generateBlockStyle.bind(this)}
               onChange={(editorState) => {
