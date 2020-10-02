@@ -1,5 +1,4 @@
 import React from 'react';
-
 import Immutable from 'immutable';
 import {EditorState, Editor, ContentState, Modifier, convertToRaw, convertFromRaw, RichUtils} from 'draft-js';
 import FormatAlignLeftIcon from '@material-ui/icons/FormatAlignLeft';
@@ -10,6 +9,8 @@ import FormatBoldIcon from '@material-ui/icons/FormatBold';
 import FormatItalicIcon from '@material-ui/icons/FormatItalic';
 import FormatUnderlinedIcon from '@material-ui/icons/FormatUnderlined';
 import FormatLineSpacingIcon from '@material-ui/icons/FormatLineSpacing';
+
+import {DocSelector} from './Utilities.jsx';
 
 const styleMap = {
   'fontSize_6pt': {
@@ -89,6 +90,18 @@ export class Document extends React.Component {
       }
     ]);*/
     this.refHandles = [];
+    const fontFamilyLabels = ['Arial', 'Courier', 'Verdana'];
+    const fontSizeLabels = ['6pt', '8pt', '10pt', '12pt', '14pt',
+      '16pt', '18pt', '20pt', '22pt', '24pt', '28pt', '32pt'];
+    const fontFamilies = new Map();
+    const fontSizes = new Map();
+    fontFamilyLabels.forEach((family) => {
+      fontFamilies.set('fontFamily_' + family, family);
+    });
+    fontSizeLabels.forEach((size) => {
+      fontSizes.set('fontSize_' + size, size);
+    });
+
     this.state = {
       pages: [],
       pageWidth: 8.25 * dpi,
@@ -97,9 +110,8 @@ export class Document extends React.Component {
       leftMargin: 1 * dpi,
       rightMargin: 1 * dpi,
       bottomMargin: 1 * dpi,
-      fonts: ['Arial', 'Courier', 'Verdana'],
-      fontSizes: ['6pt', '8pt', '10pt', '12pt', '14pt', '16pt',
-        '18pt', '20pt', '22pt', '24pt', '28pt', '32pt'],
+      fontFamilies: fontFamilies,
+      fontSizes: fontSizes,
       boldOn: false,
       italicOn: false,
       underlineOn: false,
@@ -112,10 +124,12 @@ export class Document extends React.Component {
       currentLineHeight: 'lineheight_single'
     };
 
+    this.fontFamilySelector;
+    this.fontSizeSelector;
     this.currentPage = 0;
     this.SERVICE_URL = '/api';
     this.SAVE_TIME_INTERVAL = 5000;
-    this.hitDelete = false;
+    this.deletedPage = false;
     this.socket = null;
     this.fetchWebsocketURL();
     this.novelID = 0;
@@ -372,15 +386,17 @@ export class Document extends React.Component {
    * @param {number} pageNumber
    */
   onChange(editorState, pageNumber) {
-    console.log('ONCHANGE~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~', this.hitDelete);
-    if (this.hitDelete) {
-      this.handleDeletePressed(editorState, pageNumber);
-      return;
-    }
+    console.log('ONCHANGE~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
 
     const pagesUpdate = this.state.pages;
     const selection = editorState.getSelection();
     // only for cursor moves without text change
+
+    if (this.deletedPage) {
+      pagesUpdate[pageNumber-1].editorState = EditorState.moveFocusToEnd(pagesUpdate[pageNumber-1].editorState);
+      this.deletedPage = false;
+    }
+
     if (this.state.pages[pageNumber].editorState.getCurrentContent() === editorState.getCurrentContent()) {
       try {
         console.log('cursor change');
@@ -394,10 +410,10 @@ export class Document extends React.Component {
         let foundFontSize = false;
         currStyles.forEach((v) => {
           if (v.indexOf('fontSize_') > -1) {
-            foundFontSize = true;
+            foundFontSize = v;
           }
           if (v.indexOf('fontFamily_') > -1) {
-            foundFontFamily = true;
+            foundFontFamily = v;
           }
           this.updateTextButtons(v);
         });
@@ -414,15 +430,17 @@ export class Document extends React.Component {
         }
         // No inline styles, so toggle controls UI to defaults.
         if (!foundFontSize) {
-          this.setState({
-            currentFontSize: '12pt'
-          });
+          foundFontSize = 'fontSize_12pt';
         }
         if (!foundFontFamily) {
-          this.setState({
-            currentFontFamily: 'Arial'
-          });
+          foundFontFamily = 'fontFamily_Arial';
         }
+        this.setState({
+          currentFontFamily: foundFontFamily,
+          currentFontSize: foundFontSize
+        });
+        this.fontFamilySelector.current.update(foundFontFamily);
+        this.fontSizeSelector.current.update(foundFontSize);
         pagesUpdate[pageNumber].editorState = editorState;
         this.setState({
           pages: pagesUpdate
@@ -532,55 +550,37 @@ export class Document extends React.Component {
     return i;
   }
 
-  /**
-   * fire when delete button pressed
-   *
-   * @param {EditorState} editorState
-   * @param {number} pageNumber
-   */
-  handleDeletePressed(editorState, pageNumber) {
-    const pagesUpdate = this.state.pages;
-    // const selection = editorState.getSelection();
-    const content = editorState.getCurrentContent();
-
-    // const thisBlock = content.getBlockForKey(selection.getFocusKey());
-
-    if (!content.hasText() && pagesUpdate.length > 1) {
-      console.log('deleting page');
-      pagesUpdate[pageNumber].editorState.deleted = true;
-      this.setFocus(pageNumber-1);
-      pagesUpdate.splice(pageNumber, 1);
-      this.refHandles.splice(pageNumber, 1);
-      this.recalcPagination();
-      pagesUpdate[pageNumber-1].editorState = EditorState.moveFocusToEnd(pagesUpdate[pageNumber-1].editorState);
-      this.deletePage(pageNumber);
-      this.currentPage--;
-      console.log('going to end of ', pageNumber-1);
-    } else {
-      console.log('deleting char');
-      pagesUpdate[pageNumber].editorState = editorState;
-    }
-
-    this.setState({
-      pages: pagesUpdate
-    }, () => {
-      this.hitDelete = false;
-    });
-  }
 
   /**
    * Calls for specific keypresses
    *
    * @param {string} command
-   * @param {EditorState} editorState
-   * @param {number} index
+   * @param {number} pageNumber
    */
-  handleKeyCommand(command, editorState, index) {
-    console.log('cmd', command);
+  handleKeyCommand(command, pageNumber) {
+    console.log('cmd', command, 'page', pageNumber);
     switch (command.toLowerCase()) {
       case 'delete':
       case 'backspace': {
-        this.hitDelete = true;
+        const pagesUpdate = this.state.pages;
+        const editorState = pagesUpdate[pageNumber].editorState;
+        const content = editorState.getCurrentContent();
+        const selection = editorState.getSelection();
+        const block = editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
+        if (!content.hasText() && pagesUpdate.length > 1) {
+          this.deletedPage = true;
+          this.setFocus(pageNumber-1);
+          pagesUpdate.splice(pageNumber, 1);
+          this.refHandles.splice(pageNumber, 1);
+          this.recalcPagination();
+          this.deletePage(pageNumber);
+          this.currentPage--;
+        } else if (!block.getText().length) {
+          pagesUpdate[pageNumber].editorState = this.removeBlockFromMap(editorState, selection.getFocusKey());
+        }
+        this.setState({
+          pages: pagesUpdate
+        });
         break;
       }
     }
@@ -764,26 +764,20 @@ export class Document extends React.Component {
   /**
    * Change text font family and/or size when combobox changes
    *
-   * @param {event} event
    * @param {string} type
+   * @param {string} value
    */
-  updateFontDetails(event, type) {
-    event.preventDefault();
-    const value = event.target.value;
+  updateFontDetails(type, value) {
     const pagesUpdate = this.state.pages;
     const selection = pagesUpdate[this.currentPage].editorState.getSelection();
-    pagesUpdate[this.currentPage].editorState = EditorState.forceSelection(this.state.pages[this.currentPage].editorState, selection);
     const nextContentState = Modifier.mergeBlockData(pagesUpdate[this.currentPage].editorState.getCurrentContent(), selection, Immutable.Map([[type, value]]));
     pagesUpdate[this.currentPage].editorState = EditorState.push(pagesUpdate[this.currentPage].editorState, nextContentState, 'change-block-data');
-    let formatParam;
     let field;
     switch (type) {
-      case 'family':
-        formatParam = 'fontFamily_' + value;
+      case 'fontFamily':
         field = 'currentFontFamily';
         break;
-      case 'size':
-        formatParam = 'fontSize_' + value;
+      case 'fontSize':
         field = 'currentFontSize';
         break;
     }
@@ -791,7 +785,7 @@ export class Document extends React.Component {
       pages: pagesUpdate,
       [field]: value
     }, () => {
-      this.formatText(formatParam, event);
+      this.formatText(value, event);
     });
   }
 
@@ -808,25 +802,19 @@ export class Document extends React.Component {
   /**
    * get font and fontSize available options for render
    * @param {string} type
-   * @return {React.Fragment}
+   * @return {map}
    */
   getFormatOptions(type) {
-    let array;
+    let map;
     switch (type) {
-      case 'fonts':
-        array = this.state.fonts;
+      case 'fontFamilies':
+        map = this.state.fontFamilies;
         break;
       case 'fontSizes':
-        array = this.state.fontSizes;
+        map = this.state.fontSizes;
         break;
     }
-    return (
-      <React.Fragment>
-        {array.map((item) => {
-          return <option value={item} key={item}>{item}</option>;
-        })}
-      </React.Fragment>
-    );
+    return map;
   }
 
   /**
@@ -842,8 +830,8 @@ export class Document extends React.Component {
           <section key={i} onClick={() => {this.setFocus(i);}} className="margins" style={{paddingLeft: this.state.leftMargin, paddingRight: this.state.rightMargin, paddingTop: this.state.topMargin, paddingBottom: this.state.bottomMargin}}>
             <Editor
               editorState={this.state.pages[i].editorState}
-              handleKeyCommand={(command, editorState) => {
-                this.handleKeyCommand(command, editorState, i);
+              handleKeyCommand={(command) => {
+                this.handleKeyCommand(command, i);
               }}
               placeholder="Write something..."
               blockStyleFn={this.generateBlockStyle.bind(this)}
@@ -855,7 +843,8 @@ export class Document extends React.Component {
           </section>
       );
     }
-
+    this.fontFamilySelector = React.createRef();
+    this.fontSizeSelector = React.createRef();
     return (
       <div className="editorRoot" style={{width: this.state.pageWidth}}>
         <nav >
@@ -875,12 +864,8 @@ export class Document extends React.Component {
             <FormatUnderlinedIcon className={this.state.underlineOn ? 'on' : ''} fontSize="inherit" onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.formatText('UNDERLINE', e)} />
           </div>
           <div>
-            <select value={this.state.currentFontFamily} onChange={(e) => this.updateFontDetails(e, 'family')}>
-              {this.getFormatOptions('fonts')}
-            </select>
-            <select value={this.state.currentFontSize} onChange={(e) => this.updateFontDetails(e, 'size')}>
-              {this.getFormatOptions('fontSizes')}
-            </select>
+            <DocSelector ref={this.fontFamilySelector} type="fontFamily" action={this.updateFontDetails.bind(this)} value={this.state.currentFontFamily} options={this.getFormatOptions('fontFamilies')}/>
+            <DocSelector ref={this.fontSizeSelector} type="fontSize" action={this.updateFontDetails.bind(this)} value={this.state.currentFontSize} options={this.getFormatOptions('fontSizes')}/>
           </div>
         </nav>
         <div onClick={this.focus} className="editorContainer" style={{maxHeight: this.state.pageHeight, height: this.state.pageHeight}}>

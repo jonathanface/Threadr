@@ -33,7 +33,7 @@ div.editorRoot {
   font-size: 24px;
   line-height: 24px;
 }
-.editorRoot nav svg {
+.editorRoot nav > div > svg {
   background: #585858;
   padding: 3px;
   border: 1px solid #000;
@@ -41,10 +41,10 @@ div.editorRoot {
   cursor: pointer;
   margin:3px;
 }
-.editorRoot nav svg.on {
+.editorRoot nav > div > svg.on {
   background-color:gray;
 }
-.editorRoot nav svg:hover {
+.editorRoot nav > div > svg:hover {
   color:#333;
 }
 .editorRoot nav > div > span {
@@ -55,16 +55,54 @@ div.editorRoot {
   vertical-align:middle;
 }
 .editorRoot nav > div > span > span {
-  font-size:11px;
+  font-size:12px;
 }
 
-.editorRoot nav select, .editorRoot nav option, .editorRoot nav input.selectable {
+.customSelect > svg {
+  border:none !important;
+  width: 24px !important;
+  height: 24px !important;
+  cursor: pointer;
+}
+
+.customSelect {
+  background-color:#585858;
+  font-size:12px;
+  padding: 5px;
+  border: 1px solid #000;
+  border-radius: 5px;
+  margin:3px;
+  position:relative;
+}
+
+.customSelect ul {
+  background: #333;
+  position: absolute;
+  left: 0px;
+  list-style: none;
+  padding: 0px;
+  margin-top: 22px;
+  border: 1px solid #000;
+  width:100%;
+}
+.customSelect ul li {
+  cursor:pointer;
+  color:#c6c6c6;
+  padding:3px;
+}
+.customSelect ul li:hover {
+  color:#FFF;
+}
+
+.editorRoot nav select,
+.editorRoot nav option,
+.editorRoot nav input.selectable {
   background: #585858;
   color: #FFF;
   padding: 3px;
   border:1px solid #585858;
   margin:5px 5px;
-  
+  font-size:12px;
 }
 .editorRoot nav input.selectable {
   width:50px;
@@ -117,6 +155,6 @@ div.public-DraftEditor-content {
 .lineheight_medium {
   line-height:1.5;
 }
-.lineheight_double {
+.lineheight_double, .lineheight_double br {
   line-height:2;
 }

@@ -16,12 +16,13 @@
     "jest": "^26.4.2",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
+    "react-dropdown-select": "^4.5.2",
     "react-scripts": "^3.4.3",
     "uglifyjs": "^2.4.11"
   },
   "scripts": {
     "minify": "uglifyjs public/js/dist/bundle.js -o public/js/dist/bundle.min.js",
-    "build": "browserify -d public/js/main.jsx public/js/Document.jsx -o public/js/dist/bundle.js -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ]",
+    "build": "browserify -d public/js/main.jsx public/js/Utilities.jsx public/js/Document.jsx -o public/js/dist/bundle.js -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ]",
     "pretest": "eslint --ext .js,.jsx --ignore-path .gitignore .\\",
     "test": "jest"
   },
