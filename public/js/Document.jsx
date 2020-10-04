@@ -305,6 +305,7 @@ export class Document extends React.Component {
   async checkPageHeightAndPushBlockToNextPage(pageObjectsToUpdate, pageNumber, renderedNewPage) {
     const editor = this.refHandles[pageNumber].current;
     const maxHeight = this.state.pageHeight - this.state.topMargin - this.state.bottomMargin;
+    const selection = pageObjectsToUpdate[pageNumber].editorState.getSelection();
     // console.log(editor.editorContainer.firstChild.firstChild.offsetHeight, " vs ", maxHeight);
     if (editor.editorContainer.firstChild.firstChild.offsetHeight >= maxHeight ) {
       if (!pageObjectsToUpdate[pageNumber+1]) {
@@ -312,7 +313,22 @@ export class Document extends React.Component {
         return this.checkPageHeightAndPushBlockToNextPage(this.state.pages, pageNumber, true);
       }
       const removeBlock = pageObjectsToUpdate[pageNumber].editorState.getCurrentContent().getLastBlock();
-      const currentSelectedKey = pageObjectsToUpdate[pageNumber].editorState.getSelection().focusKey;
+      const currentSelectedKey = selection.focusKey;
+      
+      // Here I need to do some shit to remove the last line of a block to
+      // account for wrapped text exceeding max inside one block
+      /*
+      let numChars = removeBlock.getText().length;
+      if (numChars > 0) {
+        let removedText = '';
+        for (let i=numChars; i >= 0; i--) {
+          removedText += removeBlock.getText().slice(i, i-1);
+          console.log('removing', removeBlock.getText().slice(i, i-1));
+        }        
+        console.log('removed', removedText);
+      }
+      */
+      
       let blockArray = [];
       blockArray.push(removeBlock);
       if (!renderedNewPage) {
