@@ -123,6 +123,8 @@ export class Document extends React.Component {
       currentFontFamily: 'Arial',
       currentLineHeight: 'lineheight_single'
     };
+    
+    this.maxWidth = this.state.pageWidth - (this.state.leftMargin + this.state.rightMargin);
 
     this.fontFamilySelector;
     this.fontSizeSelector;
@@ -402,8 +404,6 @@ export class Document extends React.Component {
    * @param {number} pageNumber
    */
   onChange(editorState, pageNumber) {
-    console.log('ONCHANGE~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~');
-
     const pagesUpdate = this.state.pages;
     const selection = editorState.getSelection();
     // only for cursor moves without text change
@@ -466,6 +466,18 @@ export class Document extends React.Component {
         console.error(e);
         return;
       }
+    }
+    
+    //const block = editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
+    //console.log(block);
+    const blockDOM = this.getSelectedBlockElement();
+    const items = blockDOM.querySelectorAll('div > span');
+    let width = 0;
+    for (let i=0; i < items.length; i++) {
+      width += items[i].offsetWidth;
+    }
+    if (width > this.maxWidth) {
+      // pagewidth exceeded, make a new block here for hte next line
     }
 
     const dataMap = [];
