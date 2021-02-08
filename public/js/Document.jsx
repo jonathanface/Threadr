@@ -131,7 +131,6 @@ export class Document extends React.Component {
     this.currentPage = 0;
     this.SERVICE_URL = '/api';
     this.SAVE_TIME_INTERVAL = 5000;
-    this.deletedPage = false;
     this.socket = null;
     this.fetchWebsocketURL();
     this.novelID = 0;
@@ -408,11 +407,6 @@ export class Document extends React.Component {
     const selection = editorState.getSelection();
     // only for cursor moves without text change
 
-    if (this.deletedPage) {
-      pagesUpdate[pageNumber-1].editorState = EditorState.moveFocusToEnd(pagesUpdate[pageNumber-1].editorState);
-      this.deletedPage = false;
-    }
-
     if (this.state.pages[pageNumber].editorState.getCurrentContent() === editorState.getCurrentContent()) {
       try {
         console.log('cursor change');
@@ -422,6 +416,7 @@ export class Document extends React.Component {
           underlineOn: false
         });
         const currStyles = editorState.getCurrentInlineStyle();
+        console.log('styles', currStyles);
         let foundFontFamily = false;
         let foundFontSize = false;
         currStyles.forEach((v) => {
@@ -500,17 +495,21 @@ export class Document extends React.Component {
       this.setState({
         pages: adjustedPages
       }, () => {
-        const blockDOM = this.getSelectedBlockElement();
-        if (blockDOM) {
-          const domY = blockDOM.getBoundingClientRect().top;
-          if (Math.abs(domY - window.scrollY) > 400) {
-            const scrollToY = blockDOM.getBoundingClientRect().top + window.scrollY;
-            window.scrollTo({top: scrollToY-100, behavior: 'smooth'});
-          }
-        }
+        this.scrollToBlock();
         this.pendingEdits.set(pageNumber, true);
       });
     });
+  }
+  
+  scrollToBlock() {
+    const blockDOM = this.getSelectedBlockElement();
+    if (blockDOM) {
+      const domY = blockDOM.getBoundingClientRect().top;
+      if (Math.abs(domY - window.scrollY) > 400) {
+        const scrollToY = blockDOM.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({top: scrollToY-100, behavior: 'smooth'});
+      }
+    }
   }
 
   /**
@@ -596,13 +595,18 @@ export class Document extends React.Component {
         const selection = editorState.getSelection();
         const block = editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
         if (!content.hasText() && pagesUpdate.length > 1) {
-          this.deletedPage = true;
           this.setFocus(pageNumber-1);
           pagesUpdate.splice(pageNumber, 1);
           this.refHandles.splice(pageNumber, 1);
           this.recalcPagination();
           this.deletePage(pageNumber);
           this.currentPage--;
+          pagesUpdate[pageNumber-1].editorState = EditorState.moveFocusToEnd(pagesUpdate[pageNumber-1].editorState);
+          this.setState({
+            pages: pagesUpdate
+          }, () => {
+            this.scrollToBlock();
+          });
         } else if (!block.getText().length) {
           pagesUpdate[pageNumber].editorState = this.removeBlockFromMap(editorState, selection.getFocusKey());
         }
