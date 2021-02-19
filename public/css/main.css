@@ -3,36 +3,52 @@
   box-sizing:border-box;
 }
 
-html, body {
-  height:100%;
+html {
   margin:0px;
+  padding:0px;
   background:gray;
   font-size:18px;
 }
 
+body {
+  padding:0px;
+  margin:0px;
+}
+
 #root {
-  height:100%;
+ 
 }
 
 div.editorRoot {
   margin:0px auto;
-  margin-top:50px;
+  padding-top:50px;
 }
 
-.editorRoot nav {
-  background-color: #333;
-  color: #FFF;
+nav.docControls {
+  background-color: #b7b7b7;
+  color: #484747;
   padding: 5px;
   padding-bottom:10px;
-  border-radius: 10px;
-  border: 1px solid #000;
+  width:100%;
+  border: 1px solid #6f5e5e;
   position: fixed;
-  left: 10px;
-  top: 10px;
+  left: 0px;
+  top: 0px;
   vertical-align: middle;
-  font-size: 24px;
-  line-height: 24px;
+  font-size: 14px;
+  line-height: 14px;
+  z-index:100;
 }
+
+nav.docControls ul {
+  list-style-type:none;
+  margin: 0 auto;
+  padding: 0px;
+  padding-left:20px;
+  padding-right:20px;
+}
+
+/*
 .editorRoot nav > div > svg {
   background: #585858;
   padding: 3px;
@@ -111,7 +127,7 @@ div.editorRoot {
 .editorRoot nav option["selected"] {
   background:#333;
 }
-
+*/
 .documentContainer {
   height:100%;
 }

@@ -289,6 +289,7 @@ func getConfiguration() {
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 	json.Unmarshal(byteValue, &credentials)
 	jsonFile.Close()
+  log.Println(credentials.DBHost)
 }
 
 func main() {
