@@ -191,7 +191,7 @@ export class Document extends React.Component {
       });
       return EditorState.push(editorState, newContentState, 'remove-range');
     }
-    return null;
+    return editorState;
   }
 
    /**
@@ -247,27 +247,8 @@ export class Document extends React.Component {
     }
   }
   
-  this.shiftUpPages(pageNumber) {
-    const pagesUpdate = this.state.pages;
-    for (let i=pageNumber+1; i < pagesUpdate.length; i++) {
-      const nextPageFirstBlock = pagesUpdate[i].editorState.getCurrentContent().getFirstBlock();
-      pagesUpdate[i].editorState = this.removeBlockFromMap(pagesUpdate[i].editorState, nextPageFirstBlock.getKey());
-      const thisPageSelection = new SelectionState({
-        anchorKey: prevPageLastBlock.getKey(), // key of block
-        anchorOffset: prevPageLastBlock.getText().length,
-        focusKey: prevPageLastBlock.getKey(),
-        focusOffset: prevPageLastBlock.getText().length, // key of block
-        hasFocus: true
-      });
-            
-            console.log('prev', prevPageLastBlock.getText());
-            console.log('sel', prevSelection);
-            //
-            const ncs = Modifier.insertText(pagesUpdate[pageNumber-1].editorState.getCurrentContent(), prevSelection, block.getText());
-            pagesUpdate[pageNumber-1].editorState = EditorState.push(pagesUpdate[pageNumber-1].editorState, ncs, 'insert-fragment');
-            
-            pagesUpdate[pageNumber-1].editorState = EditorState.forceSelection(pagesUpdate[pageNumber-1].editorState, prevSelection);
-    }
+  shiftUpPages(pageNumber) {
+    
   }
 
   /**
@@ -280,18 +261,16 @@ export class Document extends React.Component {
     console.log('change', pageNumber);
     const pagesUpdate = this.state.pages;
     // Cursor has moved but no text changes detected.
-    if (this.state.pages[pageNumber].editorState.getCurrentContent() === editorState.getCurrentContent() && !this.deletePressed) {
+    if (this.state.pages[pageNumber].editorState.getCurrentContent() === editorState.getCurrentContent()) {
       console.log('no change');
-      return;
     }
-    
-    const hadTextPrevious = pagesUpdate[pageNumber].editorState.getCurrentContent().hasText();
     pagesUpdate[pageNumber].editorState = editorState;
-
     this.setState({
       pages: pagesUpdate
     }, async () => {
+      console.log('updated state');
       if (this.deletePressed) {
+        this.deletePressed = false;
         console.log('delpressed');
         const selection = editorState.getSelection();
         const blockKey =  selection.getFocusKey();
@@ -301,51 +280,26 @@ export class Document extends React.Component {
           //we are on the first line of the page
           if (!selection.getFocusOffset()) {
             // cursor is at the start of the line
-            console.log(block.getCharacterList());
-            const prevPageLastBlock = pagesUpdate[pageNumber-1].editorState.getCurrentContent().getLastBlock();
-            const prevSelection = new SelectionState({
-              anchorKey: prevPageLastBlock.getKey(), // key of block
-              anchorOffset: prevPageLastBlock.getText().length,
-              focusKey: prevPageLastBlock.getKey(),
-              focusOffset: prevPageLastBlock.getText().length, // key of block
-              hasFocus: true
-            });
-            
-            console.log('prev', prevPageLastBlock.getText());
-            console.log('sel', prevSelection);
-            //
-            const ncs = Modifier.insertText(pagesUpdate[pageNumber-1].editorState.getCurrentContent(), prevSelection, block.getText());
-            pagesUpdate[pageNumber-1].editorState = EditorState.push(pagesUpdate[pageNumber-1].editorState, ncs, 'insert-fragment');
+            const blockText = block.getText();
             pagesUpdate[pageNumber].editorState = this.removeBlockFromMap(editorState, blockKey);
-            pagesUpdate[pageNumber-1].editorState = EditorState.forceSelection(pagesUpdate[pageNumber-1].editorState, prevSelection);
-            
-
-            this.currentPage--;
-            this.setState({pages:pagesUpdate});
-            this.shiftUpPages(pageNumber);
+            this.setState({pages:pagesUpdate}, () => {
+              const prevPageLastBlock = pagesUpdate[pageNumber-1].editorState.getCurrentContent().getLastBlock();
+              const prevSelection = new SelectionState({
+                anchorKey: prevPageLastBlock.getKey(), // key of block
+                anchorOffset: prevPageLastBlock.getText().length,
+                focusKey: prevPageLastBlock.getKey(),
+                focusOffset: prevPageLastBlock.getText().length, // key of block
+                hasFocus: true
+              });
+              const ncs = Modifier.insertText(pagesUpdate[pageNumber-1].editorState.getCurrentContent(), prevSelection, blockText);
+              pagesUpdate[pageNumber-1].editorState = EditorState.push(pagesUpdate[pageNumber-1].editorState, ncs, 'insert-fragment');
+              pagesUpdate[pageNumber-1].editorState = EditorState.forceSelection(pagesUpdate[pageNumber-1].editorState, prevSelection);
+              this.currentPage--;
+              this.setState({pages:pagesUpdate});
+            });
           }
-        } 
-        /**
-        else if (!block.getText().length){
-          pagesUpdate[pageNumber].editorState = this.removeBlockFromMap(editorState, blockKey);
         }
-        
-        console.log('content', editorState.getCurrentContent().hasText(), hadTextPrevious);
-        if (!editorState.getCurrentContent().hasText() && !hadTextPrevious && pagesUpdate.length > 1) {
-          this.setFocus(pageNumber-1);
-          pagesUpdate.splice(pageNumber, 1);
-          this.refHandles.splice(pageNumber, 1);
-          this.recalcPagination();
-          this.deletePage(pageNumber);
-          this.currentPage--;
-          pagesUpdate[pageNumber-1].editorState = EditorState.moveFocusToEnd(pagesUpdate[pageNumber-1].editorState);
-          this.setState({
-            pages: pagesUpdate
-          }, () => {
-            this.scrollToBlock();
-          });
-        }*/
-        this.deletePressed = false;
+        this.pendingEdits.set(pageNumber, true);
         return;
       }
       await this.checkPageHeightAndAdvanceToNextPageIfNeeded(pageNumber);
