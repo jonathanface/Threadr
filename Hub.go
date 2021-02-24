@@ -32,6 +32,7 @@ func (h *Hub) run() {
 	for {
 		select {
 		case client := <-h.register:
+			log.Println("register client")
 			h.clients[client] = true
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
@@ -39,7 +40,6 @@ func (h *Hub) run() {
 				close(client.send)
 			}
 		case clientMessage := <-h.broadcast:
-			log.Println("mes", string(clientMessage.Message))
 			m := SocketMessage{}
 			json.Unmarshal(clientMessage.Message, &m)
 			switch m.Command {

@@ -241,7 +241,7 @@ func deletePage(pageNum int, novelID int) error {
 }
 
 func savePage(pageNum int, body []byte, novelID int) error {
-	log.Println("save page", pageNum, body, novelID)
+	log.Println("save page", pageNum, novelID)
 	client, ctx, err := mongoConnect()
 	if err != nil {
 		log.Println("ERROR CONNECTING: ", err)
@@ -266,10 +266,10 @@ func savePage(pageNum int, body []byte, novelID int) error {
 		log.Println("Inserted a Single Document: ", insertResult.InsertedID)
 		return nil
 	}
-	log.Println("found page", string(result.Body))
 	update := bson.D{
 		{"$set", bson.D{{"body", body}}},
 	}
+	log.Println("updated page body", string(body))
 	_, err = pages.UpdateOne(context.TODO(), filter, update)
 	return err
 }
@@ -289,7 +289,7 @@ func getConfiguration() {
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 	json.Unmarshal(byteValue, &credentials)
 	jsonFile.Close()
-  log.Println(credentials.DBHost)
+	log.Println(credentials.DBHost)
 }
 
 func main() {

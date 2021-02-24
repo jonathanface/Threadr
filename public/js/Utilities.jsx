@@ -1,6 +1,5 @@
 import React from 'react';
 import ArrowDropDown from '@material-ui/icons/ArrowDropDown';
-import Checkmark from '@material-ui/icons/Check';
 import PropTypes from 'prop-types';
 
 /**

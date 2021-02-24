@@ -15,6 +15,7 @@
     "draft-js": "^0.11.7",
     "immutable": "^4.0.0-rc.12",
     "jest": "^26.6.3",
+    "prop-types": "^15.7.2",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "react-dropdown-select": "^4.7.3",
@@ -23,7 +24,7 @@
   },
   "scripts": {
     "minify": "uglifyjs public/js/dist/bundle.js -o public/js/dist/bundle.min.js",
-    "build": "browserify -d public/js/main.jsx public/js/Utilities.jsx public/js/Document.jsx -o public/js/dist/bundle.js -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ]",
+    "build": "browserify -d public/js/main.jsx public/js/Utilities.jsx public/js/ErrorBoundary.jsx public/js/Document.jsx -o public/js/dist/bundle.js -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ]",
     "pretest": "eslint --ext .js,.jsx --ignore-path .gitignore .\\",
     "test": "jest"
   },

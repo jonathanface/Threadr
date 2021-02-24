@@ -27,8 +27,6 @@ div.editorRoot {
 nav.docControls {
   background-color: #b7b7b7;
   color: #484747;
-  padding: 5px;
-  padding-bottom:10px;
   width:100%;
   border: 1px solid #6f5e5e;
   position: fixed;
@@ -46,6 +44,28 @@ nav.docControls ul {
   padding: 0px;
   padding-left:20px;
   padding-right:20px;
+  height:30px;
+}
+
+nav.docControls ul li {
+  line-height:30px;
+  display: inline-block;
+  margin-right: 15px;
+  margin-top: 2px;
+  font-size: 1rem;
+  user-select: none;
+}
+nav.docControls ul li:hover {
+  cursor:pointer;
+  color:#333;
+}
+
+nav.docControls ul li svg.on {
+  background-color:#FFF;
+}
+
+nav.docControls ul li span > span {
+  font-size:0.7rem;
 }
 
 /*
@@ -131,7 +151,15 @@ nav.docControls ul {
 .documentContainer {
   height:100%;
 }
-section.margins {
+
+.editorContainer section {
+  font-size:12pt;
+  line-height:2em;
+  font-family:Arial, Helvetica, sans-serif;
+  text-align:justify;
+}
+
+.editorContainer section.margins {
   width:100%;
   height:100%;
   border: 1px solid #000;
@@ -140,8 +168,6 @@ section.margins {
 }
 div.DraftEditor-root {
   height: 100%;
-  font-family:Arial, Helvetica, sans-serif;
-  font-size:12px;
   width:100%;
   overflow-y: hidden;
 }
