@@ -340,13 +340,18 @@ export class Document extends React.Component {
     console.log('change', pageNumber);
     const pagesUpdate = this.state.pages;
     let cursorChange = false;
+    const selection = editorState.getSelection();
     // Cursor has moved but no text changes detected.
     if (this.state.pages[pageNumber].editorState.getCurrentContent() === editorState.getCurrentContent()) {
       console.log('no change');
       cursorChange = true;
+      const lastBlock = editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
+      this.updateTextControls(lastBlock.getData().getIn(['alignment']));
+      const lineHeight = lastBlock.getData().getIn(['lineHeight']);
+      this.updateTextControls(lineHeight);
     }
+
     const dataMap = [];
-    const selection = editorState.getSelection();
     const blockTree = this.state.pages[pageNumber].editorState.getBlockTree(selection.getFocusKey());
     if (!blockTree) {
       // a new block has been added, copy styles from previous block
@@ -357,8 +362,10 @@ export class Document extends React.Component {
       const nextContentState = Modifier.mergeBlockData(editorState.getCurrentContent(), selection, iMap);
       editorState = EditorState.push(editorState, nextContentState, 'change-block-data');
 
-      // auto tab
-      editorState = this.insertTab(editorState);
+      // auto tab if align left
+      if (styles.direction == 'left') {
+        editorState = this.insertTab(editorState);
+      }
       // const ncs = Modifier.insertText(editorState.getCurrentContent(), editorState.getSelection(), '     ');
       // editorState = EditorState.push(editorState, ncs, 'insert-fragment');
     }
@@ -564,6 +571,73 @@ export class Document extends React.Component {
   }
 
   /**
+   * Toggle states of text controls based on current block style
+   * @param {string} style
+   */
+  updateTextControls(style) {
+    if (lineSpacings.has(style)) {
+      this.setState({
+        currentLineHeight: style
+      });
+      return;
+    }
+
+    let l=true;
+    let c=false;
+    let r=false;
+    let j=false;
+    switch (style) {
+      case 'center':
+        l = false;
+        c = true;
+        r = false;
+        j = false;
+        break;
+      case 'right':
+        l = false;
+        c = false;
+        j = false;
+        r = true;
+        break;
+      case 'justify':
+        l = false;
+        r = false;
+        c = false;
+        j = true;
+        break;
+    }
+    this.setState({
+      leftOn: l,
+      centerOn: c,
+      rightOn: r,
+      justifyOn: j
+    });
+  }
+
+  /**
+   * get block css styles from block metadata
+   *
+   * @param {Block} contentBlock
+   * @return {string} classStr
+   */
+  generateBlockStyle(contentBlock) {
+    let classStr = '';
+    const data = contentBlock.getData();
+    const alignment = data.getIn(['alignment']);
+    if (alignment) {
+      classStr += 'align_' + data.getIn(['alignment']);
+    }
+    const lineHeight = data.getIn(['lineHeight']);
+    if (lineHeight) {
+      if (classStr.length) {
+        classStr += ' ';
+      }
+      classStr += lineHeight;
+    }
+    return classStr;
+  }
+
+  /**
    * Update the current block's alignment based on button click
    *
    * @param {string} style
@@ -575,7 +649,7 @@ export class Document extends React.Component {
     const selection = pagesUpdate[this.currentPage].editorState.getSelection();
     const nextContentState = Modifier.mergeBlockData(pagesUpdate[this.currentPage].editorState.getCurrentContent(), selection, Immutable.Map([['alignment', style]]));
     pagesUpdate[this.currentPage].editorState = EditorState.push(pagesUpdate[this.currentPage].editorState, nextContentState, 'change-block-data');
-    // this.updateTextButtons(style, pagesUpdate[this.currentPage].editorState);
+    this.updateTextControls(style);
     this.setState({
       pages: pagesUpdate
     }, () => {
@@ -635,6 +709,7 @@ export class Document extends React.Component {
               }}
               keyBindingFn={this.keyBindings}
               placeholder="Write something..."
+              blockStyleFn={this.generateBlockStyle.bind(this)}
               onChange={(editorState) => {
                 this.onChange(editorState, i);
               }}

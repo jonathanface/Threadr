@@ -1,10 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-ErrorBoundary.propTypes = {
-  children: PropTypes.object
-};
-
 /**
  * Catches and logs errors from child modules.
  * @constructor
@@ -56,3 +52,8 @@ export class ErrorBoundary extends React.Component {
     return this.props.children;
   }
 }
+
+ErrorBoundary.propTypes = {
+  children: PropTypes.object
+};
+
