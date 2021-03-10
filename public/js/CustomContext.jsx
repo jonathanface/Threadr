@@ -67,7 +67,7 @@ export class CustomContext extends React.Component {
     event.preventDefault();
     const json = JSON.parse(this.state.items);
     const elementIndex = json.findIndex((element) => element.label == item.label);
-    if (Object.prototype.hasOwnProperty.call(json[elementIndex], 'subitems')) {
+    if (elementIndex != -1 && Object.prototype.hasOwnProperty.call(json[elementIndex], 'subitems')) {
       if (json[elementIndex].classes.includes('closed')) {
         json[elementIndex].classes[json[elementIndex].classes.indexOf('closed')] = 'open';
         json[elementIndex].subitems.forEach( (subitem) => {
@@ -83,6 +83,7 @@ export class CustomContext extends React.Component {
         items: JSON.stringify(json)
       });
     } else {
+      console.log('hide');
       // trigger action here
       this.hide();
     }
