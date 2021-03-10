@@ -1,14 +1,22 @@
 import React from 'react';
 import Immutable from 'immutable';
 import {EditorState, Editor, ContentState, SelectionState, Modifier, convertToRaw, convertFromRaw, RichUtils, getDefaultKeyBinding, CompositeDecorator, Entity} from 'draft-js';
+import {CustomContext} from './CustomContext.jsx';
 import FormatAlignLeftIcon from '@material-ui/icons/FormatAlignLeft';
 import FormatAlignRightIcon from '@material-ui/icons/FormatAlignRight';
 import FormatAlignCenterIcon from '@material-ui/icons/FormatAlignCenter';
 import FormatAlignJustifyIcon from '@material-ui/icons/FormatAlignJustify';
 import FormatLineSpacingIcon from '@material-ui/icons/FormatLineSpacing';
 
-// import {DocSelector} from './Utilities.jsx';
-
+const menu = [
+  {label: 'Tag', classes: ['item','parent','closed'], subitems: [
+    {label: 'Character', classes: ['item','child','hidden']},
+    {label: 'Place', classes: ['item','child','hidden']},
+    {label: 'Event', classes: ['item','child','hidden']}
+  ]},
+  {label: 'Wikipedia', classes: ['item']},
+  {label: 'Link', classes: ['item']}
+];
 
 const TAB = (props) => {
   return ('     ');
@@ -21,7 +29,6 @@ lineSpacings.set('lineheight_double', 2);
 
 /**
  * Represents a document containing a work of fiction.
- * @constructor
  */
 export class Document extends React.Component {
   /** constructor **/
@@ -46,7 +53,9 @@ export class Document extends React.Component {
       centerOn: false,
       rightOn: false,
       justifyOn: false,
+      selectedText: ''
     };
+    this.rightclickMenu = React.createRef();
     this.maxWidth = this.state.pageWidth - (this.state.leftMargin + this.state.rightMargin);
     this.currentPage = 0;
     this.SERVICE_URL = '/api';
@@ -343,7 +352,9 @@ export class Document extends React.Component {
     const selection = editorState.getSelection();
     // Cursor has moved but no text changes detected.
     if (this.state.pages[pageNumber].editorState.getCurrentContent() === editorState.getCurrentContent()) {
-      console.log('no change');
+      if (this.rightclickMenu.current.IsOpen) {
+        // this.rightclickMenu.current.hide();
+      }
       cursorChange = true;
       const lastBlock = editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
       this.updateTextControls(lastBlock.getData().getIn(['alignment']));
@@ -568,6 +579,9 @@ export class Document extends React.Component {
     // console.log('focus on', index);
     this.currentPage = index;
     this.refHandles[index].current.focus();
+    if (this.rightclickMenu.current.IsOpen) {
+      this.rightclickMenu.current.hide();
+    }
   }
 
   /**
@@ -692,6 +706,39 @@ export class Document extends React.Component {
   }
 
   /**
+   * Handler for right-click event
+   *
+   * @param {Number} page
+   * @param {Event} event
+  **/
+  onRightClick(page, event) {
+    event.preventDefault();
+    const text = this.getSelectedText(this.state.pages[page].editorState);
+    if (text.length) {
+      this.setState({selectedText: text});
+      this.rightclickMenu.current.updateAndDisplay(event.pageX, event.pageY);
+    }
+  }
+
+  /**
+   * Get the current selected (highlighted) text
+   *
+   * @param {Object} editorState
+   * @return {String} selectedText
+  **/
+  getSelectedText(editorState) {
+    const selection = editorState.getSelection();
+    const anchorKey = selection.getAnchorKey();
+    const currentContent = editorState.getCurrentContent();
+    const currentBlock = currentContent.getBlockForKey(anchorKey);
+
+    const start = selection.getStartOffset();
+    const end = selection.getEndOffset();
+    const selectedText = currentBlock.getText().slice(start, end);
+    return selectedText;
+  }
+
+  /**
    * render
    * @return {element}
   **/
@@ -701,7 +748,7 @@ export class Document extends React.Component {
     for (let i=0; i < this.state.pages.length; i++) {
       this.refHandles.push(React.createRef());
       editors.push(
-          <section key={i} onClick={() => {this.setFocus(i);}} className="margins" style={{maxHeight: this.state.pageHeight, height: this.state.pageHeight, paddingLeft: this.state.leftMargin, paddingRight: this.state.rightMargin, paddingTop: this.state.topMargin, paddingBottom: this.state.bottomMargin}}>
+          <section key={i} onContextMenu={(e)=> {this.onRightClick(i, e);}} onClick={() => {this.setFocus(i);}} className="margins" style={{maxHeight: this.state.pageHeight, height: this.state.pageHeight, paddingLeft: this.state.leftMargin, paddingRight: this.state.rightMargin, paddingTop: this.state.topMargin, paddingBottom: this.state.bottomMargin}}>
             <Editor
               editorState={this.state.pages[i].editorState}
               handleKeyCommand={(command) => {
@@ -738,6 +785,7 @@ export class Document extends React.Component {
             {editors}
           </div>
         </div>
+        <CustomContext ref={this.rightclickMenu} items={JSON.stringify(menu)} selected={this.state.selectedText}/>
       </div>
     );
   }
