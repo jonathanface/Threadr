@@ -36,6 +36,11 @@ type Page struct {
 	Body    json.RawMessage `json:"body" bson:"body"`
 	NovelID int             `json:"novelID" bson:"novelID"`
 }
+type Association struct {
+	Text    string `json:"text" bson:"text"`
+	Type    int    `json:"type" bson:"type"`
+	NovelID int    `json:"novelID" bson:"novelID"`
+}
 type SocketMessage struct {
 	Command string          `json:"command"`
 	Data    json.RawMessage `json:"data"`
@@ -180,7 +185,7 @@ func mongoDisconnect(client *mongo.Client, ctx context.Context) error {
 }
 
 func AllPagesEndPoint(w http.ResponseWriter, r *http.Request) {
-	sid := mux.Vars(r)["[0-9]+"]
+	sid := mux.Vars(r)[`[0-9]+`]
 	if len(sid) == 0 {
 		respondWithError(w, http.StatusBadRequest, "No story ID received")
 		return
@@ -271,6 +276,34 @@ func savePage(pageNum int, body []byte, novelID int) error {
 	}
 	log.Println("updated page body", string(body))
 	_, err = pages.UpdateOne(context.TODO(), filter, update)
+	return err
+}
+
+func createAssociation(text string, typeOf int, novelID int) error {
+	log.Println("creating association", text, typeOf, novelID)
+	client, ctx, err := mongoConnect()
+	if err != nil {
+		log.Println("ERROR CONNECTING: ", err)
+		return err
+	}
+	defer mongoDisconnect(client, ctx)
+	assocs := client.Database(`Drafty`).Collection(`Associations`)
+	filter := &bson.M{`novelID`: novelID, `text`: text, `type`: typeOf}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	result := Association{}
+	err = assocs.FindOne(ctx, filter).Decode(&result)
+	if err != nil {
+		log.Println("no association found")
+		assoc := Association{text, typeOf, novelID}
+		insertResult, err := assocs.InsertOne(context.TODO(), assoc)
+		if err != nil {
+			log.Println("Error creating new association")
+			return err
+		}
+		log.Println("Inserted an association: ", insertResult.InsertedID)
+		return nil
+	}
 	return err
 }
 

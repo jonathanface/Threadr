@@ -46,7 +46,6 @@ func (h *Hub) run() {
 			case "savePage":
 				deets := Page{}
 				json.Unmarshal([]byte(m.Data), &deets)
-				log.Println("editing page", deets.Page)
 				response := SocketMessage{}
 				response.Command = "saveFailed"
 				err := savePage(deets.Page, deets.Body, deets.NovelID)
@@ -61,12 +60,25 @@ func (h *Hub) run() {
 			case "deletePage":
 				deets := Page{}
 				json.Unmarshal([]byte(m.Data), &deets)
-				log.Println("deleting page", deets.Page)
 				response := SocketMessage{}
 				response.Command = "deletionFailed"
 				err := deletePage(deets.Page, deets.NovelID)
 				if err == nil {
 					response.Command = "deletionSuccessful"
+				} else {
+					log.Println(err)
+					response.Data = json.RawMessage(err.Error())
+				}
+				clientMessage.Client.conn.WriteJSON(response)
+				break
+			case "newAssociation":
+				deets := Association{}
+				json.Unmarshal([]byte(m.Data), &deets)
+				response := SocketMessage{}
+				response.Command = "newAssociationFailed"
+				err := createAssociation(deets.Text, deets.Type, deets.NovelID)
+				if err == nil {
+					response.Command = "newAssociationSuccessful"
 				} else {
 					log.Println(err)
 					response.Data = json.RawMessage(err.Error())

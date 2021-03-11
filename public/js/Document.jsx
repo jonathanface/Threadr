@@ -2,20 +2,22 @@ import React from 'react';
 import Immutable from 'immutable';
 import {EditorState, Editor, ContentState, SelectionState, Modifier, convertToRaw, convertFromRaw, RichUtils, getDefaultKeyBinding, CompositeDecorator, Entity} from 'draft-js';
 import {CustomContext} from './CustomContext.jsx';
+import {PopPanel} from './PopPanel.jsx';
 import FormatAlignLeftIcon from '@material-ui/icons/FormatAlignLeft';
 import FormatAlignRightIcon from '@material-ui/icons/FormatAlignRight';
 import FormatAlignCenterIcon from '@material-ui/icons/FormatAlignCenter';
 import FormatAlignJustifyIcon from '@material-ui/icons/FormatAlignJustify';
 import FormatLineSpacingIcon from '@material-ui/icons/FormatLineSpacing';
+import {Globals} from './Globals.jsx'
 
 const menu = [
   {label: 'Tag', classes: ['item','parent','closed'], subitems: [
-    {label: 'Character', classes: ['item','child','hidden']},
-    {label: 'Place', classes: ['item','child','hidden']},
-    {label: 'Event', classes: ['item','child','hidden']}
+    {label: 'Character', type: Globals.COMM_TYPE_NEWCHAR, classes: ['item','child','hidden']},
+    {label: 'Place', type: Globals.COMM_TYPE_NEWPLACE, classes: ['item','child','hidden']},
+    {label: 'Event', type: Globals.COMM_TYPE_NEWEVENT, classes: ['item','child','hidden']}
   ]},
-  {label: 'Wikipedia', classes: ['item']},
-  {label: 'Link', classes: ['item']}
+  {label: 'Wikipedia', type: Globals.COMM_TYPE_NEWWIKI, classes: ['item']},
+  {label: 'Link', type: Globals.COMM_TYPE_NEWLINK, classes: ['item']}
 ];
 
 const TAB = (props) => {
@@ -95,7 +97,53 @@ export class Document extends React.Component {
 
   /** componentDidMount **/
   componentDidMount() {
+    this.fetchWebsocketURL();
     window.addEventListener('beforeunload', this.beforeunload.bind(this));
+  }
+
+  /** beforeunload **/
+  beforeunload() {
+    if (this.socket.isOpen) {
+      this.socket.close();
+    }
+  }
+
+  /**
+   * Init websocket and assign handlers
+   *
+   * @param {string} url
+   */
+  setupWebsocket(url) {
+    this.socket = new WebSocket(url);
+    this.socket.isOpen = false;
+
+    this.socket.onopen = (event) => {
+      this.socket.isOpen = true;
+    };
+    this.socket.onclose = (event) => {
+      console.log('socket closed', event);
+      this.socket.isOpen = false;
+      setTimeout(this.setupWebsocket, 500, url);
+    };
+    this.socket.onerror = (event) => {
+      console.error('socket error', event);
+      this.socket.isOpen = false;
+      setTimeout(this.setupWebsocket, 5000, url);
+    };
+    this.socket.onmessage = (event) => {
+      console.log('Message from server', event.data);
+    };
+  }
+
+  /**
+   * Get the full URL of the websocket from the API
+   */
+  fetchWebsocketURL() {
+    fetch('./wsinit').then((response) => response.json()).then((data) => {
+      this.setupWebsocket(data.url);
+    }).catch((error) => {
+      console.error('Error:', error);
+    });
   }
 
   /** beforeunload **/
@@ -785,7 +833,7 @@ export class Document extends React.Component {
             {editors}
           </div>
         </div>
-        <CustomContext ref={this.rightclickMenu} items={JSON.stringify(menu)} selected={this.state.selectedText}/>
+        <CustomContext ref={this.rightclickMenu} items={JSON.stringify(menu)} selected={this.state.selectedText} socket={this.socket} novelID={this.novelID}/>
       </div>
     );
   }

@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import {Globals} from './globals.jsx'
 
 /**
  * Right-click menu for tagging document text.
@@ -19,6 +20,8 @@ export class CustomContext extends React.Component {
       x: 0,
       y: 0
     };
+    this.socket = props.socket;
+    this.novelID = props.novelID;
     this.IsOpen = false;
     this.divElement = React.createRef();
   }
@@ -31,6 +34,14 @@ export class CustomContext extends React.Component {
       items: PropTypes.string,
       selected: PropTypes.string
     };
+  }
+  
+  createNewAssociation(text, type) {
+    console.log('adding new', type, text);
+    console.log('sock', this.socket);
+    if (this.socket.isOpen && text.trim().length) {
+      this.socket.send(JSON.stringify({command: 'newAssociation', data: {text: text.trim(), type:type, novelID: this.novelID}}));
+    }
   }
 
   /** componentDidMount **/
@@ -82,9 +93,10 @@ export class CustomContext extends React.Component {
       this.setState({
         items: JSON.stringify(json)
       });
+    } else if (Object.prototype.hasOwnProperty.call(item, 'type')) {
+      this.createNewAssociation(this.state.selected, item.type);
+      this.hide();
     } else {
-      console.log('hide');
-      // trigger action here
       this.hide();
     }
   }
@@ -95,6 +107,8 @@ export class CustomContext extends React.Component {
    * @param {Object} props
   **/
   UNSAFE_componentWillReceiveProps(props) {
+    console.log('update', props);
+    this.socket = props.socket;
     this.setState({
       selected: props.selected
     });

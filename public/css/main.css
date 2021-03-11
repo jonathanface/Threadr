@@ -100,6 +100,9 @@ nav.docControls ul li span > span {
 .custom-context .item .title:hover {
   color:#8c8c8c;
 }
+.custom-context .item.child .title:hover {
+  text-decoration:underline;
+}
 .custom-context .item.child {
   padding-top: 5px;
   padding-left: 30px;
