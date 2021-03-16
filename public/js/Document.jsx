@@ -55,7 +55,9 @@ export class Document extends React.Component {
       centerOn: false,
       rightOn: false,
       justifyOn: false,
-      selectedText: ''
+      selectedText: '',
+      associations: [],
+      loading:true
     };
     this.rightclickMenu = React.createRef();
     this.maxWidth = this.state.pageWidth - (this.state.leftMargin + this.state.rightMargin);
@@ -63,42 +65,58 @@ export class Document extends React.Component {
     this.SERVICE_URL = '/api';
     this.SAVE_TIME_INTERVAL = 5000;
     this.socket = null;
-    this.fetchWebsocketURL();
     this.novelID = 0;
     this.deletePressed = false;
     this.pendingEdits = new Map();
     this.pendingPageDeletions = [];
-    this.fetchDocumentPages();
     this.checkSaveInterval = setInterval(() => this.checkForPendingEdits(), this.SAVE_TIME_INTERVAL);
 
-    this.compositeDecorator = new CompositeDecorator([
-      {
-        strategy: this.findTabs,
-        component: TAB
-      }
-    ]);
+    this.compositeDecorators = this.createDecorators();
   }
 
+  /**
+   * Find entities in block
+   *
+   * @param {string} type
+   * @param {ContentBlock} contentBlock
+   * @param {function} callback
+   */
+  findEntity(type, contentBlock, callback) {
+    contentBlock.findEntityRanges((character) => {
+      const entityKey = character.getEntity();
+      return (entityKey !== null && Entity.get(entityKey).getType() === type);
+    }, callback);
+  }
+  
   /**
    * Find tab entities in block
    *
    * @param {ContentBlock} contentBlock
    * @param {function} callback
    */
-  findTabs(contentBlock, callback) {
-    contentBlock.findEntityRanges((character) => {
-      const entityKey = character.getEntity();
-      return (
-        entityKey !== null &&
-        Entity.get(entityKey).getType() === 'TAB'
-      );
-    }, callback);
+   findAssociation(contentBlock, callback, contentState ) {
+    const text = contentBlock.getText();
+    for (let i=0; i < this.state.associations.length; i++) {
+      //console.log('checking assoc', this.state.associations[i]);
+      let match;
+      let regex = new RegExp(this.state.associations[i].text, 'g');
+      while ((match = regex.exec(text)) !== null) {
+        console.log('found ', match);
+        let start = match.index;
+        let end = start + match[0].length;
+        callback(start, end);
+      }
+    }
   }
 
   /** componentDidMount **/
   componentDidMount() {
     this.fetchWebsocketURL();
     window.addEventListener('beforeunload', this.beforeunload.bind(this));
+    this.fetchAssociations().then( () => {
+      this.fetchDocumentPages();
+    });
+   
   }
 
   /** beforeunload **/
@@ -107,6 +125,7 @@ export class Document extends React.Component {
       this.socket.close();
     }
   }
+
 
   /**
    * Init websocket and assign handlers
@@ -119,6 +138,8 @@ export class Document extends React.Component {
 
     this.socket.onopen = (event) => {
       this.socket.isOpen = true;
+      console.log('opened', this.socket);
+      //setTimeout(this.socket.send(JSON.stringify({command: 'fetchAssociations', data: {novelID: this.novelID}})), 1000);
     };
     this.socket.onclose = (event) => {
       console.log('socket closed', event);
@@ -131,33 +152,83 @@ export class Document extends React.Component {
       setTimeout(this.setupWebsocket, 5000, url);
     };
     this.socket.onmessage = (event) => {
-      console.log('Message from server', event.data);
+      console.log('Message from server', JSON.parse(event.data));
+      this.processSocketMessage(JSON.parse(event.data));
     };
   }
-
-  /**
-   * Get the full URL of the websocket from the API
-   */
-  fetchWebsocketURL() {
-    fetch('./wsinit').then((response) => response.json()).then((data) => {
-      this.setupWebsocket(data.url);
-    }).catch((error) => {
-      console.error('Error:', error);
-    });
+  
+  createDecorators() {
+    return new CompositeDecorator([
+      {
+        strategy: this.findAssociation.bind(this),
+        component: HandleSpan,
+        props: {
+          type: Globals.COMM_TYPE_NEWCHAR,
+          editor:this
+        }
+      }
+    ]);
+  }
+  
+  forceRender () {
+    let newPages = [...this.state.pages];
+    this.setFocus(this.currentPage);
+    for (let i=0; i < this.state.pages.length; i++) {
+      const editorState = this.state.pages[i].editorState;
+      newPages[i].editorState = EditorState.set(editorState, {decorator: this.createDecorators()});
+      if (i == this.currentPage) {
+        const selection = editorState.getSelection();
+        const state = editorState.getCurrentContent();
+        const block = state.getBlockForKey(selection.getEndKey());
+        const deselection = new SelectionState({
+          anchorKey: block.getKey(), // key of block
+          anchorOffset: selection.getEndOffset(),
+          focusKey: block.getKey(),
+          focusOffset: selection.getEndOffset(), // key of block
+          hasFocus: true
+        });
+        newPages[i].editorState = EditorState.forceSelection(newPages[i].editorState, deselection);
+      }
+    }
+    this.setState({pages:newPages});
+    
   }
 
-  /** beforeunload **/
-  beforeunload() {
-    if (this.socket.isOpen) {
-      this.socket.close();
+  processSocketMessage(message) {//
+    switch(message.command) {
+      case 'pushAssociations':
+        this.setState({
+          associations: message.data
+        }, () => {
+          // I have to obnoxiously trigger a re-render to get new associations to appear
+          this.forceRender();
+        });
+        break;
+      case 'newAssociationFailed':
+        console.log('failed to make association');
+        break;
     }
+  }
+  
+  fetchAssociations() {
+    return fetch(this.SERVICE_URL + '/story/' + this.novelID + '/associations').then((response) => {
+      switch (response.status) {
+        case 200:
+          response.json().then((data) => {
+            this.setState({
+              associations: data
+            });
+          });
+          break;
+      }
+    });
   }
 
   /**
    * gets all pages for a given document
    */
   fetchDocumentPages() {
-    fetch(this.SERVICE_URL + '/story/' + this.novelID + '/pages').then((response) => {
+    return fetch(this.SERVICE_URL + '/story/' + this.novelID + '/pages').then((response) => {
       switch (response.status) {
         case 200:
           response.json().then((data) => {
@@ -181,37 +252,15 @@ export class Document extends React.Component {
           break;
         }
       }
+      this.setState({
+        loading: false
+      });
     }).catch((error) => {
       console.error('Error:', error);
     });
   }
 
-  /**
-   * Init websocket and assign handlers
-   *
-   * @param {string} url
-   */
-  setupWebsocket(url) {
-    this.socket = new WebSocket(url);
-    this.socket.isOpen = false;
-
-    this.socket.onopen = (event) => {
-      this.socket.isOpen = true;
-    };
-    this.socket.onclose = (event) => {
-      console.log('socket closed', event);
-      this.socket.isOpen = false;
-      setTimeout(this.setupWebsocket, 500, url);
-    };
-    this.socket.onerror = (event) => {
-      console.error('socket error', event);
-      this.socket.isOpen = false;
-      setTimeout(this.setupWebsocket, 5000, url);
-    };
-    this.socket.onmessage = (event) => {
-      console.log('Message from server', event.data);
-    };
-  }
+ 
 
   /**
    * Get the full URL of the websocket from the API
@@ -425,14 +474,11 @@ export class Document extends React.Component {
       if (styles.direction == 'left') {
         editorState = this.insertTab(editorState);
       }
-      // const ncs = Modifier.insertText(editorState.getCurrentContent(), editorState.getSelection(), '     ');
-      // editorState = EditorState.push(editorState, ncs, 'insert-fragment');
     }
     pagesUpdate[pageNumber].editorState = editorState;
     this.setState({
       pages: pagesUpdate
     }, async () => {
-      console.log('updated state');
       if (this.deletePressed) {
         this.deletePressed = false;
         console.log('delpressed');
@@ -575,7 +621,15 @@ export class Document extends React.Component {
    * @return {string}
    */
   keyBindings(event) {
-    // console.log('code', event.keyCode);
+    //console.log('code', event.keyCode);
+    
+    // tab pressed
+    if (event.keyCode == 9) {
+      event.preventDefault();
+      const pagesUpdate = this.state.pages;
+      pagesUpdate[this.currentPage].editorState = this.insertTab(pagesUpdate[this.currentPage].editorState);
+      this.setState({pages: pagesUpdate});
+    }
     if (event.ctrlKey) {
       if (event.keyCode == 83) {
         return 'ctrl_s';
@@ -792,7 +846,6 @@ export class Document extends React.Component {
   **/
   render() {
     const editors = [];
-    console.log('rendering for ' + this.state.pages.length);
     for (let i=0; i < this.state.pages.length; i++) {
       this.refHandles.push(React.createRef());
       editors.push(
@@ -802,7 +855,7 @@ export class Document extends React.Component {
               handleKeyCommand={(command) => {
                 this.handleKeyCommand(command, i);
               }}
-              keyBindingFn={this.keyBindings}
+              keyBindingFn={this.keyBindings.bind(this)}
               placeholder="Write something..."
               blockStyleFn={this.generateBlockStyle.bind(this)}
               onChange={(editorState) => {
@@ -811,30 +864,45 @@ export class Document extends React.Component {
               ref={this.refHandles[i]}/>
           </section>
       );
+      this.state.pages[i].editorState = EditorState.set(this.state.pages[i].editorState, {decorator: this.compositeDecorators})
     }
-    return (
-      <div>
-        <nav className="docControls">
-          <ul style={{width: this.state.pageWidth}}>
-            <li><FormatAlignLeftIcon fontSize="inherit" className={this.state.leftOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('left', e)}/></li>
-            <li><FormatAlignCenterIcon fontSize="inherit" className={this.state.centerOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('center', e)}/></li>
-            <li><FormatAlignRightIcon fontSize="inherit" className={this.state.rightOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('right', e)}/></li>
-            <li><FormatAlignJustifyIcon fontSize="inherit" className={this.state.justifyOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('justify', e)} /></li>
-            <li>
-              <span>
-                <FormatLineSpacingIcon data-height={this.state.currentLineHeight} fontSize="inherit" onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateLineHeight(e)}/>
-                <span>{lineSpacings.get(this.state.currentLineHeight)}</span>
-              </span>
-            </li>
-          </ul>
-        </nav>
-        <div className="editorRoot" style={{width: this.state.pageWidth}}>
-          <div onClick={this.focus} className="editorContainer">
-            {editors}
+    if (this.state.loading) {
+      return (<div>loading...</div>);
+    } else {
+      console.log('rendering for ' + this.state.pages.length);
+      return (
+        <div>
+          <nav className="docControls">
+            <ul style={{width: this.state.pageWidth}}>
+              <li><FormatAlignLeftIcon fontSize="inherit" className={this.state.leftOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('left', e)}/></li>
+              <li><FormatAlignCenterIcon fontSize="inherit" className={this.state.centerOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('center', e)}/></li>
+              <li><FormatAlignRightIcon fontSize="inherit" className={this.state.rightOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('right', e)}/></li>
+              <li><FormatAlignJustifyIcon fontSize="inherit" className={this.state.justifyOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('justify', e)} /></li>
+              <li>
+                <span>
+                  <FormatLineSpacingIcon data-height={this.state.currentLineHeight} fontSize="inherit" onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateLineHeight(e)}/>
+                  <span>{lineSpacings.get(this.state.currentLineHeight)}</span>
+                </span>
+              </li>
+            </ul>
+          </nav>
+          <div className="editorRoot" style={{width: this.state.pageWidth}}>
+            <div onClick={this.focus} className="editorContainer">
+              {editors}
+            </div>
           </div>
+          <CustomContext ref={this.rightclickMenu} items={JSON.stringify(menu)} selected={this.state.selectedText} socket={this.socket} novelID={this.novelID}/>
         </div>
-        <CustomContext ref={this.rightclickMenu} items={JSON.stringify(menu)} selected={this.state.selectedText} socket={this.socket} novelID={this.novelID}/>
-      </div>
-    );
+      );
+    }
   }
 }
+
+const HandleSpan = props => {
+  console.log('props', props);
+  return (
+    <span type={props.type} style={{border: '1px solid black'}}>
+      {props.children}
+    </span>
+  );
+};

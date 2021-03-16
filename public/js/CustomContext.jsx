@@ -38,7 +38,6 @@ export class CustomContext extends React.Component {
   
   createNewAssociation(text, type) {
     console.log('adding new', type, text);
-    console.log('sock', this.socket);
     if (this.socket.isOpen && text.trim().length) {
       this.socket.send(JSON.stringify({command: 'newAssociation', data: {text: text.trim(), type:type, novelID: this.novelID}}));
     }
@@ -107,7 +106,6 @@ export class CustomContext extends React.Component {
    * @param {Object} props
   **/
   UNSAFE_componentWillReceiveProps(props) {
-    console.log('update', props);
     this.socket = props.socket;
     this.setState({
       selected: props.selected

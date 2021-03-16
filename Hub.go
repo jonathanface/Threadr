@@ -34,16 +34,18 @@ func (h *Hub) run() {
 		case client := <-h.register:
 			log.Println("register client")
 			h.clients[client] = true
+			break
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.send)
 			}
+			break
 		case clientMessage := <-h.broadcast:
 			m := SocketMessage{}
 			json.Unmarshal(clientMessage.Message, &m)
 			switch m.Command {
-			case "savePage":
+			case `savePage`:
 				deets := Page{}
 				json.Unmarshal([]byte(m.Data), &deets)
 				response := SocketMessage{}
@@ -57,7 +59,7 @@ func (h *Hub) run() {
 				}
 				clientMessage.Client.conn.WriteJSON(response)
 				break
-			case "deletePage":
+			case `deletePage`:
 				deets := Page{}
 				json.Unmarshal([]byte(m.Data), &deets)
 				response := SocketMessage{}
@@ -71,14 +73,35 @@ func (h *Hub) run() {
 				}
 				clientMessage.Client.conn.WriteJSON(response)
 				break
-			case "newAssociation":
+			case `fetchAssociations`:
+				deets := Association{}
+				json.Unmarshal([]byte(m.Data), &deets)
+				response := SocketMessage{}
+				response.Command = "pushAssociations"
+				assocs, err := fetchAssociations(deets.NovelID)
+				if err == nil {
+					j, _ := json.Marshal(assocs)
+					response.Data = json.RawMessage(j)
+				} else {
+					log.Println(err)
+				}
+				clientMessage.Client.conn.WriteJSON(response)
+				break
+			case `newAssociation`:
 				deets := Association{}
 				json.Unmarshal([]byte(m.Data), &deets)
 				response := SocketMessage{}
 				response.Command = "newAssociationFailed"
 				err := createAssociation(deets.Text, deets.Type, deets.NovelID)
 				if err == nil {
-					response.Command = "newAssociationSuccessful"
+					response.Command = "pushAssociations"
+					assocs, err := fetchAssociationsByType(deets.Type, deets.NovelID)
+					if err == nil {
+						j, _ := json.Marshal(assocs)
+						response.Data = json.RawMessage(j)
+					} else {
+						log.Println(err)
+					}
 				} else {
 					log.Println(err)
 					response.Data = json.RawMessage(err.Error())
@@ -86,6 +109,7 @@ func (h *Hub) run() {
 				clientMessage.Client.conn.WriteJSON(response)
 				break
 			}
+			break
 		}
 	}
 }
