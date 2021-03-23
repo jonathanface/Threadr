@@ -74,7 +74,7 @@ func (h *Hub) run() {
 				clientMessage.Client.conn.WriteJSON(response)
 				break
 			case `fetchAssociations`:
-				deets := Association{}
+				deets := ReadAssociation{}
 				json.Unmarshal([]byte(m.Data), &deets)
 				response := SocketMessage{}
 				response.Command = "pushAssociations"
@@ -88,7 +88,7 @@ func (h *Hub) run() {
 				clientMessage.Client.conn.WriteJSON(response)
 				break
 			case `newAssociation`:
-				deets := Association{}
+				deets := WriteAssociation{}
 				json.Unmarshal([]byte(m.Data), &deets)
 				response := SocketMessage{}
 				response.Command = "newAssociationFailed"

@@ -24,10 +24,18 @@ const TAB = (props) => {
   return ('     ');
 };
 
+const associationNames = new Map();
+associationNames.set(Globals.COMM_TYPE_NEWCHAR, 'character');
+associationNames.set(Globals.COMM_TYPE_NEWPLACE, 'place');
+associationNames.set(Globals.COMM_TYPE_NEWEVENT, 'event');
+associationNames.set(Globals.COMM_TYPE_NEWWIKI, 'wiki');
+associationNames.set(Globals.COMM_TYPE_NEWLINK, 'link');
+
 const lineSpacings = new Map();
 lineSpacings.set('lineheight_single', 1);
 lineSpacings.set('lineheight_medium', 1.5);
 lineSpacings.set('lineheight_double', 2);
+
 
 /**
  * Represents a document containing a work of fiction.
@@ -38,8 +46,6 @@ export class Document extends React.Component {
     super();
 
     const dpi = this.getDPI();
-
-
     this.refHandles = [];
 
     this.state = {
@@ -57,9 +63,12 @@ export class Document extends React.Component {
       justifyOn: false,
       selectedText: '',
       associations: [],
-      loading:true
+      loading:true,
+      clickedAssociationType:null,
+      clickedAssociationText:""
     };
     this.rightclickMenu = React.createRef();
+    this.popPanel = React.createRef();
     this.maxWidth = this.state.pageWidth - (this.state.leftMargin + this.state.rightMargin);
     this.currentPage = 0;
     this.SERVICE_URL = '/api';
@@ -164,10 +173,25 @@ export class Document extends React.Component {
         component: HandleSpan,
         props: {
           type: Globals.COMM_TYPE_NEWCHAR,
+          callback: this.clickedAssociation.bind(this),
           editor:this
         }
       }
     ]);
+  }
+
+  clickedAssociation(text, type) {
+    console.log('clicked me', text, type);
+    let assocObj = this.state.associations.filter((assoc) => {
+      console.log('comp', assoc.type, type);
+      return assoc.type == type;
+    });
+    this.setState({
+      clickedAssociationLabel:text,
+      clickedAssociationType:type
+    }, () => {
+      this.popPanel.current.updateAndDisplay(assocObj[0].id);
+    });
   }
   
   forceRender () {
@@ -452,6 +476,9 @@ export class Document extends React.Component {
       if (this.rightclickMenu.current.IsOpen) {
         // this.rightclickMenu.current.hide();
       }
+      if (this.popPanel.current.IsOpen) {
+        //this.popPanel.current.hide();
+      }
       cursorChange = true;
       const lastBlock = editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
       this.updateTextControls(lastBlock.getData().getIn(['alignment']));
@@ -684,6 +711,9 @@ export class Document extends React.Component {
     if (this.rightclickMenu.current.IsOpen) {
       this.rightclickMenu.current.hide();
     }
+    if (this.popPanel.current.IsOpen) {
+      this.popPanel.current.hide();
+    }
   }
 
   /**
@@ -814,9 +844,10 @@ export class Document extends React.Component {
    * @param {Event} event
   **/
   onRightClick(page, event) {
-    event.preventDefault();
+    
     const text = this.getSelectedText(this.state.pages[page].editorState);
     if (text.length) {
+      event.preventDefault();
       this.setState({selectedText: text});
       this.rightclickMenu.current.updateAndDisplay(event.pageX, event.pageY);
     }
@@ -871,7 +902,7 @@ export class Document extends React.Component {
     } else {
       console.log('rendering for ' + this.state.pages.length);
       return (
-        <div>
+        <div style={{"position":"relative"}}>
           <nav className="docControls">
             <ul style={{width: this.state.pageWidth}}>
               <li><FormatAlignLeftIcon fontSize="inherit" className={this.state.leftOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('left', e)}/></li>
@@ -892,6 +923,7 @@ export class Document extends React.Component {
             </div>
           </div>
           <CustomContext ref={this.rightclickMenu} items={JSON.stringify(menu)} selected={this.state.selectedText} socket={this.socket} novelID={this.novelID}/>
+          <PopPanel ref={this.popPanel} novelID={this.novelID} label={this.state.clickedAssociationLabel} type={this.state.clickedAssociationType}/>
         </div>
       );
     }
@@ -899,10 +931,10 @@ export class Document extends React.Component {
 }
 
 const HandleSpan = props => {
-  console.log('props', props);
   return (
-    <span type={props.type} style={{border: '1px solid black'}}>
+    <span type={props.type} onClick={(e)=> {props.callback(props.decoratedText, props.type);}} className={"highlight " + associationNames.get(props.type)}>
       {props.children}
     </span>
   );
 };
+

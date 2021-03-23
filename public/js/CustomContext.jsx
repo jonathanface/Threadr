@@ -93,6 +93,7 @@ export class CustomContext extends React.Component {
         items: JSON.stringify(json)
       });
     } else if (Object.prototype.hasOwnProperty.call(item, 'type')) {
+      console.log('making new', item.type);
       this.createNewAssociation(this.state.selected, item.type);
       this.hide();
     } else {

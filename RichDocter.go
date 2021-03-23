@@ -5,6 +5,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"io/ioutil"
@@ -36,10 +37,16 @@ type Page struct {
 	Body    json.RawMessage `json:"body" bson:"body"`
 	NovelID int             `json:"novelID" bson:"novelID"`
 }
-type Association struct {
-	Text    string `json:"text" bson:"text"`
-	Type    int    `json:"type" bson:"type"`
-	NovelID int    `json:"novelID" bson:"novelID"`
+type ReadAssociation struct {
+	ID      primitive.ObjectID `json:"id" bson:"_id"`
+	Text    string             `json:"text" bson:"text"`
+	Type    int                `json:"type" bson:"type"`
+	NovelID int                `json:"novelID" bson:"novelID"`
+}
+type WriteAssociation struct {
+	Text    string             `json:"text" bson:"text"`
+	Type    int                `json:"type" bson:"type"`
+	NovelID int                `json:"novelID" bson:"novelID"`
 }
 type SocketMessage struct {
 	Command string          `json:"command"`
@@ -167,7 +174,7 @@ func mongoConnect() (*mongo.Client, context.Context, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	uri := "mongodb+srv://" + credentials.DBUser + ":" + credentials.DBPass + "@" + credentials.DBHost + "/" + credentials.DBName + "?w=majority"
-  log.Println(uri)
+	log.Println(uri)
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	if err != nil {
 		return nil, nil, err
@@ -292,11 +299,11 @@ func createAssociation(text string, typeOf int, novelID int) error {
 	filter := &bson.M{`novelID`: novelID, `text`: text, `type`: typeOf}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	result := Association{}
+	result := ReadAssociation{}
 	err = assocs.FindOne(ctx, filter).Decode(&result)
 	if err != nil {
 		log.Println("no association found")
-		assoc := Association{text, typeOf, novelID}
+		assoc := WriteAssociation{text, typeOf, novelID}
 		insertResult, err := assocs.InsertOne(context.TODO(), assoc)
 		if err != nil {
 			log.Println("Error creating new association")
@@ -308,7 +315,7 @@ func createAssociation(text string, typeOf int, novelID int) error {
 	return err
 }
 
-func fetchAssociationsByType(typeOf int, novelID int) ([]Association, error) {
+func fetchAssociationsByType(typeOf int, novelID int) ([]ReadAssociation, error) {
 	client, ctx, err := mongoConnect()
 	if err != nil {
 		return nil, err
@@ -321,9 +328,9 @@ func fetchAssociationsByType(typeOf int, novelID int) ([]Association, error) {
 		return nil, err
 	}
 	defer cur.Close(ctx)
-	var results []Association
+	var results []ReadAssociation
 	for cur.Next(context.TODO()) {
-		var a Association
+		var a ReadAssociation
 		err := cur.Decode(&a)
 		if err != nil {
 			return nil, err
@@ -333,7 +340,7 @@ func fetchAssociationsByType(typeOf int, novelID int) ([]Association, error) {
 	return results, nil
 }
 
-func fetchAssociations(novelID int) ([]Association, error) {
+func fetchAssociations(novelID int) ([]ReadAssociation, error) {
 	client, ctx, err := mongoConnect()
 	if err != nil {
 		return nil, err
@@ -346,9 +353,9 @@ func fetchAssociations(novelID int) ([]Association, error) {
 		return nil, err
 	}
 	defer cur.Close(ctx)
-	var results []Association
+	var results []ReadAssociation
 	for cur.Next(context.TODO()) {
-		var a Association
+		var a ReadAssociation
 		err := cur.Decode(&a)
 		if err != nil {
 			return nil, err
@@ -375,10 +382,10 @@ func AllAssociationsEndPoint(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusNotFound, "No pages")
 		return
 	}
-  if err != nil {
-    respondWithError(w, http.StatusInternalServerError, err.Error())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
-  }
+	}
 	respondWithJson(w, http.StatusOK, results)
 }
 
@@ -413,7 +420,7 @@ func main() {
 	rtr.HandleFunc(SERVICE_PATH+"/stories", AllStoriesEndPoint).Methods("GET")
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}", StoryEndPoint).Methods("GET")
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}/pages", AllPagesEndPoint).Methods("GET")
-  rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}/associations", AllAssociationsEndPoint).Methods("GET")
+	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}/associations", AllAssociationsEndPoint).Methods("GET")
 	rtr.HandleFunc("/wsinit", SetupWebsocket).Methods("GET")
 	http.HandleFunc(SOCKET_DIR, func(w http.ResponseWriter, r *http.Request) {
 		serveWs(hub, w, r)

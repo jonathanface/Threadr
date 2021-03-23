@@ -4,6 +4,8 @@
 *.so
 *.dylib
 
+public/js/dist
+
 config.json
 bundle.js
 bundle.min.js
