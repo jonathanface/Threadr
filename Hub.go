@@ -2,6 +2,7 @@ package main
 
 import "log"
 import "encoding/json"
+import "RichDocter/API"
 
 // Hub maintains the set of active clients and broadcasts messages to the
 // clients.
@@ -46,7 +47,7 @@ func (h *Hub) run() {
 			json.Unmarshal(clientMessage.Message, &m)
 			switch m.Command {
 			case `savePage`:
-				deets := Page{}
+				deets := API.Page{}
 				json.Unmarshal([]byte(m.Data), &deets)
 				response := SocketMessage{}
 				response.Command = "saveFailed"
@@ -60,7 +61,7 @@ func (h *Hub) run() {
 				clientMessage.Client.conn.WriteJSON(response)
 				break
 			case `deletePage`:
-				deets := Page{}
+				deets := API.Page{}
 				json.Unmarshal([]byte(m.Data), &deets)
 				response := SocketMessage{}
 				response.Command = "deletionFailed"
@@ -74,7 +75,7 @@ func (h *Hub) run() {
 				clientMessage.Client.conn.WriteJSON(response)
 				break
 			case `fetchAssociations`:
-				deets := ReadAssociation{}
+				deets := API.ReadAssociation{}
 				json.Unmarshal([]byte(m.Data), &deets)
 				response := SocketMessage{}
 				response.Command = "pushAssociations"
@@ -88,7 +89,7 @@ func (h *Hub) run() {
 				clientMessage.Client.conn.WriteJSON(response)
 				break
 			case `newAssociation`:
-				deets := WriteAssociation{}
+				deets := API.WriteAssociation{}
 				json.Unmarshal([]byte(m.Data), &deets)
 				response := SocketMessage{}
 				response.Command = "newAssociationFailed"

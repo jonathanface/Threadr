@@ -1,4 +1,4 @@
-module jface/RichDocter
+module RichDocter
 
 go 1.15
 

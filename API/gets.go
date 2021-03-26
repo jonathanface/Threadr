@@ -1,5 +1,15 @@
 package API
 
+import (
+	"context"
+	"github.com/gorilla/mux"
+	"go.mongodb.org/mongo-driver/bson"
+	"log"
+	"net/http"
+	"strconv"
+	"strings"
+)
+
 func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 	/*
 		  session, err := mgo.DialWithInfo(connection_info)
@@ -44,4 +54,80 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	       return
 	     }
 	   	respondWithJson(w, http.StatusOK, story)*/
+}
+
+func AllAssociationsEndPoint(w http.ResponseWriter, r *http.Request) {
+	sid := mux.Vars(r)[`[0-9]+`]
+	if len(sid) == 0 {
+		respondWithError(w, http.StatusBadRequest, "No story ID received")
+		return
+	}
+	novelID, err := strconv.Atoi(sid)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	results, err := fetchAssociations(novelID)
+	if len(results) == 0 {
+		respondWithError(w, http.StatusNotFound, "No pages")
+		return
+	}
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	respondWithJson(w, http.StatusOK, results)
+}
+
+func AllPagesEndPoint(w http.ResponseWriter, r *http.Request) {
+	sid := mux.Vars(r)[`[0-9]+`]
+	if len(sid) == 0 {
+		respondWithError(w, http.StatusBadRequest, "No story ID received")
+		return
+	}
+	novelID, err := strconv.Atoi(sid)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	client, ctx, err := mongoConnect()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer mongoDisconnect(client, ctx)
+	pages := client.Database("Drafty").Collection("Pages")
+	filter := &bson.M{"novelID": novelID}
+	cur, err := pages.Find(context.TODO(), filter)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer cur.Close(ctx)
+	log.Println("cur", cur)
+	var results []Page
+	for cur.Next(context.TODO()) {
+		//Create a value into which the single document can be decoded
+		var p Page
+		err := cur.Decode(&p)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		results = append(results, p)
+	}
+	if len(results) == 0 {
+		respondWithError(w, http.StatusNotFound, "No pages")
+		return
+	}
+	respondWithJson(w, http.StatusOK, results)
+}
+
+func SetupWebsocket(w http.ResponseWriter, r *http.Request) {
+	log.Println("Listening for socket on " + HTTP_PORT)
+	hostname := strings.Split(r.Host, ":")[0]
+	url := "ws://" + hostname + HTTP_PORT + SOCKET_DIR
+	respondWithJson(w, http.StatusOK, map[string]string{"url": url})
 }

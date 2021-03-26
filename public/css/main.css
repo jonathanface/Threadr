@@ -293,7 +293,7 @@ div.public-DraftEditor-content {
 .pop-panel .input-field {
   padding:15px;
   border-radius:15px;
-  border: 1px solid #1d9489;
+  border: 1px solid #333;
   user-select:none;
   background:#f3f3f3;
   width:100%;
@@ -303,11 +303,11 @@ div.public-DraftEditor-content {
 }
 
 .pop-panel .buttonBox {
-  color:#1d9489;
+  color:#A26C63;
 }
 
 .pop-panel .buttonBox svg {
-  border:1px solid #1d9489;
+  border:1px solid #333;
   border-radius:5px;
   font-size: 36px;
   margin: 5px;
@@ -315,6 +315,7 @@ div.public-DraftEditor-content {
 }
 .pop-panel .buttonBox svg:hover {
   color:#333;
+  border:1px solid #A26C63;
 }
 
 

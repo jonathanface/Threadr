@@ -71,10 +71,8 @@ export class Document extends React.Component {
     this.popPanel = React.createRef();
     this.maxWidth = this.state.pageWidth - (this.state.leftMargin + this.state.rightMargin);
     this.currentPage = 0;
-    this.SERVICE_URL = '/api';
     this.SAVE_TIME_INTERVAL = 5000;
     this.socket = null;
-    this.novelID = 0;
     this.deletePressed = false;
     this.pendingEdits = new Map();
     this.pendingPageDeletions = [];
@@ -148,7 +146,7 @@ export class Document extends React.Component {
     this.socket.onopen = (event) => {
       this.socket.isOpen = true;
       console.log('opened', this.socket);
-      //setTimeout(this.socket.send(JSON.stringify({command: 'fetchAssociations', data: {novelID: this.novelID}})), 1000);
+      //setTimeout(this.socket.send(JSON.stringify({command: 'fetchAssociations', data: {novelID: Globals.NOVEL_ID}})), 1000);
     };
     this.socket.onclose = (event) => {
       console.log('socket closed', event);
@@ -235,7 +233,7 @@ export class Document extends React.Component {
   }
   
   fetchAssociations() {
-    return fetch(this.SERVICE_URL + '/story/' + this.novelID + '/associations').then((response) => {
+    return fetch(Globals.SERVICE_URL + '/story/' + Globals.NOVEL_ID + '/associations').then((response) => {
       switch (response.status) {
         case 200:
           response.json().then((data) => {
@@ -252,7 +250,7 @@ export class Document extends React.Component {
    * gets all pages for a given document
    */
   fetchDocumentPages() {
-    return fetch(this.SERVICE_URL + '/story/' + this.novelID + '/pages').then((response) => {
+    return fetch(Globals.SERVICE_URL + '/story/' + Globals.NOVEL_ID + '/pages').then((response) => {
       switch (response.status) {
         case 200:
           response.json().then((data) => {
@@ -601,7 +599,7 @@ export class Document extends React.Component {
     console.log('saving page ' + pageNumber);
     // Send the encoded page if the socket is open and it hasn't been subsequently deleted
     if (this.socket.isOpen && this.state.pages[pageNumber]) {
-      this.socket.send(JSON.stringify({command: 'savePage', data: {page: pageNumber, novelID: this.novelID, body: convertToRaw(this.state.pages[pageNumber].editorState.getCurrentContent())}}));
+      this.socket.send(JSON.stringify({command: 'savePage', data: {page: pageNumber, novelID: Globals.NOVEL_ID, body: convertToRaw(this.state.pages[pageNumber].editorState.getCurrentContent())}}));
     }
   }
 
@@ -622,7 +620,7 @@ export class Document extends React.Component {
   deletePage(pageNumber) {
     console.log('deleting page', pageNumber);
     if (this.socket.isOpen) {
-      this.socket.send(JSON.stringify({command: 'deletePage', data: {page: pageNumber, novelID: this.novelID}}));
+      this.socket.send(JSON.stringify({command: 'deletePage', data: {page: pageNumber, novelID: Globals.NOVEL_ID}}));
     }
   }
 
@@ -922,8 +920,8 @@ export class Document extends React.Component {
               {editors}
             </div>
           </div>
-          <CustomContext ref={this.rightclickMenu} items={JSON.stringify(menu)} selected={this.state.selectedText} socket={this.socket} novelID={this.novelID}/>
-          <PopPanel ref={this.popPanel} novelID={this.novelID} label={this.state.clickedAssociationLabel} type={this.state.clickedAssociationType}/>
+          <CustomContext ref={this.rightclickMenu} items={JSON.stringify(menu)} selected={this.state.selectedText} socket={this.socket} novelID={Globals.NOVEL_ID}/>
+          <PopPanel ref={this.popPanel} novelID={Globals.NOVEL_ID} label={this.state.clickedAssociationLabel} type={this.state.clickedAssociationType}/>
         </div>
       );
     }
