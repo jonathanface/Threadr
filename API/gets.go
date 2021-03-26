@@ -1,6 +1,7 @@
 package API
 
 import (
+	"RichDocter/common"
 	"context"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
@@ -67,8 +68,29 @@ func AllAssociationsEndPoint(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	results, err := fetchAssociations(novelID)
+	client, ctx, err := common.MongoConnect()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	assocs := client.Database("Drafty").Collection("Associations")
+	filter := &bson.M{"novelID": novelID}
+	cur, err := assocs.Find(context.TODO(), filter)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	defer cur.Close(ctx)
+	var results []ReadAssociation
+	for cur.Next(context.TODO()) {
+		var a ReadAssociation
+		err := cur.Decode(&a)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		results = append(results, a)
+	}
 	if len(results) == 0 {
 		respondWithError(w, http.StatusNotFound, "No pages")
 		return
@@ -92,12 +114,12 @@ func AllPagesEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, ctx, err := mongoConnect()
+	client, ctx, err := common.MongoConnect()
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	defer mongoDisconnect(client, ctx)
+	defer common.MongoDisconnect(client, ctx)
 	pages := client.Database("Drafty").Collection("Pages")
 	filter := &bson.M{"novelID": novelID}
 	cur, err := pages.Find(context.TODO(), filter)
