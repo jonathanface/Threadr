@@ -57,6 +57,51 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	   	respondWithJson(w, http.StatusOK, story)*/
 }
 
+func AssociationDetailsEndPoint(w http.ResponseWriter, r *http.Request) {
+	sid := mux.Vars(r)[`[0-9]+`]
+	if len(sid) == 0 {
+		respondWithError(w, http.StatusBadRequest, "No story ID received")
+		return
+	}
+	novelID, err := strconv.Atoi(sid)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	associationID := mux.Vars(r)[`[0-9a-zA-Z]+`]
+	if len(associationID) == 0 {
+		respondWithError(w, http.StatusBadRequest, "No association ID received")
+		return
+	}
+
+	mgoID, err := validateBSON(associationID)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Missing or invalid associationID")
+		return
+	}
+	client, ctx, err := common.MongoConnect()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer common.MongoDisconnect(client, ctx)
+	assocs := client.Database("Drafty").Collection("Associations")
+	filter := &bson.M{"novelID": novelID, "_id": mgoID}
+	var results Association
+	err = assocs.FindOne(context.TODO(), filter).Decode(&results)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	deets := client.Database("Drafty").Collection("AssociationDetails")
+	var descr AssociationDetails
+	filter = &bson.M{"_id": mgoID}
+	deets.FindOne(context.TODO(), filter).Decode(&descr)
+	results.Details = descr
+	respondWithJson(w, http.StatusOK, results)
+}
+
 func AllAssociationsEndPoint(w http.ResponseWriter, r *http.Request) {
 	sid := mux.Vars(r)[`[0-9]+`]
 	if len(sid) == 0 {
@@ -81,9 +126,9 @@ func AllAssociationsEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer cur.Close(ctx)
-	var results []ReadAssociation
+	var results []Association
 	for cur.Next(context.TODO()) {
-		var a ReadAssociation
+		var a Association
 		err := cur.Decode(&a)
 		if err != nil {
 			respondWithError(w, http.StatusInternalServerError, err.Error())

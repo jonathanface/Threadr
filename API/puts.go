@@ -14,41 +14,41 @@ import (
 func LoginEndPoint(w http.ResponseWriter, r *http.Request) {
 
 	/*
-	  login := r.FormValue("user")
-		pass := r.FormValue("pass")
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		client, err := mongo.Connect(ctx, options.Client().ApplyURI(`mongodb://"+credentials.DBHost+":`+credentials.DBPort).SetAuth(options.Credential{
-			AuthSource: credentials.DBName, Username: credentials.DBUser, Password: credentials.DBPass,
-		}))
-		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		if err = client.Ping(ctx, nil); err != nil {
-			respondWithError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		log.Println("Connected to MongoDB!")
-		defer func() {
-			if err = client.Disconnect(ctx); err != nil {
-				panic(err)
+		  login := r.FormValue("user")
+			pass := r.FormValue("pass")
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			client, err := mongo.Connect(ctx, options.Client().ApplyURI(`mongodb://"+credentials.DBHost+":`+credentials.DBPort).SetAuth(options.Credential{
+				AuthSource: credentials.DBName, Username: credentials.DBUser, Password: credentials.DBPass,
+			}))
+			if err != nil {
+				respondWithError(w, http.StatusInternalServerError, err.Error())
+				return
 			}
-		}()
+			if err = client.Ping(ctx, nil); err != nil {
+				respondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			log.Println("Connected to MongoDB!")
+			defer func() {
+				if err = client.Disconnect(ctx); err != nil {
+					panic(err)
+				}
+			}()
 
-		var result struct {
-			Value float64
-		}
-		filter := bson.M{"login": login, "pass": pass}
-		ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		collection := client.Database(credentials.DBName).Collection(USERS_COLLECTION)
-		err = collection.FindOne(ctx, filter).Decode(&result)
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Println(result)
-		respondWithJson(w, http.StatusOK, result)*/
+			var result struct {
+				Value float64
+			}
+			filter := bson.M{"login": login, "pass": pass}
+			ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			collection := client.Database(credentials.DBName).Collection(USERS_COLLECTION)
+			err = collection.FindOne(ctx, filter).Decode(&result)
+			if err != nil {
+				log.Fatal(err)
+			}
+			log.Println(result)
+			respondWithJson(w, http.StatusOK, result)*/
 }
 
 func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
@@ -67,22 +67,16 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&assRequest); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid resquest payload")
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
-	mgoID, err := primitive.ObjectIDFromHex(assRequest.AssociationIDString)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid bsonID")
-		return
-	}
-
 	defer r.Body.Close()
-	/*figure this out later
-	if assRequest.AssociationID == "" {
-		respondWithError(w, http.StatusBadRequest, "Missing associationID")
-		return
-	}*/
 
+	mgoID, err := validateBSON(assRequest.AssociationIDString)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Missing or invalid associationID")
+		return
+	}
 	if assRequest.Name == "" {
 		respondWithError(w, http.StatusBadRequest, "Missing name")
 		return
@@ -105,7 +99,8 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 	filter := &bson.M{"ID": mgoID}
 	err = descrips.FindOne(context.TODO(), filter).Decode(&result)
 	if err != nil {
-		assoc := WriteAssociationDescription{mgoID, assRequest.Description}
+		log.Println(err)
+		assoc := AssociationDetails{mgoID, assRequest.Description}
 		insertResult, err := descrips.InsertOne(context.TODO(), assoc)
 		if err != nil {
 			log.Println("Error creating new association description")
@@ -113,6 +108,18 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		log.Println("Inserted an association description: ", insertResult.InsertedID)
+	} else {
+		//update description here
+		_, err := descrips.UpdateOne(
+			context.TODO(),
+			&bson.M{"ID": mgoID},
+			bson.D{
+				{"$set", bson.D{{"text", assRequest.Description}}},
+			},
+		)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, err.Error())
+		}
 	}
 	respondWithJson(w, http.StatusOK, "success")
 }

@@ -65,7 +65,8 @@ export class Document extends React.Component {
       associations: [],
       loading:true,
       clickedAssociationType:null,
-      clickedAssociationText:""
+      clickedAssociationText:"",
+      clickedAssociationID:""
     };
     this.rightclickMenu = React.createRef();
     this.popPanel = React.createRef();
@@ -77,8 +78,6 @@ export class Document extends React.Component {
     this.pendingEdits = new Map();
     this.pendingPageDeletions = [];
     this.checkSaveInterval = setInterval(() => this.checkForPendingEdits(), this.SAVE_TIME_INTERVAL);
-
-    this.compositeDecorators = this.createDecorators();
   }
 
   /**
@@ -94,24 +93,113 @@ export class Document extends React.Component {
       return (entityKey !== null && Entity.get(entityKey).getType() === type);
     }, callback);
   }
+
+  createDecorators() {
+    console.log('make decorator for', this.state.associations);
+    let decorators = [];
+    for (let i=0; i < this.state.associations.length; i++) {
+      switch(this.state.associations[i].type) {
+        case Globals.ASSOCIATION_TYPE_CHARACTER:
+          decorators.push({
+            strategy:this.findCharacter.bind(this),
+            component:CharacterSpan,
+            props: {
+              callback: this.clickedCharacter.bind(this)
+            }
+          });
+          break;
+        case Globals.ASSOCIATION_TYPE_PLACE:
+          decorators.push({
+            strategy:this.findPlace.bind(this),
+            component:PlaceSpan,
+            props: {
+              callback: this.clickedPlace.bind(this)
+            }
+          });
+          break;
+        case Globals.ASSOCIATION_TYPE_EVENT:
+          decorators.push({
+            strategy:this.findEvent.bind(this),
+            component:EventSpan,
+            props: {
+              callback: this.clickedEvent.bind(this)
+            }
+          });
+          break;
+      }
+    }
+    console.log('dec', decorators);
+    return new CompositeDecorator(decorators);
+  }
   
+  clickedCharacter(label) {
+    let assocObj = this.state.associations.filter((assoc) => {
+      return assoc.type == Globals.ASSOCIATION_TYPE_CHARACTER && assoc.text == label;
+    });
+    console.log(this.state.associations);
+    console.log('assoc', assocObj);
+    this.popPanel.current.updateAndDisplay(assocObj[0].id);
+  }
+  clickedPlace(label) {
+    let assocObj = this.state.associations.filter((assoc) => {
+      return assoc.type == Globals.ASSOCIATION_TYPE_PLACE && assoc.text == label;
+    });
+    this.popPanel.current.updateAndDisplay(assocObj[0].id);
+  }
+  clickedEvent(label) {
+    let assocObj = this.state.associations.filter((assoc) => {
+      return assoc.type == Globals.ASSOCIATION_TYPE_EVENT && assoc.text == label;
+    });
+    this.popPanel.current.updateAndDisplay(assocObj[0].id);
+  }
+
   /**
    * Find tab entities in block
    *
    * @param {ContentBlock} contentBlock
    * @param {function} callback
    */
-   findAssociation(contentBlock, callback, contentState ) {
+   findCharacter(contentBlock, callback, contentState ) {
     const text = contentBlock.getText();
     for (let i=0; i < this.state.associations.length; i++) {
       //console.log('checking assoc', this.state.associations[i]);
-      let match;
-      let regex = new RegExp(this.state.associations[i].text, 'g');
-      while ((match = regex.exec(text)) !== null) {
-        console.log('found ', match);
-        let start = match.index;
-        let end = start + match[0].length;
-        callback(start, end);
+      if (this.state.associations[i].type == Globals.ASSOCIATION_TYPE_CHARACTER) {
+        let match;
+        let regex = new RegExp(this.state.associations[i].text, 'g');
+        while ((match = regex.exec(text)) !== null) {
+          //console.log('found ', match);
+          callback(match.index, match.index + match[0].length, 'hello');
+        }
+      }
+    }
+  }
+  
+  findPlace(contentBlock, callback, contentState ) {
+    const text = contentBlock.getText();
+    for (let i=0; i < this.state.associations.length; i++) {
+      //console.log('checking assoc', this.state.associations[i]);
+      if (this.state.associations[i].type == Globals.ASSOCIATION_TYPE_PLACE) {
+        let match;
+        let regex = new RegExp(this.state.associations[i].text, 'g');
+        while ((match = regex.exec(text)) !== null) {
+          //console.log('found ', match);
+          callback(match.index, match.index + match[0].length, 'hello');
+        }
+      }
+    }
+  }
+  
+  findEvent(contentBlock, callback, contentState ) {
+    const text = contentBlock.getText();
+    for (let i=0; i < this.state.associations.length; i++) {
+      //console.log('checking assoc', this.state.associations[i]);
+      if (this.state.associations[i].type == Globals.ASSOCIATION_TYPE_EVENT) {
+        let match;
+        let regex = new RegExp(this.state.associations[i].text, 'g');
+        while ((match = regex.exec(text)) !== null) {
+          //console.log('found ', match);
+          callback(match.index, match.index + match[0].length, 'hello');
+        }
       }
     }
   }
@@ -163,35 +251,7 @@ export class Document extends React.Component {
       this.processSocketMessage(JSON.parse(event.data));
     };
   }
-  
-  createDecorators() {
-    return new CompositeDecorator([
-      {
-        strategy: this.findAssociation.bind(this),
-        component: HandleSpan,
-        props: {
-          type: Globals.COMM_TYPE_NEWCHAR,
-          callback: this.clickedAssociation.bind(this),
-          editor:this
-        }
-      }
-    ]);
-  }
 
-  clickedAssociation(text, type) {
-    console.log('clicked me', text, type);
-    let assocObj = this.state.associations.filter((assoc) => {
-      console.log('comp', assoc.type, type);
-      return assoc.type == type;
-    });
-    this.setState({
-      clickedAssociationLabel:text,
-      clickedAssociationType:type
-    }, () => {
-      this.popPanel.current.updateAndDisplay(assocObj[0].id);
-    });
-  }
-  
   forceRender () {
     let newPages = [...this.state.pages];
     this.setFocus(this.currentPage);
@@ -222,6 +282,7 @@ export class Document extends React.Component {
         this.setState({
           associations: message.data
         }, () => {
+          this.compositeDecorators = this.createDecorators();
           // I have to obnoxiously trigger a re-render to get new associations to appear
           this.forceRender();
         });
@@ -239,6 +300,9 @@ export class Document extends React.Component {
           response.json().then((data) => {
             this.setState({
               associations: data
+            }, () => {
+              console.log('this', this);
+              this.compositeDecorators = this.createDecorators();
             });
           });
           break;
@@ -921,16 +985,32 @@ export class Document extends React.Component {
             </div>
           </div>
           <CustomContext ref={this.rightclickMenu} items={JSON.stringify(menu)} selected={this.state.selectedText} socket={this.socket} novelID={Globals.NOVEL_ID}/>
-          <PopPanel ref={this.popPanel} novelID={Globals.NOVEL_ID} label={this.state.clickedAssociationLabel} type={this.state.clickedAssociationType}/>
+          <PopPanel ref={this.popPanel} novelID={Globals.NOVEL_ID}/>
         </div>
       );
     }
   }
 }
 
-const HandleSpan = props => {
+const CharacterSpan = props => {
   return (
-    <span type={props.type} onClick={(e)=> {props.callback(props.decoratedText, props.type);}} className={"highlight " + associationNames.get(props.type)}>
+    <span onClick={(e)=> {props.callback(props.decoratedText);}} className="highlight character">
+      {props.children}
+    </span>
+  );
+};
+
+const PlaceSpan = props => {
+  return (
+    <span onClick={(e)=> {props.callback(props.decoratedText);}} className="highlight place">
+      {props.children}
+    </span>
+  );
+};
+
+const EventSpan = props => {
+  return (
+    <span onClick={(e)=> {props.callback(props.decoratedText);}} className="highlight event">
       {props.children}
     </span>
   );

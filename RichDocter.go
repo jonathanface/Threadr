@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
 	"net/http"
 	"time"
@@ -103,11 +104,11 @@ func createAssociation(text string, typeOf int, novelID int) error {
 	filter := &bson.M{`novelID`: novelID, `text`: text, `type`: typeOf}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	result := API.ReadAssociation{}
+	result := API.Association{}
 	err = assocs.FindOne(ctx, filter).Decode(&result)
 	if err != nil {
 		log.Println("no association found")
-		assoc := API.WriteAssociation{text, typeOf, novelID}
+		assoc := API.Association{primitive.NilObjectID, text, typeOf, novelID, API.AssociationDetails{}}
 		insertResult, err := assocs.InsertOne(context.TODO(), assoc)
 		if err != nil {
 			log.Println("Error creating new association")
@@ -119,7 +120,7 @@ func createAssociation(text string, typeOf int, novelID int) error {
 	return err
 }
 
-func fetchAssociationsByType(typeOf int, novelID int) ([]API.ReadAssociation, error) {
+func fetchAssociationsByType(typeOf int, novelID int) ([]API.Association, error) {
 	client, ctx, err := common.MongoConnect()
 	if err != nil {
 		return nil, err
@@ -132,9 +133,9 @@ func fetchAssociationsByType(typeOf int, novelID int) ([]API.ReadAssociation, er
 		return nil, err
 	}
 	defer cur.Close(ctx)
-	var results []API.ReadAssociation
+	var results []API.Association
 	for cur.Next(context.TODO()) {
-		var a API.ReadAssociation
+		var a API.Association
 		err := cur.Decode(&a)
 		if err != nil {
 			return nil, err
@@ -144,7 +145,7 @@ func fetchAssociationsByType(typeOf int, novelID int) ([]API.ReadAssociation, er
 	return results, nil
 }
 
-func fetchAssociations(novelID int) ([]API.ReadAssociation, error) {
+func fetchAssociations(novelID int) ([]API.Association, error) {
 	client, ctx, err := common.MongoConnect()
 	if err != nil {
 		return nil, err
@@ -157,9 +158,9 @@ func fetchAssociations(novelID int) ([]API.ReadAssociation, error) {
 		return nil, err
 	}
 	defer cur.Close(ctx)
-	var results []API.ReadAssociation
+	var results []API.Association
 	for cur.Next(context.TODO()) {
-		var a API.ReadAssociation
+		var a API.Association
 		err := cur.Decode(&a)
 		if err != nil {
 			return nil, err
@@ -182,6 +183,7 @@ func main() {
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}", API.StoryEndPoint).Methods("GET")
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}/pages", API.AllPagesEndPoint).Methods("GET")
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}/associations", API.AllAssociationsEndPoint).Methods("GET")
+	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}/association/{[0-9a-zA-Z]+}", API.AssociationDetailsEndPoint).Methods("GET")
 	rtr.HandleFunc("/wsinit", API.SetupWebsocket).Methods("GET")
 
 	rtr.HandleFunc(SERVICE_PATH+"/usr/login", API.LoginEndPoint).Methods("PUT")

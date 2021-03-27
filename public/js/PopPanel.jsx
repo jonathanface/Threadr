@@ -19,11 +19,11 @@ export class PopPanel extends React.Component {
   **/
   constructor(props) {
     super(props);
-    this.associationID = props.associationID;
-    this.novelID = props.novelID;
+    this.associationID = null;
+    this.novelID = props.novelid;
     this.isOpen = false;
     
-    console.log('set', defaultDescriptionText);
+    console.log('setup for', this.associationID);
     this.state={
       label: props.label,
       description:defaultDescriptionText,
@@ -43,31 +43,44 @@ export class PopPanel extends React.Component {
     };
   }
   
+  /** componentDidMount **/
+  componentDidMount() {
+    
+  }
+  
+  fetchAssociationDetails() {
+    return fetch(Globals.SERVICE_URL + '/story/' + Globals.NOVEL_ID + '/association/' + this.associationID).then((response) => {
+      switch (response.status) {
+        case 200:
+          response.json().then((data) => {
+            let descr = defaultDescriptionText;
+            if (data.details.description.length) {
+              descr = data.details.description;
+            }
+            this.setState({
+              type:data.type,
+              label:data.text,
+              description:descr,
+              displayState:'visible',
+              activeClassname:'emerge',
+              html: "Edit <b>me</b> !"
+            });
+          });
+          break;
+      }
+    });
+  }
+  
   /**
    * Set visibile and update assoc ID.
    *
    * @param {String} idVal
   **/
   updateAndDisplay(idVal) {
+    console.log('clicked', idVal);
     this.associationID = idVal;
     this.IsOpen = true;
-    this.setState({
-      displayState:'visible',
-      activeClassname:'emerge',
-      html: "Edit <b>me</b> !"
-    });
-  }
-  
-  /**
-   * Props updated from parent
-   *
-   * @param {Object} props
-  **/
-  UNSAFE_componentWillReceiveProps(props) {
-    this.setState({
-      type:props.type,
-      label:props.label
-    });
+    this.fetchAssociationDetails();
   }
 
   /**
@@ -103,7 +116,7 @@ export class PopPanel extends React.Component {
         break;
     }
   }
-  
+
   handleBlur = evt => {
     const target = evt.currentTarget.dataset.name;
     switch(target) {
@@ -114,7 +127,7 @@ export class PopPanel extends React.Component {
         break;
     }
   }
-  
+
   saveAssociation() {
     fetch(Globals.SERVICE_URL + '/story/' + Globals.NOVEL_ID + '/associations', {
       method:'PUT',

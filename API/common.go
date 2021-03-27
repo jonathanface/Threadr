@@ -2,6 +2,7 @@ package API
 
 import (
 	"encoding/json"
+	"errors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 )
@@ -20,22 +21,17 @@ type Config struct {
 	DBName string `json:"dbName"`
 }
 
-type ReadAssociation struct {
-	ID      primitive.ObjectID `json:"id" bson:"_id"`
+type AssociationDetails struct {
+	ID          primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
+	Description string             `json:"description" bson:"text"`
+}
+
+type Association struct {
+	ID      primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
 	Text    string             `json:"text" bson:"text"`
 	Type    int                `json:"type" bson:"type"`
 	NovelID int                `json:"novelID" bson:"novelID"`
-}
-
-type WriteAssociation struct {
-	Text    string `json:"text" bson:"text"`
-	Type    int    `json:"type" bson:"type"`
-	NovelID int    `json:"novelID" bson:"novelID"`
-}
-
-type WriteAssociationDescription struct {
-	ID          primitive.ObjectID `json:"id" bson:"_id"`
-	Description string             `json:"text" bson:"text"`
+	Details AssociationDetails `json:"details,omitempty"`
 }
 
 type Page struct {
@@ -53,4 +49,15 @@ func respondWithJson(w http.ResponseWriter, code int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	w.Write(response)
+}
+
+func validateBSON(bsonID string) (primitive.ObjectID, error) {
+	mgoID, err := primitive.ObjectIDFromHex(bsonID)
+	if err != nil {
+		return primitive.NilObjectID, err
+	}
+	if mgoID.IsZero() || mgoID == primitive.NilObjectID {
+		return mgoID, errors.New("Invalid bsonID")
+	}
+	return mgoID, nil
 }
