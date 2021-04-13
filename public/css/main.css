@@ -265,6 +265,12 @@ div.public-DraftEditor-content {
 .highlight:hover {
   text-decoration:underline;
 }
+.highlight.place {
+  color:#3c9008
+}
+.highlight.event {
+  color:#082c90;
+}
 
 .pop-panel {
   position: fixed;

@@ -54,7 +54,7 @@ func LoginEndPoint(w http.ResponseWriter, r *http.Request) {
 func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 	sid := mux.Vars(r)[`[0-9]+`]
 	if len(sid) == 0 {
-		respondWithError(w, http.StatusBadRequest, "No story ID received")
+		RespondWithError(w, http.StatusBadRequest, "No story ID received")
 		return
 	}
 
@@ -67,18 +67,18 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&assRequest); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 	defer r.Body.Close()
 
 	mgoID, err := validateBSON(assRequest.AssociationIDString)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Missing or invalid associationID")
+		RespondWithError(w, http.StatusBadRequest, "Missing or invalid associationID")
 		return
 	}
 	if assRequest.Name == "" {
-		respondWithError(w, http.StatusBadRequest, "Missing name")
+		RespondWithError(w, http.StatusBadRequest, "Missing name")
 		return
 	}
 
@@ -87,7 +87,7 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 	client, ctx, err := common.MongoConnect()
 	if err != nil {
 		log.Println("ERROR CONNECTING: ", err)
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	defer common.MongoDisconnect(client, ctx)
@@ -104,7 +104,7 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 		insertResult, err := descrips.InsertOne(context.TODO(), assoc)
 		if err != nil {
 			log.Println("Error creating new association description")
-			respondWithError(w, http.StatusInternalServerError, err.Error())
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		log.Println("Inserted an association description: ", insertResult.InsertedID)
@@ -118,8 +118,8 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 			},
 		)
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, err.Error())
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
 		}
 	}
-	respondWithJson(w, http.StatusOK, "success")
+	RespondWithJson(w, http.StatusOK, "success")
 }

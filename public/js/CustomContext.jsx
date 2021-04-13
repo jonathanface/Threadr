@@ -13,13 +13,16 @@ export class CustomContext extends React.Component {
   **/
   constructor(props) {
     super(props);
+    console.log(props.type);
+
     this.state={
+      selected:'',
       items: props.items,
-      selected: props.selected,
       display: 'none',
       x: 0,
       y: 0
     };
+    this.type = props.type;
     this.socket = props.socket;
     this.novelID = props.novelID;
     this.IsOpen = false;
@@ -40,6 +43,13 @@ export class CustomContext extends React.Component {
     console.log('adding new', type, text);
     if (this.socket.isOpen && text.trim().length) {
       this.socket.send(JSON.stringify({command: 'newAssociation', data: {text: text.trim(), type:type, novelID: this.novelID}}));
+    }
+  }
+  
+  removeAssociation(text) {
+    console.log('removing', text);
+    if (this.socket.isOpen && text.trim().length) {
+      this.socket.send(JSON.stringify({command: 'removeAssociation', data: {text: text.trim(), novelID: this.novelID}}));
     }
   }
 
@@ -93,7 +103,6 @@ export class CustomContext extends React.Component {
         items: JSON.stringify(json)
       });
     } else if (Object.prototype.hasOwnProperty.call(item, 'type')) {
-      console.log('making new', item.type);
       this.createNewAssociation(this.state.selected, item.type);
       this.hide();
     } else {
@@ -108,8 +117,12 @@ export class CustomContext extends React.Component {
   **/
   UNSAFE_componentWillReceiveProps(props) {
     this.socket = props.socket;
+    let selectedText, editingID;
+    props.selected ? selectedText = props.selected : selectedText = '';
+    props.editingID ? editingID = props.editingID : editingID = '';
     this.setState({
-      selected: props.selected
+      selected: selectedText,
+      editingID: editingID
     });
   }
 
@@ -145,8 +158,12 @@ export class CustomContext extends React.Component {
       'display': this.state.display
     };
     const json = JSON.parse(this.state.items);
+    let header = '';
+    if (this.state.selected.length) {
+      header = <div className="selected">{this.state.selected}</div>;
+    }
     return <div ref={this.divElement} className='custom-context' id='contextMenu' style={myStyle}>
-      <div className="selected">{this.state.selected}</div>
+      {header}
       {json.map((item) => {
         return this.elementFromObject(item);
       })}

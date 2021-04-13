@@ -5,12 +5,18 @@ import (
 	"RichDocter/common"
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -170,8 +176,101 @@ func fetchAssociations(novelID int) ([]API.Association, error) {
 	return results, nil
 }
 
+type GoogleClaims struct {
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
+	FirstName     string `json:"given_name"`
+	LastName      string `json:"family_name"`
+	jwt.StandardClaims
+}
+
+func getGooglePublicKey(keyID string) (string, error) {
+	resp, err := http.Get("https://www.googleapis.com/oauth2/v1/certs")
+	if err != nil {
+		return "", err
+	}
+	dat, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	myResp := map[string]string{}
+	err = json.Unmarshal(dat, &myResp)
+	if err != nil {
+		return "", err
+	}
+	key, ok := myResp[keyID]
+	if !ok {
+		return "", errors.New("key not found")
+	}
+	return key, nil
+}
+
+func validateGoogleJWT(tokenString string) (GoogleClaims, error) {
+	claimsStruct := GoogleClaims{}
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		&claimsStruct,
+		func(token *jwt.Token) (interface{}, error) {
+			pem, err := getGooglePublicKey(fmt.Sprintf("%s", token.Header["kid"]))
+			if err != nil {
+				return nil, err
+			}
+			key, err := jwt.ParseRSAPublicKeyFromPEM([]byte(pem))
+			if err != nil {
+				return nil, err
+			}
+			return key, nil
+		},
+	)
+	if err != nil {
+		return GoogleClaims{}, err
+	}
+	claims, ok := token.Claims.(*GoogleClaims)
+	if !ok {
+		return GoogleClaims{}, errors.New("Invalid Google JWT")
+	}
+	if claims.Issuer != "accounts.google.com" && claims.Issuer != "https://accounts.google.com" {
+		return GoogleClaims{}, errors.New("iss is invalid")
+	}
+	if claims.Audience != "878388830212-tq6uhegouorlrn7srsn3getqkn4er3fg.apps.googleusercontent.com" {
+		return GoogleClaims{}, errors.New("auth is invalid")
+	}
+	if claims.ExpiresAt < time.Now().UTC().Unix() {
+		return GoogleClaims{}, errors.New("JWT is expired")
+	}
+	return *claims, nil
+}
+
+func middleware(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := strings.Split(r.Header.Get("Authorization"), "Bearer ")
+		if len(authHeader) != 2 {
+			API.RespondWithError(w, http.StatusBadRequest, "Malformed Token")
+		} else {
+			claims, err := validateGoogleJWT(authHeader[1])
+			if err != nil {
+				API.RespondWithError(w, http.StatusForbidden, "Invalid google auth")
+				return
+			}
+			client, ctx, err := common.MongoConnect()
+			if err != nil {
+				API.RespondWithError(w, http.StatusInternalServerError, "Error writing user account to DB")
+				return
+			}
+			defer common.MongoDisconnect(client, ctx)
+			users := client.Database("Drafty").Collection("Users")
+			filter := &bson.M{"email": claims.Email}
+			update := &bson.M{"$set": &bson.M{"lastActive": primitive.Timestamp{T: uint32(time.Now().Unix())}}}
+			opts := options.Update().SetUpsert(true)
+			users.UpdateOne(context.Background(), filter, update, opts)
+			ctx = context.WithValue(r.Context(), "props", claims)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		}
+	})
+}
+
 func main() {
-	log.Println("\n\n**********************START")
 	log.Println("Listening for http on " + HTTP_PORT)
 	common.GetConfiguration()
 
@@ -179,15 +278,15 @@ func main() {
 	go hub.run()
 
 	rtr := mux.NewRouter()
-	rtr.HandleFunc(SERVICE_PATH+"/stories", API.AllStoriesEndPoint).Methods("GET")
-	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}", API.StoryEndPoint).Methods("GET")
-	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}/pages", API.AllPagesEndPoint).Methods("GET")
-	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}/associations", API.AllAssociationsEndPoint).Methods("GET")
-	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}/association/{[0-9a-zA-Z]+}", API.AssociationDetailsEndPoint).Methods("GET")
-	rtr.HandleFunc("/wsinit", API.SetupWebsocket).Methods("GET")
+	rtr.HandleFunc(SERVICE_PATH+"/stories", middleware(API.AllStoriesEndPoint)).Methods("GET", "OPTIONS")
+	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}", middleware(API.StoryEndPoint)).Methods("GET", "OPTIONS")
+	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}/pages", middleware(API.AllPagesEndPoint)).Methods("GET", "OPTIONS")
+	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}/associations", middleware(API.AllAssociationsEndPoint)).Methods("GET", "OPTIONS")
+	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}/association/{[0-9a-zA-Z]+}", middleware(API.AssociationDetailsEndPoint)).Methods("GET", "OPTIONS")
+	rtr.HandleFunc("/wsinit", middleware(API.SetupWebsocket)).Methods("GET", "OPTIONS")
 
-	rtr.HandleFunc(SERVICE_PATH+"/usr/login", API.LoginEndPoint).Methods("PUT")
-	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}/associations", API.EditAssociationEndPoint).Methods("PUT")
+	rtr.HandleFunc(SERVICE_PATH+"/usr/login", middleware(API.LoginEndPoint)).Methods("PUT")
+	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}/associations", middleware(API.EditAssociationEndPoint)).Methods("PUT")
 
 	http.HandleFunc(SOCKET_DIR, func(w http.ResponseWriter, r *http.Request) {
 		serveWs(hub, w, r)

@@ -10,7 +10,7 @@ import FormatAlignJustifyIcon from '@material-ui/icons/FormatAlignJustify';
 import FormatLineSpacingIcon from '@material-ui/icons/FormatLineSpacing';
 import {Globals} from './Globals.jsx'
 
-const menu = [
+const addMenu = [
   {label: 'Tag', classes: ['item','parent','closed'], subitems: [
     {label: 'Character', type: Globals.COMM_TYPE_NEWCHAR, classes: ['item','child','hidden']},
     {label: 'Place', type: Globals.COMM_TYPE_NEWPLACE, classes: ['item','child','hidden']},
@@ -18,6 +18,10 @@ const menu = [
   ]},
   {label: 'Wikipedia', type: Globals.COMM_TYPE_NEWWIKI, classes: ['item']},
   {label: 'Link', type: Globals.COMM_TYPE_NEWLINK, classes: ['item']}
+];
+
+const editMenu = [
+  {label: 'Delete', classes: ['item'], type: Globals.COMM_TYPE_EDITCHAR}
 ];
 
 const TAB = (props) => {
@@ -64,11 +68,10 @@ export class Document extends React.Component {
       selectedText: '',
       associations: [],
       loading:true,
-      clickedAssociationType:null,
-      clickedAssociationText:"",
-      clickedAssociationID:""
+      selectedAssociation:""
     };
-    this.rightclickMenu = React.createRef();
+    this.rightclickAddMenu = React.createRef();
+    this.rightclickEditMenu = React.createRef();
     this.popPanel = React.createRef();
     this.maxWidth = this.state.pageWidth - (this.state.leftMargin + this.state.rightMargin);
     this.currentPage = 0;
@@ -104,7 +107,8 @@ export class Document extends React.Component {
             strategy:this.findCharacter.bind(this),
             component:CharacterSpan,
             props: {
-              callback: this.clickedCharacter.bind(this)
+              leftclickFunc: this.clickedCharacter.bind(this),
+              rightclickFunc: this.clickedCharacterContext.bind(this)
             }
           });
           break;
@@ -113,7 +117,8 @@ export class Document extends React.Component {
             strategy:this.findPlace.bind(this),
             component:PlaceSpan,
             props: {
-              callback: this.clickedPlace.bind(this)
+              leftclickFunc: this.clickedPlace.bind(this),
+              rightclickFunc: this.clickedPlaceContext.bind(this)
             }
           });
           break;
@@ -122,7 +127,8 @@ export class Document extends React.Component {
             strategy:this.findEvent.bind(this),
             component:EventSpan,
             props: {
-              callback: this.clickedEvent.bind(this)
+              leftclickFunc: this.clickedEvent.bind(this),
+              rightclickFunc: this.clickedEventContext.bind(this)
             }
           });
           break;
@@ -134,23 +140,55 @@ export class Document extends React.Component {
   
   clickedCharacter(label) {
     let assocObj = this.state.associations.filter((assoc) => {
-      return assoc.type == Globals.ASSOCIATION_TYPE_CHARACTER && assoc.text == label;
+      return assoc.text == label;
     });
-    console.log(this.state.associations);
-    console.log('assoc', assocObj);
     this.popPanel.current.updateAndDisplay(assocObj[0].id);
+  }
+  clickedCharacterContext(event, label) {
+    event.preventDefault();
+    let assocObj = this.state.associations.filter((assoc) => {
+      return assoc.text == label;
+    });
+    this.setState({
+      selectedAssociation:assocObj[0].id
+    }, () => {
+      this.rightclickEditMenu.current.updateAndDisplay(event.pageX, event.pageY);
+    });
   }
   clickedPlace(label) {
     let assocObj = this.state.associations.filter((assoc) => {
-      return assoc.type == Globals.ASSOCIATION_TYPE_PLACE && assoc.text == label;
+      return assoc.text == label;
     });
     this.popPanel.current.updateAndDisplay(assocObj[0].id);
   }
+  clickedPlaceContext(event, label) {
+    event.preventDefault();
+    let assocObj = this.state.associations.filter((assoc) => {
+      return assoc.text == label;
+    });
+    this.setState({
+      selectedAssociation:assocObj[0].id
+    }, () => {
+      this.rightclickEditMenu.current.updateAndDisplay(event.pageX, event.pageY);
+    });
+    
+  }
   clickedEvent(label) {
     let assocObj = this.state.associations.filter((assoc) => {
-      return assoc.type == Globals.ASSOCIATION_TYPE_EVENT && assoc.text == label;
+      return assoc.text == label;
     });
     this.popPanel.current.updateAndDisplay(assocObj[0].id);
+  }
+  clickedEventContext(event, label) {
+    event.preventDefault();
+    let assocObj = this.state.associations.filter((assoc) => {
+      return assoc.text == label;
+    });
+    this.setState({
+      selectedAssociation:assocObj[0].id
+    }, () => {
+      this.rightclickEditMenu.current.updateAndDisplay(event.pageX, event.pageY);
+    });
   }
 
   /**
@@ -535,7 +573,7 @@ export class Document extends React.Component {
     const selection = editorState.getSelection();
     // Cursor has moved but no text changes detected.
     if (this.state.pages[pageNumber].editorState.getCurrentContent() === editorState.getCurrentContent()) {
-      if (this.rightclickMenu.current.IsOpen) {
+      if (this.rightclickAddMenu.current.IsOpen) {
         // this.rightclickMenu.current.hide();
       }
       if (this.popPanel.current.IsOpen) {
@@ -770,8 +808,11 @@ export class Document extends React.Component {
     // console.log('focus on', index);
     this.currentPage = index;
     this.refHandles[index].current.focus();
-    if (this.rightclickMenu.current.IsOpen) {
-      this.rightclickMenu.current.hide();
+    if (this.rightclickAddMenu.current.IsOpen) {
+      this.rightclickAddMenu.current.hide();
+    }
+    if (this.rightclickEditMenu.current.IsOpen) {
+      this.rightclickEditMenu.current.hide();
     }
     if (this.popPanel.current.IsOpen) {
       this.popPanel.current.hide();
@@ -911,7 +952,7 @@ export class Document extends React.Component {
     if (text.length) {
       event.preventDefault();
       this.setState({selectedText: text});
-      this.rightclickMenu.current.updateAndDisplay(event.pageX, event.pageY);
+      this.rightclickAddMenu.current.updateAndDisplay(event.pageX, event.pageY);
     }
   }
 
@@ -984,7 +1025,8 @@ export class Document extends React.Component {
               {editors}
             </div>
           </div>
-          <CustomContext ref={this.rightclickMenu} items={JSON.stringify(menu)} selected={this.state.selectedText} socket={this.socket} novelID={Globals.NOVEL_ID}/>
+          <CustomContext ref={this.rightclickAddMenu} type="add" items={JSON.stringify(addMenu)} selected={this.state.selectedText} socket={this.socket} novelID={Globals.NOVEL_ID}/>
+          <CustomContext ref={this.rightclickEditMenu} type="edit" items={JSON.stringify(editMenu)} editingID={this.state.selectedAssociation} socket={this.socket} novelID={Globals.NOVEL_ID}/>
           <PopPanel ref={this.popPanel} novelID={Globals.NOVEL_ID}/>
         </div>
       );
@@ -994,7 +1036,7 @@ export class Document extends React.Component {
 
 const CharacterSpan = props => {
   return (
-    <span onClick={(e)=> {props.callback(props.decoratedText);}} className="highlight character">
+    <span onClick={(e)=> {props.leftclickFunc(props.decoratedText);}} onContextMenu={(e)=> {props.rightclickFunc(e, props.decoratedText);}} className="highlight character">
       {props.children}
     </span>
   );
@@ -1002,7 +1044,7 @@ const CharacterSpan = props => {
 
 const PlaceSpan = props => {
   return (
-    <span onClick={(e)=> {props.callback(props.decoratedText);}} className="highlight place">
+    <span onClick={(e)=> {props.leftclickFunc(props.decoratedText);}} onContextMenu={(e)=> {props.rightclickFunc(e, props.decoratedText);}} className="highlight place">
       {props.children}
     </span>
   );
@@ -1010,7 +1052,7 @@ const PlaceSpan = props => {
 
 const EventSpan = props => {
   return (
-    <span onClick={(e)=> {props.callback(props.decoratedText);}} className="highlight event">
+    <span onClick={(e)=> {props.leftclickFunc(props.decoratedText);}} onContextMenu={(e)=> {props.rightclickFunc(e, props.decoratedText);}} className="highlight event">
       {props.children}
     </span>
   );

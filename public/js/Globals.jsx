@@ -9,4 +9,13 @@ export class Globals {
   static ASSOCIATION_TYPE_CHARACTER = 0;
   static ASSOCIATION_TYPE_PLACE = 1;
   static ASSOCIATION_TYPE_EVENT = 2;
+  
+  static TOKEN_ID;
+  
+  static getHeaders() {
+    const headers = new Headers();
+    headers.append('Content-Type', 'application/json');
+    headers.append('Authorization', 'Bearer ' + Globals.TOKEN_ID);
+    return headers;
+  }
 }

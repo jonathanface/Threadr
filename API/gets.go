@@ -12,76 +12,78 @@ import (
 )
 
 func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
-	/*
-		  session, err := mgo.DialWithInfo(connection_info)
-			if err != nil {
-				respondWithError(w, http.StatusInternalServerError, err.Error())
-				return
-			}
-		  defer session.Close()
+  
+    /*
+        session, err := mgo.DialWithInfo(connection_info)
+        if err != nil {
+          respondWithError(w, http.StatusInternalServerError, err.Error())
+          return
+        }
+        defer session.Close()
 
-			c := session.DB(DATABASE).C(STORIES_COLLECTION)
-		  var stories []Story
-			err = c.Find(nil).All(&stories)
-		  if (err != nil) {
-		    respondWithError(w, http.StatusInternalServerError, err.Error())
-		    return
-		  }
-			respondWithJson(w, http.StatusOK, stories)*/
+        c := session.DB(DATABASE).C(STORIES_COLLECTION)
+        var stories []Story
+        err = c.Find(nil).All(&stories)
+        if (err != nil) {
+          respondWithError(w, http.StatusInternalServerError, err.Error())
+          return
+        }
+        respondWithJson(w, http.StatusOK, stories)*/
+        RespondWithJson(w, http.StatusOK, Config{})
 }
 
 func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	/*
 	     sid := mux.Vars(r)["[0-9a-zA-Z]+"]
 	     if len(sid) == 0 {
-	       respondWithError(w, http.StatusBadRequest, "No story ID received")
+	       RespondWithError(w, http.StatusBadRequest, "No story ID received")
 	       return
 	     }
 	     session, err := mgo.DialWithInfo(connection_info)
 	     if err != nil {
-	   		respondWithError(w, http.StatusInternalServerError, err.Error())
+	   		RespondWithError(w, http.StatusInternalServerError, err.Error())
 	   		return
 	   	}
 	     defer session.Close()
 	     c := session.DB(DATABASE).C(STORIES_COLLECTION)
 	     var story Story
 	     if !bson.IsObjectIdHex(sid) {
-	       respondWithError(w, http.StatusBadRequest, "invalid story id")
+	       RespondWithError(w, http.StatusBadRequest, "invalid story id")
 	       return
 	     }
 	     err = c.Find(bson.M{"_id":bson.ObjectIdHex(sid)}).One(&story)
 	     if (err != nil) {
-	       respondWithError(w, http.StatusInternalServerError, err.Error())
+	       RespondWithError(w, http.StatusInternalServerError, err.Error())
 	       return
 	     }
-	   	respondWithJson(w, http.StatusOK, story)*/
+	   	RespondWithJson(w, http.StatusOK, story)*/
 }
 
 func AssociationDetailsEndPoint(w http.ResponseWriter, r *http.Request) {
 	sid := mux.Vars(r)[`[0-9]+`]
 	if len(sid) == 0 {
-		respondWithError(w, http.StatusBadRequest, "No story ID received")
+		RespondWithError(w, http.StatusBadRequest, "No story ID received")
 		return
 	}
 	novelID, err := strconv.Atoi(sid)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	associationID := mux.Vars(r)[`[0-9a-zA-Z]+`]
 	if len(associationID) == 0 {
-		respondWithError(w, http.StatusBadRequest, "No association ID received")
+		RespondWithError(w, http.StatusBadRequest, "No association ID received")
 		return
 	}
 
 	mgoID, err := validateBSON(associationID)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Missing or invalid associationID")
+		RespondWithError(w, http.StatusBadRequest, "Missing or invalid associationID")
 		return
 	}
 	client, ctx, err := common.MongoConnect()
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	defer common.MongoDisconnect(client, ctx)
@@ -90,7 +92,7 @@ func AssociationDetailsEndPoint(w http.ResponseWriter, r *http.Request) {
 	var results Association
 	err = assocs.FindOne(context.TODO(), filter).Decode(&results)
 	if err != nil {
-		respondWithError(w, http.StatusNotFound, err.Error())
+		RespondWithError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
@@ -99,30 +101,30 @@ func AssociationDetailsEndPoint(w http.ResponseWriter, r *http.Request) {
 	filter = &bson.M{"_id": mgoID}
 	deets.FindOne(context.TODO(), filter).Decode(&descr)
 	results.Details = descr
-	respondWithJson(w, http.StatusOK, results)
+	RespondWithJson(w, http.StatusOK, results)
 }
 
 func AllAssociationsEndPoint(w http.ResponseWriter, r *http.Request) {
 	sid := mux.Vars(r)[`[0-9]+`]
 	if len(sid) == 0 {
-		respondWithError(w, http.StatusBadRequest, "No story ID received")
+		RespondWithError(w, http.StatusBadRequest, "No story ID received")
 		return
 	}
 	novelID, err := strconv.Atoi(sid)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	client, ctx, err := common.MongoConnect()
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	assocs := client.Database("Drafty").Collection("Associations")
 	filter := &bson.M{"novelID": novelID}
 	cur, err := assocs.Find(context.TODO(), filter)
 	if err != nil {
-		respondWithError(w, http.StatusNotFound, err.Error())
+		RespondWithError(w, http.StatusNotFound, err.Error())
 		return
 	}
 	defer cur.Close(ctx)
@@ -131,37 +133,37 @@ func AllAssociationsEndPoint(w http.ResponseWriter, r *http.Request) {
 		var a Association
 		err := cur.Decode(&a)
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, err.Error())
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		results = append(results, a)
 	}
 	if len(results) == 0 {
-		respondWithError(w, http.StatusNotFound, "No pages")
+		RespondWithError(w, http.StatusNotFound, "No pages")
 		return
 	}
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	respondWithJson(w, http.StatusOK, results)
+	RespondWithJson(w, http.StatusOK, results)
 }
 
 func AllPagesEndPoint(w http.ResponseWriter, r *http.Request) {
 	sid := mux.Vars(r)[`[0-9]+`]
 	if len(sid) == 0 {
-		respondWithError(w, http.StatusBadRequest, "No story ID received")
+		RespondWithError(w, http.StatusBadRequest, "No story ID received")
 		return
 	}
 	novelID, err := strconv.Atoi(sid)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	client, ctx, err := common.MongoConnect()
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	defer common.MongoDisconnect(client, ctx)
@@ -169,7 +171,7 @@ func AllPagesEndPoint(w http.ResponseWriter, r *http.Request) {
 	filter := &bson.M{"novelID": novelID}
 	cur, err := pages.Find(context.TODO(), filter)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	defer cur.Close(ctx)
@@ -180,21 +182,21 @@ func AllPagesEndPoint(w http.ResponseWriter, r *http.Request) {
 		var p Page
 		err := cur.Decode(&p)
 		if err != nil {
-			respondWithError(w, http.StatusInternalServerError, err.Error())
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		results = append(results, p)
 	}
 	if len(results) == 0 {
-		respondWithError(w, http.StatusNotFound, "No pages")
+		RespondWithError(w, http.StatusNotFound, "No pages")
 		return
 	}
-	respondWithJson(w, http.StatusOK, results)
+	RespondWithJson(w, http.StatusOK, results)
 }
 
 func SetupWebsocket(w http.ResponseWriter, r *http.Request) {
 	log.Println("Listening for socket on " + HTTP_PORT)
 	hostname := strings.Split(r.Host, ":")[0]
 	url := "ws://" + hostname + HTTP_PORT + SOCKET_DIR
-	respondWithJson(w, http.StatusOK, map[string]string{"url": url})
+	RespondWithJson(w, http.StatusOK, map[string]string{"url": url})
 }
