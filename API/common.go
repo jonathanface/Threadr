@@ -3,8 +3,10 @@ package API
 import (
 	"encoding/json"
 	"errors"
+  "github.com/dgrijalva/jwt-go"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
+  "time"
 )
 
 const (
@@ -19,6 +21,12 @@ type Config struct {
 	DBUser string `json:"dbUser"`
 	DBPass string `json:"dbPass"`
 	DBName string `json:"dbName"`
+}
+
+type Story struct {
+	ID          primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
+	Title string `bson:"title" json:"title"`
+  LastAccessed time.Time `bson:"lastAccessed" json:"lastAccessed"`
 }
 
 type AssociationDetails struct {
@@ -39,6 +47,16 @@ type Page struct {
 	Body    json.RawMessage `json:"body" bson:"body"`
 	NovelID int             `json:"novelID" bson:"novelID"`
 }
+
+type GoogleClaims struct {
+  ID      primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
+	FirstName     string `json:"given_name"`
+	LastName      string `json:"family_name"`
+	jwt.StandardClaims
+}
+
 
 func RespondWithError(w http.ResponseWriter, code int, msg string) {
 	RespondWithJson(w, code, map[string]string{"error": msg})

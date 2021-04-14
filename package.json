@@ -27,7 +27,7 @@
   },
   "scripts": {
     "minify": "uglifyjs public/js/dist/bundle.js -o public/js/dist/bundle.min.js",
-    "build": "browserify -d public/js/Landing.jsx public/js/Globals.jsx public/js/main.jsx public/js/PopPanel.jsx public/js/ErrorBoundary.jsx public/js/CustomContext.jsx public/js/Document.jsx -o public/js/dist/bundle.js -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ]",
+    "build": "browserify -d public/js/Landing.jsx public/js/Menu.jsx public/js/Globals.jsx public/js/main.jsx public/js/PopPanel.jsx public/js/ErrorBoundary.jsx public/js/CustomContext.jsx public/js/Document.jsx -o public/js/dist/bundle.js -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ]",
     "pretest": "eslint --ext .js,.jsx --ignore-path .gitignore .\\",
     "test": "jest"
   },

@@ -20,18 +20,6 @@ import (
 	"time"
 )
 
-type Story struct {
-	//ID          bson.ObjectId `bson:"_id" json:"id"`
-	Title string `bson:"title" json:"title"`
-	Body  string `bson:"body"  json:"body"`
-}
-
-type User struct {
-	//ID          bson.ObjectId `bson:"_id"   json:"id"`
-	Login string `bson:"login" json:"login"`
-	Name  string `bson:"title"  json:"title"`
-}
-
 type SocketMessage struct {
 	Command string          `json:"command"`
 	Data    json.RawMessage `json:"data"`
@@ -176,14 +164,6 @@ func fetchAssociations(novelID int) ([]API.Association, error) {
 	return results, nil
 }
 
-type GoogleClaims struct {
-	Email         string `json:"email"`
-	EmailVerified bool   `json:"email_verified"`
-	FirstName     string `json:"given_name"`
-	LastName      string `json:"family_name"`
-	jwt.StandardClaims
-}
-
 func getGooglePublicKey(keyID string) (string, error) {
 	resp, err := http.Get("https://www.googleapis.com/oauth2/v1/certs")
 	if err != nil {
@@ -206,8 +186,8 @@ func getGooglePublicKey(keyID string) (string, error) {
 	return key, nil
 }
 
-func validateGoogleJWT(tokenString string) (GoogleClaims, error) {
-	claimsStruct := GoogleClaims{}
+func validateGoogleJWT(tokenString string) (API.GoogleClaims, error) {
+	claimsStruct := API.GoogleClaims{}
 	token, err := jwt.ParseWithClaims(
 		tokenString,
 		&claimsStruct,
@@ -224,20 +204,20 @@ func validateGoogleJWT(tokenString string) (GoogleClaims, error) {
 		},
 	)
 	if err != nil {
-		return GoogleClaims{}, err
+		return API.GoogleClaims{}, err
 	}
-	claims, ok := token.Claims.(*GoogleClaims)
+	claims, ok := token.Claims.(*API.GoogleClaims)
 	if !ok {
-		return GoogleClaims{}, errors.New("Invalid Google JWT")
+		return API.GoogleClaims{}, errors.New("Invalid Google JWT")
 	}
 	if claims.Issuer != "accounts.google.com" && claims.Issuer != "https://accounts.google.com" {
-		return GoogleClaims{}, errors.New("iss is invalid")
+		return API.GoogleClaims{}, errors.New("iss is invalid")
 	}
 	if claims.Audience != "878388830212-tq6uhegouorlrn7srsn3getqkn4er3fg.apps.googleusercontent.com" {
-		return GoogleClaims{}, errors.New("auth is invalid")
+		return API.GoogleClaims{}, errors.New("auth is invalid")
 	}
 	if claims.ExpiresAt < time.Now().UTC().Unix() {
-		return GoogleClaims{}, errors.New("JWT is expired")
+		return API.GoogleClaims{}, errors.New("JWT is expired")
 	}
 	return *claims, nil
 }
@@ -261,11 +241,40 @@ func middleware(next http.HandlerFunc) http.HandlerFunc {
 			defer common.MongoDisconnect(client, ctx)
 			users := client.Database("Drafty").Collection("Users")
 			filter := &bson.M{"email": claims.Email}
-			update := &bson.M{"$set": &bson.M{"lastActive": primitive.Timestamp{T: uint32(time.Now().Unix())}}}
 			opts := options.Update().SetUpsert(true)
-			users.UpdateOne(context.Background(), filter, update, opts)
-			ctx = context.WithValue(r.Context(), "props", claims)
-			next.ServeHTTP(w, r.WithContext(ctx))
+			update := &bson.M{"$set": &bson.M{"lastActive": primitive.Timestamp{T: uint32(time.Now().Unix())}}}
+			result, err := users.UpdateOne(context.Background(), filter, update, opts)
+			if err != nil {
+				API.RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+
+			if claims.ID == primitive.NilObjectID {
+				err = users.FindOne(context.Background(), filter).Decode(&claims)
+				if err != nil {
+					API.RespondWithError(w, http.StatusInternalServerError, err.Error())
+					return
+				}
+			} else {
+				claims.ID, err = primitive.ObjectIDFromHex(result.UpsertedID.(string))
+				if err != nil {
+					API.RespondWithError(w, http.StatusInternalServerError, err.Error())
+					return
+				}
+			}
+			if next != nil {
+				ctx = context.WithValue(r.Context(), "props", claims)
+				next.ServeHTTP(w, r.WithContext(ctx))
+			} else {
+				// This is just if I requested user details from the claims
+				var nameHolder struct {
+					FirstName string `json:"given_name"`
+					LastName  string `json:"family_name"`
+				}
+				nameHolder.FirstName = claims.FirstName
+				nameHolder.LastName = claims.LastName
+				API.RespondWithJson(w, http.StatusOK, nameHolder)
+			}
 		}
 	})
 }
@@ -283,6 +292,7 @@ func main() {
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}/pages", middleware(API.AllPagesEndPoint)).Methods("GET", "OPTIONS")
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}/associations", middleware(API.AllAssociationsEndPoint)).Methods("GET", "OPTIONS")
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}/association/{[0-9a-zA-Z]+}", middleware(API.AssociationDetailsEndPoint)).Methods("GET", "OPTIONS")
+	rtr.HandleFunc(SERVICE_PATH+"/user/name", middleware(nil)).Methods("GET", "OPTIONS")
 	rtr.HandleFunc("/wsinit", middleware(API.SetupWebsocket)).Methods("GET", "OPTIONS")
 
 	rtr.HandleFunc(SERVICE_PATH+"/usr/login", middleware(API.LoginEndPoint)).Methods("PUT")

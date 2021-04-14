@@ -12,51 +12,47 @@ import (
 )
 
 func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
+  client, ctx, err := common.MongoConnect()
   
-    /*
-        session, err := mgo.DialWithInfo(connection_info)
-        if err != nil {
-          respondWithError(w, http.StatusInternalServerError, err.Error())
-          return
-        }
-        defer session.Close()
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+  defer common.MongoDisconnect(client, ctx)
+  
+  claims := r.Context().Value("props").(GoogleClaims)
+  log.Println("decoded", claims)
+  
+	storiesColl := client.Database("Drafty").Collection("Stories")
+  log.Println("stories for user", claims.ID)
+  filter := &bson.M{"user": claims.ID}
+	var stories []Story
+  found, err := storiesColl.Find(context.Background(), filter)
+  if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer found.Close(ctx)
 
-        c := session.DB(DATABASE).C(STORIES_COLLECTION)
-        var stories []Story
-        err = c.Find(nil).All(&stories)
-        if (err != nil) {
-          respondWithError(w, http.StatusInternalServerError, err.Error())
-          return
-        }
-        respondWithJson(w, http.StatusOK, stories)*/
-        RespondWithJson(w, http.StatusOK, Config{})
+	for found.Next(context.TODO()) {
+		//Create a value into which the single document can be decoded
+		var s Story
+		err := found.Decode(&s)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		stories = append(stories, s)
+	}
+  if len(stories) == 0 {
+    RespondWithError(w, http.StatusNotFound, "No stories found.")
+    return
+  }
+  RespondWithJson(w, http.StatusOK, stories)
 }
 
 func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
-	/*
-	     sid := mux.Vars(r)["[0-9a-zA-Z]+"]
-	     if len(sid) == 0 {
-	       RespondWithError(w, http.StatusBadRequest, "No story ID received")
-	       return
-	     }
-	     session, err := mgo.DialWithInfo(connection_info)
-	     if err != nil {
-	   		RespondWithError(w, http.StatusInternalServerError, err.Error())
-	   		return
-	   	}
-	     defer session.Close()
-	     c := session.DB(DATABASE).C(STORIES_COLLECTION)
-	     var story Story
-	     if !bson.IsObjectIdHex(sid) {
-	       RespondWithError(w, http.StatusBadRequest, "invalid story id")
-	       return
-	     }
-	     err = c.Find(bson.M{"_id":bson.ObjectIdHex(sid)}).One(&story)
-	     if (err != nil) {
-	       RespondWithError(w, http.StatusInternalServerError, err.Error())
-	       return
-	     }
-	   	RespondWithJson(w, http.StatusOK, story)*/
+
 }
 
 func AssociationDetailsEndPoint(w http.ResponseWriter, r *http.Request) {

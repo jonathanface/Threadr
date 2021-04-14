@@ -1,0 +1,21 @@
+.main_menu {
+  height:45px;
+  padding:10px;
+  background-color:#F0F0F0;
+  box-shadow:2px 2px 2px #333;
+}
+.main_menu .menu_right {
+  float:right;
+  height:100%;
+}
+
+.main_menu button, .main_menu button img {
+  height:100%;
+  background:none;
+  border:none;
+  cursor:pointer;
+  outline:none;
+}
+.main_menu button:hover {
+  opacity:0.5;
+}
