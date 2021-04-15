@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {Globals} from './globals.jsx'
 
 /**
  * Right-click menu for tagging document text.
@@ -13,10 +12,9 @@ export class CustomContext extends React.Component {
   **/
   constructor(props) {
     super(props);
-    console.log(props.type);
 
     this.state={
-      selected:'',
+      selected: '',
       items: props.items,
       display: 'none',
       x: 0,
@@ -35,17 +33,32 @@ export class CustomContext extends React.Component {
   static get propTypes() {
     return {
       items: PropTypes.string,
-      selected: PropTypes.string
+      selected: PropTypes.string,
+      type: PropTypes.string,
+      socket: PropTypes.object,
+      novelID: PropTypes.string,
+      editingID: PropTypes.string
     };
   }
-  
+
+  /**
+   * Create a new text association of a given type.
+   *
+   * @param {String} text - the text to associate
+   * @param {Number} type - the class of association, e.g. character or place
+  **/
   createNewAssociation(text, type) {
     console.log('adding new', type, text);
     if (this.socket.isOpen && text.trim().length) {
-      this.socket.send(JSON.stringify({command: 'newAssociation', data: {text: text.trim(), type:type, novelID: this.novelID}}));
+      this.socket.send(JSON.stringify({command: 'newAssociation', data: {text: text.trim(), type: type, novelID: this.novelID}}));
     }
   }
-  
+
+  /**
+   * Delete a given text association.
+   *
+   * @param {String} text - The text to deassociate.
+  **/
   removeAssociation(text) {
     console.log('removing', text);
     if (this.socket.isOpen && text.trim().length) {
@@ -117,7 +130,8 @@ export class CustomContext extends React.Component {
   **/
   UNSAFE_componentWillReceiveProps(props) {
     this.socket = props.socket;
-    let selectedText, editingID;
+    let selectedText;
+    let editingID;
     props.selected ? selectedText = props.selected : selectedText = '';
     props.editingID ? editingID = props.editingID : editingID = '';
     this.setState({

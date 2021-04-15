@@ -1,48 +1,59 @@
 import React from 'react';
-import {Globals} from './Globals.jsx'
-import {Document} from './Document.jsx';
+import {Globals} from './Globals.jsx';
 import {Menu} from './Menu.jsx';
 
-
+/**
+ * The main page of the whole darned site
+ */
 export class Landing extends React.Component {
-  
+  /** constructor **/
   constructor() {
     super();
-    
     this.state = {
-      username:'',
-      stories:[],
-      greeting:'You haven\'t begun any stories yet...'
-    }
-  }
-  
-  componentDidMount() {
-    
-  }
-  
-  fetchDocuments() {
-    return fetch(Globals.SERVICE_URL + '/stories', {
-      method:'GET',
-      headers:Globals.getHeaders()
-    });  
+      username: '',
+      stories: [],
+      greeting: 'You haven\'t begun any stories yet...'
+    };
   }
 
-  fetchUserDetails() {
-    return fetch(Globals.SERVICE_URL + '/user/name', {
-      method:'GET',
-      headers:Globals.getHeaders()
+  /** componentDidMount **/
+  componentDidMount() {
+  }
+
+  /**
+   * Return all user stories
+   *
+   * @return {Promise}
+   */
+  fetchDocuments() {
+    return fetch(Globals.SERVICE_URL + '/stories', {
+      method: 'GET',
+      headers: Globals.getHeaders()
     });
   }
-  
+
+  /**
+   * Return user details from google signin claims.
+   *
+   * @return {Promise}
+   */
+  fetchUserDetails() {
+    return fetch(Globals.SERVICE_URL + '/user/name', {
+      method: 'GET',
+      headers: Globals.getHeaders()
+    });
+  }
+
+  /**
+   * Callback triggered by a successful login to Google
+   */
   handleLogin() {
     this.fetchUserDetails().then((response) => {
-      console.log('resp', response);
       switch (response.status) {
         case 200:
           response.json().then((data) => {
-            console.log('user data', data);
             this.setState({
-              username:data.given_name
+              username: data.given_name
             });
           });
           break;
@@ -52,38 +63,45 @@ export class Landing extends React.Component {
       switch (response.status) {
         case 200:
           response.json().then((data) => {
-            console.log('documents', data);
-            let receivedStories = [];
-            for (let story of data) {
-              let t = Date.parse(story.lastAccessed)/1000;
-              console.log(t)
+            const receivedStories = [];
+            for (const story of data) {
+              const t = Date.parse(story.lastAccessed)/1000;
               receivedStories.push(<li onInput={this.titleEdited.bind(this)} contentEditable="true" key={story.id} data-id={story.id} data-last-accessed={t}>{story.title}</li>);
             }
             let newGreeting = this.state.greeting;
             if (receivedStories.length) {
-              newGreeting=''
+              newGreeting = '';
             }
             this.setState({
-              stories:receivedStories,
-              greeting:newGreeting
+              stories: receivedStories,
+              greeting: newGreeting
             });
           });
           break;
       }
-    }); 
-  }
-  
-  titleEdited(event) {
-    let newTitle = event.target.innerText;
-    fetch(Globals.SERVICE_URL + '/story/' + event.target.dataset.id + '/title', {
-      method:'PUT',
-      headers:Globals.getHeaders(),
-      body: JSON.stringify({title:newTitle})
     });
   }
-  
+
+  /**
+   * Triggered by editing a story's title
+   *
+   * @param {event} event
+   */
+  titleEdited(event) {
+    const newTitle = event.target.innerText;
+    fetch(Globals.SERVICE_URL + '/story/' + event.target.dataset.id + '/title', {
+      method: 'PUT',
+      headers: Globals.getHeaders(),
+      body: JSON.stringify({title: newTitle})
+    });
+  }
+
+  /**
+   * render
+   * @return {element}
+   */
   render() {
-    return(
+    return (
       <div>
         <div>
           <Menu displayName={this.state.username} loginComplete={this.handleLogin.bind(this)}/>
@@ -97,5 +115,4 @@ export class Landing extends React.Component {
       </div>
     );
   }
-  
 }

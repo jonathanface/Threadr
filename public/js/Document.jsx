@@ -8,13 +8,14 @@ import FormatAlignRightIcon from '@material-ui/icons/FormatAlignRight';
 import FormatAlignCenterIcon from '@material-ui/icons/FormatAlignCenter';
 import FormatAlignJustifyIcon from '@material-ui/icons/FormatAlignJustify';
 import FormatLineSpacingIcon from '@material-ui/icons/FormatLineSpacing';
-import {Globals} from './Globals.jsx'
+import {Globals} from './Globals.jsx';
+import PropTypes from 'prop-types';
 
 const addMenu = [
-  {label: 'Tag', classes: ['item','parent','closed'], subitems: [
-    {label: 'Character', type: Globals.COMM_TYPE_NEWCHAR, classes: ['item','child','hidden']},
-    {label: 'Place', type: Globals.COMM_TYPE_NEWPLACE, classes: ['item','child','hidden']},
-    {label: 'Event', type: Globals.COMM_TYPE_NEWEVENT, classes: ['item','child','hidden']}
+  {label: 'Tag', classes: ['item', 'parent', 'closed'], subitems: [
+    {label: 'Character', type: Globals.COMM_TYPE_NEWCHAR, classes: ['item', 'child', 'hidden']},
+    {label: 'Place', type: Globals.COMM_TYPE_NEWPLACE, classes: ['item', 'child', 'hidden']},
+    {label: 'Event', type: Globals.COMM_TYPE_NEWEVENT, classes: ['item', 'child', 'hidden']}
   ]},
   {label: 'Wikipedia', type: Globals.COMM_TYPE_NEWWIKI, classes: ['item']},
   {label: 'Link', type: Globals.COMM_TYPE_NEWLINK, classes: ['item']}
@@ -23,10 +24,6 @@ const addMenu = [
 const editMenu = [
   {label: 'Delete', classes: ['item'], type: Globals.COMM_TYPE_EDITCHAR}
 ];
-
-const TAB = (props) => {
-  return ('     ');
-};
 
 const associationNames = new Map();
 associationNames.set(Globals.COMM_TYPE_NEWCHAR, 'character');
@@ -67,8 +64,8 @@ export class Document extends React.Component {
       justifyOn: false,
       selectedText: '',
       associations: [],
-      loading:true,
-      selectedAssociation:""
+      loading: true,
+      selectedAssociation: ''
     };
     this.rightclickAddMenu = React.createRef();
     this.rightclickEditMenu = React.createRef();
@@ -97,15 +94,21 @@ export class Document extends React.Component {
     }, callback);
   }
 
+  /**
+   * Create decorators from an array of text associations and
+   * assign their click methods.
+   *
+   * @return {Object} The composite decorator
+   */
   createDecorators() {
     console.log('make decorator for', this.state.associations);
-    let decorators = [];
+    const decorators = [];
     for (let i=0; i < this.state.associations.length; i++) {
-      switch(this.state.associations[i].type) {
+      switch (this.state.associations[i].type) {
         case Globals.ASSOCIATION_TYPE_CHARACTER:
           decorators.push({
-            strategy:this.findCharacter.bind(this),
-            component:CharacterSpan,
+            strategy: this.findCharacter.bind(this),
+            component: CharacterSpan,
             props: {
               leftclickFunc: this.clickedCharacter.bind(this),
               rightclickFunc: this.clickedCharacterContext.bind(this)
@@ -114,8 +117,8 @@ export class Document extends React.Component {
           break;
         case Globals.ASSOCIATION_TYPE_PLACE:
           decorators.push({
-            strategy:this.findPlace.bind(this),
-            component:PlaceSpan,
+            strategy: this.findPlace.bind(this),
+            component: PlaceSpan,
             props: {
               leftclickFunc: this.clickedPlace.bind(this),
               rightclickFunc: this.clickedPlaceContext.bind(this)
@@ -124,8 +127,8 @@ export class Document extends React.Component {
           break;
         case Globals.ASSOCIATION_TYPE_EVENT:
           decorators.push({
-            strategy:this.findEvent.bind(this),
-            component:EventSpan,
+            strategy: this.findEvent.bind(this),
+            component: EventSpan,
             props: {
               leftclickFunc: this.clickedEvent.bind(this),
               rightclickFunc: this.clickedEventContext.bind(this)
@@ -137,105 +140,160 @@ export class Document extends React.Component {
     console.log('dec', decorators);
     return new CompositeDecorator(decorators);
   }
-  
+
+  /**
+   * Triggered when an association of type 'character' is clicked
+   *
+   * @param {string} label - the clicked-on text
+   */
   clickedCharacter(label) {
-    let assocObj = this.state.associations.filter((assoc) => {
+    const assocObj = this.state.associations.filter((assoc) => {
       return assoc.text == label;
     });
     this.popPanel.current.updateAndDisplay(assocObj[0].id);
   }
+
+  /**
+   * Triggered when clicking on 'new character' from the right-click
+   * context menu while document text is highlighted.
+   *
+   * @param {event} event
+   * @param {string} label - the selected text
+   */
   clickedCharacterContext(event, label) {
     event.preventDefault();
-    let assocObj = this.state.associations.filter((assoc) => {
+    const assocObj = this.state.associations.filter((assoc) => {
       return assoc.text == label;
     });
     this.setState({
-      selectedAssociation:assocObj[0].id
-    }, () => {
-      this.rightclickEditMenu.current.updateAndDisplay(event.pageX, event.pageY);
-    });
-  }
-  clickedPlace(label) {
-    let assocObj = this.state.associations.filter((assoc) => {
-      return assoc.text == label;
-    });
-    this.popPanel.current.updateAndDisplay(assocObj[0].id);
-  }
-  clickedPlaceContext(event, label) {
-    event.preventDefault();
-    let assocObj = this.state.associations.filter((assoc) => {
-      return assoc.text == label;
-    });
-    this.setState({
-      selectedAssociation:assocObj[0].id
-    }, () => {
-      this.rightclickEditMenu.current.updateAndDisplay(event.pageX, event.pageY);
-    });
-    
-  }
-  clickedEvent(label) {
-    let assocObj = this.state.associations.filter((assoc) => {
-      return assoc.text == label;
-    });
-    this.popPanel.current.updateAndDisplay(assocObj[0].id);
-  }
-  clickedEventContext(event, label) {
-    event.preventDefault();
-    let assocObj = this.state.associations.filter((assoc) => {
-      return assoc.text == label;
-    });
-    this.setState({
-      selectedAssociation:assocObj[0].id
+      selectedAssociation: assocObj[0].id
     }, () => {
       this.rightclickEditMenu.current.updateAndDisplay(event.pageX, event.pageY);
     });
   }
 
   /**
-   * Find tab entities in block
+   * Triggered when an association of type 'place' is clicked
+   *
+   * @param {string} label - the clicked-on text
+   */
+  clickedPlace(label) {
+    const assocObj = this.state.associations.filter((assoc) => {
+      return assoc.text == label;
+    });
+    this.popPanel.current.updateAndDisplay(assocObj[0].id);
+  }
+
+  /**
+   * Triggered when clicking on 'new place' from the right-click
+   * context menu while document text is highlighted.
+   *
+   * @param {event} event
+   * @param {string} label - the selected text
+   */
+  clickedPlaceContext(event, label) {
+    event.preventDefault();
+    const assocObj = this.state.associations.filter((assoc) => {
+      return assoc.text == label;
+    });
+    this.setState({
+      selectedAssociation: assocObj[0].id
+    }, () => {
+      this.rightclickEditMenu.current.updateAndDisplay(event.pageX, event.pageY);
+    });
+  }
+
+  /**
+   * Triggered when an association of type 'event' is clicked
+   *
+   * @param {string} label - the clicked-on text
+   */
+  clickedEvent(label) {
+    const assocObj = this.state.associations.filter((assoc) => {
+      return assoc.text == label;
+    });
+    this.popPanel.current.updateAndDisplay(assocObj[0].id);
+  }
+
+  /**
+   * Triggered when clicking on 'new event' from the right-click
+   * context menu while document text is highlighted.
+   *
+   * @param {event} event
+   * @param {string} label - the selected text
+   */
+  clickedEventContext(event, label) {
+    event.preventDefault();
+    const assocObj = this.state.associations.filter((assoc) => {
+      return assoc.text == label;
+    });
+    this.setState({
+      selectedAssociation: assocObj[0].id
+    }, () => {
+      this.rightclickEditMenu.current.updateAndDisplay(event.pageX, event.pageY);
+    });
+  }
+
+  /**
+   * Find entities of type character in block
    *
    * @param {ContentBlock} contentBlock
    * @param {function} callback
+   * @param {ContentState} contentState
    */
-   findCharacter(contentBlock, callback, contentState ) {
+  findCharacter(contentBlock, callback, contentState ) {
     const text = contentBlock.getText();
     for (let i=0; i < this.state.associations.length; i++) {
-      //console.log('checking assoc', this.state.associations[i]);
+      // console.log('checking assoc', this.state.associations[i]);
       if (this.state.associations[i].type == Globals.ASSOCIATION_TYPE_CHARACTER) {
         let match;
-        let regex = new RegExp(this.state.associations[i].text, 'g');
+        const regex = new RegExp(this.state.associations[i].text, 'g');
         while ((match = regex.exec(text)) !== null) {
-          //console.log('found ', match);
+          // console.log('found ', match);
           callback(match.index, match.index + match[0].length, 'hello');
         }
       }
     }
   }
-  
+
+  /**
+   * Find entities of type place in block
+   *
+   * @param {ContentBlock} contentBlock
+   * @param {function} callback
+   * @param {ContentState} contentState
+   */
   findPlace(contentBlock, callback, contentState ) {
     const text = contentBlock.getText();
     for (let i=0; i < this.state.associations.length; i++) {
-      //console.log('checking assoc', this.state.associations[i]);
+      // console.log('checking assoc', this.state.associations[i]);
       if (this.state.associations[i].type == Globals.ASSOCIATION_TYPE_PLACE) {
         let match;
-        let regex = new RegExp(this.state.associations[i].text, 'g');
+        const regex = new RegExp(this.state.associations[i].text, 'g');
         while ((match = regex.exec(text)) !== null) {
-          //console.log('found ', match);
+          // console.log('found ', match);
           callback(match.index, match.index + match[0].length, 'hello');
         }
       }
     }
   }
-  
+
+  /**
+   * Find entities of type event in block
+   *
+   * @param {ContentBlock} contentBlock
+   * @param {function} callback
+   * @param {ContentState} contentState
+   */
   findEvent(contentBlock, callback, contentState ) {
     const text = contentBlock.getText();
     for (let i=0; i < this.state.associations.length; i++) {
-      //console.log('checking assoc', this.state.associations[i]);
+      // console.log('checking assoc', this.state.associations[i]);
       if (this.state.associations[i].type == Globals.ASSOCIATION_TYPE_EVENT) {
         let match;
-        let regex = new RegExp(this.state.associations[i].text, 'g');
+        const regex = new RegExp(this.state.associations[i].text, 'g');
         while ((match = regex.exec(text)) !== null) {
-          //console.log('found ', match);
+          // console.log('found ', match);
           callback(match.index, match.index + match[0].length, 'hello');
         }
       }
@@ -249,7 +307,6 @@ export class Document extends React.Component {
     this.fetchAssociations().then( () => {
       this.fetchDocumentPages();
     });
-   
   }
 
   /** beforeunload **/
@@ -258,7 +315,6 @@ export class Document extends React.Component {
       this.socket.close();
     }
   }
-
 
   /**
    * Init websocket and assign handlers
@@ -272,7 +328,6 @@ export class Document extends React.Component {
     this.socket.onopen = (event) => {
       this.socket.isOpen = true;
       console.log('opened', this.socket);
-      //setTimeout(this.socket.send(JSON.stringify({command: 'fetchAssociations', data: {novelID: Globals.NOVEL_ID}})), 1000);
     };
     this.socket.onclose = (event) => {
       console.log('socket closed', event);
@@ -290,8 +345,12 @@ export class Document extends React.Component {
     };
   }
 
-  forceRender () {
-    let newPages = [...this.state.pages];
+  /**
+   * Force draftJS to redraw its decorators, needed for
+   * when the list of associations is updated by the user.
+   */
+  forceRender() {
+    const newPages = [...this.state.pages];
     this.setFocus(this.currentPage);
     for (let i=0; i < this.state.pages.length; i++) {
       const editorState = this.state.pages[i].editorState;
@@ -310,12 +369,16 @@ export class Document extends React.Component {
         newPages[i].editorState = EditorState.forceSelection(newPages[i].editorState, deselection);
       }
     }
-    this.setState({pages:newPages});
-    
+    this.setState({pages: newPages});
   }
 
-  processSocketMessage(message) {//
-    switch(message.command) {
+  /**
+   * parse and react to received websocket messages
+   *
+   * @param {JSON} message
+   */
+  processSocketMessage(message) {
+    switch (message.command) {
       case 'pushAssociations':
         this.setState({
           associations: message.data
@@ -330,7 +393,12 @@ export class Document extends React.Component {
         break;
     }
   }
-  
+
+  /**
+   * Retrieve all associations from the API.
+   *
+   * @return {Promise}
+   */
   fetchAssociations() {
     return fetch(Globals.SERVICE_URL + '/story/' + Globals.NOVEL_ID + '/associations').then((response) => {
       switch (response.status) {
@@ -350,6 +418,8 @@ export class Document extends React.Component {
 
   /**
    * gets all pages for a given document
+   *
+   * @return {Promise}
    */
   fetchDocumentPages() {
     return fetch(Globals.SERVICE_URL + '/story/' + Globals.NOVEL_ID + '/pages').then((response) => {
@@ -384,8 +454,6 @@ export class Document extends React.Component {
     });
   }
 
- 
-
   /**
    * Get the full URL of the websocket from the API
    */
@@ -404,9 +472,8 @@ export class Document extends React.Component {
     const pages = this.state.pages;
     const editorState = EditorState.createEmpty();
     pages.push({'editorState': editorState, 'pageNum': pages.length});
-    const removeBlock = pages[pages.length-1].editorState.getCurrentContent();
-    console.log('new page', removeBlock.getBlockMap());
-    //
+    // const removeBlock = pages[pages.length-1].editorState.getCurrentContent();
+    // console.log('new page', removeBlock.getBlockMap());
     await this.setState({
       pages: pages
     }, async () => {
@@ -577,7 +644,7 @@ export class Document extends React.Component {
         // this.rightclickMenu.current.hide();
       }
       if (this.popPanel.current.IsOpen) {
-        //this.popPanel.current.hide();
+        // this.popPanel.current.hide();
       }
       cursorChange = true;
       const lastBlock = editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
@@ -748,8 +815,6 @@ export class Document extends React.Component {
    * @return {string}
    */
   keyBindings(event) {
-    //console.log('code', event.keyCode);
-    
     // tab pressed
     if (event.keyCode == 9) {
       event.preventDefault();
@@ -947,7 +1012,6 @@ export class Document extends React.Component {
    * @param {Event} event
   **/
   onRightClick(page, event) {
-    
     const text = this.getSelectedText(this.state.pages[page].editorState);
     if (text.length) {
       event.preventDefault();
@@ -998,14 +1062,14 @@ export class Document extends React.Component {
               ref={this.refHandles[i]}/>
           </section>
       );
-      this.state.pages[i].editorState = EditorState.set(this.state.pages[i].editorState, {decorator: this.compositeDecorators})
+      this.state.pages[i].editorState = EditorState.set(this.state.pages[i].editorState, {decorator: this.compositeDecorators});
     }
     if (this.state.loading) {
       return (<div>loading...</div>);
     } else {
       console.log('rendering for ' + this.state.pages.length);
       return (
-        <div style={{"position":"relative"}}>
+        <div style={{'position': 'relative'}}>
           <nav className="docControls">
             <ul style={{width: this.state.pageWidth}}>
               <li><FormatAlignLeftIcon fontSize="inherit" className={this.state.leftOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('left', e)}/></li>
@@ -1034,7 +1098,7 @@ export class Document extends React.Component {
   }
 }
 
-const CharacterSpan = props => {
+const CharacterSpan = (props) => {
   return (
     <span onClick={(e)=> {props.leftclickFunc(props.decoratedText);}} onContextMenu={(e)=> {props.rightclickFunc(e, props.decoratedText);}} className="highlight character">
       {props.children}
@@ -1042,7 +1106,7 @@ const CharacterSpan = props => {
   );
 };
 
-const PlaceSpan = props => {
+const PlaceSpan = (props) => {
   return (
     <span onClick={(e)=> {props.leftclickFunc(props.decoratedText);}} onContextMenu={(e)=> {props.rightclickFunc(e, props.decoratedText);}} className="highlight place">
       {props.children}
@@ -1050,7 +1114,7 @@ const PlaceSpan = props => {
   );
 };
 
-const EventSpan = props => {
+const EventSpan = (props) => {
   return (
     <span onClick={(e)=> {props.leftclickFunc(props.decoratedText);}} onContextMenu={(e)=> {props.rightclickFunc(e, props.decoratedText);}} className="highlight event">
       {props.children}
@@ -1058,3 +1122,9 @@ const EventSpan = props => {
   );
 };
 
+CharacterSpan.propTypes = PlaceSpan.propTypes = EventSpan.propTypes = {
+  leftclickFunc: PropTypes.function,
+  rightclickFunc: PropTypes.function,
+  decoratedText: PropTypes.string,
+  children: PropTypes.element
+};

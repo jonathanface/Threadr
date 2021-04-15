@@ -1,9 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import ContentEditable from "react-contenteditable";
+import ContentEditable from 'react-contenteditable';
 import CheckIcon from '@material-ui/icons/Check';
 import CloseIcon from '@material-ui/icons/Close';
-import {Globals} from './Globals.jsx'
+import {Globals} from './Globals.jsx';
 
 const defaultDescriptionText = 'Description';
 
@@ -11,7 +11,6 @@ const defaultDescriptionText = 'Description';
  * Right-click menu for tagging document text.
  */
 export class PopPanel extends React.Component {
-  
   /**
    * constructor
    *
@@ -20,34 +19,39 @@ export class PopPanel extends React.Component {
   constructor(props) {
     super(props);
     this.associationID = null;
-    this.novelID = props.novelid;
+    this.novelID = props.novelID;
     this.isOpen = false;
-    
+
     console.log('setup for', this.associationID);
     this.state={
       label: props.label,
-      description:defaultDescriptionText,
+      description: defaultDescriptionText,
       type: props.type,
-      activeClassname:'',
-      displayState:'hidden'
+      activeClassname: '',
+      displayState: 'hidden'
     };
   }
-  
+
   /**
    * proptypes for lint
   **/
   static get propTypes() {
     return {
       label: PropTypes.string,
-      type: PropTypes.number
+      type: PropTypes.number,
+      novelID: PropTypes.string
     };
   }
-  
+
   /** componentDidMount **/
   componentDidMount() {
-    
   }
-  
+
+  /**
+   * Get a given novel's associations list from the API.
+   *
+   * @return {Promise}
+   */
   fetchAssociationDetails() {
     return fetch(Globals.SERVICE_URL + '/story/' + Globals.NOVEL_ID + '/association/' + this.associationID).then((response) => {
       switch (response.status) {
@@ -58,19 +62,19 @@ export class PopPanel extends React.Component {
               descr = data.details.description;
             }
             this.setState({
-              type:data.type,
-              label:data.text,
-              description:descr,
-              displayState:'visible',
-              activeClassname:'emerge',
-              html: "Edit <b>me</b> !"
+              type: data.type,
+              label: data.text,
+              description: descr,
+              displayState: 'visible',
+              activeClassname: 'emerge',
+              html: 'Edit <b>me</b>!'
             });
           });
           break;
       }
     });
   }
-  
+
   /**
    * Set visibile and update assoc ID.
    *
@@ -89,60 +93,79 @@ export class PopPanel extends React.Component {
   hide() {
     this.IsOpen = false;
     this.setState({
-      activeClassname:'',
-      displayState:'hidden'
+      activeClassname: '',
+      displayState: 'hidden'
     });
   }
-  
-  handleChange = evt => {
-    const target = evt.currentTarget.dataset.name;
-    switch(target) {
+
+  /**
+   * triggered by changing the title or description of an association.
+   *
+   * @param {Event} event
+   */
+  handleChange = (event) => {
+    const target = event.currentTarget.dataset.name;
+    switch (target) {
       case 'title':
-        this.setState({ label: evt.target.value });
+        this.setState({label: event.target.value});
         break;
       case 'description':
-        this.setState({ description: evt.target.value });
+        this.setState({description: event.target.value});
         break;
     }
   };
-  
-  handleFocus = evt => {
-    const target = evt.currentTarget.dataset.name;
-    switch(target) {
+
+  /**
+   * triggered by focusing on the title or description of an association.
+   *
+   * @param {Event} event
+   */
+  handleFocus = (event) => {
+    const target = event.currentTarget.dataset.name;
+    switch (target) {
       case 'description':
-        if (evt.currentTarget.innerHTML == defaultDescriptionText) {
-          this.setState({ description: '' });
+        if (event.currentTarget.innerHTML == defaultDescriptionText) {
+          this.setState({description: ''});
         }
         break;
     }
   }
 
-  handleBlur = evt => {
-    const target = evt.currentTarget.dataset.name;
-    switch(target) {
+  /**
+   * triggered by focusing off the title or description of an association.
+   *
+   * @param {Event} event
+   */
+  handleBlur = (event) => {
+    const target = event.currentTarget.dataset.name;
+    switch (target) {
       case 'description':
-        if (evt.currentTarget.innerHTML == '') {
-          this.setState({ description: defaultDescriptionText });
+        if (event.currentTarget.innerHTML == '') {
+          this.setState({description: defaultDescriptionText});
         }
         break;
     }
   }
 
+  /**
+   * Post a new text association to the API.
+   */
   saveAssociation() {
     fetch(Globals.SERVICE_URL + '/story/' + Globals.NOVEL_ID + '/associations', {
-      method:'PUT',
+      method: 'PUT',
+      headers: Globals.getHeaders(),
       body: JSON.stringify({
-        associationID:this.associationID,
-        novelID:Globals.NOVEL_ID,
-        name:this.state.label,
-        description:this.state.description
+        associationID: this.associationID,
+        novelID: Globals.NOVEL_ID,
+        name: this.state.label,
+        description: this.state.description
       })
     }).then((response) => {
       response.json().then((response) => {
         console.log(response);
-      })
-    }).catch(err => {
-      console.error(err)
+      });
+    }).catch((err) => {
+      console.error(err);
     });
     this.hide();
   }
@@ -154,15 +177,15 @@ export class PopPanel extends React.Component {
   render() {
     return (
       <div>
-        <div className={'pop-panel ' + this.state.activeClassname} style={{'visibility':this.state.displayState}}>
+        <div className={'pop-panel ' + this.state.activeClassname} style={{'visibility': this.state.displayState}}>
           <ContentEditable data-name="title" className="input-field" html={this.state.label} disabled={false} onChange={this.handleChange} />
           <ContentEditable data-name="description" onFocus={this.handleFocus} onBlur={this.handleBlur} className="input-field" html={this.state.description} disabled={false} onChange={this.handleChange} />
           <div className={'buttonBox'}>
-            <CheckIcon onClick={() => {this.saveAssociation()}} />
-            <CloseIcon onClick={() => {this.hide()}} />
+            <CheckIcon onClick={() => {this.saveAssociation();}} />
+            <CloseIcon onClick={() => {this.hide();}} />
           </div>
         </div>
-        <div onClick={() => {this.hide()}} style={{'visibility':this.state.displayState}} className={'document-mask ' + this.state.activeClassname} />
+        <div onClick={() => {this.hide();}} style={{'visibility': this.state.displayState}} className={'document-mask ' + this.state.activeClassname} />
       </div>
     );
   }

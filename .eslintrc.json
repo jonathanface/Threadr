@@ -8,6 +8,7 @@
         "plugin:react/recommended",
         "google"
     ],
+    "parser": "babel-eslint",
     "parserOptions": {
         "ecmaFeatures": {
             "jsx": true
@@ -16,9 +17,12 @@
         "sourceType": "module"
     },
     "plugins": [
-        "react"
+        "react",
+        "babel"
     ],
     "rules": {
+      "no-invalid-this": 0,
+      "babel/no-invalid-this": 1,
       "max-len":"off",
       "comma-dangle":"off",
       "new-cap":"off",
