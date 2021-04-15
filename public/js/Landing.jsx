@@ -10,6 +10,8 @@ export class Landing extends React.Component {
     super();
     
     this.state = {
+      username:'',
+      stories:[]
     }
   }
   
@@ -38,6 +40,9 @@ export class Landing extends React.Component {
         case 200:
           response.json().then((data) => {
             console.log('user data', data);
+            this.setState({
+              username:data.given_name
+            });
           });
           break;
       }
@@ -47,6 +52,15 @@ export class Landing extends React.Component {
         case 200:
           response.json().then((data) => {
             console.log('documents', data);
+            let receivedStories = [];
+            for (let story of data) {
+              let t = Date.parse(story.lastAccessed)/1000;
+              console.log(t)
+              receivedStories.push(<li key={story.id} data-id={story.id} data-last-accessed={t}>{story.title}</li>);
+            }
+            this.setState({
+              stories:receivedStories
+            });
           });
           break;
       }
@@ -56,7 +70,10 @@ export class Landing extends React.Component {
   render() {
     return(
       <div>
-        <Menu loginComplete={this.handleLogin.bind(this)}/>
+        <div>
+          <Menu displayName={this.state.username} loginComplete={this.handleLogin.bind(this)}/>
+        </div>
+        <ul className="stories">{this.state.stories}</ul>
       </div>
     );
   }

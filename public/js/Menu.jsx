@@ -9,6 +9,7 @@ export class Menu extends React.Component {
     super(props);
     
     this.state = {
+      displayName:props.displayName,
       loginButtonDisplayState:'inline',
       logoutButtonDisplayState:'none'
     }
@@ -23,6 +24,13 @@ export class Menu extends React.Component {
     });
     this.props.loginComplete();
   }
+  
+  UNSAFE_componentWillReceiveProps(nextProps) {
+    this.setState({
+      displayName:nextProps.displayName
+    });
+    console.log('Component received new props', nextProps);
+   }
   
   componentDidMount() {
     
@@ -39,6 +47,7 @@ export class Menu extends React.Component {
     return(
       <div className="main_menu">
         <span className="menu_right">
+          <span className="display_name">{this.state.displayName}</span>
           <span style={{'display':this.state.loginButtonDisplayState}}>
             <GoogleLogin
               clientId="878388830212-tq6uhegouorlrn7srsn3getqkn4er3fg.apps.googleusercontent.com"

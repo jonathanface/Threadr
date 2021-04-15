@@ -9,6 +9,14 @@
   height:100%;
 }
 
+.main_menu .menu_right .display_name {
+  font-size: 0.75em;
+  vertical-align: middle;
+  line-height: 100%;
+  display: inline-block;
+  height: 100%;
+}
+
 .main_menu button, .main_menu button img {
   height:100%;
   background:none;
