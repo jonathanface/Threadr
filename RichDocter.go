@@ -288,15 +288,15 @@ func main() {
 
 	rtr := mux.NewRouter()
 	rtr.HandleFunc(SERVICE_PATH+"/stories", middleware(API.AllStoriesEndPoint)).Methods("GET", "OPTIONS")
-	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}", middleware(API.StoryEndPoint)).Methods("GET", "OPTIONS")
-	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}/pages", middleware(API.AllPagesEndPoint)).Methods("GET", "OPTIONS")
-	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}/associations", middleware(API.AllAssociationsEndPoint)).Methods("GET", "OPTIONS")
-	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}/association/{[0-9a-zA-Z]+}", middleware(API.AssociationDetailsEndPoint)).Methods("GET", "OPTIONS")
+	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}", middleware(API.StoryEndPoint)).Methods("GET", "OPTIONS")
+	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/pages", middleware(API.AllPagesEndPoint)).Methods("GET", "OPTIONS")
+	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/associations", middleware(API.AllAssociationsEndPoint)).Methods("GET", "OPTIONS")
+	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/association/{[0-9a-zA-Z]+}", middleware(API.AssociationDetailsEndPoint)).Methods("GET", "OPTIONS")
 	rtr.HandleFunc(SERVICE_PATH+"/user/name", middleware(nil)).Methods("GET", "OPTIONS")
 	rtr.HandleFunc("/wsinit", middleware(API.SetupWebsocket)).Methods("GET", "OPTIONS")
 
-	rtr.HandleFunc(SERVICE_PATH+"/usr/login", middleware(API.LoginEndPoint)).Methods("PUT")
-	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9]+}/associations", middleware(API.EditAssociationEndPoint)).Methods("PUT")
+	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/title", middleware(API.EditTitleEndPoint)).Methods("PUT")
+	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/associations", middleware(API.EditAssociationEndPoint)).Methods("PUT")
 
 	http.HandleFunc(SOCKET_DIR, func(w http.ResponseWriter, r *http.Request) {
 		serveWs(hub, w, r)

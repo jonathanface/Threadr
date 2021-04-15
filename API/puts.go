@@ -9,50 +9,56 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
 	"net/http"
+  "strings"
 )
 
-func LoginEndPoint(w http.ResponseWriter, r *http.Request) {
+func EditTitleEndPoint(w http.ResponseWriter, r *http.Request) {
+  sid := mux.Vars(r)[`[0-9a-zA-Z]+`]
+  log.Println("???", mux.Vars(r))
+	if len(sid) == 0 {
+		RespondWithError(w, http.StatusBadRequest, "No story ID received")
+		return
+	}
+  var story Story
+  decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&story); err != nil {
+		RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+  var err error
+  story.ID, err = validateBSON(sid)
+  story.Title = strings.TrimSpace(story.Title)
+  if err != nil {
+		RespondWithError(w, http.StatusBadRequest, "Missing or invalid storyID")
+		return
+	}
+  log.Println("got", story)
+  if story.Title == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing name")
+		return
+	}
+  
+  client, ctx, err := common.MongoConnect()
+	if err != nil {
+		log.Println("ERROR CONNECTING: ", err)
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer common.MongoDisconnect(client, ctx)
+	storiesColl := client.Database(`Drafty`).Collection(`Stories`)
+	filter := &bson.M{"_id": story.ID}
+	update := &bson.M{"$set": &bson.M{"title": story.Title}}
 
-	/*
-		  login := r.FormValue("user")
-			pass := r.FormValue("pass")
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-			client, err := mongo.Connect(ctx, options.Client().ApplyURI(`mongodb://"+credentials.DBHost+":`+credentials.DBPort).SetAuth(options.Credential{
-				AuthSource: credentials.DBName, Username: credentials.DBUser, Password: credentials.DBPass,
-			}))
-			if err != nil {
-				respondWithError(w, http.StatusInternalServerError, err.Error())
-				return
-			}
-			if err = client.Ping(ctx, nil); err != nil {
-				respondWithError(w, http.StatusInternalServerError, err.Error())
-				return
-			}
-			log.Println("Connected to MongoDB!")
-			defer func() {
-				if err = client.Disconnect(ctx); err != nil {
-					panic(err)
-				}
-			}()
-
-			var result struct {
-				Value float64
-			}
-			filter := bson.M{"login": login, "pass": pass}
-			ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-			collection := client.Database(credentials.DBName).Collection(USERS_COLLECTION)
-			err = collection.FindOne(ctx, filter).Decode(&result)
-			if err != nil {
-				log.Fatal(err)
-			}
-			log.Println(result)
-			respondWithJson(w, http.StatusOK, result)*/
+  _, err = storiesColl.UpdateOne(context.TODO(), filter, update)
+  if err != nil {
+    RespondWithError(w, http.StatusInternalServerError, err.Error())
+    return
+  }
+  RespondWithJson(w, http.StatusOK, "success")
 }
 
 func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
-	sid := mux.Vars(r)[`[0-9]+`]
+	sid := mux.Vars(r)[`[0-9a-zA-Z]+`]
 	if len(sid) == 0 {
 		RespondWithError(w, http.StatusBadRequest, "No story ID received")
 		return
@@ -72,6 +78,7 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
+  assRequest.Name = strings.TrimSpace(assRequest.Name)
 	mgoID, err := validateBSON(assRequest.AssociationIDString)
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Missing or invalid associationID")

@@ -57,7 +57,7 @@ export class Landing extends React.Component {
             for (let story of data) {
               let t = Date.parse(story.lastAccessed)/1000;
               console.log(t)
-              receivedStories.push(<li contenteditable="true" key={story.id} data-id={story.id} data-last-accessed={t}>{story.title}</li>);
+              receivedStories.push(<li onInput={this.titleEdited.bind(this)} contentEditable="true" key={story.id} data-id={story.id} data-last-accessed={t}>{story.title}</li>);
             }
             let newGreeting = this.state.greeting;
             if (receivedStories.length) {
@@ -71,6 +71,15 @@ export class Landing extends React.Component {
           break;
       }
     }); 
+  }
+  
+  titleEdited(event) {
+    let newTitle = event.target.innerText;
+    fetch(Globals.SERVICE_URL + '/story/' + event.target.dataset.id + '/title', {
+      method:'PUT',
+      headers:Globals.getHeaders(),
+      body: JSON.stringify({title:newTitle})
+    });
   }
   
   render() {
