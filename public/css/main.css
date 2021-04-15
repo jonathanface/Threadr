@@ -30,19 +30,60 @@ ul.stories li {
   padding: 50px;
   border-radius: 25px;
   background: #F0F0F0;
-  color: #717171;
-  box-shadow: 2px 2px 2px #333;
+  color: #2eacdc;
+  box-shadow: 2px 2px 2px #2eacdc;
+  outline:none;
 }
 ul.stories li:hover {
   cursor:pointer;
-  color:#2eacdc;
-  box-shadow: 2px 2px 2px #2eacdc;
+  color:#333;
+  box-shadow: 2px 2px 2px #333;
 }
 ul.stories li:active {
   cursor:pointer;
-  color:#2eacdc;
+  color:#717171;
   box-shadow:none;
 }
+
+.story_manager {
+  display: flex;
+  align-items: center;
+}
+
+.story_manager button {
+  border:none;
+  outline: none;
+  font-size: 3rem;
+  font-weight: bold;
+  margin: 10px;
+  padding: 0px 20px;
+  border-radius: 15px;
+  background: #F0F0F0;
+  color:#2eacdc;
+  box-shadow: 2px 2px 2px #2eacdc;
+  margin-left: auto;
+  text-align:center;
+  user-select:none;
+}
+
+.story_manager button:hover {
+  cursor:pointer;
+  color: #333;
+  box-shadow: 2px 2px 2px #333;
+}
+.story_manager button:active {
+  cursor:pointer;
+  color: #717171;
+  box-shadow: none;
+}
+.story_manager span {
+  flex:1;
+  text-align:right;
+  margin-right:20px;
+  font-style:italic;
+  color:#e2e2e2;
+}
+
 
 
 div.editorRoot {

@@ -11,7 +11,8 @@ export class Landing extends React.Component {
     
     this.state = {
       username:'',
-      stories:[]
+      stories:[],
+      greeting:'You haven\'t begun any stories yet...'
     }
   }
   
@@ -56,10 +57,15 @@ export class Landing extends React.Component {
             for (let story of data) {
               let t = Date.parse(story.lastAccessed)/1000;
               console.log(t)
-              receivedStories.push(<li key={story.id} data-id={story.id} data-last-accessed={t}>{story.title}</li>);
+              receivedStories.push(<li contenteditable="true" key={story.id} data-id={story.id} data-last-accessed={t}>{story.title}</li>);
+            }
+            let newGreeting = this.state.greeting;
+            if (receivedStories.length) {
+              newGreeting=''
             }
             this.setState({
-              stories:receivedStories
+              stories:receivedStories,
+              greeting:newGreeting
             });
           });
           break;
@@ -73,7 +79,12 @@ export class Landing extends React.Component {
         <div>
           <Menu displayName={this.state.username} loginComplete={this.handleLogin.bind(this)}/>
         </div>
-        <ul className="stories">{this.state.stories}</ul>
+        <div className="story_manager">
+          <span>{this.state.greeting}</span><button>+</button>
+        </div>
+        <div>
+          <ul className="stories">{this.state.stories}</ul>
+        </div>
       </div>
     );
   }
