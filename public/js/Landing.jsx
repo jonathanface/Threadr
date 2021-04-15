@@ -12,7 +12,8 @@ export class Landing extends React.Component {
     this.state = {
       username: '',
       stories: [],
-      greeting: 'You haven\'t begun any stories yet...'
+      greeting: 'Login up top to get started',
+      addStoryButtonDisplay: 'none'
     };
   }
 
@@ -45,6 +46,15 @@ export class Landing extends React.Component {
   }
 
   /**
+   * User has selected a document to open
+   *
+   * @param {Event} event
+   */
+  enterDocument(event) {
+    console.log('clicked ' + event.target.dataset.id);
+  }
+
+  /**
    * Callback triggered by a successful login to Google
    */
   handleLogin() {
@@ -66,9 +76,9 @@ export class Landing extends React.Component {
             const receivedStories = [];
             for (const story of data) {
               const t = Date.parse(story.lastAccessed)/1000;
-              receivedStories.push(<li onInput={this.titleEdited.bind(this)} contentEditable="true" key={story.id} data-id={story.id} data-last-accessed={t}>{story.title}</li>);
+              receivedStories.push(<li onClick={this.enterDocument.bind(this)} onInput={this.titleEdited.bind(this)} contentEditable="true" key={story.id} data-id={story.id} data-last-accessed={t}>{story.title}</li>);
             }
-            let newGreeting = this.state.greeting;
+            let newGreeting = 'You haven\'t begun any stories yet...';
             if (receivedStories.length) {
               newGreeting = '';
             }
@@ -79,6 +89,17 @@ export class Landing extends React.Component {
           });
           break;
       }
+    });
+  }
+
+  /**
+   * Callback triggered by a successful logout from Google
+   */
+  handleLogout() {
+    const blankStories = [];
+    this.setState({
+      stories: blankStories,
+      greeting: 'Login up top to get started'
     });
   }
 
@@ -104,10 +125,10 @@ export class Landing extends React.Component {
     return (
       <div>
         <div>
-          <Menu displayName={this.state.username} loginComplete={this.handleLogin.bind(this)}/>
+          <Menu displayName={this.state.username} logoutComplete={this.handleLogout.bind(this)} loginComplete={this.handleLogin.bind(this)}/>
         </div>
         <div className="story_manager">
-          <span>{this.state.greeting}</span><button>+</button>
+          <span>{this.state.greeting}</span><button style={{'display': this.state.addStoryButtonDisplay}}>+</button>
         </div>
         <div>
           <ul className="stories">{this.state.stories}</ul>

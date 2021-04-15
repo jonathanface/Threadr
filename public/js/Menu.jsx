@@ -28,7 +28,8 @@ export class Menu extends React.Component {
   static get propTypes() {
     return {
       displayName: PropTypes.string,
-      loginComplete: PropTypes.function,
+      loginComplete: PropTypes.func,
+      logoutComplete: PropTypes.func,
       nextProps: PropTypes.object
     };
   }
@@ -70,8 +71,10 @@ export class Menu extends React.Component {
   logout = () => {
     this.setState({
       loginButtonDisplayState: 'inline',
-      logoutButtonDisplayState: 'none'
+      logoutButtonDisplayState: 'none',
+      displayName: ''
     });
+    this.props.logoutComplete();
   }
 
   /**

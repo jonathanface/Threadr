@@ -37,14 +37,17 @@ lineSpacings.set('lineheight_single', 1);
 lineSpacings.set('lineheight_medium', 1.5);
 lineSpacings.set('lineheight_double', 2);
 
-
 /**
  * Represents a document containing a work of fiction.
  */
 export class Document extends React.Component {
-  /** constructor **/
-  constructor() {
-    super();
+  /**
+   * constructor
+   *
+   * @param {Object} props
+  **/
+  constructor(props) {
+    super(props);
 
     const dpi = this.getDPI();
     this.refHandles = [];
@@ -67,6 +70,7 @@ export class Document extends React.Component {
       loading: true,
       selectedAssociation: ''
     };
+    this.novelID = props.novelID;
     this.rightclickAddMenu = React.createRef();
     this.rightclickEditMenu = React.createRef();
     this.popPanel = React.createRef();
@@ -78,6 +82,15 @@ export class Document extends React.Component {
     this.pendingEdits = new Map();
     this.pendingPageDeletions = [];
     this.checkSaveInterval = setInterval(() => this.checkForPendingEdits(), this.SAVE_TIME_INTERVAL);
+  }
+
+  /**
+   * proptypes for lint
+   */
+  static get propTypes() {
+    return {
+      novelID: PropTypes.string,
+    };
   }
 
   /**
@@ -400,7 +413,7 @@ export class Document extends React.Component {
    * @return {Promise}
    */
   fetchAssociations() {
-    return fetch(Globals.SERVICE_URL + '/story/' + Globals.NOVEL_ID + '/associations').then((response) => {
+    return fetch(Globals.SERVICE_URL + '/story/' + this.novelID + '/associations').then((response) => {
       switch (response.status) {
         case 200:
           response.json().then((data) => {
@@ -422,7 +435,7 @@ export class Document extends React.Component {
    * @return {Promise}
    */
   fetchDocumentPages() {
-    return fetch(Globals.SERVICE_URL + '/story/' + Globals.NOVEL_ID + '/pages').then((response) => {
+    return fetch(Globals.SERVICE_URL + '/story/' + this.novelID + '/pages').then((response) => {
       switch (response.status) {
         case 200:
           response.json().then((data) => {
@@ -768,7 +781,7 @@ export class Document extends React.Component {
     console.log('saving page ' + pageNumber);
     // Send the encoded page if the socket is open and it hasn't been subsequently deleted
     if (this.socket.isOpen && this.state.pages[pageNumber]) {
-      this.socket.send(JSON.stringify({command: 'savePage', data: {page: pageNumber, novelID: Globals.NOVEL_ID, body: convertToRaw(this.state.pages[pageNumber].editorState.getCurrentContent())}}));
+      this.socket.send(JSON.stringify({command: 'savePage', data: {page: pageNumber, novelID: this.novelID, body: convertToRaw(this.state.pages[pageNumber].editorState.getCurrentContent())}}));
     }
   }
 
@@ -789,7 +802,7 @@ export class Document extends React.Component {
   deletePage(pageNumber) {
     console.log('deleting page', pageNumber);
     if (this.socket.isOpen) {
-      this.socket.send(JSON.stringify({command: 'deletePage', data: {page: pageNumber, novelID: Globals.NOVEL_ID}}));
+      this.socket.send(JSON.stringify({command: 'deletePage', data: {page: pageNumber, novelID: this.novelID}}));
     }
   }
 
@@ -1089,9 +1102,9 @@ export class Document extends React.Component {
               {editors}
             </div>
           </div>
-          <CustomContext ref={this.rightclickAddMenu} type="add" items={JSON.stringify(addMenu)} selected={this.state.selectedText} socket={this.socket} novelID={Globals.NOVEL_ID}/>
-          <CustomContext ref={this.rightclickEditMenu} type="edit" items={JSON.stringify(editMenu)} editingID={this.state.selectedAssociation} socket={this.socket} novelID={Globals.NOVEL_ID}/>
-          <PopPanel ref={this.popPanel} novelID={Globals.NOVEL_ID}/>
+          <CustomContext ref={this.rightclickAddMenu} type="add" items={JSON.stringify(addMenu)} selected={this.state.selectedText} socket={this.socket} novelID={this.novelID}/>
+          <CustomContext ref={this.rightclickEditMenu} type="edit" items={JSON.stringify(editMenu)} editingID={this.state.selectedAssociation} socket={this.socket} novelID={this.novelID}/>
+          <PopPanel ref={this.popPanel} novelID={this.novelID}/>
         </div>
       );
     }
