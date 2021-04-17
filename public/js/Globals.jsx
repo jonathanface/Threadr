@@ -25,4 +25,14 @@ export class Globals {
     headers.append('Authorization', 'Bearer ' + Globals.TOKEN_ID);
     return headers;
   }
+
+  /**
+   * Extracts the last subdirectory of a url
+   *
+   * @param {string} url
+   * @return {string}
+   */
+  static getLastDirectory(url) {
+    return url.substring(url.lastIndexOf('/') + 1);
+  }
 }

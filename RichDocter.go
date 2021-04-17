@@ -16,6 +16,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -30,14 +32,14 @@ const (
 	HTTP_PORT          = ":85"
 	SOCKET_DIR         = "/ws"
 	STORIES_COLLECTION = "stories"
-
-	PING_TIMEOUT = 5000
+	STATIC_FILES_DIR   = "public"
+	PING_TIMEOUT       = 5000
 )
 
 var conn *websocket.Conn
 
-func deletePage(pageNum int, novelID int) error {
-	log.Println("delete page", pageNum, novelID)
+func deletePage(pageNum int, storyID primitive.ObjectID) error {
+	log.Println("delete page", pageNum, storyID)
 	client, ctx, err := common.MongoConnect()
 	if err != nil {
 		log.Println("ERROR CONNECTING: ", err)
@@ -45,15 +47,15 @@ func deletePage(pageNum int, novelID int) error {
 	}
 	defer common.MongoDisconnect(client, ctx)
 	pages := client.Database("Drafty").Collection("Pages")
-	filter := &bson.M{"novelID": novelID, "page": pageNum}
+	filter := &bson.M{"storyID": storyID, "page": pageNum}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_, err = pages.DeleteOne(ctx, filter)
 	return err
 }
 
-func savePage(pageNum int, body []byte, novelID int) error {
-	log.Println("save page", pageNum, novelID)
+func savePage(pageNum int, body []byte, storyID primitive.ObjectID) error {
+	log.Println("save page", pageNum, storyID)
 	client, ctx, err := common.MongoConnect()
 	if err != nil {
 		log.Println("ERROR CONNECTING: ", err)
@@ -61,14 +63,14 @@ func savePage(pageNum int, body []byte, novelID int) error {
 	}
 	defer common.MongoDisconnect(client, ctx)
 	pages := client.Database("Drafty").Collection("Pages")
-	filter := &bson.M{"novelID": novelID, "page": pageNum}
+	filter := &bson.M{"storyID": storyID, "page": pageNum}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	result := API.Page{}
 	err = pages.FindOne(ctx, filter).Decode(&result)
 	if err != nil {
 		log.Println("no page found")
-		page := API.Page{pageNum, body, novelID}
+		page := API.Page{pageNum, body, storyID}
 
 		insertResult, err := pages.InsertOne(context.TODO(), page)
 		if err != nil {
@@ -86,8 +88,8 @@ func savePage(pageNum int, body []byte, novelID int) error {
 	return err
 }
 
-func createAssociation(text string, typeOf int, novelID int) error {
-	log.Println("creating association", text, typeOf, novelID)
+func createAssociation(text string, typeOf int, storyID primitive.ObjectID) error {
+	log.Println("creating association", text, typeOf, storyID)
 	client, ctx, err := common.MongoConnect()
 	if err != nil {
 		log.Println("ERROR CONNECTING: ", err)
@@ -95,14 +97,14 @@ func createAssociation(text string, typeOf int, novelID int) error {
 	}
 	defer common.MongoDisconnect(client, ctx)
 	assocs := client.Database(`Drafty`).Collection(`Associations`)
-	filter := &bson.M{`novelID`: novelID, `text`: text, `type`: typeOf}
+	filter := &bson.M{`storyID`: storyID, `text`: text, `type`: typeOf}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	result := API.Association{}
 	err = assocs.FindOne(ctx, filter).Decode(&result)
 	if err != nil {
 		log.Println("no association found")
-		assoc := API.Association{primitive.NilObjectID, text, typeOf, novelID, API.AssociationDetails{}}
+		assoc := API.Association{primitive.NilObjectID, text, typeOf, storyID, API.AssociationDetails{}}
 		insertResult, err := assocs.InsertOne(context.TODO(), assoc)
 		if err != nil {
 			log.Println("Error creating new association")
@@ -114,14 +116,14 @@ func createAssociation(text string, typeOf int, novelID int) error {
 	return err
 }
 
-func fetchAssociationsByType(typeOf int, novelID int) ([]API.Association, error) {
+func fetchAssociationsByType(typeOf int, storyID primitive.ObjectID) ([]API.Association, error) {
 	client, ctx, err := common.MongoConnect()
 	if err != nil {
 		return nil, err
 	}
 	defer common.MongoDisconnect(client, ctx)
 	assocs := client.Database("Drafty").Collection("Associations")
-	filter := &bson.M{"novelID": novelID, "type": typeOf}
+	filter := &bson.M{"novelID": storyID, "type": typeOf}
 	cur, err := assocs.Find(context.TODO(), filter)
 	if err != nil {
 		return nil, err
@@ -139,14 +141,14 @@ func fetchAssociationsByType(typeOf int, novelID int) ([]API.Association, error)
 	return results, nil
 }
 
-func fetchAssociations(novelID int) ([]API.Association, error) {
+func fetchAssociations(storyID primitive.ObjectID) ([]API.Association, error) {
 	client, ctx, err := common.MongoConnect()
 	if err != nil {
 		return nil, err
 	}
 	defer common.MongoDisconnect(client, ctx)
 	assocs := client.Database("Drafty").Collection("Associations")
-	filter := &bson.M{"novelID": novelID}
+	filter := &bson.M{"storyID": storyID}
 	cur, err := assocs.Find(context.TODO(), filter)
 	if err != nil {
 		return nil, err
@@ -279,6 +281,21 @@ func middleware(next http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
+func serveRootDirectory(w http.ResponseWriter, r *http.Request) {
+	abs, err := filepath.Abs(".")
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	cleanedPath := filepath.Clean(r.URL.Path)
+	truePath := abs + string(os.PathSeparator) + STATIC_FILES_DIR + cleanedPath
+	if _, err := os.Stat(truePath); os.IsNotExist(err) {
+		http.StripPrefix(r.URL.Path, http.FileServer(http.Dir("./public"))).ServeHTTP(w, r)
+		return
+	}
+	http.FileServer(http.Dir("."+string(os.PathSeparator)+STATIC_FILES_DIR+string(os.PathSeparator))).ServeHTTP(w, r)
+}
+
 func main() {
 	log.Println("Listening for http on " + HTTP_PORT)
 	common.GetConfiguration()
@@ -291,7 +308,7 @@ func main() {
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}", middleware(API.StoryEndPoint)).Methods("GET", "OPTIONS")
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/pages", middleware(API.AllPagesEndPoint)).Methods("GET", "OPTIONS")
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/associations", middleware(API.AllAssociationsEndPoint)).Methods("GET", "OPTIONS")
-	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/association/{[0-9a-zA-Z]+}", middleware(API.AssociationDetailsEndPoint)).Methods("GET", "OPTIONS")
+	rtr.HandleFunc(SERVICE_PATH+"/association/{[0-9a-zA-Z]+}", middleware(API.AssociationDetailsEndPoint)).Methods("GET", "OPTIONS")
 	rtr.HandleFunc(SERVICE_PATH+"/user/name", middleware(nil)).Methods("GET", "OPTIONS")
 	rtr.HandleFunc("/wsinit", middleware(API.SetupWebsocket)).Methods("GET", "OPTIONS")
 
@@ -301,7 +318,7 @@ func main() {
 	http.HandleFunc(SOCKET_DIR, func(w http.ResponseWriter, r *http.Request) {
 		serveWs(hub, w, r)
 	})
-	rtr.PathPrefix("/").Handler(http.FileServer(http.Dir("./public/")))
+	rtr.PathPrefix("/").HandlerFunc(serveRootDirectory)
 	http.Handle("/", rtr)
 	log.Fatal(http.ListenAndServe(HTTP_PORT, nil))
 }

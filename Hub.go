@@ -51,7 +51,7 @@ func (h *Hub) run() {
 				json.Unmarshal([]byte(m.Data), &deets)
 				response := SocketMessage{}
 				response.Command = "saveFailed"
-				err := savePage(deets.Page, deets.Body, deets.NovelID)
+				err := savePage(deets.Page, deets.Body, deets.StoryID)
 				if err == nil {
 					response.Command = "saveSuccessful"
 				} else {
@@ -65,7 +65,7 @@ func (h *Hub) run() {
 				json.Unmarshal([]byte(m.Data), &deets)
 				response := SocketMessage{}
 				response.Command = "deletionFailed"
-				err := deletePage(deets.Page, deets.NovelID)
+				err := deletePage(deets.Page, deets.StoryID)
 				if err == nil {
 					response.Command = "deletionSuccessful"
 				} else {
@@ -79,7 +79,7 @@ func (h *Hub) run() {
 				json.Unmarshal([]byte(m.Data), &deets)
 				response := SocketMessage{}
 				response.Command = "pushAssociations"
-				assocs, err := fetchAssociations(deets.NovelID)
+				assocs, err := fetchAssociations(deets.StoryID)
 				if err == nil {
 					j, _ := json.Marshal(assocs)
 					response.Data = json.RawMessage(j)
@@ -93,10 +93,10 @@ func (h *Hub) run() {
 				json.Unmarshal([]byte(m.Data), &deets)
 				response := SocketMessage{}
 				response.Command = "newAssociationFailed"
-				err := createAssociation(deets.Text, deets.Type, deets.NovelID)
+				err := createAssociation(deets.Text, deets.Type, deets.StoryID)
 				if err == nil {
 					response.Command = "pushAssociations"
-					assocs, err := fetchAssociations(deets.NovelID)
+					assocs, err := fetchAssociations(deets.StoryID)
 					if err == nil {
 						j, _ := json.Marshal(assocs)
 						response.Data = json.RawMessage(j)

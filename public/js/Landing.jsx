@@ -1,6 +1,7 @@
 import React from 'react';
 import {Globals} from './Globals.jsx';
 import {Menu} from './Menu.jsx';
+import {Document} from './Document.jsx';
 
 /**
  * The main page of the whole darned site
@@ -9,16 +10,23 @@ export class Landing extends React.Component {
   /** constructor **/
   constructor() {
     super();
+    this.isLoggedIn = false;
     this.state = {
       username: '',
       stories: [],
-      greeting: 'Login up top to get started',
-      addStoryButtonDisplay: 'none'
+      greeting: 'Login up top to get started.',
+      addStoryButtonDisplay: 'none',
+      editingDocument: false
     };
   }
 
   /** componentDidMount **/
   componentDidMount() {
+    if (this.isLoggedIn) {
+      this.setState({
+        greeting: ''
+      });
+    }
   }
 
   /**
@@ -52,21 +60,62 @@ export class Landing extends React.Component {
    */
   enterDocument(event) {
     console.log('clicked ' + event.target.dataset.id);
+    history.pushState({}, '', '/story/' + event.target.dataset.id);
+    this.setState({
+      editingDocument: event.target.dataset.id,
+      addStoryButtonDisplay: 'none',
+    });
+  }
+
+  /**
+   * Callback triggered by a failed login to Google
+   */
+  handleLoginFailure() {
+    console.log('fail');
+    this.isLoggedIn = false;
   }
 
   /**
    * Callback triggered by a successful login to Google
    */
   handleLogin() {
+    this.isLoggedIn = true;
     this.fetchUserDetails().then((response) => {
       switch (response.status) {
         case 200:
           response.json().then((data) => {
-            this.setState({
-              username: data.given_name
-            });
+            const location = window.location.href;
+            const splitUp = location.split('/');
+            let requestedDocument = false;
+            for (let i=splitUp.length-1; i >=0; i--) {
+              if (splitUp[i] == 'story') {
+                if (splitUp[i+1]) {
+                  requestedDocument = splitUp[i+1];
+                }
+                break;
+              }
+            }
+            if (!requestedDocument) {
+              this.setState({
+                username: data.given_name,
+                greeting: '',
+                addStoryButtonDisplay: 'initial',
+                editingDocument: requestedDocument
+              });
+            } else {
+              this.setState({
+                username: data.given_name,
+                greeting: '',
+                addStoryButtonDisplay: 'none',
+                editingDocument: requestedDocument
+              });
+            }
           });
           break;
+        default:
+          this.setState({
+            greeting: 'Login up top to get started.'
+          });
       }
     });
     this.fetchDocuments().then((response) => {
@@ -97,10 +146,15 @@ export class Landing extends React.Component {
    */
   handleLogout() {
     const blankStories = [];
+    this.isLoggedIn = false;
     this.setState({
+      editingDocument: false,
       stories: blankStories,
-      greeting: 'Login up top to get started'
+      addStoryButtonDisplay: 'none',
+      username: '',
+      greeting: 'Login up top to get started.'
     });
+    history.pushState({}, '', '/');
   }
 
   /**
@@ -122,16 +176,20 @@ export class Landing extends React.Component {
    * @return {element}
    */
   render() {
+    let content = <ul className="stories">{this.state.stories}</ul>;
+    if (this.state.editingDocument) {
+      content = <Document storyID={this.state.editingDocument} />;
+    }
     return (
       <div>
-        <div>
-          <Menu displayName={this.state.username} logoutComplete={this.handleLogout.bind(this)} loginComplete={this.handleLogin.bind(this)}/>
+        <div style={{'position': 'fixed'}, {'width': '100%'}}>
+          <Menu displayName={this.state.username} logoutComplete={this.handleLogout.bind(this)} loginComplete={this.handleLogin.bind(this)} loginFailed={this.handleLoginFailure.bind(this)}/>
         </div>
         <div className="story_manager">
           <span>{this.state.greeting}</span><button style={{'display': this.state.addStoryButtonDisplay}}>+</button>
         </div>
         <div>
-          <ul className="stories">{this.state.stories}</ul>
+          {content}
         </div>
       </div>
     );

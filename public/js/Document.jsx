@@ -70,7 +70,7 @@ export class Document extends React.Component {
       loading: true,
       selectedAssociation: ''
     };
-    this.novelID = props.novelID;
+    this.storyID = props.storyID;
     this.rightclickAddMenu = React.createRef();
     this.rightclickEditMenu = React.createRef();
     this.popPanel = React.createRef();
@@ -89,7 +89,7 @@ export class Document extends React.Component {
    */
   static get propTypes() {
     return {
-      novelID: PropTypes.string,
+      storyID: PropTypes.string,
     };
   }
 
@@ -413,7 +413,9 @@ export class Document extends React.Component {
    * @return {Promise}
    */
   fetchAssociations() {
-    return fetch(Globals.SERVICE_URL + '/story/' + this.novelID + '/associations').then((response) => {
+    return fetch(Globals.SERVICE_URL + '/story/' + this.storyID + '/associations', {
+      headers: Globals.getHeaders()
+    }).then((response) => {
       switch (response.status) {
         case 200:
           response.json().then((data) => {
@@ -435,7 +437,9 @@ export class Document extends React.Component {
    * @return {Promise}
    */
   fetchDocumentPages() {
-    return fetch(Globals.SERVICE_URL + '/story/' + this.novelID + '/pages').then((response) => {
+    return fetch(Globals.SERVICE_URL + '/story/' + this.storyID + '/pages', {
+      headers: Globals.getHeaders()
+    }).then((response) => {
       switch (response.status) {
         case 200:
           response.json().then((data) => {
@@ -471,7 +475,9 @@ export class Document extends React.Component {
    * Get the full URL of the websocket from the API
    */
   fetchWebsocketURL() {
-    fetch('./wsinit').then((response) => response.json()).then((data) => {
+    fetch('./wsinit', {
+      headers: Globals.getHeaders()
+    }).then((response) => response.json()).then((data) => {
       this.setupWebsocket(data.url);
     }).catch((error) => {
       console.error('Error:', error);
@@ -781,7 +787,7 @@ export class Document extends React.Component {
     console.log('saving page ' + pageNumber);
     // Send the encoded page if the socket is open and it hasn't been subsequently deleted
     if (this.socket.isOpen && this.state.pages[pageNumber]) {
-      this.socket.send(JSON.stringify({command: 'savePage', data: {page: pageNumber, novelID: this.novelID, body: convertToRaw(this.state.pages[pageNumber].editorState.getCurrentContent())}}));
+      this.socket.send(JSON.stringify({command: 'savePage', data: {page: pageNumber, storyID: this.storyID, body: convertToRaw(this.state.pages[pageNumber].editorState.getCurrentContent())}}));
     }
   }
 
@@ -802,7 +808,7 @@ export class Document extends React.Component {
   deletePage(pageNumber) {
     console.log('deleting page', pageNumber);
     if (this.socket.isOpen) {
-      this.socket.send(JSON.stringify({command: 'deletePage', data: {page: pageNumber, novelID: this.novelID}}));
+      this.socket.send(JSON.stringify({command: 'deletePage', data: {page: pageNumber, storyID: this.storyID}}));
     }
   }
 
@@ -1089,7 +1095,7 @@ export class Document extends React.Component {
               <li><FormatAlignCenterIcon fontSize="inherit" className={this.state.centerOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('center', e)}/></li>
               <li><FormatAlignRightIcon fontSize="inherit" className={this.state.rightOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('right', e)}/></li>
               <li><FormatAlignJustifyIcon fontSize="inherit" className={this.state.justifyOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('justify', e)} /></li>
-              <li>
+              <li style={{'paddingTop': '2px'}}>
                 <span>
                   <FormatLineSpacingIcon data-height={this.state.currentLineHeight} fontSize="inherit" onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateLineHeight(e)}/>
                   <span>{lineSpacings.get(this.state.currentLineHeight)}</span>
@@ -1102,9 +1108,9 @@ export class Document extends React.Component {
               {editors}
             </div>
           </div>
-          <CustomContext ref={this.rightclickAddMenu} type="add" items={JSON.stringify(addMenu)} selected={this.state.selectedText} socket={this.socket} novelID={this.novelID}/>
-          <CustomContext ref={this.rightclickEditMenu} type="edit" items={JSON.stringify(editMenu)} editingID={this.state.selectedAssociation} socket={this.socket} novelID={this.novelID}/>
-          <PopPanel ref={this.popPanel} novelID={this.novelID}/>
+          <CustomContext ref={this.rightclickAddMenu} type="add" items={JSON.stringify(addMenu)} selected={this.state.selectedText} socket={this.socket} storyID={this.storyID}/>
+          <CustomContext ref={this.rightclickEditMenu} type="edit" items={JSON.stringify(editMenu)} editingID={this.state.selectedAssociation} socket={this.socket} storyID={this.storyID}/>
+          <PopPanel ref={this.popPanel} storyID={this.storyID}/>
         </div>
       );
     }
@@ -1136,8 +1142,8 @@ const EventSpan = (props) => {
 };
 
 CharacterSpan.propTypes = PlaceSpan.propTypes = EventSpan.propTypes = {
-  leftclickFunc: PropTypes.function,
-  rightclickFunc: PropTypes.function,
+  leftclickFunc: PropTypes.func,
+  rightclickFunc: PropTypes.func,
   decoratedText: PropTypes.string,
-  children: PropTypes.element
+  children: PropTypes.array
 };

@@ -19,9 +19,9 @@ export class PopPanel extends React.Component {
   constructor(props) {
     super(props);
     this.associationID = null;
-    this.novelID = props.novelID;
+    this.storyID = props.storyID;
     this.isOpen = false;
-
+    console.log('lbl ' + props.label);
     console.log('setup for', this.associationID);
     this.state={
       label: props.label,
@@ -39,7 +39,7 @@ export class PopPanel extends React.Component {
     return {
       label: PropTypes.string,
       type: PropTypes.number,
-      novelID: PropTypes.string
+      storyID: PropTypes.string
     };
   }
 
@@ -53,7 +53,9 @@ export class PopPanel extends React.Component {
    * @return {Promise}
    */
   fetchAssociationDetails() {
-    return fetch(Globals.SERVICE_URL + '/story/' + Globals.NOVEL_ID + '/association/' + this.associationID).then((response) => {
+    return fetch(Globals.SERVICE_URL + '/association/' + this.associationID, {
+      headers: Globals.getHeaders()
+    }).then((response) => {
       switch (response.status) {
         case 200:
           response.json().then((data) => {
@@ -151,12 +153,12 @@ export class PopPanel extends React.Component {
    * Post a new text association to the API.
    */
   saveAssociation() {
-    fetch(Globals.SERVICE_URL + '/story/' + Globals.NOVEL_ID + '/associations', {
+    fetch(Globals.SERVICE_URL + '/story/' + this.storyID + '/associations', {
       method: 'PUT',
       headers: Globals.getHeaders(),
       body: JSON.stringify({
         associationID: this.associationID,
-        novelID: Globals.NOVEL_ID,
+        storyID: this.storyID,
         name: this.state.label,
         description: this.state.description
       })

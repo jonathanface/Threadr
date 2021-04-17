@@ -4,6 +4,11 @@ import {GoogleLogin} from 'react-google-login';
 import {GoogleLogout} from 'react-google-login';
 import PropTypes from 'prop-types';
 
+const lineSpacings = new Map();
+lineSpacings.set('lineheight_single', 1);
+lineSpacings.set('lineheight_medium', 1.5);
+lineSpacings.set('lineheight_double', 2);
+
 /**
  * Topmost menu for general user settings and doc editing
  */
@@ -30,6 +35,7 @@ export class Menu extends React.Component {
       displayName: PropTypes.string,
       loginComplete: PropTypes.func,
       logoutComplete: PropTypes.func,
+      loginFailed: PropTypes.func,
       nextProps: PropTypes.object
     };
   }
@@ -39,7 +45,7 @@ export class Menu extends React.Component {
    *
    * @param {Object} response
    */
-  responseGoogle = (response) => {
+  responseGoogleSuccess = (response) => {
     console.log(response);
     Globals.TOKEN_ID = response.tokenId;
     this.setState({
@@ -47,6 +53,15 @@ export class Menu extends React.Component {
       logoutButtonDisplayState: 'inline'
     });
     this.props.loginComplete();
+  }
+
+  /**
+   * Callback for when Google oauth fails
+   *
+   * @param {Object} response
+   */
+  responseGoogleFailure = (response) => {
+    this.props.loginFailed();
   }
 
   /**
@@ -84,6 +99,7 @@ export class Menu extends React.Component {
   render() {
     return (
       <div className="main_menu">
+        <span className="menu_left"></span>
         <span className="menu_right">
           <span className="display_name">{this.state.displayName}</span>
           <span style={{'display': this.state.loginButtonDisplayState}}>
@@ -91,11 +107,11 @@ export class Menu extends React.Component {
               clientId="878388830212-tq6uhegouorlrn7srsn3getqkn4er3fg.apps.googleusercontent.com"
               render={(renderProps) => (
                 <button title="login with google" onClick={renderProps.onClick} disabled={renderProps.disabled}>
-                  <img alt="login with google" src="img/google.svg"/>
+                  <img alt="login with google" src="/img/google.svg"/>
                 </button>
               )}
-              onSuccess={this.responseGoogle.bind(this)}
-              onFailure={this.responseGoogle.bind(this)}
+              onSuccess={this.responseGoogleSuccess.bind(this)}
+              onFailure={this.responseGoogleFailure.bind(this)}
               cookiePolicy={'single_host_origin'}
               isSignedIn={true}
             />
@@ -105,7 +121,7 @@ export class Menu extends React.Component {
               clientId="878388830212-tq6uhegouorlrn7srsn3getqkn4er3fg.apps.googleusercontent.com"
               render={(renderProps) => (
                 <button title="logout" onClick={renderProps.onClick} disabled={renderProps.disabled}>
-                  <img alt="logout" src="img/google.svg"/>
+                  <img alt="logout" src="/img/google.svg"/>
                 </button>
               )}
               onLogoutSuccess={this.logout.bind(this)}
