@@ -22,9 +22,46 @@ export class Landing extends React.Component {
 
   /** componentDidMount **/
   componentDidMount() {
+    window.addEventListener('popstate', this.handleOnUrlChange, false);
     if (this.isLoggedIn) {
       this.setState({
         greeting: ''
+      });
+    }
+  }
+
+  /** componentWillUnmount **/
+  componentWillUnmount() {
+    window.removeEventListener('popstate', this.handleOnUrlChange, false);
+  }
+
+  /**
+   * Fire whenever the window location changes
+   *
+   * @param {Event} event
+   */
+  handleOnUrlChange = (event) => {
+    console.log('pop', event);
+    const location = window.location.href;
+    const splitUp = location.split('/');
+    let requestedDocument = false;
+    for (let i=splitUp.length-1; i >=0; i--) {
+      if (splitUp[i] == 'story') {
+        if (splitUp[i+1]) {
+          requestedDocument = splitUp[i+1];
+        }
+        break;
+      }
+    }
+    if (!requestedDocument) {
+      this.setState({
+        addStoryButtonDisplay: 'initial',
+        editingDocument: requestedDocument
+      });
+    } else {
+      this.setState({
+        addStoryButtonDisplay: 'none',
+        editingDocument: requestedDocument
       });
     }
   }
@@ -84,32 +121,10 @@ export class Landing extends React.Component {
       switch (response.status) {
         case 200:
           response.json().then((data) => {
-            const location = window.location.href;
-            const splitUp = location.split('/');
-            let requestedDocument = false;
-            for (let i=splitUp.length-1; i >=0; i--) {
-              if (splitUp[i] == 'story') {
-                if (splitUp[i+1]) {
-                  requestedDocument = splitUp[i+1];
-                }
-                break;
-              }
-            }
-            if (!requestedDocument) {
-              this.setState({
-                username: data.given_name,
-                greeting: '',
-                addStoryButtonDisplay: 'initial',
-                editingDocument: requestedDocument
-              });
-            } else {
-              this.setState({
-                username: data.given_name,
-                greeting: '',
-                addStoryButtonDisplay: 'none',
-                editingDocument: requestedDocument
-              });
-            }
+            this.setState({
+              username: data.given_name,
+              greeting: ''
+            });
           });
           break;
         default:

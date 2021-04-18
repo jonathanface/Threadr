@@ -475,7 +475,7 @@ export class Document extends React.Component {
    * Get the full URL of the websocket from the API
    */
   fetchWebsocketURL() {
-    fetch('./wsinit', {
+    fetch('/wsinit', {
       headers: Globals.getHeaders()
     }).then((response) => response.json()).then((data) => {
       this.setupWebsocket(data.url);
@@ -1110,7 +1110,7 @@ export class Document extends React.Component {
           </div>
           <CustomContext ref={this.rightclickAddMenu} type="add" items={JSON.stringify(addMenu)} selected={this.state.selectedText} socket={this.socket} storyID={this.storyID}/>
           <CustomContext ref={this.rightclickEditMenu} type="edit" items={JSON.stringify(editMenu)} editingID={this.state.selectedAssociation} socket={this.socket} storyID={this.storyID}/>
-          <PopPanel ref={this.popPanel} storyID={this.storyID}/>
+          <PopPanel ref={this.popPanel} label="" storyID={this.storyID}/>
         </div>
       );
     }
