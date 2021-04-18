@@ -5,6 +5,10 @@
   background-color:#F0F0F0;
   box-shadow:2px 2px 2px #333;
   user-select:none;
+  position:fixed;
+  width:100%;
+  z-index:25;
+  top:0px;
 }
 .main_menu .menu_left {
   flex:1;

@@ -41,7 +41,6 @@ export class Landing extends React.Component {
    * @param {Event} event
    */
   handleOnUrlChange = (event) => {
-    console.log('pop', event);
     const location = window.location.href;
     const splitUp = location.split('/');
     let requestedDocument = false;
@@ -125,6 +124,7 @@ export class Landing extends React.Component {
               username: data.given_name,
               greeting: ''
             });
+            this.handleOnUrlChange(null);
           });
           break;
         default:

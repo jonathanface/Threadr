@@ -48,6 +48,7 @@ ul.stories li:active {
 .story_manager {
   display: flex;
   align-items: center;
+  margin-top:50px;
 }
 
 .story_manager button {
