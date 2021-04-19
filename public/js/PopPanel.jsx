@@ -6,6 +6,7 @@ import CloseIcon from '@material-ui/icons/Close';
 import {Globals} from './Globals.jsx';
 
 const defaultDescriptionText = 'Description';
+const defaultAliasText = 'Comma, separated, list';
 
 /**
  * Right-click menu for tagging document text.
@@ -25,10 +26,12 @@ export class PopPanel extends React.Component {
     console.log('setup for', this.associationID);
     this.state={
       label: props.label,
+      aliases: defaultAliasText,
       description: defaultDescriptionText,
       type: props.type,
       activeClassname: '',
-      displayState: 'hidden'
+      displayState: 'hidden',
+      caseSensitive: true
     };
   }
 
@@ -63,10 +66,15 @@ export class PopPanel extends React.Component {
             if (data.details.description.length) {
               descr = data.details.description;
             }
+            let alias = defaultAliasText;
+            if (data.details.aliases.length) {
+              alias = data.details.aliases;
+            }
             this.setState({
               type: data.type,
               label: data.text,
               description: descr,
+              aliases: alias,
               displayState: 'visible',
               activeClassname: 'emerge',
               html: 'Edit <b>me</b>!'
@@ -114,6 +122,14 @@ export class PopPanel extends React.Component {
       case 'description':
         this.setState({description: event.target.value});
         break;
+      case 'aliases':
+        this.setState({aliases: event.target.value});
+        break;
+      case 'case':
+        this.setState((prevState) => ({
+          caseSensitive: !prevState.caseSensitive
+        }));
+        break;
     }
   };
 
@@ -128,6 +144,11 @@ export class PopPanel extends React.Component {
       case 'description':
         if (event.currentTarget.innerHTML == defaultDescriptionText) {
           this.setState({description: ''});
+        }
+        break;
+      case 'aliases':
+        if (event.currentTarget.innerHTML == defaultAliasText) {
+          this.setState({aliases: ''});
         }
         break;
     }
@@ -146,6 +167,11 @@ export class PopPanel extends React.Component {
           this.setState({description: defaultDescriptionText});
         }
         break;
+      case 'aliases':
+        if (event.currentTarget.innerHTML == '') {
+          this.setState({description: defaultAliasText});
+        }
+        break;
     }
   }
 
@@ -160,7 +186,9 @@ export class PopPanel extends React.Component {
         associationID: this.associationID,
         storyID: this.storyID,
         name: this.state.label,
-        description: this.state.description
+        aliases: this.state.aliases,
+        description: this.state.description,
+        caseSensitive: this.state.caseSensitive
       })
     }).then((response) => {
       response.json().then((response) => {
@@ -181,6 +209,8 @@ export class PopPanel extends React.Component {
       <div>
         <div className={'pop-panel ' + this.state.activeClassname} style={{'visibility': this.state.displayState}}>
           <ContentEditable data-name="title" className="input-field" html={this.state.label} disabled={false} onChange={this.handleChange} />
+          <label className="checkbox-field"><input data-name="case" type="checkbox" defaultChecked={this.state.caseSensitive} onChange={this.handleChange}/>Case-sensitive</label>
+          <ContentEditable data-name="aliases" onFocus={this.handleFocus} onBlur={this.handleBlur} className="input-field" html={this.state.aliases} disabled={false} onChange={this.handleChange} />
           <ContentEditable data-name="description" onFocus={this.handleFocus} onBlur={this.handleBlur} className="input-field" html={this.state.description} disabled={false} onChange={this.handleChange} />
           <div className={'buttonBox'}>
             <CheckIcon onClick={() => {this.saveAssociation();}} />

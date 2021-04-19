@@ -30,15 +30,17 @@ type Story struct {
 }
 
 type AssociationDetails struct {
-	ID          primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
-	Description string             `json:"description" bson:"text"`
+	ID            primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
+	Description   string             `json:"description" bson:"text"`
+	Aliases       string             `json:"aliases" bson:"aliases"`
+	CaseSensitive string             `json:"caseSensitive" bson:"caseSensitive"`
 }
 
 type Association struct {
 	ID      primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
 	Text    string             `json:"text" bson:"text"`
 	Type    int                `json:"type" bson:"type"`
-	StoryID primitive.ObjectID `json:"storyID" bson:"storyID,omitempty"`
+	StoryID primitive.ObjectID `json:"storyID" bson:"storyID"`
 	Details AssociationDetails `json:"details,omitempty"`
 }
 

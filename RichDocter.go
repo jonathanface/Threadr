@@ -103,7 +103,7 @@ func createAssociation(text string, typeOf int, storyID primitive.ObjectID) erro
 	result := API.Association{}
 	err = assocs.FindOne(ctx, filter).Decode(&result)
 	if err != nil {
-		log.Println("no association found")
+		log.Println("no association found ", storyID)
 		assoc := API.Association{primitive.NilObjectID, text, typeOf, storyID, API.AssociationDetails{}}
 		insertResult, err := assocs.InsertOne(context.TODO(), assoc)
 		if err != nil {

@@ -106,6 +106,7 @@ div.editorRoot {
   font-family:Verdana, Tahoma, Geneva, sans-serif;
   letter-spacing:1px;
   color:#333;
+  margin-top:-45px;
 }
 
 .custom-context .selected {
@@ -332,6 +333,21 @@ div.public-DraftEditor-content {
   resize:none;
   outline:none;
   margin-bottom:20px;
+}
+
+.pop-panel .checkbox-field {
+  display:block;
+  user-select:none;
+  outline:none;
+  margin-bottom:20px;
+  padding-left: 20px;
+  margin-top: -15px;
+  font-size:0.9rem;
+  line-height:0.9rem;
+}
+.pop-panel .checkbox-field input {
+  margin-right:5px;
+  vertical-align:middle;
 }
 
 .pop-panel .buttonBox {

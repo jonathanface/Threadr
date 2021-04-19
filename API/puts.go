@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"net/http"
 	"strings"
@@ -66,10 +67,12 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 
 	var assRequest struct { // heh, ass request
 		AssociationIDString string             `json:"associationID"`
-		AssociationID       primitive.ObjectID `bson:"_id"`
+		AssociationID       primitive.ObjectID `bson:"_id,omitempty"`
 		Name                string             `json:"name"`
 		Description         string             `json:"description"`
-		StoryID             int                `json:"storyID"`
+		Aliases             string             `json:"aliases"`
+		CaseSensitive       bool               `json:"caseSensitive"`
+		StoryID             primitive.ObjectID `json:"storyID,omitempty"`
 	}
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&assRequest); err != nil {
@@ -77,7 +80,6 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
-
 	assRequest.Name = strings.TrimSpace(assRequest.Name)
 	mgoID, err := validateBSON(assRequest.AssociationIDString)
 	if err != nil {
@@ -88,7 +90,6 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing name")
 		return
 	}
-
 	log.Println("editing association", mgoID, assRequest)
 
 	client, ctx, err := common.MongoConnect()
@@ -98,35 +99,30 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer common.MongoDisconnect(client, ctx)
-	var result struct {
-		ID            primitive.ObjectID `json:"id" bson:"_id"`
-		AssociationID primitive.ObjectID `json:"assID" bson:"assID"`
-	}
 	descrips := client.Database(`Drafty`).Collection(`AssociationDetails`)
-	filter := &bson.M{"ID": mgoID}
-	err = descrips.FindOne(context.TODO(), filter).Decode(&result)
+	filter := &bson.M{"_id": mgoID}
+	opts := options.Update().SetUpsert(true)
+	update := &bson.M{"$set": &bson.M{"text": assRequest.Description, "aliases": assRequest.Aliases, "caseSensitive": assRequest.CaseSensitive}}
+	result, err := descrips.UpdateOne(context.Background(), filter, update, opts)
 	if err != nil {
-		log.Println(err)
-		assoc := AssociationDetails{mgoID, assRequest.Description}
-		insertResult, err := descrips.InsertOne(context.TODO(), assoc)
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	var upsertResult struct {
+		ID primitive.ObjectID `json:"id" bson:"_id"`
+	}
+	if assRequest.AssociationID == primitive.NilObjectID {
+		err = descrips.FindOne(context.Background(), filter).Decode(&upsertResult)
 		if err != nil {
-			log.Println("Error creating new association description")
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		log.Println("Inserted an association description: ", insertResult.InsertedID)
 	} else {
-		//update description here
-		_, err := descrips.UpdateOne(
-			context.TODO(),
-			&bson.M{"ID": mgoID},
-			bson.D{
-				{"$set", bson.D{{"text", assRequest.Description}}},
-			},
-		)
+		upsertResult.ID, err = primitive.ObjectIDFromHex(result.UpsertedID.(string))
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
 		}
 	}
-	RespondWithJson(w, http.StatusOK, "success")
+	RespondWithJson(w, http.StatusOK, upsertResult)
 }

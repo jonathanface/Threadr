@@ -22,7 +22,7 @@ export class CustomContext extends React.Component {
     };
     this.type = props.type;
     this.socket = props.socket;
-    this.novelID = props.novelID;
+    this.storyID = props.storyID;
     this.IsOpen = false;
     this.divElement = React.createRef();
   }
@@ -36,7 +36,7 @@ export class CustomContext extends React.Component {
       selected: PropTypes.string,
       type: PropTypes.string,
       socket: PropTypes.object,
-      novelID: PropTypes.string,
+      storyID: PropTypes.string,
       editingID: PropTypes.string
     };
   }
@@ -50,7 +50,7 @@ export class CustomContext extends React.Component {
   createNewAssociation(text, type) {
     console.log('adding new', type, text);
     if (this.socket.isOpen && text.trim().length) {
-      this.socket.send(JSON.stringify({command: 'newAssociation', data: {text: text.trim(), type: type, novelID: this.novelID}}));
+      this.socket.send(JSON.stringify({command: 'newAssociation', data: {text: text.trim(), type: type, storyID: this.storyID}}));
     }
   }
 
@@ -62,7 +62,7 @@ export class CustomContext extends React.Component {
   removeAssociation(text) {
     console.log('removing', text);
     if (this.socket.isOpen && text.trim().length) {
-      this.socket.send(JSON.stringify({command: 'removeAssociation', data: {text: text.trim(), novelID: this.novelID}}));
+      this.socket.send(JSON.stringify({command: 'removeAssociation', data: {text: text.trim(), storyID: this.storyID}}));
     }
   }
 

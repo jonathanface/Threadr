@@ -393,13 +393,15 @@ export class Document extends React.Component {
   processSocketMessage(message) {
     switch (message.command) {
       case 'pushAssociations':
-        this.setState({
-          associations: message.data
-        }, () => {
-          this.compositeDecorators = this.createDecorators();
-          // I have to obnoxiously trigger a re-render to get new associations to appear
-          this.forceRender();
-        });
+        if (message.data) {
+          this.setState({
+            associations: message.data
+          }, () => {
+            this.compositeDecorators = this.createDecorators();
+            // I have to obnoxiously trigger a re-render to get new associations to appear
+            this.forceRender();
+          });
+        }
         break;
       case 'newAssociationFailed':
         console.log('failed to make association');
