@@ -102,7 +102,7 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 	descrips := client.Database(`Drafty`).Collection(`AssociationDetails`)
 	filter := &bson.M{"_id": mgoID}
 	opts := options.Update().SetUpsert(true)
-	update := &bson.M{"$set": &bson.M{"text": assRequest.Description, "aliases": assRequest.Aliases, "caseSensitive": assRequest.CaseSensitive}}
+	update := &bson.M{"$set": &bson.M{"aliases": assRequest.Aliases, "caseSensitive": assRequest.CaseSensitive, "description": assRequest.Description}}
 	result, err := descrips.UpdateOne(context.Background(), filter, update, opts)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())

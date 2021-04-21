@@ -114,6 +114,7 @@ func AllAssociationsEndPoint(w http.ResponseWriter, r *http.Request) {
 	var results []Association
 	for cur.Next(context.TODO()) {
 		var a Association
+		a.Details = AssociationDetails{}
 		err := cur.Decode(&a)
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -157,7 +158,7 @@ func AllPagesEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer cur.Close(ctx)
-	log.Println("cur", cur)
+
 	var results []Page
 	for cur.Next(context.TODO()) {
 		//Create a value into which the single document can be decoded

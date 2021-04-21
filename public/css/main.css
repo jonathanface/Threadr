@@ -10,11 +10,14 @@ html {
   font-size:18px;
   font-family:Verdana, Arial, Helvetica, sans-serif;
   letter-spacing:1px;
+  height:100%;
 }
 
 body {
   padding:0px;
   margin:0px;
+  height:100%;
+  min-height:100%;
 }
 
 #root {

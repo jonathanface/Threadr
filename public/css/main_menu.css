@@ -9,34 +9,66 @@
   width:100%;
   z-index:25;
   top:0px;
+  font-size:0.8rem;
 }
 .main_menu .menu_left {
   flex:1;
 }
 .main_menu .menu_right {
-  float:right;
-  height:100%;
+  flex-direction:column;
+  width:100px;
+  line-height:25px;
+  text-align:right;
 }
 
 .main_menu .menu_right .display_name {
   font-size: 0.75em;
   vertical-align: middle;
-  line-height: 100%;
   display: inline-block;
   height: 100%;
   user-select:none;
 }
 
-.main_menu button, .main_menu button img {
-  height:100%;
-  background:none;
-  border:none;
+.main_menu svg {
+  height:25px;
+  vertical-align:middle;
   cursor:pointer;
   outline:none;
   user-select:none;
 }
-.main_menu button:hover {
+.main_menu svg:hover {
   opacity:0.5;
+}
+.main_menu button {
+  display:inline-block;
+  background:none;
+  border:none;
+}
+
+
+.main_menu .menu_right ul {
+  list-style:none;
+  padding:0;
+  margin:0;
+  display:inline-block;
+  width:100px;
+  border:1px solid #000;
+  border-bottom:none;
+  text-align:left;
+}
+
+.main_menu .menu_right ul li {
+  
+  color:#f0f0f0;
+  padding:5px;
+  border-bottom: 1px solid #000;
+  width:100%;
+  background-color:#2eacdc;
+}
+.main_menu .menu_right ul li:hover {
+  cursor:pointer;
+  color:#000;
+  background-color:#F0F0F0;
 }
 
 nav.docControls {

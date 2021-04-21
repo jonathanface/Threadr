@@ -1,6 +1,6 @@
 import React from 'react';
 import {Globals} from './Globals.jsx';
-import {Menu} from './Menu.jsx';
+import {CornerMenu} from './CornerMenu.jsx';
 import {Document} from './Document.jsx';
 
 /**
@@ -14,7 +14,7 @@ export class Landing extends React.Component {
     this.state = {
       username: '',
       stories: [],
-      greeting: 'Login up top to get started.',
+      greeting: '',
       addStoryButtonDisplay: 'none',
       editingDocument: false
     };
@@ -129,7 +129,7 @@ export class Landing extends React.Component {
           break;
         default:
           this.setState({
-            greeting: 'Login up top to get started.'
+            greeting: ''
           });
       }
     });
@@ -167,7 +167,7 @@ export class Landing extends React.Component {
       stories: blankStories,
       addStoryButtonDisplay: 'none',
       username: '',
-      greeting: 'Login up top to get started.'
+      greeting: ''
     });
     history.pushState({}, '', '/');
   }
@@ -198,7 +198,7 @@ export class Landing extends React.Component {
     return (
       <div>
         <div style={{'position': 'fixed'}, {'width': '100%'}}>
-          <Menu displayName={this.state.username} logoutComplete={this.handleLogout.bind(this)} loginComplete={this.handleLogin.bind(this)} loginFailed={this.handleLoginFailure.bind(this)}/>
+          <CornerMenu displayName={this.state.username} logoutComplete={this.handleLogout.bind(this)} loginComplete={this.handleLogin.bind(this)} loginFailed={this.handleLoginFailure.bind(this)}/>
         </div>
         <div className="story_manager">
           <span>{this.state.greeting}</span><button style={{'display': this.state.addStoryButtonDisplay}}>+</button>
