@@ -12,7 +12,7 @@ export class Globals {
   static ASSOCIATION_TYPE_CHARACTER = 0;
   static ASSOCIATION_TYPE_PLACE = 1;
   static ASSOCIATION_TYPE_EVENT = 2;
-  static TOKEN_ID;
+  
 
   /**
    * Returns the standard request headers required by the API
@@ -22,7 +22,7 @@ export class Globals {
   static getHeaders() {
     const headers = new Headers();
     headers.append('Content-Type', 'application/json');
-    headers.append('Authorization', 'Bearer ' + Globals.TOKEN_ID);
+    headers.append('Authorization', 'Bearer ' + window.tokenID);
     return headers;
   }
 

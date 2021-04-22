@@ -42,6 +42,10 @@ export class CornerMenu extends React.Component {
       nextProps: PropTypes.object
     };
   }
+  
+  refreshTokenSetup(data) {
+    
+  }
 
   /**
    * Callback for when Google oauth gets back to us
@@ -49,15 +53,22 @@ export class CornerMenu extends React.Component {
    * @param {Object} response
    */
   responseGoogleSuccess = (response) => {
-    console.log(response);
-    Globals.TOKEN_ID = response.tokenId;
-    this.menuOpen = false;
-    this.setState({
-      loginButtonDisplayState: 'none',
-      logoutButtonDisplayState: 'inline-block',
-      dropdownDisplayState: 'none'
-    });
-    this.props.loginComplete();
+    let timing = (response.tokenObj.expires_in || 3600 - 5 * 60) * 1000;
+    const refreshToken = async () => {
+      const resp = await response.reloadAuthResponse();
+      console.log('response', resp);
+      timing = (resp.expires_in || 3600 - 5 * 60) * 1000;
+      window.tokenID = resp.id_token;
+      this.menuOpen = false;
+      this.setState({
+        loginButtonDisplayState: 'none',
+        logoutButtonDisplayState: 'inline-block',
+        dropdownDisplayState: 'none'
+      });
+      this.props.loginComplete();
+      setTimeout(refreshToken, timing);
+    };
+    refreshToken();
   }
 
   /**
@@ -66,6 +77,7 @@ export class CornerMenu extends React.Component {
    * @param {Object} response
    */
   responseGoogleFailure = (response) => {
+	console.error('failed login');
     this.props.loginFailed();
   }
 
@@ -140,13 +152,14 @@ export class CornerMenu extends React.Component {
             <li style={{'display': this.state.loginButtonDisplayState}}>
               <GoogleLogin
                 clientId="878388830212-tq6uhegouorlrn7srsn3getqkn4er3fg.apps.googleusercontent.com"
+                accessType="offline"
+                isSignedIn={true}
                 render={(renderProps) => (
                   <div onClick={renderProps.onClick} disabled={renderProps.disabled}>Login</div>
                 )}
                 onSuccess={this.responseGoogleSuccess.bind(this)}
                 onFailure={this.responseGoogleFailure.bind(this)}
                 cookiePolicy={'single_host_origin'}
-                isSignedIn={true}
               />
             </li>
             <li style={{'display': this.state.logoutButtonDisplayState}}>

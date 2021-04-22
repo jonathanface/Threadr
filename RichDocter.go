@@ -29,7 +29,7 @@ type SocketMessage struct {
 
 const (
 	SERVICE_PATH       = "/api"
-	HTTP_PORT          = ":85"
+	HTTP_PORT          = ":88"
 	SOCKET_DIR         = "/ws"
 	STORIES_COLLECTION = "stories"
 	STATIC_FILES_DIR   = "public"
@@ -209,6 +209,7 @@ func validateGoogleJWT(tokenString string) (API.GoogleClaims, error) {
 		return API.GoogleClaims{}, err
 	}
 	claims, ok := token.Claims.(*API.GoogleClaims)
+
 	if !ok {
 		return API.GoogleClaims{}, errors.New("Invalid Google JWT")
 	}
@@ -218,6 +219,7 @@ func validateGoogleJWT(tokenString string) (API.GoogleClaims, error) {
 	if claims.Audience != "878388830212-tq6uhegouorlrn7srsn3getqkn4er3fg.apps.googleusercontent.com" {
 		return API.GoogleClaims{}, errors.New("auth is invalid")
 	}
+
 	if claims.ExpiresAt < time.Now().UTC().Unix() {
 		return API.GoogleClaims{}, errors.New("JWT is expired")
 	}
@@ -232,12 +234,14 @@ func middleware(next http.HandlerFunc) http.HandlerFunc {
 		} else {
 			claims, err := validateGoogleJWT(authHeader[1])
 			if err != nil {
-				API.RespondWithError(w, http.StatusForbidden, "Invalid google auth")
+				log.Println("problem with claims")
+				//should do token refresh here
+				API.RespondWithError(w, http.StatusForbidden, err.Error())
 				return
 			}
 			client, ctx, err := common.MongoConnect()
 			if err != nil {
-				API.RespondWithError(w, http.StatusInternalServerError, "Error writing user account to DB")
+				API.RespondWithError(w, http.StatusInternalServerError, "Error connecting to DB")
 				return
 			}
 			defer common.MongoDisconnect(client, ctx)

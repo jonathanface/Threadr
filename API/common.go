@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	HTTP_PORT        = ":85"
+	HTTP_PORT        = ":88"
 	SOCKET_DIR       = "/ws"
 	USERS_COLLECTION = "users"
 )
