@@ -161,7 +161,7 @@ export class Document extends React.Component {
    */
   clickedCharacter(label) {
     const assocObj = this.state.associations.filter((assoc) => {
-      return assoc.text == label;
+      return assoc.name == label;
     });
     this.popPanel.current.updateAndDisplay(assocObj[0].id);
   }
@@ -176,7 +176,7 @@ export class Document extends React.Component {
   clickedCharacterContext(event, label) {
     event.preventDefault();
     const assocObj = this.state.associations.filter((assoc) => {
-      return assoc.text == label;
+      return assoc.name == label;
     });
     this.setState({
       selectedAssociation: assocObj[0].id
@@ -192,7 +192,7 @@ export class Document extends React.Component {
    */
   clickedPlace(label) {
     const assocObj = this.state.associations.filter((assoc) => {
-      return assoc.text == label;
+      return assoc.name == label;
     });
     this.popPanel.current.updateAndDisplay(assocObj[0].id);
   }
@@ -207,7 +207,7 @@ export class Document extends React.Component {
   clickedPlaceContext(event, label) {
     event.preventDefault();
     const assocObj = this.state.associations.filter((assoc) => {
-      return assoc.text == label;
+      return assoc.name == label;
     });
     this.setState({
       selectedAssociation: assocObj[0].id
@@ -223,7 +223,7 @@ export class Document extends React.Component {
    */
   clickedEvent(label) {
     const assocObj = this.state.associations.filter((assoc) => {
-      return assoc.text == label;
+      return assoc.name == label;
     });
     this.popPanel.current.updateAndDisplay(assocObj[0].id);
   }
@@ -238,7 +238,7 @@ export class Document extends React.Component {
   clickedEventContext(event, label) {
     event.preventDefault();
     const assocObj = this.state.associations.filter((assoc) => {
-      return assoc.text == label;
+      return assoc.name == label;
     });
     this.setState({
       selectedAssociation: assocObj[0].id
@@ -260,7 +260,7 @@ export class Document extends React.Component {
       // console.log('checking assoc', this.state.associations[i]);
       if (this.state.associations[i].type == Globals.ASSOCIATION_TYPE_CHARACTER) {
         let match;
-        const regex = new RegExp(this.state.associations[i].text, 'g');
+        const regex = new RegExp(this.state.associations[i].name, 'g');
         while ((match = regex.exec(text)) !== null) {
           // console.log('found ', match);
           callback(match.index, match.index + match[0].length, 'hello');
@@ -282,7 +282,7 @@ export class Document extends React.Component {
       // console.log('checking assoc', this.state.associations[i]);
       if (this.state.associations[i].type == Globals.ASSOCIATION_TYPE_PLACE) {
         let match;
-        const regex = new RegExp(this.state.associations[i].text, 'g');
+        const regex = new RegExp(this.state.associations[i].name, 'g');
         while ((match = regex.exec(text)) !== null) {
           // console.log('found ', match);
           callback(match.index, match.index + match[0].length, 'hello');
@@ -304,7 +304,7 @@ export class Document extends React.Component {
       // console.log('checking assoc', this.state.associations[i]);
       if (this.state.associations[i].type == Globals.ASSOCIATION_TYPE_EVENT) {
         let match;
-        const regex = new RegExp(this.state.associations[i].text, 'g');
+        const regex = new RegExp(this.state.associations[i].name, 'g');
         while ((match = regex.exec(text)) !== null) {
           // console.log('found ', match);
           callback(match.index, match.index + match[0].length, 'hello');

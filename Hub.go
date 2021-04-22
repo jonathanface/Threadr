@@ -93,7 +93,7 @@ func (h *Hub) run() {
 				json.Unmarshal([]byte(m.Data), &deets)
 				response := SocketMessage{}
 				response.Command = "newAssociationFailed"
-				err := createAssociation(deets.Text, deets.Type, deets.StoryID)
+				err := createAssociation(deets.Name, deets.Type, deets.StoryID)
 				if err == nil {
 					response.Command = "pushAssociations"
 					assocs, err := fetchAssociations(deets.StoryID)

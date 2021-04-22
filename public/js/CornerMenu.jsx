@@ -1,5 +1,4 @@
 import React from 'react';
-import {Globals} from './Globals.jsx';
 import {GoogleLogin} from 'react-google-login';
 import {GoogleLogout} from 'react-google-login';
 import PropTypes from 'prop-types';
@@ -42,17 +41,13 @@ export class CornerMenu extends React.Component {
       nextProps: PropTypes.object
     };
   }
-  
-  refreshTokenSetup(data) {
-    
-  }
 
   /**
    * Callback for when Google oauth gets back to us
    *
    * @param {Object} response
    */
-  responseGoogleSuccess = (response) => {
+  responseGoogleSuccess(response) {
     let timing = (response.tokenObj.expires_in || 3600 - 5 * 60) * 1000;
     const refreshToken = async () => {
       const resp = await response.reloadAuthResponse();
@@ -76,8 +71,8 @@ export class CornerMenu extends React.Component {
    *
    * @param {Object} response
    */
-  responseGoogleFailure = (response) => {
-	console.error('failed login');
+  responseGoogleFailure(response) {
+    console.error('failed login');
     this.props.loginFailed();
   }
 
@@ -92,11 +87,17 @@ export class CornerMenu extends React.Component {
     });
     console.log('Component received new props', nextProps);
   }
-  
-  clickedBody = (event) => {
+
+  /**
+   * fired when clicked anywhere on document.body,
+   * this is mostly to close the menu when clicking off italics
+   *
+   * @param {Event} event
+   */
+  clickedBody(event) {
     this.menuOpen = false;
     this.setState({
-      dropdownDisplayState:'none'
+      dropdownDisplayState: 'none'
     });
   }
 
@@ -104,7 +105,8 @@ export class CornerMenu extends React.Component {
   componentDidMount() {
     document.body.addEventListener('click', this.clickedBody);
   }
-  
+
+  /** componentwillunmount **/
   componentWillUnmount() {
     document.body.removeEventListener('click', this.clickedBody);
   }
@@ -112,7 +114,7 @@ export class CornerMenu extends React.Component {
   /**
    * Callback for when Google oauth gets logged out
    */
-  logout = () => {
+  logout() {
     this.menuOpen = false;
     this.setState({
       loginButtonDisplayState: 'inline-block',
@@ -123,7 +125,13 @@ export class CornerMenu extends React.Component {
     this.props.logoutComplete();
   }
 
-  renderDropdownList = (event) => {
+  /**
+   * show the dropdown menu when the menu
+   * icon is clicked
+   *
+   * @param {Event} event
+   */
+  renderDropdownList(event) {
     event.stopPropagation();
     if (!this.menuOpen) {
       this.setState({

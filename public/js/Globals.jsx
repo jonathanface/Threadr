@@ -12,7 +12,6 @@ export class Globals {
   static ASSOCIATION_TYPE_CHARACTER = 0;
   static ASSOCIATION_TYPE_PLACE = 1;
   static ASSOCIATION_TYPE_EVENT = 2;
-  
 
   /**
    * Returns the standard request headers required by the API
