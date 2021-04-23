@@ -160,6 +160,9 @@ export class Document extends React.Component {
    */
   clickedCharacter(label) {
     const assocObj = this.state.associations.filter((assoc) => {
+      if (this.matchAlias(assoc, label)) {
+        return assoc;
+      }
       return assoc.name == label;
     });
     this.popPanel.current.updateAndDisplay(assocObj[0].id);
@@ -175,6 +178,9 @@ export class Document extends React.Component {
   clickedCharacterContext(event, label) {
     event.preventDefault();
     const assocObj = this.state.associations.filter((assoc) => {
+      if (this.matchAlias(assoc, label)) {
+        return assoc;
+      }
       return assoc.name == label;
     });
     this.setState({
@@ -191,6 +197,9 @@ export class Document extends React.Component {
    */
   clickedPlace(label) {
     const assocObj = this.state.associations.filter((assoc) => {
+      if (this.matchAlias(assoc, label)) {
+        return assoc;
+      }
       return assoc.name == label;
     });
     this.popPanel.current.updateAndDisplay(assocObj[0].id);
@@ -206,6 +215,9 @@ export class Document extends React.Component {
   clickedPlaceContext(event, label) {
     event.preventDefault();
     const assocObj = this.state.associations.filter((assoc) => {
+      if (this.matchAlias(assoc, label)) {
+        return assoc;
+      }
       return assoc.name == label;
     });
     this.setState({
@@ -222,6 +234,9 @@ export class Document extends React.Component {
    */
   clickedEvent(label) {
     const assocObj = this.state.associations.filter((assoc) => {
+      if (this.matchAlias(assoc, label)) {
+        return assoc;
+      }
       return assoc.name == label;
     });
     this.popPanel.current.updateAndDisplay(assocObj[0].id);
@@ -237,6 +252,9 @@ export class Document extends React.Component {
   clickedEventContext(event, label) {
     event.preventDefault();
     const assocObj = this.state.associations.filter((assoc) => {
+      if (this.matchAlias(assoc, label)) {
+        return assoc;
+      }
       return assoc.name == label;
     });
     this.setState({
@@ -244,6 +262,35 @@ export class Document extends React.Component {
     }, () => {
       this.rightclickEditMenu.current.updateAndDisplay(event.pageX, event.pageY);
     });
+  }
+
+  /**
+   * Check an association object for a matching alias property
+   *
+   * @param {Object} assoc
+   * @param {string} label
+   * @return {boolean}
+   */
+  matchAlias(assoc, label) {
+    if (assoc.details.aliases.length) {
+      const aliases = assoc.details.aliases.split(',');
+      for (let i=0; i < aliases.length; i++) {
+        if (aliases[i] == label) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Generate the regex match string for associations.
+   *
+   * @param {string} string
+   * @return {string}
+   */
+  getRegexString(string) {
+    return '(' + string + ')+[(?!,.\'-)|(\\s)]+';
   }
 
   /**
@@ -261,10 +308,32 @@ export class Document extends React.Component {
       }
       if (this.state.associations[i].type == Globals.ASSOCIATION_TYPE_CHARACTER) {
         let match;
-        const regex = new RegExp(this.state.associations[i].name, 'g');
+        const deets = this.state.associations[i].details;
+        const toArray = deets.aliases.split(',');
+        for (let z=0; z < toArray.length; z++) {
+          const alias = toArray[z].trim();
+          const regexStr = this.getRegexString(alias);
+          let caseFlag = 'g';
+          if (!deets.caseSensitive) {
+            caseFlag = 'gi';
+          }
+          const regex = new RegExp(regexStr, caseFlag);
+          while ((match = regex.exec(text)) !== null) {
+            const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
+            callback(start, start + alias.length);
+          }
+        }
+
+        const name = this.state.associations[i].name.trim();
+        const regexStr = this.getRegexString(name);
+        let caseFlag = 'g';
+        if (!deets.caseSensitive) {
+          caseFlag = 'gi';
+        }
+        const regex = new RegExp(regexStr, caseFlag);
         while ((match = regex.exec(text)) !== null) {
-          // console.log('found ', match);
-          callback(match.index, match.index + match[0].length, 'hello');
+          const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
+          callback(start, start + name.length);
         }
       }
     }
@@ -283,13 +352,33 @@ export class Document extends React.Component {
       if (!this.state.associations[i].name.trim().length) {
         return;
       }
-      console.log('check', this.state.associations[i]);
       if (this.state.associations[i].type == Globals.ASSOCIATION_TYPE_PLACE) {
         let match;
-        const regex = new RegExp(this.state.associations[i].name, 'g');
+        const deets = this.state.associations[i].details;
+        const toArray = deets.aliases.split(',');
+        for (let z=0; z < toArray.length; z++) {
+          const alias = toArray[z].trim();
+          const regexStr = this.getRegexString(alias);
+          let caseFlag = 'g';
+          if (!deets.caseSensitive) {
+            caseFlag = 'gi';
+          }
+          const regex = new RegExp(regexStr, caseFlag);
+          while ((match = regex.exec(text)) !== null) {
+            const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
+            callback(start, start + alias.length);
+          }
+        }
+        const name = this.state.associations[i].name.trim();
+        const regexStr = this.getRegexString(name);
+        let caseFlag = 'g';
+        if (!deets.caseSensitive) {
+          caseFlag = 'gi';
+        }
+        const regex = new RegExp(regexStr, caseFlag);
         while ((match = regex.exec(text)) !== null) {
-          // console.log('found ', match);
-          callback(match.index, match.index + match[0].length, 'hello');
+          const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
+          callback(start, start + name.length);
         }
       }
     }
@@ -310,10 +399,32 @@ export class Document extends React.Component {
       }
       if (this.state.associations[i].type == Globals.ASSOCIATION_TYPE_EVENT) {
         let match;
-        const regex = new RegExp(this.state.associations[i].name, 'g');
+        const deets = this.state.associations[i].details;
+        const toArray = deets.aliases.split(',');
+        for (let z=0; z < toArray.length; z++) {
+          const alias = toArray[z].trim();
+          const regexStr = this.getRegexString(alias);
+          let caseFlag = 'g';
+          if (!deets.caseSensitive) {
+            caseFlag = 'gi';
+          }
+          const regex = new RegExp(regexStr, caseFlag);
+          while ((match = regex.exec(text)) !== null) {
+            const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
+            callback(start, start + alias.length);
+          }
+        }
+
+        const name = this.state.associations[i].name.trim();
+        const regexStr = this.getRegexString(name);
+        let caseFlag = 'g';
+        if (!deets.caseSensitive) {
+          caseFlag = 'gi';
+        }
+        const regex = new RegExp(regexStr, caseFlag);
         while ((match = regex.exec(text)) !== null) {
-          // console.log('found ', match);
-          callback(match.index, match.index + match[0].length, 'hello');
+          const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
+          callback(start, start + name.length);
         }
       }
     }
