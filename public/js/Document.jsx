@@ -150,7 +150,6 @@ export class Document extends React.Component {
           break;
       }
     }
-    console.log('dec', decorators);
     return new CompositeDecorator(decorators);
   }
 
@@ -257,7 +256,9 @@ export class Document extends React.Component {
   findCharacter(contentBlock, callback, contentState ) {
     const text = contentBlock.getText();
     for (let i=0; i < this.state.associations.length; i++) {
-      // console.log('checking assoc', this.state.associations[i]);
+      if (!this.state.associations[i].name.trim().length) {
+        return;
+      }
       if (this.state.associations[i].type == Globals.ASSOCIATION_TYPE_CHARACTER) {
         let match;
         const regex = new RegExp(this.state.associations[i].name, 'g');
@@ -279,7 +280,10 @@ export class Document extends React.Component {
   findPlace(contentBlock, callback, contentState ) {
     const text = contentBlock.getText();
     for (let i=0; i < this.state.associations.length; i++) {
-      // console.log('checking assoc', this.state.associations[i]);
+      if (!this.state.associations[i].name.trim().length) {
+        return;
+      }
+      console.log('check', this.state.associations[i]);
       if (this.state.associations[i].type == Globals.ASSOCIATION_TYPE_PLACE) {
         let match;
         const regex = new RegExp(this.state.associations[i].name, 'g');
@@ -301,7 +305,9 @@ export class Document extends React.Component {
   findEvent(contentBlock, callback, contentState ) {
     const text = contentBlock.getText();
     for (let i=0; i < this.state.associations.length; i++) {
-      // console.log('checking assoc', this.state.associations[i]);
+      if (!this.state.associations[i].name.trim().length) {
+        return;
+      }
       if (this.state.associations[i].type == Globals.ASSOCIATION_TYPE_EVENT) {
         let match;
         const regex = new RegExp(this.state.associations[i].name, 'g');

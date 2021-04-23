@@ -112,10 +112,14 @@ func AllAssociationsEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	defer cur.Close(ctx)
 	var results []Association
+  deetsDB := client.Database("Drafty").Collection("AssociationDetails")
 	for cur.Next(context.TODO()) {
 		var a Association
-		a.Details = AssociationDetails{}
 		err := cur.Decode(&a)
+    deetsFilter := &bson.M{"_id": a.ID}
+    var deets AssociationDetails
+    deetsDB.FindOne(context.TODO(), deetsFilter).Decode(&deets)
+		a.Details = deets
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return

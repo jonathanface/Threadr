@@ -72,7 +72,7 @@ export class PopPanel extends React.Component {
             }
             this.setState({
               type: data.type,
-              label: data.text,
+              label: data.name,
               description: descr,
               aliases: alias,
               displayState: 'visible',

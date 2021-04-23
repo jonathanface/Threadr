@@ -103,12 +103,12 @@ export class CornerMenu extends React.Component {
 
   /** componentdidmount **/
   componentDidMount() {
-    document.body.addEventListener('click', this.clickedBody);
+    document.body.addEventListener('click', this.clickedBody.bind(this));
   }
 
   /** componentwillunmount **/
   componentWillUnmount() {
-    document.body.removeEventListener('click', this.clickedBody);
+    document.body.removeEventListener('click', this.clickedBody.bind(this));
   }
 
   /**

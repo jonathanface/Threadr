@@ -80,12 +80,13 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
-	assRequest.Name = strings.TrimSpace(assRequest.Name)
+	
 	mgoID, err := validateBSON(assRequest.AssociationIDString)
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Missing or invalid associationID")
 		return
 	}
+  assRequest.Name = strings.TrimSpace(assRequest.Name)
 	if assRequest.Name == "" {
 		RespondWithError(w, http.StatusBadRequest, "Missing name")
 		return
@@ -99,10 +100,19 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer common.MongoDisconnect(client, ctx)
+  assoc := client.Database(`Drafty`).Collection(`Association`)
+  filter := &bson.M{"_id": mgoID}
+  update := &bson.M{"$set": &bson.M{"name": assRequest.Name}}
+  _, err = assoc.UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	descrips := client.Database(`Drafty`).Collection(`AssociationDetails`)
-	filter := &bson.M{"_id": mgoID}
+	filter = &bson.M{"_id": mgoID}
 	opts := options.Update().SetUpsert(true)
-	update := &bson.M{"$set": &bson.M{"aliases": assRequest.Aliases, "caseSensitive": assRequest.CaseSensitive, "description": assRequest.Description}}
+	update = &bson.M{"$set": &bson.M{"aliases": assRequest.Aliases, "caseSensitive": assRequest.CaseSensitive, "description": assRequest.Description}}
 	result, err := descrips.UpdateOne(context.Background(), filter, update, opts)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
