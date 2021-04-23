@@ -95,6 +95,7 @@ export class Landing extends React.Component {
    * @param {Event} event
    */
   enterDocument(event) {
+    event.stopPropagation();
     console.log('clicked ' + event.target.dataset.id);
     history.pushState({}, '', '/story/' + event.target.dataset.id);
     this.setState({
@@ -137,22 +138,26 @@ export class Landing extends React.Component {
       switch (response.status) {
         case 200:
           response.json().then((data) => {
-            const receivedStories = [];
-            for (const story of data) {
-              const t = Date.parse(story.lastAccessed)/1000;
-              receivedStories.push(<li onClick={this.enterDocument.bind(this)} onInput={this.titleEdited.bind(this)} contentEditable="true" key={story.id} data-id={story.id} data-last-accessed={t}>{story.title}</li>);
-            }
-            let newGreeting = 'You haven\'t begun any stories yet...';
-            if (receivedStories.length) {
-              newGreeting = '';
-            }
-            this.setState({
-              stories: receivedStories,
-              greeting: newGreeting
-            });
+            this.renderStoryButton(data);
           });
           break;
       }
+    });
+  }
+  
+  renderStoryButton(data) {
+    const receivedStories = this.state.stories;
+    for (const story of data) {
+      const t = Date.parse(story.lastAccessed)/1000;
+      receivedStories.push(<li onClick={this.enterDocument.bind(this)} onInput={this.titleEdited.bind(this)} contentEditable="true" key={story.id} data-id={story.id} data-last-accessed={t}>{story.title}</li>);
+    }
+    let newGreeting = 'You haven\'t begun any stories yet...';
+    if (receivedStories.length) {
+      newGreeting = '';
+    }
+    this.setState({
+      stories: receivedStories,
+      greeting: newGreeting
     });
   }
 
@@ -185,6 +190,23 @@ export class Landing extends React.Component {
       body: JSON.stringify({title: newTitle})
     });
   }
+  
+  /**
+   * Creates an empty story in the DB and makes a default icon
+   */
+  createNewStory() {
+    fetch(Globals.SERVICE_URL + '/story', {
+      method: 'POST',
+      headers: Globals.getHeaders()
+    }).then((response) => {
+      switch (response.status) {
+        case 200:
+          response.json().then((data) => {
+            this.renderStoryButton(data);
+          });
+      }
+    });
+  }
 
   /**
    * render
@@ -201,7 +223,7 @@ export class Landing extends React.Component {
           <CornerMenu displayName={this.state.username} logoutComplete={this.handleLogout.bind(this)} loginComplete={this.handleLogin.bind(this)} loginFailed={this.handleLoginFailure.bind(this)}/>
         </div>
         <div className="story_manager">
-          <span>{this.state.greeting}</span><button style={{'display': this.state.addStoryButtonDisplay}}>+</button>
+          <span>{this.state.greeting}</span><button onClick={this.createNewStory.bind(this)} style={{'display': this.state.addStoryButtonDisplay}}>+</button>
         </div>
         <div>
           {content}

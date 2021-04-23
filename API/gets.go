@@ -5,6 +5,7 @@ import (
 	"context"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"net/http"
 	"strings"
@@ -24,8 +25,10 @@ func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 	storiesColl := client.Database("Drafty").Collection("Stories")
 	log.Println("stories for user", claims.ID)
 	filter := &bson.M{"user": claims.ID}
+	findOptions := options.Find()
+	findOptions.SetSort(bson.D{{"lastAccessed", -1}})
 	var stories []Story
-	found, err := storiesColl.Find(context.Background(), filter)
+	found, err := storiesColl.Find(context.Background(), filter, findOptions)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -112,13 +115,13 @@ func AllAssociationsEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	defer cur.Close(ctx)
 	var results []Association
-  deetsDB := client.Database("Drafty").Collection("AssociationDetails")
+	deetsDB := client.Database("Drafty").Collection("AssociationDetails")
 	for cur.Next(context.TODO()) {
 		var a Association
 		err := cur.Decode(&a)
-    deetsFilter := &bson.M{"_id": a.ID}
-    var deets AssociationDetails
-    deetsDB.FindOne(context.TODO(), deetsFilter).Decode(&deets)
+		deetsFilter := &bson.M{"_id": a.ID}
+		var deets AssociationDetails
+		deetsDB.FindOne(context.TODO(), deetsFilter).Decode(&deets)
 		a.Details = deets
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())

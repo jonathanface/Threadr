@@ -80,13 +80,12 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
-	
 	mgoID, err := validateBSON(assRequest.AssociationIDString)
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Missing or invalid associationID")
 		return
 	}
-  assRequest.Name = strings.TrimSpace(assRequest.Name)
+	assRequest.Name = strings.TrimSpace(assRequest.Name)
 	if assRequest.Name == "" {
 		RespondWithError(w, http.StatusBadRequest, "Missing name")
 		return
@@ -100,10 +99,10 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer common.MongoDisconnect(client, ctx)
-  assoc := client.Database(`Drafty`).Collection(`Association`)
-  filter := &bson.M{"_id": mgoID}
-  update := &bson.M{"$set": &bson.M{"name": assRequest.Name}}
-  _, err = assoc.UpdateOne(context.Background(), filter, update)
+	assoc := client.Database(`Drafty`).Collection(`Association`)
+	filter := &bson.M{"_id": mgoID}
+	update := &bson.M{"$set": &bson.M{"name": assRequest.Name}}
+	_, err = assoc.UpdateOne(context.Background(), filter, update)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return

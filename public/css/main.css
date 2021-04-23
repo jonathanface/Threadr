@@ -24,7 +24,7 @@ body {
 }
 
 ul.stories {
-  display:inline-block;
+  display:flex;
   list-style:none;
 }
 ul.stories li {

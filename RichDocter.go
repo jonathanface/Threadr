@@ -319,6 +319,8 @@ func main() {
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/title", middleware(API.EditTitleEndPoint)).Methods("PUT")
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/associations", middleware(API.EditAssociationEndPoint)).Methods("PUT")
 
+	rtr.HandleFunc(SERVICE_PATH+"/story", middleware(API.CreateStoryEndPoint)).Methods("POST")
+
 	http.HandleFunc(SOCKET_DIR, func(w http.ResponseWriter, r *http.Request) {
 		serveWs(hub, w, r)
 	})

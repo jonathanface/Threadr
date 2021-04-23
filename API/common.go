@@ -27,6 +27,7 @@ type Story struct {
 	ID           primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
 	Title        string             `bson:"title" json:"title"`
 	LastAccessed time.Time          `bson:"lastAccessed" json:"lastAccessed"`
+	User         primitive.ObjectID `json:"user,omitempty" bson:"user,omitempty"`
 }
 
 type AssociationDetails struct {
