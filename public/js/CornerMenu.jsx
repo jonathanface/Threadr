@@ -155,7 +155,7 @@ export class CornerMenu extends React.Component {
         <span className="menu_left"></span>
         <span className="menu_right">
           <span className="display_name">{this.state.displayName}</span>
-          <MenuIcon onClick={this.renderDropdownList}/>
+          <MenuIcon onClick={this.renderDropdownList.bind(this)}/>
           <ul style={{'display': this.state.dropdownDisplayState}}>
             <li style={{'display': this.state.loginButtonDisplayState}}>
               <GoogleLogin

@@ -1,0 +1,55 @@
+.custom-context {
+  padding: 10px;
+  background-color: #ffffc4;
+  border-radius: 10px;
+  border: 1.5px solid #333;
+  outline: none;
+  z-index: 10;
+  font-size:11pt;
+  font-family:Verdana, Tahoma, Geneva, sans-serif;
+  letter-spacing:1px;
+  color:#333;
+  margin-top:-45px;
+}
+
+.custom-context .selected {
+  margin-bottom: 10px;
+  border-bottom: 1px solid #333;
+  color: #909090;
+  text-overflow: ellipsis;
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.custom-context .item {
+  user-select:none;
+  cursor:pointer;
+  padding-bottom:10px;
+}
+.custom-context .item .title:hover {
+  color:#8c8c8c;
+}
+.custom-context .item.child .title:hover {
+  text-decoration:underline;
+}
+.custom-context .item.child {
+  padding-top: 5px;
+  padding-left: 30px;
+  padding-bottom: 5px;
+}
+.custom-context .item.child.visible {
+  display:block;
+}
+.custom-context .item.child.hidden {
+  display:none;
+}
+.custom-context .item.parent.closed:before {
+  content:'\2BC8'
+}
+.custom-context .item.parent.open:before {
+  content:'\2BC6'
+}
+.custom-context .item:not(.parent):not(.child) {
+  padding-left:14px;
+}

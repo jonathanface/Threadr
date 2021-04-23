@@ -1,0 +1,98 @@
+.pop-panel {
+  position: fixed;
+  background-color: #2eacdc;
+  color:#F0F0F0;
+  left: 100%;
+  top: 50px;
+  width: 45%;
+  height: 400px;
+  border-radius: 15px;
+  padding: 15px;
+  border: 1px solid #333;
+  z-index: 100;
+  opacity:0;
+  transition: all 0.5s ease;
+}
+
+.pop-panel.emerge {
+  opacity: 1;
+  transform: translateX(-100%);
+}
+.pop-panel.flee {
+  opacity:0;
+  transform: translateX(100%);
+}
+
+.pop-panel .input-field {
+  padding:15px;
+  border-radius:15px;
+  color:#333;
+  border: 1px solid #333;
+  user-select:none;
+  background:#f3f3f3;
+  width:100%;
+  resize:none;
+  outline:none;
+  margin-bottom:20px;
+}
+
+.pop-panel .checkbox-field {
+  display:block;
+  user-select:none;
+  outline:none;
+  margin-bottom:20px;
+  padding-left: 20px;
+  margin-top: -15px;
+  font-size:0.9rem;
+  line-height:0.9rem;
+}
+.pop-panel .checkbox-field input {
+  margin-right:5px;
+  vertical-align:middle;
+}
+
+.pop-panel .buttonBox {
+  color:#F0F0F0;
+}
+
+.pop-panel .buttonBox svg {
+  border:1px solid #333;
+  border-radius:5px;
+  font-size: 36px;
+  margin: 5px;
+  cursor:pointer;
+}
+.pop-panel .buttonBox svg:hover {
+  color:#333;
+  border:1px solid #F0F0F0;
+}
+
+.pop-panel .typeTitle {
+  padding: 15px;
+  margin-bottom: 30px;
+  border: 1px dashed #333;
+  user-select: none;
+  color: #333;
+  border-radius:15px;
+}
+
+
+.document-mask {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  background: #000;
+  height: 100%;
+  z-index: 50;
+  opacity: 0;
+  transition: all 0.5s ease;
+}
+.document-mask.emerge {
+  visibility:visible;
+  opacity:0.5;
+}
+.document-mask.flee {
+  visibility:hidden;
+  opacity:0;
+}

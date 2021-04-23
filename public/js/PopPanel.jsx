@@ -22,9 +22,9 @@ export class PopPanel extends React.Component {
     this.associationID = null;
     this.storyID = props.storyID;
     this.isOpen = false;
-    console.log('lbl ' + props.label);
-    console.log('setup for', this.associationID);
+    this.onUpdateAssociationComplete = props.onUpdateAssociationComplete;
     this.state={
+      typeLabel: '',
       label: props.label,
       aliases: defaultAliasText,
       description: defaultDescriptionText,
@@ -70,6 +70,18 @@ export class PopPanel extends React.Component {
             if (data.details.aliases.length) {
               alias = data.details.aliases;
             }
+            let typeLabel = '';
+            switch (data.type) {
+              case 0:
+                typeLabel = 'Character';
+                break;
+              case 1:
+                typeLabel = 'Place';
+                break;
+              case 2:
+                typeLabel = 'Event';
+                break;
+            }
             this.setState({
               type: data.type,
               label: data.name,
@@ -77,7 +89,9 @@ export class PopPanel extends React.Component {
               aliases: alias,
               displayState: 'visible',
               activeClassname: 'emerge',
-              html: 'Edit <b>me</b>!'
+              html: 'Edit <b>me</b>!',
+              typeLabel: typeLabel,
+              caseSensitive: data.details.caseSensitive
             });
           });
           break;
@@ -91,7 +105,6 @@ export class PopPanel extends React.Component {
    * @param {String} idVal
   **/
   updateAndDisplay(idVal) {
-    console.log('clicked', idVal);
     this.associationID = idVal;
     this.IsOpen = true;
     this.fetchAssociationDetails();
@@ -191,9 +204,9 @@ export class PopPanel extends React.Component {
         caseSensitive: this.state.caseSensitive
       })
     }).then((response) => {
-      response.json().then((response) => {
-        console.log(response);
-      });
+      if (response.status == 200) {
+        this.onUpdateAssociationComplete();
+      }
     }).catch((err) => {
       console.error(err);
     });
@@ -208,8 +221,9 @@ export class PopPanel extends React.Component {
     return (
       <div>
         <div className={'pop-panel ' + this.state.activeClassname} style={{'visibility': this.state.displayState}}>
+          <div className="typeTitle">{this.state.typeLabel}</div>
           <ContentEditable data-name="title" className="input-field" html={this.state.label} disabled={false} onChange={this.handleChange} />
-          <label className="checkbox-field"><input data-name="case" type="checkbox" defaultChecked={this.state.caseSensitive} onChange={this.handleChange}/>Case-sensitive</label>
+          <label className="checkbox-field"><input data-name="case" type="checkbox" checked={this.state.caseSensitive} onChange={this.handleChange}/>Case-sensitive</label>
           <ContentEditable data-name="aliases" onFocus={this.handleFocus} onBlur={this.handleBlur} className="input-field" html={this.state.aliases} disabled={false} onChange={this.handleChange} />
           <ContentEditable data-name="description" onFocus={this.handleFocus} onBlur={this.handleBlur} className="input-field" html={this.state.description} disabled={false} onChange={this.handleChange} />
           <div className={'buttonBox'}>

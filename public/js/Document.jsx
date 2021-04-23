@@ -163,6 +163,9 @@ export class Document extends React.Component {
       if (this.matchAlias(assoc, label)) {
         return assoc;
       }
+      if (!assoc.details.caseSensitive) {
+        return assoc.name.toLowerCase() == label.toLowerCase();
+      }
       return assoc.name == label;
     });
     this.popPanel.current.updateAndDisplay(assocObj[0].id);
@@ -180,6 +183,9 @@ export class Document extends React.Component {
     const assocObj = this.state.associations.filter((assoc) => {
       if (this.matchAlias(assoc, label)) {
         return assoc;
+      }
+      if (!assoc.details.caseSensitive) {
+        return assoc.name.toLowerCase() == label.toLowerCase();
       }
       return assoc.name == label;
     });
@@ -200,6 +206,9 @@ export class Document extends React.Component {
       if (this.matchAlias(assoc, label)) {
         return assoc;
       }
+      if (!assoc.details.caseSensitive) {
+        return assoc.name.toLowerCase() == label.toLowerCase();
+      }
       return assoc.name == label;
     });
     this.popPanel.current.updateAndDisplay(assocObj[0].id);
@@ -217,6 +226,9 @@ export class Document extends React.Component {
     const assocObj = this.state.associations.filter((assoc) => {
       if (this.matchAlias(assoc, label)) {
         return assoc;
+      }
+      if (!assoc.details.caseSensitive) {
+        return assoc.name.toLowerCase() == label.toLowerCase();
       }
       return assoc.name == label;
     });
@@ -237,6 +249,9 @@ export class Document extends React.Component {
       if (this.matchAlias(assoc, label)) {
         return assoc;
       }
+      if (!assoc.details.caseSensitive) {
+        return assoc.name.toLowerCase() == label.toLowerCase();
+      }
       return assoc.name == label;
     });
     this.popPanel.current.updateAndDisplay(assocObj[0].id);
@@ -254,6 +269,9 @@ export class Document extends React.Component {
     const assocObj = this.state.associations.filter((assoc) => {
       if (this.matchAlias(assoc, label)) {
         return assoc;
+      }
+      if (!assoc.details.caseSensitive) {
+        return assoc.name.toLowerCase() == label.toLowerCase();
       }
       return assoc.name == label;
     });
@@ -275,6 +293,11 @@ export class Document extends React.Component {
     if (assoc.details.aliases.length) {
       const aliases = assoc.details.aliases.split(',');
       for (let i=0; i < aliases.length; i++) {
+        if (!assoc.details.caseSensitive) {
+          if (aliases[i].toLowerCase() == label.toLowerCase()) {
+            return true;
+          }
+        }
         if (aliases[i] == label) {
           return true;
         }
@@ -541,13 +564,16 @@ export class Document extends React.Component {
             this.setState({
               associations: data
             }, () => {
-              console.log('this', this);
               this.compositeDecorators = this.createDecorators();
             });
           });
           break;
       }
     });
+  }
+  
+  redrawAssociations() {
+    this.fetchAssociations();
   }
 
   /**
@@ -1229,7 +1255,7 @@ export class Document extends React.Component {
           </div>
           <CustomContext ref={this.rightclickAddMenu} type="add" items={JSON.stringify(addMenu)} selected={this.state.selectedText} socket={this.socket} storyID={this.storyID}/>
           <CustomContext ref={this.rightclickEditMenu} type="edit" items={JSON.stringify(editMenu)} editingID={this.state.selectedAssociation} socket={this.socket} storyID={this.storyID}/>
-          <PopPanel ref={this.popPanel} label="" storyID={this.storyID}/>
+          <PopPanel ref={this.popPanel} label="" storyID={this.storyID} onUpdateAssociationComplete={this.redrawAssociations.bind(this)}/>
         </div>
       );
     }
