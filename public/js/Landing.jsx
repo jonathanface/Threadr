@@ -11,6 +11,7 @@ export class Landing extends React.Component {
   constructor() {
     super();
     this.isLoggedIn = false;
+    this.editingTitle = false;
     this.state = {
       username: '',
       stories: [],
@@ -96,12 +97,21 @@ export class Landing extends React.Component {
    */
   enterDocument(event) {
     event.stopPropagation();
-    console.log('clicked ' + event.target.dataset.id);
-    history.pushState({}, '', '/story/' + event.target.dataset.id);
-    this.setState({
-      editingDocument: event.target.dataset.id,
-      addStoryButtonDisplay: 'none',
-    });
+    setTimeout(() => {
+      console.log('enter doc?', this.editingTitle);
+      if (!this.editingTitle) {
+        let selected;
+        !event.target.dataset.id ? selected = event.target.parentElement.dataset.id : selected = event.target.dataset.id;
+        if (selected) {
+          console.log('clicked ' + selected);
+          history.pushState({}, '', '/story/' + selected);
+          this.setState({
+            editingDocument: selected,
+            addStoryButtonDisplay: 'none',
+          });
+        }
+      }
+    }, 500);
   }
 
   /**
@@ -155,7 +165,7 @@ export class Landing extends React.Component {
     const receivedStories = this.state.stories;
     for (const story of data) {
       const t = Date.parse(story.lastAccessed)/1000;
-      receivedStories.push(<li onClick={this.enterDocument.bind(this)} key={story.id} data-id={story.id} data-last-accessed={t}><div onClick={this.titleClicked} onInput={this.titleEdited.bind(this)} contentEditable="true">{story.title}</div></li>);
+      receivedStories.push(<li onClick={this.enterDocument.bind(this)} key={story.id} data-id={story.id} data-last-accessed={t}><div onClick={this.enterDocument.bind(this)} onDoubleClick={this.titleDoubleClicked.bind(this)} onInput={this.titleEdited.bind(this)} contentEditable="true">{story.title}</div></li>);
     }
     let newGreeting = 'You haven\'t begun any stories yet...';
     if (receivedStories.length) {
@@ -188,9 +198,10 @@ export class Landing extends React.Component {
    *
    * @param {Event} event
    */
-  titleClicked(event) {
+  titleDoubleClicked(event) {
     event.stopPropagation();
     event.preventDefault();
+    this.editingTitle = true;
   }
 
   /**
@@ -201,6 +212,7 @@ export class Landing extends React.Component {
   titleEdited(event) {
     event.stopPropagation();
     const newTitle = event.target.innerText;
+    this.editingTitle = false;
     fetch(Globals.SERVICE_URL + '/story/' + event.target.parentElement.dataset.id + '/title', {
       method: 'PUT',
       headers: Globals.getHeaders(),

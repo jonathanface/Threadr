@@ -38,6 +38,10 @@ ul.stories li {
 }
 ul.stories li div {
   outline:none;
+  cursor:text;
+}
+ul.stories li div:hover {
+  
 }
 ul.stories li:hover {
   cursor:pointer;
