@@ -36,6 +36,9 @@ ul.stories li {
   box-shadow: 2px 2px 2px #2eacdc;
   outline:none;
 }
+ul.stories li div {
+  outline:none;
+}
 ul.stories li:hover {
   cursor:pointer;
   color:#333;

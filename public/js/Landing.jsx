@@ -144,12 +144,18 @@ export class Landing extends React.Component {
       }
     });
   }
-  
+
+  /**
+   * Draw a clickable, editable icon representing a document
+   * for each story.
+   *
+   * @param {Object} data
+   */
   renderStoryButton(data) {
     const receivedStories = this.state.stories;
     for (const story of data) {
       const t = Date.parse(story.lastAccessed)/1000;
-      receivedStories.push(<li onClick={this.enterDocument.bind(this)} onInput={this.titleEdited.bind(this)} contentEditable="true" key={story.id} data-id={story.id} data-last-accessed={t}>{story.title}</li>);
+      receivedStories.push(<li onClick={this.enterDocument.bind(this)} key={story.id} data-id={story.id} data-last-accessed={t}><div onClick={this.titleClicked} onInput={this.titleEdited.bind(this)} contentEditable="true">{story.title}</div></li>);
     }
     let newGreeting = 'You haven\'t begun any stories yet...';
     if (receivedStories.length) {
@@ -178,19 +184,30 @@ export class Landing extends React.Component {
   }
 
   /**
+   * Capture the click event on the contenteditable to stop it from propagating
+   *
+   * @param {Event} event
+   */
+  titleClicked(event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+
+  /**
    * Triggered by editing a story's title
    *
    * @param {event} event
    */
   titleEdited(event) {
+    event.stopPropagation();
     const newTitle = event.target.innerText;
-    fetch(Globals.SERVICE_URL + '/story/' + event.target.dataset.id + '/title', {
+    fetch(Globals.SERVICE_URL + '/story/' + event.target.parentElement.dataset.id + '/title', {
       method: 'PUT',
       headers: Globals.getHeaders(),
       body: JSON.stringify({title: newTitle})
     });
   }
-  
+
   /**
    * Creates an empty story in the DB and makes a default icon
    */

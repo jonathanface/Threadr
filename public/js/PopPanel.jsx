@@ -42,7 +42,8 @@ export class PopPanel extends React.Component {
     return {
       label: PropTypes.string,
       type: PropTypes.number,
-      storyID: PropTypes.string
+      storyID: PropTypes.string,
+      onUpdateAssociationComplete: PropTypes.func
     };
   }
 

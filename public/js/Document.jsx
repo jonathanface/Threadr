@@ -571,7 +571,10 @@ export class Document extends React.Component {
       }
     });
   }
-  
+
+  /**
+   * Refresh page associations
+   */
   redrawAssociations() {
     this.fetchAssociations();
   }
