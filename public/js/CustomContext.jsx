@@ -1,5 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import {Globals} from './Globals.jsx';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
+import Button from '@material-ui/core/Button';
 
 /**
  * Right-click menu for tagging document text.
@@ -18,7 +25,8 @@ export class CustomContext extends React.Component {
       items: props.items,
       display: 'none',
       x: 0,
-      y: 0
+      y: 0,
+      modalOpen: false
     };
     this.type = props.type;
     this.socket = props.socket;
@@ -26,6 +34,24 @@ export class CustomContext extends React.Component {
     this.IsOpen = false;
     this.divElement = React.createRef();
   }
+
+  /**
+   * Toggle open the modal dialog
+   *
+   * @param {String} val
+   */
+  setModalOpen = (val) => {
+    this.setState({
+      modalOpen: val
+    });
+  };
+
+  /**
+   * Toggle closed the modal dialog
+   */
+  handleCloseModal = () => {
+    this.setModalOpen(false);
+  };
 
   /**
    * proptypes for lint
@@ -50,8 +76,21 @@ export class CustomContext extends React.Component {
   createNewAssociation(text, type) {
     console.log('adding new', type, text);
     if (this.socket.isOpen && text.trim().length) {
-      this.socket.send(JSON.stringify({command: 'newAssociation', data: {text: text.trim(), type: type, storyID: this.storyID}}));
+      this.socket.send(JSON.stringify({command: 'newAssociation', data: {name: text.trim(), type: type, storyID: this.storyID}}));
     }
+  }
+
+  /**
+   * Show the modal prompting the user about association deletion
+   */
+  promptDeleteAssociation() {
+    console.log('prompt', this.state.editingID);
+    this.setState({
+      promptTitle: 'Delete this association?',
+      promptBody: 'Are you sure?'
+    }, () => {
+      this.setModalOpen(true);
+    });
   }
 
   /**
@@ -59,10 +98,14 @@ export class CustomContext extends React.Component {
    *
    * @param {String} text - The text to deassociate.
   **/
-  removeAssociation(text) {
-    console.log('removing', text);
-    if (this.socket.isOpen && text.trim().length) {
-      this.socket.send(JSON.stringify({command: 'removeAssociation', data: {text: text.trim(), storyID: this.storyID}}));
+  removeAssociation() {
+    console.log('removing', this.state.editingID);
+    if (this.socket.isOpen && this.state.editingID) {
+      this.socket.send(JSON.stringify({command: 'removeAssociation', data: {'ID': this.state.editingID, 'storyID': this.storyID}}));
+      this.setState({
+        editingID: null
+      });
+      this.setModalOpen(false);
     }
   }
 
@@ -116,7 +159,11 @@ export class CustomContext extends React.Component {
         items: JSON.stringify(json)
       });
     } else if (Object.prototype.hasOwnProperty.call(item, 'type')) {
-      this.createNewAssociation(this.state.selected, item.type);
+      if (item.type == Globals.COMM_TYPE_DELETEASSOC) {
+        this.promptDeleteAssociation();
+      } else {
+        this.createNewAssociation(this.state.selected, item.type);
+      }
       this.hide();
     } else {
       this.hide();
@@ -181,6 +228,23 @@ export class CustomContext extends React.Component {
       {json.map((item) => {
         return this.elementFromObject(item);
       })}
+      <Dialog
+        open={this.state.modalOpen}
+        onClose={this.handleCloseModal.bind(this)}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{this.state.promptTitle}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            {this.state.promptBody}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={this.handleCloseModal.bind(this)} color="primary">Nevermind</Button>
+          <Button onClick={this.removeAssociation.bind(this)} color="primary" autoFocus>Do it</Button>
+        </DialogActions>
+      </Dialog>
     </div>;
   }
 }

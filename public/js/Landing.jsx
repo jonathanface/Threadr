@@ -2,6 +2,7 @@ import React from 'react';
 import {Globals} from './Globals.jsx';
 import {CornerMenu} from './CornerMenu.jsx';
 import {Document} from './Document.jsx';
+import DeleteForever from '@material-ui/icons/DeleteForever';
 
 /**
  * The main page of the whole darned site
@@ -165,7 +166,10 @@ export class Landing extends React.Component {
     const receivedStories = this.state.stories;
     for (const story of data) {
       const t = Date.parse(story.lastAccessed)/1000;
-      receivedStories.push(<li onClick={this.enterDocument.bind(this)} key={story.id} data-id={story.id} data-last-accessed={t}><div onClick={this.enterDocument.bind(this)} onDoubleClick={this.titleDoubleClicked.bind(this)} onInput={this.titleEdited.bind(this)} contentEditable="true">{story.title}</div></li>);
+      receivedStories.push(<li onClick={this.enterDocument.bind(this)} key={story.id} data-id={story.id} data-last-accessed={t}>
+        <div onClick={this.enterDocument.bind(this)} onDoubleClick={this.titleDoubleClicked.bind(this)} onKeyPress={this.titleEdited.bind(this)} contentEditable="true">{story.title}</div>
+        <DeleteForever onClick={this.deleteStory.bind(this)} onMouseOver={this.hoverDeleteStory.bind(this)}/>
+      </li>);
     }
     let newGreeting = 'You haven\'t begun any stories yet...';
     if (receivedStories.length) {
@@ -194,6 +198,26 @@ export class Landing extends React.Component {
   }
 
   /**
+   * Catch the hover event on the delete button to prevent it from bubbling
+   *
+   * @param {Event} event
+   */
+  hoverDeleteStory(event) {
+    event.stopPropagation();
+  }
+
+  /**
+   * delete a story
+   *
+   * @param {Event} event
+   */
+  deleteStory(event) {
+    event.stopPropagation();
+    event.preventDefault();
+    console.log('deleting', event.target.parentElement.dataset.id);
+  }
+
+  /**
    * Capture the click event on the contenteditable to stop it from propagating
    *
    * @param {Event} event
@@ -202,6 +226,7 @@ export class Landing extends React.Component {
     event.stopPropagation();
     event.preventDefault();
     this.editingTitle = true;
+    event.target.classList.add('active');
   }
 
   /**
@@ -210,9 +235,15 @@ export class Landing extends React.Component {
    * @param {event} event
    */
   titleEdited(event) {
+    console.log('edited!!!', event);
     event.stopPropagation();
+    this.editingTitle = true;
+    if (event.keyCode == 13 || event.which == 13) {
+      event.preventDefault();
+      this.editingTitle = false;
+      event.target.classList.remove('active');
+    }
     const newTitle = event.target.innerText;
-    this.editingTitle = false;
     fetch(Globals.SERVICE_URL + '/story/' + event.target.parentElement.dataset.id + '/title', {
       method: 'PUT',
       headers: Globals.getHeaders(),

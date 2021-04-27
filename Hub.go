@@ -109,6 +109,28 @@ func (h *Hub) run() {
 				}
 				clientMessage.Client.conn.WriteJSON(response)
 				break
+			case `removeAssociation`:
+				deets := API.Association{}
+				json.Unmarshal([]byte(m.Data), &deets)
+				log.Println("deets struct", deets)
+				response := SocketMessage{}
+				response.Command = "removeAssociationFailed"
+				err := deleteAssociation(deets.ID)
+				if err == nil {
+					response.Command = "pushAssociations"
+					assocs, err := fetchAssociations(deets.StoryID)
+					if err == nil {
+						j, _ := json.Marshal(assocs)
+						response.Data = json.RawMessage(j)
+					} else {
+						log.Println(err)
+					}
+				} else {
+					log.Println(err)
+					response.Data = json.RawMessage(err.Error())
+				}
+				clientMessage.Client.conn.WriteJSON(response)
+				break
 			}
 			break
 		}

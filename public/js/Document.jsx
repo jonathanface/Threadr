@@ -22,7 +22,7 @@ const addMenu = [
 ];
 
 const editMenu = [
-  {label: 'Delete', classes: ['item'], type: Globals.COMM_TYPE_EDITCHAR}
+  {label: 'Delete', classes: ['item'], type: Globals.COMM_TYPE_DELETEASSOC}
 ];
 
 const associationNames = new Map();
@@ -533,6 +533,7 @@ export class Document extends React.Component {
   processSocketMessage(message) {
     switch (message.command) {
       case 'pushAssociations':
+        console.log('new asses', message.data);
         if (message.data) {
           this.setState({
             associations: message.data
@@ -545,6 +546,9 @@ export class Document extends React.Component {
         break;
       case 'newAssociationFailed':
         console.log('failed to make association');
+        break;
+      case 'removeAssociationFailed':
+        console.log('failed to remove association');
         break;
     }
   }

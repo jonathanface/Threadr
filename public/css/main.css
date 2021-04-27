@@ -35,9 +35,19 @@ ul.stories li {
   color: #2eacdc;
   box-shadow: 2px 2px 2px #2eacdc;
   outline:none;
+  position:relative;
+}
+ul.stories li svg {
+  position:absolute;
+  bottom:15px;
+  right:15px;
 }
 ul.stories li div {
   outline:none;
+  cursor:pointer;
+  user-select:none;
+}
+ul.stories li div.active {
   cursor:text;
 }
 ul.stories li div:hover {

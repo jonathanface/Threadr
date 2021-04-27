@@ -116,6 +116,32 @@ func createAssociation(text string, typeOf int, storyID primitive.ObjectID) erro
 	return err
 }
 
+func deleteAssociation(id primitive.ObjectID) error {
+	log.Println("deleting association", id)
+	client, ctx, err := common.MongoConnect()
+	if err != nil {
+		log.Println("ERROR CONNECTING: ", err)
+		return err
+	}
+	defer common.MongoDisconnect(client, ctx)
+
+	assocs := client.Database(`Drafty`).Collection(`Associations`)
+	ctx, cancelAssoc := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelAssoc()
+	_, err = assocs.DeleteOne(ctx, bson.M{"_id": id})
+	if err != nil {
+		return err
+	}
+	deets := client.Database(`Drafty`).Collection(`AssociationDetails`)
+	_, err = deets.DeleteOne(ctx, bson.M{"_id": id})
+	ctx, cancelDeets := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelDeets()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func fetchAssociationsByType(typeOf int, storyID primitive.ObjectID) ([]API.Association, error) {
 	client, ctx, err := common.MongoConnect()
 	if err != nil {
@@ -142,6 +168,7 @@ func fetchAssociationsByType(typeOf int, storyID primitive.ObjectID) ([]API.Asso
 }
 
 func fetchAssociations(storyID primitive.ObjectID) ([]API.Association, error) {
+	log.Println("fetching story assocs", storyID)
 	client, ctx, err := common.MongoConnect()
 	if err != nil {
 		return nil, err
@@ -155,12 +182,18 @@ func fetchAssociations(storyID primitive.ObjectID) ([]API.Association, error) {
 	}
 	defer cur.Close(ctx)
 	var results []API.Association
+	deets := client.Database("Drafty").Collection("AssociationDetails")
 	for cur.Next(context.TODO()) {
 		var a API.Association
 		err := cur.Decode(&a)
 		if err != nil {
 			return nil, err
 		}
+
+		var descr API.AssociationDetails
+		filter = &bson.M{"_id": a.ID}
+		deets.FindOne(context.TODO(), filter).Decode(&descr)
+		a.Details = descr
 		results = append(results, a)
 	}
 	return results, nil
