@@ -1,12 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {Globals} from './Globals.jsx';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import Button from '@material-ui/core/Button';
+import {DialogPrompt} from './DialogPrompt.jsx';
 
 /**
  * Right-click menu for tagging document text.
@@ -33,25 +28,8 @@ export class CustomContext extends React.Component {
     this.storyID = props.storyID;
     this.IsOpen = false;
     this.divElement = React.createRef();
+    this.dialog = React.createRef();
   }
-
-  /**
-   * Toggle open the modal dialog
-   *
-   * @param {String} val
-   */
-  setModalOpen = (val) => {
-    this.setState({
-      modalOpen: val
-    });
-  };
-
-  /**
-   * Toggle closed the modal dialog
-   */
-  handleCloseModal = () => {
-    this.setModalOpen(false);
-  };
 
   /**
    * proptypes for lint
@@ -89,7 +67,7 @@ export class CustomContext extends React.Component {
       promptTitle: 'Delete this association?',
       promptBody: 'Are you sure?'
     }, () => {
-      this.setModalOpen(true);
+      this.dialog.current.setModalOpen(true);
     });
   }
 
@@ -105,7 +83,7 @@ export class CustomContext extends React.Component {
       this.setState({
         editingID: null
       });
-      this.setModalOpen(false);
+      this.dialog.current.setModalOpen(false);
     }
   }
 
@@ -228,23 +206,7 @@ export class CustomContext extends React.Component {
       {json.map((item) => {
         return this.elementFromObject(item);
       })}
-      <Dialog
-        open={this.state.modalOpen}
-        onClose={this.handleCloseModal.bind(this)}
-        aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
-      >
-        <DialogTitle id="alert-dialog-title">{this.state.promptTitle}</DialogTitle>
-        <DialogContent>
-          <DialogContentText id="alert-dialog-description">
-            {this.state.promptBody}
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={this.handleCloseModal.bind(this)} color="primary">Nevermind</Button>
-          <Button onClick={this.removeAssociation.bind(this)} color="primary" autoFocus>Do it</Button>
-        </DialogActions>
-      </Dialog>
+      <DialogPrompt ref={this.dialog} title="Delete this association?" body="Are you sure?" isPrompt={true} okFunc={this.removeAssociation.bind(this)} cancelFunc={null}/>
     </div>;
   }
 }
