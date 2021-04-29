@@ -21,7 +21,11 @@ export class CustomContext extends React.Component {
       display: 'none',
       x: 0,
       y: 0,
-      modalOpen: false
+      modalOpen: false,
+      promptTitle: '',
+      promptBody: '',
+      dialogCancelFunc: null,
+      dialogOKFunc: null
     };
     this.type = props.type;
     this.socket = props.socket;
@@ -65,7 +69,8 @@ export class CustomContext extends React.Component {
     console.log('prompt', this.state.editingID);
     this.setState({
       promptTitle: 'Delete this association?',
-      promptBody: 'Are you sure?'
+      promptBody: 'Are you sure?',
+      dialogOKFunc: this.removeAssociation.bind(this)
     }, () => {
       this.dialog.current.setModalOpen(true);
     });
@@ -206,7 +211,7 @@ export class CustomContext extends React.Component {
       {json.map((item) => {
         return this.elementFromObject(item);
       })}
-      <DialogPrompt ref={this.dialog} title="Delete this association?" body="Are you sure?" isPrompt={true} okFunc={this.removeAssociation.bind(this)} cancelFunc={null}/>
+      <DialogPrompt ref={this.dialog} title={this.state.promptTitle} body={this.state.promptBody} isPrompt={true} okFunc={this.state.dialogOKFunc} cancelFunc={this.state.dialogCancelFunc}/>
     </div>;
   }
 }

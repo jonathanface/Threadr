@@ -1,8 +1,10 @@
 import React from 'react';
 import {Globals} from './Globals.jsx';
+import {DialogPrompt} from './DialogPrompt.jsx';
 import {CornerMenu} from './CornerMenu.jsx';
 import {Document} from './Document.jsx';
 import DeleteForever from '@material-ui/icons/DeleteForever';
+
 
 /**
  * The main page of the whole darned site
@@ -13,13 +15,22 @@ export class Landing extends React.Component {
     super();
     this.isLoggedIn = false;
     this.editingTitle = false;
+    this.fetchedStories = false;
     this.state = {
       username: '',
       stories: [],
       greeting: '',
       addStoryButtonDisplay: 'none',
-      editingDocument: false
+      editingDocument: false,
+      dialogTitle: '',
+      dialogBody: '',
+      dialogCancelFunc: null,
+      dialogOKFunc: null,
+      dialogIsPrompt: true,
+      dialogOkButtonText: null,
+      dialogCancelButtonText: null
     };
+    this.dialog = React.createRef();
   }
 
   /** componentDidMount **/
@@ -112,7 +123,7 @@ export class Landing extends React.Component {
           });
         }
       }
-    }, 500);
+    }, 300);
   }
 
   /**
@@ -140,18 +151,32 @@ export class Landing extends React.Component {
           });
           break;
         default:
-          this.setState({
-            greeting: ''
-          });
+          this.setupAndOpenDialog('Error', 'Unable to log you in at this time.', false, null, null, 'OKAY');
       }
     });
+    if (!this.fetchedStories) {
+      this.getAllStories();
+    }
+  }
+
+  /**
+   * Fetch all user stories from the DB
+   */
+  getAllStories() {
+    this.fetchedStories = true;
     this.fetchDocuments().then((response) => {
       switch (response.status) {
         case 200:
-          response.json().then((data) => {
-            this.renderStoryButton(data);
+          this.setState({
+            stories: []
+          }, () => {
+            response.json().then((data) => {
+              this.renderStoryButton(data);
+            });
           });
           break;
+        default:
+          this.setupAndOpenDialog('Error', 'There was an error retrieving your stories.', false, null, null, 'OKAY');
       }
     });
   }
@@ -166,9 +191,12 @@ export class Landing extends React.Component {
     const receivedStories = this.state.stories;
     for (const story of data) {
       const t = Date.parse(story.lastAccessed)/1000;
-      receivedStories.push(<li onClick={this.enterDocument.bind(this)} key={story.id} data-id={story.id} data-last-accessed={t}>
-        <div onClick={this.enterDocument.bind(this)} onDoubleClick={this.titleDoubleClicked.bind(this)} onKeyPress={this.titleEdited.bind(this)} contentEditable="true">{story.title}</div>
-        <DeleteForever onClick={this.deleteStory.bind(this)} onMouseOver={this.hoverDeleteStory.bind(this)}/>
+      receivedStories.push(<li key={story.id} data-id={story.id} data-last-accessed={t}>
+        <div onClick={this.enterDocument.bind(this)} className="bg"></div>
+        <div className="title" onClick={this.enterDocument.bind(this)} onDoubleClick={this.titleDoubleClicked.bind(this)} onKeyPress={this.titleEdited.bind(this)} onBlur={this.titleEditedLoseFocus.bind(this)} contentEditable="true">{story.title}</div>
+        <button onClick={this.promptToDeleteStory.bind(this)}>
+          <DeleteForever />
+        </button>
       </li>);
     }
     let newGreeting = 'You haven\'t begun any stories yet...';
@@ -198,23 +226,70 @@ export class Landing extends React.Component {
   }
 
   /**
-   * Catch the hover event on the delete button to prevent it from bubbling
+   * delete a story for all eternity, PURGE IT FROM THE VERY FABRIC OF THE UNIVERSE
    *
-   * @param {Event} event
+   * @param {string} id
    */
-  hoverDeleteStory(event) {
-    event.stopPropagation();
+  deleteStory(id) {
+    this.dialog.current.setModalOpen(false);
+    fetch(Globals.SERVICE_URL + '/story/' + id, {
+      method: 'DELETE',
+      headers: Globals.getHeaders()
+    }).then((response) => {
+      switch (response.status) {
+        case 200:
+          this.getAllStories();
+          break;
+        default:
+          this.setupAndOpenDialog('Error', 'There was an error deleting your story.', false, null, null, 'OKAY');
+      }
+    });
   }
 
   /**
-   * delete a story
+   * warn/prompt about deleting a story
    *
    * @param {Event} event
    */
-  deleteStory(event) {
+  promptToDeleteStory(event) {
+    event.stopPropagation();
+    const id = event.target.parentElement.dataset.id;
+    const title = document.querySelector('.stories [data-id="' + id + '"] .title').innerText;
+    this.setupAndOpenDialog('Delete ' + title + '?', 'This is undoable.', true, this.deleteStory.bind(this, id), null, 'DO IT');
+  }
+
+  /**
+   * Configure the dialog component and display
+   *
+   * @param {string} title
+   * @param {string} body
+   * @param {bool} isPrompt
+   * @param {function} okFunc
+   * @param {function} cancelFunc
+   * @param {string} okButtonText
+   * @param {string} cancelButtonText
+   */
+  setupAndOpenDialog(title='', body='', isPrompt=false, okFunc=null, cancelFunc=null, okButtonText=null, cancelButtonText=null) {
+    this.setState({
+      dialogTitle: title,
+      dialogBody: body,
+      dialogIsPrompt: isPrompt,
+      dialogOKFunc: okFunc,
+      dialogOkButtonText: okButtonText,
+      dialogCancelButtonText: cancelButtonText
+    }, () => {
+      this.dialog.current.setModalOpen(true);
+    });
+  }
+
+  /**
+   * stop an event
+   *
+   * @param {Event} event
+   */
+  captureAndKill(event) {
     event.stopPropagation();
     event.preventDefault();
-    console.log('deleting', event.target.parentElement.dataset.id);
   }
 
   /**
@@ -223,6 +298,7 @@ export class Landing extends React.Component {
    * @param {Event} event
    */
   titleDoubleClicked(event) {
+    console.log('doubled');
     event.stopPropagation();
     event.preventDefault();
     this.editingTitle = true;
@@ -252,6 +328,16 @@ export class Landing extends React.Component {
   }
 
   /**
+   * Blur event on cursor out of story title field
+   *
+   * @param {Event} event
+   */
+  titleEditedLoseFocus(event) {
+    event.keyCode = 13;
+    this.titleEdited(event);
+  }
+
+  /**
    * Creates an empty story in the DB and makes a default icon
    */
   createNewStory() {
@@ -264,6 +350,9 @@ export class Landing extends React.Component {
           response.json().then((data) => {
             this.renderStoryButton(data);
           });
+          break;
+        default:
+          this.setupAndOpenDialog('Error', 'Unable to create your story.', false, null, null, 'OKAY');
       }
     });
   }
@@ -288,6 +377,7 @@ export class Landing extends React.Component {
         <div>
           {content}
         </div>
+        <DialogPrompt ref={this.dialog} title={this.state.dialogTitle} body={this.state.dialogBody} isPrompt={this.state.dialogIsPrompt} okFunc={this.state.dialogOKFunc} cancelFunc={this.state.dialogCancelFunc} okButtonText={this.state.dialogOkButtonText} cancelButtonText={this.state.dialogCancelButtonText}/>
       </div>
     );
   }

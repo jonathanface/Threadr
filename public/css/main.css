@@ -26,6 +26,8 @@ body {
 ul.stories {
   display:flex;
   list-style:none;
+  flex-direction:row;
+  flex-wrap:wrap;
 }
 ul.stories li {
   margin: 10px;
@@ -33,32 +35,58 @@ ul.stories li {
   border-radius: 25px;
   background: #F0F0F0;
   color: #2eacdc;
-  box-shadow: 2px 2px 2px #2eacdc;
   outline:none;
+  user-select:none;
+  position:relative;
+  cursor:pointer;
+  user-select: none;
+}
+
+ul.stories li .title {
+  outline:none;
+  user-select:none;
   position:relative;
 }
-ul.stories li svg {
+ul.stories li .title:hover {
+  cursor:pointer;
+}
+ul.stories li .title.active {
+  cursor:text;
+}
+ul.stories li button {
+  color: #2eacdc;
   position:absolute;
   bottom:15px;
   right:15px;
-}
-ul.stories li div {
-  outline:none;
   cursor:pointer;
-  user-select:none;
+  z-index:3;
+  padding:0px;
+  border:none;
 }
-ul.stories li div.active {
-  cursor:text;
-}
-ul.stories li div:hover {
-  
-}
-ul.stories li:hover {
-  cursor:pointer;
+ul.stories li button:hover {
   color:#333;
+}
+ul.stories li button svg {
+  pointer-events:none;
+}
+ul.stories li .bg {
+  position:absolute;
+  top:0px;
+  left:0px;
+  border-radius:25px;
+  box-shadow: 2px 2px 2px #2eacdc;
+  display: inline-block;
+  width: 100%;
+  height: 100%;
+}
+ul.stories li .bg:hover {
   box-shadow: 2px 2px 2px #333;
 }
-ul.stories li:active {
+ul.stories li .bg:hover + .title {
+  cursor:pointer;
+  color:#333;
+}
+ul.stories li .bg:active {
   cursor:pointer;
   color:#717171;
   box-shadow:none;

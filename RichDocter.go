@@ -326,7 +326,13 @@ func serveRootDirectory(w http.ResponseWriter, r *http.Request) {
 	}
 	cleanedPath := filepath.Clean(r.URL.Path)
 	truePath := abs + string(os.PathSeparator) + STATIC_FILES_DIR + cleanedPath
+	log.Println("true", r.URL.Path)
 	if _, err := os.Stat(truePath); os.IsNotExist(err) {
+		// return an error if this is a bad API request
+		if strings.Contains(r.URL.Path, SERVICE_PATH) {
+			API.RespondWithError(w, http.StatusNotFound, err.Error())
+			return
+		}
 		http.StripPrefix(r.URL.Path, http.FileServer(http.Dir("./public"))).ServeHTTP(w, r)
 		return
 	}
@@ -353,6 +359,8 @@ func main() {
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/associations", middleware(API.EditAssociationEndPoint)).Methods("PUT")
 
 	rtr.HandleFunc(SERVICE_PATH+"/story", middleware(API.CreateStoryEndPoint)).Methods("POST")
+
+	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}", middleware(API.DeleteStoryEndPoint)).Methods("DELETE")
 
 	http.HandleFunc(SOCKET_DIR, func(w http.ResponseWriter, r *http.Request) {
 		serveWs(hub, w, r)
