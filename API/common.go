@@ -45,9 +45,15 @@ type Association struct {
 	Details AssociationDetails `json:"details" bson:"omitempty"`
 }
 
-type Page struct {
-	Page    int                `json:"page" bson:"page"`
+type Block struct {
+	Key     string             `json:"key" bson:"key"`
 	Body    json.RawMessage    `json:"body" bson:"body"`
+	StoryID primitive.ObjectID `json:"storyID" bson:"storyID,omitempty"`
+	Order   int                `json:"order" bson:"order,omitempty"`
+}
+
+type BlockOrder struct {
+	Order   map[string]int     `json:"order" bson:"order"`
 	StoryID primitive.ObjectID `json:"storyID" bson:"storyID,omitempty"`
 }
 

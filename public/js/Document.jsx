@@ -1,8 +1,9 @@
 import React from 'react';
 import Immutable from 'immutable';
-import {EditorState, Editor, ContentState, SelectionState, Modifier, convertToRaw, convertFromRaw, RichUtils, getDefaultKeyBinding, CompositeDecorator, Entity} from 'draft-js';
+import {EditorState, Editor, ContentState, ContentBlock, SelectionState, Modifier, convertToRaw, convertFromRaw, RichUtils, getDefaultKeyBinding, CompositeDecorator, Entity} from 'draft-js';
 import {CustomContext} from './CustomContext.jsx';
 import {PopPanel} from './PopPanel.jsx';
+import {DialogPrompt} from './DialogPrompt.jsx';
 import FormatAlignLeftIcon from '@material-ui/icons/FormatAlignLeft';
 import FormatAlignRightIcon from '@material-ui/icons/FormatAlignRight';
 import FormatAlignCenterIcon from '@material-ui/icons/FormatAlignCenter';
@@ -37,6 +38,8 @@ lineSpacings.set('lineheight_single', 1);
 lineSpacings.set('lineheight_medium', 1.5);
 lineSpacings.set('lineheight_double', 2);
 
+let blockOrder = {};
+
 /**
  * Represents a document containing a work of fiction.
  */
@@ -50,10 +53,8 @@ export class Document extends React.Component {
     super(props);
 
     const dpi = this.getDPI();
-    this.refHandles = [];
 
     this.state = {
-      pages: [],
       pageWidth: 8.25 * dpi,
       pageHeight: 11.75 * dpi,
       topMargin: 1 * dpi,
@@ -68,7 +69,15 @@ export class Document extends React.Component {
       selectedText: '',
       associations: [],
       loading: true,
-      selectedAssociation: ''
+      selectedAssociation: '',
+      editorState: null,
+      dialogTitle: 'Message',
+      dialogBody: 'No message set',
+      dialogCancelFunc: null,
+      dialogOKFunc: null,
+      dialogIsPrompt: false,
+      dialogOkButtonText: 'Ok',
+      dialogCancelButtonText: 'Cancel'
     };
     this.storyID = props.storyID;
     this.rightclickAddMenu = React.createRef();
@@ -82,6 +91,8 @@ export class Document extends React.Component {
     this.pendingEdits = new Map();
     this.pendingPageDeletions = [];
     this.checkSaveInterval = setInterval(() => this.checkForPendingEdits(), this.SAVE_TIME_INTERVAL);
+    this.editor = React.createRef();
+    this.dialog = React.createRef();
   }
 
   /**
@@ -91,6 +102,30 @@ export class Document extends React.Component {
     return {
       storyID: PropTypes.string,
     };
+  }
+  
+  /**
+   * Configure the dialog component and display
+   *
+   * @param {string} title
+   * @param {string} body
+   * @param {bool} isPrompt
+   * @param {function} okFunc
+   * @param {function} cancelFunc
+   * @param {string} okButtonText
+   * @param {string} cancelButtonText
+   */
+  setupAndOpenDialog(title='', body='', isPrompt=false, okFunc=null, cancelFunc=null, okButtonText=null, cancelButtonText=null) {
+    this.setState({
+      dialogTitle: title,
+      dialogBody: body,
+      dialogIsPrompt: isPrompt,
+      dialogOKFunc: okFunc,
+      dialogOkButtonText: okButtonText,
+      dialogCancelButtonText: cancelButtonText
+    }, () => {
+      this.dialog.current.setModalOpen(true);
+    });
   }
 
   /**
@@ -114,9 +149,9 @@ export class Document extends React.Component {
    * @return {Object} The composite decorator
    */
   createDecorators() {
-    console.log('make decorator for', this.state.associations);
     const decorators = [];
     for (let i=0; i < this.state.associations.length; i++) {
+      console.log('decor for ', this.state.associations[i].name, ' type ', this.state.associations[i].type);
       switch (this.state.associations[i].type) {
         case Globals.ASSOCIATION_TYPE_CHARACTER:
           decorators.push({
@@ -291,7 +326,7 @@ export class Document extends React.Component {
    */
   matchAlias(assoc, label) {
     if (assoc.details.aliases.length) {
-      const aliases = assoc.details.aliases.split(',');
+      const aliases = assoc.details.aliases.split('|');
       for (let i=0; i < aliases.length; i++) {
         if (!assoc.details.caseSensitive) {
           if (aliases[i].toLowerCase() == label.toLowerCase()) {
@@ -313,7 +348,7 @@ export class Document extends React.Component {
    * @return {string}
    */
   getRegexString(string) {
-    return '(' + string + ')+[(?!,.\'-)|(\\s)]+';
+    return  '(' + string + ')+[(?!,.\'-)|(\\s)]+|(sss)+$';
   }
 
   /**
@@ -332,13 +367,13 @@ export class Document extends React.Component {
       if (this.state.associations[i].type == Globals.ASSOCIATION_TYPE_CHARACTER) {
         let match;
         const deets = this.state.associations[i].details;
-        const toArray = deets.aliases.split(',');
+        const toArray = deets.aliases.split('|');
         for (let z=0; z < toArray.length; z++) {
           const alias = toArray[z].trim();
           const regexStr = this.getRegexString(alias);
           let caseFlag = 'g';
           if (!deets.caseSensitive) {
-            caseFlag = 'gi';
+            caseFlag += 'i';
           }
           const regex = new RegExp(regexStr, caseFlag);
           while ((match = regex.exec(text)) !== null) {
@@ -351,7 +386,7 @@ export class Document extends React.Component {
         const regexStr = this.getRegexString(name);
         let caseFlag = 'g';
         if (!deets.caseSensitive) {
-          caseFlag = 'gi';
+          caseFlag += 'i';
         }
         const regex = new RegExp(regexStr, caseFlag);
         while ((match = regex.exec(text)) !== null) {
@@ -378,7 +413,7 @@ export class Document extends React.Component {
       if (this.state.associations[i].type == Globals.ASSOCIATION_TYPE_PLACE) {
         let match;
         const deets = this.state.associations[i].details;
-        const toArray = deets.aliases.split(',');
+        const toArray = deets.aliases.split('|');
         for (let z=0; z < toArray.length; z++) {
           const alias = toArray[z].trim();
           const regexStr = this.getRegexString(alias);
@@ -423,7 +458,7 @@ export class Document extends React.Component {
       if (this.state.associations[i].type == Globals.ASSOCIATION_TYPE_EVENT) {
         let match;
         const deets = this.state.associations[i].details;
-        const toArray = deets.aliases.split(',');
+        const toArray = deets.aliases.split('|');
         for (let z=0; z < toArray.length; z++) {
           const alias = toArray[z].trim();
           const regexStr = this.getRegexString(alias);
@@ -455,10 +490,15 @@ export class Document extends React.Component {
 
   /** componentDidMount **/
   componentDidMount() {
+    this.setState({
+      editorState: EditorState.createEmpty()
+    });
     this.fetchWebsocketURL();
     window.addEventListener('beforeunload', this.beforeunload.bind(this));
     this.fetchAssociations().then( () => {
-      this.fetchDocumentPages();
+      console.log('got assocs', this.state.associations);
+      console.log('fetching docs');
+      this.fetchDocumentBlocks();
     });
   }
 
@@ -503,26 +543,8 @@ export class Document extends React.Component {
    * when the list of associations is updated by the user.
    */
   forceRender() {
-    const newPages = [...this.state.pages];
-    this.setFocus(this.currentPage);
-    for (let i=0; i < this.state.pages.length; i++) {
-      const editorState = this.state.pages[i].editorState;
-      newPages[i].editorState = EditorState.set(editorState, {decorator: this.createDecorators()});
-      if (i == this.currentPage) {
-        const selection = editorState.getSelection();
-        const state = editorState.getCurrentContent();
-        const block = state.getBlockForKey(selection.getEndKey());
-        const deselection = new SelectionState({
-          anchorKey: block.getKey(), // key of block
-          anchorOffset: selection.getEndOffset(),
-          focusKey: block.getKey(),
-          focusOffset: selection.getEndOffset(), // key of block
-          hasFocus: true
-        });
-        newPages[i].editorState = EditorState.forceSelection(newPages[i].editorState, deselection);
-      }
-    }
-    this.setState({pages: newPages});
+      const editorState = this.state.editorState;
+      this.setState({editorState: EditorState.set(editorState, {decorator: this.createDecorators()})});
   }
 
   /**
@@ -538,17 +560,21 @@ export class Document extends React.Component {
           this.setState({
             associations: message.data
           }, () => {
-            this.compositeDecorators = this.createDecorators();
             // I have to obnoxiously trigger a re-render to get new associations to appear
             this.forceRender();
           });
         }
         break;
+      case 'saveFailed':
+        break;
+      case 'fetchAssociationsFailed':
+        this.setupAndOpenDialog('Error', message.data.text);
+        break;
       case 'newAssociationFailed':
-        console.log('failed to make association');
+        this.setupAndOpenDialog('Error', message.data.text);
         break;
       case 'removeAssociationFailed':
-        console.log('failed to remove association');
+        this.setupAndOpenDialog('Error', message.data.text);
         break;
     }
   }
@@ -559,20 +585,24 @@ export class Document extends React.Component {
    * @return {Promise}
    */
   fetchAssociations() {
-    return fetch(Globals.SERVICE_URL + '/story/' + this.storyID + '/associations', {
-      headers: Globals.getHeaders()
-    }).then((response) => {
-      switch (response.status) {
-        case 200:
-          response.json().then((data) => {
-            this.setState({
-              associations: data
-            }, () => {
-              this.compositeDecorators = this.createDecorators();
+    return new Promise((resolve, reject) => {
+      fetch(Globals.SERVICE_URL + '/story/' + this.storyID + '/associations', {
+        headers: Globals.getHeaders()
+      }).then((response) => {
+        switch (response.status) {
+          case 200:
+            response.json().then((data) => {
+              this.setState({
+                associations: data
+              }, () => {
+                resolve();
+              });
             });
-          });
-          break;
-      }
+            break;
+          default:
+            reject();
+        }
+      });
     });
   }
 
@@ -588,30 +618,32 @@ export class Document extends React.Component {
    *
    * @return {Promise}
    */
-  fetchDocumentPages() {
-    return fetch(Globals.SERVICE_URL + '/story/' + this.storyID + '/pages', {
+  fetchDocumentBlocks() {
+    return fetch(Globals.SERVICE_URL + '/story/' + this.storyID + '/blocks', {
       headers: Globals.getHeaders()
     }).then((response) => {
       switch (response.status) {
         case 200:
           response.json().then((data) => {
-            const pages = [];
+            const contentState = this.state.editorState.getCurrentContent();
+            let newBlocks = [];
             data.forEach((item) => {
-              const contentState = convertFromRaw(item.body);
-              const editorState = EditorState.createWithContent(contentState);
-              pages.push({'editorState': editorState, 'pageNum': item.page});
-              this.setState({
-                pages: pages
-              });
+              newBlocks.push(new ContentBlock({
+                key: item.body.key,
+                text: item.body.text,
+                type: item.body.type,
+                data: Immutable.Map(item.body.data)
+              }));
+            });
+            const newContent = ContentState.createFromBlockArray(newBlocks);
+            this.setState({
+              editorState: EditorState.push(this.state.editorState, newContent)
+            }, () => {
+              this.forceRender();
             });
           });
           break;
         case 404: {
-          const blankpages = [];
-          blankpages.push({'editorState': EditorState.createEmpty(), 'pageNum': 0});
-          this.setState({
-            pages: blankpages
-          });
           break;
         }
       }
@@ -637,23 +669,6 @@ export class Document extends React.Component {
   }
 
   /**
-   * Add a new page to the bottom of the document.
-   */
-  async addNewPage() {
-    const pages = this.state.pages;
-    const editorState = EditorState.createEmpty();
-    pages.push({'editorState': editorState, 'pageNum': pages.length});
-    // const removeBlock = pages[pages.length-1].editorState.getCurrentContent();
-    // console.log('new page', removeBlock.getBlockMap());
-    await this.setState({
-      pages: pages
-    }, async () => {
-      this.pendingEdits[pages.length] = true;
-      return;
-    });
-  }
-
-  /**
    * Get the current block element being selected
    *
    * @return {Node}
@@ -671,20 +686,6 @@ export class Document extends React.Component {
       node = node.parentNode;
     } while (node !== null);
     return null;
-  }
-
-  /**
-   * Recount pages and update page numbers
-   * This is mostly to occur after page add or delete
-   */
-  recalcPagination() {
-    const newpages = [];
-    for (let i=0; i < this.state.pages.length; i++) {
-      newpages.push({'editorState': this.state.pages[i].editorState, 'pageNum': i});
-    }
-    this.setState({
-      pages: newpages
-    });
   }
 
   /**
@@ -716,48 +717,10 @@ export class Document extends React.Component {
    * @param {boolean} renderedNewPage
    */
   async checkPageHeightAndAdvanceToNextPageIfNeeded(pageNumber, renderedNewPage) {
-    const pages = this.state.pages;
-    if (!pages[pageNumber] || !this.refHandles[pageNumber]) {
-      return;
-    }
-    const editor = this.refHandles[pageNumber].current;
+    const editor = this.editor.current;
     const maxHeight = this.state.pageHeight - this.state.topMargin - this.state.bottomMargin;
-    const selection = pages[pageNumber].editorState.getSelection();
+    const selection = this.state.editorState.getSelection();
     if (editor.editorContainer.firstChild.firstChild.offsetHeight > maxHeight) {
-      if (!pages[pageNumber+1]) {
-        await this.addNewPage();
-        return this.checkPageHeightAndAdvanceToNextPageIfNeeded(pageNumber, true);
-      }
-      const removeBlock = pages[pageNumber].editorState.getCurrentContent().getLastBlock();
-
-      let blockArray = [];
-      blockArray.push(removeBlock);
-      if (!renderedNewPage) {
-        blockArray = blockArray.concat(pages[pageNumber+1].editorState.getCurrentContent().getBlockMap().toArray());
-      }
-      const combinedContentState = ContentState.createFromBlockArray(blockArray);
-      const slicedEditorState = this.removeBlockFromMap(pages[pageNumber].editorState, removeBlock.getKey());
-      if (!slicedEditorState) {
-        console.log('unable to slice off last block');
-        return;
-      }
-      pages[pageNumber+1].editorState = EditorState.push(pages[pageNumber+1].editorState, combinedContentState);
-      pages[pageNumber].editorState = slicedEditorState;
-      this.setState({
-        pages: pages
-      }, () => {
-        this.currentPage = this.refHandles.length-1;
-        const currentSelectedKey = selection.focusKey;
-        if (currentSelectedKey == removeBlock.getKey()) {
-          this.setFocus(pageNumber+1);
-          const selection = pages[pageNumber].editorState.getSelection();
-          pages[pageNumber+1].editorState = EditorState.forceSelection(pages[pageNumber+1].editorState, selection);
-          this.setState({
-            pages: pages
-          });
-        }
-        return this.checkPageHeightAndAdvanceToNextPageIfNeeded(pageNumber);
-      });
     }
   }
 
@@ -804,104 +767,47 @@ export class Document extends React.Component {
    * @param {EditorState} editorState
    * @param {number} pageNumber
    */
-  onChange(editorState, pageNumber) {
-    console.log('change', pageNumber);
-    const pagesUpdate = this.state.pages;
+  async onChange(newEditorState) {
     let cursorChange = false;
-    const selection = editorState.getSelection();
+    const selection = newEditorState.getSelection();
     // Cursor has moved but no text changes detected.
-    if (this.state.pages[pageNumber].editorState.getCurrentContent() === editorState.getCurrentContent()) {
-      if (this.rightclickAddMenu.current.IsOpen) {
-        // this.rightclickMenu.current.hide();
-      }
-      if (this.popPanel.current.IsOpen) {
-        // this.popPanel.current.hide();
-      }
+    if (this.state.editorState.getCurrentContent() === newEditorState.getCurrentContent()) {
       cursorChange = true;
-      const lastBlock = editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
-      this.updateTextControls(lastBlock.getData().getIn(['alignment']));
-      const lineHeight = lastBlock.getData().getIn(['lineHeight']);
-      this.updateTextControls(lineHeight);
+      const lastBlock = newEditorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
+      if (lastBlock) {
+        const lastData = lastBlock.getData();
+        this.updateTextControls(lastData.getIn(['alignment']));
+        const lineHeight = lastData.getIn(['lineHeight']);
+        this.updateTextControls(lineHeight);
+      }
     }
 
     const dataMap = [];
-    const blockTree = this.state.pages[pageNumber].editorState.getBlockTree(selection.getFocusKey());
+    const blockTree = newEditorState.getBlockTree(selection.getFocusKey());
     if (!blockTree) {
       // a new block has been added, copy styles from previous block
-      const styles = this.getPreviousBlockStyles(editorState);
+      
+      const styles = this.getPreviousBlockStyles(newEditorState);
       dataMap.push(['alignment', styles.direction]);
       dataMap.push(['lineHeight', styles.lineHeight]);
       const iMap = Immutable.Map(dataMap);
-      const nextContentState = Modifier.mergeBlockData(editorState.getCurrentContent(), selection, iMap);
-      editorState = EditorState.push(editorState, nextContentState, 'change-block-data');
+      const nextContentState = Modifier.mergeBlockData(newEditorState.getCurrentContent(), selection, iMap);
+      editorState = EditorState.push(newEditorState, nextContentState, 'change-block-data');
 
       // auto tab if align left
       if (styles.direction == 'left') {
-        editorState = this.insertTab(editorState);
+        newEditorState = this.insertTab(newEditorState);
       }
+      
     }
-    pagesUpdate[pageNumber].editorState = editorState;
-    this.setState({
-      pages: pagesUpdate
-    }, async () => {
-      if (this.deletePressed) {
-        this.deletePressed = false;
-        console.log('delpressed');
-        const selection = editorState.getSelection();
-        const blockKey = selection.getFocusKey();
-        const block = editorState.getCurrentContent().getBlockForKey(blockKey);
-        const firstKey = editorState.getCurrentContent().getFirstBlock().getKey();
-
-        if (!editorState.getCurrentContent().hasText() && pagesUpdate.length > 1) {
-          this.setFocus(pageNumber-1);
-          console.log('deleting empty page');
-          pagesUpdate.splice(pageNumber, 1);
-          this.refHandles.splice(pageNumber, 1);
-          this.recalcPagination();
-          this.deletePage(pageNumber);
-          this.currentPage--;
-          pagesUpdate[pageNumber-1].editorState = EditorState.moveFocusToEnd(pagesUpdate[pageNumber-1].editorState);
-          this.setState({
-            pages: pagesUpdate
-          }, () => {
-            // this.scrollToBlock();
-          });
-        } else if (!block.getText().length && pagesUpdate.length > 1) {
-          console.log('deleting empty block');
-          pagesUpdate[pageNumber].editorState = this.removeBlockFromMap(editorState, blockKey);
-          this.setState({pages: pagesUpdate});
-        } else if (block.getText().length && blockKey == firstKey && pageNumber > 0) {
-          console.log('text present del', block.getText());
-          // we are on the first line of the page and text is present
-          if (!selection.getFocusOffset() && !selection.getAnchorOffset()) {
-            // cursor is at the start of the line
-            const blockText = block.getText();
-            pagesUpdate[pageNumber].editorState = this.removeBlockFromMap(editorState, blockKey);
-            this.setState({pages: pagesUpdate}, () => {
-              const prevPageLastBlock = pagesUpdate[pageNumber-1].editorState.getCurrentContent().getLastBlock();
-              const prevSelection = new SelectionState({
-                anchorKey: prevPageLastBlock.getKey(), // key of block
-                anchorOffset: prevPageLastBlock.getText().length,
-                focusKey: prevPageLastBlock.getKey(),
-                focusOffset: prevPageLastBlock.getText().length, // key of block
-                hasFocus: true
-              });
-              const ncs = Modifier.insertText(pagesUpdate[pageNumber-1].editorState.getCurrentContent(), prevSelection, blockText);
-              pagesUpdate[pageNumber-1].editorState = EditorState.push(pagesUpdate[pageNumber-1].editorState, ncs, 'insert-fragment');
-              pagesUpdate[pageNumber-1].editorState = EditorState.forceSelection(pagesUpdate[pageNumber-1].editorState, prevSelection);
-              this.currentPage--;
-              this.setState({pages: pagesUpdate});
-            });
-          }
-        }
-        this.pendingEdits.set(pageNumber, true);
-        return;
-      }
-      if (!cursorChange) {
-        await this.checkPageHeightAndAdvanceToNextPageIfNeeded(pageNumber);
-        this.pendingEdits.set(pageNumber, true);
-      }
-    });
+    this.setState({editorState: newEditorState});
+    if (!cursorChange) {
+      const content = newEditorState.getCurrentContent();
+      const block = content.getBlockForKey(selection.getAnchorKey());
+      console.log('saving', block.getKey());
+      //await this.checkPageHeightAndAdvanceToNextPageIfNeeded(pageNumber);
+      this.pendingEdits.set(block.getKey(), true);
+    }
   }
 
   /**
@@ -924,7 +830,7 @@ export class Document extends React.Component {
   checkForPendingEdits() {
     this.pendingEdits.forEach((value, key) => {
       if (value) {
-        this.savePage(key);
+        this.saveBlock(key);
         this.pendingEdits.set(key, false);
       }
     });
@@ -935,32 +841,41 @@ export class Document extends React.Component {
    *
    * @param {number} pageNumber
    */
-  savePage(pageNumber) {
-    console.log('saving page ' + pageNumber);
+  saveBlock(key) {
     // Send the encoded page if the socket is open and it hasn't been subsequently deleted
-    if (this.socket.isOpen && this.state.pages[pageNumber]) {
-      this.socket.send(JSON.stringify({command: 'savePage', data: {page: pageNumber, storyID: this.storyID, body: convertToRaw(this.state.pages[pageNumber].editorState.getCurrentContent())}}));
+    if (this.socket.isOpen) {
+      const block = this.state.editorState.getCurrentContent().getBlockForKey(key);
+      console.log('save block', block);
+      if (block) {
+        this.socket.send(JSON.stringify({command: 'saveBlock', data: {key: block.getKey(), storyID: this.storyID, body: block.toJSON()}}));
+        this.saveBlockOrder();
+      }
     }
   }
-
-  /**
-   * Send command via websocket to save all pages
-   */
-  saveAllPages() {
-    for (let i=0; i < this.state.pages.length; i++) {
-      this.savePage(i);
+  
+  saveBlockOrder() {
+    const order = this.state.editorState.getCurrentContent().getBlockMap()._map._root.entries;
+    let toObj = {};
+    for (let i=0; i < order.length; i++) {
+      toObj[order[i][0]] = order[i][1];
+    }
+    console.log(blockOrder, toObj)
+    if (blockOrder != JSON.stringify(toObj)) {
+      blockOrder = JSON.stringify(toObj);
+      this.socket.send(JSON.stringify({command: 'updateBlockOrder', data: {storyID: this.storyID, order: toObj}}));
+      
     }
   }
 
   /**
    * Send command via websocket to delete given page
    *
-   * @param {number} pageNumber
+   * @param {number} key
    */
-  deletePage(pageNumber) {
-    console.log('deleting page', pageNumber);
+  deleteBlock(key) {
+    console.log('deleting block', key);
     if (this.socket.isOpen) {
-      this.socket.send(JSON.stringify({command: 'deletePage', data: {page: pageNumber, storyID: this.storyID}}));
+      this.socket.send(JSON.stringify({command: 'deleteBlock', data: {key: key, storyID: this.storyID}}));
     }
   }
 
@@ -989,9 +904,9 @@ export class Document extends React.Component {
     // tab pressed
     if (event.keyCode == 9) {
       event.preventDefault();
-      const pagesUpdate = this.state.pages;
-      pagesUpdate[this.currentPage].editorState = this.insertTab(pagesUpdate[this.currentPage].editorState);
-      this.setState({pages: pagesUpdate});
+      this.setState({
+        editorState: this.insertTab(this.state.editorState)
+      });
     }
     if (event.ctrlKey) {
       if (event.keyCode == 83) {
@@ -1020,16 +935,14 @@ export class Document extends React.Component {
       case 'backspace': {
         console.log('hit delete');
         this.deletePressed = true;
-        this.onChange(this.state.pages[pageNumber].editorState, pageNumber);
+        this.onChange(this.state.editorState);
         break;
       }
       case 'bold':
       case 'italic':
       case 'underline': {
-        const pagesUpdate = this.state.pages;
-        pagesUpdate[this.currentPage].editorState = RichUtils.toggleInlineStyle(pagesUpdate[this.currentPage].editorState, command.toUpperCase());
         this.setState({
-          pages: pagesUpdate,
+          editorState: RichUtils.toggleInlineStyle(this.state.editorState, command.toUpperCase())
         });
         break;
       }
@@ -1043,7 +956,7 @@ export class Document extends React.Component {
   setFocus(index) {
     // console.log('focus on', index);
     this.currentPage = index;
-    this.refHandles[index].current.focus();
+    this.editor.current.focus();
     if (this.rightclickAddMenu.current.IsOpen) {
       this.rightclickAddMenu.current.hide();
     }
@@ -1130,15 +1043,15 @@ export class Document extends React.Component {
    */
   updateTextAlignment(style, event) {
     event.preventDefault();
-    const pagesUpdate = this.state.pages;
-    const selection = pagesUpdate[this.currentPage].editorState.getSelection();
-    const nextContentState = Modifier.mergeBlockData(pagesUpdate[this.currentPage].editorState.getCurrentContent(), selection, Immutable.Map([['alignment', style]]));
-    pagesUpdate[this.currentPage].editorState = EditorState.push(pagesUpdate[this.currentPage].editorState, nextContentState, 'change-block-data');
+    const selection = this.state.editorState.getSelection();
+    const nextContentState = Modifier.mergeBlockData(this.state.editorState.getCurrentContent(), selection, Immutable.Map([['alignment', style]]));
     this.updateTextControls(style);
     this.setState({
-      pages: pagesUpdate
+      editorState: EditorState.push(this.state.editorState, nextContentState, 'change-block-data')
     }, () => {
-      this.pendingEdits.set(this.currentPage, true);
+      const content = this.state.editorState.getCurrentContent();
+      const block = content.getBlockForKey(selection.getAnchorKey());
+      this.pendingEdits.set(block.getKey(), true);
     });
   }
 
@@ -1163,16 +1076,16 @@ export class Document extends React.Component {
         break;
       }
     }
-    const pagesUpdate = this.state.pages;
-    const selection = pagesUpdate[this.currentPage].editorState.getSelection();
-    pagesUpdate[this.currentPage].editorState = EditorState.forceSelection(this.state.pages[this.currentPage].editorState, selection);
-    const nextContentState = Modifier.mergeBlockData(pagesUpdate[this.currentPage].editorState.getCurrentContent(), selection, Immutable.Map([['lineHeight', nextSpacing]]));
-    pagesUpdate[this.currentPage].editorState = EditorState.push(pagesUpdate[this.currentPage].editorState, nextContentState, 'change-block-data');
+    const selection = this.state.editorState.getSelection();
+    this.state.editorState = EditorState.forceSelection(this.state.editorState, selection);
+    const nextContentState = Modifier.mergeBlockData(this.state.editorState.getCurrentContent(), selection, Immutable.Map([['lineHeight', nextSpacing]]));
     this.setState({
-      pages: pagesUpdate,
+      editorState: EditorState.push(this.state.editorState, nextContentState, 'change-block-data'),
       currentLineHeight: nextSpacing
     }, () => {
-      this.pendingEdits.set(this.currentPage, true);
+      const content = this.state.editorState.getCurrentContent();
+      const block = content.getBlockForKey(selection.getAnchorKey());
+      this.pendingEdits.set(block.getKey(), true);
     });
   }
 
@@ -1182,8 +1095,8 @@ export class Document extends React.Component {
    * @param {Number} page
    * @param {Event} event
   **/
-  onRightClick(page, event) {
-    const text = this.getSelectedText(this.state.pages[page].editorState);
+  onRightClick(event) {
+    const text = this.getSelectedText(this.state.editorState);
     if (text.length) {
       event.preventDefault();
       this.setState({selectedText: text});
@@ -1214,31 +1127,9 @@ export class Document extends React.Component {
    * @return {element}
   **/
   render() {
-    const editors = [];
-    for (let i=0; i < this.state.pages.length; i++) {
-      this.refHandles.push(React.createRef());
-      editors.push(
-          <section key={i} onContextMenu={(e)=> {this.onRightClick(i, e);}} onClick={() => {this.setFocus(i);}} className="margins" style={{maxHeight: this.state.pageHeight, height: this.state.pageHeight, paddingLeft: this.state.leftMargin, paddingRight: this.state.rightMargin, paddingTop: this.state.topMargin, paddingBottom: this.state.bottomMargin}}>
-            <Editor
-              editorState={this.state.pages[i].editorState}
-              handleKeyCommand={(command) => {
-                this.handleKeyCommand(command, i);
-              }}
-              keyBindingFn={this.keyBindings.bind(this)}
-              placeholder="Write something..."
-              blockStyleFn={this.generateBlockStyle.bind(this)}
-              onChange={(editorState) => {
-                this.onChange(editorState, i);
-              }}
-              ref={this.refHandles[i]}/>
-          </section>
-      );
-      this.state.pages[i].editorState = EditorState.set(this.state.pages[i].editorState, {decorator: this.compositeDecorators});
-    }
     if (this.state.loading) {
       return (<div>loading...</div>);
     } else {
-      console.log('rendering for ' + this.state.pages.length);
       return (
         <div style={{'position': 'relative'}}>
           <nav className="docControls">
@@ -1257,12 +1148,24 @@ export class Document extends React.Component {
           </nav>
           <div className="editorRoot" style={{width: this.state.pageWidth}}>
             <div onClick={this.focus} className="editorContainer">
-              {editors}
+              <section onContextMenu={(e)=> {this.onRightClick(e);}} onClick={() => {this.setFocus();}} className="margins" style={{maxHeight: this.state.pageHeight, height: this.state.pageHeight, paddingLeft: this.state.leftMargin, paddingRight: this.state.rightMargin, paddingTop: this.state.topMargin, paddingBottom: this.state.bottomMargin}}>
+                <Editor
+                  editorState={this.state.editorState}
+                  handleKeyCommand={(command) => {
+                    this.handleKeyCommand(command);
+                  }}
+                  keyBindingFn={this.keyBindings.bind(this)}
+                  placeholder="Write something..."
+                  blockStyleFn={this.generateBlockStyle.bind(this)}
+                  onChange={this.onChange.bind(this)}
+                  ref={this.editor}/>
+              </section>
             </div>
           </div>
           <CustomContext ref={this.rightclickAddMenu} type="add" items={JSON.stringify(addMenu)} selected={this.state.selectedText} socket={this.socket} storyID={this.storyID}/>
           <CustomContext ref={this.rightclickEditMenu} type="edit" items={JSON.stringify(editMenu)} editingID={this.state.selectedAssociation} socket={this.socket} storyID={this.storyID}/>
           <PopPanel ref={this.popPanel} label="" storyID={this.storyID} onUpdateAssociationComplete={this.redrawAssociations.bind(this)}/>
+          <DialogPrompt ref={this.dialog} title={this.state.dialogTitle} body={this.state.dialogBody} isPrompt={this.state.dialogIsPrompt} okFunc={this.state.dialogOKFunc} cancelFunc={this.state.dialogCancelFunc} okButtonText={this.state.dialogOkButtonText} cancelButtonText={this.state.dialogCancelButtonText}/>
         </div>
       );
     }

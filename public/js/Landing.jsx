@@ -22,13 +22,13 @@ export class Landing extends React.Component {
       greeting: '',
       addStoryButtonDisplay: 'none',
       editingDocument: false,
-      dialogTitle: '',
-      dialogBody: '',
+      dialogTitle: 'Message',
+      dialogBody: 'No message set',
       dialogCancelFunc: null,
       dialogOKFunc: null,
       dialogIsPrompt: true,
-      dialogOkButtonText: null,
-      dialogCancelButtonText: null
+      dialogOkButtonText: 'Ok',
+      dialogCancelButtonText: 'Cancel'
     };
     this.dialog = React.createRef();
   }

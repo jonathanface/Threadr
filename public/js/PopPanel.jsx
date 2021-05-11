@@ -6,7 +6,7 @@ import CloseIcon from '@material-ui/icons/Close';
 import {Globals} from './Globals.jsx';
 
 const defaultDescriptionText = 'Description';
-const defaultAliasText = 'Comma, separated, list';
+const defaultAliasText = 'Pipe|separated|list';
 
 /**
  * Right-click menu for tagging document text.

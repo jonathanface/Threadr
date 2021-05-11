@@ -15,7 +15,6 @@ import (
 
 func EditTitleEndPoint(w http.ResponseWriter, r *http.Request) {
 	sid := mux.Vars(r)[`[0-9a-zA-Z]+`]
-	log.Println("???", mux.Vars(r))
 	if len(sid) == 0 {
 		RespondWithError(w, http.StatusBadRequest, "No story ID received")
 		return

@@ -19,6 +19,15 @@ type Config struct {
 	DBName string `json:"dbName"`
 }
 
+type SocketMessage struct {
+	Command string          `json:"command"`
+	Data    json.RawMessage `json:"data"`
+}
+
+type SocketError struct {
+	Text string `json:"text"`
+}
+
 var credentials = Config{}
 
 func GetConfiguration() {

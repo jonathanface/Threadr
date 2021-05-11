@@ -52,10 +52,6 @@ func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 	RespondWithJson(w, http.StatusOK, stories)
 }
 
-func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
-
-}
-
 func AssociationDetailsEndPoint(w http.ResponseWriter, r *http.Request) {
 	associationID := mux.Vars(r)[`[0-9a-zA-Z]+`]
 	if len(associationID) == 0 {
@@ -140,7 +136,7 @@ func AllAssociationsEndPoint(w http.ResponseWriter, r *http.Request) {
 	RespondWithJson(w, http.StatusOK, results)
 }
 
-func AllPagesEndPoint(w http.ResponseWriter, r *http.Request) {
+func AllBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 	sid := mux.Vars(r)[`[0-9a-zA-Z]+`]
 	if len(sid) == 0 {
 		RespondWithError(w, http.StatusBadRequest, "No story ID received")
@@ -152,33 +148,35 @@ func AllPagesEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer common.MongoDisconnect(client, ctx)
-	pages := client.Database("Drafty").Collection("Pages")
+	pages := client.Database("Drafty").Collection(sid + "_blocks")
 	mgoID, err := validateBSON(sid)
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Missing or invalid storyID")
 		return
 	}
 	filter := &bson.M{"storyID": mgoID}
-	cur, err := pages.Find(context.TODO(), filter)
+	findOptions := options.Find()
+	findOptions.SetSort(bson.D{{"order", 1}})
+	cur, err := pages.Find(context.TODO(), filter, findOptions)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	defer cur.Close(ctx)
 
-	var results []Page
+	var results []Block
 	for cur.Next(context.TODO()) {
 		//Create a value into which the single document can be decoded
-		var p Page
-		err := cur.Decode(&p)
+		var b Block
+		err := cur.Decode(&b)
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		results = append(results, p)
+		results = append(results, b)
 	}
 	if len(results) == 0 {
-		RespondWithError(w, http.StatusNotFound, "No pages")
+		RespondWithError(w, http.StatusNotFound, "No blocks")
 		return
 	}
 	RespondWithJson(w, http.StatusOK, results)

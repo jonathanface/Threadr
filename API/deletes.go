@@ -38,7 +38,7 @@ func DeleteStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pagesColl := client.Database("Drafty").Collection("Pages")
+	pagesColl := client.Database("Drafty").Collection(sid + "_blocks")
 	filter = &bson.M{"storyID": storyID}
 	_, err = pagesColl.DeleteOne(context.Background(), filter)
 	if err != nil {

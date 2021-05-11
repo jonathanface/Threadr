@@ -22,11 +22,6 @@ import (
 	"time"
 )
 
-type SocketMessage struct {
-	Command string          `json:"command"`
-	Data    json.RawMessage `json:"data"`
-}
-
 const (
 	SERVICE_PATH       = "/api"
 	HTTP_PORT          = ":88"
@@ -38,54 +33,62 @@ const (
 
 var conn *websocket.Conn
 
-func deletePage(pageNum int, storyID primitive.ObjectID) error {
-	log.Println("delete page", pageNum, storyID)
+func deleteBlock(blockID string, storyID primitive.ObjectID) error {
+	log.Println("delete block", blockID, storyID)
 	client, ctx, err := common.MongoConnect()
 	if err != nil {
 		log.Println("ERROR CONNECTING: ", err)
 		return err
 	}
 	defer common.MongoDisconnect(client, ctx)
-	pages := client.Database("Drafty").Collection("Pages")
-	filter := &bson.M{"storyID": storyID, "page": pageNum}
+	pages := client.Database("Drafty").Collection(storyID.Hex() + "_blocks")
+	filter := &bson.M{"storyID": storyID, "key": blockID}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_, err = pages.DeleteOne(ctx, filter)
 	return err
 }
 
-func savePage(pageNum int, body []byte, storyID primitive.ObjectID) error {
-	log.Println("save page", pageNum, storyID)
+func saveBlock(key string, body []byte, storyID primitive.ObjectID) error {
+	log.Println("save block", key, storyID)
 	client, ctx, err := common.MongoConnect()
 	if err != nil {
 		log.Println("ERROR CONNECTING: ", err)
 		return err
 	}
 	defer common.MongoDisconnect(client, ctx)
-	pages := client.Database("Drafty").Collection("Pages")
-	filter := &bson.M{"storyID": storyID, "page": pageNum}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	result := API.Page{}
-	err = pages.FindOne(ctx, filter).Decode(&result)
+	blocks := client.Database("Drafty").Collection(storyID.Hex() + "_blocks")
+	filter := &bson.M{"storyID": storyID, "key": key}
+	opts := options.Update().SetUpsert(true)
+	update := &bson.M{"$set": &bson.M{"key": key, "storyID": storyID, "body": body}}
+	_, err = blocks.UpdateOne(context.Background(), filter, update, opts)
 	if err != nil {
-		log.Println("no page found")
-		page := API.Page{pageNum, body, storyID}
+		return err
+	}
+	return nil
+}
 
-		insertResult, err := pages.InsertOne(context.TODO(), page)
+func updateBlockOrder(order map[string]int, storyID primitive.ObjectID) error {
+	log.Println("updating block order")
+	client, ctx, err := common.MongoConnect()
+	if err != nil {
+		log.Println("ERROR CONNECTING: ", err)
+		return err
+	}
+	defer common.MongoDisconnect(client, ctx)
+	blocks := client.Database("Drafty").Collection(storyID.Hex() + "_blocks")
+
+	log.Println("order", order)
+	for key, val := range order {
+		filter := &bson.M{"storyID": storyID, "key": key}
+		update := &bson.M{"$set": &bson.M{"order": val}}
+		log.Println("updating", val)
+		_, err = blocks.UpdateOne(context.TODO(), filter, update)
 		if err != nil {
-			log.Println("Error creating new page")
 			return err
 		}
-		log.Println("Inserted a Single Document: ", insertResult.InsertedID)
-		return nil
 	}
-	update := bson.D{
-		{"$set", bson.D{{"body", body}}},
-	}
-	log.Println("updated page body", string(body))
-	_, err = pages.UpdateOne(context.TODO(), filter, update)
-	return err
+	return nil
 }
 
 func createAssociation(text string, typeOf int, storyID primitive.ObjectID) error {
@@ -97,12 +100,13 @@ func createAssociation(text string, typeOf int, storyID primitive.ObjectID) erro
 	}
 	defer common.MongoDisconnect(client, ctx)
 	assocs := client.Database(`Drafty`).Collection(`Associations`)
-	filter := &bson.M{`storyID`: storyID, `text`: text, `type`: typeOf}
+	log.Println("filter", storyID, text, typeOf)
+	filter := &bson.M{`storyID`: storyID, `name`: text}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	result := API.Association{}
-	err = assocs.FindOne(ctx, filter).Decode(&result)
-	if err != nil {
+	count, err := assocs.CountDocuments(ctx, filter)
+	log.Println("count", count)
+	if count == 0 {
 		log.Println("no association found")
 		assoc := API.Association{primitive.NilObjectID, text, typeOf, storyID, API.AssociationDetails{}}
 		insertResult, err := assocs.InsertOne(context.TODO(), assoc)
@@ -113,7 +117,7 @@ func createAssociation(text string, typeOf int, storyID primitive.ObjectID) erro
 		log.Println("Inserted an association: ", insertResult.InsertedID)
 		return nil
 	}
-	return err
+	return errors.New("You can only assign one association per document with the same text.")
 }
 
 func deleteAssociation(id primitive.ObjectID) error {
@@ -348,8 +352,7 @@ func main() {
 
 	rtr := mux.NewRouter()
 	rtr.HandleFunc(SERVICE_PATH+"/stories", middleware(API.AllStoriesEndPoint)).Methods("GET", "OPTIONS")
-	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}", middleware(API.StoryEndPoint)).Methods("GET", "OPTIONS")
-	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/pages", middleware(API.AllPagesEndPoint)).Methods("GET", "OPTIONS")
+	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/blocks", middleware(API.AllBlocksEndPoint)).Methods("GET", "OPTIONS")
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/associations", middleware(API.AllAssociationsEndPoint)).Methods("GET", "OPTIONS")
 	rtr.HandleFunc(SERVICE_PATH+"/association/{[0-9a-zA-Z]+}", middleware(API.AssociationDetailsEndPoint)).Methods("GET", "OPTIONS")
 	rtr.HandleFunc(SERVICE_PATH+"/user/name", middleware(nil)).Methods("GET", "OPTIONS")
