@@ -141,6 +141,7 @@ export class Landing extends React.Component {
    * Callback triggered by a successful login to Google
    */
   handleLogin() {
+    console.log('login');
     this.isLoggedIn = true;
     this.fetchUserDetails().then((response) => {
       switch (response.status) {

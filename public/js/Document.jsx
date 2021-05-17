@@ -499,6 +499,9 @@ export class Document extends React.Component {
       console.log('got assocs', this.state.associations);
       console.log('fetching docs');
       this.fetchDocumentBlocks();
+    },  reason => {
+      console.log('no associations');
+      this.fetchDocumentBlocks();
     });
   }
 

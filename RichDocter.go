@@ -352,6 +352,7 @@ func main() {
 
 	rtr := mux.NewRouter()
 	rtr.HandleFunc(SERVICE_PATH+"/stories", middleware(API.AllStoriesEndPoint)).Methods("GET", "OPTIONS")
+	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}", middleware(API.StoryEndPoint)).Methods("GET", "OPTIONS")
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/blocks", middleware(API.AllBlocksEndPoint)).Methods("GET", "OPTIONS")
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/associations", middleware(API.AllAssociationsEndPoint)).Methods("GET", "OPTIONS")
 	rtr.HandleFunc(SERVICE_PATH+"/association/{[0-9a-zA-Z]+}", middleware(API.AssociationDetailsEndPoint)).Methods("GET", "OPTIONS")

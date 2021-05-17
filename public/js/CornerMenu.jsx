@@ -160,13 +160,12 @@ export class CornerMenu extends React.Component {
             <li style={{'display': this.state.loginButtonDisplayState}}>
               <GoogleLogin
                 clientId="878388830212-tq6uhegouorlrn7srsn3getqkn4er3fg.apps.googleusercontent.com"
-                accessType="offline"
-                isSignedIn={true}
                 render={(renderProps) => (
                   <div onClick={renderProps.onClick} disabled={renderProps.disabled}>Login</div>
                 )}
                 onSuccess={this.responseGoogleSuccess.bind(this)}
                 onFailure={this.responseGoogleFailure.bind(this)}
+                isSignedIn={true}
                 cookiePolicy={'single_host_origin'}
               />
             </li>

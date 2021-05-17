@@ -52,6 +52,10 @@ func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 	RespondWithJson(w, http.StatusOK, stories)
 }
 
+func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
+
+}
+
 func AssociationDetailsEndPoint(w http.ResponseWriter, r *http.Request) {
 	associationID := mux.Vars(r)[`[0-9a-zA-Z]+`]
 	if len(associationID) == 0 {
@@ -185,6 +189,6 @@ func AllBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 func SetupWebsocket(w http.ResponseWriter, r *http.Request) {
 	log.Println("Listening for socket on " + HTTP_PORT)
 	hostname := strings.Split(r.Host, ":")[0]
-	url := "ws://" + hostname + HTTP_PORT + SOCKET_DIR
+	url := "wss://" + hostname + SOCKET_DIR
 	RespondWithJson(w, http.StatusOK, map[string]string{"url": url})
 }
