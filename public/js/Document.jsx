@@ -366,7 +366,21 @@ export class Document extends React.Component {
       }
       if (this.state.associations[i].type == Globals.ASSOCIATION_TYPE_CHARACTER) {
         let match;
+        
         const deets = this.state.associations[i].details;
+        const name = this.state.associations[i].name.trim();
+        const regexStr = this.getRegexString(name);
+        let caseFlag = 'g';
+        if (!deets.caseSensitive) {
+          caseFlag += 'i';
+        }
+        const regex = new RegExp(regexStr, caseFlag);
+        while ((match = regex.exec(text)) !== null) {
+          const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
+          callback(start, start + name.length);
+          return;
+        }
+        
         const toArray = deets.aliases.split('|');
         for (let z=0; z < toArray.length; z++) {
           const alias = toArray[z].trim();
@@ -380,18 +394,6 @@ export class Document extends React.Component {
             const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
             callback(start, start + alias.length);
           }
-        }
-
-        const name = this.state.associations[i].name.trim();
-        const regexStr = this.getRegexString(name);
-        let caseFlag = 'g';
-        if (!deets.caseSensitive) {
-          caseFlag += 'i';
-        }
-        const regex = new RegExp(regexStr, caseFlag);
-        while ((match = regex.exec(text)) !== null) {
-          const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
-          callback(start, start + name.length);
         }
       }
     }

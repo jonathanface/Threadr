@@ -93,9 +93,12 @@ ul.stories li .bg:active {
 }
 
 .story_manager {
-  display: flex;
   align-items: center;
   margin-top:50px;
+}
+
+.story_manager > div {
+  display: flex;
 }
 
 .story_manager button {
