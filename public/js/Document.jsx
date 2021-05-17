@@ -359,6 +359,7 @@ export class Document extends React.Component {
    * @param {ContentState} contentState
    */
   findCharacter(contentBlock, callback, contentState ) {
+    console.log('fire', callback);
     const text = contentBlock.getText();
     for (let i=0; i < this.state.associations.length; i++) {
       if (!this.state.associations[i].name.trim().length) {
@@ -378,7 +379,6 @@ export class Document extends React.Component {
         while ((match = regex.exec(text)) !== null) {
           const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
           callback(start, start + name.length);
-          return;
         }
         
         const toArray = deets.aliases.split('|');
@@ -415,6 +415,18 @@ export class Document extends React.Component {
       if (this.state.associations[i].type == Globals.ASSOCIATION_TYPE_PLACE) {
         let match;
         const deets = this.state.associations[i].details;
+        const name = this.state.associations[i].name.trim();
+        const regexStr = this.getRegexString(name);
+        let caseFlag = 'g';
+        if (!deets.caseSensitive) {
+          caseFlag = 'gi';
+        }
+        const regex = new RegExp(regexStr, caseFlag);
+        while ((match = regex.exec(text)) !== null) {
+          const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
+          callback(start, start + name.length);
+        }
+        
         const toArray = deets.aliases.split('|');
         for (let z=0; z < toArray.length; z++) {
           const alias = toArray[z].trim();
@@ -428,17 +440,6 @@ export class Document extends React.Component {
             const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
             callback(start, start + alias.length);
           }
-        }
-        const name = this.state.associations[i].name.trim();
-        const regexStr = this.getRegexString(name);
-        let caseFlag = 'g';
-        if (!deets.caseSensitive) {
-          caseFlag = 'gi';
-        }
-        const regex = new RegExp(regexStr, caseFlag);
-        while ((match = regex.exec(text)) !== null) {
-          const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
-          callback(start, start + name.length);
         }
       }
     }
@@ -460,6 +461,18 @@ export class Document extends React.Component {
       if (this.state.associations[i].type == Globals.ASSOCIATION_TYPE_EVENT) {
         let match;
         const deets = this.state.associations[i].details;
+        const name = this.state.associations[i].name.trim();
+        const regexStr = this.getRegexString(name);
+        let caseFlag = 'g';
+        if (!deets.caseSensitive) {
+          caseFlag = 'gi';
+        }
+        const regex = new RegExp(regexStr, caseFlag);
+        while ((match = regex.exec(text)) !== null) {
+          const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
+          callback(start, start + name.length);
+        }
+
         const toArray = deets.aliases.split('|');
         for (let z=0; z < toArray.length; z++) {
           const alias = toArray[z].trim();
@@ -473,18 +486,6 @@ export class Document extends React.Component {
             const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
             callback(start, start + alias.length);
           }
-        }
-
-        const name = this.state.associations[i].name.trim();
-        const regexStr = this.getRegexString(name);
-        let caseFlag = 'g';
-        if (!deets.caseSensitive) {
-          caseFlag = 'gi';
-        }
-        const regex = new RegExp(regexStr, caseFlag);
-        while ((match = regex.exec(text)) !== null) {
-          const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
-          callback(start, start + name.length);
         }
       }
     }
