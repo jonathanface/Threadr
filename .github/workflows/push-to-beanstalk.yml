@@ -9,4 +9,8 @@ jobs:
               with:
                 files: dist/ manifest.json
                 dest: richdocter.zip
+            - uses: actions/upload-artifact@v1
+              with:
+                name: my-artifact
+                path: ${{ github.workspace }}/richdocter.zip
 
