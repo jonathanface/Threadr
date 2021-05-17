@@ -24,7 +24,7 @@ import (
 
 const (
 	SERVICE_PATH       = "/api"
-	HTTP_PORT          = ":88"
+	HTTP_PORT          = ":5000"
 	SOCKET_DIR         = "/ws"
 	STORIES_COLLECTION = "stories"
 	STATIC_FILES_DIR   = "public"

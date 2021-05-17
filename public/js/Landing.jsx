@@ -131,6 +131,9 @@ export class Landing extends React.Component {
    */
   handleLoginFailure() {
     console.log('fail');
+    this.setState({
+      greeting: 'You have to login, stupid.'
+    });
     this.isLoggedIn = false;
   }
 
@@ -372,7 +375,10 @@ export class Landing extends React.Component {
           <CornerMenu displayName={this.state.username} logoutComplete={this.handleLogout.bind(this)} loginComplete={this.handleLogin.bind(this)} loginFailed={this.handleLoginFailure.bind(this)}/>
         </div>
         <div className="story_manager">
-          <span>{this.state.greeting}</span><button onClick={this.createNewStory.bind(this)} style={{'display': this.state.addStoryButtonDisplay}}>+</button>
+          { this.isLoggedIn
+            ? <div><span>{this.state.greeting}</span><button onClick={this.createNewStory.bind(this)} style={{'display': this.state.addStoryButtonDisplay}}>+</button></div>
+            : <span>{this.state.greeting}</span>
+          }
         </div>
         <div>
           {content}

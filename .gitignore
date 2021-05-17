@@ -9,6 +9,8 @@
 config.json
 bundle.js
 bundle.min.js
+application
+richdocter.zip
 
 # Test binary, build with `go test -c`
 *.test
