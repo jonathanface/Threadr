@@ -17,9 +17,6 @@ jobs:
               with:
                 name: my-json
                 path: ${{github.workspace}}/config.json
-            - uses: actions/download-artifact@v2
-              with:
-                name: homework
             - uses: papeloto/action-zip@v1
               with:
                 files: public/ .ebextensions/ Procfile application ${{github.workspace}}/config.json
@@ -43,11 +40,11 @@ jobs:
             - name: Create new ElasticBeanstalk Application Version
               run: |
                 aws elasticbeanstalk create-application-version \
-                --application-name MyAwesomeApp \
+                --application-name RichDocter \
                 --source-bundle S3Bucket="my-awesome-app-deploy-andrey",S3Key="richdocter.zip" \
                 --version-label "ver-${{ github.sha }}" \
                 --description "commit-sha-${{ github.sha }}"
 
             - name: Deploy new ElasticBeanstalk Application Version
-              run: aws elasticbeanstalk update-environment --environment-name Myawesomeapp-env-1 --version-label "ver-${{ github.sha }}"
+              run: aws elasticbeanstalk update-environment --environment-name richdocter-env-1 --version-label "ver-${{ github.sha }}"
 
