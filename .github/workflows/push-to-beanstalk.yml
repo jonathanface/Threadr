@@ -10,8 +10,8 @@ jobs:
         steps:
             - uses: actions/checkout@v2
             - uses: jsdaniell/create-json@1.1.2
-              with:
-                id: config
+              id: config
+              with:  
                 name: "config.json"
                 json: ${{ secrets.APP_CONFIG }}
             - uses: actions/upload-artifact@v1
