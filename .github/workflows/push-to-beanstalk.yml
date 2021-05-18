@@ -29,7 +29,7 @@ jobs:
                 name: my-json
             - uses: montudor/action-zip@v1
               with:
-                args: zip -qq -r richdocter.zip public .ebextensions Procfile application my-json
+                args: zip -qq -r richdocter.zip public .ebextensions Procfile application ${{my-json}}
             - uses: actions/upload-artifact@v1
               with:
                 name: richdocter.zip
