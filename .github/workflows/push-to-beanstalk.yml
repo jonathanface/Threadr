@@ -20,7 +20,7 @@ jobs:
                 path: ${{github.workspace}}/config.json
             - uses: papeloto/action-zip@v1
               with:
-                files: public/ .ebextensions/ Procfile application ${{steps.config}}
+                files: public/ .ebextensions/ Procfile application ${{github.workspace}}/config.json
                 recursive: true,
                 dest: richdocter.zip
             - uses: actions/upload-artifact@v1
