@@ -17,6 +17,9 @@ jobs:
               with:
                 name: my-json
                 path: ${{github.workspace}}/config.json
+            - uses: actions/download-artifact@v2
+              with:
+                name: homework
             - uses: papeloto/action-zip@v1
               with:
                 files: public/ .ebextensions/ Procfile application ${{github.workspace}}/config.json
@@ -35,7 +38,7 @@ jobs:
                   aws-region: "us-east-1"
 
             - name: Upload package to S3 bucket
-              run: aws s3 cp richdocter.zip s3://my-awesome-app-deploy-andrey/
+              run: aws s3 cp ${{github.workspace}}/richdocter.zip s3://my-awesome-app-deploy-andrey/
 
             - name: Create new ElasticBeanstalk Application Version
               run: |
