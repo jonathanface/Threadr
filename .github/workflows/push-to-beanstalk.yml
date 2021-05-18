@@ -27,25 +27,6 @@ jobs:
               with:
                 name: my-artifact
                 path: ${{ github.workspace }}/richdocter.zip
-            - uses: actions/checkout@v2
-            - name: Configure AWS Credentials
-              uses: aws-actions/configure-aws-credentials@v1
-              with:
-                  aws-access-key-id: ${{ secrets.ACCESS_KEY_ID }}
-                  aws-secret-access-key: ${{ secrets.SECRET_ACCESS_KEY }}
-                  aws-region: "us-east-1"
-
-            - name: Upload package to S3 bucket
-              run: aws s3 cp ${{github.workspace}}/richdocter.zip s3://my-awesome-app-deploy-andrey/
-
-            - name: Create new ElasticBeanstalk Application Version
-              run: |
-                aws elasticbeanstalk create-application-version \
-                --application-name RichDocter \
-                --source-bundle S3Bucket="my-awesome-app-deploy-andrey",S3Key="richdocter.zip" \
-                --version-label "ver-${{ github.sha }}" \
-                --description "commit-sha-${{ github.sha }}"
-
-            - name: Deploy new ElasticBeanstalk Application Version
-              run: aws elasticbeanstalk update-environment --environment-name richdocter-ver2 --version-label "ver-${{ github.sha }}"
+            
+            
 
