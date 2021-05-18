@@ -12,6 +12,8 @@ jobs:
               with:
                 name: "config.json"
                 json: ${{ secrets.APP_CONFIG }}
+                name: my-json
+                path: ${{ github.workspace }}/config.json
         
     zip-files:
         runs-on: ubuntu-latest
