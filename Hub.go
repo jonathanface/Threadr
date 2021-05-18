@@ -72,10 +72,10 @@ func (h *Hub) run() {
 				blockOrder := API.BlockOrder{}
 				json.Unmarshal([]byte(m.Data), &blockOrder)
 				response := common.SocketMessage{}
-				response.Command = "saveFailed"
+				response.Command = "saveOrderFailed"
 				err := updateBlockOrder(blockOrder.Order, blockOrder.StoryID)
 				if err == nil {
-					response.Command = "saveSuccessful"
+					response.Command = "saveOrderSuccessful"
 				} else {
 					log.Println(err)
 					generateSocketError(err.Error())
