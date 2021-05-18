@@ -9,8 +9,8 @@ jobs:
         steps:
             - uses: jsdaniell/create-json@1.1.2
               with:
-              name: "config.json"
-              json: ${{ secrets.APP_CONFIG }}
+                name: "config.json"
+                json: ${{ secrets.APP_CONFIG }}
         
     zip-files:
         steps:
