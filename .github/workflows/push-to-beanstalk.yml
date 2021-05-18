@@ -24,9 +24,9 @@ jobs:
         needs: create-json
         steps:
             - uses: actions/checkout@v2
-             - uses: actions/download-artifact@v2
-               with:
-                 name: config.json
+            - uses: actions/download-artifact@v2
+              with:
+                name: config.json
             - uses: montudor/action-zip@v1
               with:
                 args: zip -qq -r richdocter.zip public .ebextensions Procfile application config.json
