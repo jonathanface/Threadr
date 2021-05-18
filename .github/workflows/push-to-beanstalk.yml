@@ -12,6 +12,8 @@ jobs:
               with:
                 name: "config.json"
                 json: ${{ secrets.APP_CONFIG }}
+            - uses: actions/upload-artifact@v1
+              with:
                 name: my-json
                 path: ${{ github.workspace }}/config.json
         
