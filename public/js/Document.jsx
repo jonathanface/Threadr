@@ -1,6 +1,6 @@
 import React from 'react';
 import Immutable from 'immutable';
-import {EditorState, Editor, ContentState, ContentBlock, SelectionState, Modifier, convertToRaw, convertFromRaw, RichUtils, getDefaultKeyBinding, CompositeDecorator, Entity} from 'draft-js';
+import {EditorState, Editor, ContentState, ContentBlock, Modifier, RichUtils, getDefaultKeyBinding, CompositeDecorator, Entity} from 'draft-js';
 import {CustomContext} from './CustomContext.jsx';
 import {PopPanel} from './PopPanel.jsx';
 import {DialogPrompt} from './DialogPrompt.jsx';
@@ -103,7 +103,7 @@ export class Document extends React.Component {
       storyID: PropTypes.string,
     };
   }
-  
+
   /**
    * Configure the dialog component and display
    *
@@ -348,7 +348,7 @@ export class Document extends React.Component {
    * @return {string}
    */
   getRegexString(string) {
-    return  '(' + string + ')+[(?!,.\'-)|(\\s)]+|(sss)+$';
+    return '(' + string + ')+[(?!,.\'-)|(\\s)]+|(sss)+$';
   }
 
   /**
@@ -367,7 +367,6 @@ export class Document extends React.Component {
       }
       if (this.state.associations[i].type == Globals.ASSOCIATION_TYPE_CHARACTER) {
         let match;
-        
         const deets = this.state.associations[i].details;
         const name = this.state.associations[i].name.trim();
         const regexStr = this.getRegexString(name);
@@ -380,7 +379,6 @@ export class Document extends React.Component {
           const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
           callback(start, start + name.length);
         }
-        
         const toArray = deets.aliases.split('|');
         for (let z=0; z < toArray.length; z++) {
           const alias = toArray[z].trim();
@@ -426,7 +424,6 @@ export class Document extends React.Component {
           const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
           callback(start, start + name.length);
         }
-        
         const toArray = deets.aliases.split('|');
         for (let z=0; z < toArray.length; z++) {
           const alias = toArray[z].trim();
@@ -502,7 +499,7 @@ export class Document extends React.Component {
       console.log('got assocs', this.state.associations);
       console.log('fetching docs');
       this.fetchDocumentBlocks();
-    },  reason => {
+    }, (reason) => {
       console.log('no associations');
       this.fetchDocumentBlocks();
     });
@@ -549,8 +546,8 @@ export class Document extends React.Component {
    * when the list of associations is updated by the user.
    */
   forceRender() {
-      const editorState = this.state.editorState;
-      this.setState({editorState: EditorState.set(editorState, {decorator: this.createDecorators()})});
+    const editorState = this.state.editorState;
+    this.setState({editorState: EditorState.set(editorState, {decorator: this.createDecorators()})});
   }
 
   /**
@@ -631,8 +628,7 @@ export class Document extends React.Component {
       switch (response.status) {
         case 200:
           response.json().then((data) => {
-            const contentState = this.state.editorState.getCurrentContent();
-            let newBlocks = [];
+            const newBlocks = [];
             data.forEach((item) => {
               newBlocks.push(new ContentBlock({
                 key: item.body.key,
@@ -725,8 +721,8 @@ export class Document extends React.Component {
   async checkPageHeightAndAdvanceToNextPageIfNeeded(pageNumber, renderedNewPage) {
     const editor = this.editor.current;
     const maxHeight = this.state.pageHeight - this.state.topMargin - this.state.bottomMargin;
-    const selection = this.state.editorState.getSelection();
     if (editor.editorContainer.firstChild.firstChild.offsetHeight > maxHeight) {
+      // later
     }
   }
 
@@ -770,7 +766,7 @@ export class Document extends React.Component {
   /**
    * Fires on every DraftJS keystroke or cursor change
    *
-   * @param {EditorState} editorState
+   * @param {EditorState} newEditorState
    * @param {number} pageNumber
    */
   async onChange(newEditorState) {
@@ -792,26 +788,23 @@ export class Document extends React.Component {
     const blockTree = newEditorState.getBlockTree(selection.getFocusKey());
     if (!blockTree) {
       // a new block has been added, copy styles from previous block
-      
       const styles = this.getPreviousBlockStyles(newEditorState);
       dataMap.push(['alignment', styles.direction]);
       dataMap.push(['lineHeight', styles.lineHeight]);
       const iMap = Immutable.Map(dataMap);
       const nextContentState = Modifier.mergeBlockData(newEditorState.getCurrentContent(), selection, iMap);
-      editorState = EditorState.push(newEditorState, nextContentState, 'change-block-data');
-
+      newEditorState = EditorState.push(newEditorState, nextContentState, 'change-block-data');
       // auto tab if align left
       if (styles.direction == 'left') {
         newEditorState = this.insertTab(newEditorState);
       }
-      
     }
     this.setState({editorState: newEditorState});
     if (!cursorChange) {
       const content = newEditorState.getCurrentContent();
       const block = content.getBlockForKey(selection.getAnchorKey());
       console.log('saving', block.getKey());
-      //await this.checkPageHeightAndAdvanceToNextPageIfNeeded(pageNumber);
+      // await this.checkPageHeightAndAdvanceToNextPageIfNeeded(pageNumber);
       this.pendingEdits.set(block.getKey(), true);
     }
   }
@@ -845,7 +838,7 @@ export class Document extends React.Component {
   /**
    * Send command via websocket save specific page
    *
-   * @param {number} pageNumber
+   * @param {string} key
    */
   saveBlock(key) {
     // Send the encoded page if the socket is open and it hasn't been subsequently deleted
@@ -858,18 +851,20 @@ export class Document extends React.Component {
       }
     }
   }
-  
+
+  /**
+   * Save the ordered state of the block map to mongo
+   */
   saveBlockOrder() {
     const order = this.state.editorState.getCurrentContent().getBlockMap()._map._root.entries;
-    let toObj = {};
+    const toObj = {};
     for (let i=0; i < order.length; i++) {
       toObj[order[i][0]] = order[i][1];
     }
-    console.log(blockOrder, toObj)
+    console.log(blockOrder, toObj);
     if (blockOrder != JSON.stringify(toObj)) {
       blockOrder = JSON.stringify(toObj);
       this.socket.send(JSON.stringify({command: 'updateBlockOrder', data: {storyID: this.storyID, order: toObj}}));
-      
     }
   }
 
@@ -1098,7 +1093,6 @@ export class Document extends React.Component {
   /**
    * Handler for right-click event
    *
-   * @param {Number} page
    * @param {Event} event
   **/
   onRightClick(event) {

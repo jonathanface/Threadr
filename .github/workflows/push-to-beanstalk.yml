@@ -2,7 +2,7 @@ name: push-to-beanstalk
 on:
     push:
         branches:
-            - master
+            - production
 
 jobs:
     create-json:

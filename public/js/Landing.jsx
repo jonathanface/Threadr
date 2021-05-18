@@ -376,9 +376,9 @@ export class Landing extends React.Component {
           <CornerMenu displayName={this.state.username} logoutComplete={this.handleLogout.bind(this)} loginComplete={this.handleLogin.bind(this)} loginFailed={this.handleLoginFailure.bind(this)}/>
         </div>
         <div className="story_manager">
-          { this.isLoggedIn
-            ? <div><span>{this.state.greeting}</span><button onClick={this.createNewStory.bind(this)} style={{'display': this.state.addStoryButtonDisplay}}>+</button></div>
-            : <span>{this.state.greeting}</span>
+          { this.isLoggedIn ?
+              <div><span>{this.state.greeting}</span><button onClick={this.createNewStory.bind(this)} style={{'display': this.state.addStoryButtonDisplay}}>+</button></div> :
+              <span>{this.state.greeting}</span>
           }
         </div>
         <div>
