@@ -13,6 +13,11 @@
   opacity:0;
   transition: all 0.5s ease;
 }
+@media only screen and (max-width: 600px) {
+  .pop-panel {
+    width:80%;
+  }
+}
 
 .pop-panel.emerge {
   opacity: 1;

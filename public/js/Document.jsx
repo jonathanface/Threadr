@@ -51,16 +51,25 @@ export class Document extends React.Component {
   **/
   constructor(props) {
     super(props);
-
+    
     const dpi = this.getDPI();
-
+    let width = 8.25 * dpi;
+    let height = 11.75 * dpi;
+    let docPadding = 1 * dpi;
+    if (navigator.userAgent.toLowerCase().match(/mobile/i)) {
+      width = '100%';
+      height = '100%';
+      docPadding = '10px';
+    }
+    
+    console.log('dpi', dpi);
     this.state = {
-      pageWidth: 8.25 * dpi,
-      pageHeight: 11.75 * dpi,
-      topMargin: 1 * dpi,
-      leftMargin: 1 * dpi,
-      rightMargin: 1 * dpi,
-      bottomMargin: 1 * dpi,
+      pageWidth: width,
+      pageHeight: height,
+      topMargin: docPadding,
+      leftMargin: docPadding,
+      rightMargin: docPadding,
+      bottomMargin: docPadding,
       currentLineHeight: 'lineheight_double',
       leftOn: true,
       centerOn: false,
