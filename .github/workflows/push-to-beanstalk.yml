@@ -5,9 +5,10 @@ on:
             - master
 
 jobs:
-    build-json:
+    beanstalk-deploy:
         runs-on: ubuntu-latest
         steps:
+            - uses: actions/checkout@v2
             - uses: jsdaniell/create-json@1.1.2
               with:
                 name: "config.json"
@@ -15,24 +16,16 @@ jobs:
             - uses: actions/upload-artifact@v1
               with:
                 name: my-json
-                path: ${{ github.workspace }}/config.json
-        
-    zip-files:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v2
+                path: ${{github.workspace}}/config.json
             - uses: papeloto/action-zip@v1
               with:
-                files: public/ .ebextensions/ Procfile application config.json
+                files: public/ .ebextensions/ Procfile application ${{github.workspace}}/config.json
                 recursive: true,
                 dest: richdocter.zip
             - uses: actions/upload-artifact@v1
               with:
                 name: my-artifact
                 path: ${{ github.workspace }}/richdocter.zip
-    deploy:
-        runs-on: ubuntu-latest
-        steps:
             - uses: actions/checkout@v2
             - name: Configure AWS Credentials
               uses: aws-actions/configure-aws-credentials@v1
@@ -48,7 +41,7 @@ jobs:
               run: |
                 aws elasticbeanstalk create-application-version \
                 --application-name MyAwesomeApp \
-                --source-bundle S3Bucket="my-awesome-app-deploy-andrey",S3Key="deploy_package.zip" \
+                --source-bundle S3Bucket="my-awesome-app-deploy-andrey",S3Key="richdocter.zip" \
                 --version-label "ver-${{ github.sha }}" \
                 --description "commit-sha-${{ github.sha }}"
 
