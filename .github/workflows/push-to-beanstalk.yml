@@ -25,10 +25,11 @@ jobs:
         steps:
             - uses: actions/checkout@v2
             - uses: montudor/action-zip@v1
-              run: zip -qq -r richdocter.zip public .ebextensions Procfile application ${{github.workspace}}/config.json
+              with:
+                args: zip -qq -r richdocter.zip public .ebextensions Procfile application ${{github.workspace}}/config.json
             - uses: actions/upload-artifact@v1
               with:
-                name: my-artifact
+                name: richdocter.zip
                 path: ${{ github.workspace }}/richdocter.zip
             
             
