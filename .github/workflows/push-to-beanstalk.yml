@@ -6,6 +6,7 @@ on:
 
 jobs:
     build-json:
+        runs-on: ubuntu-latest
         steps:
             - uses: jsdaniell/create-json@1.1.2
               with:
@@ -26,7 +27,6 @@ jobs:
                 path: ${{ github.workspace }}/richdocter.zip
     deploy:
         runs-on: ubuntu-latest
-
         steps:
             - uses: actions/checkout@v2
             - name: Configure AWS Credentials
