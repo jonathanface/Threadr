@@ -357,7 +357,10 @@ export class Document extends React.Component {
    * @return {string}
    */
   getRegexString(string) {
-    return '(' + string + ')+[(?!,.\'-)|(\\s)]+|(sss)+$';
+    console.log('str', string + '+[(?!,.\'-\s)]*|$');
+    return '(?<=^|\s)(' + string + ')+?(?=[(?!,.\'-)]+)|(?=[\s])+|(?=$)';
+    //return '(?<=^|\s)(' + string + ')+?(?=[(?!,.\'-)]+|[\s]+|$)';
+    //return '(' + string + ')+[(?!,.\'-)|(\\s)]+|(sss)+$';
   }
 
   /**
@@ -368,7 +371,6 @@ export class Document extends React.Component {
    * @param {ContentState} contentState
    */
   findCharacter(contentBlock, callback, contentState ) {
-    console.log('fire', callback);
     const text = contentBlock.getText();
     for (let i=0; i < this.state.associations.length; i++) {
       if (!this.state.associations[i].name.trim().length) {
@@ -378,8 +380,9 @@ export class Document extends React.Component {
         let match;
         const deets = this.state.associations[i].details;
         const name = this.state.associations[i].name.trim();
+        console.log('name', name);
         const regexStr = this.getRegexString(name);
-        let caseFlag = 'g';
+        let caseFlag = 'gm';
         if (!deets.caseSensitive) {
           caseFlag += 'i';
         }
@@ -391,15 +394,13 @@ export class Document extends React.Component {
         const toArray = deets.aliases.split('|');
         for (let z=0; z < toArray.length; z++) {
           const alias = toArray[z].trim();
-          const regexStr = this.getRegexString(alias);
-          let caseFlag = 'g';
-          if (!deets.caseSensitive) {
-            caseFlag += 'i';
-          }
-          const regex = new RegExp(regexStr, caseFlag);
-          while ((match = regex.exec(text)) !== null) {
-            const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
-            callback(start, start + alias.length);
+          if (alias.length) {
+            const regexStr = this.getRegexString(alias);
+            const regex = new RegExp(regexStr, caseFlag);
+            while ((match = regex.exec(text)) !== null) {
+              const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
+              callback(start, start + alias.length);
+            }
           }
         }
       }
@@ -424,9 +425,9 @@ export class Document extends React.Component {
         const deets = this.state.associations[i].details;
         const name = this.state.associations[i].name.trim();
         const regexStr = this.getRegexString(name);
-        let caseFlag = 'g';
+        let caseFlag = 'gm';
         if (!deets.caseSensitive) {
-          caseFlag = 'gi';
+          caseFlag += 'i';
         }
         const regex = new RegExp(regexStr, caseFlag);
         while ((match = regex.exec(text)) !== null) {
@@ -436,15 +437,13 @@ export class Document extends React.Component {
         const toArray = deets.aliases.split('|');
         for (let z=0; z < toArray.length; z++) {
           const alias = toArray[z].trim();
-          const regexStr = this.getRegexString(alias);
-          let caseFlag = 'g';
-          if (!deets.caseSensitive) {
-            caseFlag = 'gi';
-          }
-          const regex = new RegExp(regexStr, caseFlag);
-          while ((match = regex.exec(text)) !== null) {
-            const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
-            callback(start, start + alias.length);
+          if (alias.length) {
+            const regexStr = this.getRegexString(alias);
+            const regex = new RegExp(regexStr, caseFlag);
+            while ((match = regex.exec(text)) !== null) {
+              const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
+              callback(start, start + alias.length);
+            }
           }
         }
       }
@@ -469,9 +468,9 @@ export class Document extends React.Component {
         const deets = this.state.associations[i].details;
         const name = this.state.associations[i].name.trim();
         const regexStr = this.getRegexString(name);
-        let caseFlag = 'g';
+        let caseFlag = 'gm';
         if (!deets.caseSensitive) {
-          caseFlag = 'gi';
+          caseFlag += 'i';
         }
         const regex = new RegExp(regexStr, caseFlag);
         while ((match = regex.exec(text)) !== null) {
@@ -482,15 +481,13 @@ export class Document extends React.Component {
         const toArray = deets.aliases.split('|');
         for (let z=0; z < toArray.length; z++) {
           const alias = toArray[z].trim();
-          const regexStr = this.getRegexString(alias);
-          let caseFlag = 'g';
-          if (!deets.caseSensitive) {
-            caseFlag = 'gi';
-          }
-          const regex = new RegExp(regexStr, caseFlag);
-          while ((match = regex.exec(text)) !== null) {
-            const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
-            callback(start, start + alias.length);
+          if (alias.length) {
+            const regexStr = this.getRegexString(alias);
+            const regex = new RegExp(regexStr, caseFlag);
+            while ((match = regex.exec(text)) !== null) {
+              const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
+              callback(start, start + alias.length);
+            }
           }
         }
       }
@@ -567,15 +564,16 @@ export class Document extends React.Component {
   processSocketMessage(message) {
     switch (message.command) {
       case 'pushAssociations':
-        console.log('new asses', message.data);
+        let newAsses = [];
         if (message.data) {
-          this.setState({
-            associations: message.data
-          }, () => {
-            // I have to obnoxiously trigger a re-render to get new associations to appear
-            this.forceRender();
-          });
+          newAsses = message.data;
         }
+        this.setState({
+          associations: newAsses
+        }, () => {
+          // I have to obnoxiously trigger a re-render to get new associations to appear
+          this.forceRender();
+        });
         break;
       case 'saveFailed':
         break;
@@ -812,7 +810,7 @@ export class Document extends React.Component {
     if (!cursorChange) {
       const content = newEditorState.getCurrentContent();
       const block = content.getBlockForKey(selection.getAnchorKey());
-      console.log('saving', block.getKey());
+      console.log('queuing block for save', block.getKey());
       // await this.checkPageHeightAndAdvanceToNextPageIfNeeded(pageNumber);
       this.pendingEdits.set(block.getKey(), true);
     }
@@ -865,15 +863,19 @@ export class Document extends React.Component {
    * Save the ordered state of the block map to mongo
    */
   saveBlockOrder() {
-    const order = this.state.editorState.getCurrentContent().getBlockMap()._map._root.entries;
-    const toObj = {};
-    for (let i=0; i < order.length; i++) {
-      toObj[order[i][0]] = order[i][1];
-    }
-    console.log(blockOrder, toObj);
-    if (blockOrder != JSON.stringify(toObj)) {
-      blockOrder = JSON.stringify(toObj);
-      this.socket.send(JSON.stringify({command: 'updateBlockOrder', data: {storyID: this.storyID, order: toObj}}));
+    try {
+      const order = this.state.editorState.getCurrentContent().getBlocksAsArray();
+      const toObj = {};
+      for (let i=0; i < order.length; i++) {
+        toObj[order[i].key] = i;
+      }
+      if (blockOrder != JSON.stringify(toObj)) {
+        console.log('writing block order to db');
+        blockOrder = JSON.stringify(toObj);
+        this.socket.send(JSON.stringify({command: 'updateBlockOrder', data: {storyID: this.storyID, order: toObj}}));
+      }
+    } catch (error) {
+      console.error(error);
     }
   }
 
