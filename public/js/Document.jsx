@@ -51,7 +51,7 @@ export class Document extends React.Component {
   **/
   constructor(props) {
     super(props);
-    
+
     const dpi = this.getDPI();
     let width = 8.25 * dpi;
     let height = 11.75 * dpi;
@@ -61,7 +61,7 @@ export class Document extends React.Component {
       height = '100%';
       docPadding = '10px';
     }
-    
+
     console.log('dpi', dpi);
     this.state = {
       pageWidth: width,
@@ -357,10 +357,7 @@ export class Document extends React.Component {
    * @return {string}
    */
   getRegexString(string) {
-    console.log('str', string + '+[(?!,.\'-\s)]*|$');
-    return '(?<=^|\s)(' + string + ')+?(?=[(?!,.\'-)]+)|(?=[\s])+|(?=$)';
-    //return '(?<=^|\s)(' + string + ')+?(?=[(?!,.\'-)]+|[\s]+|$)';
-    //return '(' + string + ')+[(?!,.\'-)|(\\s)]+|(sss)+$';
+    return '\\b' + string + '\\b';
   }
 
   /**
@@ -380,7 +377,6 @@ export class Document extends React.Component {
         let match;
         const deets = this.state.associations[i].details;
         const name = this.state.associations[i].name.trim();
-        console.log('name', name);
         const regexStr = this.getRegexString(name);
         let caseFlag = 'gm';
         if (!deets.caseSensitive) {
@@ -391,6 +387,7 @@ export class Document extends React.Component {
           const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
           callback(start, start + name.length);
         }
+
         const toArray = deets.aliases.split('|');
         for (let z=0; z < toArray.length; z++) {
           const alias = toArray[z].trim();
@@ -563,7 +560,7 @@ export class Document extends React.Component {
    */
   processSocketMessage(message) {
     switch (message.command) {
-      case 'pushAssociations':
+      case 'pushAssociations': {
         let newAsses = [];
         if (message.data) {
           newAsses = message.data;
@@ -575,6 +572,7 @@ export class Document extends React.Component {
           this.forceRender();
         });
         break;
+      }
       case 'saveFailed':
         break;
       case 'fetchAssociationsFailed':
@@ -1089,10 +1087,10 @@ export class Document extends React.Component {
       }
     }
     const selection = this.state.editorState.getSelection();
-    this.state.editorState = EditorState.forceSelection(this.state.editorState, selection);
+    const newState = EditorState.forceSelection(this.state.editorState, selection);
     const nextContentState = Modifier.mergeBlockData(this.state.editorState.getCurrentContent(), selection, Immutable.Map([['lineHeight', nextSpacing]]));
     this.setState({
-      editorState: EditorState.push(this.state.editorState, nextContentState, 'change-block-data'),
+      editorState: EditorState.push(newState, nextContentState, 'change-block-data'),
       currentLineHeight: nextSpacing
     }, () => {
       const content = this.state.editorState.getCurrentContent();
