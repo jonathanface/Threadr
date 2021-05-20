@@ -187,15 +187,20 @@ func AllBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func SetupWebsocket(w http.ResponseWriter, r *http.Request) {
-	
-	hostname := strings.Split(r.Host, ":")[0]
-  url := "ws://"
-  if strings.Index(r.Referer(), "https") != -1 {
-    url = "wss://"
-    log.Println("Listening for secure socket on " + HTTP_PORT)
-  } else {
-    log.Println("Listening for insecure socket on " + HTTP_PORT)
-  }
-	url += hostname + HTTP_PORT + SOCKET_DIR
+
+	toSlice := strings.Split(r.Host, ":")
+	log.Println("slcie", toSlice)
+	hostName := toSlice[0]
+	port := toSlice[1]
+	log.Println("host", hostName, "port", port)
+	url := "ws://"
+	if strings.Index(r.Referer(), "https") != -1 {
+		log.Println("listening for secure websocket on " + hostName + ":" + port)
+		url = "wss://"
+	} else {
+		log.Println("listening for websocket on " + hostName + ":" + port)
+	}
+	//url += hostname + HTTP_PORT + SOCKET_DIR
+	url += hostName + ":" + port + SOCKET_DIR
 	RespondWithJson(w, http.StatusOK, map[string]string{"url": url})
 }

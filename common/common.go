@@ -12,11 +12,12 @@ import (
 )
 
 type Config struct {
-	DBHost string `json:"dbHost"`
-	DBPort string `json:"dbPort"`
-	DBUser string `json:"dbUser"`
-	DBPass string `json:"dbPass"`
-	DBName string `json:"dbName"`
+	DBHost   string `json:"dbHost"`
+	DBPort   string `json:"dbPort"`
+	DBUser   string `json:"dbUser"`
+	DBPass   string `json:"dbPass"`
+	DBName   string `json:"dbName"`
+	HttpPort string `json:"httpPort"`
 }
 
 type SocketMessage struct {
@@ -30,7 +31,7 @@ type SocketError struct {
 
 var credentials = Config{}
 
-func GetConfiguration() {
+func LoadConfiguration() {
 	jsonFile, err := os.Open("config.json")
 	if err != nil {
 		panic(err)
@@ -38,6 +39,10 @@ func GetConfiguration() {
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 	json.Unmarshal(byteValue, &credentials)
 	jsonFile.Close()
+}
+
+func GetHTTPPort() string {
+	return credentials.HttpPort
 }
 
 func MongoConnect() (*mongo.Client, context.Context, error) {
