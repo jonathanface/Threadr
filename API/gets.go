@@ -199,6 +199,10 @@ func SetupWebsocket(w http.ResponseWriter, r *http.Request) {
 	} else {
 		log.Println("listening for websocket on " + hostName + ":" + port)
 	}
-	url += hostName + ":" + port + SOCKET_DIR
+	if port == "" {
+		url += hostName + SOCKET_DIR
+	} else {
+		url += hostName + ":" + port + SOCKET_DIR
+	}
 	RespondWithJson(w, http.StatusOK, map[string]string{"url": url})
 }
