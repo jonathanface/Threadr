@@ -663,7 +663,7 @@ export class Document extends React.Component {
    * Get the full URL of the websocket from the API
    */
   fetchWebsocketURL() {
-    fetch('/wsinit', {
+    fetch(Globals.SERVICE_URL + '/wsinit', {
       headers: Globals.getHeaders()
     }).then((response) => response.json()).then((data) => {
       this.setupWebsocket(data.url);
