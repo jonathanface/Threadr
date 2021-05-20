@@ -655,7 +655,7 @@ export class Document extends React.Component {
         loading: false
       });
     }).catch((error) => {
-      console.error('Error:', error);
+      console.error('FetchDocumentBlocks Error:', error);
     });
   }
 
@@ -668,7 +668,7 @@ export class Document extends React.Component {
     }).then((response) => response.json()).then((data) => {
       this.setupWebsocket(data.url);
     }).catch((error) => {
-      console.error('Error:', error);
+      console.error('FetchWebsocketURLError:', error);
     });
   }
 
@@ -870,7 +870,7 @@ export class Document extends React.Component {
         this.socket.send(JSON.stringify({command: 'updateBlockOrder', data: {storyID: this.storyID, order: toObj}}));
       }
     } catch (error) {
-      console.error(error);
+      console.error("SaveBlockOrderError", error);
     }
   }
 
