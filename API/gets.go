@@ -204,5 +204,6 @@ func SetupWebsocket(w http.ResponseWriter, r *http.Request) {
 	} else {
 		url += hostName + ":" + port + SOCKET_DIR
 	}
+  log.Println("sending back ws dir", url)
 	RespondWithJson(w, http.StatusOK, map[string]string{"url": url})
 }
