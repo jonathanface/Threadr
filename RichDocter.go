@@ -24,7 +24,6 @@ import (
 
 const (
 	SERVICE_PATH       = "/api"
-	HTTP_PORT          = ":5000"
 	SOCKET_DIR         = "/ws"
 	STORIES_COLLECTION = "stories"
 	STATIC_FILES_DIR   = "public"
@@ -344,8 +343,8 @@ func serveRootDirectory(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	log.Println("Listening for http on " + HTTP_PORT)
-	common.GetConfiguration()
+	common.LoadConfiguration()
+	log.Println("Listening for http on " + common.GetHTTPPort())
 
 	hub := newHub()
 	go hub.run()
@@ -371,5 +370,5 @@ func main() {
 	})
 	rtr.PathPrefix("/").HandlerFunc(serveRootDirectory)
 	http.Handle("/", rtr)
-	log.Fatal(http.ListenAndServe(HTTP_PORT, nil))
+	log.Fatal(http.ListenAndServe(":"+common.GetHTTPPort(), nil))
 }

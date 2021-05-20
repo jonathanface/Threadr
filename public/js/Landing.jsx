@@ -5,7 +5,6 @@ import {CornerMenu} from './CornerMenu.jsx';
 import {Document} from './Document.jsx';
 import DeleteForever from '@material-ui/icons/DeleteForever';
 
-
 /**
  * The main page of the whole darned site
  */
