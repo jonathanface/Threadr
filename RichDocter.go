@@ -76,13 +76,30 @@ func updateBlockOrder(order map[string]int, storyID primitive.ObjectID) error {
 	}
 	defer common.MongoDisconnect(client, ctx)
 	blocks := client.Database("Drafty").Collection(storyID.Hex() + "_blocks")
+	cursor, err := blocks.Find(context.TODO(), bson.D{})
+	if err != nil {
+		return err
+	}
+	defer cursor.Close(ctx)
+	for cursor.Next(context.TODO()) {
+		var b API.Block
+		err := cursor.Decode(&b)
+		if err != nil {
+			return err
+		}
+		if _, ok := order[b.Key]; !ok {
+			log.Println("deleted block", b.Key)
+			err = deleteBlock(b.Key, storyID)
+			if err != nil {
+				return err
+			}
+		}
+	}
 
-	log.Println("order", order)
 	for key, val := range order {
 		filter := &bson.M{"storyID": storyID, "key": key}
-		update := &bson.M{"$set": &bson.M{"order": val}}
-		log.Println("updating", val)
-		_, err = blocks.UpdateOne(context.TODO(), filter, update)
+		update := &bson.M{"$set": &bson.M{"key": key, "order": val}}
+		_, err := blocks.UpdateOne(context.TODO(), filter, update)
 		if err != nil {
 			return err
 		}

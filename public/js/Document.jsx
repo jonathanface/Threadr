@@ -1154,7 +1154,7 @@ export class Document extends React.Component {
           </nav>
           <div className="editorRoot" style={{width: this.state.pageWidth}}>
             <div onClick={this.focus} className="editorContainer">
-              <section onContextMenu={(e)=> {this.onRightClick(e);}} onClick={() => {this.setFocus();}} className="margins" style={{maxHeight: this.state.pageHeight, height: this.state.pageHeight, paddingLeft: this.state.leftMargin, paddingRight: this.state.rightMargin, paddingTop: this.state.topMargin, paddingBottom: this.state.bottomMargin}}>
+              <section onContextMenu={(e)=> {this.onRightClick(e);}} onClick={() => {this.setFocus();}} className="margins" style={{minHeight: this.state.pageHeight, paddingLeft: this.state.leftMargin, paddingRight: this.state.rightMargin, paddingTop: this.state.topMargin, paddingBottom: this.state.bottomMargin}}>
                 <Editor
                   editorState={this.state.editorState}
                   handleKeyCommand={(command) => {
