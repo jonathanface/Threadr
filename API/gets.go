@@ -191,6 +191,8 @@ func SetupWebsocket(w http.ResponseWriter, r *http.Request) {
 	log.Println("slcie", toSlice)
 	hostName := toSlice[0]
   port := ""
+  log.Println("len slice", len(toSlice), toSlice)
+  
   if (len(toSlice) > 1) {
     port = toSlice[1]
 	}
