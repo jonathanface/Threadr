@@ -61,8 +61,6 @@ export class Document extends React.Component {
       height = '100%';
       docPadding = '10px';
     }
-
-    console.log('dpi', dpi);
     this.state = {
       pageWidth: width,
       pageHeight: height,
@@ -387,7 +385,6 @@ export class Document extends React.Component {
           const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
           callback(start, start + name.length);
         }
-
         const toArray = deets.aliases.split('|');
         for (let z=0; z < toArray.length; z++) {
           const alias = toArray[z].trim();
@@ -658,7 +655,7 @@ export class Document extends React.Component {
         loading: false
       });
     }).catch((error) => {
-      console.error('Error:', error);
+      console.error('FetchDocumentBlocks Error:', error);
     });
   }
 
@@ -666,12 +663,12 @@ export class Document extends React.Component {
    * Get the full URL of the websocket from the API
    */
   fetchWebsocketURL() {
-    fetch('/wsinit', {
+    fetch(Globals.SERVICE_URL + '/wsinit', {
       headers: Globals.getHeaders()
     }).then((response) => response.json()).then((data) => {
       this.setupWebsocket(data.url);
     }).catch((error) => {
-      console.error('Error:', error);
+      console.error('FetchWebsocketURLError:', error);
     });
   }
 
@@ -873,7 +870,7 @@ export class Document extends React.Component {
         this.socket.send(JSON.stringify({command: 'updateBlockOrder', data: {storyID: this.storyID, order: toObj}}));
       }
     } catch (error) {
-      console.error(error);
+      console.error('SaveBlockOrderError', error);
     }
   }
 
