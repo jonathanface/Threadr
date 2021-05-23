@@ -48,6 +48,25 @@ func deleteBlock(blockID string, storyID primitive.ObjectID) error {
 	return err
 }
 
+func saveAllBlocks(blocks []API.Block, storyID primitive.ObjectID) error {
+	log.Println("resetting all blocks for", storyID.Hex())
+	client, ctx, err := common.MongoConnect()
+	if err != nil {
+		log.Println("ERROR CONNECTING: ", err)
+		return err
+	}
+	defer common.MongoDisconnect(client, ctx)
+	blocksColl := client.Database("Drafty").Collection(storyID.Hex() + "_blocks")
+	_, err = blocksColl.DeleteMany(context.TODO(), bson.M{})
+	if err != nil {
+		return err
+	}
+	for _, val := range blocks {
+		saveBlock(val.Key, val.Body, storyID)
+	}
+	return nil
+}
+
 func saveBlock(key string, body []byte, storyID primitive.ObjectID) error {
 	log.Println("save block", key, storyID)
 	client, ctx, err := common.MongoConnect()
@@ -88,7 +107,6 @@ func updateBlockOrder(order map[string]int, storyID primitive.ObjectID) error {
 			return err
 		}
 		if _, ok := order[b.Key]; !ok {
-			log.Println("deleted block", b.Key)
 			err = deleteBlock(b.Key, storyID)
 			if err != nil {
 				return err

@@ -68,6 +68,20 @@ func (h *Hub) run() {
 				}
 				clientMessage.Client.conn.WriteJSON(response)
 				break
+			case `saveAllBlocks`:
+				allBlocks := API.AllBlocks{}
+				json.Unmarshal([]byte(m.Data), &allBlocks)
+				response := common.SocketMessage{}
+				response.Command = "saveAllFailed"
+				err := saveAllBlocks(allBlocks.Blocks, allBlocks.StoryID)
+				if err == nil {
+					response.Command = "saveAllSuccessful"
+				} else {
+					log.Println(err)
+					generateSocketError(err.Error())
+				}
+				clientMessage.Client.conn.WriteJSON(response)
+				break
 			case `updateBlockOrder`:
 				blockOrder := API.BlockOrder{}
 				json.Unmarshal([]byte(m.Data), &blockOrder)

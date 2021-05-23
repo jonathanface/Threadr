@@ -333,7 +333,7 @@ export class Document extends React.Component {
    */
   matchAlias(assoc, label) {
     if (assoc.details.aliases.length) {
-      const aliases = assoc.details.aliases.split('|');
+      const aliases = assoc.details.aliases.split(',');
       for (let i=0; i < aliases.length; i++) {
         if (!assoc.details.caseSensitive) {
           if (aliases[i].toLowerCase() == label.toLowerCase()) {
@@ -385,7 +385,7 @@ export class Document extends React.Component {
           const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
           callback(start, start + name.length);
         }
-        const toArray = deets.aliases.split('|');
+        const toArray = deets.aliases.split(',');
         for (let z=0; z < toArray.length; z++) {
           const alias = toArray[z].trim();
           if (alias.length) {
@@ -428,7 +428,7 @@ export class Document extends React.Component {
           const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
           callback(start, start + name.length);
         }
-        const toArray = deets.aliases.split('|');
+        const toArray = deets.aliases.split(',');
         for (let z=0; z < toArray.length; z++) {
           const alias = toArray[z].trim();
           if (alias.length) {
@@ -472,7 +472,7 @@ export class Document extends React.Component {
           callback(start, start + name.length);
         }
 
-        const toArray = deets.aliases.split('|');
+        const toArray = deets.aliases.split(',');
         for (let z=0; z < toArray.length; z++) {
           const alias = toArray[z].trim();
           if (alias.length) {
@@ -762,6 +762,7 @@ export class Document extends React.Component {
     const contentStateWithEntity = currentContent.createEntity('TAB', 'IMMUTABLE');
     const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
     const textWithEntity = Modifier.insertText(currentContent, selection, '     ', null, entityKey);
+    this.pendingEdits.set(selection.getFocusKey(), true);
     return EditorState.push(editorState, textWithEntity);
   }
 
@@ -785,9 +786,8 @@ export class Document extends React.Component {
         this.updateTextControls(lineHeight);
       }
     }
-
     const dataMap = [];
-    const blockTree = newEditorState.getBlockTree(selection.getFocusKey());
+    const blockTree = this.state.editorState.getBlockTree(selection.getFocusKey());
     if (!blockTree) {
       // a new block has been added, copy styles from previous block
       const styles = this.getPreviousBlockStyles(newEditorState);
@@ -797,18 +797,27 @@ export class Document extends React.Component {
       const nextContentState = Modifier.mergeBlockData(newEditorState.getCurrentContent(), selection, iMap);
       newEditorState = EditorState.push(newEditorState, nextContentState, 'change-block-data');
       // auto tab if align left
-      if (styles.direction == 'left') {
+      console.log('new block added', styles);
+      if (styles.direction == 'left' || !styles.direction) {
         newEditorState = this.insertTab(newEditorState);
       }
     }
-    this.setState({editorState: newEditorState});
-    if (!cursorChange) {
-      const content = newEditorState.getCurrentContent();
-      const block = content.getBlockForKey(selection.getAnchorKey());
-      console.log('queuing block for save', block.getKey());
-      // await this.checkPageHeightAndAdvanceToNextPageIfNeeded(pageNumber);
-      this.pendingEdits.set(block.getKey(), true);
-    }
+    this.setState({
+      editorState: newEditorState
+    }, () => {
+      if (!cursorChange) {
+        const content = newEditorState.getCurrentContent();
+        if (!this.pastedText) {
+          const block = content.getBlockForKey(selection.getAnchorKey());
+          console.log('queuing block for save', block.getKey());
+          // await this.checkPageHeightAndAdvanceToNextPageIfNeeded(pageNumber);
+          this.pendingEdits.set(block.getKey(), true);
+        } else {
+          this.pastedText = false;
+          this.saveAllBlocks();
+        }
+      }
+    });
   }
 
   /**
@@ -835,6 +844,26 @@ export class Document extends React.Component {
         this.pendingEdits.set(key, false);
       }
     });
+  }
+
+  /**
+   * Save every single block
+   * this is a temp fix for pasting in text until I can figure out
+   * how to target pasted blocks individually
+   */
+  saveAllBlocks() {
+    if (this.socket.isOpen) {
+      const body = [];
+      const contentState = this.state.editorState.getCurrentContent();
+      const blockMap = contentState.getBlocksAsArray();
+      for (let i=0; i < blockMap.length; i++) {
+        const block = this.state.editorState.getCurrentContent().getBlockForKey(blockMap[i].key);
+        body.push({key: block.getKey(), order: i, body: block});
+      }
+      if (body.length) {
+        this.socket.send(JSON.stringify({command: 'saveAllBlocks', data: {storyID: this.storyID, blocks: body}}));
+      }
+    }
   }
 
   /**
@@ -915,6 +944,7 @@ export class Document extends React.Component {
         editorState: this.insertTab(this.state.editorState)
       });
     }
+    console.log('key', event.keyCode);
     if (event.ctrlKey) {
       if (event.keyCode == 83) {
         return 'ctrl_s';
@@ -924,6 +954,10 @@ export class Document extends React.Component {
       }
       if (event.keyCode == 188) {
         return 'ctrl_<';
+      }
+      if (event.keyCode == 86) {
+        this.pastedText = true;
+        console.log('setting pasted');
       }
     }
     return getDefaultKeyBinding(event);
@@ -935,8 +969,8 @@ export class Document extends React.Component {
    * @param {string} command
    * @param {number} pageNumber
    */
-  handleKeyCommand(command, pageNumber) {
-    console.log('cmd', command, 'page', pageNumber);
+  handleKeyCommand(command) {
+    console.log('cmd', command.toLowerCase());
     switch (command.toLowerCase()) {
       case 'delete':
       case 'backspace': {
@@ -950,9 +984,15 @@ export class Document extends React.Component {
       case 'underline': {
         this.setState({
           editorState: RichUtils.toggleInlineStyle(this.state.editorState, command.toUpperCase())
+        }, () => {
+          const selection = this.state.editorState.getSelection();
+          this.pendingEdits.set(selection.getFocusKey(), true);
         });
         break;
       }
+      case 'ctrl_v':
+        this.pastedText = true;
+        break;
     }
   }
 

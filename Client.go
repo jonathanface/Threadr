@@ -59,7 +59,7 @@ func (c *Client) readPump() {
 		c.conn.Close()
 	}()
 	log.Println("PUMP")
-	c.conn.SetReadLimit(maxMessageSize)
+	//c.conn.SetReadLimit(maxMessageSize)
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error {
 		log.Println("pong received")
@@ -76,7 +76,7 @@ func (c *Client) readPump() {
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		log.Println(string(message))
+		//log.Println(string(message))
 
 		cm := ClientMessage{}
 		cm.Client = c
