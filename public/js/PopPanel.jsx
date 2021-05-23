@@ -6,7 +6,7 @@ import CloseIcon from '@material-ui/icons/Close';
 import {Globals} from './Globals.jsx';
 
 const defaultDescriptionText = 'Description';
-const defaultAliasText = 'Pipe|separated|list';
+const defaultAliasText = 'Comma,separated,list';
 
 /**
  * Right-click menu for tagging document text.
@@ -183,7 +183,7 @@ export class PopPanel extends React.Component {
         break;
       case 'aliases':
         if (event.currentTarget.innerHTML == '') {
-          this.setState({description: defaultAliasText});
+          this.setState({aliases: defaultAliasText});
         }
         break;
     }

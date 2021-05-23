@@ -48,6 +48,25 @@ func deleteBlock(blockID string, storyID primitive.ObjectID) error {
 	return err
 }
 
+func saveAllBlocks(blocks []API.Block, storyID primitive.ObjectID) error {
+	log.Println("resetting all blocks for", storyID.Hex())
+	client, ctx, err := common.MongoConnect()
+	if err != nil {
+		log.Println("ERROR CONNECTING: ", err)
+		return err
+	}
+	defer common.MongoDisconnect(client, ctx)
+	blocksColl := client.Database("Drafty").Collection(storyID.Hex() + "_blocks")
+	_, err = blocksColl.DeleteMany(context.TODO(), bson.M{})
+	if err != nil {
+		return err
+	}
+	for _, val := range blocks {
+		saveBlock(val.Key, val.Body, storyID)
+	}
+	return nil
+}
+
 func saveBlock(key string, body []byte, storyID primitive.ObjectID) error {
 	log.Println("save block", key, storyID)
 	client, ctx, err := common.MongoConnect()
@@ -76,13 +95,29 @@ func updateBlockOrder(order map[string]int, storyID primitive.ObjectID) error {
 	}
 	defer common.MongoDisconnect(client, ctx)
 	blocks := client.Database("Drafty").Collection(storyID.Hex() + "_blocks")
+	cursor, err := blocks.Find(context.TODO(), bson.D{})
+	if err != nil {
+		return err
+	}
+	defer cursor.Close(ctx)
+	for cursor.Next(context.TODO()) {
+		var b API.Block
+		err := cursor.Decode(&b)
+		if err != nil {
+			return err
+		}
+		if _, ok := order[b.Key]; !ok {
+			err = deleteBlock(b.Key, storyID)
+			if err != nil {
+				return err
+			}
+		}
+	}
 
-	log.Println("order", order)
 	for key, val := range order {
 		filter := &bson.M{"storyID": storyID, "key": key}
-		update := &bson.M{"$set": &bson.M{"order": val}}
-		log.Println("updating", val)
-		_, err = blocks.UpdateOne(context.TODO(), filter, update)
+		update := &bson.M{"$set": &bson.M{"key": key, "order": val}}
+		_, err := blocks.UpdateOne(context.TODO(), filter, update)
 		if err != nil {
 			return err
 		}
@@ -355,7 +390,7 @@ func main() {
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/blocks", middleware(API.AllBlocksEndPoint)).Methods("GET", "OPTIONS")
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/associations", middleware(API.AllAssociationsEndPoint)).Methods("GET", "OPTIONS")
 	rtr.HandleFunc(SERVICE_PATH+"/association/{[0-9a-zA-Z]+}", middleware(API.AssociationDetailsEndPoint)).Methods("GET", "OPTIONS")
-  rtr.HandleFunc(SERVICE_PATH+"/wsinit", middleware(API.SetupWebsocket)).Methods("GET", "OPTIONS")
+	rtr.HandleFunc(SERVICE_PATH+"/wsinit", middleware(API.SetupWebsocket)).Methods("GET", "OPTIONS")
 	rtr.HandleFunc(SERVICE_PATH+"/user/name", middleware(nil)).Methods("GET", "OPTIONS")
 
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/title", middleware(API.EditTitleEndPoint)).Methods("PUT")
