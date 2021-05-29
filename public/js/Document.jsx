@@ -1,6 +1,6 @@
 import React from 'react';
 import Immutable from 'immutable';
-import {EditorState, Editor, ContentState, ContentBlock, Modifier, RichUtils, getDefaultKeyBinding, CompositeDecorator, Entity} from 'draft-js';
+import {EditorState, Editor, ContentState, ContentBlock, Modifier, RichUtils, getDefaultKeyBinding, CompositeDecorator, Entity, CharacterMetadata} from 'draft-js';
 import {CustomContext} from './CustomContext.jsx';
 import {PopPanel} from './PopPanel.jsx';
 import {DialogPrompt} from './DialogPrompt.jsx';
@@ -632,7 +632,20 @@ export class Document extends React.Component {
           response.json().then((data) => {
             const newBlocks = [];
             data.forEach((item) => {
+              const configs = [];
+              item.body.characterList.forEach((character) => {
+                if (!character.style.length && character.entity == null) {
+                  configs.push(CharacterMetadata.create());
+                  return;
+                }
+                const config = {
+                  style: character.style,
+                  entity: character.entity
+                };
+                configs.push(CharacterMetadata.create(config));
+              });
               newBlocks.push(new ContentBlock({
+                characterList: Immutable.List(configs),
                 key: item.body.key,
                 text: item.body.text,
                 type: item.body.type,
@@ -732,12 +745,12 @@ export class Document extends React.Component {
    * Get styles of the preceding block
    *
    * @param {EditorState} editorState
+   * @param {Selection} selection
    * @return {boolean}
    */
-  getPreviousBlockStyles(editorState) {
-    const prevSelection = editorState.getCurrentContent().getSelectionBefore();
-    const lastBlock = editorState.getCurrentContent().getBlockForKey(prevSelection.getFocusKey());
-    const data = lastBlock.getData();
+  getBlockStyles(editorState, selection) {
+    const block = editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
+    const data = block.getData();
     const styles = {};
     const alignment = data.getIn(['alignment']);
     styles.direction = alignment;
@@ -747,6 +760,9 @@ export class Document extends React.Component {
       height = lineHeight;
     }
     styles.lineHeight = height;
+    const weight = data.getIn(['fontWeight']);
+    console.log('block weight', weight);
+    styles.fontWeight = weight;
     return styles;
   }
 
@@ -790,9 +806,12 @@ export class Document extends React.Component {
     const blockTree = this.state.editorState.getBlockTree(selection.getFocusKey());
     if (!blockTree) {
       // a new block has been added, copy styles from previous block
-      const styles = this.getPreviousBlockStyles(newEditorState);
+      console.log('adding new block');
+      const prevSelection = newEditorState.getCurrentContent().getSelectionBefore();
+      const styles = this.getBlockStyles(newEditorState, prevSelection);
       dataMap.push(['alignment', styles.direction]);
       dataMap.push(['lineHeight', styles.lineHeight]);
+      dataMap.push(['fontWeight', styles.fontWeight]);
       const iMap = Immutable.Map(dataMap);
       const nextContentState = Modifier.mergeBlockData(newEditorState.getCurrentContent(), selection, iMap);
       newEditorState = EditorState.push(newEditorState, nextContentState, 'change-block-data');
@@ -807,15 +826,10 @@ export class Document extends React.Component {
     }, () => {
       if (!cursorChange) {
         const content = newEditorState.getCurrentContent();
-        if (!this.pastedText) {
-          const block = content.getBlockForKey(selection.getAnchorKey());
-          console.log('queuing block for save', block.getKey());
-          // await this.checkPageHeightAndAdvanceToNextPageIfNeeded(pageNumber);
-          this.pendingEdits.set(block.getKey(), true);
-        } else {
-          this.pastedText = false;
-          this.saveAllBlocks();
-        }
+        const block = content.getBlockForKey(selection.getAnchorKey());
+        console.log('queuing block for save', block.getKey());
+        // await this.checkPageHeightAndAdvanceToNextPageIfNeeded(pageNumber);
+        this.pendingEdits.set(block.getKey(), true);
       }
     });
   }
@@ -944,7 +958,7 @@ export class Document extends React.Component {
         editorState: this.insertTab(this.state.editorState)
       });
     }
-    console.log('key', event.keyCode);
+    // console.log('key', event.keyCode);
     if (event.ctrlKey) {
       if (event.keyCode == 83) {
         return 'ctrl_s';
@@ -985,13 +999,12 @@ export class Document extends React.Component {
         this.setState({
           editorState: RichUtils.toggleInlineStyle(this.state.editorState, command.toUpperCase())
         }, () => {
-          const selection = this.state.editorState.getSelection();
-          this.pendingEdits.set(selection.getFocusKey(), true);
+          this.pendingEdits.set(this.state.editorState.getSelection().getFocusKey(), true);
         });
         break;
       }
       case 'ctrl_v':
-        this.pastedText = true;
+        // this.pastedText = true;
         break;
     }
   }
@@ -1096,8 +1109,7 @@ export class Document extends React.Component {
     this.setState({
       editorState: EditorState.push(this.state.editorState, nextContentState, 'change-block-data')
     }, () => {
-      const content = this.state.editorState.getCurrentContent();
-      const block = content.getBlockForKey(selection.getAnchorKey());
+      const block = nextContentState.getBlockForKey(selection.getAnchorKey());
       this.pendingEdits.set(block.getKey(), true);
     });
   }
