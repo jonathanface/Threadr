@@ -96,8 +96,8 @@ export class Document extends React.Component {
     this.socket = null;
     this.deletePressed = false;
     this.pendingEdits = new Map();
-    this.pendingPageDeletions = [];
-    this.checkSaveInterval = setInterval(() => this.checkForPendingEdits(), this.SAVE_TIME_INTERVAL);
+    this.pendingDeletes = new Map();
+    this.checkSaveInterval = setInterval(() => this.checkForPendingEditsOrDeletes(), this.SAVE_TIME_INTERVAL);
     this.editor = React.createRef();
     this.dialog = React.createRef();
   }
@@ -138,16 +138,17 @@ export class Document extends React.Component {
   /**
    * Find entities in block
    *
-   * @param {string} type
    * @param {ContentBlock} contentBlock
    * @param {function} callback
+   * @param {string} type
    */
-  findEntity(type, contentBlock, callback) {
+  findEntity(contentBlock, callback, type) {
     contentBlock.findEntityRanges((character) => {
       const entityKey = character.getEntity();
       return (entityKey !== null && Entity.get(entityKey).getType() === type);
     }, callback);
   }
+
 
   /**
    * Create decorators from an array of text associations and
@@ -639,7 +640,7 @@ export class Document extends React.Component {
                   return;
                 }
                 const config = {
-                  style: character.style,
+                  style: Immutable.OrderedSet(character.style),
                   entity: character.entity
                 };
                 configs.push(CharacterMetadata.create(config));
@@ -760,9 +761,6 @@ export class Document extends React.Component {
       height = lineHeight;
     }
     styles.lineHeight = height;
-    const weight = data.getIn(['fontWeight']);
-    console.log('block weight', weight);
-    styles.fontWeight = weight;
     return styles;
   }
 
@@ -811,7 +809,6 @@ export class Document extends React.Component {
       const styles = this.getBlockStyles(newEditorState, prevSelection);
       dataMap.push(['alignment', styles.direction]);
       dataMap.push(['lineHeight', styles.lineHeight]);
-      dataMap.push(['fontWeight', styles.fontWeight]);
       const iMap = Immutable.Map(dataMap);
       const nextContentState = Modifier.mergeBlockData(newEditorState.getCurrentContent(), selection, iMap);
       newEditorState = EditorState.push(newEditorState, nextContentState, 'change-block-data');
@@ -819,6 +816,16 @@ export class Document extends React.Component {
       console.log('new block added', styles);
       if (styles.direction == 'left' || !styles.direction) {
         newEditorState = this.insertTab(newEditorState);
+      }
+    }
+    if (this.deletePressed) {
+      this.deletePressed = false;
+      const block = newEditorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
+      console.log('deleting', block.getData());
+      console.log('remaining chars', block.getText().length);
+      if (!block.getText().length) {
+        this.pendingDeletes.set(block.getKey(), true);
+        newEditorState = this.removeBlockFromMap(newEditorState, block.getKey());
       }
     }
     this.setState({
@@ -851,7 +858,13 @@ export class Document extends React.Component {
   /**
    * Check stored action arrays for upcoming writes
    */
-  checkForPendingEdits() {
+  checkForPendingEditsOrDeletes() {
+    this.pendingDeletes.forEach((value, key) => {
+      if (value) {
+        this.deleteBlock(key);
+        this.pendingDeletes.set(key, false);
+      }
+    });
     this.pendingEdits.forEach((value, key) => {
       if (value) {
         this.saveBlock(key);
@@ -886,13 +899,13 @@ export class Document extends React.Component {
    * @param {string} key
    */
   saveBlock(key) {
-    // Send the encoded page if the socket is open and it hasn't been subsequently deleted
+    // Send the encoded block if the socket is open and it hasn't been subsequently deleted
     if (this.socket.isOpen) {
       const block = this.state.editorState.getCurrentContent().getBlockForKey(key);
       console.log('save block', block);
       if (block) {
         this.socket.send(JSON.stringify({command: 'saveBlock', data: {key: block.getKey(), storyID: this.storyID, body: block.toJSON()}}));
-        this.saveBlockOrder();
+        // this.saveBlockOrder();
       }
     }
   }
@@ -996,6 +1009,7 @@ export class Document extends React.Component {
       case 'bold':
       case 'italic':
       case 'underline': {
+        console.log('styles???', this.state.editorState.getCurrentInlineStyle());
         this.setState({
           editorState: RichUtils.toggleInlineStyle(this.state.editorState, command.toUpperCase())
         }, () => {
