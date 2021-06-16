@@ -50,10 +50,11 @@ type AllBlocks struct {
 }
 
 type Block struct {
-	Key     string             `json:"key" bson:"key"`
-	Body    json.RawMessage    `json:"body" bson:"body"`
-	StoryID primitive.ObjectID `json:"storyID" bson:"storyID,omitempty"`
-	Order   int                `json:"order" bson:"order,omitempty"`
+	Key      string             `json:"key" bson:"key"`
+	Body     json.RawMessage    `json:"body" bson:"body"`
+	Entities json.RawMessage    `json:"entities" bson:"entities"`
+	StoryID  primitive.ObjectID `json:"storyID" bson:"storyID,omitempty"`
+	Order    int                `json:"order" bson:"order,omitempty"`
 }
 
 type BlockOrder struct {

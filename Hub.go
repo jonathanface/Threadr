@@ -59,7 +59,7 @@ func (h *Hub) run() {
 				json.Unmarshal([]byte(m.Data), &block)
 				response := common.SocketMessage{}
 				response.Command = "saveFailed"
-				err := saveBlock(block.Key, block.Body, block.StoryID)
+				err := saveBlock(block.Key, block.Body, block.Entities, block.StoryID)
 				if err == nil {
 					response.Command = "saveSuccessful"
 				} else {
