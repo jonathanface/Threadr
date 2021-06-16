@@ -21,7 +21,8 @@
   text-align:right;
 }
 
-.main_menu .menu_right .display_name {
+.main_menu .menu_right .display_name,
+.main_menu .menu_right .document_status {
   font-size: 0.75em;
   vertical-align: middle;
   display: inline-block;
@@ -65,6 +66,7 @@
   width:100%;
   background-color:#2eacdc;
 }
+
 .main_menu .menu_right ul li:hover {
   cursor:pointer;
   color:#000;
@@ -92,6 +94,13 @@ nav.docControls ul {
   padding: 0px;
   height:100%;
   line-height:45px;
+  position:relative;
+}
+nav.docControls ul > span {
+  position:absolute;
+  right:0px;
+  margin-right:5px;
+  font-size:0.8em;
 }
 
 @keyframes fdsseq { 
