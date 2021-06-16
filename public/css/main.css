@@ -193,13 +193,13 @@ div.public-DraftEditor-content {
   text-align:justify;
 }
 .lineheight_single {
-  line-height:1;
+  line-height:1.2em;
 }
 .lineheight_medium {
-  line-height:1.5;
+  line-height:1.5em;
 }
 .lineheight_double, .lineheight_double br {
-  line-height:2;
+  line-height:2em;
 }
 
 .highlight {
