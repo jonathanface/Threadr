@@ -85,7 +85,8 @@ export class Document extends React.Component {
       dialogIsPrompt: false,
       dialogOkButtonText: 'Ok',
       dialogCancelButtonText: 'Cancel',
-      tabLength: 5
+      tabLength: 5,
+      documentConnectionStatus: ''
     };
     this.storyID = props.storyID;
     this.rightclickAddMenu = React.createRef();
@@ -93,7 +94,7 @@ export class Document extends React.Component {
     this.popPanel = React.createRef();
     this.maxWidth = this.state.pageWidth - (this.state.leftMargin + this.state.rightMargin);
     this.currentPage = 0;
-    this.SAVE_TIME_INTERVAL = 5000;
+    this.SAVE_TIME_INTERVAL = 10000;
     this.socket = null;
     this.deletePressed = false;
     this.pendingEdits = new Map();
@@ -528,11 +529,31 @@ export class Document extends React.Component {
     });
   }
 
-  /** beforeunload **/
-  beforeunload() {
+  /**
+   * Prompt the user if tab close/refresh is detected and they have pending saves.
+   *
+   * @param {Event} event
+   */
+  beforeunload(event) {
+    console.log('unloading', this.pendingEdits.size);
     if (this.socket.isOpen) {
       this.socket.close();
     }
+    // There are pending saves to be written. Prompt user.
+    this.pendingEdits.forEach((value) => {
+      if (value) {
+        event.preventDefault();
+        event.returnValue = true;
+        return;
+      }
+    });
+    this.pendingDeletes.forEach((value) => {
+      if (value) {
+        event.preventDefault();
+        event.returnValue = true;
+        return;
+      }
+    });
   }
 
   /**
@@ -550,11 +571,13 @@ export class Document extends React.Component {
     };
     this.socket.onclose = (event) => {
       console.log('socket closed', event);
+      this.showTimedStatusMessage('Connection error. Any changes will not be saved');
       this.socket.isOpen = false;
       setTimeout(this.setupWebsocket, 500, url);
     };
     this.socket.onerror = (event) => {
       console.error('socket error', event);
+      this.showTimedStatusMessage('Connection error. Any changes will not be saved');
       this.socket.isOpen = false;
       setTimeout(this.setupWebsocket, 5000, url);
     };
@@ -593,7 +616,13 @@ export class Document extends React.Component {
         });
         break;
       }
+      case 'saveSuccessful':
+      case 'deletionSuccessful':
+        this.showTimedStatusMessage('Save successful.');
+        break;
       case 'saveFailed':
+      case 'deletionFailed':
+        this.showTimedStatusMessage('Save failed.');
         break;
       case 'fetchAssociationsFailed':
         this.setupAndOpenDialog('Error', message.data.text);
@@ -605,6 +634,22 @@ export class Document extends React.Component {
         this.setupAndOpenDialog('Error', message.data.text);
         break;
     }
+  }
+
+  /**
+   * Show a status message for a few seconds, and then remove it.
+   *
+   * @param {string} message
+   */
+  showTimedStatusMessage(message) {
+    this.setState({
+      documentConnectionStatus: message
+    });
+    setTimeout(() => {
+      this.setState({
+        documentConnectionStatus: ''
+      });
+    }, 5000);
   }
 
   /**
@@ -938,10 +983,14 @@ export class Document extends React.Component {
 
   /**
    * Check stored action arrays for upcoming writes
+   *
+   * @param {boolean} userInitiated
    */
-  checkForPendingEditsOrDeletes() {
+  checkForPendingEditsOrDeletes(userInitiated) {
+    let saveRequired = false;
     this.pendingDeletes.forEach((value, key) => {
       if (value) {
+        saveRequired = true;
         this.deleteBlock(key);
         this.pendingEdits.delete(key);
         this.pendingDeletes.set(key, false);
@@ -949,10 +998,15 @@ export class Document extends React.Component {
     });
     this.pendingEdits.forEach((value, key) => {
       if (value) {
+        saveRequired = true;
         this.saveBlock(key);
         this.pendingEdits.set(key, false);
       }
     });
+    console.log('save stat', saveRequired, userInitiated);
+    if (!saveRequired && userInitiated) {
+      this.showTimedStatusMessage('No changes detected, skipping save.');
+    }
   }
 
   /**
@@ -982,6 +1036,9 @@ export class Document extends React.Component {
    */
   saveBlock(key) {
     // Send the encoded block if the socket is open and it hasn't been subsequently deleted
+    this.setState({
+      documentConnectionStatus: 'Saving...'
+    });
     if (this.socket.isOpen) {
       const block = this.state.editorState.getCurrentContent().getBlockForKey(key);
       console.log('save block', block);
@@ -1037,6 +1094,9 @@ export class Document extends React.Component {
   deleteBlock(key) {
     console.log('deleting block', key);
     if (this.socket.isOpen) {
+      this.setState({
+        documentConnectionStatus: 'Saving...'
+      });
       this.socket.send(JSON.stringify({command: 'deleteBlock', data: {key: key, storyID: this.storyID}}));
     }
   }
@@ -1115,6 +1175,9 @@ export class Document extends React.Component {
         });
         break;
       }
+      case 'ctrl_s':
+        this.checkForPendingEditsOrDeletes(true);
+        break;
       case 'ctrl_v':
         // this.pastedText = true;
         break;
@@ -1314,6 +1377,7 @@ export class Document extends React.Component {
                   <span>{lineSpacings.get(this.state.currentLineHeight)}</span>
                 </span>
               </li>
+              <span>{this.state.documentConnectionStatus}</span>
             </ul>
           </nav>
           <div className="editorRoot" style={{width: this.state.pageWidth}}>
