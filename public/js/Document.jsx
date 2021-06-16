@@ -58,7 +58,7 @@ export class Document extends React.Component {
     let docPadding = 1 * dpi;
     if (navigator.userAgent.toLowerCase().match(/mobile/i)) {
       width = '100%';
-      height = '100%';
+      height = 'calc(100vh - 55px)';
       docPadding = '10px';
     }
     this.state = {
@@ -1005,7 +1005,7 @@ export class Document extends React.Component {
     });
     console.log('save stat', saveRequired, userInitiated);
     if (!saveRequired && userInitiated) {
-      this.showTimedStatusMessage('No changes detected, skipping save.');
+      this.showTimedStatusMessage('No changes detected.');
     }
   }
 

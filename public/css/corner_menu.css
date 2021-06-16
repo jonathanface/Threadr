@@ -16,7 +16,6 @@
 }
 .main_menu .menu_right {
   flex-direction:column;
-  width:100px;
   line-height:25px;
   text-align:right;
 }
@@ -28,6 +27,9 @@
   display: inline-block;
   height: 100%;
   user-select:none;
+  max-width:100px;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
 .main_menu svg {
@@ -101,6 +103,19 @@ nav.docControls ul > span {
   right:0px;
   margin-right:5px;
   font-size:0.8em;
+  line-height:1em;
+  max-width:120px;
+}
+nav.docControls ul > span {
+  
+}
+@media only screen and (max-width: 600px) {
+  nav.docControls ul > span {
+    margin-right:100px;
+    display:inline-block;
+    padding-top:5px;
+    line-height:100%;
+  }
 }
 
 @keyframes fdsseq { 
