@@ -1,6 +1,6 @@
 import React from 'react';
 import Immutable from 'immutable';
-import {EditorState, Editor, ContentState, ContentBlock, Modifier, RichUtils, getDefaultKeyBinding, CompositeDecorator, Entity, CharacterMetadata} from 'draft-js';
+import {EditorState, Editor, SelectionState, ContentState, ContentBlock, Modifier, RichUtils, getDefaultKeyBinding, CompositeDecorator, Entity, CharacterMetadata} from 'draft-js';
 import {CustomContext} from './CustomContext.jsx';
 import {PopPanel} from './PopPanel.jsx';
 import {DialogPrompt} from './DialogPrompt.jsx';
@@ -84,7 +84,8 @@ export class Document extends React.Component {
       dialogOKFunc: null,
       dialogIsPrompt: false,
       dialogOkButtonText: 'Ok',
-      dialogCancelButtonText: 'Cancel'
+      dialogCancelButtonText: 'Cancel',
+      tabLength: 5
     };
     this.storyID = props.storyID;
     this.rightclickAddMenu = React.createRef();
@@ -159,11 +160,10 @@ export class Document extends React.Component {
   createDecorators() {
     const decorators = [];
     for (let i=0; i < this.state.associations.length; i++) {
-      console.log('decor for ', this.state.associations[i].name, ' type ', this.state.associations[i].type);
       switch (this.state.associations[i].type) {
         case Globals.ASSOCIATION_TYPE_CHARACTER:
           decorators.push({
-            strategy: this.findCharacter.bind(this),
+            strategy: this.findCharacters.bind(this),
             component: CharacterSpan,
             props: {
               leftclickFunc: this.clickedCharacter.bind(this),
@@ -173,7 +173,7 @@ export class Document extends React.Component {
           break;
         case Globals.ASSOCIATION_TYPE_PLACE:
           decorators.push({
-            strategy: this.findPlace.bind(this),
+            strategy: this.findPlaces.bind(this),
             component: PlaceSpan,
             props: {
               leftclickFunc: this.clickedPlace.bind(this),
@@ -183,7 +183,7 @@ export class Document extends React.Component {
           break;
         case Globals.ASSOCIATION_TYPE_EVENT:
           decorators.push({
-            strategy: this.findEvent.bind(this),
+            strategy: this.findEvents.bind(this),
             component: EventSpan,
             props: {
               leftclickFunc: this.clickedEvent.bind(this),
@@ -193,6 +193,10 @@ export class Document extends React.Component {
           break;
       }
     }
+    decorators.push({
+      strategy: this.findTabs.bind(this),
+      component: TabSpan
+    });
     return new CompositeDecorator(decorators);
   }
 
@@ -366,7 +370,7 @@ export class Document extends React.Component {
    * @param {function} callback
    * @param {ContentState} contentState
    */
-  findCharacter(contentBlock, callback, contentState ) {
+  findCharacters(contentBlock, callback, contentState ) {
     const text = contentBlock.getText();
     for (let i=0; i < this.state.associations.length; i++) {
       if (!this.state.associations[i].name.trim().length) {
@@ -409,7 +413,7 @@ export class Document extends React.Component {
    * @param {function} callback
    * @param {ContentState} contentState
    */
-  findPlace(contentBlock, callback, contentState ) {
+  findPlaces(contentBlock, callback, contentState ) {
     const text = contentBlock.getText();
     for (let i=0; i < this.state.associations.length; i++) {
       if (!this.state.associations[i].name.trim().length) {
@@ -452,7 +456,7 @@ export class Document extends React.Component {
    * @param {function} callback
    * @param {ContentState} contentState
    */
-  findEvent(contentBlock, callback, contentState ) {
+  findEvents(contentBlock, callback, contentState ) {
     const text = contentBlock.getText();
     for (let i=0; i < this.state.associations.length; i++) {
       if (!this.state.associations[i].name.trim().length) {
@@ -487,6 +491,24 @@ export class Document extends React.Component {
         }
       }
     }
+  }
+
+  /**
+   * Find entities of type tab in block
+   *
+   * @param {ContentBlock} contentBlock
+   * @param {function} callback
+   * @param {ContentState} contentState
+   */
+  findTabs(contentBlock, callback, contentState) {
+    contentBlock.findEntityRanges((character) => {
+      const entityKey = character.getEntity();
+      return (
+        entityKey !== null &&
+        contentState.getEntity(entityKey).getType() === 'TAB'
+      );
+    },
+    callback);
   }
 
   /** componentDidMount **/
@@ -632,16 +654,18 @@ export class Document extends React.Component {
         case 200:
           response.json().then((data) => {
             const newBlocks = [];
+            const entityMap = [];
             data.forEach((item) => {
               const configs = [];
               item.body.characterList.forEach((character) => {
-                if (!character.style.length && character.entity == null) {
+                if (!character.style.length) {
                   configs.push(CharacterMetadata.create());
                   return;
                 }
+                // entities are regenerated further down, so nullifying them here
                 const config = {
                   style: Immutable.OrderedSet(character.style),
-                  entity: character.entity
+                  entity: null
                 };
                 configs.push(CharacterMetadata.create(config));
               });
@@ -652,12 +676,35 @@ export class Document extends React.Component {
                 type: item.body.type,
                 data: Immutable.Map(item.body.data)
               }));
+              const toObj = JSON.parse(item.entities);
+              Object.keys(toObj).forEach((key) => {
+                entityMap.push({'blockKey': item.body.key, 'instance': toObj[key].instance, 'position': toObj[key].position, 'length': parseInt(toObj[key].position) + parseInt(toObj[key].entityLength)});
+              });
             });
             const newContent = ContentState.createFromBlockArray(newBlocks);
             this.setState({
               editorState: EditorState.push(this.state.editorState, newContent)
             }, () => {
-              this.forceRender();
+              let counter = 0;
+              entityMap.forEach((entity) => {
+                counter++;
+                const updatedContent = this.state.editorState.getCurrentContent();
+                const newContentState = updatedContent.createEntity(entity.instance.type, entity.instance.mutability, entity.instance.data);
+                const entityKey = newContentState.getLastCreatedEntityKey();
+                const selection = SelectionState.createEmpty(entity.blockKey);
+                const updatedSelection = selection.merge({
+                  anchorOffset: entity.position,
+                  focusOffset: entity.length
+                });
+                const contentStateWithEntity = Modifier.applyEntity(newContentState, updatedSelection, entityKey);
+                this.setState({
+                  editorState: EditorState.push(this.state.editorState, contentStateWithEntity, 'apply-entity')
+                }, () => {
+                  if (counter == entityMap.length) {
+                    this.forceRender();
+                  }
+                });
+              });
             });
           });
           break;
@@ -718,6 +765,20 @@ export class Document extends React.Component {
     const contentState = editorState.getCurrentContent();
     const blockMap = contentState.getBlockMap();
     if (blockMap.has(blockKey)) {
+      // clear out all entities on the block
+      /*
+      const selection = SelectionState.createEmpty(blockKey);
+      const block = contentState.getBlockForKey(blockKey);
+      const selectAll = selection.merge({
+        anchorOffset: 0,
+        focusOffset:block.getLength()
+      });
+      const contentStateWithEntitiesWiped = Modifier.applyEntity(
+        contentState,
+        selectAll,
+        null
+      );*/
+      // remove the block
       const newBlockMap = blockMap.remove(blockKey);
       const newContentState = contentState.merge({
         blockMap: newBlockMap
@@ -753,15 +814,32 @@ export class Document extends React.Component {
     const block = editorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
     const data = block.getData();
     const styles = {};
-    const alignment = data.getIn(['alignment']);
-    styles.direction = alignment;
-    const lineHeight = data.getIn(['lineHeight']);
-    let height = 'lineheight_single';
-    if (lineHeight) {
-      height = lineHeight;
+    const storedAlignment = data.getIn(['alignment']);
+    let alignment = 'left';
+    if (storedAlignment) {
+      alignment = storedAlignment;
     }
-    styles.lineHeight = height;
+    styles.direction = alignment;
+    const storedLineHeight = data.getIn(['lineHeight']);
+    let lineHeight = 'lineheight_single';
+    if (storedLineHeight) {
+      lineHeight = storedLineHeight;
+    }
+    styles.lineHeight = lineHeight;
     return styles;
+  }
+
+  /**
+   * Make an empty string to be used as a tab character
+   * based on user settings value.
+   * @return {string}
+   */
+  generateTabCharacter() {
+    let tab = '';
+    for (let i=0; i < this.state.tabLength; i++) {
+      tab += ' ';
+    }
+    return tab;
   }
 
   /**
@@ -771,13 +849,14 @@ export class Document extends React.Component {
    * @return {EditorState}
    */
   insertTab(editorState) {
+    console.log('inserting tab');
     const currentContent = editorState.getCurrentContent();
     const selection = editorState.getSelection();
     const contentStateWithEntity = currentContent.createEntity('TAB', 'IMMUTABLE');
     const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
-    const textWithEntity = Modifier.insertText(currentContent, selection, '     ', null, entityKey);
+    const textWithEntity = Modifier.insertText(currentContent, selection, this.generateTabCharacter(), null, entityKey);
     this.pendingEdits.set(selection.getFocusKey(), true);
-    return EditorState.push(editorState, textWithEntity);
+    return EditorState.push(editorState, textWithEntity, 'insert-characters');
   }
 
   /**
@@ -804,7 +883,6 @@ export class Document extends React.Component {
     const blockTree = this.state.editorState.getBlockTree(selection.getFocusKey());
     if (!blockTree) {
       // a new block has been added, copy styles from previous block
-      console.log('adding new block');
       const prevSelection = newEditorState.getCurrentContent().getSelectionBefore();
       const styles = this.getBlockStyles(newEditorState, prevSelection);
       dataMap.push(['alignment', styles.direction]);
@@ -813,11 +891,12 @@ export class Document extends React.Component {
       const nextContentState = Modifier.mergeBlockData(newEditorState.getCurrentContent(), selection, iMap);
       newEditorState = EditorState.push(newEditorState, nextContentState, 'change-block-data');
       // auto tab if align left
-      console.log('new block added', styles);
       if (styles.direction == 'left' || !styles.direction) {
         newEditorState = this.insertTab(newEditorState);
       }
+      console.log('new block added', styles);
     }
+
     if (this.deletePressed) {
       this.deletePressed = false;
       const block = newEditorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
@@ -825,7 +904,10 @@ export class Document extends React.Component {
       console.log('remaining chars', block.getText().length);
       if (!block.getText().length) {
         this.pendingDeletes.set(block.getKey(), true);
-        newEditorState = this.removeBlockFromMap(newEditorState, block.getKey());
+        this.setState({
+          editorState: this.removeBlockFromMap(newEditorState, block.getKey())
+        });
+        return;
       }
     }
     this.setState({
@@ -834,7 +916,6 @@ export class Document extends React.Component {
       if (!cursorChange) {
         const content = newEditorState.getCurrentContent();
         const block = content.getBlockForKey(selection.getAnchorKey());
-        console.log('queuing block for save', block.getKey());
         // await this.checkPageHeightAndAdvanceToNextPageIfNeeded(pageNumber);
         this.pendingEdits.set(block.getKey(), true);
       }
@@ -862,6 +943,7 @@ export class Document extends React.Component {
     this.pendingDeletes.forEach((value, key) => {
       if (value) {
         this.deleteBlock(key);
+        this.pendingEdits.delete(key);
         this.pendingDeletes.set(key, false);
       }
     });
@@ -903,8 +985,25 @@ export class Document extends React.Component {
     if (this.socket.isOpen) {
       const block = this.state.editorState.getCurrentContent().getBlockForKey(key);
       console.log('save block', block);
+      const entities = {};
+      let lastKey;
+      for (let i=0; i < block.getLength(); i++) {
+        const entKey = block.getEntityAt(i);
+        if (entKey) {
+          if (entKey != lastKey) {
+            entities[entKey] = {};
+            entities[entKey].instance = this.state.editorState.getCurrentContent().getEntity(entKey);
+            entities[entKey].position = i;
+            entities[entKey].entityLength = 1;
+            lastKey = entKey;
+          } else {
+            entities[entKey].entityLength++;
+          }
+        }
+      }
+      console.log('save entities', entities);
       if (block) {
-        this.socket.send(JSON.stringify({command: 'saveBlock', data: {key: block.getKey(), storyID: this.storyID, body: block.toJSON()}}));
+        this.socket.send(JSON.stringify({command: 'saveBlock', data: {key: block.getKey(), storyID: this.storyID, body: block.toJSON(), entities: JSON.stringify(entities)}}));
         // this.saveBlockOrder();
       }
     }
@@ -1009,7 +1108,6 @@ export class Document extends React.Component {
       case 'bold':
       case 'italic':
       case 'underline': {
-        console.log('styles???', this.state.editorState.getCurrentInlineStyle());
         this.setState({
           editorState: RichUtils.toggleInlineStyle(this.state.editorState, command.toUpperCase())
         }, () => {
@@ -1268,9 +1366,19 @@ const EventSpan = (props) => {
   );
 };
 
+const TabSpan = (props) => {
+  return (
+    <span className="tabEntity">{props.children}</span>
+  );
+};
+
 CharacterSpan.propTypes = PlaceSpan.propTypes = EventSpan.propTypes = {
   leftclickFunc: PropTypes.func,
   rightclickFunc: PropTypes.func,
   decoratedText: PropTypes.string,
+  children: PropTypes.array
+};
+
+TabSpan.propTypes = {
   children: PropTypes.array
 };
