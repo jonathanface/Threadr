@@ -98,23 +98,10 @@ nav.docControls ul {
   line-height:45px;
   position:relative;
 }
-nav.docControls ul > span {
-  position:absolute;
-  right:0px;
-  margin-right:5px;
-  font-size:0.8em;
-  line-height:1em;
-  max-width:120px;
-}
-nav.docControls ul > span {
-  
-}
+
 @media only screen and (max-width: 600px) {
-  nav.docControls ul > span {
-    margin-right:100px;
-    display:inline-block;
-    padding-top:5px;
-    line-height:100%;
+  nav.docControls ul {
+    margin-left:10px;
   }
 }
 

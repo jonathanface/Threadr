@@ -30,9 +30,10 @@ func newHub() *Hub {
 	}
 }
 
-func generateSocketError(message string) json.RawMessage {
+func generateSocketError(message string, id string) json.RawMessage {
 	var se common.SocketError
 	se.Text = message
+	se.ID = id
 	j, _ := json.Marshal(se)
 	return json.RawMessage(j)
 }
@@ -62,9 +63,10 @@ func (h *Hub) run() {
 				err := saveBlock(block.Key, block.Body, block.Entities, block.StoryID)
 				if err == nil {
 					response.Command = "saveSuccessful"
+					response.Data = generateSocketError("", block.Key)
 				} else {
 					log.Println(err)
-					generateSocketError(err.Error())
+					response.Data = generateSocketError(err.Error(), block.Key)
 				}
 				clientMessage.Client.conn.WriteJSON(response)
 				break
@@ -78,7 +80,7 @@ func (h *Hub) run() {
 					response.Command = "saveAllSuccessful"
 				} else {
 					log.Println(err)
-					generateSocketError(err.Error())
+					response.Data = generateSocketError(err.Error(), "")
 				}
 				clientMessage.Client.conn.WriteJSON(response)
 				break
@@ -92,7 +94,7 @@ func (h *Hub) run() {
 					response.Command = "saveOrderSuccessful"
 				} else {
 					log.Println(err)
-					generateSocketError(err.Error())
+					response.Data = generateSocketError(err.Error(), "")
 				}
 				clientMessage.Client.conn.WriteJSON(response)
 				break
@@ -104,9 +106,10 @@ func (h *Hub) run() {
 				err := deleteBlock(deets.Key, deets.StoryID)
 				if err == nil {
 					response.Command = "deletionSuccessful"
+					response.Data = generateSocketError("", deets.Key)
 				} else {
 					log.Println(err)
-					response.Data = generateSocketError(err.Error())
+					response.Data = generateSocketError(err.Error(), deets.Key)
 				}
 				clientMessage.Client.conn.WriteJSON(response)
 				break
@@ -121,7 +124,7 @@ func (h *Hub) run() {
 					j, _ := json.Marshal(assocs)
 					response.Data = json.RawMessage(j)
 				} else {
-					response.Data = generateSocketError(err.Error())
+					response.Data = generateSocketError(err.Error(), "")
 				}
 				clientMessage.Client.conn.WriteJSON(response)
 				break
@@ -138,11 +141,11 @@ func (h *Hub) run() {
 						j, _ := json.Marshal(assocs)
 						response.Data = json.RawMessage(j)
 					} else {
-						response.Data = generateSocketError(err.Error())
+						response.Data = generateSocketError(err.Error(), "")
 					}
 				} else {
 					log.Println(err)
-					response.Data = generateSocketError(err.Error())
+					response.Data = generateSocketError(err.Error(), "")
 				}
 				clientMessage.Client.conn.WriteJSON(response)
 				break
@@ -159,11 +162,11 @@ func (h *Hub) run() {
 						j, _ := json.Marshal(assocs)
 						response.Data = json.RawMessage(j)
 					} else {
-						response.Data = generateSocketError(err.Error())
+						response.Data = generateSocketError(err.Error(), deets.ID.Hex())
 					}
 				} else {
 					log.Println(err)
-					response.Data = generateSocketError(err.Error())
+					response.Data = generateSocketError(err.Error(), deets.ID.Hex())
 				}
 				clientMessage.Client.conn.WriteJSON(response)
 				break

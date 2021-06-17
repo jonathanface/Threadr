@@ -13,6 +13,9 @@ export class Globals {
   static ASSOCIATION_TYPE_CHARACTER = 0;
   static ASSOCIATION_TYPE_PLACE = 1;
   static ASSOCIATION_TYPE_EVENT = 2;
+  static TOASTTYPE_INFO = 1;
+  static TOASTTYPE_ERROR = 2;
+  static TOASTTYPE_SUCCESS = 3;
 
   /**
    * Returns the standard request headers required by the API
