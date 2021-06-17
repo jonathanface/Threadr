@@ -27,6 +27,7 @@ type SocketMessage struct {
 
 type SocketError struct {
 	Text string `json:"text"`
+	ID   string `json:"id"`
 }
 
 var credentials = Config{}

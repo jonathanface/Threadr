@@ -23,6 +23,7 @@
     "react-dropdown-select": "^4.7.3",
     "react-google-login": "^5.2.2",
     "react-scripts": "^4.0.2",
+    "react-toastify": "^7.0.4",
     "uglifyjs": "^2.4.11"
   },
   "scripts": {
