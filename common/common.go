@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 	"encoding/json"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"io/ioutil"
@@ -20,9 +21,21 @@ type Config struct {
 	HttpPort string `json:"httpPort"`
 }
 
+// Potential data to be passed with socket messages
+// Block - any DraftContentBlock
+// Error - an error message
+// ID - any relevant uuid
+// Other - any other json data to pass along
+type MessageData struct {
+	Block json.RawMessage `json:"block"`
+	Error json.RawMessage `json:"error"`
+	ID    string          `json:"id"`
+	Other json.RawMessage `json:"other"`
+}
+
 type SocketMessage struct {
-	Command string          `json:"command"`
-	Data    json.RawMessage `json:"data"`
+	Command string      `json:"command"`
+	Data    MessageData `json:"data"`
 }
 
 type SocketError struct {
@@ -30,7 +43,114 @@ type SocketError struct {
 	ID   string `json:"id"`
 }
 
+type AllBlocks struct {
+	StoryID primitive.ObjectID `json:"storyID" bson:"storyID,omitempty"`
+	Body    DraftRawContent    `json:"body" bson:"body"`
+}
+
+type Block struct {
+	Key      string             `json:"key" bson:"key"`
+	Body     json.RawMessage    `json:"body" bson:"body"`
+	Entities json.RawMessage    `json:"entities" bson:"entities"`
+	StoryID  primitive.ObjectID `json:"storyID" bson:"storyID,omitempty"`
+	Order    int                `json:"order" bson:"order,omitempty"`
+}
+
+type DraftEntityRange struct {
+	Offset int `json:"offset"`
+	Length int `json:"length"`
+	Key    int `json:"key"`
+}
+
+type DraftInlineStyleRange struct {
+	Offset int    `json:"offset"`
+	Length int    `json:"length"`
+	Style  string `json:"style"`
+}
+
+type DraftCharacterListItem struct {
+	Style  string `json:"style"`
+	Entity string `json:"entity"`
+}
+
+type DraftContentBlock struct {
+	CharacterList     []DraftCharacterListItem `json:"characterList"`
+	Data              map[string]string        `json:"data"`
+	Depth             int                      `json:"depth"`
+	EntityRanges      []DraftEntityRange       `json:"entityRanges"`
+	InlineStyleRanges []DraftInlineStyleRange  `json:"inlineStyleRanges"`
+	Key               string                   `json:"key"`
+	Text              json.RawMessage          `json:"text"`
+	Type              string                   `json:"type"`
+}
+
+type DraftEntity struct {
+	Type       string            `json:"type"`
+	Mutability string            `json:"mutability"`
+	Data       map[string]string `json:"data"`
+}
+
+type DraftRawContent struct {
+	Blocks    []DraftContentBlock `json:"blocks"`
+	EntityMap map[int]DraftEntity `json:"entityMap"`
+}
+
 var credentials = Config{}
+
+func ProcessMegaPaste(done chan Block, jsonData json.RawMessage) {
+	jsonBlocks := AllBlocks{}
+	json.Unmarshal(jsonData, &jsonBlocks)
+	count := 0
+	log.Println("total blocks", len(jsonBlocks.Body.Blocks))
+	for _, block := range jsonBlocks.Body.Blocks {
+		newBlock := Block{}
+		newBlock.Key = block.Key
+		newBlock.StoryID = jsonBlocks.StoryID
+		//-2 to account for start- and endline quotes
+		for i := 0; i < len(block.Text)-2; i++ {
+			if len(block.InlineStyleRanges) > 0 {
+				for _, style := range block.InlineStyleRanges {
+					if style.Offset+style.Length >= i {
+						listItem := DraftCharacterListItem{}
+						listItem.Style = style.Style
+						block.CharacterList = append(block.CharacterList, listItem)
+					}
+				}
+			} else {
+				block.CharacterList = append(block.CharacterList, DraftCharacterListItem{})
+			}
+		}
+		blockToJson, err := json.Marshal(block)
+		if err != nil {
+			log.Println("error marshalling")
+		}
+		newBlock.Body = blockToJson
+		for _, ent := range block.EntityRanges {
+			toJSON, err := json.Marshal(jsonBlocks.Body.EntityMap[ent.Key])
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+			newBlock.Entities = []byte(toJSON)
+		}
+
+		newBlock.Order = count
+		count++
+		log.Println("compare", count, len(jsonBlocks.Body.Blocks))
+		if count >= len(jsonBlocks.Body.Blocks) {
+			newBlock.Order = -1
+		}
+		done <- newBlock
+	}
+}
+
+func GenerateSocketError(message string, id string) json.RawMessage {
+	var se SocketError
+	se.Text = message
+	se.ID = id
+	j, _ := json.Marshal(se)
+	return json.RawMessage(j)
+}
 
 func LoadConfiguration() {
 	jsonFile, err := os.Open("config.json")

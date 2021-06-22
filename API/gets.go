@@ -170,7 +170,6 @@ func AllBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 
 	var results []Block
 	for cur.Next(context.TODO()) {
-		//Create a value into which the single document can be decoded
 		var b Block
 		err := cur.Decode(&b)
 		if err != nil {

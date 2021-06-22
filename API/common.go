@@ -44,11 +44,6 @@ type Association struct {
 	Details AssociationDetails `json:"details" bson:"omitempty"`
 }
 
-type AllBlocks struct {
-	StoryID primitive.ObjectID `json:"storyID" bson:"storyID,omitempty"`
-	Blocks  []Block            `json:"blocks" bson:"blocks"`
-}
-
 type Block struct {
 	Key      string             `json:"key" bson:"key"`
 	Body     json.RawMessage    `json:"body" bson:"body"`

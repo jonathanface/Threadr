@@ -30,14 +30,6 @@ func newHub() *Hub {
 	}
 }
 
-func generateSocketError(message string, id string) json.RawMessage {
-	var se common.SocketError
-	se.Text = message
-	se.ID = id
-	j, _ := json.Marshal(se)
-	return json.RawMessage(j)
-}
-
 func (h *Hub) run() {
 	for {
 		select {
@@ -57,36 +49,65 @@ func (h *Hub) run() {
 			switch m.Command {
 			case `saveBlock`:
 				block := API.Block{}
-				json.Unmarshal([]byte(m.Data), &block)
+				json.Unmarshal([]byte(m.Data.Block), &block)
 				response := common.SocketMessage{}
-				response.Command = "saveFailed"
+				response.Command = "singleSaveFailed"
 				err := saveBlock(block.Key, block.Body, block.Entities, block.StoryID)
 				if err == nil {
-					response.Command = "saveSuccessful"
-					response.Data = generateSocketError("", block.Key)
+					response.Command = "singleSaveSuccessful"
+					blockToJSON, err := json.Marshal(block)
+					if err != nil {
+						log.Println(err)
+						response.Command = "singleSaveFailed"
+						response.Data.Error = common.GenerateSocketError(err.Error(), block.Key)
+					} else {
+						response.Data.ID = block.Key
+						response.Data.Block = blockToJSON
+					}
 				} else {
 					log.Println(err)
-					response.Data = generateSocketError(err.Error(), block.Key)
+					response.Data.Error = common.GenerateSocketError(err.Error(), block.Key)
 				}
 				clientMessage.Client.conn.WriteJSON(response)
 				break
 			case `saveAllBlocks`:
-				allBlocks := API.AllBlocks{}
-				json.Unmarshal([]byte(m.Data), &allBlocks)
+				blockPipe := make(chan common.Block)
+				go common.ProcessMegaPaste(blockPipe, []byte(m.Data.Other))
 				response := common.SocketMessage{}
-				response.Command = "saveAllFailed"
-				err := saveAllBlocks(allBlocks.Blocks, allBlocks.StoryID)
-				if err == nil {
-					response.Command = "saveAllSuccessful"
-				} else {
-					log.Println(err)
-					response.Data = generateSocketError(err.Error(), "")
+				for {
+					newBlock := <-blockPipe
+					response.Command = "blockSaveFailed"
+					errors := false
+					err := saveBlock(newBlock.Key, []byte(newBlock.Body), newBlock.Entities, newBlock.StoryID)
+					if err != nil {
+						log.Println("error", err.Error())
+						errors = true
+						response.Data.Error = common.GenerateSocketError(err.Error(), newBlock.Key)
+					}
+					blockToJSON, err := json.Marshal(newBlock)
+					if err != nil {
+						log.Println("error", err.Error())
+						errors = true
+						response.Data.Error = common.GenerateSocketError(err.Error(), newBlock.Key)
+					}
+					if errors == false {
+						response.Command = "blockSaved"
+						response.Data.ID = newBlock.Key
+						response.Data.Block = blockToJSON
+					}
+					clientMessage.Client.conn.WriteJSON(response)
+					// An order param of -1 indicates all blocks have been processed
+					// and the loop should terminate.
+					if newBlock.Order == -1 {
+						log.Println("close block pipe")
+						close(blockPipe)
+						break
+					}
 				}
-				clientMessage.Client.conn.WriteJSON(response)
 				break
 			case `updateBlockOrder`:
 				blockOrder := API.BlockOrder{}
-				json.Unmarshal([]byte(m.Data), &blockOrder)
+				json.Unmarshal([]byte(m.Data.Other), &blockOrder)
 				response := common.SocketMessage{}
 				response.Command = "saveOrderFailed"
 				err := updateBlockOrder(blockOrder.Order, blockOrder.StoryID)
@@ -94,43 +115,43 @@ func (h *Hub) run() {
 					response.Command = "saveOrderSuccessful"
 				} else {
 					log.Println(err)
-					response.Data = generateSocketError(err.Error(), "")
+					response.Data.Error = common.GenerateSocketError(err.Error(), "")
 				}
 				clientMessage.Client.conn.WriteJSON(response)
 				break
 			case `deleteBlock`:
 				deets := API.Block{}
-				json.Unmarshal([]byte(m.Data), &deets)
+				json.Unmarshal([]byte(m.Data.Block), &deets)
 				response := common.SocketMessage{}
-				response.Command = "deletionFailed"
+				response.Command = "singleDeletionFailed"
 				err := deleteBlock(deets.Key, deets.StoryID)
 				if err == nil {
-					response.Command = "deletionSuccessful"
-					response.Data = generateSocketError("", deets.Key)
+					response.Command = "singleDeletionSuccessful"
+					response.Data.ID = deets.Key
 				} else {
 					log.Println(err)
-					response.Data = generateSocketError(err.Error(), deets.Key)
+					response.Data.Error = common.GenerateSocketError(err.Error(), deets.Key)
 				}
 				clientMessage.Client.conn.WriteJSON(response)
 				break
 			case `fetchAssociations`:
 				deets := API.Association{}
-				json.Unmarshal([]byte(m.Data), &deets)
+				json.Unmarshal([]byte(m.Data.Other), &deets)
 				response := common.SocketMessage{}
 				response.Command = "fetchAssociationsFailed"
 				assocs, err := fetchAssociations(deets.StoryID)
 				if err == nil {
 					response.Command = "pushAssociations"
 					j, _ := json.Marshal(assocs)
-					response.Data = json.RawMessage(j)
+					response.Data.Other = json.RawMessage(j)
 				} else {
-					response.Data = generateSocketError(err.Error(), "")
+					response.Data.Error = common.GenerateSocketError(err.Error(), "")
 				}
 				clientMessage.Client.conn.WriteJSON(response)
 				break
 			case `newAssociation`:
 				deets := API.Association{}
-				json.Unmarshal([]byte(m.Data), &deets)
+				json.Unmarshal([]byte(m.Data.Other), &deets)
 				response := common.SocketMessage{}
 				response.Command = "newAssociationFailed"
 				err := createAssociation(deets.Name, deets.Type, deets.StoryID)
@@ -139,34 +160,35 @@ func (h *Hub) run() {
 					assocs, err := fetchAssociations(deets.StoryID)
 					if err == nil {
 						j, _ := json.Marshal(assocs)
-						response.Data = json.RawMessage(j)
+						response.Data.Other = json.RawMessage(j)
 					} else {
-						response.Data = generateSocketError(err.Error(), "")
+						response.Data.Error = common.GenerateSocketError(err.Error(), "")
 					}
 				} else {
 					log.Println(err)
-					response.Data = generateSocketError(err.Error(), "")
+					response.Data.Error = common.GenerateSocketError(err.Error(), "")
 				}
 				clientMessage.Client.conn.WriteJSON(response)
 				break
 			case `removeAssociation`:
 				deets := API.Association{}
-				json.Unmarshal([]byte(m.Data), &deets)
+				json.Unmarshal([]byte(m.Data.Other), &deets)
 				response := common.SocketMessage{}
 				response.Command = "removeAssociationFailed"
+				response.Data.ID = deets.ID.Hex()
 				err := deleteAssociation(deets.ID)
 				if err == nil {
 					response.Command = "pushAssociations"
 					assocs, err := fetchAssociations(deets.StoryID)
 					if err == nil {
 						j, _ := json.Marshal(assocs)
-						response.Data = json.RawMessage(j)
+						response.Data.Other = json.RawMessage(j)
 					} else {
-						response.Data = generateSocketError(err.Error(), deets.ID.Hex())
+						response.Data.Error = common.GenerateSocketError(err.Error(), deets.ID.Hex())
 					}
 				} else {
 					log.Println(err)
-					response.Data = generateSocketError(err.Error(), deets.ID.Hex())
+					response.Data.Error = common.GenerateSocketError(err.Error(), deets.ID.Hex())
 				}
 				clientMessage.Client.conn.WriteJSON(response)
 				break
