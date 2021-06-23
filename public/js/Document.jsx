@@ -747,7 +747,6 @@ export class Document extends React.Component {
         configs.push(CharacterMetadata.create());
         return;
       }
-      console.log('adding style', character.style, character.style.length);
       // entities are regenerated further down, so nullifying them here
       const config = {
         style: Immutable.OrderedSet(character.style),
@@ -773,6 +772,7 @@ export class Document extends React.Component {
    */
   jsonToEntityMap(item) {
     const entityMap = [];
+    console.log('parsing', item.entities);
     const toObj = JSON.parse(item.entities);
     Object.keys(toObj).forEach((key) => {
       entityMap.push({'blockKey': item.body.key, 'instance': toObj[key].instance, 'position': toObj[key].position, 'length': parseInt(toObj[key].position) + parseInt(toObj[key].entityLength)});
@@ -1070,7 +1070,6 @@ export class Document extends React.Component {
         filterToSaveResults.forEach((saveBlock) => {
           this.pendingEdits.set(saveBlock.getKey(), true);
         });
-        this.saveBlockOrder();
       }
       if (selectedBlocks) {
         selectedBlocks.forEach((currentSelectionBlock, key) => {
@@ -1080,15 +1079,13 @@ export class Document extends React.Component {
             console.log('rem text', affectedBlock.getText());
           }
           if (affectedBlock && !affectedBlock.getText().length) {
-            this.pendingDeletes.set(key, true);
             this.setState({
               editorState: this.removeBlockFromMap(this.state.editorState, key)
-          }, () => {
-            this.saveBlockOrder();
-          });
+            }, () => {
+              this.pendingDeletes.set(key, true);
+            });
           } else if (!affectedBlock) {
             this.pendingDeletes.set(key, true);
-            this.saveBlockOrder();
           }
         });
       }
@@ -1160,28 +1157,30 @@ export class Document extends React.Component {
   saveBlock(key) {
     // Send the encoded block if the socket is open and it hasn't been subsequently deleted
     if (this.socket.isOpen) {
-      this.notify('Saving...', Globals.TOASTTYPE_INFO);
       const block = this.state.editorState.getCurrentContent().getBlockForKey(key);
       console.log('save block', block);
-      const entities = {};
-      let lastKey;
-      for (let i=0; i < block.getLength(); i++) {
-        const entKey = block.getEntityAt(i);
-        if (entKey) {
-          if (entKey != lastKey) {
-            entities[entKey] = {};
-            entities[entKey].instance = this.state.editorState.getCurrentContent().getEntity(entKey);
-            entities[entKey].position = i;
-            entities[entKey].entityLength = 1;
-            lastKey = entKey;
-          } else {
-            entities[entKey].entityLength++;
+      if (block) {
+        this.notify('Saving...', Globals.TOASTTYPE_INFO);
+        const entities = new Map();
+        let lastKey;
+        for (let i=0; i < block.getLength(); i++) {
+          const entKey = block.getEntityAt(i);
+          if (entKey) {
+            if (entKey != lastKey) {
+              entities[entKey] = {};
+              entities[entKey].instance = this.state.editorState.getCurrentContent().getEntity(entKey);
+              entities[entKey].position = i;
+              entities[entKey].entityLength = 1;
+              lastKey = entKey;
+            } else {
+              entities[entKey].entityLength++;
+            }
           }
         }
-      }
-      console.log('save entities', entities);
-      if (block) {
-        this.socket.send(JSON.stringify({command: 'saveBlock', data: {block: {key: block.getKey(), storyID: this.storyID, body: block.toJSON(), entities: JSON.stringify(entities)}}}));
+        const blockMap = this.state.editorState.getCurrentContent().getBlockMap();
+        const blockPosition = blockMap.keySeq().findIndex(k => k === key);
+        this.socket.send(JSON.stringify({command: 'saveBlock', data: {block: {key: block.getKey(), order: blockPosition, storyID: this.storyID, body: block.toJSON(), entities: JSON.stringify(entities)}}}));
+        this.saveBlockOrder();
       }
     }
   }
@@ -1216,6 +1215,7 @@ export class Document extends React.Component {
     if (this.socket.isOpen) {
       this.notify('Saving...', Globals.TOASTTYPE_INFO);
       this.socket.send(JSON.stringify({command: 'deleteBlock', data: {block: {key: key, storyID: this.storyID}}}));
+      this.saveBlockOrder();
     }
   }
 

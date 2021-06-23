@@ -52,7 +52,7 @@ func (h *Hub) run() {
 				json.Unmarshal([]byte(m.Data.Block), &block)
 				response := common.SocketMessage{}
 				response.Command = "singleSaveFailed"
-				err := saveBlock(block.Key, block.Body, block.Entities, block.StoryID)
+				err := saveBlock(block.Key, block.Body, block.Entities, block.StoryID, block.Order)
 				if err == nil {
 					response.Command = "singleSaveSuccessful"
 					blockToJSON, err := json.Marshal(block)
@@ -74,11 +74,13 @@ func (h *Hub) run() {
 				blockPipe := make(chan common.Block)
 				go common.ProcessMegaPaste(blockPipe, []byte(m.Data.Other))
 				response := common.SocketMessage{}
+				counter := 0
 				for {
 					newBlock := <-blockPipe
 					response.Command = "blockSaveFailed"
 					errors := false
-					err := saveBlock(newBlock.Key, []byte(newBlock.Body), newBlock.Entities, newBlock.StoryID)
+					err := saveBlock(newBlock.Key, []byte(newBlock.Body), newBlock.Entities, newBlock.StoryID, counter)
+					counter++
 					if err != nil {
 						log.Println("error", err.Error())
 						errors = true
