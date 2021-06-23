@@ -742,20 +742,20 @@ export class Document extends React.Component {
    */
   jsonToContentBlock(item) {
     const configs = [];
-    if (item.body.characterList) {
-      item.body.characterList.forEach((character) => {
-        if (!character.style.length) {
-          configs.push(CharacterMetadata.create());
-          return;
-        }
-        // entities are regenerated further down, so nullifying them here
-        const config = {
-          style: Immutable.OrderedSet(character.style),
-          entity: null
-        };
-        configs.push(CharacterMetadata.create(config));
-      });
-    }
+    item.body.characterList.forEach((character) => {
+      if (!character.style || !character.style.length) {
+        configs.push(CharacterMetadata.create());
+        return;
+      }
+      console.log('adding style', character.style, character.style.length);
+      // entities are regenerated further down, so nullifying them here
+      const config = {
+        style: Immutable.OrderedSet(character.style),
+        entity: null
+      };
+      configs.push(CharacterMetadata.create(config));
+    });
+
     return new ContentBlock({
       characterList: Immutable.List(configs),
       key: item.body.key,
@@ -813,6 +813,7 @@ export class Document extends React.Component {
    *
    * @return {Promise}
    */
+
   fetchDocumentBlocks() {
     return fetch(Globals.SERVICE_URL + '/story/' + this.storyID + '/blocks', {
       headers: Globals.getHeaders()
@@ -828,6 +829,7 @@ export class Document extends React.Component {
                 entityMap = this.jsonToEntityMap(item);
               }
             });
+            console.log('newb', newBlocks);
             const newContent = ContentState.createFromBlockArray(newBlocks);
             this.setState({
               editorState: EditorState.push(this.state.editorState, newContent)
@@ -1010,9 +1012,7 @@ export class Document extends React.Component {
       }
     }
     let filterToSaveResults;
-    let filterToDeleteResults;
     // text was pasted
-    console.log('pasted?', this.pastedText);
     if (this.pastedText) {
       this.pastedText = false;
       const oldBlockMap = this.state.editorState.getCurrentContent().getBlockMap();
@@ -1021,14 +1021,19 @@ export class Document extends React.Component {
       filterToSaveResults = new Map([...newBlockMap].filter(([k, v]) => ![...oldBlockMap].includes(k)));
       console.log('save', filterToSaveResults);
       // if old content has blocks that are no longer present in the new content, we should delete them.
-      filterToDeleteResults = new Map([...oldBlockMap].filter(([k, v]) => ![...newBlockMap].includes(k)));
-      console.log('size', filterToSaveResults.size, filterToDeleteResults.size);
-      if (filterToSaveResults.size + filterToDeleteResults.size > 10) {
+      //filterToDeleteResults = new Map([...oldBlockMap].filter(([k, v]) => ![...newBlockMap].includes(k)));
+      if (filterToSaveResults.size > 10) {
         this.notify('Crazy long paste detected, working on it...', Globals.TOASTTYPE_INFO);
         saveAllRequired = true;
       } else {
         pastedEdits = true;
       }
+    }
+
+    let selectedBlocks;
+    if (this.deletePressed) {
+      this.deletePressed = false;
+      selectedBlocks = this.getSelectedBlocksMap(newEditorState);
     }
 
     const dataMap = [];
@@ -1049,19 +1054,6 @@ export class Document extends React.Component {
       console.log('new block added', styles);
     }
 
-    if (this.deletePressed && !saveAllRequired) {
-      this.deletePressed = false;
-      const block = newEditorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
-      console.log('deleting', block.getData());
-      console.log('remaining chars', block.getText().length);
-      if (!block.getText().length) {
-        this.pendingDeletes.set(block.getKey(), true);
-        this.setState({
-          editorState: this.removeBlockFromMap(newEditorState, block.getKey())
-        });
-        return;
-      }
-    }
     this.setState({
       editorState: newEditorState
     }, () => {
@@ -1075,11 +1067,29 @@ export class Document extends React.Component {
         this.saveAllBlocks(newEditorState);
       }
       if (pastedEdits) {
-        filterToDeleteResults.forEach((deleteBlock) => {
-          this.pendingDeletes.set(deleteBlock.getKey(), true);
-        });
         filterToSaveResults.forEach((saveBlock) => {
           this.pendingEdits.set(saveBlock.getKey(), true);
+        });
+        this.saveBlockOrder();
+      }
+      if (selectedBlocks) {
+        selectedBlocks.forEach((currentSelectionBlock, key) => {
+          const newContentState = this.state.editorState.getCurrentContent();
+          const affectedBlock = newContentState.getBlockForKey(key)
+          if (affectedBlock) {
+            console.log('rem text', affectedBlock.getText());
+          }
+          if (affectedBlock && !affectedBlock.getText().length) {
+            this.pendingDeletes.set(key, true);
+            this.setState({
+              editorState: this.removeBlockFromMap(this.state.editorState, key)
+          }, () => {
+            this.saveBlockOrder();
+          });
+          } else if (!affectedBlock) {
+            this.pendingDeletes.set(key, true);
+            this.saveBlockOrder();
+          }
         });
       }
     });
@@ -1307,6 +1317,27 @@ export class Document extends React.Component {
     if (this.popPanel.current.IsOpen) {
       this.popPanel.current.hide();
     }
+  }
+  
+  /**
+   * Function returns collection of currently selected blocks.
+   *
+   * @param {EditorState} editorState
+   * @param {Map}
+   */
+  getSelectedBlocksMap(editorState) {
+    const selectionState = editorState.getSelection();
+    const contentState = editorState.getCurrentContent();
+    
+    const startKey = selectionState.getStartKey();
+    const endKey = selectionState.getEndKey();
+    console.log('start', startKey, 'end', endKey);
+    const blockMap = contentState.getBlockMap();
+    console.log('blmp', blockMap);
+    return blockMap
+      .skipUntil((_, k) => k === startKey)
+      .takeUntil((_, k) => k === endKey)
+      .concat([[endKey, blockMap.get(endKey)]]);
   }
 
   /**

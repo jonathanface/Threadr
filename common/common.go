@@ -69,8 +69,8 @@ type DraftInlineStyleRange struct {
 }
 
 type DraftCharacterListItem struct {
-	Style  string `json:"style"`
-	Entity string `json:"entity"`
+	Style  []string `json:"style"`
+	Entity string   `json:"entity"`
 }
 
 type DraftContentBlock struct {
@@ -108,17 +108,13 @@ func ProcessMegaPaste(done chan Block, jsonData json.RawMessage) {
 		newBlock.StoryID = jsonBlocks.StoryID
 		//-2 to account for start- and endline quotes
 		for i := 0; i < len(block.Text)-2; i++ {
-			if len(block.InlineStyleRanges) > 0 {
-				for _, style := range block.InlineStyleRanges {
-					if style.Offset+style.Length >= i {
-						listItem := DraftCharacterListItem{}
-						listItem.Style = style.Style
-						block.CharacterList = append(block.CharacterList, listItem)
-					}
+			listItem := DraftCharacterListItem{}
+			for _, style := range block.InlineStyleRanges {
+				if style.Offset+style.Length >= i {
+					listItem.Style = append(listItem.Style, style.Style)
 				}
-			} else {
-				block.CharacterList = append(block.CharacterList, DraftCharacterListItem{})
 			}
+			block.CharacterList = append(block.CharacterList, listItem)
 		}
 		blockToJson, err := json.Marshal(block)
 		if err != nil {
@@ -136,7 +132,6 @@ func ProcessMegaPaste(done chan Block, jsonData json.RawMessage) {
 
 		newBlock.Order = count
 		count++
-		log.Println("compare", count, len(jsonBlocks.Body.Blocks))
 		if count >= len(jsonBlocks.Body.Blocks) {
 			newBlock.Order = -1
 		}
