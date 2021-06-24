@@ -1,9 +1,12 @@
 package main
 
-import "log"
-import "encoding/json"
-import "RichDocter/API"
-import "RichDocter/common"
+import (
+	"RichDocter/API"
+	"RichDocter/common"
+	"encoding/json"
+	"log"
+	"sync"
+)
 
 // Hub maintains the set of active clients and broadcasts messages to the
 // clients.
@@ -48,37 +51,27 @@ func (h *Hub) run() {
 			json.Unmarshal(clientMessage.Message, &m)
 			switch m.Command {
 			case `saveBlock`:
-				block := API.Block{}
-				json.Unmarshal([]byte(m.Data.Block), &block)
-				response := common.SocketMessage{}
-				response.Command = "singleSaveFailed"
-				err := saveBlock(block.Key, block.Body, block.Entities, block.StoryID)
-				if err == nil {
-					response.Command = "singleSaveSuccessful"
-					blockToJSON, err := json.Marshal(block)
-					if err != nil {
-						log.Println(err)
-						response.Command = "singleSaveFailed"
-						response.Data.Error = common.GenerateSocketError(err.Error(), block.Key)
-					} else {
-						response.Data.ID = block.Key
-						response.Data.Block = blockToJSON
-					}
-				} else {
-					log.Println(err)
-					response.Data.Error = common.GenerateSocketError(err.Error(), block.Key)
-				}
+				blockPipe := make(chan common.SocketMessage)
+				go common.PrepBlockForSave(m.Data, blockPipe)
+				response := <-blockPipe
+				close(blockPipe)
 				clientMessage.Client.conn.WriteJSON(response)
 				break
 			case `saveAllBlocks`:
-				blockPipe := make(chan common.Block)
-				go common.ProcessMegaPaste(blockPipe, []byte(m.Data.Other))
-				response := common.SocketMessage{}
-				for {
+				var wg sync.WaitGroup
+				jsonBlocks := common.AllBlocks{}
+				json.Unmarshal([]byte(m.Data.Other), &jsonBlocks)
+				entMap := jsonBlocks.Body.EntityMap
+				for count, block := range jsonBlocks.Body.Blocks {
+					log.Println("processing block", count)
+					wg.Add(1)
+					blockPipe := make(chan common.Block)
+					go common.ProcessMegaPaste(block, entMap, &wg, count, jsonBlocks.StoryID, blockPipe)
 					newBlock := <-blockPipe
+					response := common.SocketMessage{}
 					response.Command = "blockSaveFailed"
 					errors := false
-					err := saveBlock(newBlock.Key, []byte(newBlock.Body), newBlock.Entities, newBlock.StoryID)
+					err := common.SaveBlock(newBlock.Key, []byte(newBlock.Body), newBlock.Entities, newBlock.StoryID, count)
 					if err != nil {
 						log.Println("error", err.Error())
 						errors = true
@@ -96,14 +89,8 @@ func (h *Hub) run() {
 						response.Data.Block = blockToJSON
 					}
 					clientMessage.Client.conn.WriteJSON(response)
-					// An order param of -1 indicates all blocks have been processed
-					// and the loop should terminate.
-					if newBlock.Order == -1 {
-						log.Println("close block pipe")
-						close(blockPipe)
-						break
-					}
 				}
+				wg.Wait()
 				break
 			case `updateBlockOrder`:
 				blockOrder := API.BlockOrder{}
