@@ -62,26 +62,7 @@ func saveAllBlocks(blocks []API.Block, storyID primitive.ObjectID) error {
 		return err
 	}
 	for count, val := range blocks {
-		saveBlock(val.Key, val.Body, val.Entities, storyID, count)
-	}
-	return nil
-}
-
-func saveBlock(key string, body []byte, entities []byte, storyID primitive.ObjectID, order int) error {
-	log.Println("save block", key, storyID)
-	client, ctx, err := common.MongoConnect()
-	if err != nil {
-		log.Println("ERROR CONNECTING: ", err)
-		return err
-	}
-	defer common.MongoDisconnect(client, ctx)
-	blocks := client.Database("Drafty").Collection(storyID.Hex() + "_blocks")
-	filter := &bson.M{"storyID": storyID, "key": key}
-	opts := options.Update().SetUpsert(true)
-	update := &bson.M{"$set": &bson.M{"key": key, "storyID": storyID, "body": body, "entities": entities, "order": order}}
-	_, err = blocks.UpdateOne(context.Background(), filter, update, opts)
-	if err != nil {
-		return err
+		common.SaveBlock(val.Key, val.Body, val.Entities, storyID, count)
 	}
 	return nil
 }

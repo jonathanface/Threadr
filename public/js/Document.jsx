@@ -98,14 +98,18 @@ export class Document extends React.Component {
     this.maxWidth = this.state.pageWidth - (this.state.leftMargin + this.state.rightMargin);
     this.currentPage = 0;
     this.SAVE_TIME_INTERVAL = 10000;
+    this.MAX_EDITABLE_BLOCKS = 50;
     this.socket = null;
     this.deletePressed = false;
     this.pendingEdits = new Map();
     this.pendingDeletes = new Map();
+    this.saveMessage = new Map();
     this.checkSaveInterval = setInterval(() => this.checkForPendingEditsOrDeletes(), this.SAVE_TIME_INTERVAL);
     this.editor = React.createRef();
     this.dialog = React.createRef();
     this.socketConnectionTerminated = false;
+    this.saveBlockToastId = 'saveBlock';
+    this.connectionErrorToastId = 'connectionError';
   }
 
   /**
@@ -122,8 +126,23 @@ export class Document extends React.Component {
    *
    * @param {string} message
    * @param {Number} type
+   * @param {string} id
    */
-  notify(message, type) {
+  notify(message, type, id) {
+    const toastOptions = {};
+    toastOptions.toastId = null;
+    toastOptions.autoClose = 5000;
+    toastOptions.hideProgressBar = false;
+    if (id) {
+      toastOptions.toastId = id;
+      toastOptions.autoClose = false;
+      toastOptions.hideProgressBar = true;
+    }
+    toastOptions.position = toast.POSITION.BOTTOM_RIGHT;
+    if (this.isMobile) {
+      toastOptions.position = toast.POSITION.BOTTOM_CENTER;
+    }
+
     let func = toast;
     switch (type) {
       case Globals.TOASTTYPE_INFO:
@@ -136,13 +155,7 @@ export class Document extends React.Component {
         func = toast.success;
         break;
     }
-    let toastPosition = toast.POSITION.BOTTOM_RIGHT;
-    if (this.isMobile) {
-      toastPosition = toast.POSITION.BOTTOM_CENTER;
-    }
-    func(message, {
-      position: toastPosition
-    });
+    func(message, toastOptions);
   }
 
   /**
@@ -602,7 +615,7 @@ export class Document extends React.Component {
     this.socket.onopen = (event) => {
       if (this.socketConnectionTerminated) {
         this.socketConnectionTerminated = false;
-        this.notify('Connection restored.', Globals.TOASTTYPE_SUCCESS);
+        toast.update(this.connectionErrorToastId, {render: 'Connection restored', type: toast.TYPE.SUCCESS, autoClose: 5000});
       }
       this.socket.isOpen = true;
       console.log('opened', this.socket);
@@ -611,7 +624,7 @@ export class Document extends React.Component {
       console.log('socket closed', event);
       if (!this.socketConnectionTerminated) {
         this.socketConnectionTerminated = true;
-        this.notify('Connection error. Any changes will not be saved.', Globals.TOASTTYPE_ERROR);
+        this.notify('Connection error. Any changes will not be saved.', Globals.TOASTTYPE_ERROR, this.connectionErrorToastId);
       }
       this.socket.isOpen = false;
       setTimeout(this.setupWebsocket.bind(this), 6000, url);
@@ -656,11 +669,14 @@ export class Document extends React.Component {
       }
       case 'singleSaveSuccessful':
         this.pendingEdits.set(message.data.id, false);
-        this.notify('Save successful.', Globals.TOASTTYPE_SUCCESS);
+        toast.update(this.saveBlockToastId, {render: 'Save successful', type: toast.TYPE.SUCCESS, autoClose: 5000});
         break;
       case 'blockSaved': {
         if (message.data.block.order == -1) {
           this.notify('Save successful.', Globals.TOASTTYPE_SUCCESS);
+          // In case anything has changed since starting the save-all process,
+          // we will rewrite the block order now.
+          this.saveBlockOrder();
           return;
         }
         let entityMap = [];
@@ -682,20 +698,20 @@ export class Document extends React.Component {
         break;
       case 'singleDeletionSuccessful':
         this.pendingDeletes.set(message.data.id, false);
-        this.notify('Save successful.', Globals.TOASTTYPE_SUCCESS);
+        toast.update(this.saveBlockToastId, {render: 'Save successful', type: toast.TYPE.SUCCESS, autoClose: 5000});
         break;
       case 'singleSaveFailed':
       case 'singleDeletionFailed':
-        this.notify('Save failed.', Globals.TOASTTYPE_ERROR);
+        toast.update(this.saveBlockToastId, {render: 'Error saving', type: toast.TYPE.ERROR, autoClose: 5000});
         break;
       case 'fetchAssociationsFailed':
-        this.setupAndOpenDialog('Error', message.data.text);
+        this.notify(message.data.text, toast.TYPE.ERROR);
         break;
       case 'newAssociationFailed':
-        this.setupAndOpenDialog('Error', message.data.text);
+        this.notify(message.data.text, toast.TYPE.ERROR);
         break;
       case 'removeAssociationFailed':
-        this.setupAndOpenDialog('Error', message.data.text);
+        this.notify(message.data.text, toast.TYPE.ERROR);
         break;
     }
   }
@@ -813,7 +829,6 @@ export class Document extends React.Component {
    *
    * @return {Promise}
    */
-
   fetchDocumentBlocks() {
     return fetch(Globals.SERVICE_URL + '/story/' + this.storyID + '/blocks', {
       headers: Globals.getHeaders()
@@ -997,7 +1012,6 @@ export class Document extends React.Component {
    */
   async onChange(newEditorState) {
     let cursorChange = false;
-    let saveAllRequired = false;
     let pastedEdits = false;
     const selection = newEditorState.getSelection();
     // Cursor has moved but no text changes detected.
@@ -1012,6 +1026,7 @@ export class Document extends React.Component {
       }
     }
     let filterToSaveResults;
+    let filterToDeleteResults;
     // text was pasted
     if (this.pastedText) {
       this.pastedText = false;
@@ -1021,13 +1036,11 @@ export class Document extends React.Component {
       filterToSaveResults = new Map([...newBlockMap].filter(([k, v]) => ![...oldBlockMap].includes(k)));
       console.log('save', filterToSaveResults);
       // if old content has blocks that are no longer present in the new content, we should delete them.
-      //filterToDeleteResults = new Map([...oldBlockMap].filter(([k, v]) => ![...newBlockMap].includes(k)));
-      if (filterToSaveResults.size > 10) {
-        this.notify('Crazy long paste detected, working on it...', Globals.TOASTTYPE_INFO);
-        saveAllRequired = true;
-      } else {
-        pastedEdits = true;
+      filterToDeleteResults = new Map([...oldBlockMap].filter(([k, v]) => ![...newBlockMap].includes(k)));
+      if (filterToSaveResults.size > this.MAX_EDITABLE_BLOCKS) {
+        this.notify('Crazy long paste detected, this may take awhile.', Globals.TOASTTYPE_INFO);
       }
+      pastedEdits = true;
     }
 
     let selectedBlocks;
@@ -1038,7 +1051,7 @@ export class Document extends React.Component {
 
     const dataMap = [];
     const blockTree = this.state.editorState.getBlockTree(selection.getFocusKey());
-    if (!blockTree && !saveAllRequired) {
+    if (!blockTree) {
       // a new block has been added, copy styles from previous block
       const prevSelection = newEditorState.getCurrentContent().getSelectionBefore();
       const styles = this.getBlockStyles(newEditorState, prevSelection);
@@ -1057,37 +1070,36 @@ export class Document extends React.Component {
     this.setState({
       editorState: newEditorState
     }, () => {
-      if (!cursorChange && !saveAllRequired) {
+      if (!cursorChange) {
         const content = newEditorState.getCurrentContent();
         const block = content.getBlockForKey(selection.getAnchorKey());
         // await this.checkPageHeightAndAdvanceToNextPageIfNeeded(pageNumber);
         this.pendingEdits.set(block.getKey(), true);
       }
-      if (saveAllRequired) {
-        this.saveAllBlocks(newEditorState);
-      }
       if (pastedEdits) {
         filterToSaveResults.forEach((saveBlock) => {
           this.pendingEdits.set(saveBlock.getKey(), true);
         });
+        filterToDeleteResults.forEach((saveBlock) => {
+          this.pendingDeletes.set(saveBlock.getKey(), true);
+        });
       }
       if (selectedBlocks) {
-        selectedBlocks.forEach((currentSelectionBlock, key) => {
-          const newContentState = this.state.editorState.getCurrentContent();
-          const affectedBlock = newContentState.getBlockForKey(key)
-          if (affectedBlock) {
-            console.log('rem text', affectedBlock.getText());
-          }
-          if (affectedBlock && !affectedBlock.getText().length) {
-            this.setState({
-              editorState: this.removeBlockFromMap(this.state.editorState, key)
-            }, () => {
+        if (selectedBlocks.size > 1) {
+          selectedBlocks.forEach((currentSelectionBlock, key) => {
+            const newContentState = this.state.editorState.getCurrentContent();
+            const affectedBlock = newContentState.getBlockForKey(key);
+            if (affectedBlock && !affectedBlock.getText().length) {
+              this.setState({
+                editorState: this.removeBlockFromMap(this.state.editorState, key)
+              }, () => {
+                this.pendingDeletes.set(key, true);
+              });
+            } else if (!affectedBlock) {
               this.pendingDeletes.set(key, true);
-            });
-          } else if (!affectedBlock) {
-            this.pendingDeletes.set(key, true);
-          }
-        });
+            }
+          });
+        }
       }
     });
   }
@@ -1126,6 +1138,9 @@ export class Document extends React.Component {
         this.saveBlock(key);
       }
     });
+    if (saveRequired && (this.pendingDeletes.size || this.pendingEdits.size)) {
+      this.notify('Saving...', Globals.TOASTTYPE_INFO, this.saveBlockToastId);
+    }
     if (!saveRequired && userInitiated) {
       this.notify('No changes detected.', Globals.TOASTTYPE_INFO);
     }
@@ -1140,7 +1155,6 @@ export class Document extends React.Component {
    */
   saveAllBlocks(editorState) {
     if (this.socket.isOpen) {
-      this.notify('Saving...', Globals.TOASTTYPE_INFO);
       const contentState = this.state.editorState.getCurrentContent();
       this.socket.send(JSON.stringify({command: 'saveAllBlocks', data: {other: {storyID: this.storyID, body: convertToRaw(contentState)}}}));
       this.setState({
@@ -1160,7 +1174,6 @@ export class Document extends React.Component {
       const block = this.state.editorState.getCurrentContent().getBlockForKey(key);
       console.log('save block', block);
       if (block) {
-        this.notify('Saving...', Globals.TOASTTYPE_INFO);
         const entities = new Map();
         let lastKey;
         for (let i=0; i < block.getLength(); i++) {
@@ -1178,7 +1191,7 @@ export class Document extends React.Component {
           }
         }
         const blockMap = this.state.editorState.getCurrentContent().getBlockMap();
-        const blockPosition = blockMap.keySeq().findIndex(k => k === key);
+        const blockPosition = blockMap.keySeq().findIndex((k) => k === key);
         this.socket.send(JSON.stringify({command: 'saveBlock', data: {block: {key: block.getKey(), order: blockPosition, storyID: this.storyID, body: block.toJSON(), entities: JSON.stringify(entities)}}}));
         this.saveBlockOrder();
       }
@@ -1213,7 +1226,6 @@ export class Document extends React.Component {
   deleteBlock(key) {
     console.log('deleting block', key);
     if (this.socket.isOpen) {
-      this.notify('Saving...', Globals.TOASTTYPE_INFO);
       this.socket.send(JSON.stringify({command: 'deleteBlock', data: {block: {key: key, storyID: this.storyID}}}));
       this.saveBlockOrder();
     }
@@ -1318,26 +1330,25 @@ export class Document extends React.Component {
       this.popPanel.current.hide();
     }
   }
-  
+
   /**
    * Function returns collection of currently selected blocks.
    *
    * @param {EditorState} editorState
-   * @param {Map}
+   * @return {Map}
    */
   getSelectedBlocksMap(editorState) {
     const selectionState = editorState.getSelection();
     const contentState = editorState.getCurrentContent();
-    
     const startKey = selectionState.getStartKey();
     const endKey = selectionState.getEndKey();
     console.log('start', startKey, 'end', endKey);
     const blockMap = contentState.getBlockMap();
     console.log('blmp', blockMap);
     return blockMap
-      .skipUntil((_, k) => k === startKey)
-      .takeUntil((_, k) => k === endKey)
-      .concat([[endKey, blockMap.get(endKey)]]);
+        .skipUntil((_, k) => k === startKey)
+        .takeUntil((_, k) => k === endKey)
+        .concat([[endKey, blockMap.get(endKey)]]);
   }
 
   /**
@@ -1535,7 +1546,7 @@ export class Document extends React.Component {
           <CustomContext ref={this.rightclickAddMenu} type="add" items={JSON.stringify(addMenu)} selected={this.state.selectedText} socket={this.socket} storyID={this.storyID}/>
           <CustomContext ref={this.rightclickEditMenu} type="edit" items={JSON.stringify(editMenu)} editingID={this.state.selectedAssociation} socket={this.socket} storyID={this.storyID}/>
           <PopPanel ref={this.popPanel} label="" storyID={this.storyID} onUpdateAssociationComplete={this.redrawAssociations.bind(this)}/>
-          <ToastContainer />
+          <ToastContainer draggable={false} limit={5} pauseOnFocusLoss={false} />
           <DialogPrompt ref={this.dialog} title={this.state.dialogTitle} body={this.state.dialogBody} isPrompt={this.state.dialogIsPrompt} okFunc={this.state.dialogOKFunc} cancelFunc={this.state.dialogCancelFunc} okButtonText={this.state.dialogOkButtonText} cancelButtonText={this.state.dialogCancelButtonText}/>
         </div>
       );

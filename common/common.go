@@ -3,12 +3,14 @@ package common
 import (
 	"context"
 	"encoding/json"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"io/ioutil"
 	"log"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -97,12 +99,95 @@ type DraftRawContent struct {
 
 var credentials = Config{}
 
+func SaveBlock(key string, body []byte, entities []byte, storyID primitive.ObjectID, order int) error {
+	log.Println("save block", key, storyID)
+	client, ctx, err := MongoConnect()
+	if err != nil {
+		log.Println("ERROR CONNECTING: ", err)
+		return err
+	}
+	defer MongoDisconnect(client, ctx)
+	blocks := client.Database("Drafty").Collection(storyID.Hex() + "_blocks")
+	filter := &bson.M{"storyID": storyID, "key": key}
+	opts := options.Update().SetUpsert(true)
+	update := &bson.M{"$set": &bson.M{"key": key, "storyID": storyID, "body": body, "entities": entities, "order": order}}
+	_, err = blocks.UpdateOne(context.Background(), filter, update, opts)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func PrepBlockForSave(jsonData MessageData, blockPipe chan SocketMessage) {
+	block := Block{}
+	json.Unmarshal([]byte(jsonData.Block), &block)
+	log.Println("prepping", block.Key)
+	response := SocketMessage{}
+	response.Command = "singleSaveFailed"
+	err := SaveBlock(block.Key, block.Body, block.Entities, block.StoryID, block.Order)
+	if err == nil {
+		response.Command = "singleSaveSuccessful"
+		blockToJSON, err := json.Marshal(block)
+		if err != nil {
+			log.Println(err)
+			response.Command = "singleSaveFailed"
+			response.Data.Error = GenerateSocketError(err.Error(), block.Key)
+		} else {
+			response.Data.ID = block.Key
+			response.Data.Block = blockToJSON
+		}
+	} else {
+		log.Println(err)
+		response.Data.Error = GenerateSocketError(err.Error(), block.Key)
+	}
+	blockPipe <- response
+}
+
+func ProcessMegaPaste(contentBlock DraftContentBlock,
+	entityMap map[int]DraftEntity,
+	wg *sync.WaitGroup,
+	counter int,
+	storyID primitive.ObjectID,
+	blockPipe chan Block) {
+	newBlock := Block{}
+	newBlock.Key = contentBlock.Key
+	newBlock.StoryID = storyID
+	//-2 to account for start- and endline quotes
+	for i := 0; i < len(contentBlock.Text)-2; i++ {
+		listItem := DraftCharacterListItem{}
+		for _, style := range contentBlock.InlineStyleRanges {
+			if style.Offset+style.Length >= i {
+				listItem.Style = append(listItem.Style, style.Style)
+			}
+		}
+		contentBlock.CharacterList = append(contentBlock.CharacterList, listItem)
+	}
+	blockToJson, err := json.Marshal(contentBlock)
+	if err != nil {
+		log.Println("error marshalling")
+	}
+	newBlock.Body = blockToJson
+	for _, ent := range contentBlock.EntityRanges {
+		toJSON, err := json.Marshal(entityMap[ent.Key])
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		newBlock.Entities = []byte(toJSON)
+	}
+	log.Println("processed", newBlock.Key)
+	newBlock.Order = counter
+	blockPipe <- newBlock
+	wg.Done()
+}
+
+/*
 func ProcessMegaPaste(done chan Block, jsonData json.RawMessage) {
 	jsonBlocks := AllBlocks{}
 	json.Unmarshal(jsonData, &jsonBlocks)
 	count := 0
 	log.Println("total blocks", len(jsonBlocks.Body.Blocks))
-	for _, block := range jsonBlocks.Body.Blocks {
+	for _, block := range jsonBlocks.Blocks {
 		newBlock := Block{}
 		newBlock.Key = block.Key
 		newBlock.StoryID = jsonBlocks.StoryID
@@ -137,7 +222,7 @@ func ProcessMegaPaste(done chan Block, jsonData json.RawMessage) {
 		}
 		done <- newBlock
 	}
-}
+}*/
 
 func GenerateSocketError(message string, id string) json.RawMessage {
 	var se SocketError
