@@ -64,17 +64,15 @@ export class Landing extends React.Component {
         break;
       }
     }
-    if (!requestedDocument) {
-      this.setState({
-        addStoryButtonDisplay: 'initial',
-        editingDocument: requestedDocument
-      });
-    } else {
-      this.setState({
-        addStoryButtonDisplay: 'none',
-        editingDocument: requestedDocument
-      });
+    let displayState = 'initial';
+    if (requestedDocument) {
+      displayState = 'none';
     }
+    this.setState({
+      addStoryButtonDisplay: displayState,
+      editingDocument: requestedDocument
+    });
+    
   }
 
   /**
@@ -109,12 +107,10 @@ export class Landing extends React.Component {
   enterDocument(event) {
     event.stopPropagation();
     setTimeout(() => {
-      console.log('enter doc?', this.editingTitle);
       if (!this.editingTitle) {
         let selected;
         !event.target.dataset.id ? selected = event.target.parentElement.dataset.id : selected = event.target.dataset.id;
         if (selected) {
-          console.log('clicked ' + selected);
           history.pushState({}, '', '/story/' + selected);
           this.setState({
             editingDocument: selected,
@@ -196,7 +192,7 @@ export class Landing extends React.Component {
       const t = Date.parse(story.lastAccessed)/1000;
       receivedStories.push(<li key={story.id} data-id={story.id} data-last-accessed={t}>
         <div onClick={this.enterDocument.bind(this)} className="bg"></div>
-        <div className="title" onClick={this.enterDocument.bind(this)} onDoubleClick={this.titleDoubleClicked.bind(this)} onKeyPress={this.titleEdited.bind(this)} onBlur={this.titleEditedLoseFocus.bind(this)} contentEditable="true">{story.title}</div>
+        <div className="title" onClick={this.enterDocument.bind(this)} onDoubleClick={this.titleDoubleClicked.bind(this)} onKeyPress={this.titleEdited.bind(this)} onBlur={this.titleEditedLoseFocus.bind(this)} onFocus={this.selectAllTitle} contentEditable="true">{story.title}</div>
         <button onClick={this.promptToDeleteStory.bind(this)}>
           <DeleteForever />
         </button>
@@ -301,11 +297,25 @@ export class Landing extends React.Component {
    * @param {Event} event
    */
   titleDoubleClicked(event) {
-    console.log('doubled');
     event.stopPropagation();
     event.preventDefault();
     this.editingTitle = true;
     event.target.classList.add('active');
+  }
+
+  /**
+   * Select all content inside the given element.
+   * Should be captured from element onfocus
+   *
+   * @param {Event} event
+   */
+  selectAllTitle(event) {
+    event.preventDefault();
+    const range = document.createRange();
+    range.selectNodeContents(event.target);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
   }
 
   /**

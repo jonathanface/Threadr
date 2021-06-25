@@ -123,7 +123,7 @@ func (h *Hub) run() {
 				break
 			case `fetchAssociations`:
 				deets := API.Association{}
-				json.Unmarshal([]byte(m.Data.Other), &deets)
+				json.Unmarshal([]byte(m.Data.Association), &deets)
 				response := common.SocketMessage{}
 				response.Command = "fetchAssociationsFailed"
 				assocs, err := fetchAssociations(deets.StoryID)
@@ -137,14 +137,14 @@ func (h *Hub) run() {
 				clientMessage.Client.conn.WriteJSON(response)
 				break
 			case `newAssociation`:
-				deets := API.Association{}
-				json.Unmarshal([]byte(m.Data.Other), &deets)
+				ass := API.Association{}
+				json.Unmarshal([]byte(m.Data.Association), &ass)
 				response := common.SocketMessage{}
 				response.Command = "newAssociationFailed"
-				err := createAssociation(deets.Name, deets.Type, deets.StoryID)
+				err := createAssociation(ass.Name, ass.Type, ass.StoryID)
 				if err == nil {
 					response.Command = "pushAssociations"
-					assocs, err := fetchAssociations(deets.StoryID)
+					assocs, err := fetchAssociations(ass.StoryID)
 					if err == nil {
 						j, _ := json.Marshal(assocs)
 						response.Data.Other = json.RawMessage(j)
@@ -167,6 +167,7 @@ func (h *Hub) run() {
 				if err == nil {
 					response.Command = "pushAssociations"
 					assocs, err := fetchAssociations(deets.StoryID)
+					log.Println("assocs", assocs)
 					if err == nil {
 						j, _ := json.Marshal(assocs)
 						response.Data.Other = json.RawMessage(j)

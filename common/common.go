@@ -29,10 +29,11 @@ type Config struct {
 // ID - any relevant uuid
 // Other - any other json data to pass along
 type MessageData struct {
-	Block json.RawMessage `json:"block"`
-	Error json.RawMessage `json:"error"`
-	ID    string          `json:"id"`
-	Other json.RawMessage `json:"other"`
+	Block       json.RawMessage `json:"block"`
+	Association json.RawMessage `json:"association"`
+	Error       json.RawMessage `json:"error"`
+	ID          string          `json:"id"`
+	Other       json.RawMessage `json:"other"`
 }
 
 type SocketMessage struct {
@@ -180,49 +181,6 @@ func ProcessMegaPaste(contentBlock DraftContentBlock,
 	blockPipe <- newBlock
 	wg.Done()
 }
-
-/*
-func ProcessMegaPaste(done chan Block, jsonData json.RawMessage) {
-	jsonBlocks := AllBlocks{}
-	json.Unmarshal(jsonData, &jsonBlocks)
-	count := 0
-	log.Println("total blocks", len(jsonBlocks.Body.Blocks))
-	for _, block := range jsonBlocks.Blocks {
-		newBlock := Block{}
-		newBlock.Key = block.Key
-		newBlock.StoryID = jsonBlocks.StoryID
-		//-2 to account for start- and endline quotes
-		for i := 0; i < len(block.Text)-2; i++ {
-			listItem := DraftCharacterListItem{}
-			for _, style := range block.InlineStyleRanges {
-				if style.Offset+style.Length >= i {
-					listItem.Style = append(listItem.Style, style.Style)
-				}
-			}
-			block.CharacterList = append(block.CharacterList, listItem)
-		}
-		blockToJson, err := json.Marshal(block)
-		if err != nil {
-			log.Println("error marshalling")
-		}
-		newBlock.Body = blockToJson
-		for _, ent := range block.EntityRanges {
-			toJSON, err := json.Marshal(jsonBlocks.Body.EntityMap[ent.Key])
-			if err != nil {
-				log.Println(err)
-				continue
-			}
-			newBlock.Entities = []byte(toJSON)
-		}
-
-		newBlock.Order = count
-		count++
-		if count >= len(jsonBlocks.Body.Blocks) {
-			newBlock.Order = -1
-		}
-		done <- newBlock
-	}
-}*/
 
 func GenerateSocketError(message string, id string) json.RawMessage {
 	var se SocketError
