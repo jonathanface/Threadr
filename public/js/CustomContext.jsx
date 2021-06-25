@@ -58,7 +58,7 @@ export class CustomContext extends React.Component {
   createNewAssociation(text, type) {
     console.log('adding new', type, text);
     if (this.socket.isOpen && text.trim().length) {
-      this.socket.send(JSON.stringify({command: 'newAssociation', data: {name: text.trim(), type: type, storyID: this.storyID}}));
+      this.socket.send(JSON.stringify({command: 'newAssociation', data: {association: {name: text.trim(), type: type, storyID: this.storyID}}}));
     }
   }
 
@@ -84,7 +84,7 @@ export class CustomContext extends React.Component {
   removeAssociation() {
     console.log('removing', this.state.editingID);
     if (this.socket.isOpen && this.state.editingID) {
-      this.socket.send(JSON.stringify({command: 'removeAssociation', data: {'ID': this.state.editingID, 'storyID': this.storyID}}));
+      this.socket.send(JSON.stringify({command: 'removeAssociation', data: { other: {'ID': this.state.editingID, 'storyID': this.storyID}}}));
       this.setState({
         editingID: null
       });

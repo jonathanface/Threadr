@@ -656,8 +656,8 @@ export class Document extends React.Component {
     switch (message.command) {
       case 'pushAssociations': {
         let newAsses = [];
-        if (message.data) {
-          newAsses = message.data;
+        if (message.data.other) {
+          newAsses = message.data.other;
         }
         this.setState({
           associations: newAsses
@@ -705,13 +705,13 @@ export class Document extends React.Component {
         toast.update(this.saveBlockToastId, {render: 'Error saving', type: toast.TYPE.ERROR, autoClose: 5000});
         break;
       case 'fetchAssociationsFailed':
-        this.notify(message.data.text, toast.TYPE.ERROR);
+        this.notify(message.data.error, toast.TYPE.ERROR);
         break;
       case 'newAssociationFailed':
-        this.notify(message.data.text, toast.TYPE.ERROR);
+        this.notify(message.data.error, toast.TYPE.ERROR);
         break;
       case 'removeAssociationFailed':
-        this.notify(message.data.text, toast.TYPE.ERROR);
+        this.notify(message.data.error, toast.TYPE.ERROR);
         break;
     }
   }
@@ -850,6 +850,7 @@ export class Document extends React.Component {
               editorState: EditorState.push(this.state.editorState, newContent)
             }, () => {
               this.processBlockEntities(entityMap);
+              this.forceRender();
             });
           });
           break;

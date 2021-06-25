@@ -113,6 +113,9 @@ func createAssociation(text string, typeOf int, storyID primitive.ObjectID) erro
 		log.Println("ERROR CONNECTING: ", err)
 		return err
 	}
+	if len(text) == 0 {
+		return errors.New("Association cannot be blank")
+	}
 	defer common.MongoDisconnect(client, ctx)
 	assocs := client.Database(`Drafty`).Collection(`Associations`)
 	log.Println("filter", storyID, text, typeOf)
