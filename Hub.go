@@ -3,6 +3,7 @@ package main
 import (
 	"RichDocter/API"
 	"RichDocter/common"
+	"context"
 	"encoding/json"
 	"log"
 	"sync"
@@ -87,11 +88,13 @@ func (h *Hub) run() {
 				wg.Wait()
 				break
 			case `updateBlockOrder`:
+				ctx, cancel := context.WithTimeout(context.TODO(), CONTEXT_TIMEOUT)
+				defer cancel()
 				blockOrder := API.BlockOrder{}
 				json.Unmarshal([]byte(m.Data.Other), &blockOrder)
 				response := common.SocketMessage{}
 				response.Command = "saveOrderFailed"
-				err := updateBlockOrder(blockOrder.Order, blockOrder.StoryID)
+				err := updateBlockOrder(blockOrder.Order, blockOrder.StoryID, ctx)
 				if err == nil {
 					response.Command = "saveOrderSuccessful"
 				} else {
@@ -101,11 +104,13 @@ func (h *Hub) run() {
 				clientMessage.Client.conn.WriteJSON(response)
 				break
 			case `deleteBlock`:
+				ctx, cancel := context.WithTimeout(context.TODO(), CONTEXT_TIMEOUT)
+				defer cancel()
 				deets := API.Block{}
 				json.Unmarshal([]byte(m.Data.Block), &deets)
 				response := common.SocketMessage{}
 				response.Command = "singleDeletionFailed"
-				err := deleteBlock(deets.Key, deets.StoryID)
+				err := deleteBlock(deets.Key, deets.StoryID, ctx)
 				if err == nil {
 					response.Command = "singleDeletionSuccessful"
 					response.Data.ID = deets.Key
@@ -120,7 +125,9 @@ func (h *Hub) run() {
 				json.Unmarshal([]byte(m.Data.Association), &deets)
 				response := common.SocketMessage{}
 				response.Command = "fetchAssociationsFailed"
-				assocs, err := fetchAssociations(deets.StoryID)
+				ctx, cancel := context.WithTimeout(context.TODO(), CONTEXT_TIMEOUT)
+				defer cancel()
+				assocs, err := fetchAssociations(deets.StoryID, ctx)
 				if err == nil {
 					response.Command = "pushAssociations"
 					j, _ := json.Marshal(assocs)
@@ -131,14 +138,16 @@ func (h *Hub) run() {
 				clientMessage.Client.conn.WriteJSON(response)
 				break
 			case `newAssociation`:
+				ctx, cancel := context.WithTimeout(context.TODO(), CONTEXT_TIMEOUT)
+				defer cancel()
 				ass := API.Association{}
 				json.Unmarshal([]byte(m.Data.Association), &ass)
 				response := common.SocketMessage{}
 				response.Command = "newAssociationFailed"
-				err := createAssociation(ass.Name, ass.Type, ass.StoryID)
+				err := createAssociation(ass.Name, ass.Type, ass.StoryID, ctx)
 				if err == nil {
 					response.Command = "pushAssociations"
-					assocs, err := fetchAssociations(ass.StoryID)
+					assocs, err := fetchAssociations(ass.StoryID, ctx)
 					if err == nil {
 						j, _ := json.Marshal(assocs)
 						response.Data.Other = json.RawMessage(j)
@@ -152,15 +161,17 @@ func (h *Hub) run() {
 				clientMessage.Client.conn.WriteJSON(response)
 				break
 			case `removeAssociation`:
+				ctx, cancel := context.WithTimeout(context.TODO(), CONTEXT_TIMEOUT)
+				defer cancel()
 				deets := API.Association{}
 				json.Unmarshal([]byte(m.Data.Other), &deets)
 				response := common.SocketMessage{}
 				response.Command = "removeAssociationFailed"
 				response.Data.ID = deets.ID.Hex()
-				err := deleteAssociation(deets.ID)
+				err := deleteAssociation(deets.ID, ctx)
 				if err == nil {
 					response.Command = "pushAssociations"
-					assocs, err := fetchAssociations(deets.StoryID)
+					assocs, err := fetchAssociations(deets.StoryID, ctx)
 					log.Println("assocs", assocs)
 					if err == nil {
 						j, _ := json.Marshal(assocs)

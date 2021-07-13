@@ -1,7 +1,6 @@
 package API
 
 import (
-	"context"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
 	"net/http"
@@ -15,8 +14,8 @@ func CreateStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	claims := r.Context().Value("props").(GoogleClaims)
 	story.User = claims.ID
 	storiesColl := dbClient.Database(`Drafty`).Collection(`Stories`)
-
-	result, err := storiesColl.InsertOne(context.TODO(), story)
+	ctx := r.Context()
+	result, err := storiesColl.InsertOne(ctx, story)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return

@@ -1,7 +1,6 @@
 package API
 
 import (
-	"context"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -12,22 +11,19 @@ import (
 
 func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 	claims := r.Context().Value("props").(GoogleClaims)
-	log.Println("decoded", claims)
-
 	storiesColl := dbClient.Database("Drafty").Collection("Stories")
 	log.Println("stories for user", claims.ID)
 	filter := &bson.M{"user": claims.ID}
 	findOptions := options.Find()
 	findOptions.SetSort(bson.D{{"lastAccessed", -1}})
 	var stories []Story
-	found, err := storiesColl.Find(context.Background(), filter, findOptions)
+	ctx := r.Context()
+	found, err := storiesColl.Find(ctx, filter, findOptions)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	defer found.Close(context.Background())
-
-	for found.Next(context.TODO()) {
+	for found.Next(ctx) {
 		//Create a value into which the single document can be decoded
 		var s Story
 		err := found.Decode(&s)
@@ -59,20 +55,19 @@ func AssociationDetailsEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing or invalid associationID")
 		return
 	}
-
 	assocs := dbClient.Database("Drafty").Collection("Associations")
 	filter := &bson.M{"_id": mgoID}
 	var results Association
-	err = assocs.FindOne(context.TODO(), filter).Decode(&results)
+	ctx := r.Context()
+	err = assocs.FindOne(ctx, filter).Decode(&results)
 	if err != nil {
 		RespondWithError(w, http.StatusNotFound, err.Error())
 		return
 	}
-
 	deets := dbClient.Database("Drafty").Collection("AssociationDetails")
 	var descr AssociationDetails
 	filter = &bson.M{"_id": mgoID}
-	deets.FindOne(context.TODO(), filter).Decode(&descr)
+	deets.FindOne(ctx, filter).Decode(&descr)
 	results.Details = descr
 	RespondWithJson(w, http.StatusOK, results)
 }
@@ -90,20 +85,20 @@ func AllAssociationsEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	filter := &bson.M{"storyID": mgoID}
-	cur, err := assocs.Find(context.TODO(), filter)
+	ctx := r.Context()
+	cur, err := assocs.Find(ctx, filter)
 	if err != nil {
 		RespondWithError(w, http.StatusNotFound, err.Error())
 		return
 	}
-	defer cur.Close(context.TODO())
 	var results []Association
 	deetsDB := dbClient.Database("Drafty").Collection("AssociationDetails")
-	for cur.Next(context.TODO()) {
+	for cur.Next(ctx) {
 		var a Association
 		err := cur.Decode(&a)
 		deetsFilter := &bson.M{"_id": a.ID}
 		var deets AssociationDetails
-		deetsDB.FindOne(context.TODO(), deetsFilter).Decode(&deets)
+		deetsDB.FindOne(ctx, deetsFilter).Decode(&deets)
 		a.Details = deets
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -137,15 +132,14 @@ func AllBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 	filter := &bson.M{"storyID": mgoID}
 	findOptions := options.Find()
 	findOptions.SetSort(bson.D{{"order", 1}})
-	cur, err := pages.Find(context.TODO(), filter, findOptions)
+	ctx := r.Context()
+	cur, err := pages.Find(ctx, filter, findOptions)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	defer cur.Close(context.TODO())
-
 	var results []Block
-	for cur.Next(context.TODO()) {
+	for cur.Next(ctx) {
 		var b Block
 		err := cur.Decode(&b)
 		if err != nil {
