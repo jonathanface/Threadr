@@ -84,7 +84,7 @@ export class CustomContext extends React.Component {
   removeAssociation() {
     console.log('removing', this.state.editingID);
     if (this.socket.isOpen && this.state.editingID) {
-      this.socket.send(JSON.stringify({command: 'removeAssociation', data: { other: {'ID': this.state.editingID, 'storyID': this.storyID}}}));
+      this.socket.send(JSON.stringify({command: 'removeAssociation', data: {other: {'ID': this.state.editingID, 'storyID': this.storyID}}}));
       this.setState({
         editingID: null
       });

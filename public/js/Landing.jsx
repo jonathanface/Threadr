@@ -72,7 +72,6 @@ export class Landing extends React.Component {
       addStoryButtonDisplay: displayState,
       editingDocument: requestedDocument
     });
-    
   }
 
   /**

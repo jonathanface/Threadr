@@ -5,12 +5,11 @@ import (
 	"encoding/json"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-  "go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"sync"
 )
-
 
 // Potential data to be passed with socket messages
 // Block - any DraftContentBlock
@@ -87,11 +86,9 @@ type DraftRawContent struct {
 	EntityMap map[int]DraftEntity `json:"entityMap"`
 }
 
-
-
 func DeleteAllBlocks(client *mongo.Client, storyID primitive.ObjectID) error {
 	blocks := client.Database("Drafty").Collection(storyID.Hex() + "_blocks")
-  return blocks.Drop(context.Background())
+	return blocks.Drop(context.Background())
 }
 
 func SaveBlock(client *mongo.Client, key string, body []byte, entities []byte, storyID primitive.ObjectID, order int) error {
@@ -153,8 +150,9 @@ func ProcessMegaPaste(contentBlock DraftContentBlock,
 		log.Println("error marshalling")
 	}
 	newBlock.Body = blockToJson
-	for _, ent := range contentBlock.EntityRanges {
-		toJSON, err := json.Marshal(entityMap[ent.Key])
+	for v, ent := range contentBlock.EntityRanges {
+		log.Println("map index", v, ent)
+		toJSON, err := json.Marshal(entityMap)
 		if err != nil {
 			log.Println(err)
 			continue
@@ -174,7 +172,3 @@ func GenerateSocketError(message string, id string) json.RawMessage {
 	j, _ := json.Marshal(se)
 	return json.RawMessage(j)
 }
-
-
-
-
