@@ -52,14 +52,16 @@ func (h *Hub) run() {
 			switch m.Command {
 			case `saveBlock`:
 				blockPipe := make(chan common.SocketMessage)
-				go common.PrepBlockForSave(m.Data, blockPipe)
+				go common.PrepBlockForSave(dbClient, m.Data, blockPipe)
 				response := <-blockPipe
 				close(blockPipe)
 				clientMessage.Client.conn.WriteJSON(response)
 				break
 			case `saveAllBlocks`:
+
 				var wg sync.WaitGroup
 				jsonBlocks := common.AllBlocks{}
+				common.DeleteAllBlocks(dbClient, jsonBlocks.StoryID)
 				json.Unmarshal([]byte(m.Data.Other), &jsonBlocks)
 				entMap := jsonBlocks.Body.EntityMap
 				for count, block := range jsonBlocks.Body.Blocks {
@@ -71,7 +73,7 @@ func (h *Hub) run() {
 					response := common.SocketMessage{}
 					response.Command = "blockSaveFailed"
 					errors := false
-					err := common.SaveBlock(newBlock.Key, []byte(newBlock.Body), newBlock.Entities, newBlock.StoryID, count)
+					err := common.SaveBlock(dbClient, newBlock.Key, []byte(newBlock.Body), newBlock.Entities, newBlock.StoryID, count)
 					if err != nil {
 						log.Println("error", err.Error())
 						errors = true

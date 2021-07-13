@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"io/ioutil"
 	"log"
@@ -30,57 +31,51 @@ const (
 	PING_TIMEOUT       = 5000
 )
 
+type Config struct {
+	DBHost   string `json:"dbHost"`
+	DBPort   string `json:"dbPort"`
+	DBUser   string `json:"dbUser"`
+	DBPass   string `json:"dbPass"`
+	DBName   string `json:"dbName"`
+	HttpPort string `json:"httpPort"`
+}
+
+var credentials = Config{}
+
 var conn *websocket.Conn
+var dbClient *mongo.Client
 
 func deleteBlock(blockID string, storyID primitive.ObjectID) error {
 	log.Println("delete block", blockID, storyID)
-	client, ctx, err := common.MongoConnect()
-	if err != nil {
-		log.Println("ERROR CONNECTING: ", err)
-		return err
-	}
-	defer common.MongoDisconnect(client, ctx)
-	pages := client.Database("Drafty").Collection(storyID.Hex() + "_blocks")
+	pages := dbClient.Database("Drafty").Collection(storyID.Hex() + "_blocks")
 	filter := &bson.M{"storyID": storyID, "key": blockID}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	_, err = pages.DeleteOne(ctx, filter)
+	_, err := pages.DeleteOne(ctx, filter)
 	return err
 }
 
 func saveAllBlocks(blocks []API.Block, storyID primitive.ObjectID) error {
 	log.Println("resetting all blocks for", storyID.Hex())
-	client, ctx, err := common.MongoConnect()
-	if err != nil {
-		log.Println("ERROR CONNECTING: ", err)
-		return err
-	}
-	defer common.MongoDisconnect(client, ctx)
-	blocksColl := client.Database("Drafty").Collection(storyID.Hex() + "_blocks")
-	_, err = blocksColl.DeleteMany(context.TODO(), bson.M{})
+	blocksColl := dbClient.Database("Drafty").Collection(storyID.Hex() + "_blocks")
+	_, err := blocksColl.DeleteMany(context.TODO(), bson.M{})
 	if err != nil {
 		return err
 	}
 	for count, val := range blocks {
-		common.SaveBlock(val.Key, val.Body, val.Entities, storyID, count)
+		common.SaveBlock(dbClient, val.Key, val.Body, val.Entities, storyID, count)
 	}
 	return nil
 }
 
 func updateBlockOrder(order map[string]int, storyID primitive.ObjectID) error {
 	log.Println("updating block order")
-	client, ctx, err := common.MongoConnect()
-	if err != nil {
-		log.Println("ERROR CONNECTING: ", err)
-		return err
-	}
-	defer common.MongoDisconnect(client, ctx)
-	blocks := client.Database("Drafty").Collection(storyID.Hex() + "_blocks")
+	blocks := dbClient.Database("Drafty").Collection(storyID.Hex() + "_blocks")
 	cursor, err := blocks.Find(context.TODO(), bson.D{})
 	if err != nil {
 		return err
 	}
-	defer cursor.Close(ctx)
+	defer cursor.Close(context.TODO())
 	for cursor.Next(context.TODO()) {
 		var b API.Block
 		err := cursor.Decode(&b)
@@ -108,21 +103,15 @@ func updateBlockOrder(order map[string]int, storyID primitive.ObjectID) error {
 
 func createAssociation(text string, typeOf int, storyID primitive.ObjectID) error {
 	log.Println("creating association", text, typeOf, storyID)
-	client, ctx, err := common.MongoConnect()
-	if err != nil {
-		log.Println("ERROR CONNECTING: ", err)
-		return err
-	}
 	if len(text) == 0 {
 		return errors.New("Association cannot be blank")
 	}
-	defer common.MongoDisconnect(client, ctx)
-	assocs := client.Database(`Drafty`).Collection(`Associations`)
+	assocs := dbClient.Database(`Drafty`).Collection(`Associations`)
 	log.Println("filter", storyID, text, typeOf)
 	filter := &bson.M{`storyID`: storyID, `name`: text}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	count, err := assocs.CountDocuments(ctx, filter)
+	count, _ := assocs.CountDocuments(ctx, filter)
 	log.Println("count", count)
 	if count == 0 {
 		log.Println("no association found")
@@ -140,21 +129,14 @@ func createAssociation(text string, typeOf int, storyID primitive.ObjectID) erro
 
 func deleteAssociation(id primitive.ObjectID) error {
 	log.Println("deleting association", id)
-	client, ctx, err := common.MongoConnect()
-	if err != nil {
-		log.Println("ERROR CONNECTING: ", err)
-		return err
-	}
-	defer common.MongoDisconnect(client, ctx)
-
-	assocs := client.Database(`Drafty`).Collection(`Associations`)
+	assocs := dbClient.Database(`Drafty`).Collection(`Associations`)
 	ctx, cancelAssoc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelAssoc()
-	_, err = assocs.DeleteOne(ctx, bson.M{"_id": id})
+	_, err := assocs.DeleteOne(ctx, bson.M{"_id": id})
 	if err != nil {
 		return err
 	}
-	deets := client.Database(`Drafty`).Collection(`AssociationDetails`)
+	deets := dbClient.Database(`Drafty`).Collection(`AssociationDetails`)
 	_, err = deets.DeleteOne(ctx, bson.M{"_id": id})
 	ctx, cancelDeets := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelDeets()
@@ -165,18 +147,13 @@ func deleteAssociation(id primitive.ObjectID) error {
 }
 
 func fetchAssociationsByType(typeOf int, storyID primitive.ObjectID) ([]API.Association, error) {
-	client, ctx, err := common.MongoConnect()
-	if err != nil {
-		return nil, err
-	}
-	defer common.MongoDisconnect(client, ctx)
-	assocs := client.Database("Drafty").Collection("Associations")
+	assocs := dbClient.Database("Drafty").Collection("Associations")
 	filter := &bson.M{"novelID": storyID, "type": typeOf}
 	cur, err := assocs.Find(context.TODO(), filter)
 	if err != nil {
 		return nil, err
 	}
-	defer cur.Close(ctx)
+	defer cur.Close(context.TODO())
 	var results []API.Association
 	for cur.Next(context.TODO()) {
 		var a API.Association
@@ -191,20 +168,15 @@ func fetchAssociationsByType(typeOf int, storyID primitive.ObjectID) ([]API.Asso
 
 func fetchAssociations(storyID primitive.ObjectID) ([]API.Association, error) {
 	log.Println("fetching story assocs", storyID)
-	client, ctx, err := common.MongoConnect()
-	if err != nil {
-		return nil, err
-	}
-	defer common.MongoDisconnect(client, ctx)
-	assocs := client.Database("Drafty").Collection("Associations")
+	assocs := dbClient.Database("Drafty").Collection("Associations")
 	filter := &bson.M{"storyID": storyID}
 	cur, err := assocs.Find(context.TODO(), filter)
 	if err != nil {
 		return nil, err
 	}
-	defer cur.Close(ctx)
+	defer cur.Close(context.TODO())
 	var results []API.Association
-	deets := client.Database("Drafty").Collection("AssociationDetails")
+	deets := dbClient.Database("Drafty").Collection("AssociationDetails")
 	for cur.Next(context.TODO()) {
 		var a API.Association
 		err := cur.Decode(&a)
@@ -294,13 +266,7 @@ func middleware(next http.HandlerFunc) http.HandlerFunc {
 				API.RespondWithError(w, http.StatusForbidden, err.Error())
 				return
 			}
-			client, ctx, err := common.MongoConnect()
-			if err != nil {
-				API.RespondWithError(w, http.StatusInternalServerError, "Error connecting to DB")
-				return
-			}
-			defer common.MongoDisconnect(client, ctx)
-			users := client.Database("Drafty").Collection("Users")
+			users := dbClient.Database("Drafty").Collection("Users")
 			filter := &bson.M{"email": claims.Email}
 			opts := options.Update().SetUpsert(true)
 			update := &bson.M{"$set": &bson.M{"lastActive": primitive.Timestamp{T: uint32(time.Now().Unix())}}}
@@ -324,7 +290,7 @@ func middleware(next http.HandlerFunc) http.HandlerFunc {
 				}
 			}
 			if next != nil {
-				ctx = context.WithValue(r.Context(), "props", claims)
+				ctx := context.WithValue(r.Context(), "props", claims)
 				next.ServeHTTP(w, r.WithContext(ctx))
 			} else {
 				// This is just if I requested user details from the claims
@@ -361,10 +327,53 @@ func serveRootDirectory(w http.ResponseWriter, r *http.Request) {
 	http.FileServer(http.Dir("."+string(os.PathSeparator)+STATIC_FILES_DIR+string(os.PathSeparator))).ServeHTTP(w, r)
 }
 
-func main() {
-	common.LoadConfiguration()
-	log.Println("Listening for http on " + common.GetHTTPPort())
+func mongoConnect() (*mongo.Client, context.Context, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	uri := "mongodb+srv://" + credentials.DBUser + ":" + credentials.DBPass + "@" + credentials.DBHost + "/" + credentials.DBName + "?w=majority"
+	log.Println(uri)
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
+	if err != nil {
+		return nil, nil, err
+	}
+	if err = client.Ping(ctx, nil); err != nil {
+		return nil, nil, err
+	}
+	log.Println("Connected to MongoDB!")
+	return client, ctx, nil
+}
+func mongoDisconnect(client *mongo.Client, ctx context.Context) error {
+	if err := client.Disconnect(ctx); err != nil {
+		return err
+	}
+	return nil
+}
 
+func loadConfiguration() {
+	jsonFile, err := os.Open("config.json")
+	if err != nil {
+		panic(err)
+	}
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+	json.Unmarshal(byteValue, &credentials)
+	jsonFile.Close()
+}
+
+func getHTTPPort() string {
+	return credentials.HttpPort
+}
+
+func main() {
+	loadConfiguration()
+	log.Println("Listening for http on " + getHTTPPort())
+	var ctx context.Context
+	var err error
+	dbClient, ctx, err = mongoConnect()
+	if err != nil {
+		log.Fatal("Database won't connect", err)
+	}
+	defer mongoDisconnect(dbClient, ctx)
+	API.SetDB(dbClient)
 	hub := newHub()
 	go hub.run()
 
@@ -389,5 +398,5 @@ func main() {
 	})
 	rtr.PathPrefix("/").HandlerFunc(serveRootDirectory)
 	http.Handle("/", rtr)
-	log.Fatal(http.ListenAndServe(":"+common.GetHTTPPort(), nil))
+	log.Fatal(http.ListenAndServe(":"+getHTTPPort(), nil))
 }

@@ -1,7 +1,6 @@
 package API
 
 import (
-	"RichDocter/common"
 	"context"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
@@ -12,17 +11,10 @@ import (
 )
 
 func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
-	client, ctx, err := common.MongoConnect()
-	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	defer common.MongoDisconnect(client, ctx)
-
 	claims := r.Context().Value("props").(GoogleClaims)
 	log.Println("decoded", claims)
 
-	storiesColl := client.Database("Drafty").Collection("Stories")
+	storiesColl := dbClient.Database("Drafty").Collection("Stories")
 	log.Println("stories for user", claims.ID)
 	filter := &bson.M{"user": claims.ID}
 	findOptions := options.Find()
@@ -33,7 +25,7 @@ func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	defer found.Close(ctx)
+	defer found.Close(context.Background())
 
 	for found.Next(context.TODO()) {
 		//Create a value into which the single document can be decoded
@@ -67,13 +59,8 @@ func AssociationDetailsEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing or invalid associationID")
 		return
 	}
-	client, ctx, err := common.MongoConnect()
-	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	defer common.MongoDisconnect(client, ctx)
-	assocs := client.Database("Drafty").Collection("Associations")
+
+	assocs := dbClient.Database("Drafty").Collection("Associations")
 	filter := &bson.M{"_id": mgoID}
 	var results Association
 	err = assocs.FindOne(context.TODO(), filter).Decode(&results)
@@ -82,7 +69,7 @@ func AssociationDetailsEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deets := client.Database("Drafty").Collection("AssociationDetails")
+	deets := dbClient.Database("Drafty").Collection("AssociationDetails")
 	var descr AssociationDetails
 	filter = &bson.M{"_id": mgoID}
 	deets.FindOne(context.TODO(), filter).Decode(&descr)
@@ -96,12 +83,7 @@ func AllAssociationsEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "No story ID received")
 		return
 	}
-	client, ctx, err := common.MongoConnect()
-	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	assocs := client.Database("Drafty").Collection("Associations")
+	assocs := dbClient.Database("Drafty").Collection("Associations")
 	mgoID, err := validateBSON(sid)
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Missing or invalid storyID")
@@ -113,9 +95,9 @@ func AllAssociationsEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusNotFound, err.Error())
 		return
 	}
-	defer cur.Close(ctx)
+	defer cur.Close(context.TODO())
 	var results []Association
-	deetsDB := client.Database("Drafty").Collection("AssociationDetails")
+	deetsDB := dbClient.Database("Drafty").Collection("AssociationDetails")
 	for cur.Next(context.TODO()) {
 		var a Association
 		err := cur.Decode(&a)
@@ -146,13 +128,7 @@ func AllBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "No story ID received")
 		return
 	}
-	client, ctx, err := common.MongoConnect()
-	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	defer common.MongoDisconnect(client, ctx)
-	pages := client.Database("Drafty").Collection(sid + "_blocks")
+	pages := dbClient.Database("Drafty").Collection(sid + "_blocks")
 	mgoID, err := validateBSON(sid)
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Missing or invalid storyID")
@@ -166,7 +142,7 @@ func AllBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	defer cur.Close(ctx)
+	defer cur.Close(context.TODO())
 
 	var results []Block
 	for cur.Next(context.TODO()) {
