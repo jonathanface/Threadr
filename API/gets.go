@@ -131,7 +131,10 @@ func AllBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	filter := &bson.M{"storyID": mgoID}
 	findOptions := options.Find()
+	trueDisk := true
+	findOptions.AllowDiskUse = &trueDisk
 	findOptions.SetSort(bson.D{{"order", 1}})
+	log.Println("opts", findOptions)
 	ctx := r.Context()
 	cur, err := pages.Find(ctx, filter, findOptions)
 	if err != nil {

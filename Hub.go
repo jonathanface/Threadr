@@ -61,9 +61,8 @@ func (h *Hub) run() {
 			case `saveAllBlocks`:
 				var wg sync.WaitGroup
 				jsonBlocks := common.AllBlocks{}
-				common.DeleteAllBlocks(dbClient, jsonBlocks.StoryID)
 				json.Unmarshal([]byte(m.Data.Other), &jsonBlocks)
-
+				common.DeleteAllBlocks(dbClient, jsonBlocks.StoryID)
 				entMap := jsonBlocks.Body.EntityMap
 				response := common.SocketMessage{}
 				response.Command = "allBlocksSaveFailed"
@@ -109,10 +108,10 @@ func (h *Hub) run() {
 				deets := API.Block{}
 				json.Unmarshal([]byte(m.Data.Block), &deets)
 				response := common.SocketMessage{}
-				response.Command = "singleDeletionFailed"
+				response.Command = "blockDeletionFailed"
 				err := deleteBlock(deets.Key, deets.StoryID, ctx)
 				if err == nil {
-					response.Command = "singleDeletionSuccessful"
+					response.Command = "blockDeletionSuccessful"
 					response.Data.ID = deets.Key
 				} else {
 					log.Println(err)
