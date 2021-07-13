@@ -7,21 +7,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"io/ioutil"
 	"log"
-	"os"
 	"sync"
-	"time"
 )
-
-type Config struct {
-	DBHost   string `json:"dbHost"`
-	DBPort   string `json:"dbPort"`
-	DBUser   string `json:"dbUser"`
-	DBPass   string `json:"dbPass"`
-	DBName   string `json:"dbName"`
-	HttpPort string `json:"httpPort"`
-}
 
 // Potential data to be passed with socket messages
 // Block - any DraftContentBlock
@@ -98,34 +86,28 @@ type DraftRawContent struct {
 	EntityMap map[int]DraftEntity `json:"entityMap"`
 }
 
-var credentials = Config{}
+func DeleteAllBlocks(client *mongo.Client, storyID primitive.ObjectID) error {
+	blocks := client.Database("Drafty").Collection(storyID.Hex() + "_blocks")
+	return blocks.Drop(context.Background())
+}
 
-func SaveBlock(key string, body []byte, entities []byte, storyID primitive.ObjectID, order int) error {
+func SaveBlock(client *mongo.Client, key string, body []byte, entities []byte, storyID primitive.ObjectID, order int) error {
 	log.Println("save block", key, storyID)
-	client, ctx, err := MongoConnect()
-	if err != nil {
-		log.Println("ERROR CONNECTING: ", err)
-		return err
-	}
-	defer MongoDisconnect(client, ctx)
 	blocks := client.Database("Drafty").Collection(storyID.Hex() + "_blocks")
 	filter := &bson.M{"storyID": storyID, "key": key}
 	opts := options.Update().SetUpsert(true)
 	update := &bson.M{"$set": &bson.M{"key": key, "storyID": storyID, "body": body, "entities": entities, "order": order}}
-	_, err = blocks.UpdateOne(context.Background(), filter, update, opts)
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err := blocks.UpdateOne(context.Background(), filter, update, opts)
+	return err
 }
 
-func PrepBlockForSave(jsonData MessageData, blockPipe chan SocketMessage) {
+func PrepBlockForSave(client *mongo.Client, jsonData MessageData, blockPipe chan SocketMessage) {
 	block := Block{}
 	json.Unmarshal([]byte(jsonData.Block), &block)
 	log.Println("prepping", block.Key)
 	response := SocketMessage{}
 	response.Command = "singleSaveFailed"
-	err := SaveBlock(block.Key, block.Body, block.Entities, block.StoryID, block.Order)
+	err := SaveBlock(client, block.Key, block.Body, block.Entities, block.StoryID, block.Order)
 	if err == nil {
 		response.Command = "singleSaveSuccessful"
 		blockToJSON, err := json.Marshal(block)
@@ -168,8 +150,9 @@ func ProcessMegaPaste(contentBlock DraftContentBlock,
 		log.Println("error marshalling")
 	}
 	newBlock.Body = blockToJson
-	for _, ent := range contentBlock.EntityRanges {
-		toJSON, err := json.Marshal(entityMap[ent.Key])
+	for v, ent := range contentBlock.EntityRanges {
+		log.Println("map index", v, ent)
+		toJSON, err := json.Marshal(entityMap)
 		if err != nil {
 			log.Println(err)
 			continue
@@ -188,40 +171,4 @@ func GenerateSocketError(message string, id string) json.RawMessage {
 	se.ID = id
 	j, _ := json.Marshal(se)
 	return json.RawMessage(j)
-}
-
-func LoadConfiguration() {
-	jsonFile, err := os.Open("config.json")
-	if err != nil {
-		panic(err)
-	}
-	byteValue, _ := ioutil.ReadAll(jsonFile)
-	json.Unmarshal(byteValue, &credentials)
-	jsonFile.Close()
-}
-
-func GetHTTPPort() string {
-	return credentials.HttpPort
-}
-
-func MongoConnect() (*mongo.Client, context.Context, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	uri := "mongodb+srv://" + credentials.DBUser + ":" + credentials.DBPass + "@" + credentials.DBHost + "/" + credentials.DBName + "?w=majority"
-	log.Println(uri)
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
-	if err != nil {
-		return nil, nil, err
-	}
-	if err = client.Ping(ctx, nil); err != nil {
-		return nil, nil, err
-	}
-	log.Println("Connected to MongoDB!")
-	return client, ctx, nil
-}
-func MongoDisconnect(client *mongo.Client, ctx context.Context) error {
-	if err := client.Disconnect(ctx); err != nil {
-		return err
-	}
-	return nil
 }

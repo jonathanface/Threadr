@@ -98,7 +98,7 @@ export class Document extends React.Component {
     this.maxWidth = this.state.pageWidth - (this.state.leftMargin + this.state.rightMargin);
     this.currentPage = 0;
     this.SAVE_TIME_INTERVAL = 10000;
-    this.MAX_EDITABLE_BLOCKS = 50;
+    this.MAX_EDITABLE_BLOCKS = 10;
     this.socket = null;
     this.deletePressed = false;
     this.pendingEdits = new Map();
@@ -681,7 +681,7 @@ export class Document extends React.Component {
         }
         let entityMap = [];
         const cblock = this.jsonToContentBlock(message.data.block);
-        if (message.data.block.entities) {
+        if (message.data.block.entities && typeof message.data.block.entities === 'object') {
           entityMap = this.jsonToEntityMap(message.data.block);
         }
         const contentState = this.state.editorState.getCurrentContent();
@@ -695,6 +695,12 @@ export class Document extends React.Component {
       }
       case 'blockSaveFailed':
         this.notify('ERROR: Save failed.', Globals.TOASTTYPE_ERROR);
+        break;
+      case 'allBlocksSaved':
+        this.notify('Save successful.', Globals.TOASTTYPE_SUCCESS);
+        break;
+      case 'allBlocksSaveFailed':
+        this.notify(message.data.error, toast.TYPE.ERROR);
         break;
       case 'singleDeletionSuccessful':
         this.pendingDeletes.set(message.data.id, false);
@@ -758,18 +764,21 @@ export class Document extends React.Component {
    */
   jsonToContentBlock(item) {
     const configs = [];
-    item.body.characterList.forEach((character) => {
-      if (!character.style || !character.style.length) {
-        configs.push(CharacterMetadata.create());
-        return;
-      }
-      // entities are regenerated further down, so nullifying them here
-      const config = {
-        style: Immutable.OrderedSet(character.style),
-        entity: null
-      };
-      configs.push(CharacterMetadata.create(config));
-    });
+    console.log('item', item);
+    if (item.body.characterList) {
+      item.body.characterList.forEach((character) => {
+        if (!character.style || !character.style.length) {
+          configs.push(CharacterMetadata.create());
+          return;
+        }
+        // entities are regenerated further down, so nullifying them here
+        const config = {
+          style: Immutable.OrderedSet(character.style),
+          entity: null
+        };
+        configs.push(CharacterMetadata.create(config));
+      });
+    }
 
     return new ContentBlock({
       characterList: Immutable.List(configs),
@@ -788,11 +797,9 @@ export class Document extends React.Component {
    */
   jsonToEntityMap(item) {
     const entityMap = [];
-    console.log('parsing', item.entities);
-    const toObj = JSON.parse(item.entities);
-    Object.keys(toObj).forEach((key) => {
-      entityMap.push({'blockKey': item.body.key, 'instance': toObj[key].instance, 'position': toObj[key].position, 'length': parseInt(toObj[key].position) + parseInt(toObj[key].entityLength)});
-    });
+    for (let i=0; i < item.entities.length; i++) {
+      entityMap.push({'blockKey': item.body.key, 'instance': item.instance, 'position': item.entities[i].position, 'length': parseInt(item.entities[i].position) + parseInt(item.entities[i].entityLength)});
+    }
     return entityMap;
   }
 
@@ -840,7 +847,7 @@ export class Document extends React.Component {
             let entityMap = [];
             data.forEach((item) => {
               newBlocks.push(this.jsonToContentBlock(item));
-              if (item.entities) {
+              if (item.entities && typeof item.entities === 'object') {
                 entityMap = this.jsonToEntityMap(item);
               }
             });
@@ -897,41 +904,6 @@ export class Document extends React.Component {
       node = node.parentNode;
     } while (node !== null);
     return null;
-  }
-
-  /**
-   * Remove a block element from the map, which will
-   * remove it from the dom as well.
-   *
-   * @param {EditorState} editorState
-   * @param {string} blockKey
-   * @return {EditorState}
-   */
-  removeBlockFromMap(editorState, blockKey) {
-    const contentState = editorState.getCurrentContent();
-    const blockMap = contentState.getBlockMap();
-    if (blockMap.has(blockKey)) {
-      // clear out all entities on the block
-      /*
-      const selection = SelectionState.createEmpty(blockKey);
-      const block = contentState.getBlockForKey(blockKey);
-      const selectAll = selection.merge({
-        anchorOffset: 0,
-        focusOffset:block.getLength()
-      });
-      const contentStateWithEntitiesWiped = Modifier.applyEntity(
-        contentState,
-        selectAll,
-        null
-      );*/
-      // remove the block
-      const newBlockMap = blockMap.remove(blockKey);
-      const newContentState = contentState.merge({
-        blockMap: newBlockMap
-      });
-      return EditorState.push(editorState, newContentState, 'remove-range');
-    }
-    return editorState;
   }
 
   /**
@@ -992,16 +964,15 @@ export class Document extends React.Component {
    * insert a TAB entity
    *
    * @param {EditorState} editorState
+   * @param {SelectionState} selection
    * @return {EditorState}
    */
-  insertTab(editorState) {
+  insertTab(editorState, selection) {
     console.log('inserting tab');
     const currentContent = editorState.getCurrentContent();
-    const selection = editorState.getSelection();
     const contentStateWithEntity = currentContent.createEntity('TAB', 'IMMUTABLE');
     const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
     const textWithEntity = Modifier.insertText(currentContent, selection, this.generateTabCharacter(), null, entityKey);
-    this.pendingEdits.set(selection.getFocusKey(), true);
     return EditorState.push(editorState, textWithEntity, 'insert-characters');
   }
 
@@ -1014,6 +985,7 @@ export class Document extends React.Component {
   async onChange(newEditorState) {
     let cursorChange = false;
     let pastedEdits = false;
+    let saveAllRequired = false;
     const selection = newEditorState.getSelection();
     // Cursor has moved but no text changes detected.
     if (this.state.editorState.getCurrentContent() === newEditorState.getCurrentContent()) {
@@ -1026,28 +998,55 @@ export class Document extends React.Component {
         this.updateTextControls(lineHeight);
       }
     }
-    let filterToSaveResults;
-    let filterToDeleteResults;
+    const filterToSaveResults = new Map();
+    const filterToDeleteResults = new Map();
     // text was pasted
     if (this.pastedText) {
       this.pastedText = false;
       const oldBlockMap = this.state.editorState.getCurrentContent().getBlockMap();
       const newBlockMap = newEditorState.getCurrentContent().getBlockMap();
       // if new content has blocks that aren't present in the old content, we should add them
-      filterToSaveResults = new Map([...newBlockMap].filter(([k, v]) => ![...oldBlockMap].includes(k)));
-      console.log('save', filterToSaveResults);
+      newBlockMap.forEach((v, k) => {
+        if (!oldBlockMap.has(k)) {
+          filterToSaveResults.set(k, v);
+          const list = v.getCharacterList();
+          const firstChar = list.get(0);
+          if (firstChar.entity == null || newEditorState.getCurrentContent().getEntity(firstChar.entity).getType() != 'TAB') {
+            const blockSelection = new SelectionState({
+              anchorKey: v.getKey(),
+              focusKey: v.getKey(),
+              anchorOffset: 0,
+              focusOffset: 0
+            });
+            newEditorState = this.insertTab(newEditorState, blockSelection);
+          }
+        }
+      });
       // if old content has blocks that are no longer present in the new content, we should delete them.
-      filterToDeleteResults = new Map([...oldBlockMap].filter(([k, v]) => ![...newBlockMap].includes(k)));
-      if (filterToSaveResults.size > this.MAX_EDITABLE_BLOCKS) {
+      oldBlockMap.forEach((v, k) => {
+        if (!newBlockMap.has(k)) {
+          filterToDeleteResults.set(k, v);
+        }
+      });
+      console.log('pasting', filterToDeleteResults.size+filterToSaveResults.size);
+      if (filterToSaveResults.size + filterToDeleteResults.size > this.MAX_EDITABLE_BLOCKS) {
         this.notify('Crazy long paste detected, this may take awhile.', Globals.TOASTTYPE_INFO);
+        saveAllRequired = true;
       }
       pastedEdits = true;
     }
 
-    let selectedBlocks;
+    let selectedBlocksForDeletion;
     if (this.deletePressed) {
       this.deletePressed = false;
-      selectedBlocks = this.getSelectedBlocksMap(newEditorState);
+      const selectedForDeletion = this.getSelectedBlocksMap(newEditorState);
+      console.log('deleting', selectedForDeletion.size);
+      if (selectedForDeletion.size > this.MAX_EDITABLE_BLOCKS) {
+        this.notify('Crazy long deletion detected, this may take awhile.', Globals.TOASTTYPE_INFO);
+        saveAllRequired = true;
+      } else {
+        selectedBlocksForDeletion = selectedForDeletion;
+      }
     }
 
     const dataMap = [];
@@ -1063,40 +1062,38 @@ export class Document extends React.Component {
       newEditorState = EditorState.push(newEditorState, nextContentState, 'change-block-data');
       // auto tab if align left
       if (styles.direction == 'left' || !styles.direction) {
-        newEditorState = this.insertTab(newEditorState);
+        newEditorState = this.insertTab(newEditorState, selection);
       }
-      console.log('new block added', styles);
     }
 
     this.setState({
       editorState: newEditorState
     }, () => {
-      if (!cursorChange) {
+      if (saveAllRequired) {
+        this.saveAllBlocks(newEditorState);
+      }
+      if (!cursorChange && !saveAllRequired) {
         const content = newEditorState.getCurrentContent();
         const block = content.getBlockForKey(selection.getAnchorKey());
         // await this.checkPageHeightAndAdvanceToNextPageIfNeeded(pageNumber);
         this.pendingEdits.set(block.getKey(), true);
       }
-      if (pastedEdits) {
-        filterToSaveResults.forEach((saveBlock) => {
-          this.pendingEdits.set(saveBlock.getKey(), true);
+      if (pastedEdits && !saveAllRequired) {
+        console.log('?SSSAVE?');
+        console.log(filterToSaveResults);
+        filterToSaveResults.forEach((val, key) => {
+          this.pendingEdits.set(key, true);
         });
-        filterToDeleteResults.forEach((saveBlock) => {
-          this.pendingDeletes.set(saveBlock.getKey(), true);
+        filterToDeleteResults.forEach((val, key) => {
+          this.pendingDeletes.set(key, true);
         });
       }
-      if (selectedBlocks) {
-        if (selectedBlocks.size > 1) {
-          selectedBlocks.forEach((currentSelectionBlock, key) => {
+      if (selectedBlocksForDeletion && !saveAllRequired) {
+        if (selectedBlocksForDeletion.size > 1) {
+          selectedBlocksForDeletion.forEach((currentSelectionBlock, key) => {
             const newContentState = this.state.editorState.getCurrentContent();
             const affectedBlock = newContentState.getBlockForKey(key);
-            if (affectedBlock && !affectedBlock.getText().length) {
-              this.setState({
-                editorState: this.removeBlockFromMap(this.state.editorState, key)
-              }, () => {
-                this.pendingDeletes.set(key, true);
-              });
-            } else if (!affectedBlock) {
+            if ((affectedBlock && !affectedBlock.getText().length) || !affectedBlock) {
               this.pendingDeletes.set(key, true);
             }
           });
@@ -1158,9 +1155,6 @@ export class Document extends React.Component {
     if (this.socket.isOpen) {
       const contentState = this.state.editorState.getCurrentContent();
       this.socket.send(JSON.stringify({command: 'saveAllBlocks', data: {other: {storyID: this.storyID, body: convertToRaw(contentState)}}}));
-      this.setState({
-        editorState: EditorState.push(editorState, ContentState.createFromText(''))
-      });
     }
   }
 
@@ -1177,17 +1171,20 @@ export class Document extends React.Component {
       if (block) {
         const entities = new Map();
         let lastKey;
+        let entityIndex = -1;
         for (let i=0; i < block.getLength(); i++) {
           const entKey = block.getEntityAt(i);
+          console.log('entkey', entKey);
           if (entKey) {
             if (entKey != lastKey) {
-              entities[entKey] = {};
-              entities[entKey].instance = this.state.editorState.getCurrentContent().getEntity(entKey);
-              entities[entKey].position = i;
-              entities[entKey].entityLength = 1;
+              entityIndex++;
+              entities[entityIndex] = {};
+              entities[entityIndex].instance = this.state.editorState.getCurrentContent().getEntity(entKey);
+              entities[entityIndex].position = i;
+              entities[entityIndex].entityLength = 1;
               lastKey = entKey;
             } else {
-              entities[entKey].entityLength++;
+              entities[entityIndex].entityLength++;
             }
           }
         }
@@ -1258,7 +1255,7 @@ export class Document extends React.Component {
     if (event.keyCode == 9) {
       event.preventDefault();
       this.setState({
-        editorState: this.insertTab(this.state.editorState)
+        editorState: this.insertTab(this.state.editorState, this.state.editorState.getSelection())
       });
     }
     // console.log('key', event.keyCode);

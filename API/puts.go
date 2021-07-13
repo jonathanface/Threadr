@@ -1,7 +1,6 @@
 package API
 
 import (
-	"RichDocter/common"
 	"context"
 	"encoding/json"
 	"github.com/gorilla/mux"
@@ -37,18 +36,9 @@ func EditTitleEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing name")
 		return
 	}
-
-	client, ctx, err := common.MongoConnect()
-	if err != nil {
-		log.Println("ERROR CONNECTING: ", err)
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	defer common.MongoDisconnect(client, ctx)
-	storiesColl := client.Database(`Drafty`).Collection(`Stories`)
+	storiesColl := dbClient.Database(`Drafty`).Collection(`Stories`)
 	filter := &bson.M{"_id": story.ID}
 	update := &bson.M{"$set": &bson.M{"title": story.Title}}
-
 	_, err = storiesColl.UpdateOne(context.TODO(), filter, update)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -91,14 +81,7 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Println("editing association", mgoID, assRequest)
 
-	client, ctx, err := common.MongoConnect()
-	if err != nil {
-		log.Println("ERROR CONNECTING: ", err)
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	defer common.MongoDisconnect(client, ctx)
-	assoc := client.Database(`Drafty`).Collection(`Association`)
+	assoc := dbClient.Database(`Drafty`).Collection(`Association`)
 	filter := &bson.M{"_id": mgoID}
 	update := &bson.M{"$set": &bson.M{"name": assRequest.Name}}
 	_, err = assoc.UpdateOne(context.Background(), filter, update)
@@ -107,7 +90,7 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	descrips := client.Database(`Drafty`).Collection(`AssociationDetails`)
+	descrips := dbClient.Database(`Drafty`).Collection(`AssociationDetails`)
 	filter = &bson.M{"_id": mgoID}
 	opts := options.Update().SetUpsert(true)
 	update = &bson.M{"$set": &bson.M{"aliases": assRequest.Aliases, "caseSensitive": assRequest.CaseSensitive, "description": assRequest.Description}}

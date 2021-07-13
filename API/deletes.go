@@ -1,7 +1,6 @@
 package API
 
 import (
-	"RichDocter/common"
 	"context"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
@@ -20,17 +19,11 @@ func DeleteStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing or invalid storyID")
 		return
 	}
-	client, ctx, err := common.MongoConnect()
-	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	defer common.MongoDisconnect(client, ctx)
 
 	claims := r.Context().Value("props").(GoogleClaims)
 	log.Println("decoded", claims)
 
-	storiesColl := client.Database("Drafty").Collection("Stories")
+	storiesColl := dbClient.Database("Drafty").Collection("Stories")
 	filter := &bson.M{"user": claims.ID, "_id": storyID}
 	_, err = storiesColl.DeleteMany(context.Background(), filter)
 	if err != nil {
@@ -38,7 +31,7 @@ func DeleteStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pagesColl := client.Database("Drafty").Collection(sid + "_blocks")
+	pagesColl := dbClient.Database("Drafty").Collection(sid + "_blocks")
 	filter = &bson.M{"storyID": storyID}
 	_, err = pagesColl.DeleteOne(context.Background(), filter)
 	if err != nil {
@@ -46,7 +39,7 @@ func DeleteStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	assocsColl := client.Database("Drafty").Collection("Associations")
+	assocsColl := dbClient.Database("Drafty").Collection("Associations")
 	filter = &bson.M{"storyID": storyID}
 
 	find, err := assocsColl.Find(context.Background(), filter)
@@ -54,7 +47,7 @@ func DeleteStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	defer find.Close(ctx)
+	defer find.Close(context.Background())
 
 	for find.Next(context.TODO()) {
 		var a Association
@@ -69,7 +62,7 @@ func DeleteStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		assocDeets := client.Database("Drafty").Collection("AssociationDetails")
+		assocDeets := dbClient.Database("Drafty").Collection("AssociationDetails")
 		deetsFilter := &bson.M{"_id": a.ID}
 		_, err = assocDeets.DeleteOne(context.Background(), deetsFilter)
 		if err != nil {

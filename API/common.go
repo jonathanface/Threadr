@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/dgrijalva/jwt-go"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
 	"time"
 )
@@ -14,13 +15,7 @@ const (
 	USERS_COLLECTION = "users"
 )
 
-type Config struct {
-	DBHost string `json:"dbHost"`
-	DBPort string `json:"dbPort"`
-	DBUser string `json:"dbUser"`
-	DBPass string `json:"dbPass"`
-	DBName string `json:"dbName"`
-}
+var dbClient *mongo.Client
 
 type Story struct {
 	ID           primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
@@ -64,6 +59,10 @@ type GoogleClaims struct {
 	FirstName     string             `json:"given_name"`
 	LastName      string             `json:"family_name"`
 	jwt.StandardClaims
+}
+
+func SetDB(client *mongo.Client) {
+	dbClient = client
 }
 
 func RespondWithError(w http.ResponseWriter, code int, msg string) {

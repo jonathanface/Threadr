@@ -52,7 +52,7 @@ func (h *Hub) run() {
 			switch m.Command {
 			case `saveBlock`:
 				blockPipe := make(chan common.SocketMessage)
-				go common.PrepBlockForSave(m.Data, blockPipe)
+				go common.PrepBlockForSave(dbClient, m.Data, blockPipe)
 				response := <-blockPipe
 				close(blockPipe)
 				clientMessage.Client.conn.WriteJSON(response)
@@ -60,36 +60,30 @@ func (h *Hub) run() {
 			case `saveAllBlocks`:
 				var wg sync.WaitGroup
 				jsonBlocks := common.AllBlocks{}
+				common.DeleteAllBlocks(dbClient, jsonBlocks.StoryID)
 				json.Unmarshal([]byte(m.Data.Other), &jsonBlocks)
+
 				entMap := jsonBlocks.Body.EntityMap
+				response := common.SocketMessage{}
+				response.Command = "allBlocksSaveFailed"
+				errorCount := 0
 				for count, block := range jsonBlocks.Body.Blocks {
 					log.Println("processing block", count)
 					wg.Add(1)
 					blockPipe := make(chan common.Block)
 					go common.ProcessMegaPaste(block, entMap, &wg, count, jsonBlocks.StoryID, blockPipe)
 					newBlock := <-blockPipe
-					response := common.SocketMessage{}
-					response.Command = "blockSaveFailed"
-					errors := false
-					err := common.SaveBlock(newBlock.Key, []byte(newBlock.Body), newBlock.Entities, newBlock.StoryID, count)
+					err := common.SaveBlock(dbClient, newBlock.Key, []byte(newBlock.Body), newBlock.Entities, newBlock.StoryID, count)
 					if err != nil {
 						log.Println("error", err.Error())
-						errors = true
 						response.Data.Error = common.GenerateSocketError(err.Error(), newBlock.Key)
+						errorCount++
 					}
-					blockToJSON, err := json.Marshal(newBlock)
-					if err != nil {
-						log.Println("error", err.Error())
-						errors = true
-						response.Data.Error = common.GenerateSocketError(err.Error(), newBlock.Key)
-					}
-					if errors == false {
-						response.Command = "blockSaved"
-						response.Data.ID = newBlock.Key
-						response.Data.Block = blockToJSON
-					}
-					clientMessage.Client.conn.WriteJSON(response)
 				}
+				if errorCount == 0 {
+					response.Command = "allBlocksSaved"
+				}
+				clientMessage.Client.conn.WriteJSON(response)
 				wg.Wait()
 				break
 			case `updateBlockOrder`:
