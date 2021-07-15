@@ -92,6 +92,7 @@ export class Document extends React.Component {
       tabLength: 5
     };
     this.storyID = props.storyID;
+    this.title = '';
     this.rightclickAddMenu = React.createRef();
     this.rightclickEditMenu = React.createRef();
     this.popPanel = React.createRef();
@@ -118,7 +119,7 @@ export class Document extends React.Component {
    */
   static get propTypes() {
     return {
-      storyID: PropTypes.string,
+      storyID: PropTypes.string
     };
   }
 
@@ -134,7 +135,6 @@ export class Document extends React.Component {
     toastOptions.toastId = null;
     toastOptions.autoClose = 5000;
     toastOptions.hideProgressBar = false;
-    console.log('notifying', id)
     if (id) {
       toastOptions.toastId = id;
       toastOptions.autoClose = false;
@@ -559,11 +559,50 @@ export class Document extends React.Component {
     callback);
   }
 
+  /**
+   * Fetch a story's details by it's uuid
+   */
+  fetchDetails() {
+    fetch(Globals.SERVICE_URL + '/story/' + this.storyID, {
+      headers: Globals.getHeaders()
+    }).then((response) => response.json()).then((data) => {
+      this.title = data.title;
+    });
+  }
+
+  /**
+   * Retrieve all associations from the API.
+   *
+   * @return {Promise}
+   */
+  fetchAssociations() {
+    return new Promise((resolve, reject) => {
+      fetch(Globals.SERVICE_URL + '/story/' + this.storyID + '/associations', {
+        headers: Globals.getHeaders()
+      }).then((response) => {
+        switch (response.status) {
+          case 200:
+            response.json().then((data) => {
+              this.setState({
+                associations: data
+              }, () => {
+                resolve();
+              });
+            });
+            break;
+          default:
+            reject();
+        }
+      });
+    });
+  }
+
   /** componentDidMount **/
   componentDidMount() {
     this.setState({
       editorState: EditorState.createEmpty()
     });
+    this.fetchDetails();
     this.fetchWebsocketURL();
     window.addEventListener('beforeunload', this.beforeunload.bind(this));
     this.fetchAssociations().then( () => {
@@ -678,6 +717,7 @@ export class Document extends React.Component {
         }
         const contentState = this.state.editorState.getCurrentContent();
         const newBlockMap = contentState.getBlockMap().set(cblock.key, cblock);
+        toast.update(this.saveBlockToastId, {render: 'Save complete', type: toast.TYPE.SUCCESS, autoClose: 5000, hideProgressBar: false});
         this.setState({
           editorState: EditorState.push(this.state.editorState, ContentState.createFromBlockArray(newBlockMap.toArray()))
         }, () => {
@@ -690,7 +730,7 @@ export class Document extends React.Component {
         toast.update(this.saveBlockToastId, {render: 'Save failed', type: toast.TYPE.ERROR, autoClose: 5000, hideProgressBar: false});
         break;
       case 'allBlocksSaved':
-        toast.update(this.saveAllBlocksToastId, {render: 'Save successful', type: toast.TYPE.SUCCESS, autoClose: 5000, hideProgressBar: false});
+        toast.update(this.saveAllBlocksToastId, {render: 'Save complete', type: toast.TYPE.SUCCESS, autoClose: 5000, hideProgressBar: false});
         break;
       case 'allBlocksSaveFailed':
         toast.update(this.saveAllBlocksToastId, {render: 'Error saving', type: toast.TYPE.ERROR, autoClose: 5000, hideProgressBar: false});
@@ -708,33 +748,6 @@ export class Document extends React.Component {
         this.notify(message.data.error, toast.TYPE.ERROR);
         break;
     }
-  }
-
-  /**
-   * Retrieve all associations from the API.
-   *
-   * @return {Promise}
-   */
-  fetchAssociations() {
-    return new Promise((resolve, reject) => {
-      fetch(Globals.SERVICE_URL + '/story/' + this.storyID + '/associations', {
-        headers: Globals.getHeaders()
-      }).then((response) => {
-        switch (response.status) {
-          case 200:
-            response.json().then((data) => {
-              this.setState({
-                associations: data
-              }, () => {
-                resolve();
-              });
-            });
-            break;
-          default:
-            reject();
-        }
-      });
-    });
   }
 
   /**
@@ -1068,9 +1081,8 @@ export class Document extends React.Component {
         const content = newEditorState.getCurrentContent();
         const block = content.getBlockForKey(selection.getAnchorKey());
         // await this.checkPageHeightAndAdvanceToNextPageIfNeeded(pageNumber);
-        //this.pendingEdits.set(block.getKey(), true);
+        this.pendingEdits.set(block.getKey(), true);
       }
-      
       if (pastedEdits) {
         filterToSaveResults.forEach((val, key) => {
           this.pendingEdits.set(key, true);
@@ -1188,7 +1200,7 @@ export class Document extends React.Component {
         const blockMap = this.state.editorState.getCurrentContent().getBlockMap();
         const blockPosition = blockMap.keySeq().findIndex((k) => k === key);
         this.socket.send(JSON.stringify({command: 'saveBlock', data: {block: {key: block.getKey(), order: blockPosition, storyID: this.storyID, body: block.toJSON(), entities: JSON.stringify(entities)}}}));
-        //this.saveBlockOrder();
+        // this.saveBlockOrder();
       }
     }
   }
@@ -1222,7 +1234,7 @@ export class Document extends React.Component {
     console.log('deleting block', key);
     if (this.socket.isOpen) {
       this.socket.send(JSON.stringify({command: 'deleteBlock', data: {block: {key: key, storyID: this.storyID}}}));
-      //this.saveBlockOrder();
+      // this.saveBlockOrder();
     }
   }
 
@@ -1427,7 +1439,6 @@ export class Document extends React.Component {
     this.setState({
       editorState: EditorState.push(this.state.editorState, nextContentState, 'change-block-data')
     }, () => {
-      const block = nextContentState.getBlockForKey(selection.getAnchorKey());
     });
   }
 
@@ -1459,8 +1470,6 @@ export class Document extends React.Component {
       editorState: EditorState.push(newState, nextContentState, 'change-block-data'),
       currentLineHeight: nextSpacing
     }, () => {
-      const content = this.state.editorState.getCurrentContent();
-      const block = content.getBlockForKey(selection.getAnchorKey());
     });
   }
 
@@ -1518,6 +1527,7 @@ export class Document extends React.Component {
                   <span>{lineSpacings.get(this.state.currentLineHeight)}</span>
                 </span>
               </li>
+              <li className="docTitle">{this.title}</li>
             </ul>
           </nav>
           <div className="editorRoot" style={{width: this.state.pageWidth}}>

@@ -371,6 +371,7 @@ func main() {
 	go hub.run()
 
 	rtr := mux.NewRouter()
+	// GETs
 	rtr.HandleFunc(SERVICE_PATH+"/stories", middleware(API.AllStoriesEndPoint)).Methods("GET", "OPTIONS")
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}", middleware(API.StoryEndPoint)).Methods("GET", "OPTIONS")
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/blocks", middleware(API.AllBlocksEndPoint)).Methods("GET", "OPTIONS")
@@ -379,11 +380,14 @@ func main() {
 	rtr.HandleFunc(SERVICE_PATH+"/wsinit", middleware(API.SetupWebsocket)).Methods("GET", "OPTIONS")
 	rtr.HandleFunc(SERVICE_PATH+"/user/name", middleware(nil)).Methods("GET", "OPTIONS")
 
+	// PUTs
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/title", middleware(API.EditTitleEndPoint)).Methods("PUT")
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/associations", middleware(API.EditAssociationEndPoint)).Methods("PUT")
 
+	// POSTs
 	rtr.HandleFunc(SERVICE_PATH+"/story", middleware(API.CreateStoryEndPoint)).Methods("POST")
 
+	// DELETEs
 	rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}", middleware(API.DeleteStoryEndPoint)).Methods("DELETE")
 
 	http.HandleFunc(SOCKET_DIR, func(w http.ResponseWriter, r *http.Request) {

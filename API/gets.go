@@ -9,6 +9,30 @@ import (
 	"strings"
 )
 
+func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
+	storyID := mux.Vars(r)[`[0-9a-zA-Z]+`]
+	if len(storyID) == 0 {
+		RespondWithError(w, http.StatusBadRequest, "No story ID received")
+		return
+	}
+	mgoID, err := validateBSON(storyID)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, "Missing or invalid storyID")
+		return
+	}
+	stories := dbClient.Database("Drafty").Collection("Stories")
+	filter := &bson.M{"_id": mgoID}
+	var results Story
+	ctx := r.Context()
+	err = stories.FindOne(ctx, filter).Decode(&results)
+	if err != nil {
+		log.Println("err", err.Error())
+		RespondWithError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	RespondWithJson(w, http.StatusOK, results)
+}
+
 func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 	claims := r.Context().Value("props").(GoogleClaims)
 	storiesColl := dbClient.Database("Drafty").Collection("Stories")
@@ -38,10 +62,6 @@ func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	RespondWithJson(w, http.StatusOK, stories)
-}
-
-func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
-
 }
 
 func AssociationDetailsEndPoint(w http.ResponseWriter, r *http.Request) {

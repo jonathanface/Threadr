@@ -119,6 +119,18 @@ nav.docControls ul li {
   opacity:0;
   animation:fdsseq .25s forwards;
 }
+nav.docControls ul li:hover {
+  cursor:pointer;
+  color:#333;
+}
+nav.docControls ul li.docTitle {
+  float:right;
+  font-size: 0.9em;
+  user-select:initial;
+}
+nav.docControls ul li.docTitle:hover {
+  cursor:text;
+}
 
 nav.docControls ul li:nth-child(1) {
   animation-delay: .25s;
@@ -137,10 +149,7 @@ nav.docControls ul li:nth-child(5) {
 }
 
 
-nav.docControls ul li:hover {
-  cursor:pointer;
-  color:#333;
-}
+
 
 nav.docControls ul li svg.on {
   background-color:#FFF;
