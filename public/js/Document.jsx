@@ -1439,6 +1439,7 @@ export class Document extends React.Component {
     this.setState({
       editorState: EditorState.push(this.state.editorState, nextContentState, 'change-block-data')
     }, () => {
+      this.pendingEdits.set(selection.getFocusKey(), true);
     });
   }
 
@@ -1470,6 +1471,7 @@ export class Document extends React.Component {
       editorState: EditorState.push(newState, nextContentState, 'change-block-data'),
       currentLineHeight: nextSpacing
     }, () => {
+      this.pendingEdits.set(selection.getFocusKey(), true);
     });
   }
 
