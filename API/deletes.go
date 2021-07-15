@@ -1,7 +1,6 @@
 package API
 
 import (
-	"context"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
 	"log"
@@ -22,10 +21,10 @@ func DeleteStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 
 	claims := r.Context().Value("props").(GoogleClaims)
 	log.Println("decoded", claims)
-
+	ctx := r.Context()
 	storiesColl := dbClient.Database("Drafty").Collection("Stories")
 	filter := &bson.M{"user": claims.ID, "_id": storyID}
-	_, err = storiesColl.DeleteMany(context.Background(), filter)
+	_, err = storiesColl.DeleteMany(ctx, filter)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -33,7 +32,7 @@ func DeleteStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 
 	pagesColl := dbClient.Database("Drafty").Collection(sid + "_blocks")
 	filter = &bson.M{"storyID": storyID}
-	_, err = pagesColl.DeleteOne(context.Background(), filter)
+	_, err = pagesColl.DeleteOne(ctx, filter)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -42,21 +41,20 @@ func DeleteStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	assocsColl := dbClient.Database("Drafty").Collection("Associations")
 	filter = &bson.M{"storyID": storyID}
 
-	find, err := assocsColl.Find(context.Background(), filter)
+	find, err := assocsColl.Find(ctx, filter)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	defer find.Close(context.Background())
 
-	for find.Next(context.TODO()) {
+	for find.Next(r.Context()) {
 		var a Association
 		err := find.Decode(&a)
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		_, err = assocsColl.DeleteMany(context.Background(), filter)
+		_, err = assocsColl.DeleteMany(ctx, filter)
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -64,7 +62,7 @@ func DeleteStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 
 		assocDeets := dbClient.Database("Drafty").Collection("AssociationDetails")
 		deetsFilter := &bson.M{"_id": a.ID}
-		_, err = assocDeets.DeleteOne(context.Background(), deetsFilter)
+		_, err = assocDeets.DeleteOne(ctx, deetsFilter)
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return

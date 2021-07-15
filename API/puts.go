@@ -1,7 +1,6 @@
 package API
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
@@ -39,7 +38,8 @@ func EditTitleEndPoint(w http.ResponseWriter, r *http.Request) {
 	storiesColl := dbClient.Database(`Drafty`).Collection(`Stories`)
 	filter := &bson.M{"_id": story.ID}
 	update := &bson.M{"$set": &bson.M{"title": story.Title}}
-	_, err = storiesColl.UpdateOne(context.TODO(), filter, update)
+	ctx := r.Context()
+	_, err = storiesColl.UpdateOne(ctx, filter, update)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -84,7 +84,8 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 	assoc := dbClient.Database(`Drafty`).Collection(`Association`)
 	filter := &bson.M{"_id": mgoID}
 	update := &bson.M{"$set": &bson.M{"name": assRequest.Name}}
-	_, err = assoc.UpdateOne(context.Background(), filter, update)
+	ctx := r.Context()
+	_, err = assoc.UpdateOne(ctx, filter, update)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -94,7 +95,7 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 	filter = &bson.M{"_id": mgoID}
 	opts := options.Update().SetUpsert(true)
 	update = &bson.M{"$set": &bson.M{"aliases": assRequest.Aliases, "caseSensitive": assRequest.CaseSensitive, "description": assRequest.Description}}
-	result, err := descrips.UpdateOne(context.Background(), filter, update, opts)
+	result, err := descrips.UpdateOne(ctx, filter, update, opts)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -103,7 +104,7 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 		ID primitive.ObjectID `json:"id" bson:"_id"`
 	}
 	if assRequest.AssociationID == primitive.NilObjectID {
-		err = descrips.FindOne(context.Background(), filter).Decode(&upsertResult)
+		err = descrips.FindOne(ctx, filter).Decode(&upsertResult)
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return

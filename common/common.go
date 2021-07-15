@@ -35,7 +35,7 @@ type SocketError struct {
 }
 
 type AllBlocks struct {
-	StoryID primitive.ObjectID `json:"storyID" bson:"storyID,omitempty"`
+	StoryID primitive.ObjectID `json:"storyID" bson:"storyID"`
 	Body    DraftRawContent    `json:"body" bson:"body"`
 }
 
@@ -88,7 +88,8 @@ type DraftRawContent struct {
 
 func DeleteAllBlocks(client *mongo.Client, storyID primitive.ObjectID) error {
 	blocks := client.Database("Drafty").Collection(storyID.Hex() + "_blocks")
-	return blocks.Drop(context.Background())
+	log.Println("dropping table", storyID.Hex()+"_blocks")
+	return blocks.Drop(context.TODO())
 }
 
 func SaveBlock(client *mongo.Client, key string, body []byte, entities []byte, storyID primitive.ObjectID, order int) error {
@@ -97,23 +98,22 @@ func SaveBlock(client *mongo.Client, key string, body []byte, entities []byte, s
 	filter := &bson.M{"storyID": storyID, "key": key}
 	opts := options.Update().SetUpsert(true)
 	update := &bson.M{"$set": &bson.M{"key": key, "storyID": storyID, "body": body, "entities": entities, "order": order}}
-	_, err := blocks.UpdateOne(context.Background(), filter, update, opts)
+	_, err := blocks.UpdateOne(context.TODO(), filter, update, opts)
 	return err
 }
 
 func PrepBlockForSave(client *mongo.Client, jsonData MessageData, blockPipe chan SocketMessage) {
 	block := Block{}
 	json.Unmarshal([]byte(jsonData.Block), &block)
-	log.Println("prepping", block.Key)
 	response := SocketMessage{}
-	response.Command = "singleSaveFailed"
+	response.Command = "blockSaveFailed"
 	err := SaveBlock(client, block.Key, block.Body, block.Entities, block.StoryID, block.Order)
 	if err == nil {
-		response.Command = "singleSaveSuccessful"
+		response.Command = "blockSaved"
 		blockToJSON, err := json.Marshal(block)
 		if err != nil {
 			log.Println(err)
-			response.Command = "singleSaveFailed"
+			response.Command = "blockSaveFailed"
 			response.Data.Error = GenerateSocketError(err.Error(), block.Key)
 		} else {
 			response.Data.ID = block.Key

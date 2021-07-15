@@ -107,12 +107,12 @@ export class Landing extends React.Component {
     event.stopPropagation();
     setTimeout(() => {
       if (!this.editingTitle) {
-        let selected;
-        !event.target.dataset.id ? selected = event.target.parentElement.dataset.id : selected = event.target.dataset.id;
-        if (selected) {
-          history.pushState({}, '', '/story/' + selected);
+        let selectedID;
+        !event.target.dataset.id ? selectedID = event.target.parentElement.dataset.id : selectedID = event.target.dataset.id;
+        if (selectedID) {
+          history.pushState({}, '', '/story/' + selectedID);
           this.setState({
-            editingDocument: selected,
+            editingDocument: selectedID,
             addStoryButtonDisplay: 'none',
           });
         }
