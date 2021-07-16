@@ -72,6 +72,7 @@ export class Document extends React.Component {
       leftMargin: docPadding,
       rightMargin: docPadding,
       bottomMargin: docPadding,
+      currentAlignment: 'left',
       currentLineHeight: 'lineheight_double',
       leftOn: true,
       centerOn: false,
@@ -99,7 +100,7 @@ export class Document extends React.Component {
     this.maxWidth = this.state.pageWidth - (this.state.leftMargin + this.state.rightMargin);
     this.currentPage = 0;
     this.SAVE_TIME_INTERVAL = 10000;
-    this.MAX_EDITABLE_BLOCKS = 100;
+    this.MAX_EDITABLE_BLOCKS = 50;
     this.socket = null;
     this.deletePressed = false;
     this.pendingEdits = new Map();
@@ -583,6 +584,7 @@ export class Document extends React.Component {
         switch (response.status) {
           case 200:
             response.json().then((data) => {
+              console.log('reset associations');
               this.setState({
                 associations: data
               }, () => {
@@ -725,6 +727,10 @@ export class Document extends React.Component {
         });
         break;
       }
+      case 'blockDeletionSuccessful':
+        this.pendingDeletes.delete(message.data.id);
+        toast.update(this.saveBlockToastId, {render: 'Save complete', type: toast.TYPE.SUCCESS, autoClose: 5000, hideProgressBar: false});
+        break;
       case 'blockSaveFailed':
       case 'blockDeletionFailed':
         toast.update(this.saveBlockToastId, {render: 'Save failed', type: toast.TYPE.ERROR, autoClose: 5000, hideProgressBar: false});
@@ -754,7 +760,9 @@ export class Document extends React.Component {
    * Refresh page associations
    */
   redrawAssociations() {
-    this.fetchAssociations();
+    this.fetchAssociations().then( () => {
+      this.forceRender();
+    });
   }
 
   /**
@@ -1009,8 +1017,10 @@ export class Document extends React.Component {
       const tabToastId = 'tabinationToastId';
       console.log('Auto-tabinating blocks...');
       this.notify('Auto-tabinating blocks...', toast.TYPE.INFO, tabToastId);
+      console.log('old', oldBlockMap);
       newBlockMap.forEach((v, k) => {
-        if (!oldBlockMap.has(k)) {
+        console.log('old entry', oldBlockMap.get(k));
+        if (!oldBlockMap.has(k) || oldBlockMap.get(k).getText() != v.getText()) {
           filterToSaveResults.set(k, v);
           const list = v.getCharacterList();
           const firstChar = list.get(0);
@@ -1023,6 +1033,11 @@ export class Document extends React.Component {
             });
             newEditorState = this.insertTab(newEditorState, blockSelection);
           }
+          const tempSelection = SelectionState.createEmpty(k);
+          const nextContentState = Modifier.setBlockData(newEditorState.getCurrentContent(), tempSelection,
+              Immutable.Map([['lineHeight', this.state.currentLineHeight], ['alignment', this.state.currentAlignment]])
+          );
+          newEditorState = EditorState.push(newEditorState, nextContentState, 'change-block-data');
         }
       });
       toast.update(tabToastId, {render: 'Tabination complete!', type: toast.TYPE.SUCCESS, autoClose: 5000, hideProgressBar: false});
@@ -1064,7 +1079,15 @@ export class Document extends React.Component {
       newEditorState = EditorState.push(newEditorState, nextContentState, 'change-block-data');
       // auto tab if align left
       if (styles.direction == 'left' || !styles.direction) {
-        newEditorState = this.insertTab(newEditorState, selection);
+        const thisBlock = nextContentState.getBlockForKey(selection.getFocusKey());
+        console.log('bl', thisBlock);
+        const list = thisBlock.getCharacterList();
+        console.log('thisblock list', list);
+        const firstChar = list.get(0);
+        if ((!firstChar || firstChar && firstChar.entity == null) ||
+            (!firstChar || newEditorState.getCurrentContent().getEntity(firstChar.entity).getType() != 'TAB')) {
+          newEditorState = this.insertTab(newEditorState, selection);
+        }
       }
     }
 
@@ -1077,12 +1100,6 @@ export class Document extends React.Component {
         this.saveAllBlocks(newEditorState);
         return;
       }
-      if (!cursorChange) {
-        const content = newEditorState.getCurrentContent();
-        const block = content.getBlockForKey(selection.getAnchorKey());
-        // await this.checkPageHeightAndAdvanceToNextPageIfNeeded(pageNumber);
-        this.pendingEdits.set(block.getKey(), true);
-      }
       if (pastedEdits) {
         filterToSaveResults.forEach((val, key) => {
           this.pendingEdits.set(key, true);
@@ -1090,17 +1107,20 @@ export class Document extends React.Component {
         filterToDeleteResults.forEach((val, key) => {
           this.pendingDeletes.set(key, true);
         });
-      }
-      if (selectedBlocksForDeletion) {
-        if (selectedBlocksForDeletion.size > 1) {
-          selectedBlocksForDeletion.forEach((currentSelectionBlock, key) => {
-            const newContentState = this.state.editorState.getCurrentContent();
-            const affectedBlock = newContentState.getBlockForKey(key);
-            if ((affectedBlock && !affectedBlock.getText().length) || !affectedBlock) {
-              this.pendingDeletes.set(key, true);
-            }
-          });
-        }
+      } else if (selectedBlocksForDeletion) {
+        selectedBlocksForDeletion.forEach((currentSelectionBlock, key) => {
+          console.log('queing', key, 'for deletion');
+          const newContentState = this.state.editorState.getCurrentContent();
+          const affectedBlock = newContentState.getBlockForKey(key);
+          if ((affectedBlock && !affectedBlock.getText().length) || !affectedBlock) {
+            this.pendingDeletes.set(key, true);
+          }
+        });
+      } else if (!cursorChange) {
+        const content = newEditorState.getCurrentContent();
+        const block = content.getBlockForKey(selection.getAnchorKey());
+        // await this.checkPageHeightAndAdvanceToNextPageIfNeeded(pageNumber);
+        this.pendingEdits.set(block.getKey(), true);
       }
     });
   }
@@ -1127,20 +1147,18 @@ export class Document extends React.Component {
   checkForPendingEditsOrDeletes(userInitiated) {
     let saveRequired = false;
     this.pendingDeletes.forEach((value, key) => {
-      if (value == undefined) {
+      if (!key) {
         this.pendingDeletes.delete(key);
-      }
-      if (value) {
+      } else {
         saveRequired = true;
         this.deleteBlock(key);
         this.pendingEdits.delete(key);
       }
     });
     this.pendingEdits.forEach((value, key) => {
-      if (value == undefined) {
+      if (!value || !key) {
         this.pendingEdits.delete(key);
-      }
-      if (value) {
+      } else {
         saveRequired = true;
         this.saveBlock(key);
       }
@@ -1174,7 +1192,7 @@ export class Document extends React.Component {
    */
   saveBlock(key) {
     // Send the encoded block if the socket is open and it hasn't been subsequently deleted
-    if (this.socket.isOpen) {
+    if (this.socket.isOpen && key) {
       const block = this.state.editorState.getCurrentContent().getBlockForKey(key);
       console.log('save block', block);
       if (block) {
@@ -1183,7 +1201,6 @@ export class Document extends React.Component {
         let entityIndex = -1;
         for (let i=0; i < block.getLength(); i++) {
           const entKey = block.getEntityAt(i);
-          console.log('entkey', entKey);
           if (entKey) {
             if (entKey != lastKey) {
               entityIndex++;
@@ -1199,9 +1216,13 @@ export class Document extends React.Component {
         }
         const blockMap = this.state.editorState.getCurrentContent().getBlockMap();
         const blockPosition = blockMap.keySeq().findIndex((k) => k === key);
-        this.socket.send(JSON.stringify({command: 'saveBlock', data: {block: {key: block.getKey(), order: blockPosition, storyID: this.storyID, body: block.toJSON(), entities: JSON.stringify(entities)}}}));
+        this.socket.send(JSON.stringify({command: 'saveBlock',
+          data: {block: {key: block.getKey(), order: blockPosition, storyID: this.storyID, body: block.toJSON(), entities: JSON.stringify(entities)}}})
+        );
         // this.saveBlockOrder();
       }
+    } else if (!key) {
+      this.pendingEdits.delete(key);
     }
   }
 
@@ -1437,8 +1458,10 @@ export class Document extends React.Component {
     const nextContentState = Modifier.mergeBlockData(this.state.editorState.getCurrentContent(), selection, Immutable.Map([['alignment', style]]));
     this.updateTextControls(style);
     this.setState({
+      currentAlignment: style,
       editorState: EditorState.push(this.state.editorState, nextContentState, 'change-block-data')
     }, () => {
+      this.pendingEdits.set(selection.getFocusKey(), true);
     });
   }
 
@@ -1450,7 +1473,7 @@ export class Document extends React.Component {
   updateLineHeight(event) {
     event.preventDefault();
     const clicked = event.target.dataset.height;
-    let nextSpacing = 'lineheight_single';
+    let nextSpacing = 'lineheight_double';
     let prevMatch = false;
     let key;
     for ([key] of lineSpacings) {
@@ -1470,6 +1493,7 @@ export class Document extends React.Component {
       editorState: EditorState.push(newState, nextContentState, 'change-block-data'),
       currentLineHeight: nextSpacing
     }, () => {
+      this.pendingEdits.set(selection.getFocusKey(), true);
     });
   }
 
