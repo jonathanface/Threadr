@@ -27,7 +27,10 @@ export class Landing extends React.Component {
       dialogOKFunc: null,
       dialogIsPrompt: true,
       dialogOkButtonText: 'Ok',
-      dialogCancelButtonText: 'Cancel'
+      dialogCancelButtonText: 'Cancel',
+      dialogIsConfirm: false,
+      dialogTextFieldLabel: '',
+      dialogDefaultPromptText: ''
     };
     this.dialog = React.createRef();
   }
@@ -67,6 +70,8 @@ export class Landing extends React.Component {
     let displayState = 'initial';
     if (requestedDocument) {
       displayState = 'none';
+    } else {
+      this.getAllStories();
     }
     this.setState({
       addStoryButtonDisplay: displayState,
@@ -336,6 +341,8 @@ export class Landing extends React.Component {
       method: 'PUT',
       headers: Globals.getHeaders(),
       body: JSON.stringify({title: newTitle})
+    }).then(() => {
+      this.getAllStories();
     });
   }
 
@@ -349,13 +356,15 @@ export class Landing extends React.Component {
     this.titleEdited(event);
   }
 
-  /**
-   * Creates an empty story in the DB and makes a default icon
-   */
-  createNewStory() {
+  saveNewStory(event) {
+    const newTitle = this.dialog.current.state.defaultFieldValue;
+    if (!newTitle.length) {
+      return;
+    }
     fetch(Globals.SERVICE_URL + '/story', {
       method: 'POST',
-      headers: Globals.getHeaders()
+      headers: Globals.getHeaders(),
+      body: JSON.stringify({title: newTitle})
     }).then((response) => {
       switch (response.status) {
         case 200:
@@ -366,6 +375,24 @@ export class Landing extends React.Component {
         default:
           this.setupAndOpenDialog('Error', 'Unable to create your story.', false, null, null, 'OKAY');
       }
+    });
+    this.dialog.current.setModalOpen(false);
+  }
+
+  /**
+   * Prompt the user to enter a story title and call save if ok is clicked
+   */
+  createNewStory() {
+    this.setState({
+      dialogTitle: 'New Story',
+      dialogBody: '',
+      dialogIsPrompt: false,
+      dialogIsConfirm: true,
+      dialogTextFieldLabel: 'Title',
+      dialogOKFunc: this.saveNewStory.bind(this),
+      dialogDefaultPromptText: Globals.generateStoryTitle()
+    }, () => {
+      this.dialog.current.setModalOpen(true);
     });
   }
 
@@ -392,7 +419,7 @@ export class Landing extends React.Component {
         <div>
           {content}
         </div>
-        <DialogPrompt ref={this.dialog} title={this.state.dialogTitle} body={this.state.dialogBody} isPrompt={this.state.dialogIsPrompt} okFunc={this.state.dialogOKFunc} cancelFunc={this.state.dialogCancelFunc} okButtonText={this.state.dialogOkButtonText} cancelButtonText={this.state.dialogCancelButtonText}/>
+        <DialogPrompt ref={this.dialog} title={this.state.dialogTitle} body={this.state.dialogBody} isPrompt={this.state.dialogIsPrompt} defaultFieldValue={this.state.dialogDefaultPromptText} isConfirm={this.state.dialogIsConfirm} textFieldLabel={this.state.dialogTextFieldLabel} okFunc={this.state.dialogOKFunc} cancelFunc={this.state.dialogCancelFunc} okButtonText={this.state.dialogOkButtonText} cancelButtonText={this.state.dialogCancelButtonText}/>
       </div>
     );
   }

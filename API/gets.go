@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 )
 
 func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
@@ -22,15 +23,21 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	stories := dbClient.Database("Drafty").Collection("Stories")
 	filter := &bson.M{"_id": mgoID}
-	var results Story
+	var story Story
 	ctx := r.Context()
-	err = stories.FindOne(ctx, filter).Decode(&results)
+	err = stories.FindOne(ctx, filter).Decode(&story)
 	if err != nil {
 		log.Println("err", err.Error())
 		RespondWithError(w, http.StatusNotFound, err.Error())
 		return
 	}
-	RespondWithJson(w, http.StatusOK, results)
+	story.LastAccessed = time.Now()
+	update := &bson.M{"$set": &bson.M{"lastAccessed": time.Now()}}
+	_, err = stories.UpdateOne(ctx, filter, update)
+	if err != nil {
+		log.Println("failed to update lastAccessed time for story", mgoID)
+	}
+	RespondWithJson(w, http.StatusOK, story)
 }
 
 func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
