@@ -79,9 +79,7 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing name")
 		return
 	}
-	log.Println("editing association", mgoID, assRequest)
-
-	assoc := dbClient.Database(`Drafty`).Collection(`Association`)
+	assoc := dbClient.Database(`Drafty`).Collection(`Associations`)
 	filter := &bson.M{"_id": mgoID}
 	update := &bson.M{"$set": &bson.M{"name": assRequest.Name}}
 	ctx := r.Context()
@@ -90,9 +88,8 @@ func EditAssociationEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-
 	descrips := dbClient.Database(`Drafty`).Collection(`AssociationDetails`)
-	filter = &bson.M{"_id": mgoID}
+
 	opts := options.Update().SetUpsert(true)
 	update = &bson.M{"$set": &bson.M{"aliases": assRequest.Aliases, "caseSensitive": assRequest.CaseSensitive, "description": assRequest.Description}}
 	result, err := descrips.UpdateOne(ctx, filter, update, opts)
