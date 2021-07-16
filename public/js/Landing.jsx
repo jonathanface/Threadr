@@ -71,6 +71,7 @@ export class Landing extends React.Component {
     if (requestedDocument) {
       displayState = 'none';
     } else {
+      console.log('url change');
       this.getAllStories();
     }
     this.setState({
@@ -157,9 +158,6 @@ export class Landing extends React.Component {
           this.setupAndOpenDialog('Error', 'Unable to log you in at this time.', false, null, null, 'OKAY');
       }
     });
-    if (!this.fetchedStories) {
-      this.getAllStories();
-    }
   }
 
   /**
@@ -167,21 +165,23 @@ export class Landing extends React.Component {
    */
   getAllStories() {
     this.fetchedStories = true;
-    this.fetchDocuments().then((response) => {
-      switch (response.status) {
-        case 200:
-          this.setState({
-            stories: []
-          }, () => {
-            response.json().then((data) => {
-              this.renderStoryButton(data);
+    if (this.isLoggedIn) {
+      this.fetchDocuments().then((response) => {
+        switch (response.status) {
+          case 200:
+            this.setState({
+              stories: []
+            }, () => {
+              response.json().then((data) => {
+                this.renderStoryButton(data);
+              });
             });
-          });
-          break;
-        default:
-          this.setupAndOpenDialog('Error', 'There was an error retrieving your stories.', false, null, null, 'OKAY');
-      }
-    });
+            break;
+          default:
+            this.setupAndOpenDialog('Error', 'There was an error retrieving your stories.', false, null, null, 'OKAY');
+        }
+      });
+    }
   }
 
   /**
