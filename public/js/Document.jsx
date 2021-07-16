@@ -439,9 +439,10 @@ export class Document extends React.Component {
           const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
           callback(start, start + name.length);
         }
-        const toArray = deets.aliases.split(',');
-        for (let z=0; z < toArray.length; z++) {
-          const alias = toArray[z].trim();
+        const aliasesToArray = deets.aliases.split(',');
+        aliasesToArray.sort((a, b) => b.length - a.length);
+        for (let z=0; z < aliasesToArray.length; z++) {
+          const alias = aliasesToArray[z].trim();
           if (alias.length) {
             const regexStr = this.getRegexString(alias);
             const regex = new RegExp(regexStr, caseFlag);
@@ -482,9 +483,10 @@ export class Document extends React.Component {
           const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
           callback(start, start + name.length);
         }
-        const toArray = deets.aliases.split(',');
-        for (let z=0; z < toArray.length; z++) {
-          const alias = toArray[z].trim();
+        const aliasesToArray = deets.aliases.split(',');
+        aliasesToArray.sort((a, b) => b.length - a.length);
+        for (let z=0; z < aliasesToArray.length; z++) {
+          const alias = aliasesToArray[z].trim();
           if (alias.length) {
             const regexStr = this.getRegexString(alias);
             const regex = new RegExp(regexStr, caseFlag);
@@ -526,9 +528,10 @@ export class Document extends React.Component {
           callback(start, start + name.length);
         }
 
-        const toArray = deets.aliases.split(',');
-        for (let z=0; z < toArray.length; z++) {
-          const alias = toArray[z].trim();
+        const aliasesToArray = deets.aliases.split(',');
+        aliasesToArray.sort((a, b) => b.length - a.length);
+        for (let z=0; z < aliasesToArray.length; z++) {
+          const alias = aliasesToArray[z].trim();
           if (alias.length) {
             const regexStr = this.getRegexString(alias);
             const regex = new RegExp(regexStr, caseFlag);
@@ -806,7 +809,12 @@ export class Document extends React.Component {
   jsonToEntityMap(item) {
     const entityMap = [];
     for (let i=0; i < item.entities.length; i++) {
-      entityMap.push({'blockKey': item.body.key, 'instance': item.instance, 'position': item.entities[i].position, 'length': parseInt(item.entities[i].position) + parseInt(item.entities[i].entityLength)});
+      entityMap.push({
+        'blockKey': item.body.key,
+        'instance': item.instance,
+        'position': item.entities[i].position,
+        'length': parseInt(item.entities[i].position) + parseInt(item.entities[i].entityLength)
+      });
     }
     return entityMap;
   }
