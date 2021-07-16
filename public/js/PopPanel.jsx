@@ -224,7 +224,7 @@ export class PopPanel extends React.Component {
         <div className={'pop-panel ' + this.state.activeClassname} style={{'visibility': this.state.displayState}}>
           <div className="typeTitle">{this.state.typeLabel}</div>
           <ContentEditable data-name="title" className="input-field" html={this.state.label} disabled={false} onChange={this.handleChange} />
-          <label className="checkbox-field"><input data-name="case" type="checkbox" value={this.state.caseSensitive} onChange={this.handleChange}/>Case-sensitive</label>
+          <label className="checkbox-field"><input data-name="case" type="checkbox" checked={this.state.caseSensitive} onChange={this.handleChange}/>Case-sensitive</label>
           <ContentEditable data-name="aliases" onFocus={this.handleFocus} onBlur={this.handleBlur} className="input-field" html={this.state.aliases} disabled={false} onChange={this.handleChange} />
           <ContentEditable data-name="description" onFocus={this.handleFocus} onBlur={this.handleBlur} className="input-field" html={this.state.description} disabled={false} onChange={this.handleChange} />
           <div className={'buttonBox'}>
