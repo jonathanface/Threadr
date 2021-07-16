@@ -806,7 +806,12 @@ export class Document extends React.Component {
   jsonToEntityMap(item) {
     const entityMap = [];
     for (let i=0; i < item.entities.length; i++) {
-      entityMap.push({'blockKey': item.body.key, 'instance': item.instance, 'position': item.entities[i].position, 'length': parseInt(item.entities[i].position) + parseInt(item.entities[i].entityLength)});
+      entityMap.push({
+        'blockKey': item.body.key,
+        'instance': item.instance,
+        'position': item.entities[i].position,
+        'length': parseInt(item.entities[i].position) + parseInt(item.entities[i].entityLength)
+      });
     }
     return entityMap;
   }
