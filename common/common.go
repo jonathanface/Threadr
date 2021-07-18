@@ -25,8 +25,9 @@ type MessageData struct {
 }
 
 type SocketMessage struct {
-	Command string      `json:"command"`
-	Data    MessageData `json:"data"`
+	Command  string      `json:"command"`
+	Data     MessageData `json:"data"`
+	Terminus bool        `json:"terminus"`
 }
 
 type SocketError struct {
@@ -40,11 +41,12 @@ type AllBlocks struct {
 }
 
 type Block struct {
-	Key      string             `json:"key" bson:"key"`
-	Body     json.RawMessage    `json:"body" bson:"body"`
-	Entities json.RawMessage    `json:"entities" bson:"entities"`
-	StoryID  primitive.ObjectID `json:"storyID" bson:"storyID,omitempty"`
-	Order    int                `json:"order" bson:"order,omitempty"`
+	Key         string             `json:"key" bson:"key"`
+	Body        json.RawMessage    `json:"body" bson:"body"`
+	Entities    json.RawMessage    `json:"entities" bson:"entities"`
+	StoryID     primitive.ObjectID `json:"storyID" bson:"storyID,omitempty"`
+	Order       int                `json:"order" bson:"order,omitempty"`
+	LastOfBatch bool               `json:"lastOfBatch"`
 }
 
 type DraftEntityRange struct {
@@ -107,6 +109,7 @@ func PrepBlockForSave(client *mongo.Client, jsonData MessageData, blockPipe chan
 	json.Unmarshal([]byte(jsonData.Block), &block)
 	response := SocketMessage{}
 	response.Command = "blockSaveFailed"
+	response.Terminus = block.LastOfBatch
 	err := SaveBlock(client, block.Key, block.Body, block.Entities, block.StoryID, block.Order)
 	if err == nil {
 		response.Command = "blockSaved"
