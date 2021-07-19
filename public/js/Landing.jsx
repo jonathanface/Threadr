@@ -258,7 +258,7 @@ export class Landing extends React.Component {
     event.stopPropagation();
     const id = event.target.parentElement.dataset.id;
     const title = document.querySelector('.stories [data-id="' + id + '"] .title').innerText;
-    this.setupAndOpenDialog('Delete ' + title + '?', 'This is undoable.', true, this.deleteStory.bind(this, id), null, 'DO IT');
+    this.setupAndOpenDialog('Delete ' + title + '?', 'This is undoable.', true, false, this.deleteStory.bind(this, id), null, 'DO IT');
   }
 
   /**
@@ -272,11 +272,12 @@ export class Landing extends React.Component {
    * @param {string} okButtonText
    * @param {string} cancelButtonText
    */
-  setupAndOpenDialog(title='', body='', isPrompt=false, okFunc=null, cancelFunc=null, okButtonText=null, cancelButtonText=null) {
+  setupAndOpenDialog(title='', body='', isPrompt=false, isConfirm=false, okFunc=null, cancelFunc=null, okButtonText=null, cancelButtonText=null) {
     this.setState({
       dialogTitle: title,
       dialogBody: body,
       dialogIsPrompt: isPrompt,
+      dialogIsConfirm: isConfirm,
       dialogOKFunc: okFunc,
       dialogOkButtonText: okButtonText,
       dialogCancelButtonText: cancelButtonText

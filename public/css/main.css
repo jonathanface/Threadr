@@ -178,6 +178,7 @@ div.public-DraftEditor-content {
   max-height:100%;
   overflow:hidden;
   letter-spacing:normal;
+  margin-bottom: 100px;
 }
 
 .align_left > div {

@@ -98,6 +98,12 @@ export class DialogPrompt extends React.Component {
   handleCloseModal = () => {
     this.setModalOpen(false);
   };
+  
+  textFieldChanged(event) {
+    this.setState({
+      defaultFieldValue: event.target.value
+    });
+  }
 
   /**
    * render
@@ -124,9 +130,11 @@ export class DialogPrompt extends React.Component {
         autoFocus
         margin='dense'
         id='textValue'
-        value={this.state.defaultFieldValue}
+        required={true}
+        defaultValue={this.state.defaultFieldValue}
         label={this.state.textFieldLabel}
         type="text"
+        onChange={this.textFieldChanged.bind(this)}
         fullWidth
       />;
     }

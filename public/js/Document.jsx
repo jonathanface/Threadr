@@ -99,7 +99,7 @@ export class Document extends React.Component {
     this.popPanel = React.createRef();
     this.maxWidth = this.state.pageWidth - (this.state.leftMargin + this.state.rightMargin);
     this.currentPage = 0;
-    this.SAVE_TIME_INTERVAL = 10000;
+    this.SAVE_TIME_INTERVAL = 30000;
     this.MAX_EDITABLE_BLOCKS = 50;
     this.socket = null;
     this.deletePressed = false;
@@ -1203,8 +1203,12 @@ export class Document extends React.Component {
         this.saveBlock(saveKeys[i]);
       }
     }
+    let saveText = 'Auto saving...';
+    if (userInitiated) {
+      saveText = 'Saving...';
+    }
     if (saveRequired && (this.pendingDeletes.size || this.pendingEdits.size)) {
-      this.notify('Saving...', toast.TYPE.INFO, this.saveBlockToastId);
+      this.notify(saveText, toast.TYPE.INFO, this.saveBlockToastId);
     }
     if (!saveRequired && userInitiated) {
       this.notify('No changes detected.', toast.TYPE.INFO);
@@ -1609,6 +1613,7 @@ export class Document extends React.Component {
                   placeholder="Write something..."
                   blockStyleFn={this.generateBlockStyle.bind(this)}
                   onChange={this.onChange.bind(this)}
+                  spellCheck={true}
                   ref={this.editor}/>
               </section>
             </div>
