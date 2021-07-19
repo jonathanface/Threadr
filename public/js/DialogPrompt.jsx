@@ -100,6 +100,18 @@ export class DialogPrompt extends React.Component {
   };
 
   /**
+   * Update state value whenever a change to
+   * the textfield is detected
+   *
+   * @param {Event} event
+   */
+  textFieldChanged(event) {
+    this.setState({
+      defaultFieldValue: event.target.value
+    });
+  }
+
+  /**
    * render
    * @return {element}
   **/
@@ -124,9 +136,11 @@ export class DialogPrompt extends React.Component {
         autoFocus
         margin='dense'
         id='textValue'
-        value={this.state.defaultFieldValue}
+        required={true}
+        defaultValue={this.state.defaultFieldValue}
         label={this.state.textFieldLabel}
         type="text"
+        onChange={this.textFieldChanged.bind(this)}
         fullWidth
       />;
     }

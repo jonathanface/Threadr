@@ -99,7 +99,7 @@ export class Document extends React.Component {
     this.popPanel = React.createRef();
     this.maxWidth = this.state.pageWidth - (this.state.leftMargin + this.state.rightMargin);
     this.currentPage = 0;
-    this.SAVE_TIME_INTERVAL = 10000;
+    this.SAVE_TIME_INTERVAL = 30000;
     this.MAX_EDITABLE_BLOCKS = 50;
     this.socket = null;
     this.deletePressed = false;
@@ -975,7 +975,7 @@ export class Document extends React.Component {
     }
     styles.direction = alignment;
     const storedLineHeight = data.getIn(['lineHeight']);
-    let lineHeight = 'lineheight_single';
+    let lineHeight = 'lineheight_double';
     if (storedLineHeight) {
       lineHeight = storedLineHeight;
     }
@@ -1203,8 +1203,12 @@ export class Document extends React.Component {
         this.saveBlock(saveKeys[i]);
       }
     }
+    let saveText = 'Auto saving...';
+    if (userInitiated) {
+      saveText = 'Saving...';
+    }
     if (saveRequired && (this.pendingDeletes.size || this.pendingEdits.size)) {
-      this.notify('Saving...', toast.TYPE.INFO, this.saveBlockToastId);
+      this.notify(saveText, toast.TYPE.INFO, this.saveBlockToastId);
     }
     if (!saveRequired && userInitiated) {
       this.notify('No changes detected.', toast.TYPE.INFO);
@@ -1513,20 +1517,21 @@ export class Document extends React.Component {
    */
   updateLineHeight(event) {
     event.preventDefault();
-    const clicked = event.target.dataset.height;
-    let nextSpacing = 'lineheight_double';
+    event.stopPropagation();
+    const clicked = event.currentTarget.dataset.height;
+    let nextSpacing = 'lineheight_single';
     let prevMatch = false;
-    let key;
-    for ([key] of lineSpacings) {
-      if (key == clicked) {
+    lineSpacings.forEach((key, value) => {
+      if (value == clicked) {
         prevMatch = true;
-        continue;
+        return;
       }
       if (prevMatch) {
-        nextSpacing = key;
-        break;
+        nextSpacing = value;
+        prevMatch = false;
       }
-    }
+    });
+
     const selection = this.state.editorState.getSelection();
     const newState = EditorState.forceSelection(this.state.editorState, selection);
     const nextContentState = Modifier.mergeBlockData(this.state.editorState.getCurrentContent(), selection, Immutable.Map([['lineHeight', nextSpacing]]));
@@ -1587,8 +1592,8 @@ export class Document extends React.Component {
               <li><FormatAlignRightIcon fontSize="inherit" className={this.state.rightOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('right', e)}/></li>
               <li><FormatAlignJustifyIcon fontSize="inherit" className={this.state.justifyOn ? 'on' : ''} onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateTextAlignment('justify', e)} /></li>
               <li style={{'paddingTop': '2px'}}>
-                <span>
-                  <FormatLineSpacingIcon data-height={this.state.currentLineHeight} fontSize="inherit" onMouseDown={(e) => e.preventDefault()} onClick={(e) => this.updateLineHeight(e)}/>
+                <span data-height={this.state.currentLineHeight} onClick={(e) => this.updateLineHeight(e)}>
+                  <FormatLineSpacingIcon fontSize="inherit" onMouseDown={(e) => e.preventDefault()}/>
                   <span>{lineSpacings.get(this.state.currentLineHeight)}</span>
                 </span>
               </li>
@@ -1608,6 +1613,7 @@ export class Document extends React.Component {
                   placeholder="Write something..."
                   blockStyleFn={this.generateBlockStyle.bind(this)}
                   onChange={this.onChange.bind(this)}
+                  spellCheck={true}
                   ref={this.editor}/>
               </section>
             </div>
