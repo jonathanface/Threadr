@@ -267,6 +267,7 @@ export class Landing extends React.Component {
    * @param {string} title
    * @param {string} body
    * @param {bool} isPrompt
+   * @param {bool} isConfirm
    * @param {function} okFunc
    * @param {function} cancelFunc
    * @param {string} okButtonText
@@ -357,6 +358,11 @@ export class Landing extends React.Component {
     this.titleEdited(event);
   }
 
+  /**
+   * Save a new story to the DB
+   *
+   * @param {Event} event
+   */
   saveNewStory(event) {
     const newTitle = this.dialog.current.state.defaultFieldValue;
     if (!newTitle.length) {

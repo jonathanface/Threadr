@@ -98,7 +98,13 @@ export class DialogPrompt extends React.Component {
   handleCloseModal = () => {
     this.setModalOpen(false);
   };
-  
+
+  /**
+   * Update state value whenever a change to
+   * the textfield is detected
+   *
+   * @param {Event} event
+   */
   textFieldChanged(event) {
     this.setState({
       defaultFieldValue: event.target.value
