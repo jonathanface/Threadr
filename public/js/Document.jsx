@@ -105,6 +105,7 @@ export class Document extends React.Component {
     this.deletePressed = false;
     this.pendingEdits = new Map();
     this.pendingDeletes = new Map();
+    this.pendingCreations = new Map();
     this.saveMessage = new Map();
     this.checkSaveInterval;
     this.editor = React.createRef();
@@ -1095,7 +1096,9 @@ export class Document extends React.Component {
 
     const dataMap = [];
     const blockTree = this.state.editorState.getBlockTree(newEditorState.getSelection().getFocusKey());
+    let newBlockAdded = false;
     if (!blockTree && !pastedEdits) {
+      newBlockAdded = true;
       // a new block has been added and this is NOT from a paste action, copy styles from previous block
       const prevSelection = newEditorState.getCurrentContent().getSelectionBefore();
       const styles = this.getBlockStyles(newEditorState, prevSelection);
@@ -1143,6 +1146,10 @@ export class Document extends React.Component {
         const content = newEditorState.getCurrentContent();
         const block = content.getBlockForKey(newEditorState.getSelection().getAnchorKey());
         // await this.checkPageHeightAndAdvanceToNextPageIfNeeded(pageNumber);
+        if (newBlockAdded) {
+          this.pendingCreations.set(block.getKey(), true);
+          return;
+        }
         this.pendingEdits.set(block.getKey(), true);
       }
     });
@@ -1186,7 +1193,24 @@ export class Document extends React.Component {
         this.deleteBlock(deleteKeys[i]);
       }
     }
+    const createdKeys = [];
+    this.pendingCreations.forEach((value, key) => {
+      if (!key) {
+        this.pendingCreations.delete(key);
+      } else {
+        saveRequired = true;
+        createdKeys.push(key);
+      }
+    });
+    for (let i=0; i < createdKeys.length; i++) {
+      if (i == createdKeys.length-1) {
+        this.saveBlock(createdKeys[i], true, true);
+      } else {
+        this.saveBlock(createdKeys[i], false, true);
+      }
+    }
 
+    console.log('list map', this.pendingEdits);
     const saveKeys = [];
     this.pendingEdits.forEach((value, key) => {
       if (!value || !key) {
@@ -1200,7 +1224,7 @@ export class Document extends React.Component {
       if (i == saveKeys.length-1) {
         this.saveBlock(saveKeys[i], true);
       } else {
-        this.saveBlock(saveKeys[i]);
+        this.saveBlock(saveKeys[i], false);
       }
     }
     let saveText = 'Auto saving...';
@@ -1234,8 +1258,10 @@ export class Document extends React.Component {
    *
    * @param {string} key
    * @param {bool} lastOfBatch
+   * @param {bool} isNew
    */
-  saveBlock(key, lastOfBatch) {
+  saveBlock(key, lastOfBatch, isNew) {
+    console.log('new block??', key, lastOfBatch, isNew);
     // Send the encoded block if the socket is open and it hasn't been subsequently deleted
     if (this.socket.isOpen && key) {
       const block = this.state.editorState.getCurrentContent().getBlockForKey(key);
@@ -1264,10 +1290,16 @@ export class Document extends React.Component {
         this.socket.send(JSON.stringify({command: 'saveBlock',
           data: {block: {key: block.getKey(), order: blockPosition, storyID: this.storyID, body: block.toJSON(), entities: JSON.stringify(entities), lastOfBatch: lastOfBatch}}})
         );
+        // The block was inserted somewhere other than the end of the document,
+        // so we need to reset the ordering.
+        if (isNew && blockPosition < blockMap.size-1) {
+          this.saveBlockOrder();
+        }
         // this.saveBlockOrder();
       }
     } else if (!key) {
       this.pendingEdits.delete(key);
+      toast.dismiss(this.saveBlockToastId);
     }
   }
 
@@ -1301,7 +1333,7 @@ export class Document extends React.Component {
     console.log('deleting block', key);
     if (this.socket.isOpen) {
       this.socket.send(JSON.stringify({command: 'deleteBlock', data: {block: {key: key, storyID: this.storyID, lastOfBatch: lastOfBatch}}}));
-      // this.saveBlockOrder();
+      this.saveBlockOrder();
     }
   }
 
