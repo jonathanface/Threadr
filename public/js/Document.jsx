@@ -103,6 +103,7 @@ export class Document extends React.Component {
     this.MAX_EDITABLE_BLOCKS = 50;
     this.socket = null;
     this.deletePressed = false;
+    this.enterPressed = false;
     this.pendingEdits = new Map();
     this.pendingDeletes = new Map();
     this.pendingCreations = new Map();
@@ -171,9 +172,11 @@ export class Document extends React.Component {
       }
       func(message, toastOptions);
     }
-    this.setState({
-      editorState: EditorState.forceSelection(this.state.editorState, this.presaveSelection)
-    });
+    if (this.presaveSelection) {
+      this.setState({
+        editorState: EditorState.forceSelection(this.state.editorState, this.presaveSelection)
+      });
+    }
   }
 
   /**
@@ -888,7 +891,6 @@ export class Document extends React.Component {
                 entityMap = this.jsonToEntityMap(item);
               }
             });
-            console.log('newb', newBlocks);
             const newContent = ContentState.createFromBlockArray(newBlocks);
             this.setState({
               editorState: EditorState.push(this.state.editorState, newContent)
@@ -1118,6 +1120,7 @@ export class Document extends React.Component {
         }
       }
     }
+
     this.setState({
       editorState: newEditorState
     }, () => {
@@ -1125,6 +1128,14 @@ export class Document extends React.Component {
         this.notify('Crazy long save/delete operation detected. This may take a minute.', toast.TYPE.INFO, this.saveAllBlocksToastId);
         this.saveAllBlocks(newEditorState);
         return;
+      }
+      if (this.enterPressed) {
+        // When enter is pressed, the next block under the cursor gets moved to a new block on a new line.
+        // The current block gets its content updated.
+        this.enterPressed = false;
+        newBlockAdded = true;
+        const currentBlockKey = newEditorState.getSelection().getFocusKey();
+        this.pendingEdits.set(currentBlockKey, true);
       }
       if (pastedEdits) {
         filterToSaveResults.forEach((val, key) => {
@@ -1290,7 +1301,7 @@ export class Document extends React.Component {
         this.socket.send(JSON.stringify({command: 'saveBlock',
           data: {block: {key: block.getKey(), order: blockPosition, storyID: this.storyID, body: block.toJSON(), entities: JSON.stringify(entities), lastOfBatch: lastOfBatch}}})
         );
-        // The block was inserted somewhere other than the end of the document,
+        // The block was inserted somewhere other than the end of the document, which has shifted all subsequent blocks.
         // so we need to reset the ordering.
         if (isNew && blockPosition < blockMap.size-1) {
           this.saveBlockOrder();
@@ -1393,6 +1404,11 @@ export class Document extends React.Component {
   handleKeyCommand(command) {
     console.log('cmd', command.toLowerCase());
     switch (command.toLowerCase()) {
+      case 'split-block':
+        // enter/return
+        this.enterPressed = true;
+        this.onChange(this.state.editorState);
+        break;
       case 'delete':
       case 'backspace': {
         console.log('hit delete');
