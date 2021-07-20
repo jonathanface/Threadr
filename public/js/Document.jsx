@@ -1628,6 +1628,10 @@ export class Document extends React.Component {
    * @return {element}
   **/
   render() {
+    let titleLI = '';
+    if (!this.isMobile) {
+      titleLI = <li className="docTitle">{this.title}</li>;
+    }
     if (this.state.loading) {
       return (<div>loading...</div>);
     } else {
@@ -1645,7 +1649,7 @@ export class Document extends React.Component {
                   <span>{lineSpacings.get(this.state.currentLineHeight)}</span>
                 </span>
               </li>
-              <li className="docTitle">{this.title}</li>
+              {titleLI}
             </ul>
           </nav>
           <div className="editorRoot" style={{width: this.state.pageWidth}}>
