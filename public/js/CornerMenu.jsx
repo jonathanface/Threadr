@@ -131,7 +131,7 @@ export class CornerMenu extends React.Component {
    *
    * @param {Event} event
    */
-  renderDropdownList(event) {
+  displayDropdownList(event) {
     event.stopPropagation();
     if (!this.menuOpen) {
       this.setState({
@@ -154,30 +154,37 @@ export class CornerMenu extends React.Component {
       <div className="main_menu">
         <span className="menu_left"></span>
         <span className="menu_right">
-          <span className="display_name">{this.state.displayName}</span>
-          <MenuIcon onClick={this.renderDropdownList.bind(this)}/>
-          <ul style={{'display': this.state.dropdownDisplayState}}>
-            <li style={{'display': this.state.loginButtonDisplayState}}>
-              <GoogleLogin
-                clientId="878388830212-tq6uhegouorlrn7srsn3getqkn4er3fg.apps.googleusercontent.com"
-                render={(renderProps) => (
-                  <div onClick={renderProps.onClick} disabled={renderProps.disabled}>Login</div>
-                )}
-                onSuccess={this.responseGoogleSuccess.bind(this)}
-                onFailure={this.responseGoogleFailure.bind(this)}
-                isSignedIn={true}
-                cookiePolicy={'single_host_origin'}
-              />
+          <ul>
+            <li>
+              <span className="display_name">{this.state.displayName}</span>
+              <MenuIcon onClick={this.displayDropdownList.bind(this)}/>
             </li>
-            <li style={{'display': this.state.logoutButtonDisplayState}}>
-              <GoogleLogout
-                clientId="878388830212-tq6uhegouorlrn7srsn3getqkn4er3fg.apps.googleusercontent.com"
-                render={(renderProps) => (
-                  <div title="logout" onClick={renderProps.onClick} disabled={renderProps.disabled}>Logout</div>
-                )}
-                onLogoutSuccess={this.logout.bind(this)}
-                onLogoutFailure={this.logout.bind(this)}
-              />
+            <li style={{'display': this.state.dropdownDisplayState}}>
+              <ul>
+                <li style={{'display': this.state.loginButtonDisplayState}}>
+                  <GoogleLogin
+                    clientId="878388830212-tq6uhegouorlrn7srsn3getqkn4er3fg.apps.googleusercontent.com"
+                    render={(renderProps) => (
+                      <div onClick={renderProps.onClick} disabled={renderProps.disabled}>Login</div>
+                    )}
+                    onSuccess={this.responseGoogleSuccess.bind(this)}
+                    onFailure={this.responseGoogleFailure.bind(this)}
+                    isSignedIn={true}
+                    cookiePolicy={'single_host_origin'}
+                  />
+                </li>
+                <li style={{'display': this.state.logoutButtonDisplayState}}>
+                  <GoogleLogout
+                    clientId="878388830212-tq6uhegouorlrn7srsn3getqkn4er3fg.apps.googleusercontent.com"
+                    render={(renderProps) => (
+                      <div title="logout" onClick={renderProps.onClick} disabled={renderProps.disabled}>Logout</div>
+                    )}
+                    onLogoutSuccess={this.logout.bind(this)}
+                    onLogoutFailure={this.logout.bind(this)}
+                  />
+                </li>
+                <li>Outline</li>
+              </ul>
             </li>
           </ul>
         </span>

@@ -1088,7 +1088,6 @@ export class Document extends React.Component {
     if (this.deletePressed) {
       this.deletePressed = false;
       const selectedForDeletion = this.getSelectedBlocksMap(newEditorState);
-      console.log('deleting', selectedForDeletion.size);
       if (selectedForDeletion.size > this.MAX_EDITABLE_BLOCKS) {
         saveAllRequired = true;
       } else {
@@ -1146,10 +1145,10 @@ export class Document extends React.Component {
         });
       } else if (selectedBlocksForDeletion) {
         selectedBlocksForDeletion.forEach((currentSelectionBlock, key) => {
-          console.log('queing', key, 'for deletion');
           const newContentState = this.state.editorState.getCurrentContent();
           const affectedBlock = newContentState.getBlockForKey(key);
           if ((affectedBlock && !affectedBlock.getText().length) || !affectedBlock) {
+            console.log('queing', key, 'for deletion');
             this.pendingDeletes.set(key, true);
           }
         });
@@ -1548,8 +1547,20 @@ export class Document extends React.Component {
   updateTextAlignment(style, event) {
     event.preventDefault();
     const selection = this.state.editorState.getSelection();
-    const nextContentState = Modifier.mergeBlockData(this.state.editorState.getCurrentContent(), selection, Immutable.Map([['alignment', style]]));
+    const content = this.state.editorState.getCurrentContent();
+    let nextContentState = Modifier.mergeBlockData(content, selection, Immutable.Map([['alignment', style]]));
     this.updateTextControls(style);
+    if (style == 'center') {
+      // remove any whitespace if line is blank
+      const regexStr = '\S+';
+      const regex = new RegExp(regexStr, 'gmi');
+      const text = nextContentState.getBlockForKey(selection.getFocusKey()).getText();
+      console.log('checking text', text);
+      if (regex.test(text)) {
+        console.log('removing whitespace before center');
+        nextContentState = Modifier.replaceText(nextContentState, selection, '');
+      }
+    }
     this.setState({
       currentAlignment: style,
       editorState: EditorState.push(this.state.editorState, nextContentState, 'change-block-data')
