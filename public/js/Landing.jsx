@@ -19,7 +19,8 @@ export class Landing extends React.Component {
       username: '',
       stories: [],
       greeting: '',
-      addStoryButtonDisplay: 'none',
+      onDocumentDisplayAddButtonCSS: 'initial',
+      onDocumentDisplayMenuItemCSS: 'inline-block',
       editingDocument: false,
       dialogTitle: 'Message',
       dialogBody: 'No message set',
@@ -67,15 +68,18 @@ export class Landing extends React.Component {
         break;
       }
     }
-    let displayState = 'initial';
+    let addButtonDisplayState = 'inline-block';
+    let menuDisplayState = 'none';
     if (requestedDocument) {
-      displayState = 'none';
+      addButtonDisplayState = 'none';
+      menuDisplayState = 'inline-block';
     } else {
       console.log('url change');
       this.getAllStories();
     }
     this.setState({
-      addStoryButtonDisplay: displayState,
+      onDocumentDisplayAddButtonCSS: addButtonDisplayState,
+      onDocumentDisplayMenuItemCSS: menuDisplayState,
       editingDocument: requestedDocument
     });
   }
@@ -119,7 +123,8 @@ export class Landing extends React.Component {
           history.pushState({}, '', '/story/' + selectedID);
           this.setState({
             editingDocument: selectedID,
-            addStoryButtonDisplay: 'none',
+            onDocumentDisplayAddButtonCSS: 'none',
+            onDocumentDisplayMenuItemCSS: 'inline-block'
           });
         }
       }
@@ -221,7 +226,8 @@ export class Landing extends React.Component {
     this.setState({
       editingDocument: false,
       stories: blankStories,
-      addStoryButtonDisplay: 'none',
+      onDocumentDisplayMenuItemCSS: 'none',
+      onDocumentDisplayAddButtonCSS: 'initial',
       username: '',
       greeting: ''
     });
@@ -415,11 +421,11 @@ export class Landing extends React.Component {
     return (
       <div>
         <div style={{'position': 'fixed'}, {'width': '100%'}}>
-          <CornerMenu displayName={this.state.username} logoutComplete={this.handleLogout.bind(this)} loginComplete={this.handleLogin.bind(this)} loginFailed={this.handleLoginFailure.bind(this)}/>
+          <CornerMenu onDocumentDisplayState={this.state.onDocumentDisplayMenuItemCSS} displayName={this.state.username} logoutComplete={this.handleLogout.bind(this)} loginComplete={this.handleLogin.bind(this)} loginFailed={this.handleLoginFailure.bind(this)}/>
         </div>
         <div className="story_manager">
           { this.isLoggedIn ?
-              <div><span>{this.state.greeting}</span><button onClick={this.createNewStory.bind(this)} style={{'display': this.state.addStoryButtonDisplay}}>+</button></div> :
+              <div><span>{this.state.greeting}</span><button onClick={this.createNewStory.bind(this)} style={{'display': this.state.onDocumentDisplayAddButtonCSS}}>+</button></div> :
               <span>{this.state.greeting}</span>
           }
         </div>

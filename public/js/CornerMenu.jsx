@@ -25,7 +25,8 @@ export class CornerMenu extends React.Component {
       displayName: props.displayName,
       loginButtonDisplayState: 'inline-block',
       logoutButtonDisplayState: 'none',
-      dropdownDisplayState: 'none'
+      dropdownDisplayState: 'none',
+      onDocumentDisplayState: props.onDocumentDisplayState
     };
   }
 
@@ -38,6 +39,7 @@ export class CornerMenu extends React.Component {
       loginComplete: PropTypes.func,
       logoutComplete: PropTypes.func,
       loginFailed: PropTypes.func,
+      onDocumentDisplayState: PropTypes.string,
       nextProps: PropTypes.object
     };
   }
@@ -83,7 +85,8 @@ export class CornerMenu extends React.Component {
    */
   UNSAFE_componentWillReceiveProps(nextProps) {
     this.setState({
-      displayName: nextProps.displayName
+      displayName: nextProps.displayName,
+      onDocumentDisplayState: nextProps.onDocumentDisplayState
     });
     console.log('Component received new props', nextProps);
   }
@@ -183,7 +186,9 @@ export class CornerMenu extends React.Component {
                     onLogoutFailure={this.logout.bind(this)}
                   />
                 </li>
-                <li>Outline</li>
+                <li style={{'display': this.state.onDocumentDisplayState}}>
+                  <span>Outline</span>
+                </li>
               </ul>
             </li>
           </ul>
