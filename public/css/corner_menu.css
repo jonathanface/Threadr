@@ -47,34 +47,39 @@
   background:none;
   border:none;
 }
-
-
 .main_menu .menu_right ul {
   list-style:none;
+  display:inline-block;
   padding:0;
   margin:0;
-  display:inline-block;
-  width:100px;
-  border:1px solid #000;
-  border-bottom:none;
-  text-align:left;
 }
 
-.main_menu .menu_right ul li {
-  
-  color:#f0f0f0;
+.main_menu .menu_right ul > li > ul {
+  list-style:none;
+  border-bottom:none;
+  text-align:left;
+  width:100px;
+  box-shadow:2px 2px 2px #333;
+}
+
+.main_menu .menu_right ul li > ul > li {
   padding:5px;
-  border-bottom: 1px solid #000;
   width:100%;
   background-color:#2eacdc;
+  color:#f0f0f0;
+  
+}
+.main_menu .menu_right ul li > ul > li:not(:last-child) {
+  border-bottom: 1px solid #000;
 }
 
 .main_menu .menu_right ul li:hover {
   cursor:pointer;
-  color:#000;
-  background-color:#F0F0F0;
 }
-
+.main_menu .menu_right ul li:hover:not(:first-child) {
+  color:#FFF;
+  background-color:#16576f;
+}
 nav.docControls {
   background-color: transparent;
   pointer-events:none;

@@ -103,8 +103,10 @@ export class Document extends React.Component {
     this.MAX_EDITABLE_BLOCKS = 50;
     this.socket = null;
     this.deletePressed = false;
+    this.enterPressed = false;
     this.pendingEdits = new Map();
     this.pendingDeletes = new Map();
+    this.pendingCreations = new Map();
     this.saveMessage = new Map();
     this.checkSaveInterval;
     this.editor = React.createRef();
@@ -170,9 +172,11 @@ export class Document extends React.Component {
       }
       func(message, toastOptions);
     }
-    this.setState({
-      editorState: EditorState.forceSelection(this.state.editorState, this.presaveSelection)
-    });
+    if (this.presaveSelection) {
+      this.setState({
+        editorState: EditorState.forceSelection(this.state.editorState, this.presaveSelection)
+      });
+    }
   }
 
   /**
@@ -887,7 +891,6 @@ export class Document extends React.Component {
                 entityMap = this.jsonToEntityMap(item);
               }
             });
-            console.log('newb', newBlocks);
             const newContent = ContentState.createFromBlockArray(newBlocks);
             this.setState({
               editorState: EditorState.push(this.state.editorState, newContent)
@@ -1085,7 +1088,6 @@ export class Document extends React.Component {
     if (this.deletePressed) {
       this.deletePressed = false;
       const selectedForDeletion = this.getSelectedBlocksMap(newEditorState);
-      console.log('deleting', selectedForDeletion.size);
       if (selectedForDeletion.size > this.MAX_EDITABLE_BLOCKS) {
         saveAllRequired = true;
       } else {
@@ -1095,7 +1097,9 @@ export class Document extends React.Component {
 
     const dataMap = [];
     const blockTree = this.state.editorState.getBlockTree(newEditorState.getSelection().getFocusKey());
+    let newBlockAdded = false;
     if (!blockTree && !pastedEdits) {
+      newBlockAdded = true;
       // a new block has been added and this is NOT from a paste action, copy styles from previous block
       const prevSelection = newEditorState.getCurrentContent().getSelectionBefore();
       const styles = this.getBlockStyles(newEditorState, prevSelection);
@@ -1115,6 +1119,7 @@ export class Document extends React.Component {
         }
       }
     }
+
     this.setState({
       editorState: newEditorState
     }, () => {
@@ -1122,6 +1127,14 @@ export class Document extends React.Component {
         this.notify('Crazy long save/delete operation detected. This may take a minute.', toast.TYPE.INFO, this.saveAllBlocksToastId);
         this.saveAllBlocks(newEditorState);
         return;
+      }
+      if (this.enterPressed) {
+        // When enter is pressed, the next block under the cursor gets moved to a new block on a new line.
+        // The current block gets its content updated.
+        this.enterPressed = false;
+        newBlockAdded = true;
+        const currentBlockKey = newEditorState.getSelection().getFocusKey();
+        this.pendingEdits.set(currentBlockKey, true);
       }
       if (pastedEdits) {
         filterToSaveResults.forEach((val, key) => {
@@ -1132,10 +1145,10 @@ export class Document extends React.Component {
         });
       } else if (selectedBlocksForDeletion) {
         selectedBlocksForDeletion.forEach((currentSelectionBlock, key) => {
-          console.log('queing', key, 'for deletion');
           const newContentState = this.state.editorState.getCurrentContent();
           const affectedBlock = newContentState.getBlockForKey(key);
           if ((affectedBlock && !affectedBlock.getText().length) || !affectedBlock) {
+            console.log('queing', key, 'for deletion');
             this.pendingDeletes.set(key, true);
           }
         });
@@ -1143,6 +1156,10 @@ export class Document extends React.Component {
         const content = newEditorState.getCurrentContent();
         const block = content.getBlockForKey(newEditorState.getSelection().getAnchorKey());
         // await this.checkPageHeightAndAdvanceToNextPageIfNeeded(pageNumber);
+        if (newBlockAdded) {
+          this.pendingCreations.set(block.getKey(), true);
+          return;
+        }
         this.pendingEdits.set(block.getKey(), true);
       }
     });
@@ -1186,7 +1203,24 @@ export class Document extends React.Component {
         this.deleteBlock(deleteKeys[i]);
       }
     }
+    const createdKeys = [];
+    this.pendingCreations.forEach((value, key) => {
+      if (!key) {
+        this.pendingCreations.delete(key);
+      } else {
+        saveRequired = true;
+        createdKeys.push(key);
+      }
+    });
+    for (let i=0; i < createdKeys.length; i++) {
+      if (i == createdKeys.length-1) {
+        this.saveBlock(createdKeys[i], true, true);
+      } else {
+        this.saveBlock(createdKeys[i], false, true);
+      }
+    }
 
+    console.log('list map', this.pendingEdits);
     const saveKeys = [];
     this.pendingEdits.forEach((value, key) => {
       if (!value || !key) {
@@ -1200,7 +1234,7 @@ export class Document extends React.Component {
       if (i == saveKeys.length-1) {
         this.saveBlock(saveKeys[i], true);
       } else {
-        this.saveBlock(saveKeys[i]);
+        this.saveBlock(saveKeys[i], false);
       }
     }
     let saveText = 'Auto saving...';
@@ -1234,8 +1268,10 @@ export class Document extends React.Component {
    *
    * @param {string} key
    * @param {bool} lastOfBatch
+   * @param {bool} isNew
    */
-  saveBlock(key, lastOfBatch) {
+  saveBlock(key, lastOfBatch, isNew) {
+    console.log('new block??', key, lastOfBatch, isNew);
     // Send the encoded block if the socket is open and it hasn't been subsequently deleted
     if (this.socket.isOpen && key) {
       const block = this.state.editorState.getCurrentContent().getBlockForKey(key);
@@ -1264,10 +1300,16 @@ export class Document extends React.Component {
         this.socket.send(JSON.stringify({command: 'saveBlock',
           data: {block: {key: block.getKey(), order: blockPosition, storyID: this.storyID, body: block.toJSON(), entities: JSON.stringify(entities), lastOfBatch: lastOfBatch}}})
         );
+        // The block was inserted somewhere other than the end of the document, which has shifted all subsequent blocks.
+        // so we need to reset the ordering.
+        if (isNew && blockPosition < blockMap.size-1) {
+          this.saveBlockOrder();
+        }
         // this.saveBlockOrder();
       }
     } else if (!key) {
       this.pendingEdits.delete(key);
+      toast.dismiss(this.saveBlockToastId);
     }
   }
 
@@ -1301,7 +1343,7 @@ export class Document extends React.Component {
     console.log('deleting block', key);
     if (this.socket.isOpen) {
       this.socket.send(JSON.stringify({command: 'deleteBlock', data: {block: {key: key, storyID: this.storyID, lastOfBatch: lastOfBatch}}}));
-      // this.saveBlockOrder();
+      this.saveBlockOrder();
     }
   }
 
@@ -1361,6 +1403,11 @@ export class Document extends React.Component {
   handleKeyCommand(command) {
     console.log('cmd', command.toLowerCase());
     switch (command.toLowerCase()) {
+      case 'split-block':
+        // enter/return
+        this.enterPressed = true;
+        this.onChange(this.state.editorState);
+        break;
       case 'delete':
       case 'backspace': {
         console.log('hit delete');
@@ -1500,8 +1547,20 @@ export class Document extends React.Component {
   updateTextAlignment(style, event) {
     event.preventDefault();
     const selection = this.state.editorState.getSelection();
-    const nextContentState = Modifier.mergeBlockData(this.state.editorState.getCurrentContent(), selection, Immutable.Map([['alignment', style]]));
+    const content = this.state.editorState.getCurrentContent();
+    let nextContentState = Modifier.mergeBlockData(content, selection, Immutable.Map([['alignment', style]]));
     this.updateTextControls(style);
+    if (style == 'center') {
+      // remove any whitespace if line is blank
+      const regexStr = '\S+';
+      const regex = new RegExp(regexStr, 'gmi');
+      const text = nextContentState.getBlockForKey(selection.getFocusKey()).getText();
+      console.log('checking text', text);
+      if (regex.test(text)) {
+        console.log('removing whitespace before center');
+        nextContentState = Modifier.replaceText(nextContentState, selection, '');
+      }
+    }
     this.setState({
       currentAlignment: style,
       editorState: EditorState.push(this.state.editorState, nextContentState, 'change-block-data')
@@ -1580,6 +1639,10 @@ export class Document extends React.Component {
    * @return {element}
   **/
   render() {
+    let titleLI = '';
+    if (!this.isMobile) {
+      titleLI = <li className="docTitle">{this.title}</li>;
+    }
     if (this.state.loading) {
       return (<div>loading...</div>);
     } else {
@@ -1597,7 +1660,7 @@ export class Document extends React.Component {
                   <span>{lineSpacings.get(this.state.currentLineHeight)}</span>
                 </span>
               </li>
-              <li className="docTitle">{this.title}</li>
+              {titleLI}
             </ul>
           </nav>
           <div className="editorRoot" style={{width: this.state.pageWidth}}>
