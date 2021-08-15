@@ -3,6 +3,7 @@ import {Globals} from './Globals.jsx';
 import {DialogPrompt} from './DialogPrompt.jsx';
 import {CornerMenu} from './CornerMenu.jsx';
 import {Document} from './Document.jsx';
+import {OutlinePanel} from './OutlinePanel.jsx';
 import DeleteForever from '@material-ui/icons/DeleteForever';
 
 /**
@@ -19,8 +20,9 @@ export class Landing extends React.Component {
       username: '',
       stories: [],
       greeting: '',
-      addStoryButtonDisplay: 'none',
-      editingDocument: false,
+      onDocumentDisplayAddButtonCSS: 'initial',
+      onDocumentDisplayMenuItemCSS: 'inline-block',
+      editingDocument: '',
       dialogTitle: 'Message',
       dialogBody: 'No message set',
       dialogCancelFunc: null,
@@ -33,6 +35,7 @@ export class Landing extends React.Component {
       dialogDefaultPromptText: ''
     };
     this.dialog = React.createRef();
+    this.outlinePanel = React.createRef();
   }
 
   /** componentDidMount **/
@@ -67,15 +70,18 @@ export class Landing extends React.Component {
         break;
       }
     }
-    let displayState = 'initial';
+    let addButtonDisplayState = 'inline-block';
+    let menuDisplayState = 'none';
     if (requestedDocument) {
-      displayState = 'none';
+      addButtonDisplayState = 'none';
+      menuDisplayState = 'inline-block';
     } else {
       console.log('url change');
       this.getAllStories();
     }
     this.setState({
-      addStoryButtonDisplay: displayState,
+      onDocumentDisplayAddButtonCSS: addButtonDisplayState,
+      onDocumentDisplayMenuItemCSS: menuDisplayState,
       editingDocument: requestedDocument
     });
   }
@@ -119,7 +125,8 @@ export class Landing extends React.Component {
           history.pushState({}, '', '/story/' + selectedID);
           this.setState({
             editingDocument: selectedID,
-            addStoryButtonDisplay: 'none',
+            onDocumentDisplayAddButtonCSS: 'none',
+            onDocumentDisplayMenuItemCSS: 'inline-block'
           });
         }
       }
@@ -219,9 +226,10 @@ export class Landing extends React.Component {
     const blankStories = [];
     this.isLoggedIn = false;
     this.setState({
-      editingDocument: false,
+      editingDocument: '',
       stories: blankStories,
-      addStoryButtonDisplay: 'none',
+      onDocumentDisplayMenuItemCSS: 'none',
+      onDocumentDisplayAddButtonCSS: 'initial',
       username: '',
       greeting: ''
     });
@@ -409,17 +417,17 @@ export class Landing extends React.Component {
    */
   render() {
     let content = <ul className="stories">{this.state.stories}</ul>;
-    if (this.state.editingDocument) {
+    if (this.state.editingDocument.length) {
       content = <Document storyID={this.state.editingDocument} />;
     }
     return (
       <div>
         <div style={{'position': 'fixed'}, {'width': '100%'}}>
-          <CornerMenu displayName={this.state.username} logoutComplete={this.handleLogout.bind(this)} loginComplete={this.handleLogin.bind(this)} loginFailed={this.handleLoginFailure.bind(this)}/>
+          <CornerMenu onDocumentDisplayState={this.state.onDocumentDisplayMenuItemCSS} displayName={this.state.username} logoutComplete={this.handleLogout.bind(this)} loginComplete={this.handleLogin.bind(this)} loginFailed={this.handleLoginFailure.bind(this)} outlinePanel={this.outlinePanel} />
         </div>
         <div className="story_manager">
           { this.isLoggedIn ?
-              <div><span>{this.state.greeting}</span><button onClick={this.createNewStory.bind(this)} style={{'display': this.state.addStoryButtonDisplay}}>+</button></div> :
+              <div><span>{this.state.greeting}</span><button onClick={this.createNewStory.bind(this)} style={{'display': this.state.onDocumentDisplayAddButtonCSS}}>+</button></div> :
               <span>{this.state.greeting}</span>
           }
         </div>
@@ -427,6 +435,7 @@ export class Landing extends React.Component {
           {content}
         </div>
         <DialogPrompt ref={this.dialog} title={this.state.dialogTitle} body={this.state.dialogBody} isPrompt={this.state.dialogIsPrompt} defaultFieldValue={this.state.dialogDefaultPromptText} isConfirm={this.state.dialogIsConfirm} textFieldLabel={this.state.dialogTextFieldLabel} okFunc={this.state.dialogOKFunc} cancelFunc={this.state.dialogCancelFunc} okButtonText={this.state.dialogOkButtonText} cancelButtonText={this.state.dialogCancelButtonText}/>
+        <OutlinePanel ref={this.outlinePanel} storyID={this.state.editingDocument} />
       </div>
     );
   }

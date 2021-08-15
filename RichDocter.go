@@ -24,12 +24,15 @@ import (
 )
 
 const (
-	SERVICE_PATH       = "/api"
-	SOCKET_DIR         = "/ws"
-	STORIES_COLLECTION = "stories"
-	STATIC_FILES_DIR   = "public"
-	PING_TIMEOUT       = 5000
-	CONTEXT_TIMEOUT    = time.Duration(time.Second * 10)
+	SERVICE_PATH            = "/api"
+	SOCKET_DIR              = "/ws"
+	STORIES_COLLECTION      = "stories"
+	STATIC_FILES_DIR        = "public"
+	PING_TIMEOUT            = 5000
+	CONTEXT_TIMEOUT         = time.Duration(time.Second * 10)
+	GOOGLE_OAUTH_PUBKEY_URL = "https://www.googleapis.com/oauth2/v1/certs"
+	CONFIG_FILE_URL         = "config.json"
+	ROOT_DIR                = "./public"
 )
 
 type Config struct {
@@ -185,7 +188,7 @@ func fetchAssociations(storyID primitive.ObjectID, ctx context.Context) ([]API.A
 }
 
 func getGooglePublicKey(keyID string) (string, error) {
-	resp, err := http.Get("https://www.googleapis.com/oauth2/v1/certs")
+	resp, err := http.Get(GOOGLE_OAUTH_PUBKEY_URL)
 	if err != nil {
 		return "", err
 	}
@@ -314,7 +317,7 @@ func serveRootDirectory(w http.ResponseWriter, r *http.Request) {
 			API.RespondWithError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		http.StripPrefix(r.URL.Path, http.FileServer(http.Dir("./public"))).ServeHTTP(w, r)
+		http.StripPrefix(r.URL.Path, http.FileServer(http.Dir(ROOT_DIR))).ServeHTTP(w, r)
 		return
 	}
 	http.FileServer(http.Dir("."+string(os.PathSeparator)+STATIC_FILES_DIR+string(os.PathSeparator))).ServeHTTP(w, r)
@@ -343,7 +346,7 @@ func mongoDisconnect(client *mongo.Client, ctx context.Context) error {
 }
 
 func loadConfiguration() {
-	jsonFile, err := os.Open("config.json")
+	jsonFile, err := os.Open(CONFIG_FILE_URL)
 	if err != nil {
 		panic(err)
 	}

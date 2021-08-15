@@ -25,8 +25,12 @@ export class CornerMenu extends React.Component {
       displayName: props.displayName,
       loginButtonDisplayState: 'inline-block',
       logoutButtonDisplayState: 'none',
-      dropdownDisplayState: 'none'
+      dropdownDisplayState: 'none',
+      onDocumentDisplayState: props.onDocumentDisplayState
     };
+    this.outlinePanel = props.outlinePanel;
+    console.log('ref', this.outlinePanel);
+    console.log(props);
   }
 
   /**
@@ -38,7 +42,10 @@ export class CornerMenu extends React.Component {
       loginComplete: PropTypes.func,
       logoutComplete: PropTypes.func,
       loginFailed: PropTypes.func,
-      nextProps: PropTypes.object
+      onDocumentDisplayState: PropTypes.string,
+      nextProps: PropTypes.object,
+      outlinePanel: PropTypes.object,
+      storyID: PropTypes.string
     };
   }
 
@@ -83,7 +90,10 @@ export class CornerMenu extends React.Component {
    */
   UNSAFE_componentWillReceiveProps(nextProps) {
     this.setState({
-      displayName: nextProps.displayName
+      storyID: nextProps.storyID,
+      displayName: nextProps.displayName,
+      onDocumentDisplayState: nextProps.onDocumentDisplayState,
+      outlinePanel: nextProps.outlinePanel
     });
     console.log('Component received new props', nextProps);
   }
@@ -146,6 +156,15 @@ export class CornerMenu extends React.Component {
   }
 
   /**
+   * Render the outline panel
+   *
+   * @param {Event} event
+   */
+  toggleStoryOutline(event) {
+    this.outlinePanel.current.updateAndDisplay();
+  }
+
+  /**
    * render
    * @return {element}
    */
@@ -183,7 +202,9 @@ export class CornerMenu extends React.Component {
                     onLogoutFailure={this.logout.bind(this)}
                   />
                 </li>
-                <li>Outline</li>
+                <li onClick={this.toggleStoryOutline.bind(this)} style={{'display': this.state.onDocumentDisplayState}}>
+                  <span>Outline</span>
+                </li>
               </ul>
             </li>
           </ul>
