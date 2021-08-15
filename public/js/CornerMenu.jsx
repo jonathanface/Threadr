@@ -28,6 +28,9 @@ export class CornerMenu extends React.Component {
       dropdownDisplayState: 'none',
       onDocumentDisplayState: props.onDocumentDisplayState
     };
+    this.outlinePanel = props.outlinePanel;
+    console.log('ref', this.outlinePanel);
+    console.log(props);
   }
 
   /**
@@ -40,7 +43,9 @@ export class CornerMenu extends React.Component {
       logoutComplete: PropTypes.func,
       loginFailed: PropTypes.func,
       onDocumentDisplayState: PropTypes.string,
-      nextProps: PropTypes.object
+      nextProps: PropTypes.object,
+      outlinePanel: PropTypes.object,
+      storyID: PropTypes.string
     };
   }
 
@@ -85,8 +90,10 @@ export class CornerMenu extends React.Component {
    */
   UNSAFE_componentWillReceiveProps(nextProps) {
     this.setState({
+      storyID: nextProps.storyID,
       displayName: nextProps.displayName,
-      onDocumentDisplayState: nextProps.onDocumentDisplayState
+      onDocumentDisplayState: nextProps.onDocumentDisplayState,
+      outlinePanel: nextProps.outlinePanel
     });
     console.log('Component received new props', nextProps);
   }
@@ -149,6 +156,15 @@ export class CornerMenu extends React.Component {
   }
 
   /**
+   * Render the outline panel
+   *
+   * @param {Event} event
+   */
+  toggleStoryOutline(event) {
+    this.outlinePanel.current.updateAndDisplay();
+  }
+
+  /**
    * render
    * @return {element}
    */
@@ -186,7 +202,7 @@ export class CornerMenu extends React.Component {
                     onLogoutFailure={this.logout.bind(this)}
                   />
                 </li>
-                <li style={{'display': this.state.onDocumentDisplayState}}>
+                <li onClick={this.toggleStoryOutline.bind(this)} style={{'display': this.state.onDocumentDisplayState}}>
                   <span>Outline</span>
                 </li>
               </ul>

@@ -662,7 +662,7 @@ export class Document extends React.Component {
       event.returnValue = true;
       return;
     }
-    if (this.socket.isOpen) {
+    if (this.socket && this.socket.isOpen) {
       this.socket.close();
     }
   }
@@ -1129,12 +1129,15 @@ export class Document extends React.Component {
         return;
       }
       if (this.enterPressed) {
-        // When enter is pressed, the next block under the cursor gets moved to a new block on a new line.
-        // The current block gets its content updated.
+        // When enter is pressed, the block under the cursor gets moved to a new block on a new line.
+        // The current block gets its content updated. We should also save the previous block to
+        // catch the enter character.
         this.enterPressed = false;
         newBlockAdded = true;
         const currentBlockKey = newEditorState.getSelection().getFocusKey();
         this.pendingEdits.set(currentBlockKey, true);
+        const newKey = newEditorState.getCurrentContent().getKeyAfter(currentBlockKey);
+        this.pendingCreations.set(newKey, true);
       }
       if (pastedEdits) {
         filterToSaveResults.forEach((val, key) => {

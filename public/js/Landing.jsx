@@ -3,6 +3,7 @@ import {Globals} from './Globals.jsx';
 import {DialogPrompt} from './DialogPrompt.jsx';
 import {CornerMenu} from './CornerMenu.jsx';
 import {Document} from './Document.jsx';
+import {OutlinePanel} from './OutlinePanel.jsx';
 import DeleteForever from '@material-ui/icons/DeleteForever';
 
 /**
@@ -21,7 +22,7 @@ export class Landing extends React.Component {
       greeting: '',
       onDocumentDisplayAddButtonCSS: 'initial',
       onDocumentDisplayMenuItemCSS: 'inline-block',
-      editingDocument: false,
+      editingDocument: '',
       dialogTitle: 'Message',
       dialogBody: 'No message set',
       dialogCancelFunc: null,
@@ -34,6 +35,7 @@ export class Landing extends React.Component {
       dialogDefaultPromptText: ''
     };
     this.dialog = React.createRef();
+    this.outlinePanel = React.createRef();
   }
 
   /** componentDidMount **/
@@ -224,7 +226,7 @@ export class Landing extends React.Component {
     const blankStories = [];
     this.isLoggedIn = false;
     this.setState({
-      editingDocument: false,
+      editingDocument: '',
       stories: blankStories,
       onDocumentDisplayMenuItemCSS: 'none',
       onDocumentDisplayAddButtonCSS: 'initial',
@@ -415,13 +417,13 @@ export class Landing extends React.Component {
    */
   render() {
     let content = <ul className="stories">{this.state.stories}</ul>;
-    if (this.state.editingDocument) {
+    if (this.state.editingDocument.length) {
       content = <Document storyID={this.state.editingDocument} />;
     }
     return (
       <div>
         <div style={{'position': 'fixed'}, {'width': '100%'}}>
-          <CornerMenu onDocumentDisplayState={this.state.onDocumentDisplayMenuItemCSS} displayName={this.state.username} logoutComplete={this.handleLogout.bind(this)} loginComplete={this.handleLogin.bind(this)} loginFailed={this.handleLoginFailure.bind(this)}/>
+          <CornerMenu onDocumentDisplayState={this.state.onDocumentDisplayMenuItemCSS} displayName={this.state.username} logoutComplete={this.handleLogout.bind(this)} loginComplete={this.handleLogin.bind(this)} loginFailed={this.handleLoginFailure.bind(this)} outlinePanel={this.outlinePanel} />
         </div>
         <div className="story_manager">
           { this.isLoggedIn ?
@@ -433,6 +435,7 @@ export class Landing extends React.Component {
           {content}
         </div>
         <DialogPrompt ref={this.dialog} title={this.state.dialogTitle} body={this.state.dialogBody} isPrompt={this.state.dialogIsPrompt} defaultFieldValue={this.state.dialogDefaultPromptText} isConfirm={this.state.dialogIsConfirm} textFieldLabel={this.state.dialogTextFieldLabel} okFunc={this.state.dialogOKFunc} cancelFunc={this.state.dialogCancelFunc} okButtonText={this.state.dialogOkButtonText} cancelButtonText={this.state.dialogCancelButtonText}/>
+        <OutlinePanel ref={this.outlinePanel} storyID={this.state.editingDocument} />
       </div>
     );
   }
