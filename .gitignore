@@ -3,6 +3,7 @@
 *.dll
 *.so
 *.dylib
+.env
 
 /public/js/dist
 
@@ -10,6 +11,7 @@ config.json
 bundle.js
 bundle.min.js
 application
+rich
 richdocter.zip
 
 # Test binary, build with `go test -c`

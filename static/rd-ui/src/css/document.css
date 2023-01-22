@@ -1,0 +1,23 @@
+
+
+div.DraftEditor-root {
+    border: 1px solid #000;
+    border-radius:10px;
+    background-color: #F0F0F0;
+    height: 200px;
+    width:70%;
+    padding:10px;
+    margin:10px auto;
+    overflow-y: auto;
+    color:#000;
+}
+div.DraftEditor-editorContainer, div.public-DraftEditor-content {
+    height: 100%;
+}
+
+.highlight.character {
+    color:green;
+}
+.highlight.place {
+    color:blue;
+}

@@ -1,0 +1,24 @@
+
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  font-family: Verdana;
+  height: 100%;
+  box-sizing:border-box;
+}
+
+body {
+  min-height:100%;
+  background-color: #495960;
+}
+
+.App {
+  text-align:center;
+}
+
+main {
+  display:inline-block;
+  width:100%;
+}
