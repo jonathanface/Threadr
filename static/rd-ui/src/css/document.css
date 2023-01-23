@@ -1,4 +1,20 @@
-
+nav.rich-controls {
+    width: 40%;
+    text-align: left;
+    display: inline-block;
+    padding: 10px;
+    background: white;
+    border-radius: 10px;
+    margin-top: 20px;
+}
+nav.rich-controls button {
+    text-align: center;
+    margin: 0px 5px 0px 5px;
+    font-size: 0.8em;
+    padding: 5px;
+    width: 26px;
+    cursor:pointer;
+}
 
 div.DraftEditor-root {
     border: 1px solid #000;
@@ -13,6 +29,14 @@ div.DraftEditor-root {
 }
 div.DraftEditor-editorContainer, div.public-DraftEditor-content {
     height: 100%;
+    line-height:2em;
+}
+
+.highlight {
+    cursor:pointer;
+}
+.highlight:hover {
+    opacity:0.8;
 }
 
 .highlight.character {
@@ -20,4 +44,7 @@ div.DraftEditor-editorContainer, div.public-DraftEditor-content {
 }
 .highlight.place {
     color:blue;
+}
+.highlight.event {
+    color:red;
 }
