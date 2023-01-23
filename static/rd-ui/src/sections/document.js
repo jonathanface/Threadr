@@ -1,5 +1,5 @@
 import React, {useRef} from 'react';
-import {Editor, EditorState, ContentState, CompositeDecorator, RichUtils, getDefaultKeyBinding, Modifier, SelectionState} from 'draft-js';
+import {Editor, EditorState, ContentState, CompositeDecorator, RichUtils, getDefaultKeyBinding, Modifier} from 'draft-js';
 import 'draft-js/dist/Draft.css';
 import '../css/document.css';
 import { Menu, Item, Submenu, useContextMenu } from 'react-contexify';
@@ -38,7 +38,7 @@ const getRegexString = (string) => {
 const findHighlightable = (entityType) => {
   return (contentBlock, callback) => {
     const text = contentBlock.getText();
-    associations.map((association) => {
+    associations.forEach((association) => {
       if (association.type !== entityType) {
         return;
       }
@@ -81,7 +81,7 @@ const clickedDecorator = (name, type) => {
 
 const createDecorators = () => {
   const decorators = [];
-  associations.map((association) => {
+  associations.forEach((association) => {
     decorators.push({
       strategy: findHighlightable(association.type),
       component: HighlightSpan,
@@ -141,26 +141,27 @@ const getSelectedText = (editorState) => {
 }
 
 
+
+
+
+const forceStateUpdate = (editorState) => {
+  return EditorState.set(editorState, {decorator: createDecorators()});
+}
+
+const insertTab = (editorState) => {
+  const selection = editorState.getSelection();
+  const currentContent = editorState.getCurrentContent();
+  const contentStateWithEntity = currentContent.createEntity('TAB', 'IMMUTABLE');
+  const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
+  const textWithEntity = Modifier.insertText(currentContent, selection, generateTabCharacter(), null, entityKey);
+  const newState = EditorState.push(editorState, textWithEntity, 'apply-entity');
+  return EditorState.forceSelection(newState, textWithEntity.getSelectionAfter());
+}
+
+
 function Document() {
 
   const domEditor = useRef(null);
-
-  const [editorState, setEditorState] = React.useState(
-    () => EditorState.createWithContent(ContentState.createFromText('blah lo hoo boy'), createDecorators())
-  );
-
-  const setFocus = () => {
-    domEditor.current.focus();
-  }
-
-  const keyBindings = (event) => {
-    // tab pressed
-    if (event.keyCode == 9) {
-      event.preventDefault();
-      setEditorState(insertTab(editorState));
-    }
-    return getDefaultKeyBinding(event);
-  }
 
   const setFocusAndRestoreCursor = (editorState) => {
     const selection = editorState.getSelection();
@@ -168,12 +169,21 @@ function Document() {
         anchorOffset: selection.getIsBackward() ? selection.getAnchorOffset() : selection.getFocusOffset(),
         focusOffset: selection.getIsBackward() ? selection.getAnchorOffset() : selection.getFocusOffset()
       })
-      setFocus();
+      domEditor.current.focus();
       return EditorState.forceSelection(editorState, newSelection);
   }
 
-  const forceStateUpdate = (editorState) => {
-    return EditorState.set(editorState, {decorator: createDecorators()});
+  const [editorState, setEditorState] = React.useState(
+    () => EditorState.createWithContent(ContentState.createFromText('blah lo hoo boy'), createDecorators())
+  );
+
+  const keyBindings = (event) => {
+    // tab pressed
+    if (event.keyCode === 9) {
+      event.preventDefault();
+      setEditorState(insertTab(editorState));
+    }
+    return getDefaultKeyBinding(event);
   }
 
   const { show } = useContextMenu({
@@ -215,28 +225,17 @@ function Document() {
     setEditorState(RichUtils.handleKeyCommand(editorState, command));
   }
 
-  const insertTab = (editorState) => {
-    console.log('inserting tab');
-    const selection = editorState.getSelection();
-    const currentContent = editorState.getCurrentContent();
-    const contentStateWithEntity = currentContent.createEntity('TAB', 'IMMUTABLE');
-    const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
-    const textWithEntity = Modifier.insertText(currentContent, selection, generateTabCharacter(), null, entityKey);
-    const newState = EditorState.push(editorState, textWithEntity, 'apply-entity');
-    return EditorState.forceSelection(newState, textWithEntity.getSelectionAfter());
-  }
-
   const updateEditorState = (newEditorState) => {
     const blockTree = editorState.getBlockTree(newEditorState.getSelection().getFocusKey());
     if (!blockTree) {
       // new paragraph added
       const thisBlock = newEditorState.getCurrentContent().getBlockForKey(newEditorState.getSelection().getFocusKey());
       const firstChar = thisBlock.getCharacterList().get(0);
+      // Auto-insert tab TO-DO should only be on text-align left
       if ((!firstChar || firstChar && firstChar.entity == null) ||
-          (!firstChar || newEditorState.getCurrentContent().getEntity(firstChar.entity).getType() != 'TAB')) {
+          (!firstChar || newEditorState.getCurrentContent().getEntity(firstChar.entity).getType() !== 'TAB')) {
           newEditorState = insertTab(newEditorState);
         }
-
     }
     setEditorState(newEditorState);
   }
