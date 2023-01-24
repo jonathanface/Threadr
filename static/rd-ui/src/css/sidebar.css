@@ -65,7 +65,7 @@ nav.menu-container .empty {
 }
   
 .checkbox-trigger:checked {
-    left: 202px;
+    left: 250px;
 }
   
 .checkbox-trigger:checked + .menu-content .hamburger-menu {
@@ -86,7 +86,7 @@ nav.menu-container .empty {
 }
 
 .checkbox-trigger:checked + .menu-content ul {
-    width: 200px;
+    width: 250px;
     height:300px;
     overflow-y:auto;
     transition: height 0.3s ease, width 0.7s ease;
@@ -116,9 +116,9 @@ nav.menu-container .empty {
     cursor: pointer;
     white-space: nowrap;
     list-style: none;
-    padding-top: 1em;
-    padding-left:2em;
-    padding-bottom: 1em;
+    padding-top: 0em;
+    padding-left:0.5em;
+    margin-bottom: 1em;
     transition: color 0.5s, background 0.5s;
 }
 
@@ -131,10 +131,6 @@ nav.menu-container .empty {
     padding-bottom: 1em;
     transition: color 0.5s, background 0.5s;
 }
-  
-.menu-content ul li:hover {
-    color: #0CD6AD;
-    background: #1E332F;
+.menu-content ul .MuiTreeItem-label:hover {
+    opacity:0.8;
 }
-
-  

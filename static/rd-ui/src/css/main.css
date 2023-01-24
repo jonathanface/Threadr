@@ -6,7 +6,7 @@ html, body {
   overflow-x: hidden;
   font-family: Verdana;
   height: 100%;
-  box-sizing:border-box;
+  box-sizing:border-box; 
 }
 
 body {
@@ -21,4 +21,9 @@ body {
 main {
   display:inline-block;
   width:100%;
+}
+
+.MultiTreeItem-root {
+  padding-top:0px;
+  padding-left:0.5em;
 }

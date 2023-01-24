@@ -1,12 +1,10 @@
 
 import {useEffect} from 'react';
-import Sidebar from './sections/sidebar';
-import Document from './sections/document';
+import Sidebar from './sections/sidebar/Sidebar';
+import Document from './sections/document/Document';
 import './css/main.css';
 
 function App() {
-  
-  console.log("wtf");
   
   return (
     <div className="App">
