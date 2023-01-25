@@ -1,19 +1,24 @@
 
-import {useEffect} from 'react';
+import {useState} from 'react';
 import Sidebar from './sections/sidebar/Sidebar';
 import Document from './sections/document/Document';
 import './css/main.css';
 
-function App() {
-  
+
+
+const Threadr = () => {
+  const [currentStoryID, setCurrentStoryID] = useState();
+  const setCurrentDocumentID = (storyID) => {
+    setCurrentStoryID(storyID);
+  }
   return (
     <div className="App">
-      <Sidebar/>
+      <Sidebar setDocFunc={setCurrentDocumentID}/>
       <main>
-        <Document/>
+        <Document storyID={currentStoryID}/>
       </main>
     </div>
   );
 }
 
-export default App;
+export default Threadr;

@@ -1,35 +1,10 @@
 import {useState, useEffect} from 'react';
 import '../../css/sidebar.css';
-
+import Document from '../document/Document';
 import TreeView from '@mui/lab/TreeView';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import TreeItem from '@mui/lab/TreeItem';
-
-
-/*
-const treeMenuData = [
-  {
-    key: 'first-level-node-1',
-    label: 'Node 1 at the first level',
-    ..., // any other props you need, e.g. url
-    nodes: [
-      {
-        key: 'second-level-node-1',
-        label: 'Node 1 at the second level',
-        nodes: [
-          {
-            key: 'third-level-node-1',
-            label: 'Last node of the branch',
-            nodes: [] // you can remove the nodes property or leave it as an empty array
-          },
-        ],
-      },
-    ],
-  },
-  {*/
-
-const treeMenuData = [];
 
 const groupBySeries = (stories) => {
     const groupedStories = [];
@@ -68,7 +43,7 @@ const groupBySeries = (stories) => {
     return groupedStories;
 }
 
-const Sidebar = () => {
+const Sidebar = (props) => {
     const getLandingData = () => {
         fetch('http://localhost:83/api/stories')
         .then((response) => response.json())
@@ -85,9 +60,9 @@ const Sidebar = () => {
         getLandingData();
     },[]);
 
-    const clickStory = (event) => {
-        console.log(isOpen, "clicked",event.nativeEvent.target.getAttribute("data-id"))
-        setIsOpen(false);
+    const clickStory = (storyID) => {
+        console.log("clicked", storyID)
+        props.setDocFunc(storyID);
     }
 
     return (
@@ -101,18 +76,10 @@ const Sidebar = () => {
                     }}>
                         {
                             stories.map(story => {
-                                console.log("story", story.label);
-                                return <TreeItem key={story.key} nodeId={story.key} label={story.label} sx={{
-                                    paddingTop:'0em', paddingLeft:'0.5em',
-                                    '&$selected > $content $label:hover, &$selected:focus > $content $label': {backgroundColor: "transparent"},
-                                    '&:focus > $content $label': {backgroundColor: "transparent"},
-                                }}>
+                                return <TreeItem onClick={!story.nodes ? ()=>{clickStory(story.key)} : undefined} key={story.key} nodeId={story.key} label={story.label}>
                                 {Array.isArray(story.nodes)
                                 ? story.nodes.map((node) => {
-                                    console.log("render", node.label)
-                                    return <TreeItem key={node.key} nodeId={node.key} label={node.label} sx={{
-                                        paddingLeft:'0px'
-                                    }}/>
+                                    return <TreeItem onClick={()=>{clickStory(node.key)}} key={node.key} nodeId={node.key} label={node.label}/>
                                 }) : null}                          
                                 </TreeItem>
                             })

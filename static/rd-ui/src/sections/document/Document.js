@@ -49,9 +49,18 @@ const insertTab = (editorState) => {
 }
 
 
-function Document() {
+const Document = (props) => {
+  console.log("props", props)
 
   const domEditor = useRef(null);
+
+  const [editorState, setEditorState] = React.useState(
+    () => EditorState.createWithContent(ContentState.createFromText('blah lo hoo boy'), CreateDecorators(associations))
+  );
+
+  const LoadStory = (storyID) => {
+    console.log("in doc", storyID);
+  } 
 
   const setFocusAndRestoreCursor = (editorState) => {
     const selection = editorState.getSelection();
@@ -63,9 +72,7 @@ function Document() {
       return EditorState.forceSelection(editorState, newSelection);
   }
 
-  const [editorState, setEditorState] = React.useState(
-    () => EditorState.createWithContent(ContentState.createFromText('blah lo hoo boy'), CreateDecorators(associations))
-  );
+  
 
   const keyBindings = (event) => {
     // tab pressed

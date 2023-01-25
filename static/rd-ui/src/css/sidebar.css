@@ -88,7 +88,6 @@ nav.menu-container .empty {
 .checkbox-trigger:checked + .menu-content ul {
     width: 250px;
     height:300px;
-    overflow-y:auto;
     transition: height 0.3s ease, width 0.7s ease;
 }
   
