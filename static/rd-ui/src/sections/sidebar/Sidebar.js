@@ -1,6 +1,5 @@
 import {useState, useEffect} from 'react';
 import '../../css/sidebar.css';
-import Document from '../document/Document';
 import TreeView from '@mui/lab/TreeView';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -44,36 +43,64 @@ const groupBySeries = (stories) => {
 }
 
 const Sidebar = (props) => {
-    const getLandingData = () => {
-        fetch('http://localhost:83/api/stories')
-        .then((response) => response.json())
+    const getStories = () => {
+        if (!isLoggedIn) {
+            return;
+        }
+        fetch(process.env.REACT_APP_SERVER_URL + '/api/stories')
+        .then((response) => {
+            if (!response.ok) {
+                return Promise.reject(response)
+            }
+            return response.json()
+        })
         .then((data) => {
-            //setStories(data)
             const sortedStories = groupBySeries(data);
             setStories(sortedStories);
-            //setStories(sortedStories)
-        });
+        }).catch(error => {
+            console.error(error);
+        })
     }
     const [stories, setStories] = useState([]);
     const [isOpen, setIsOpen] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(props.loggedIn);
+
+    console.log("rec prop", props.loggedIn)
     useEffect(() => {
-        getLandingData();
-    },[]);
+        console.log("setting prop", props.loggedIn)
+        setIsLoggedIn(props.loggedIn);
+        getStories();
+    },[props.loggedIn]);
+
 
     const clickStory = (storyID) => {
-        console.log("clicked", storyID)
         props.setDocFunc(storyID);
     }
 
+    const signin = () => {
+        window.location.href = process.env.REACT_APP_SERVER_URL + '/auth/google/token';
+    }
+
+    const signout = () => {
+        fetch(process.env.REACT_APP_SERVER_URL + '/auth/logout', {
+            method: "DELETE"
+        })
+        .then((response) => {
+            if (!response.ok) {
+                return Promise.reject(response)
+            }
+            setIsLoggedIn(false);
+        }).catch(error => {
+            console.error(error);
+        })
+    }
     return (
         <nav className="menu-container">
             <span className="checkbox-container">
                 <input className="checkbox-trigger" type="checkbox" onChange={() => {setIsOpen(!isOpen)}} checked={isOpen} />
                 <span className="menu-content">
                 <TreeView  aria-label="documents navigator" defaultCollapseIcon={<ExpandMoreIcon />} defaultExpandIcon={<ChevronRightIcon />} defaultExpanded={["story_label"]}>
-                    <TreeItem key="story_label" nodeId="story_label" label="Stories" sx={{
-                        color:'inherit', backgroundColor:'transparent',paddingTop:'0px'
-                    }}>
+                    <TreeItem key="story_label" nodeId="story_label" label="Stories">
                         {
                             stories.map(story => {
                                 return <TreeItem onClick={!story.nodes ? ()=>{clickStory(story.key)} : undefined} key={story.key} nodeId={story.key} label={story.label}>
@@ -85,7 +112,14 @@ const Sidebar = (props) => {
                             })
                         }
                     </TreeItem>
+                    {!isLoggedIn ? 
+                        <TreeItem key="login" nodeId="login" label="Sign In">
+                            <TreeItem key="google" nodeId="google" label="Google" onClick={signin}/>
+                        </TreeItem>
+                    : <TreeItem key="logout" nodeId="logout" label="Sign Out" onClick={signout}/>
+                    }
                 </TreeView>
+                
                 <span className="hamburger-menu" />
                 </span>
             </span>

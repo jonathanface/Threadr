@@ -52,7 +52,6 @@ func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 	} else {
-		fmt.Println("got", out.Items)
 		RespondWithJson(w, http.StatusOK, out.Items)
 	}
 }
