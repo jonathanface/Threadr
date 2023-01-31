@@ -5,7 +5,6 @@ import (
 	"RichDocter/auth"
 	"RichDocter/sessions"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -22,7 +21,6 @@ const (
 )
 
 func serveRootDirectory(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Serving root")
 	abs, err := filepath.Abs(".")
 	if err != nil {
 		log.Println(err.Error())
@@ -54,7 +52,7 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		token, err := sessions.Get(r, "token")
-		if err != nil || token.Values["token_data"] == nil {
+		if err != nil || token.IsNew {
 			api.RespondWithError(w, http.StatusNotFound, "cannot find token")
 			return
 		}

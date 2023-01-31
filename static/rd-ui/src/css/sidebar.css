@@ -110,6 +110,9 @@ nav.menu-container .empty {
     overflow:hidden;
     transition: height 0.3s ease 0.7s, width 0.7s ease;
 }
+.menu-content ul ul {
+    padding-bottom: 0;
+}
   
 .menu-content ul li {
     cursor: pointer;
@@ -119,6 +122,15 @@ nav.menu-container .empty {
     padding-left:0.5em;
     margin-bottom: 1em;
     transition: color 0.5s, background 0.5s;
+}
+.menu-content ul li ul li {
+    padding-left:1em;
+}
+.menu-content ul li ul li ul li {
+    padding-left:0em;
+}
+.menu-content ui li:last-child {
+    margin-bottom:0;
 }
 
 .menu-content ul label {
@@ -132,4 +144,10 @@ nav.menu-container .empty {
 }
 .menu-content ul .MuiTreeItem-label:hover {
     opacity:0.8;
+}
+
+.sidebar-button button {
+    background: transparent;
+    border: none;
+    color: #FFF;
 }

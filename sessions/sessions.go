@@ -10,5 +10,7 @@ import (
 var store = gsessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY")))
 
 func Get(req *http.Request, key string) (*gsessions.Session, error) {
-	return store.Get(req, key)
+	cookie, err := store.Get(req, key)
+	cookie.Options.SameSite = http.SameSiteLaxMode
+	return cookie, err
 }

@@ -31,6 +31,12 @@ func DeleteToken(w http.ResponseWriter, r *http.Request) {
 		api.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	session, _ = sessions.Get(r, "oauthstate")
+	session.Options.MaxAge = -1
+	if err = session.Save(r, w); err != nil {
+		api.RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	api.RespondWithJson(w, http.StatusOK, nil)
 }
 
