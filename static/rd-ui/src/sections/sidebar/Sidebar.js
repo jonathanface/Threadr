@@ -1,23 +1,23 @@
-import {useState, useEffect} from 'react';
+import React, {useState, useEffect} from 'react';
 import '../../css/sidebar.css';
 import TreeView from '@mui/lab/TreeView';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
-import ArticleIcon from '@mui/icons-material/Article';
-import EditIcon from '@mui/icons-material/Edit';
+import ArticleIcon from '@mui/icons-material/Article'; 
+import EditIcon from '@mui/icons-material/Edit'; 
 import TreeItem from '@mui/lab/TreeItem';
 
-const groupBySeries = (stories) => {
+const groupBySeries = (stories) => { 
     const groupedStories = [];
-    stories.map(story => {
+    stories.map(story => { 
         if (story.series.Value && story.series.Value.length) {
             const exists = groupedStories.find(e => e.key === story.series.Value);
             if (exists) {
-                exists.nodes.push({
+                exists.nodes.push({ 
                     key: story.story_id.Value,
-                    label: story.title.Value,
+                    label: story.title.Value, 
                     order: story.order.Value,
                     created_at: story.created_at.Value
                 })

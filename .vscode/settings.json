@@ -1,0 +1,25 @@
+{
+    "editor.codeActionsOnSave": {
+        
+    },
+
+    "emeraldwalk.runonsave": {
+        "commands": [
+            {
+                "match": "\\.js$",
+                "isAsync": true,
+                "cmd": "npm --prefix static/rd-ui run dev"
+            },
+            {
+                "match": "\\.html$",
+                "isAsync": true,
+                "cmd": "npm --prefix static/rd-ui run dev"
+            },
+            {
+                "match": "\\.css$",
+                "isAsync": true,
+                "cmd": "npm --prefix static/rd-ui run dev"
+            },
+        ]
+    },
+}

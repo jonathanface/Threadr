@@ -43,10 +43,10 @@ func serveRootDirectory(w http.ResponseWriter, r *http.Request) {
 // TODO no allow-origin for prod
 func accessControlMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
-		w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,HEAD")
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
-		w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
+		//w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+		//w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,HEAD")
+		//w.Header().Set("Access-Control-Allow-Credentials", "true")
+		//w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
 
 		if r.Method == "OPTIONS" {
 			return
@@ -99,8 +99,8 @@ func corsMiddleware(next http.Handler) http.Handler {
 
 func main() {
 	log.Println("Listening for http on " + port)
-	rtr := mux.NewRouter()
-	rtr.Use(corsMiddleware)
+	rtr := mux.NewRouter() 
+	//rtr.Use(corsMiddleware)
 
 	rtr.HandleFunc("/auth/google/token", auth.RequestGoogleToken).Methods("GET", "OPTIONS")
 	rtr.HandleFunc("/auth/google/receive", auth.ReceiveGoogleToken).Methods("GET", "OPTIONS")

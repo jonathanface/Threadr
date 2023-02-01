@@ -1,4 +1,4 @@
-import {useState, useEffect} from 'react';
+import React, {useState, useEffect} from 'react';
 import Sidebar from './sections/sidebar/Sidebar';
 import Document from './sections/document/Document';
 import './css/main.css';
@@ -8,16 +8,16 @@ const Threadr = () => {
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  useEffect(() => {
+  useEffect(() => { 
     fetch(process.env.REACT_APP_SERVER_URL + '/api/user')
-    .then((response) => {
-      if (response.ok) {
-        return response.json();
-      }
+    .then((response) => { 
+      if (response.ok) { 
+        return response.json(); 
+      } 
       throw new Error('Fetch problem userData ' + response.status);
     }).then(data => setIsLoggedIn(true))
     .catch((e) => {
-      console.error("ERROR", e);
+      console.error("ERROR", e); 
     })
   });
 
