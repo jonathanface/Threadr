@@ -6,12 +6,12 @@ export const loggedInSlice = createSlice({
       value: false
     },
     reducers: {
-      flip: (state) => {
+      flipLoggedInState: (state) => {
         state.value = !state.value
       }
     }
 })
 
-export const { flip } = loggedInSlice.actions
+export const { flipLoggedInState } = loggedInSlice.actions
 
 export default loggedInSlice.reducer

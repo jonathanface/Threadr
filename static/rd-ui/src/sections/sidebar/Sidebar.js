@@ -8,9 +8,11 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import ArticleIcon from '@mui/icons-material/Article'; 
 import EditIcon from '@mui/icons-material/Edit'; 
 import TreeItem from '@mui/lab/TreeItem';
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
+import { flipLoggedInState } from '../../stores/loggedInSlice'
+import { setCurrentStoryID } from '../../stores/currentStorySlice' 
 
-const groupBySeries = (stories) => { 
+const groupBySeries = (stories) => {
     const groupedStories = [];
     stories.map(story => { 
         if (story.series.Value && story.series.Value.length) {
@@ -51,6 +53,7 @@ const Sidebar = (props) => {
     const [stories, setStories] = useState([]);
     const [isOpen, setIsOpen] = useState(false);
     const isLoggedIn = useSelector((state) => state.isLoggedIn.value)
+    const dispatch = useDispatch()
 
     const getStories = () => {
         fetch(process.env.REACT_APP_SERVER_URL + '/api/stories')
@@ -74,11 +77,26 @@ const Sidebar = (props) => {
     }, [isLoggedIn]);
 
     const clickStory = (storyID) => {
-        props.setDocFunc(storyID);
+        dispatch(setCurrentStoryID, storyID)
     }
 
     const signin = () => {
         window.location.href = process.env.REACT_APP_SERVER_URL + '/auth/google/token';
+    }
+
+    const signout = () => {
+        fetch(process.env.REACT_APP_SERVER_URL + '/auth/logout', {
+            method: "DELETE"
+        })
+        .then((response) => {
+            if (response.ok) {
+                dispatch(flipLoggedInState())
+                return;
+            }
+            throw new Error('Fetch problem logout ' + response.status);
+        }).catch(error => {
+            console.error(error);
+        })
     }
     
     return (
@@ -107,7 +125,7 @@ const Sidebar = (props) => {
                         <TreeItem key="login" nodeId="login" label="Sign In">
                             <TreeItem key="google" nodeId="google" label="Google" icon={<LoginIcon/>} onClick={signin}/>
                         </TreeItem>
-                    : <TreeItem key="logout" nodeId="logout" label="Sign Out" icon={<LogoutIcon/>} onClick={props.signoutFunc}/>
+                    : <TreeItem key="logout" nodeId="logout" label="Sign Out" icon={<LogoutIcon/>} onClick={signout}/>
                     }
                 </TreeView>
                 <span className="hamburger-menu" />
