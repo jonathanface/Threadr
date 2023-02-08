@@ -8,10 +8,12 @@
     "@mui/icons-material": "^5.11.0",
     "@mui/lab": "^5.0.0-alpha.117",
     "@mui/material": "^5.11.6",
+    "@reduxjs/toolkit": "^1.9.2",
     "dotenv-webpack": "^8.0.1",
     "draft-js": "^0.11.7",
     "react": "^18.2.0",
-    "react-contexify": "^6.0.0"
+    "react-contexify": "^6.0.0",
+    "react-redux": "^8.0.5"
   },
   "scripts": {
     "dev": "webpack --mode development && sleep 1 && ./reloadbrowser.sh",

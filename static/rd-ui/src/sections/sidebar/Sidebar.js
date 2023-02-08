@@ -8,6 +8,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import ArticleIcon from '@mui/icons-material/Article'; 
 import EditIcon from '@mui/icons-material/Edit'; 
 import TreeItem from '@mui/lab/TreeItem';
+import { useSelector } from 'react-redux'
 
 const groupBySeries = (stories) => { 
     const groupedStories = [];
@@ -49,7 +50,7 @@ const groupBySeries = (stories) => {
 const Sidebar = (props) => {
     const [stories, setStories] = useState([]);
     const [isOpen, setIsOpen] = useState(false);
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const isLoggedIn = useSelector((state) => state.isLoggedIn.value)
 
     const getStories = () => {
         fetch(process.env.REACT_APP_SERVER_URL + '/api/stories')
@@ -71,10 +72,6 @@ const Sidebar = (props) => {
             getStories();
         }
     }, [isLoggedIn]);
-
-    if (props.loggedIn != isLoggedIn) {
-        setIsLoggedIn(props.loggedIn);
-    }
 
     const clickStory = (storyID) => {
         props.setDocFunc(storyID);

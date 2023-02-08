@@ -1,12 +1,15 @@
 import React, {useState, useEffect} from 'react';
+import { useSelector, useDispatch } from 'react-redux'
 import Sidebar from './sections/sidebar/Sidebar';
 import Document from './sections/document/Document';
+import { flip } from './stores/loggedInSlice' 
 import './css/main.css';
 
 
 const Threadr = () => {
 
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const isLoggedIn = useSelector((state) => state.isLoggedIn.value)
+  const dispatch = useDispatch()
 
   useEffect(() => { 
     fetch(process.env.REACT_APP_SERVER_URL + '/api/user')
@@ -15,7 +18,7 @@ const Threadr = () => {
         return response.json(); 
       } 
       throw new Error('Fetch problem userData ' + response.status);
-    }).then(data => setIsLoggedIn(true))
+    }).then(data => dispatch(flip()))
     .catch((e) => {
       console.error("ERROR", e); 
     })
@@ -32,7 +35,7 @@ const Threadr = () => {
     })
     .then((response) => {
         if (response.ok) {
-            setIsLoggedIn(false);
+            dispatch(flip())
             return;
         }
         throw new Error('Fetch problem logout ' + response.status);
@@ -43,7 +46,7 @@ const Threadr = () => {
 
   return (
     <div className="App">
-      <Sidebar loggedIn={isLoggedIn} signoutFunc={signout} setDocFunc={setCurrentDocumentID}/>
+      <Sidebar signoutFunc={signout} setDocFunc={setCurrentDocumentID}/>
       <main>
         {
           isLoggedIn ? <Document storyID={currentStoryID}/> : ""
