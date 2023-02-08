@@ -18,6 +18,7 @@ type PseudoCookie struct {
 	IdToken     string
 	Expiry      time.Time
 	Type        string
+	Email       string
 }
 
 func DeleteToken(w http.ResponseWriter, r *http.Request) {

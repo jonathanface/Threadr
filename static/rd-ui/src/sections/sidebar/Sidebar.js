@@ -45,10 +45,8 @@ const groupBySeries = (stories) => {
     });
     return groupedStories;
 }
-// 210-899-1006
 
 const Sidebar = (props) => {
-
     const [stories, setStories] = useState([]);
     const [isOpen, setIsOpen] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false);

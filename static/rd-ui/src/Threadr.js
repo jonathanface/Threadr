@@ -19,7 +19,7 @@ const Threadr = () => {
     .catch((e) => {
       console.error("ERROR", e); 
     })
-  });
+  }, []);
 
   const [currentStoryID, setCurrentStoryID] = useState();
   const setCurrentDocumentID = (storyID) => {

@@ -19,7 +19,7 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	storyID := mux.Vars(r)["storyID"]
 	fmt.Println("storyid", storyID)
-	out, err := awsClient.GetItem(context.TODO(), &dynamodb.GetItemInput{
+	out, err := AwsClient.GetItem(context.TODO(), &dynamodb.GetItemInput{
 		TableName: aws.String("stories"),
 		Key: map[string]types.AttributeValue{
 			"story_id": &types.AttributeValueMemberS{Value: storyID},
@@ -29,29 +29,34 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
-	} else {
-		fmt.Println("got", out.Item)
-		RespondWithJson(w, http.StatusOK, out.Item)
+		return
 	}
+	RespondWithJson(w, http.StatusOK, out.Item)
 }
 
 func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
-	userID := os.Getenv("USER_ID")
-	if userID == "" {
-		RespondWithError(w, http.StatusUnprocessableEntity, "user id not set")
-	}
 
-	out, err := awsClient.Scan(context.TODO(), &dynamodb.ScanInput{
+	var (
+		email string
+		err   error
+	)
+	if email, err = getUserEmail(r); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	out, err := AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("stories"),
-		FilterExpression: aws.String("attribute_not_exists(deletedAt) AND contains(user_id, :uid)"),
+		FilterExpression: aws.String("attribute_not_exists(deleted_at) AND contains(#owner, :eml)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":uid": &types.AttributeValueMemberS{Value: userID},
+			":eml": &types.AttributeValueMemberS{Value: email},
+		},
+		ExpressionAttributeNames: map[string]string{
+			"#owner": "owner",
 		},
 	})
-
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
-	} else {
-		RespondWithJson(w, http.StatusOK, out.Items)
+		return
 	}
+	RespondWithJson(w, http.StatusOK, out.Items)
 }

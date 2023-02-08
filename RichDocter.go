@@ -4,12 +4,20 @@ import (
 	"RichDocter/api"
 	"RichDocter/auth"
 	"RichDocter/sessions"
+	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
+	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/gorilla/mux"
 )
 
@@ -19,6 +27,32 @@ const (
 	rootDir        = "/"
 	servicePath    = "/api"
 )
+
+func upsertUser(email string) (err error) {
+	now := strconv.FormatInt(time.Now().Unix(), 10)
+	input := &dynamodb.UpdateItemInput{
+		TableName: aws.String("users"),
+		Key: map[string]types.AttributeValue{
+			"email": &types.AttributeValueMemberS{Value: email},
+		},
+		ReturnValues:     types.ReturnValueUpdatedNew,
+		UpdateExpression: aws.String("set last_accessed=:t, created_at=if_not_exists(created_at, :t)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":t": &types.AttributeValueMemberN{Value: now},
+		},
+	}
+	var out *dynamodb.UpdateItemOutput
+	if out, err = api.AwsClient.UpdateItem(context.TODO(), input); err != nil {
+		return err
+	}
+	var createdAt string
+	attributevalue.Unmarshal(out.Attributes["created_at"], &createdAt)
+
+	if createdAt == now {
+		fmt.Println("new account created")
+	}
+	return
+}
 
 func serveRootDirectory(w http.ResponseWriter, r *http.Request) {
 	abs, err := filepath.Abs(".")
@@ -73,24 +107,8 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 			api.RespondWithError(w, http.StatusBadRequest, "unable to determine token oauth type")
 			return
 		}
-		/*
-			// here we should check our accounts table based on email from decoded claims
-			// upsert the user account in the db
-
-		}*/
-		if next != nil {
-			next.ServeHTTP(w, r)
-		}
-	})
-}
-
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type")
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
-		if r.Method == "OPTIONS" {
+		if err = upsertUser(pc.Email); err != nil {
+			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -99,12 +117,12 @@ func corsMiddleware(next http.Handler) http.Handler {
 
 func main() {
 	log.Println("Listening for http on " + port)
-	rtr := mux.NewRouter() 
-	//rtr.Use(corsMiddleware)
+	rtr := mux.NewRouter()
 
 	rtr.HandleFunc("/auth/google/token", auth.RequestGoogleToken).Methods("GET", "OPTIONS")
 	rtr.HandleFunc("/auth/google/receive", auth.ReceiveGoogleToken).Methods("GET", "OPTIONS")
-	rtr.HandleFunc("/auth/logout", auth.DeleteToken).Methods("DELETE", "OPTIONS")
+	// DEV ONLY!!
+	rtr.HandleFunc("/auth/logout", auth.DeleteToken).Methods("GET", "OPTIONS")
 
 	apiPath := rtr.PathPrefix(servicePath).Subrouter()
 	apiPath.Use(accessControlMiddleware)
@@ -114,16 +132,8 @@ func main() {
 	apiPath.HandleFunc("/stories", api.AllStoriesEndPoint).Methods("GET", "OPTIONS")
 	apiPath.HandleFunc("/stories/{storyID}", api.StoryEndPoint).Methods("GET", "OPTIONS")
 
-	//rtr.HandleFunc(SERVICE_PATH+"/auth/google/response", api.GetGoogleAuthResponse).Methods("GET", "OPTIONS")
-
-	// PUTs
-	//rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}/title", middleware(API.EditTitleEndPoint)).Methods("PUT")
-
-	// POSTs
-	//rtr.HandleFunc(SERVICE_PATH+"/story", middleware(API.CreateStoryEndPoint)).Methods("POST")
-
 	// DELETEs
-	//rtr.HandleFunc(SERVICE_PATH+"/story/{[0-9a-zA-Z]+}", middleware(API.DeleteStoryEndPoint)).Methods("DELETE")
+	rtr.HandleFunc("/auth/logout", auth.DeleteToken).Methods("DELETE", "OPTIONS")
 
 	rtr.PathPrefix("/").HandlerFunc(serveRootDirectory)
 	http.Handle("/", rtr)

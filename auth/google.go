@@ -15,6 +15,7 @@ import (
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"google.golang.org/api/idtoken"
 )
 
 type GoogleClaims struct {
@@ -61,15 +62,19 @@ func ReceiveGoogleToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session, err := sessions.Get(r, "oauthstate")
-	if err != nil || session.IsNew {
+	if err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	//fmt.Println("goddamn", r.FormValue("state"), session.Values["state"])
+	if session.IsNew {
+		api.RespondWithError(w, http.StatusNotFound, "oauth state not found")
+		return
+	}
 	if r.FormValue("state") != session.Values["state"] {
 		api.RespondWithError(w, http.StatusBadRequest, "mismatched oauth google state")
 		return
 	}
+
 	if err = storeGoogleToken(w, r); err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -87,11 +92,24 @@ func storeGoogleToken(w http.ResponseWriter, r *http.Request) error {
 	if token, err = conf.Exchange(context.Background(), r.FormValue("code")); err != nil {
 		return fmt.Errorf("bad code exchange: %s", err.Error())
 	}
+	payload, err := idtoken.Validate(context.Background(), token.Extra("id_token").(string), claimsAudience)
+	if err != nil {
+		return err
+	}
+	var jsonString []byte
+	if jsonString, err = json.Marshal(payload.Claims); err != nil {
+		return err
+	}
+	gc := GoogleClaims{}
+	if err = json.Unmarshal(jsonString, &gc); err != nil {
+		return err
+	}
 	pc := PseudoCookie{
 		AccessToken: token.AccessToken,
 		IdToken:     token.Extra("id_token").(string),
 		Expiry:      token.Expiry,
 		Type:        TokenTypeGoogle,
+		Email:       gc.Email,
 	}
 	toJSON, err := json.Marshal(pc)
 	if err != nil {
@@ -99,7 +117,6 @@ func storeGoogleToken(w http.ResponseWriter, r *http.Request) error {
 	}
 	session.Values["token_data"] = toJSON
 	if err = session.Save(r, w); err != nil {
-		fmt.Println("err saving")
 		return err
 	}
 	return nil
@@ -127,11 +144,24 @@ func ValidateGoogleToken(w http.ResponseWriter, r *http.Request) error {
 		if newToken.Extra("id_token") == nil {
 			return fmt.Errorf("missing id token in renewal: %s", err.Error())
 		}
+		payload, err := idtoken.Validate(context.Background(), newToken.Extra("id_token").(string), claimsAudience)
+		if err != nil {
+			return err
+		}
+		var jsonString []byte
+		if jsonString, err = json.Marshal(payload.Claims); err != nil {
+			return err
+		}
+		gc := GoogleClaims{}
+		if err = json.Unmarshal(jsonString, &gc); err != nil {
+			return err
+		}
 		pc := PseudoCookie{
 			AccessToken: newToken.AccessToken,
 			IdToken:     newToken.Extra("id_token").(string),
 			Expiry:      newToken.Expiry,
 			Type:        TokenTypeGoogle,
+			Email:       gc.Email,
 		}
 		tojson, err := json.Marshal(pc)
 		if err != nil {

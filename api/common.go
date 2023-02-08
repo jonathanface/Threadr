@@ -1,10 +1,14 @@
 package api
 
 import (
+	"RichDocter/sessions"
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -12,7 +16,15 @@ import (
 	"github.com/joho/godotenv"
 )
 
-var awsClient *dynamodb.Client
+var AwsClient *dynamodb.Client
+
+type PseudoCookie struct {
+	AccessToken string
+	IdToken     string
+	Expiry      time.Time
+	Type        string
+	Email       string
+}
 
 func init() {
 	var (
@@ -24,12 +36,24 @@ func init() {
 	}
 
 	if awsCfg, err = config.LoadDefaultConfig(context.TODO(), func(opts *config.LoadOptions) error {
-		opts.Region = "us-east-1"
+		opts.Region = os.Getenv("AWS_REGION")
 		return nil
 	}); err != nil {
 		panic(err)
 	}
-	awsClient = dynamodb.NewFromConfig(awsCfg)
+	AwsClient = dynamodb.NewFromConfig(awsCfg)
+}
+
+func getUserEmail(r *http.Request) (string, error) {
+	token, err := sessions.Get(r, "token")
+	if err != nil || token.IsNew {
+		return "", errors.New("unable to retrieve token")
+	}
+	pc := PseudoCookie{}
+	if err = json.Unmarshal(token.Values["token_data"].([]byte), &pc); err != nil {
+		return "", err
+	}
+	return pc.Email, nil
 }
 
 func RespondWithError(w http.ResponseWriter, code int, msg string) {
@@ -41,12 +65,13 @@ func RespondWithJson(w http.ResponseWriter, code int, payload interface{}) {
 		response []byte
 		err      error
 	)
-	w.Header().Set("Content-Type", "application/json")
 	if response, err = json.Marshal(payload); err != nil {
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	w.Write(response)
 }
