@@ -3,12 +3,14 @@ import { useSelector, useDispatch } from 'react-redux'
 import Sidebar from './sections/sidebar/Sidebar';
 import Document from './sections/document/Document';
 import { flipLoggedInState } from './stores/loggedInSlice'
+import { flipCreatingNewStoryState } from './stores/creatingNewStorySlice'
+import CreateNewStory from './sections/createNewStory/CreateNewStoryModal'
 import './css/main.css';
-
 
 const Threadr = () => {
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value)
   const currentStoryID = useSelector((state) => state.currentStoryID.value)
+  const isCreatingNewStory = useSelector((state) => state.isCreatingNewStory.value)
   const dispatch = useDispatch()
 
   useEffect(() => { 
@@ -23,14 +25,15 @@ const Threadr = () => {
       console.error("ERROR", e); 
     })
   }, []);
-
+  console.log("rerender", isLoggedIn, currentStoryID);
   return (
     <div className="App">
       <Sidebar />
       <main>
         {
-          isLoggedIn ? <Document storyID={currentStoryID}/> : ""
+          isLoggedIn && currentStoryID ? <Document storyID={currentStoryID}/> : ""
         }
+        <CreateNewStory />
       </main>
     </div>
   );

@@ -11,6 +11,8 @@ import TreeItem from '@mui/lab/TreeItem';
 import { useSelector, useDispatch } from 'react-redux'
 import { flipLoggedInState } from '../../stores/loggedInSlice'
 import { setCurrentStoryID } from '../../stores/currentStorySlice' 
+import { flipCreatingNewStoryState } from '../../stores/creatingNewStorySlice';
+import { flipRefreshStoryList } from '../../stores/refreshStoryListSlice';
 
 const groupBySeries = (stories) => {
     const groupedStories = [];
@@ -19,7 +21,7 @@ const groupBySeries = (stories) => {
             const exists = groupedStories.find(e => e.key === story.series.Value);
             if (exists) {
                 exists.nodes.push({ 
-                    key: story.story_id.Value,
+                    key: story.title.Value,
                     label: story.title.Value, 
                     order: story.order.Value,
                     created_at: story.created_at.Value
@@ -29,7 +31,7 @@ const groupBySeries = (stories) => {
                     key: story.series.Value,
                     label: story.series.Value,
                     nodes: [{
-                        key: story.story_id.Value,
+                        key: story.title.Value,
                         label: story.title.Value,
                         order: story.order.Value,
                         created_at: story.created_at.Value
@@ -38,7 +40,7 @@ const groupBySeries = (stories) => {
             }
         } else {
             groupedStories.push({
-                key: story.story_id.Value,
+                key: story.title.Value,
                 label: story.title.Value,
                 order: story.order.Value,
                 created_at: story.created_at.Value
@@ -53,6 +55,10 @@ const Sidebar = (props) => {
     const [stories, setStories] = useState([]);
     const [isOpen, setIsOpen] = useState(false);
     const isLoggedIn = useSelector((state) => state.isLoggedIn.value)
+    const refreshStoryList = useSelector((state) => state.refreshStoryList.value)
+    // maybe use this for color coding the active doc...?
+    const currentStoryID = useSelector((state) => state.currentStoryID.value)
+
     const dispatch = useDispatch()
 
     const getStories = () => {
@@ -71,13 +77,14 @@ const Sidebar = (props) => {
         })
     };
     useEffect(() => {
-        if (isLoggedIn) {
+        if (isLoggedIn || refreshStoryList) {
             getStories();
+            dispatch(flipRefreshStoryList)
         }
-    }, [isLoggedIn]);
+    }, [isLoggedIn, refreshStoryList]);
 
     const clickStory = (storyID) => {
-        dispatch(setCurrentStoryID, storyID)
+        dispatch(setCurrentStoryID(storyID))
     }
 
     const signin = () => {
@@ -98,6 +105,10 @@ const Sidebar = (props) => {
             console.error(error);
         })
     }
+
+    const createNewStory = () => {
+        dispatch(flipCreatingNewStoryState())
+    }
     
     return (
         <nav className="menu-container">
@@ -107,17 +118,19 @@ const Sidebar = (props) => {
                 <TreeView  aria-label="documents navigator" defaultCollapseIcon={<ExpandMoreIcon />} defaultExpandIcon={<ChevronRightIcon />} defaultExpanded={["story_label"]}>
                     {isLoggedIn ? 
                         <TreeItem key="story_label" nodeId="story_label" label="Stories">
+                            <TreeItem key="create_label" nodeId="create_label" label="Create" icon={<ArticleIcon/>} onClick={createNewStory} sx={{
+                                '& .MuiTreeItem-label': { fontWeight: 'bold' },
+                            }}></TreeItem>
                             {
                                 stories.map(story => {
                                     return <TreeItem onClick={!story.nodes ? ()=>{clickStory(story.key)} : undefined} icon={!story.nodes ? <EditIcon/> : ""} key={story.key} nodeId={story.key} label={story.label}>
                                     {Array.isArray(story.nodes)
                                     ? story.nodes.map((node) => {
-                                        return <TreeItem onClick={()=>{clickStory(node.key)}} icon={!story.nodes ? <EditIcon/> : ""} key={node.key} nodeId={node.key} label={node.label}/>
+                                        return <TreeItem onClick={()=>{clickStory(node.key)}} icon={<EditIcon/>} key={node.key} nodeId={node.key} label={node.label}/>
                                     }) : null}                          
                                     </TreeItem>
                                 })
                             }
-                            <TreeItem key="create_label" nodeId="create_label" label="Create" icon={<ArticleIcon/>}></TreeItem>
                         </TreeItem>
                         : ""
                     }

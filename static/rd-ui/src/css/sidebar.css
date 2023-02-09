@@ -127,7 +127,7 @@ nav.menu-container .empty {
     padding-left:1em;
 }
 .menu-content ul li ul li ul li {
-    padding-left:0em;
+    padding-left:1em;
 }
 .menu-content ui li:last-child {
     margin-bottom:0;
