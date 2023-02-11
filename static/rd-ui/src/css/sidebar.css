@@ -87,8 +87,8 @@ nav.menu-container .empty {
 
 .checkbox-trigger:checked + .menu-content ul {
     width: 250px;
-    height:auto;
-    transition: height 0.3s ease, width 0.7s ease;
+    max-height:400px;
+    transition: max-height 0.4s ease-in, width 0.4s ease-in;
 }
   
 .menu-content {
@@ -106,9 +106,10 @@ nav.menu-container .empty {
     padding-bottom: 1em;
     margin: 0;
     width: 0px;
-    height: 0px;
+    height: auto;
+    max-height:0px;
     overflow:hidden;
-    transition: height 0.3s ease 0.7s, width 0.7s ease;
+    transition: max-height 0.4s ease-in, width 0.4s ease-in;
 }
 .menu-content ul ul {
     padding-bottom: 0;

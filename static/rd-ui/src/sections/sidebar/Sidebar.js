@@ -12,12 +12,14 @@ import { useSelector, useDispatch } from 'react-redux'
 import { flipLoggedInState } from '../../stores/loggedInSlice'
 import { setCurrentStoryID } from '../../stores/currentStorySlice' 
 import { flipCreatingNewStoryState } from '../../stores/creatingNewStorySlice';
+import { flipMenuOpen } from '../../stores/toggleMenuOpenSlice';
 import { flipRefreshStoryList } from '../../stores/refreshStoryListSlice';
+import Immutable from 'immutable';
 
 const groupBySeries = (stories) => {
     const groupedStories = [];
     stories.map(story => { 
-        if (story.series.Value && story.series.Value.length) {
+        if (story.series.Value) {
             const exists = groupedStories.find(e => e.key === story.series.Value);
             if (exists) {
                 exists.nodes.push({ 
@@ -48,14 +50,19 @@ const groupBySeries = (stories) => {
         }
         return groupedStories;
     });
+    groupedStories.forEach((story) => {
+        if (story.nodes) {
+            story.nodes.sort((a, b) => a.order > b.order)
+        }
+    });
     return groupedStories;
 }
 
 const Sidebar = (props) => {
     const [stories, setStories] = useState([]);
-    const [isOpen, setIsOpen] = useState(false);
     const isLoggedIn = useSelector((state) => state.isLoggedIn.value)
     const refreshStoryList = useSelector((state) => state.refreshStoryList.value)
+    const isOpen = useSelector((state) => state.isMenuOpen.value)
     // maybe use this for color coding the active doc...?
     const currentStoryID = useSelector((state) => state.currentStoryID.value)
 
@@ -71,6 +78,7 @@ const Sidebar = (props) => {
         })
         .then((data) => {
             const sortedStories = groupBySeries(data);
+            console.log("stories", sortedStories);
             setStories(sortedStories);
         }).catch(error => {
             console.error("get stories", error);
@@ -79,11 +87,14 @@ const Sidebar = (props) => {
     useEffect(() => {
         if (isLoggedIn || refreshStoryList) {
             getStories();
-            dispatch(flipRefreshStoryList)
+            if (refreshStoryList) {
+                dispatch(flipRefreshStoryList());
+            }
         }
     }, [isLoggedIn, refreshStoryList]);
 
     const clickStory = (storyID) => {
+        dispatch(flipMenuOpen())
         dispatch(setCurrentStoryID(storyID))
     }
 
@@ -113,7 +124,7 @@ const Sidebar = (props) => {
     return (
         <nav className="menu-container">
             <span className="checkbox-container">
-                <input className="checkbox-trigger" type="checkbox" onChange={() => {setIsOpen(!isOpen)}} checked={isOpen} />
+                <input className="checkbox-trigger" type="checkbox" onChange={() => {dispatch(flipMenuOpen())}} checked={isOpen} />
                 <span className="menu-content">
                 <TreeView  aria-label="documents navigator" defaultCollapseIcon={<ExpandMoreIcon />} defaultExpandIcon={<ChevronRightIcon />} defaultExpanded={["story_label"]}>
                     {isLoggedIn ? 

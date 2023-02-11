@@ -92,6 +92,7 @@ const CreateNewStory = () => {
         setTimeout(() => {
           dispatch(flipRefreshStoryList())
           dispatch(flipCreatingNewStoryState());
+          setIsInASeries(false);
         }, 1000);
       } else {
         setCurrentError(response.error);

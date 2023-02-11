@@ -55,7 +55,7 @@ const Document = (props) => {
   const domEditor = useRef(null);
 
   const [editorState, setEditorState] = React.useState(
-    () => EditorState.createWithContent(ContentState.createFromText('blah lo hoo boy'), CreateDecorators(associations))
+    () => EditorState.createEmpty(CreateDecorators(associations))
   );
 
   const LoadStory = (storyID) => {
