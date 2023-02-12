@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -23,8 +24,7 @@ import (
 
 const (
 	port           = ":83"
-	staticFilesDir = "static/rd-ui/build/"
-	rootDir        = "/"
+	staticFilesDir = "static/rd-ui/build"
 	servicePath    = "/api"
 )
 
@@ -55,33 +55,30 @@ func upsertUser(email string) (err error) {
 }
 
 func serveRootDirectory(w http.ResponseWriter, r *http.Request) {
-	abs, err := filepath.Abs(".")
-	if err != nil {
+	var (
+		abs string
+		err error
+	)
+	if abs, err = filepath.Abs("."); err != nil {
 		log.Println(err.Error())
 		return
 	}
 	cleanedPath := filepath.Clean(r.URL.Path)
 	truePath := abs + string(os.PathSeparator) + staticFilesDir + cleanedPath
 	if _, err := os.Stat(truePath); os.IsNotExist(err) {
-		// return an error if this is a bad API request
-		//if strings.Contains(r.URL.Path, SERVICE_PATH) {
-		//	API.RespondWithError(w, http.StatusNotFound, err.Error())
-		//	return
-		//}
-		http.StripPrefix(r.URL.Path, http.FileServer(http.Dir(rootDir))).ServeHTTP(w, r)
+		// return an error if this is a missing API request
+		if strings.Contains(r.URL.Path, servicePath) {
+			api.RespondWithError(w, http.StatusNotFound, err.Error())
+			return
+		}
+		http.StripPrefix(r.URL.Path, http.FileServer(http.Dir(staticFilesDir))).ServeHTTP(w, r)
 		return
 	}
-	http.FileServer(http.Dir("."+string(os.PathSeparator)+staticFilesDir+string(os.PathSeparator))).ServeHTTP(w, r)
+	http.FileServer(http.Dir(staticFilesDir+string(os.PathSeparator))).ServeHTTP(w, r)
 }
 
-// TODO no allow-origin for prod
 func accessControlMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
-		//w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,HEAD")
-		//w.Header().Set("Access-Control-Allow-Credentials", "true")
-		//w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
-
 		if r.Method == "OPTIONS" {
 			return
 		}
@@ -122,7 +119,7 @@ func main() {
 	rtr.HandleFunc("/auth/google/token", auth.RequestGoogleToken).Methods("GET", "OPTIONS")
 	rtr.HandleFunc("/auth/google/receive", auth.ReceiveGoogleToken).Methods("GET", "OPTIONS")
 	// DEV ONLY!!
-	rtr.HandleFunc("/auth/logout", auth.DeleteToken).Methods("GET", "OPTIONS")
+	//rtr.HandleFunc("/auth/logout", auth.DeleteToken).Methods("GET", "OPTIONS")
 
 	apiPath := rtr.PathPrefix(servicePath).Subrouter()
 	apiPath.Use(accessControlMiddleware)
@@ -135,6 +132,9 @@ func main() {
 
 	// POSTs
 	apiPath.HandleFunc("/stories", api.CreateStoryEndpoint).Methods("POST", "OPTIONS")
+
+	// PUTs
+	apiPath.HandleFunc("/stories/{story}", api.WriteToStoryEndpoint).Methods("PUT", "OPTIONS")
 
 	// DELETEs
 	rtr.HandleFunc("/auth/logout", auth.DeleteToken).Methods("DELETE", "OPTIONS")

@@ -40,10 +40,6 @@ module.exports = {
     new MiniCssExtractPlugin({ filename: "styles.css" }),
     new Dotenv({
         path: './.env',
-    }),
-    new HtmlWebpackPlugin({
-        template: path.join(__dirname, "public", "index.html"),
-        inject: 'body'
     })
   ],
 }

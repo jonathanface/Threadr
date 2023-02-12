@@ -1,10 +1,11 @@
 import React, {useRef} from 'react';
-import {Editor, EditorState, ContentState, RichUtils, getDefaultKeyBinding, Modifier} from 'draft-js';
+import {convertToRaw, Editor, EditorState, ContentState, RichUtils, getDefaultKeyBinding, Modifier} from 'draft-js';
 import {CreateDecorators} from './decorators.js'
 import 'draft-js/dist/Draft.css';
 import '../../css/document.css';
 import { Menu, Item, Submenu, useContextMenu } from 'react-contexify';
 import 'react-contexify/ReactContexify.css';
+import { useSelector} from 'react-redux'
 
 const ASSOCIATION_TYPE_CHARACTER = "character";
 const ASSOCIATION_TYPE_EVENT = "event";
@@ -49,18 +50,13 @@ const insertTab = (editorState) => {
 }
 
 
-const Document = (props) => {
-  console.log("props", props)
-
+const Document = () => {
   const domEditor = useRef(null);
+  const currentStoryID = useSelector((state) => state.currentStoryID.value)
 
   const [editorState, setEditorState] = React.useState(
     () => EditorState.createEmpty(CreateDecorators(associations))
   );
-
-  const LoadStory = (storyID) => {
-    console.log("in doc", storyID);
-  } 
 
   const setFocusAndRestoreCursor = (editorState) => {
     const selection = editorState.getSelection();
@@ -70,6 +66,24 @@ const Document = (props) => {
       })
       domEditor.current.focus();
       return EditorState.forceSelection(editorState, newSelection);
+  }
+
+  const saveBlock = (key, block, order) => {
+    fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID, {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        key: key,
+        block: block,
+        order: order
+      })
+    }).then((response) => {
+      console.log("response", response);
+    }).catch((error) => {
+      console.error("ERR", error);
+    });
   }
 
   
@@ -123,17 +137,29 @@ const Document = (props) => {
   }
 
   const updateEditorState = (newEditorState) => {
-    const blockTree = editorState.getBlockTree(newEditorState.getSelection().getFocusKey());
+    //https://stackoverflow.com/questions/39530561/add-empty-block-to-draft-js-without-moving-selection
+
+    const selection = newEditorState.getSelection();
+    const content = newEditorState.getCurrentContent();
+    const currentKey = selection.getFocusKey()
+    const currentBlock = content.getBlockForKey(currentKey);
+    const blockTree = editorState.getBlockTree(currentKey);
+    const list = [...content.getBlockMap().values()]
+    const activeBlockPosition = list.findIndex(block => block.get('key') === currentKey);
+    if (activeBlockPosition === -1) {
+      //something has been deleted and we need to recalc block order
+    }
+
     if (!blockTree) {
       // new paragraph added
-      const thisBlock = newEditorState.getCurrentContent().getBlockForKey(newEditorState.getSelection().getFocusKey());
-      const firstChar = thisBlock.getCharacterList().get(0);
+      const firstChar = currentBlock.getCharacterList().get(0);
       // Auto-insert tab TO-DO should only be on text-align left
       if ((!firstChar || firstChar && firstChar.entity == null) ||
-          (!firstChar || newEditorState.getCurrentContent().getEntity(firstChar.entity).getType() !== 'TAB')) {
+          (!firstChar || content.getEntity(firstChar.entity).getType() !== 'TAB')) {
           newEditorState = insertTab(newEditorState);
         }
     }
+    saveBlock(currentKey, currentBlock, activeBlockPosition);
     setEditorState(newEditorState);
   }
 

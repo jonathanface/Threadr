@@ -4,16 +4,29 @@ import Sidebar from './sections/sidebar/Sidebar';
 import Document from './sections/document/Document';
 import { flipLoggedInState } from './stores/loggedInSlice'
 import { flipCreatingNewStoryState } from './stores/creatingNewStorySlice'
+import { setCurrentStoryID } from './stores/currentStorySlice' 
 import CreateNewStory from './sections/createNewStory/CreateNewStoryModal'
 import './css/main.css';
 
+
+
 const Threadr = () => {
+
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value)
   const currentStoryID = useSelector((state) => state.currentStoryID.value)
   const isCreatingNewStory = useSelector((state) => state.isCreatingNewStory.value)
   const dispatch = useDispatch()
 
-  useEffect(() => { 
+  const checkLocation = (event) => {
+    const location = window.location.pathname;
+    const splitDirectories = location.split('/');
+    if (splitDirectories[1] === "story" && splitDirectories[2].trim() !== "") {
+      console.log("fetch story", decodeURIComponent(splitDirectories[2]));
+      dispatch(setCurrentStoryID(decodeURIComponent(splitDirectories[2])));
+    }
+  }
+
+  useEffect(() => {
     fetch(process.env.REACT_APP_SERVER_URL + '/api/user')
     .then((response) => { 
       if (response.ok) { 
@@ -23,9 +36,10 @@ const Threadr = () => {
     }).then(data => dispatch(flipLoggedInState()))
     .catch((e) => {
       console.error("ERROR", e); 
-    })
+    });
+    checkLocation();
   }, []);
-  console.log("rerender", isLoggedIn, currentStoryID);
+
   return (
     <div className="App">
       <Sidebar />

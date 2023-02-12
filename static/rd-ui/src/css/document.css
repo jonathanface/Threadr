@@ -33,6 +33,7 @@ div.DraftEditor-root {
 div.DraftEditor-editorContainer, div.public-DraftEditor-content {
     height: 100%;
     line-height:2em;
+    padding:1em;
 }
 
 .highlight {

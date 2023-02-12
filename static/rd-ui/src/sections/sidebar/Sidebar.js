@@ -14,7 +14,6 @@ import { setCurrentStoryID } from '../../stores/currentStorySlice'
 import { flipCreatingNewStoryState } from '../../stores/creatingNewStorySlice';
 import { flipMenuOpen } from '../../stores/toggleMenuOpenSlice';
 import { flipRefreshStoryList } from '../../stores/refreshStoryListSlice';
-import Immutable from 'immutable';
 
 const groupBySeries = (stories) => {
     const groupedStories = [];
@@ -60,11 +59,11 @@ const groupBySeries = (stories) => {
 
 const Sidebar = (props) => {
     const [stories, setStories] = useState([]);
-    const isLoggedIn = useSelector((state) => state.isLoggedIn.value)
-    const refreshStoryList = useSelector((state) => state.refreshStoryList.value)
-    const isOpen = useSelector((state) => state.isMenuOpen.value)
+    const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
+    const refreshStoryList = useSelector((state) => state.refreshStoryList.value);
+    const isOpen = useSelector((state) => state.isMenuOpen.value);
     // maybe use this for color coding the active doc...?
-    const currentStoryID = useSelector((state) => state.currentStoryID.value)
+    const currentStoryID = useSelector((state) => state.currentStoryID.value);
 
     const dispatch = useDispatch()
 
@@ -96,6 +95,7 @@ const Sidebar = (props) => {
     const clickStory = (storyID) => {
         dispatch(flipMenuOpen())
         dispatch(setCurrentStoryID(storyID))
+        history.pushState({storyID}, 'clicked story', '/story/' + encodeURIComponent(storyID));
     }
 
     const signin = () => {
@@ -109,6 +109,7 @@ const Sidebar = (props) => {
         .then((response) => {
             if (response.ok) {
                 dispatch(flipLoggedInState())
+                history.pushState({}, '', '/');
                 return;
             }
             throw new Error('Fetch problem logout ' + response.status);
