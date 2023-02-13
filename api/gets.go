@@ -2,9 +2,8 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"os"
+	"net/url"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -13,25 +12,39 @@ import (
 )
 
 func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
-	userID := os.Getenv("USER_ID")
-	if userID == "" {
-		RespondWithError(w, http.StatusUnprocessableEntity, "user id not set")
+	var (
+		email string
+		err   error
+		story string
+	)
+	if email, err = getUserEmail(r); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
-	storyID := mux.Vars(r)["storyID"]
-	fmt.Println("storyid", storyID)
-	out, err := AwsClient.GetItem(context.TODO(), &dynamodb.GetItemInput{
-		TableName: aws.String("stories"),
-		Key: map[string]types.AttributeValue{
-			"story_id": &types.AttributeValueMemberS{Value: storyID},
-			"user_id":  &types.AttributeValueMemberS{Value: userID},
+	if story, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
+		return
+	}
+	if story == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing story name")
+		return
+	}
+	out, err := AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName:        aws.String("blocks"),
+		FilterExpression: aws.String("attribute_not_exists(deleted_at) AND contains(#owner, :eml) AND contains(story, :stry)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":eml":  &types.AttributeValueMemberS{Value: email},
+			":stry": &types.AttributeValueMemberS{Value: story},
+		},
+		ExpressionAttributeNames: map[string]string{
+			"#owner": "owner",
 		},
 	})
-
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	RespondWithJson(w, http.StatusOK, out.Item)
+	RespondWithJson(w, http.StatusOK, out.Items)
 }
 
 func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {

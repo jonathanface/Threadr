@@ -37,7 +37,6 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
-	log.Println("analyzing", story)
 	story.Title = strings.TrimSpace(story.Title)
 	if story.Title == "" {
 		RespondWithError(w, http.StatusBadRequest, "Missing story name")

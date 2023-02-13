@@ -1,11 +1,12 @@
-import React, {useRef} from 'react';
-import {convertToRaw, Editor, EditorState, ContentState, RichUtils, getDefaultKeyBinding, Modifier} from 'draft-js';
+import React, {useRef, useEffect} from 'react';
+import {convertFromRaw, Editor, EditorState, ContentBlock, RichUtils, getDefaultKeyBinding, Modifier} from 'draft-js';
 import {CreateDecorators} from './decorators.js'
 import 'draft-js/dist/Draft.css';
 import '../../css/document.css';
 import { Menu, Item, Submenu, useContextMenu } from 'react-contexify';
 import 'react-contexify/ReactContexify.css';
 import { useSelector} from 'react-redux'
+import { current } from '@reduxjs/toolkit';
 
 const ASSOCIATION_TYPE_CHARACTER = "character";
 const ASSOCIATION_TYPE_EVENT = "event";
@@ -52,11 +53,51 @@ const insertTab = (editorState) => {
 
 const Document = () => {
   const domEditor = useRef(null);
-  const currentStoryID = useSelector((state) => state.currentStoryID.value)
+  const currentStoryID = useSelector((state) => state.currentStoryID.value);
+  const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
 
   const [editorState, setEditorState] = React.useState(
     () => EditorState.createEmpty(CreateDecorators(associations))
   );
+
+  const getAllStoryBlocks = () => {
+    fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID)
+    .then((response) => {
+        if (response.ok) {
+            return response.json();
+          }
+          throw new Error('Fetch problem blocks ' + response.status);
+    })
+    .then((data) => {
+      data.sort((a, b) => a.order.Value > b.order.Value);
+      console.log("data", data);
+      const newBlocks = [];
+      data.forEach(chunk => {
+        const jsonBlock = JSON.parse(chunk.block.Value);
+        const block = new ContentBlock({
+          characterList: jsonBlock.characterList,
+          depth: jsonBlock.depth,
+          key: chunk.key.Value,
+          text: jsonBlock.text,
+          type: jsonBlock.type
+        });
+        newBlocks.push(block);
+      });
+      const contentState = {
+        entityMap: {},
+        blocks: newBlocks
+      };
+      setEditorState(EditorState.createWithContent(convertFromRaw(contentState), CreateDecorators(associations)));
+    }).catch(error => {
+      console.error("get story blocks", error);
+    })
+  }
+
+  useEffect(() => {
+    if (isLoggedIn && currentStoryID) {
+        getAllStoryBlocks()
+    }
+}, [isLoggedIn, currentStoryID]);
 
   const setFocusAndRestoreCursor = (editorState) => {
     const selection = editorState.getSelection();
@@ -77,7 +118,7 @@ const Document = () => {
       body: JSON.stringify({
         key: key,
         block: block,
-        order: order
+        order: order.toString()
       })
     }).then((response) => {
       console.log("response", response);
@@ -85,8 +126,6 @@ const Document = () => {
       console.error("ERR", error);
     });
   }
-
-  
 
   const keyBindings = (event) => {
     // tab pressed
@@ -137,8 +176,6 @@ const Document = () => {
   }
 
   const updateEditorState = (newEditorState) => {
-    //https://stackoverflow.com/questions/39530561/add-empty-block-to-draft-js-without-moving-selection
-
     const selection = newEditorState.getSelection();
     const content = newEditorState.getCurrentContent();
     const currentKey = selection.getFocusKey()

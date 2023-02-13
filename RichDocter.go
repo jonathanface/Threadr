@@ -127,7 +127,7 @@ func main() {
 	// GETs
 	apiPath.HandleFunc("/user", auth.GetUserData).Methods("GET", "OPTIONS")
 	apiPath.HandleFunc("/stories", api.AllStoriesEndPoint).Methods("GET", "OPTIONS")
-	apiPath.HandleFunc("/stories/{storyID}", api.StoryEndPoint).Methods("GET", "OPTIONS")
+	apiPath.HandleFunc("/stories/{story}", api.StoryEndPoint).Methods("GET", "OPTIONS")
 	apiPath.HandleFunc("/series", api.AllSeriesEndPoint).Methods("GET", "OPTIONS")
 
 	// POSTs

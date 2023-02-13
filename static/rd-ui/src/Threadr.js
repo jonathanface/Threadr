@@ -21,7 +21,6 @@ const Threadr = () => {
     const location = window.location.pathname;
     const splitDirectories = location.split('/');
     if (splitDirectories[1] === "story" && splitDirectories[2].trim() !== "") {
-      console.log("fetch story", decodeURIComponent(splitDirectories[2]));
       dispatch(setCurrentStoryID(decodeURIComponent(splitDirectories[2])));
     }
   }

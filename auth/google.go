@@ -92,6 +92,7 @@ func storeGoogleToken(w http.ResponseWriter, r *http.Request) error {
 	if token, err = conf.Exchange(context.Background(), r.FormValue("code")); err != nil {
 		return fmt.Errorf("bad code exchange: %s", err.Error())
 	}
+	fmt.Println("token expiry", token.Expiry)
 	payload, err := idtoken.Validate(context.Background(), token.Extra("id_token").(string), claimsAudience)
 	if err != nil {
 		return err
@@ -104,10 +105,11 @@ func storeGoogleToken(w http.ResponseWriter, r *http.Request) error {
 	if err = json.Unmarshal(jsonString, &gc); err != nil {
 		return err
 	}
+	//24 hour expiry
 	pc := PseudoCookie{
 		AccessToken: token.AccessToken,
 		IdToken:     token.Extra("id_token").(string),
-		Expiry:      token.Expiry,
+		Expiry:      time.Now().Add(time.Hour * time.Duration(24)),
 		Type:        TokenTypeGoogle,
 		Email:       gc.Email,
 	}
@@ -186,6 +188,7 @@ func generateStateOauthSession(w http.ResponseWriter, r *http.Request) (string, 
 	session.Options.Path = "/auth"
 	session.Options.MaxAge = int(5 * time.Minute)
 	session.Values["state"] = state
+	session.Values["referrer"] = r.URL.Path
 
 	if err = session.Save(r, w); err != nil {
 		return "", err
