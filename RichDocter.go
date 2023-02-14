@@ -135,9 +135,11 @@ func main() {
 
 	// PUTs
 	apiPath.HandleFunc("/stories/{story}", api.WriteToStoryEndpoint).Methods("PUT", "OPTIONS")
+	apiPath.HandleFunc("/stories/{story}/orderMap", api.RewriteBlockOrderEndpoint).Methods("PUT", "OPTIONS")
 
 	// DELETEs
 	rtr.HandleFunc("/auth/logout", auth.DeleteToken).Methods("DELETE", "OPTIONS")
+	apiPath.HandleFunc("/stories/{story}/block", api.DeleteBlockFromStoryEndpoint).Methods("DELETE", "OPTIONS")
 
 	rtr.PathPrefix("/").HandlerFunc(serveRootDirectory)
 	http.Handle("/", rtr)

@@ -21,6 +21,65 @@ type StoryBlock struct {
 	Order string          `json:"order"`
 }
 
+func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
+	var (
+		email string
+		err   error
+		story string
+	)
+	if email, err = getUserEmail(r); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if story, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
+		return
+	}
+	if story == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing story ID")
+		return
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	storyBlocks := []StoryBlock{}
+	if err := decoder.Decode(&storyBlocks); err != nil {
+		RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	var actions []types.TransactWriteItem
+	for _, block := range storyBlocks {
+		twi := types.TransactWriteItem{
+			Update: &types.Update{
+				ConditionExpression: aws.String("contains(#owner, :e)"),
+				ExpressionAttributeNames: map[string]string{
+					"#order": "order",
+					"#owner": "owner",
+				},
+				ExpressionAttributeValues: map[string]types.AttributeValue{
+					":e": &types.AttributeValueMemberS{Value: email},
+					":o": &types.AttributeValueMemberN{Value: block.Order},
+				},
+				Key: map[string]types.AttributeValue{
+					"key":   &types.AttributeValueMemberS{Value: block.Key},
+					"story": &types.AttributeValueMemberS{Value: story},
+				},
+				TableName:        aws.String("blocks"),
+				UpdateExpression: aws.String("SET #order = :o"),
+			},
+		}
+		actions = append(actions, twi)
+	}
+
+	if _, err = AwsClient.TransactWriteItems(context.TODO(), &dynamodb.TransactWriteItemsInput{
+		TransactItems: actions,
+	}); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	RespondWithJson(w, http.StatusOK, nil)
+}
+
 func WriteToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		email string
@@ -72,4 +131,5 @@ func WriteToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	RespondWithJson(w, http.StatusOK, nil)
 }

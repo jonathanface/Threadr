@@ -109,6 +109,42 @@ const Document = () => {
       return EditorState.forceSelection(editorState, newSelection);
   }
 
+  const syncBlockOrderMap = (blockList) => {
+    const params = [];
+    blockList.forEach((block, index) => {
+      params.push({key:block.getKey(), order:index.toString()})
+    })
+    console.log("params", params);
+    fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID + '/orderMap', {
+      method: "PUT",
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(params)
+    }).then((response) => {
+      console.log("response", response);
+    }).catch((error) => {
+      console.error("ERR", error);
+    });
+  }
+
+  const deleteBlockfromServer = (key) => {
+    fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID + '/block', {
+      method: "DELETE",
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        key: key
+      })
+    }).then((response) => {
+      console.log("response", response);
+    }).catch((error) => {
+      console.error("ERR", error);
+    });
+  }
+
+  //this should be queued up and sent in batches at set intervals... currently on every keystroke = not feasable
   const saveBlock = (key, block, order) => {
     fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID, {
       method: "PUT",
@@ -178,17 +214,42 @@ const Document = () => {
   const updateEditorState = (newEditorState) => {
     const selection = newEditorState.getSelection();
     const content = newEditorState.getCurrentContent();
-    const currentKey = selection.getFocusKey()
-    const currentBlock = content.getBlockForKey(currentKey);
-    const blockTree = editorState.getBlockTree(currentKey);
-    const list = [...content.getBlockMap().values()]
-    const activeBlockPosition = list.findIndex(block => block.get('key') === currentKey);
-    if (activeBlockPosition === -1) {
-      //something has been deleted and we need to recalc block order
+    
+    // Getting all affected blocks, being sure to include
+    // multiple blocks in the case a cursor selection was active
+    // and spanning multiple blocks, such as selecting 5 lines
+    // and then hitting delete.
+    const oldSelection = editorState.getSelection();
+    const oldBlockMap = editorState.getCurrentContent().getBlockMap();
+    const min = oldSelection.getIsBackward() ? oldSelection.getFocusKey() : oldSelection.getAnchorKey();
+    const max = oldSelection.getIsBackward() ? oldSelection.getAnchorKey() : oldSelection.getFocusKey();
+    const firstSubselection = oldBlockMap.skipUntil((v, k) => k === min);
+    const toReverse = firstSubselection.reverse();
+    const subselection = toReverse.skipUntil((v, k) => k === max);
+    const [...keysToVerify] = subselection.keys();
+
+    let deletedBlocks = false;
+    const list = [...content.getBlockMap().values()];
+    keysToVerify.forEach(blockKey => {
+      const activeBlockPosition = list.findIndex(block => block.get('key') === blockKey);
+      if (activeBlockPosition === -1) {
+        deleteBlockfromServer(blockKey);
+        deletedBlocks = true;
+      } else {
+        saveBlock(blockKey, content.getBlockForKey(blockKey), activeBlockPosition);
+      }
+    })
+    if (deletedBlocks) {
+      // some blocks were deleted so we have to resynch our ordering
+      // TO-DO this might be costly with giant documents
+      syncBlockOrderMap(list);
     }
 
+    const currentKey = selection.getFocusKey()
+    const blockTree = editorState.getBlockTree(currentKey);
     if (!blockTree) {
       // new paragraph added
+      const currentBlock = content.getBlockForKey(currentKey);
       const firstChar = currentBlock.getCharacterList().get(0);
       // Auto-insert tab TO-DO should only be on text-align left
       if ((!firstChar || firstChar && firstChar.entity == null) ||
@@ -196,7 +257,7 @@ const Document = () => {
           newEditorState = insertTab(newEditorState);
         }
     }
-    saveBlock(currentKey, currentBlock, activeBlockPosition);
+    
     setEditorState(newEditorState);
   }
 
