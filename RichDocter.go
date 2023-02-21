@@ -95,6 +95,7 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 		switch pc.Type {
 		case auth.TokenTypeGoogle:
 			tokenCheck := auth.ValidateGoogleToken(w, r)
+			fmt.Println("tokcheck", tokenCheck)
 			if tokenCheck != nil {
 				api.RespondWithError(w, http.StatusBadRequest, "invalid token")
 				return

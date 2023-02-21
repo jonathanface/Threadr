@@ -31,13 +31,10 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	out, err := AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("blocks"),
-		FilterExpression: aws.String("attribute_not_exists(deleted_at) AND contains(#owner, :eml) AND contains(story, :stry)"),
+		FilterExpression: aws.String("attribute_not_exists(deleted_at) AND contains(author, :eml) AND contains(story, :stry)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml":  &types.AttributeValueMemberS{Value: email},
 			":stry": &types.AttributeValueMemberS{Value: story},
-		},
-		ExpressionAttributeNames: map[string]string{
-			"#owner": "owner",
 		},
 	})
 	if err != nil {
@@ -59,12 +56,9 @@ func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	out, err := AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("stories"),
-		FilterExpression: aws.String("attribute_not_exists(deleted_at) AND contains(#owner, :eml)"),
+		FilterExpression: aws.String("attribute_not_exists(deleted_at) AND contains(author, :eml)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
-		},
-		ExpressionAttributeNames: map[string]string{
-			"#owner": "owner",
 		},
 	})
 	if err != nil {
@@ -85,12 +79,9 @@ func AllSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	out, err := AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("series"),
-		FilterExpression: aws.String("attribute_not_exists(deleted_at) AND contains(#owner, :eml)"),
+		FilterExpression: aws.String("attribute_not_exists(deleted_at) AND contains(author, :eml)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
-		},
-		ExpressionAttributeNames: map[string]string{
-			"#owner": "owner",
 		},
 	})
 	if err != nil {

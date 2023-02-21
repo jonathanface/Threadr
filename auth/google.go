@@ -109,7 +109,7 @@ func storeGoogleToken(w http.ResponseWriter, r *http.Request) error {
 	pc := PseudoCookie{
 		AccessToken: token.AccessToken,
 		IdToken:     token.Extra("id_token").(string),
-		Expiry:      time.Now().Add(time.Hour * time.Duration(24)),
+		Expiry:      time.Now().Local().Add(time.Hour * time.Duration(24)),
 		Type:        TokenTypeGoogle,
 		Email:       gc.Email,
 	}
@@ -129,23 +129,29 @@ func ValidateGoogleToken(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	var token oauth2.Token
+	//var token oauth2.Token
 	pc := PseudoCookie{}
 	if err = json.Unmarshal(session.Values["token_data"].([]byte), &pc); err != nil {
 		return err
 	}
+	token := new(oauth2.Token)
 	token.AccessToken = pc.AccessToken
+	token.RefreshToken = pc.RefreshToken
 	token.Expiry = pc.Expiry
-	tokenSource := conf.TokenSource(context.TODO(), &token)
+	token.TokenType = pc.TokenType
+	conf.Client(context.TODO(), token)
+
+	tokenSource := conf.TokenSource(context.TODO(), token)
 	newToken, err := tokenSource.Token()
 	if err != nil {
 		return err
 	}
-
+	fmt.Println("tok", newToken.AccessToken == token.AccessToken)
 	if newToken.AccessToken != token.AccessToken {
 		if newToken.Extra("id_token") == nil {
 			return fmt.Errorf("missing id token in renewal: %s", err.Error())
 		}
+		token = newToken
 		payload, err := idtoken.Validate(context.Background(), newToken.Extra("id_token").(string), claimsAudience)
 		if err != nil {
 			return err

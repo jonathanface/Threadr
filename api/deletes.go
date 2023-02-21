@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -33,24 +32,19 @@ func DeleteBlockFromStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	decoder := json.NewDecoder(r.Body)
 	var blockKey struct {
-		Key string `json:"key"`
+		KeyID string `json:"keyID"`
 	}
 	if err := decoder.Decode(&blockKey); err != nil {
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	fmt.Println("blockKey", blockKey.Key)
-
 	_, err = AwsClient.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
 		TableName: aws.String("blocks"),
 		Key: map[string]types.AttributeValue{
-			"key":   &types.AttributeValueMemberS{Value: blockKey.Key},
+			"keyID": &types.AttributeValueMemberS{Value: blockKey.KeyID},
 			"story": &types.AttributeValueMemberS{Value: story},
 		},
-		ConditionExpression: aws.String("contains(#owner, :eml)"),
-		ExpressionAttributeNames: map[string]string{
-			"#owner": "owner",
-		},
+		ConditionExpression: aws.String("contains(author, :eml)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
 		},

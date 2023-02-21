@@ -14,11 +14,13 @@ import (
 const TokenTypeGoogle = "google"
 
 type PseudoCookie struct {
-	AccessToken string
-	IdToken     string
-	Expiry      time.Time
-	Type        string
-	Email       string
+	AccessToken  string
+	RefreshToken string
+	IdToken      string
+	Expiry       time.Time
+	Type         string
+	Email        string
+	TokenType    string
 }
 
 func DeleteToken(w http.ResponseWriter, r *http.Request) {

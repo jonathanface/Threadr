@@ -19,7 +19,7 @@ type Story struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	Series      string `json:"series"`
-	Order       int    `json:"order"`
+	Place       int    `json:"place"`
 }
 
 func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -49,16 +49,16 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	if len(story.Series) > 0 {
-		if story.Order <= 0 {
-			RespondWithError(w, http.StatusBadRequest, "Order must be > 0")
+		if story.Place <= 0 {
+			RespondWithError(w, http.StatusBadRequest, "Place must be > 0")
 			return
 		}
 		log.Println("creating series", story.Series)
 		input := &dynamodb.UpdateItemInput{
 			TableName: aws.String("series"),
 			Key: map[string]types.AttributeValue{
-				"title": &types.AttributeValueMemberS{Value: story.Series},
-				"owner": &types.AttributeValueMemberS{Value: email},
+				"title":  &types.AttributeValueMemberS{Value: story.Series},
+				"author": &types.AttributeValueMemberS{Value: email},
 			},
 			UpdateExpression: aws.String("set created_at=if_not_exists(created_at,:t), story_count=if_not_exists(story_count, :initIncr) + :incr"),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -74,26 +74,24 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	order := strconv.Itoa(story.Order)
+	place := strconv.Itoa(story.Place)
 	input := &dynamodb.UpdateItemInput{
 		TableName: aws.String("stories"),
 		Key: map[string]types.AttributeValue{
-			"title": &types.AttributeValueMemberS{Value: story.Title},
-			"owner": &types.AttributeValueMemberS{Value: email},
+			"title":  &types.AttributeValueMemberS{Value: story.Title},
+			"author": &types.AttributeValueMemberS{Value: email},
 		},
-		UpdateExpression:    aws.String("set description=:descr, series=:srs, #order=:ord, created_at=:t"),
-		ConditionExpression: aws.String("#owner <> :eml AND #title <> :title"),
+		UpdateExpression:    aws.String("set description=:descr, series=:srs, place=:p, created_at=:t"),
+		ConditionExpression: aws.String("author <> :eml AND #title <> :title"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":t":     &types.AttributeValueMemberN{Value: now},
 			":descr": &types.AttributeValueMemberS{Value: story.Description},
 			":srs":   &types.AttributeValueMemberS{Value: story.Series},
-			":ord":   &types.AttributeValueMemberN{Value: order},
+			":p":     &types.AttributeValueMemberN{Value: place},
 			":eml":   &types.AttributeValueMemberS{Value: email},
 			":title": &types.AttributeValueMemberS{Value: story.Title},
 		},
 		ExpressionAttributeNames: map[string]string{
-			"#order": "order",
-			"#owner": "owner",
 			"#title": "title",
 		},
 	}
