@@ -74,7 +74,8 @@ const Document = () => {
           throw new Error('Fetch problem blocks ' + response.status);
     })
     .then((data) => {
-      data.sort((a, b) => a.place.Value > b.place.Value);
+      console.log("data", data)
+      data.sort((a, b) => parseInt(a.place.Value) > parseInt(b.place.Value));
       const newBlocks = [];
       data.forEach(piece => {
         const jsonBlock = JSON.parse(piece.chunk.Value);
@@ -295,7 +296,7 @@ const Document = () => {
   }
 
   const handlePasteAction = (text) => {
-    const blockMap = ContentState.createFromText(text).blockMap;
+    const blockMap = ContentState.createFromText(text).getBlockMap();
     const newState = Modifier.replaceWithFragment(editorState.getCurrentContent(), editorState.getSelection(), blockMap);
     updateEditorState(EditorState.push(editorState, newState, 'insert-fragment'));
     return true;
