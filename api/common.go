@@ -41,6 +41,7 @@ func init() {
 	}); err != nil {
 		panic(err)
 	}
+	awsCfg.RetryMaxAttempts = 15
 	AwsClient = dynamodb.NewFromConfig(awsCfg)
 }
 

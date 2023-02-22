@@ -39,19 +39,14 @@ const generateTabCharacter = () => {
 const forceStateUpdate = (editorState) => {
   return EditorState.set(editorState, {decorator: CreateDecorators(associations)});
 }
-/*
-const insertTab = (editorState) => {
-  const selection = editorState.getSelection();
-  const currentContent = editorState.getCurrentContent();
-  const contentStateWithEntity = currentContent.createEntity('TAB', 'IMMUTABLE');
-  const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
-  const textWithEntity = Modifier.insertText(currentContent, selection, generateTabCharacter(), null, entityKey);
-  const newState = EditorState.push(editorState, textWithEntity, 'apply-entity');
-  return EditorState.forceSelection(newState, textWithEntity.getSelectionAfter());
-}*/
 
-const insertTab = (editorState, blockKey) => {
-  const selection = SelectionState.createEmpty(blockKey)
+const insertTab = (editorState, key) => {
+  const selection = new SelectionState({
+    anchorKey: key,
+    focusKey: key,
+    anchorOffset: 0,
+    focusOffset: 0
+  });
   const currentContent = editorState.getCurrentContent();
   const contentStateWithEntity = currentContent.createEntity('TAB', 'IMMUTABLE');
   const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
@@ -80,7 +75,6 @@ const Document = () => {
     })
     .then((data) => {
       data.sort((a, b) => a.place.Value > b.place.Value);
-      console.log("data", data);
       const newBlocks = [];
       data.forEach(piece => {
         const jsonBlock = JSON.parse(piece.chunk.Value);
@@ -98,6 +92,10 @@ const Document = () => {
         blocks: newBlocks
       };
       setEditorState(EditorState.createWithContent(convertFromRaw(contentState), CreateDecorators(associations)));
+      if (!editorState.getCurrentContent().hasText()) {
+        // TO-DO fix below
+        //setEditorState(insertTab(editorState, data[0].keyID.Value));
+      }
     }).catch(error => {
       console.error("get story blocks", error);
     })
@@ -105,7 +103,8 @@ const Document = () => {
 
   useEffect(() => {
     if (isLoggedIn && currentStoryID) {
-        getAllStoryBlocks()
+      setFocusAndRestoreCursor(editorState);
+      getAllStoryBlocks();
     }
 }, [isLoggedIn, currentStoryID]);
 
@@ -142,7 +141,8 @@ const Document = () => {
   }
 
   const deleteBlockfromServer = async(key) => {
-    const response = fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID + '/block', {
+    console.log("del", key);
+    const response = await fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID + '/block', {
       method: "DELETE",
       headers: {
         'Content-Type': 'application/json'
@@ -152,7 +152,7 @@ const Document = () => {
       })
     });
     if (!response.ok) {
-      const message = 'An error has occured: ' + response.status;
+      const message = 'An error has occured: ' + response.body;
       throw new Error(message);
     }
     return response.json();
@@ -183,7 +183,7 @@ const Document = () => {
     // tab pressed
     if (event.keyCode === 9) {
       event.preventDefault();
-      //setEditorState(insertTab(editorState));
+      setEditorState(insertTab(editorState, editorState.getSelection().getFocusKey()));
     }
     return getDefaultKeyBinding(event);
   }
@@ -224,16 +224,24 @@ const Document = () => {
   }
 
   const handleKeyCommand = (command) => {
+    console.log("cmd", command)
+    if (command === 'backspace' || command === 'delete') {
+      return;
+    }
     setEditorState(RichUtils.handleKeyCommand(editorState, command));
   }
 
   const updateEditorState = (newEditorState) => {
-    console.log("updateEditorState")
+    // Cursor has moved but no text changes detected
+    if (editorState.getCurrentContent() === newEditorState.getCurrentContent()) {
+      setEditorState(newEditorState);
+      return;
+    }
+
     const newContent = newEditorState.getCurrentContent();
     const newBlockMap = newContent.getBlockMap();
     const oldContent = editorState.getCurrentContent();
     const oldBlockMap = oldContent.getBlockMap();
-    const currentSelection = newEditorState.getSelection();
     const lastSelection = editorState.getSelection();
     const min = lastSelection.getIsBackward() ? lastSelection.getFocusKey() : lastSelection.getAnchorKey();
     const max = lastSelection.getIsBackward() ? lastSelection.getAnchorKey() : lastSelection.getFocusKey();
@@ -241,36 +249,44 @@ const Document = () => {
     const toReverse = firstSubselection.reverse();
     const subselection = toReverse.skipUntil((v, k) => k === max);
     const [...selectedKeys] = subselection.keys();
-    
+
     let resyncRequired = false;
-    
-    newBlockMap.forEach((block) => {
-      if (!oldBlockMap.has(block.getKey())) {
-        // this is a brand new block
+    oldBlockMap.forEach((oldBlock, oldBlockKey) => {
+      const newBlock = newBlockMap.get(oldBlockKey);
+      // If the old block is not in the new block map, it's been removed
+      if (!newBlock) {
+        // Remove the block from the selection if it was selected
+        if (selectedKeys.includes(oldBlockKey)) {
+          selectedKeys.splice(selectedKeys.indexOf(oldBlockKey), 1);
+        }
         resyncRequired = true;
-        saveBlock(block.getKey(), newContent.getBlockForKey(block.getKey()), 0);
+        deleteBlockfromServer(oldBlockKey);
+
+      }
+    });
+    const newBlocks = [...newBlockMap.keys()];
+    newBlockMap.forEach((newBlock, newBlockKey) => {
+      const firstChar = newBlock.getCharacterList().get(0);
+      if ((firstChar && firstChar.entity == null) || (firstChar && newContent.getEntity(firstChar.entity).getType() != 'TAB')) {
+        newEditorState = insertTab(newEditorState, newBlockKey);
+      }
+
+      const oldBlock = oldBlockMap.get(newBlockKey);
+      // If the new block is not in the old block map, it's a new block
+      if (!oldBlock) {
+        resyncRequired = true;
+        const index = newBlocks.indexOf(newBlockKey);
+        saveBlock(newBlockKey, newBlock, index);
+        newEditorState = insertTab(newEditorState, newBlockKey);
+        return;
+      }
+      // If the block is selected, save it to the server
+      if (selectedKeys.includes(newBlockKey)) {
+        const index = newBlocks.indexOf(newBlockKey);
+        saveBlock(newBlockKey, newBlock, index);
       }
     });
 
-    oldBlockMap.forEach((block) => {
-      if (!newBlockMap.has(block.getKey())) {
-        //a block was removed
-        if (selectedKeys.indexOf(block.getKey()) !== -1) {
-          selectedKeys.splice(selectedKeys.indexOf(block.getKey()), 1);
-        }
-        resyncRequired = true;
-        deleteBlockfromServer(block.getKey());
-      }
-    })
-    
-    const newBlocks = [...newBlockMap.values()];
-    selectedKeys.forEach(key => {
-      console.log("selected", selectedKeys)
-      const ind = newBlocks.findIndex(block => block.get('key') === key);
-      saveBlock(key, newContent.getBlockForKey(key), ind);
-    })
-      
-    
     if (resyncRequired) {
       syncBlockOrderMap(newBlockMap);
     }
@@ -278,94 +294,15 @@ const Document = () => {
     setEditorState(newEditorState);
   }
 
-  const applyTabEntity = (newEditorState, block) => {
-    const content = newEditorState.getCurrentContent();
-    const firstChar = block.getCharacterList().get(0);
-    const newBlockSelection = SelectionState.createEmpty(block.getKey());
-    console.log("curr block", block.getKey());
-    console.log("exists"), content.getBlockForKey(block.getKey());
- //|| (block.getText()[0].toUpperCase() === block.getText()[0])
-      if (!firstChar || (firstChar && firstChar.entity === null) || (firstChar && content.getEntity(firstChar.entity).getType() !== 'TAB')) {
-        console.log("tabbing", block.getText());
-        const contentStateWithEntity = content.createEntity('TAB', 'IMMUTABLE');
-        const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
-        return EditorState.push(newEditorState, Modifier.insertText(content, newBlockSelection, generateTabCharacter(), null, entityKey));
-      }
-    
-    return newEditorState;
-  }
-
-
   const handlePasteAction = (text) => {
-
     const blockMap = ContentState.createFromText(text).blockMap;
     const newState = Modifier.replaceWithFragment(editorState.getCurrentContent(), editorState.getSelection(), blockMap);
     updateEditorState(EditorState.push(editorState, newState, 'insert-fragment'));
     return true;
-    /*
-    const oldContent = editorState.getCurrentContent();
-    const oldBlockMap = oldContent.getBlockMap();
-    const newContent = ContentState.createFromText(text);
-    const newBlockMap = newContent.getBlockMap();
-    let updatedEditor = editorState;
-    newBlockMap.map((block) => {
-      const currentKey = block.getKey();
-      if (!oldBlockMap.has(currentKey)) {
-        //new block pasted
-        const updatedContent = Modifier.replaceWithFragment(oldContent, editorState.getSelection(), newBlockMap);
-        //updatedState.push(EditorState.push(editorState, updatedContent, 'insert-fragment'));
-        updatedEditor = EditorState.push(updatedEditor, updatedContent, 'insert-fragment');
+  }
 
-        //setEditorState(applyTabEntity(editorState, block));
-        //return
-        //saveBlock(block.getKey(), block, 0);
-      }
-    });
-    setEditorState(editorState, updatedEditor);
-    console.log("updated", updatedEditor)
-    //setEditorState(editorState, updatedState[updatedState.length-1])
-    /*
-    const oldContent = editorState.getCurrentContent();
-    const oldBlockMap = oldContent.getBlockMap();
-    const newContent = ContentState.createFromText(text);
-    const newBlockMap = newContent.getBlockMap();
-    let newEditorState = editorState;
-    newBlockMap.forEach((block) => {
-      const currentKey = block.getKey();
-      if (!oldBlockMap.has(currentKey)) {
-        //new block pasted
-        
-        const updatedContent = Modifier.replaceWithFragment(oldContent, editorState.getSelection(), newBlockMap);
-        //setEditorState(EditorState.push(editorState, newState, 'insert-fragment'));
-        newEditorState = EditorState.push(editorState, updatedContent, 'insert-fragment');
-        //saveBlock(block.getKey(), block, 0);
-      }
-    });
-    setEditorState(newEditorState);
-
-    const revisedContent = newEditorState.getCurrentContent();
-    const revisedBlockMap = revisedContent.getBlockMap();
-    revisedBlockMap.forEach((block) => {
-      const firstChar = block.getCharacterList().get(0);
-      const selection = SelectionState.createEmpty(block.getKey());
-      //newEditorState = EditorState.forceSelection(newEditorState, selection);
-      if (firstChar) {
-        if ((firstChar.entity === null) || (block.getText()[0].toUpperCase() === block.getText()[0]) ||
-            (revisedContent.getEntity(firstChar.entity).getType() !== 'TAB')) {
-          console.log("tabbing", block.getText());
-          newEditorState = EditorState.push(newEditorState, createTabEntity(revisedContent, selection), 'apply-entity');
-        }
-      } else {
-        newEditorState = EditorState.push(newEditorState, createTabEntity(revisedContent, selection), 'apply-entity');
-      }
-    });
-    setEditorState(newEditorState);*/
-
-    
-    //setEditorState(editorState => ({ ...editorState, newEditorState }));
-   // const list = [...editorState.getCurrentContent().getBlockMap().values()];
-    //syncBlockOrderMap(list);
-    return true;
+  const setFocus = () => {
+    domEditor.current.focus();
   }
 
   return (
@@ -376,8 +313,8 @@ const Document = () => {
         <button onMouseDown={(e) => {handleStyleClick(e,'UNDERLINE')}}><u>U</u></button>
         <button onMouseDown={(e) => {handleStyleClick(e,'STRIKETHROUGH')}}><s>S</s></button>
       </nav>
-      <section onContextMenu={handleContextMenu}>
-        <Editor editorState={editorState} stripPastedStyles={true} onChange={updateEditorState} handlePastedText={handlePasteAction} handleKeyCommand={handleKeyCommand} keyBindingFn={keyBindings} ref={domEditor} />
+      <section onContextMenu={handleContextMenu} onClick={setFocus}>
+        <Editor preserveSelectionOnBlur={true} editorState={editorState} stripPastedStyles={true} onChange={updateEditorState} handlePastedText={handlePasteAction} handleKeyCommand={handleKeyCommand} keyBindingFn={keyBindings} ref={domEditor} />
       </section>
       <Menu id="custom_context">
         <Submenu label="Create Association">

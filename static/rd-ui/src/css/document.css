@@ -22,7 +22,7 @@ div.DraftEditor-root {
     border: 1px solid #000;
     border-radius:10px;
     background-color: #F0F0F0;
-    height: 400px;
+    min-height: 400px;
     width:70%;
     padding:10px;
     margin:10px auto;
