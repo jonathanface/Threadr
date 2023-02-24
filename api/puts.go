@@ -68,31 +68,34 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 		batchSize = numRecords
 	}
 	var wg sync.WaitGroup
-	for num := 0; num < numRecords; num = num + batchSize {
-		start := num
+	for num := 0; num < numRecords; num += batchSize {
 		end := num + batchSize - 1
+		if end > numRecords {
+			end = numRecords - 1
+		}
+		start := num
 		errs := make(chan error, 1)
 		wg.Add(1)
 		go func(s, e int) {
 			defer wg.Done()
 			for i := s; i <= e; i++ {
-				params, err := attributevalue.MarshalList([]interface{}{storyBlocks.Blocks[i].Place, storyBlocks.Blocks[i].KeyID, storyBlocks.Title, email})
+				params, err := attributevalue.MarshalList([]interface{}{storyBlocks.Blocks[i].Place, storyBlocks.Blocks[i].KeyID, story, email})
 				if err != nil {
 					errs <- err
-					return
+					break
 				}
 				_, err = runner.DynamoDbClient.ExecuteStatement(context.TODO(), &dynamodb.ExecuteStatementInput{
 					Statement: aws.String(fmt.Sprintf("UPDATE \"%v\" SET place=? WHERE keyID=? AND story=? AND author=?", runner.TableName)), Parameters: params})
 				if err != nil {
 					errs <- err
-					return
+					break
 				}
 			}
 			close(errs)
 		}(start, end)
 		for err := range errs {
-			close(errs)
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
 		}
 	}
 	wg.Wait()

@@ -6,7 +6,6 @@ import TextField from '@mui/material/TextField';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
 import Checkbox from '@mui/material/Checkbox';
 import DialogTitle from '@mui/material/DialogTitle';
 import { flipCreatingNewStoryState } from '../../stores/creatingNewStorySlice'
@@ -23,7 +22,7 @@ const CreateNewStory = () => {
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
   const dispatch = useDispatch();
   const initMap = new Map();
-  initMap["order"] = 1;
+  initMap["place"] = 1;
   const [formInput, setFormInput] = React.useState(initMap);
   const [areErrors, setAreErrors] = React.useState(false);
   const [currentError, setCurrentError] = React.useState("");
@@ -71,8 +70,8 @@ const CreateNewStory = () => {
       setAreErrors(true);
       return;
     }
-    if (formInput["series"] && formInput["order"] < 1) {
-      setCurrentError("Order must be > 1 when assigning to a series");
+    if (formInput["series"] && formInput["place"] < 1) {
+      setCurrentError("Place must be > 1 when assigning to a series");
       setAreErrors(true);
       return;
     }
@@ -86,7 +85,7 @@ const CreateNewStory = () => {
       body: JSON.stringify(formInput)
     }).then((response) => {
       if (response.ok) {
-        series.push({'label': formInput["series"], 'id': formInput["series"], 'count':formInput["order"]})
+        series.push({'label': formInput["series"], 'id': formInput["series"], 'count':formInput["place"]})
         setSeries(series);
         dispatch(setCurrentStoryID(formInput["title"]))
         setTimeout(() => {
@@ -148,17 +147,17 @@ const CreateNewStory = () => {
                 <Autocomplete
                   onInputChange={(event) => {
                     formInput["series"] = event.target.value;
-                    formInput["order"] = 1;
+                    formInput["place"] = 1;
                     if (series.some((s) => {
                       if (s.label === event.target.value) {
-                        formInput["order"] = s.count+1;
+                        formInput["place"] = s.count+1;
                       }
                     }))
                     setFormInput(formInput);
                   }}
                   onChange={(event, actions) => {
                     formInput["series"] = actions.id;
-                    formInput["order"] = actions.count+1;
+                    formInput["place"] = actions.count+1;
                     setFormInput(formInput);
                   }}
                   freeSolo

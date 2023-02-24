@@ -1,4 +1,5 @@
 import React, {useRef, useEffect} from 'react';
+import Immutable from 'immutable';
 import {convertFromRaw, Editor, EditorState, ContentBlock, RichUtils, getDefaultKeyBinding, Modifier, SelectionState, ContentState} from 'draft-js';
 import {CreateDecorators} from './decorators.js'
 import 'draft-js/dist/Draft.css';
@@ -6,7 +7,7 @@ import '../../css/document.css';
 import { Menu, Item, Submenu, useContextMenu } from 'react-contexify';
 import 'react-contexify/ReactContexify.css';
 import { useSelector} from 'react-redux'
-import { current } from '@reduxjs/toolkit';
+import dbOperationIntervalSlice, { setDBOperationInterval } from '../../stores/dbOperationIntervalSlice';
 
 const ASSOCIATION_TYPE_CHARACTER = "character";
 const ASSOCIATION_TYPE_EVENT = "event";
@@ -15,6 +16,21 @@ const tabLength = 5;
 
 const associations = [];
 associations.push({type:ASSOCIATION_TYPE_CHARACTER, name:"lo", details:{aliases:""}})
+
+const styleMap = {
+  'STRIKETHROUGH': {
+    textDecoration: 'line-through',
+  },
+  'BOLD': {
+    fontWeight: 'bold',
+  },
+  'ITALIC': {
+    fontStyle: 'italic'
+  },
+  'UNDERLINE': {
+    textDecoration: 'underline'
+  }
+};
 
 const getSelectedText = (editorState) => {
   const selection = editorState.getSelection();
@@ -55,6 +71,7 @@ const insertTab = (editorState, key) => {
   return EditorState.forceSelection(newState, textWithEntity.getSelectionAfter());
 }
 
+const dbOperationQueue = [];
 
 const Document = () => {
   const domEditor = useRef(null);
@@ -65,6 +82,8 @@ const Document = () => {
     () => EditorState.createEmpty(CreateDecorators(associations))
   );
 
+  
+
   const getAllStoryBlocks = () => {
     fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID)
     .then((response) => {
@@ -74,7 +93,6 @@ const Document = () => {
           throw new Error('Fetch problem blocks ' + response.status);
     })
     .then((data) => {
-      console.log("data", data)
       data.sort((a, b) => parseInt(a.place.Value) > parseInt(b.place.Value));
       const newBlocks = [];
       data.forEach(piece => {
@@ -84,7 +102,9 @@ const Document = () => {
           depth: jsonBlock.depth,
           key: piece.keyID.Value,
           text: jsonBlock.text,
-          type: jsonBlock.type
+          type: jsonBlock.type,
+          data: jsonBlock.data,
+          
         });
         newBlocks.push(block);
       });
@@ -92,11 +112,21 @@ const Document = () => {
         entityMap: {},
         blocks: newBlocks
       };
-      setEditorState(EditorState.createWithContent(convertFromRaw(contentState), CreateDecorators(associations)));
-      if (!editorState.getCurrentContent().hasText()) {
-        // TO-DO fix below
-        //setEditorState(insertTab(editorState, data[0].keyID.Value));
-      }
+      let newContentState = convertFromRaw(contentState);
+      newBlocks.forEach(block => {
+        if (block.getData(["styles"]) && block.getData(["styles"]).styles) {
+          block.getData(["styles"]).styles.forEach(style => {
+            const styleSelection = new SelectionState({
+              focusKey: block.key,
+              anchorKey: block.key,
+              focusOffset: style.end,
+              anchorOffset: style.start
+            })
+            newContentState = Modifier.applyInlineStyle(newContentState, styleSelection, style.style)
+          })
+        }
+      })
+      setEditorState(EditorState.createWithContent(newContentState, CreateDecorators(associations)));
     }).catch(error => {
       console.error("get story blocks", error);
     })
@@ -106,8 +136,51 @@ const Document = () => {
     if (isLoggedIn && currentStoryID) {
       setFocusAndRestoreCursor(editorState);
       getAllStoryBlocks();
+      setDBOperationInterval(setInterval(() => {
+        processDBQueue();
+      }, process.env.REACT_APP_DB_OP_INTERVAL));
     }
-}, [isLoggedIn, currentStoryID]);
+  }, [isLoggedIn, currentStoryID]);
+
+  const processDBQueue = () => {
+    console.log("processing...", dbOperationQueue.length)
+    dbOperationQueue.forEach(async(op) => {
+      switch(op.type) {
+        case "delete":
+        case "save": {
+          try {
+            const pancakedOps = dbOperationQueue.filter(obj => obj.type === op.type && obj.key === op.key);
+            const toSave = pancakedOps.pop();
+            dbOperationQueue.splice(dbOperationQueue.indexOf(toSave), 1);
+            pancakedOps.reduceRight((_, item, i) => {
+              if (dbOperationQueue.includes(item)) {
+                dbOperationQueue.splice(i, 1);
+              }
+            }, null);
+            if (op.type === "save") {
+              await saveBlock(toSave.key, toSave.block, toSave.index);
+            } else {
+              await deleteBlockfromServer(op.key);
+            }
+          } catch(e) {
+            console.error(e)
+          }
+          break;
+        }
+        case "syncOrder": {
+          try {
+            syncBlockOrderMap(op.blockList);
+          } catch(e) {
+            console.error(e)
+          }
+          break;
+        }
+        default:
+          console.error("invalid operation:", op);
+      }
+      
+    });
+  };
 
   const setFocusAndRestoreCursor = (editorState) => {
     const selection = editorState.getSelection();
@@ -120,64 +193,98 @@ const Document = () => {
   }
 
   const syncBlockOrderMap = (blockList) => {
-    const params = {}
-    params.title = currentStoryID;
-    params.blocks = [];
-    let index = 0;
-    blockList.forEach((block) => {
-      params.blocks.push({keyID:block.getKey(), place:index.toString()})
-      index++;
-    })
-    fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID + '/orderMap', {
-      method: "PUT",
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(params)
-    }).then((response) => {
-      console.log("response", response);
-    }).catch((error) => {
-      console.error("ERR", error);
+    return new Promise(async(resolve, reject) => {
+      try {
+        const params = {}
+        params.title = currentStoryID;
+        params.blocks = [];
+        let index = 0;
+        blockList.forEach((block) => {
+          params.blocks.push({keyID:block.getKey(), place:index.toString()})
+          index++;
+        })
+        const response = await fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID + '/orderMap', {
+          method: "PUT",
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(params)
+        });
+        if (!response.ok) {
+          reject("SERVER ERROR ORDERING BLOCKS: ", response.body);
+        }
+        resolve(response.json());
+      } catch (e) {
+        reject("ERROR ORDERING BLOCKS: ", e);
+      }
     });
   }
 
-  const deleteBlockfromServer = async(key) => {
-    console.log("del", key);
-    const response = await fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID + '/block', {
-      method: "DELETE",
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        keyID: key
-      })
+  const deleteBlockfromServer = (key) => {
+    return new Promise(async(resolve, reject) => {
+      try {
+        console.log("del", key);
+        const response = await fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID + '/block', {
+          method: "DELETE",
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            keyID: key
+          })
+        });
+        if (!response.ok) {
+          reject("SERVER ERROR DELETING BLOCK: ", response.body);
+        }
+        resolve(response.json());
+      } catch (e) {
+        reject("ERROR DELETING BLOCK: ", e);
+      }
     });
-    if (!response.ok) {
-      const message = 'An error has occured: ' + response.body;
-      throw new Error(message);
-    }
-    return response.json();
   }
 
-  //this should be queued up and sent in batches at set intervals... currently on every keystroke = not feasable
-  const saveBlock = async(key, chunk, place) => {
-    console.log("saving", key, chunk, place);
-    const response = await fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID, {
-      method: "PUT",
-      headers: {
-        'Content-Type': 'application/json'
+  const getStyleData = (block, type, list) => {
+    block.findStyleRanges(
+      (character) => {
+        return character.hasStyle(type);
       },
-      body: JSON.stringify({
-        keyID: key,
-        chunk: chunk,
-        place: place.toString()
-      })
+      (start, end) => {
+        list.push({
+          start: start,
+          end: end,
+          style: type
+        });
+      }
+    );
+    return list;
+  }
+
+  const saveBlock = (key, block, place) => {
+    console.log("content", editorState.getCurrentContent().getBlockForKey(key));
+    return new Promise(async(resolve, reject) => {
+      try {
+        console.log("saving", key, place, block);
+        const response = await fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID, {
+          method: "PUT",
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            keyID: key,
+            chunk: block,
+            place: place.toString()
+          })
+        });
+        console.log("resp", response);
+        if (!response.ok) {
+          reject("SERVER ERROR SAVING BLOCK: ", response.body);
+        }
+        resolve(response.json());
+      } catch (e) {
+        reject("ERROR SAVING BLOCK: ", e);
+      }
     });
-    if (!response.ok) {
-      const message = `An error has occured: ${response.status}`;
-      throw new Error(message);
-    }
-    return response.json();
+    
   }
 
   const keyBindings = (event) => {
@@ -198,7 +305,6 @@ const Document = () => {
     if (text.length) { 
       event.preventDefault();
       // check if !contains
-      console.log("creating new", id)
       associations.push({type:id, name:text, details:{aliases:""}});
       const withSelection = setFocusAndRestoreCursor(editorState)
       const newEditorState = forceStateUpdate(withSelection);
@@ -221,7 +327,20 @@ const Document = () => {
 
   const handleStyleClick = (event, style) => {
     event.preventDefault();
-    setEditorState(RichUtils.toggleInlineStyle(editorState, style));
+    const newEditorState = RichUtils.toggleInlineStyle(editorState, style);
+    setEditorState(newEditorState);
+    const selectedKeys = getSelectedBlocks(newEditorState);
+    selectedKeys.forEach((key) => {
+      const block = newEditorState.getCurrentContent().getBlockForKey(key);
+      let styles = [];
+      for (const entry in styleMap) {
+        styles = getStyleData(block, entry, styles);
+      };
+      const modifiedContent = Modifier.setBlockData(newEditorState.getCurrentContent(), SelectionState.createEmpty(key), Immutable.Map([['styles', styles]]));
+      const updatedBlock = modifiedContent.getBlockForKey(key);
+      const index = newEditorState.getCurrentContent().getBlockMap().keySeq().findIndex(k => k === key);
+      dbOperationQueue.push({type:"save", key:key, block:updatedBlock, index:index});
+    })
   }
 
   const handleKeyCommand = (command) => {
@@ -230,6 +349,34 @@ const Document = () => {
       return;
     }
     setEditorState(RichUtils.handleKeyCommand(editorState, command));
+  }
+
+  const getSelectedBlocks = (editorState) => {
+    const lastSelection = editorState.getSelection();
+    const min = lastSelection.getIsBackward() ? lastSelection.getFocusKey() : lastSelection.getAnchorKey();
+    const max = lastSelection.getIsBackward() ? lastSelection.getAnchorKey() : lastSelection.getFocusKey();
+    const blockMap = editorState.getCurrentContent().getBlockMap();
+    const firstSubselection = blockMap.skipUntil((v, k) => k === min);
+    const toReverse = firstSubselection.reverse();
+    const subselection = toReverse.skipUntil((v, k) => k === max);
+    const [...selectedKeys] = subselection.keys();
+    return selectedKeys;
+  }
+
+  const applyBlockStyles = (contentBlock) => {
+    let classStr = ''; 
+    const data = contentBlock.getData();
+    const alignment = data.getIn(['alignment']);
+    if (alignment) {
+      classStr += 'align_' + data.getIn(['alignment']);
+    }
+    const lineHeight = data.getIn(['lineHeight']);
+    if (lineHeight) {
+      if (classStr.length) {
+        classStr += ' ';
+      }
+      classStr += lineHeight;
+    }
   }
 
   const updateEditorState = (newEditorState) => {
@@ -243,14 +390,9 @@ const Document = () => {
     const newBlockMap = newContent.getBlockMap();
     const oldContent = editorState.getCurrentContent();
     const oldBlockMap = oldContent.getBlockMap();
-    const lastSelection = editorState.getSelection();
-    const min = lastSelection.getIsBackward() ? lastSelection.getFocusKey() : lastSelection.getAnchorKey();
-    const max = lastSelection.getIsBackward() ? lastSelection.getAnchorKey() : lastSelection.getFocusKey();
-    const firstSubselection = oldBlockMap.skipUntil((v, k) => k === min);
-    const toReverse = firstSubselection.reverse();
-    const subselection = toReverse.skipUntil((v, k) => k === max);
-    const [...selectedKeys] = subselection.keys();
+    const selectedKeys = getSelectedBlocks(newEditorState);
 
+    const blocksToSave = [];
     let resyncRequired = false;
     oldBlockMap.forEach((oldBlock, oldBlockKey) => {
       const newBlock = newBlockMap.get(oldBlockKey);
@@ -261,38 +403,43 @@ const Document = () => {
           selectedKeys.splice(selectedKeys.indexOf(oldBlockKey), 1);
         }
         resyncRequired = true;
-        deleteBlockfromServer(oldBlockKey);
-
+        dbOperationQueue.push({type:"delete", key:oldBlockKey});
       }
     });
-    const newBlocks = [...newBlockMap.keys()];
     newBlockMap.forEach((newBlock, newBlockKey) => {
-      const firstChar = newBlock.getCharacterList().get(0);
-      if ((firstChar && firstChar.entity == null) || (firstChar && newContent.getEntity(firstChar.entity).getType() != 'TAB')) {
-        newEditorState = insertTab(newEditorState, newBlockKey);
-      }
-
       const oldBlock = oldBlockMap.get(newBlockKey);
       // If the new block is not in the old block map, it's a new block
       if (!oldBlock) {
-        resyncRequired = true;
-        const index = newBlocks.indexOf(newBlockKey);
-        saveBlock(newBlockKey, newBlock, index);
-        newEditorState = insertTab(newEditorState, newBlockKey);
+        const index = newContent.getBlockMap().keySeq().findIndex(k => k === newBlockKey);
+        if (index != newBlockMap.length-1) {
+          // If it's not in the last place of blocks, we will need to resync
+          // the order of all blocks
+          resyncRequired = true;
+        }
+        
+        const firstChar = newBlock.getCharacterList().get(0);
+        if ((firstChar && firstChar.entity == null) || (firstChar && newContent.getEntity(firstChar.entity).getType() != 'TAB')) {
+          newEditorState = insertTab(newEditorState, newBlockKey);
+        }
+        blocksToSave.push(newBlockKey);
         return;
       }
       // If the block is selected, save it to the server
       if (selectedKeys.includes(newBlockKey)) {
-        const index = newBlocks.indexOf(newBlockKey);
-        saveBlock(newBlockKey, newBlock, index);
+        blocksToSave.push(newBlockKey);
       }
     });
 
     if (resyncRequired) {
-      syncBlockOrderMap(newBlockMap);
+      dbOperationQueue.push({type:"syncOrder", blockList:newBlockMap});
     }
-    //
     setEditorState(newEditorState);
+
+    blocksToSave.forEach(blockKey => {
+      const updatedContent = newEditorState.getCurrentContent();
+      const index = updatedContent.getBlockMap().keySeq().findIndex(k => k === blockKey);
+      dbOperationQueue.push({type:"save", key:blockKey, block: updatedContent.getBlockForKey(blockKey), index:index});
+    })
   }
 
   const handlePasteAction = (text) => {
@@ -315,7 +462,7 @@ const Document = () => {
         <button onMouseDown={(e) => {handleStyleClick(e,'STRIKETHROUGH')}}><s>S</s></button>
       </nav>
       <section onContextMenu={handleContextMenu} onClick={setFocus}>
-        <Editor preserveSelectionOnBlur={true} editorState={editorState} stripPastedStyles={true} onChange={updateEditorState} handlePastedText={handlePasteAction} handleKeyCommand={handleKeyCommand} keyBindingFn={keyBindings} ref={domEditor} />
+        <Editor blockStyleFn={applyBlockStyles} customStyleMap={styleMap} preserveSelectionOnBlur={true} editorState={editorState} stripPastedStyles={true} onChange={updateEditorState} handlePastedText={handlePasteAction} handleKeyCommand={handleKeyCommand} keyBindingFn={keyBindings} ref={domEditor} />
       </section>
       <Menu id="custom_context">
         <Submenu label="Create Association">
