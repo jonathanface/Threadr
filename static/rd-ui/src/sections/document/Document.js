@@ -73,6 +73,31 @@ const insertTab = (editorState, key) => {
 
 const dbOperationQueue = [];
 
+const filterAndReduceDBOperations = (op, i) => {
+  const keyIDMap = {};
+  let j = i;
+  while (j < dbOperationQueue.length) {
+    const obj = dbOperationQueue[j];
+    if (obj.type === op.type) {
+      obj.ops.forEach(op => {
+        keyIDMap[op.keyID] = keyIDMap[op.keyID] === undefined ? [] : keyIDMap[op.keyID];
+        keyIDMap[op.keyID].push(op);
+      });
+      dbOperationQueue.splice(j, 1);
+    } else {
+      j++;
+    }
+  }
+  const toRun = [];
+  for (let keyID in keyIDMap) {
+    if (keyIDMap.hasOwnProperty(keyID)) {
+      toRun.push(keyIDMap[keyID].pop());
+      delete keyIDMap[keyID];
+    }
+  }
+  return toRun;
+}
+
 const Document = () => {
   const domEditor = useRef(null);
   const currentStoryID = useSelector((state) => state.currentStoryID.value);
@@ -81,8 +106,6 @@ const Document = () => {
   const [editorState, setEditorState] = React.useState(
     () => EditorState.createEmpty(CreateDecorators(associations))
   );
-
-  
 
   const getAllStoryBlocks = () => {
     fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID)
@@ -142,34 +165,41 @@ const Document = () => {
     }
   }, [isLoggedIn, currentStoryID]);
 
-  const processDBQueue = () => {
-    console.log("processing...", dbOperationQueue.length)
-    dbOperationQueue.forEach(async(op) => {
+  const processDBQueue = async() => {
+    dbOperationQueue.sort((a, b) => parseInt(a.time) > parseInt(b.time));
+    console.log("processing...", dbOperationQueue.length);
+    let i = 0;
+    while (i < dbOperationQueue.length) {
+      const op = dbOperationQueue[i];
       switch(op.type) {
-        case "delete":
+        case "delete": {
+          try {
+            await deleteBlocksFromServer(filterAndReduceDBOperations(op, i));
+          } catch(e) {
+              console.error(e)
+              if (e.indexOf("SERVER") > -1) {
+                dbOperationQueue.splice(i, 1);
+                continue;
+              }
+            }
+            break;
+          }
         case "save": {
           try {
-            const pancakedOps = dbOperationQueue.filter(obj => obj.type === op.type && obj.key === op.key);
-            const toSave = pancakedOps.pop();
-            dbOperationQueue.splice(dbOperationQueue.indexOf(toSave), 1);
-            pancakedOps.reduceRight((_, item, i) => {
-              if (dbOperationQueue.includes(item)) {
-                dbOperationQueue.splice(i, 1);
-              }
-            }, null);
-            if (op.type === "save") {
-              await saveBlock(toSave.key, toSave.block, toSave.index);
-            } else {
-              await deleteBlockfromServer(op.key);
-            }
+            await saveBlocksToServer(filterAndReduceDBOperations(op, i));
           } catch(e) {
             console.error(e)
+            if (e.indexOf("SERVER") > -1) {
+              dbOperationQueue.splice(i, 1);
+              continue;
+            }
           }
           break;
         }
         case "syncOrder": {
           try {
             syncBlockOrderMap(op.blockList);
+            dbOperationQueue.splice(dbOperationQueue.indexOf(op), 1);
           } catch(e) {
             console.error(e)
           }
@@ -178,8 +208,7 @@ const Document = () => {
         default:
           console.error("invalid operation:", op);
       }
-      
-    });
+    }
   };
 
   const setFocusAndRestoreCursor = (editorState) => {
@@ -220,18 +249,16 @@ const Document = () => {
     });
   }
 
-  const deleteBlockfromServer = (key) => {
+  const deleteBlocksFromServer = (blocks) => {
     return new Promise(async(resolve, reject) => {
       try {
-        console.log("del", key);
+        console.log("del", blocks);
         const response = await fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID + '/block', {
           method: "DELETE",
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            keyID: key
-          })
+          body: JSON.stringify(blocks)
         });
         if (!response.ok) {
           reject("SERVER ERROR DELETING BLOCK: ", response.body);
@@ -259,25 +286,20 @@ const Document = () => {
     return list;
   }
 
-  const saveBlock = (key, block, place) => {
-    console.log("content", editorState.getCurrentContent().getBlockForKey(key));
+  const saveBlocksToServer = (blocks) => {
+    console.log("blockstoisave", blocks);
     return new Promise(async(resolve, reject) => {
       try {
-        console.log("saving", key, place, block);
+        console.log("saving", blocks);
         const response = await fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID, {
           method: "PUT",
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            keyID: key,
-            chunk: block,
-            place: place.toString()
-          })
+          body: JSON.stringify(blocks)
         });
-        console.log("resp", response);
         if (!response.ok) {
-          reject("SERVER ERROR SAVING BLOCK: ", response.body);
+          reject("SERVER ERROR SAVING BLOCK: ", response);
         }
         resolve(response.json());
       } catch (e) {
@@ -339,7 +361,7 @@ const Document = () => {
       const modifiedContent = Modifier.setBlockData(newEditorState.getCurrentContent(), SelectionState.createEmpty(key), Immutable.Map([['styles', styles]]));
       const updatedBlock = modifiedContent.getBlockForKey(key);
       const index = newEditorState.getCurrentContent().getBlockMap().keySeq().findIndex(k => k === key);
-      dbOperationQueue.push({type:"save", key:key, block:updatedBlock, index:index});
+      dbOperationQueue.push({type:"save", key:key, block:updatedBlock, index:index, time: Date.now()});
     })
   }
 
@@ -382,6 +404,7 @@ const Document = () => {
   const updateEditorState = (newEditorState) => {
     // Cursor has moved but no text changes detected
     if (editorState.getCurrentContent() === newEditorState.getCurrentContent()) {
+      console.log("cursor action");
       setEditorState(newEditorState);
       return;
     }
@@ -393,6 +416,7 @@ const Document = () => {
     const selectedKeys = getSelectedBlocks(newEditorState);
 
     const blocksToSave = [];
+    const blocksToDelete = [];
     let resyncRequired = false;
     oldBlockMap.forEach((oldBlock, oldBlockKey) => {
       const newBlock = newBlockMap.get(oldBlockKey);
@@ -402,8 +426,11 @@ const Document = () => {
         if (selectedKeys.includes(oldBlockKey)) {
           selectedKeys.splice(selectedKeys.indexOf(oldBlockKey), 1);
         }
-        resyncRequired = true;
-        dbOperationQueue.push({type:"delete", key:oldBlockKey});
+        blocksToDelete.push(oldBlockKey);
+        const index = oldContent.getBlockMap().keySeq().findIndex(k => k === oldBlockKey);
+        if (index != oldBlockMap.size-1) {
+          resyncRequired = true;
+        }
       }
     });
     newBlockMap.forEach((newBlock, newBlockKey) => {
@@ -411,7 +438,7 @@ const Document = () => {
       // If the new block is not in the old block map, it's a new block
       if (!oldBlock) {
         const index = newContent.getBlockMap().keySeq().findIndex(k => k === newBlockKey);
-        if (index != newBlockMap.length-1) {
+        if (index != newBlockMap.size-1) {
           // If it's not in the last place of blocks, we will need to resync
           // the order of all blocks
           resyncRequired = true;
@@ -430,16 +457,36 @@ const Document = () => {
       }
     });
 
-    if (resyncRequired) {
-      dbOperationQueue.push({type:"syncOrder", blockList:newBlockMap});
-    }
+    
     setEditorState(newEditorState);
 
-    blocksToSave.forEach(blockKey => {
+    if (blocksToDelete.length) {
+      const deleteOp = {};
+      deleteOp.type = "delete";
+      deleteOp.time = Date.now();
+      deleteOp.ops = [];
+      blocksToDelete.forEach(blockKey => {
+        deleteOp.ops.push({keyID:blockKey});
+      });
+      dbOperationQueue.push(deleteOp);
+    }
+
+    if (blocksToSave.length) {
       const updatedContent = newEditorState.getCurrentContent();
-      const index = updatedContent.getBlockMap().keySeq().findIndex(k => k === blockKey);
-      dbOperationQueue.push({type:"save", key:blockKey, block: updatedContent.getBlockForKey(blockKey), index:index});
-    })
+      const saveOp = {}
+      saveOp.type = "save";
+      saveOp.time = Date.now();
+      saveOp.ops = [];
+      blocksToSave.forEach(blockKey => {
+        const index = updatedContent.getBlockMap().keySeq().findIndex(k => k === blockKey);
+        saveOp.ops.push({keyID:blockKey, chunk: updatedContent.getBlockForKey(blockKey), place:index.toString()});
+      });
+      dbOperationQueue.push(saveOp);
+    }
+
+    if (resyncRequired) {
+      dbOperationQueue.push({type:"syncOrder", blockList:newBlockMap, time:Date.now()});
+    }
   }
 
   const handlePasteAction = (text) => {

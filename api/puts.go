@@ -1,17 +1,13 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/gorilla/mux"
@@ -29,14 +25,11 @@ type StoryBlocks struct {
 
 func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
-		email string
-		err   error
-		story string
+		err        error
+		story      string
+		awsStatus  int
+		awsMessage string
 	)
-	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
 	if story, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
 		return
@@ -53,60 +46,67 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type PartiQLRunner struct {
-		DynamoDbClient *dynamodb.Client
-		TableName      string
-	}
-	runner := PartiQLRunner{
-		DynamoDbClient: AwsClient,
-		TableName:      "blocks",
+	// Group the storyBlocks into batches of 25.
+	batches := make([][]StoryBlock, 0, (len(storyBlocks.Blocks)+24)/25)
+	for i := 0; i < len(storyBlocks.Blocks); i += 25 {
+		end := i + 25
+		if end > len(storyBlocks.Blocks) {
+			end = len(storyBlocks.Blocks)
+		}
+		batches = append(batches, storyBlocks.Blocks[i:end])
 	}
 
-	batchSize := 25
-	numRecords := len(storyBlocks.Blocks)
-	if numRecords < batchSize {
-		batchSize = numRecords
-	}
-	var wg sync.WaitGroup
-	for num := 0; num < numRecords; num += batchSize {
-		end := num + batchSize - 1
-		if end > numRecords {
-			end = numRecords - 1
+	// Loop through the items and create the transaction write items.
+	for _, batch := range batches {
+		writeItemsInput := &dynamodb.TransactWriteItemsInput{
+			ClientRequestToken: nil,
+			TransactItems:      make([]types.TransactWriteItem, len(batch)),
 		}
-		start := num
-		errs := make(chan error, 1)
-		wg.Add(1)
-		go func(s, e int) {
-			defer wg.Done()
-			for i := s; i <= e; i++ {
-				params, err := attributevalue.MarshalList([]interface{}{storyBlocks.Blocks[i].Place, storyBlocks.Blocks[i].KeyID, story, email})
-				if err != nil {
-					errs <- err
-					break
-				}
-				_, err = runner.DynamoDbClient.ExecuteStatement(context.TODO(), &dynamodb.ExecuteStatementInput{
-					Statement: aws.String(fmt.Sprintf("UPDATE \"%v\" SET place=? WHERE keyID=? AND story=? AND author=?", runner.TableName)), Parameters: params})
-				if err != nil {
-					errs <- err
-					break
-				}
+		for i, item := range batch {
+			// Create a key for the item.
+			key := map[string]types.AttributeValue{
+				"keyID": &types.AttributeValueMemberS{Value: item.KeyID},
+				"story": &types.AttributeValueMemberS{Value: story},
 			}
-			close(errs)
-		}(start, end)
-		for err := range errs {
-			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			// Create an update input for the item.
+			updateInput := &types.Update{
+				TableName:        aws.String("blocks"),
+				Key:              key,
+				UpdateExpression: aws.String("set place=:p"),
+				ExpressionAttributeValues: map[string]types.AttributeValue{
+					":p": &types.AttributeValueMemberN{Value: string(item.Place)},
+				},
+			}
+
+			// Create a transaction write item for the update operation.
+			writeItem := types.TransactWriteItem{
+				Update: updateInput,
+			}
+
+			// Add the transaction write item to the list of transaction write items.
+			writeItemsInput.TransactItems[i] = writeItem
+		}
+		awsStatus, awsMessage = awsWriteTransaction(writeItemsInput)
+		if awsStatus != http.StatusOK {
+			RespondWithError(w, awsStatus, awsMessage)
 			return
 		}
 	}
-	wg.Wait()
-	RespondWithJson(w, http.StatusOK, nil)
+
+	type answer struct {
+		Success     bool `json:"success"`
+		NumberWrote int  `json:"wrote"`
+	}
+	RespondWithJson(w, http.StatusOK, answer{Success: true})
 }
 
-func WriteToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
+func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
-		email string
-		err   error
-		story string
+		email      string
+		err        error
+		story      string
+		awsStatus  int
+		awsMessage string
 	)
 	if email, err = getUserEmail(r); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -121,36 +121,69 @@ func WriteToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	decoder := json.NewDecoder(r.Body)
-	storyBlock := StoryBlock{}
-	var jsonStr string
-	json.Unmarshal([]byte(jsonStr), &r.Body)
-	if err := decoder.Decode(&storyBlock); err != nil {
+	storyBlocks := []StoryBlock{}
+	if err = decoder.Decode(&storyBlocks); err != nil {
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+
+	// Group the storyBlocks into batches of 25.
+	batches := make([][]StoryBlock, 0, (len(storyBlocks)+24)/25)
+	for i := 0; i < len(storyBlocks); i += 25 {
+		end := i + 25
+		if end > len(storyBlocks) {
+			end = len(storyBlocks)
+		}
+		batches = append(batches, storyBlocks[i:end])
+	}
+
+	numWrote := 0
 	now := strconv.FormatInt(time.Now().Unix(), 10)
-	input := &dynamodb.UpdateItemInput{
-		TableName: aws.String("blocks"),
-		Key: map[string]types.AttributeValue{
-			"keyID": &types.AttributeValueMemberS{Value: storyBlock.KeyID},
-			"story": &types.AttributeValueMemberS{Value: story},
-		},
-		UpdateExpression: aws.String("set created_at=if_not_exists(created_at,:t), author=:e, chunk=:c, place=:p"),
-		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":t": &types.AttributeValueMemberN{Value: now},
-			":c": &types.AttributeValueMemberS{Value: string(storyBlock.Chunk)},
-			":e": &types.AttributeValueMemberS{Value: email},
-			":p": &types.AttributeValueMemberN{Value: storyBlock.Place},
-		},
+
+	// Loop through the items and create the transaction write items.
+	for _, batch := range batches {
+		writeItemsInput := &dynamodb.TransactWriteItemsInput{
+			ClientRequestToken: nil,
+			TransactItems:      make([]types.TransactWriteItem, len(batch)),
+		}
+		for i, item := range batch {
+			// Create a key for the item.
+			key := map[string]types.AttributeValue{
+				"keyID": &types.AttributeValueMemberS{Value: item.KeyID},
+				"story": &types.AttributeValueMemberS{Value: story},
+			}
+			// Create an update input for the item.
+			updateInput := &types.Update{
+				TableName:        aws.String("blocks"),
+				Key:              key,
+				UpdateExpression: aws.String("set created_at=if_not_exists(created_at,:t), author=:e, chunk=:c, place=:p"),
+				ExpressionAttributeValues: map[string]types.AttributeValue{
+					":t": &types.AttributeValueMemberN{Value: now},
+					":c": &types.AttributeValueMemberS{Value: string(item.Chunk)},
+					":e": &types.AttributeValueMemberS{Value: email},
+					":p": &types.AttributeValueMemberN{Value: item.Place},
+				},
+			}
+
+			// Create a transaction write item for the update operation.
+			writeItem := types.TransactWriteItem{
+				Update: updateInput,
+			}
+
+			// Add the transaction write item to the list of transaction write items.
+			writeItemsInput.TransactItems[i] = writeItem
+		}
+		awsStatus, awsMessage = awsWriteTransaction(writeItemsInput)
+		if awsStatus != http.StatusOK {
+			RespondWithError(w, awsStatus, awsMessage)
+			return
+		}
+		numWrote += len(batch)
 	}
-	if _, err = AwsClient.UpdateItem(context.TODO(), input); err != nil {
-		fmt.Println("block write err", err)
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
+
 	type answer struct {
-		Success  bool   `json:"success"`
-		NewBlock string `json:"newBlockKey"`
+		Success     bool `json:"success"`
+		NumberWrote int  `json:"wrote"`
 	}
-	RespondWithJson(w, http.StatusOK, answer{Success: true, NewBlock: storyBlock.KeyID})
+	RespondWithJson(w, http.StatusOK, answer{Success: true, NumberWrote: len(storyBlocks)})
 }

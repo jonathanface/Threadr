@@ -111,6 +111,10 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+		// 15 sec timeout
+		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(time.Second*5))
+		defer cancel()
+		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})
 }
@@ -137,12 +141,12 @@ func main() {
 	apiPath.HandleFunc("/stories", api.CreateStoryEndpoint).Methods("POST", "OPTIONS")
 
 	// PUTs
-	apiPath.HandleFunc("/stories/{story}", api.WriteToStoryEndpoint).Methods("PUT", "OPTIONS")
+	apiPath.HandleFunc("/stories/{story}", api.WriteBlocksToStoryEndpoint).Methods("PUT", "OPTIONS")
 	apiPath.HandleFunc("/stories/{story}/orderMap", api.RewriteBlockOrderEndpoint).Methods("PUT", "OPTIONS")
 
 	// DELETEs
 	rtr.HandleFunc("/auth/logout", auth.DeleteToken).Methods("DELETE", "OPTIONS")
-	apiPath.HandleFunc("/stories/{story}/block", api.DeleteBlockFromStoryEndpoint).Methods("DELETE", "OPTIONS")
+	apiPath.HandleFunc("/stories/{story}/block", api.DeleteBlocksFromStoryEndpoint).Methods("DELETE", "OPTIONS")
 
 	rtr.PathPrefix("/").HandlerFunc(serveRootDirectory)
 	http.Handle("/", rtr)
