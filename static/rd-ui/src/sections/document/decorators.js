@@ -1,8 +1,6 @@
 import {CompositeDecorator} from 'draft-js';
 import React from 'react';
 
-
-
 const TabSpan = (props) => { 
     return (
       <span className="tabEntity">{props.children}</span>

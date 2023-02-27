@@ -10,7 +10,10 @@ html, body {
   line-height: 1.5;
   letter-spacing: 0.00938em;
   height: 100%;
-  box-sizing:border-box; 
+  box-sizing:border-box;
+  overflow-y:hidden;
+  height:100vh;
+  max-height:100vh;
 }
 
 .form-error {

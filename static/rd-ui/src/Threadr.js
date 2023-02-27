@@ -1,9 +1,8 @@
-import React, {useState, useEffect} from 'react';
+import React, {useEffect} from 'react';
 import { useSelector, useDispatch } from 'react-redux'
 import Sidebar from './sections/sidebar/Sidebar';
 import Document from './sections/document/Document';
 import { flipLoggedInState } from './stores/loggedInSlice'
-import { flipCreatingNewStoryState } from './stores/creatingNewStorySlice'
 import { setCurrentStoryID } from './stores/currentStorySlice' 
 import CreateNewStory from './sections/createNewStory/CreateNewStoryModal'
 import './css/main.css';
@@ -14,7 +13,6 @@ const Threadr = () => {
 
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value)
   const currentStoryID = useSelector((state) => state.currentStoryID.value)
-  const isCreatingNewStory = useSelector((state) => state.isCreatingNewStory.value)
   const dispatch = useDispatch()
 
   const checkLocation = (event) => {

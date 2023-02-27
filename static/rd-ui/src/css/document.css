@@ -1,24 +1,24 @@
 nav.rich-controls {
     width: 51%;
     display:inline-block;
-    position:fixed;
     text-align: left;
     padding: 10px;
     background: #545e55;
     border-radius: 10px;
     filter: drop-shadow(2px 2px 2px #1a1a1a);
-    transform: translateX(-50%);
     z-index: 10;
     margin-top:10px;
     height:40px;
     line-height:40px;
-    transition: opacity 0.5s ease-in-out;
+    
 }
 nav.rich-controls:not(:hover) {
-    opacity:0.5;
+    opacity:0.8;
+    transition: opacity 0.2s ease-in-out;
 }
 nav.rich-controls:hover {
     opacity:0.95;
+    transition: opacity 0.2s ease-in-out;
     
 }
 
@@ -48,6 +48,7 @@ div.DraftEditor-root {
     overflow-y: auto;
     color:#000;
     filter: drop-shadow(2px 2px 2px #1a1a1a);
+    height:80%;
 }
 div.DraftEditor-editorContainer, div.public-DraftEditor-content {
     height: 100%;
@@ -73,5 +74,7 @@ div.DraftEditor-editorContainer, div.public-DraftEditor-content {
 }
 
 .editor_container {
-    padding-top:70px;
+    overflow-y:hidden;
+    height:100vh;
+    max-height:100vh;
 }

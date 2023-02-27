@@ -2,17 +2,18 @@ import React, {useRef, useEffect} from 'react';
 import Immutable from 'immutable';
 import {convertFromRaw, Editor, EditorState, ContentBlock, RichUtils, getDefaultKeyBinding, Modifier, SelectionState, ContentState} from 'draft-js';
 import {CreateDecorators} from './decorators.js'
+import {GetSelectedText, InsertTab, FilterAndReduceDBOperations, SetFocusAndRestoreCursor, GetStyleData, GetSelectedBlocks} from './utilities.js'
 import 'draft-js/dist/Draft.css';
 import '../../css/document.css';
 import { Menu, Item, Submenu, useContextMenu } from 'react-contexify';
 import 'react-contexify/ReactContexify.css';
 import { useSelector} from 'react-redux'
-import dbOperationIntervalSlice, { setDBOperationInterval } from '../../stores/dbOperationIntervalSlice';
+import { setDBOperationInterval } from '../../stores/dbOperationIntervalSlice';
 
 const ASSOCIATION_TYPE_CHARACTER = "character";
 const ASSOCIATION_TYPE_EVENT = "event";
 const ASSOCIATION_TYPE_PLACE = "place";
-const tabLength = 5;
+
 
 const associations = [];
 associations.push({type:ASSOCIATION_TYPE_CHARACTER, name:"lo", details:{aliases:""}})
@@ -32,71 +33,7 @@ const styleMap = {
   }
 };
 
-const getSelectedText = (editorState) => {
-  const selection = editorState.getSelection();
-  const anchorKey = selection.getAnchorKey();
-  const currentContent = editorState.getCurrentContent();
-  const currentBlock = currentContent.getBlockForKey(anchorKey);
-
-  const start = selection.getStartOffset();
-  const end = selection.getEndOffset();
-  const selectedText = currentBlock.getText().slice(start, end);
-  return selectedText;
-}
-
-const generateTabCharacter = () => {
-  let tab = '';
-  for (let i=0; i < tabLength; i++) {
-    tab += ' ';
-  }
-  return tab;
-}
-
-const forceStateUpdate = (editorState) => {
-  return EditorState.set(editorState, {decorator: CreateDecorators(associations)});
-}
-
-const insertTab = (editorState, key) => {
-  const selection = new SelectionState({
-    anchorKey: key,
-    focusKey: key,
-    anchorOffset: 0,
-    focusOffset: 0
-  });
-  const currentContent = editorState.getCurrentContent();
-  const contentStateWithEntity = currentContent.createEntity('TAB', 'IMMUTABLE');
-  const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
-  const textWithEntity = Modifier.insertText(currentContent, selection, generateTabCharacter(), null, entityKey);
-  const newState = EditorState.push(editorState, textWithEntity, 'apply-entity');
-  return EditorState.forceSelection(newState, textWithEntity.getSelectionAfter());
-}
-
 const dbOperationQueue = [];
-
-const filterAndReduceDBOperations = (op, i) => {
-  const keyIDMap = {};
-  let j = i;
-  while (j < dbOperationQueue.length) {
-    const obj = dbOperationQueue[j];
-    if (obj.type === op.type) {
-      obj.ops.forEach(op => {
-        keyIDMap[op.keyID] = keyIDMap[op.keyID] === undefined ? [] : keyIDMap[op.keyID];
-        keyIDMap[op.keyID].push(op);
-      });
-      dbOperationQueue.splice(j, 1);
-    } else {
-      j++;
-    }
-  }
-  const toRun = [];
-  for (let keyID in keyIDMap) {
-    if (keyIDMap.hasOwnProperty(keyID)) {
-      toRun.push(keyIDMap[keyID].pop());
-      delete keyIDMap[keyID];
-    }
-  }
-  return toRun;
-}
 
 const Document = () => {
   const domEditor = useRef(null);
@@ -157,7 +94,7 @@ const Document = () => {
 
   useEffect(() => {
     if (isLoggedIn && currentStoryID) {
-      setFocusAndRestoreCursor(editorState);
+      SetFocusAndRestoreCursor(editorState, domEditor);
       getAllStoryBlocks();
       setDBOperationInterval(setInterval(() => {
         processDBQueue();
@@ -174,7 +111,7 @@ const Document = () => {
       switch(op.type) {
         case "delete": {
           try {
-            deleteBlocksFromServer(filterAndReduceDBOperations(op, i));
+            deleteBlocksFromServer(FilterAndReduceDBOperations(dbOperationQueue, op, i));
           } catch(e) {
               console.error(e)
               if (e.indexOf("SERVER") > -1) {
@@ -187,7 +124,7 @@ const Document = () => {
         case "save": {
           try {
             console.log("wtf", op);
-            saveBlocksToServer(filterAndReduceDBOperations(op, i));
+            saveBlocksToServer(FilterAndReduceDBOperations(dbOperationQueue, op, i));
           } catch(e) {
             console.error(e)
             if (e.indexOf("SERVER") > -1) {
@@ -215,16 +152,6 @@ const Document = () => {
       }
     }
   };
-
-  const setFocusAndRestoreCursor = (editorState) => {
-    const selection = editorState.getSelection();
-      const newSelection = selection.merge({
-        anchorOffset: selection.getIsBackward() ? selection.getAnchorOffset() : selection.getFocusOffset(),
-        focusOffset: selection.getIsBackward() ? selection.getAnchorOffset() : selection.getFocusOffset()
-      })
-      domEditor.current.focus();
-      return EditorState.forceSelection(editorState, newSelection);
-  }
 
   const syncBlockOrderMap = (blockList) => {
     return new Promise(async(resolve, reject) => {
@@ -275,22 +202,6 @@ const Document = () => {
     });
   }
 
-  const getStyleData = (block, type, list) => {
-    block.findStyleRanges(
-      (character) => {
-        return character.hasStyle(type);
-      },
-      (start, end) => {
-        list.push({
-          start: start,
-          end: end,
-          style: type
-        });
-      }
-    );
-    return list;
-  }
-
   const saveBlocksToServer = (blocks) => {
     console.log("blockstoisave", blocks);
     return new Promise(async(resolve, reject) => {
@@ -318,7 +229,7 @@ const Document = () => {
     // tab pressed
     if (event.keyCode === 9) {
       event.preventDefault();
-      setEditorState(insertTab(editorState, editorState.getSelection().getFocusKey()));
+      setEditorState(InsertTab(editorState, editorState.getSelection().getFocusKey()));
     }
     return getDefaultKeyBinding(event);
   }
@@ -327,20 +238,24 @@ const Document = () => {
     id: "custom_context",
   });
 
+  const forceStateUpdate = (editorState) => {
+    return ;
+  }
+
   const handleMenuItemClick = ({ id, event}) => {
-    const text = getSelectedText(editorState);
+    const text = GetSelectedText(editorState);
     if (text.length) { 
       event.preventDefault();
       // check if !contains
       associations.push({type:id, name:text, details:{aliases:""}});
-      const withSelection = setFocusAndRestoreCursor(editorState)
-      const newEditorState = forceStateUpdate(withSelection);
+      const withSelection = SetFocusAndRestoreCursor(editorState, domEditor)
+      const newEditorState = EditorState.set(withSelection, {decorator: CreateDecorators(associations)})
       setEditorState(newEditorState);
     }
   };
 
   const handleContextMenu = (event) => {
-    const text = getSelectedText(editorState);
+    const text = GetSelectedText(editorState);
     // regex check for separated word?
     if (text.length) {
       show({
@@ -356,12 +271,12 @@ const Document = () => {
     event.preventDefault();
     const newEditorState = RichUtils.toggleInlineStyle(editorState, style);
     setEditorState(newEditorState);
-    const selectedKeys = getSelectedBlocks(newEditorState);
+    const selectedKeys = GetSelectedBlocks(newEditorState);
     selectedKeys.forEach((key) => {
       const block = newEditorState.getCurrentContent().getBlockForKey(key);
       let styles = [];
       for (const entry in styleMap) {
-        styles = getStyleData(block, entry, styles);
+        styles = GetStyleData(block, entry, styles);
       };
       const modifiedContent = Modifier.setBlockData(newEditorState.getCurrentContent(), SelectionState.createEmpty(key), Immutable.Map([['styles', styles]]));
       const updatedBlock = modifiedContent.getBlockForKey(key);
@@ -378,34 +293,6 @@ const Document = () => {
     setEditorState(RichUtils.handleKeyCommand(editorState, command));
   }
 
-  const getSelectedBlocks = (editorState) => {
-    const lastSelection = editorState.getSelection();
-    const min = lastSelection.getIsBackward() ? lastSelection.getFocusKey() : lastSelection.getAnchorKey();
-    const max = lastSelection.getIsBackward() ? lastSelection.getAnchorKey() : lastSelection.getFocusKey();
-    const blockMap = editorState.getCurrentContent().getBlockMap();
-    const firstSubselection = blockMap.skipUntil((v, k) => k === min);
-    const toReverse = firstSubselection.reverse();
-    const subselection = toReverse.skipUntil((v, k) => k === max);
-    const [...selectedKeys] = subselection.keys();
-    return selectedKeys;
-  }
-
-  const applyBlockStyles = (contentBlock) => {
-    let classStr = ''; 
-    const data = contentBlock.getData();
-    const alignment = data.getIn(['alignment']);
-    if (alignment) {
-      classStr += 'align_' + data.getIn(['alignment']);
-    }
-    const lineHeight = data.getIn(['lineHeight']);
-    if (lineHeight) {
-      if (classStr.length) {
-        classStr += ' ';
-      }
-      classStr += lineHeight;
-    }
-  }
-
   const updateEditorState = (newEditorState) => {
     // Cursor has moved but no text changes detected
     if (editorState.getCurrentContent() === newEditorState.getCurrentContent()) {
@@ -418,7 +305,7 @@ const Document = () => {
     const newBlockMap = newContent.getBlockMap();
     const oldContent = editorState.getCurrentContent();
     const oldBlockMap = oldContent.getBlockMap();
-    const selectedKeys = getSelectedBlocks(editorState);
+    const selectedKeys = GetSelectedBlocks(editorState);
     
 
     const blocksToSave = [];
@@ -452,7 +339,7 @@ const Document = () => {
         
         const firstChar = newBlock.getCharacterList().get(0);
         if ((firstChar && firstChar.entity == null) || (firstChar && newContent.getEntity(firstChar.entity).getType() != 'TAB')) {
-          newEditorState = insertTab(newEditorState, newBlockKey);
+          newEditorState = InsertTab(newEditorState, newBlockKey);
         }
         blocksToSave.push(newBlockKey);
         return;
@@ -504,6 +391,22 @@ const Document = () => {
 
   const setFocus = () => {
     domEditor.current.focus();
+  }
+
+  const applyBlockStyles = (contentBlock) => {
+    let classStr = ''; 
+    const data = contentBlock.getData();
+    const alignment = data.getIn(['alignment']);
+    if (alignment) {
+      classStr += 'align_' + data.getIn(['alignment']);
+    }
+    const lineHeight = data.getIn(['lineHeight']);
+    if (lineHeight) {
+      if (classStr.length) {
+        classStr += ' ';
+      }
+      classStr += lineHeight;
+    }
   }
 
   return (
