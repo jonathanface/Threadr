@@ -21,6 +21,7 @@ import (
 
 var AwsClient *dynamodb.Client
 var maxAWSRetries int
+var blockTableMinWriteCapacity int
 
 type PseudoCookie struct {
 	AccessToken string
@@ -48,6 +49,9 @@ func init() {
 	if maxAWSRetries, err = strconv.Atoi(os.Getenv("AWS_MAX_RETRIES")); err != nil {
 		panic(fmt.Sprintf("Error parsing env data: %s", err.Error()))
 	}
+	if blockTableMinWriteCapacity, err = strconv.Atoi(os.Getenv("AWS_BLOCKTABLE_MIN_WRITE_CAPACITY")); err != nil {
+		panic(fmt.Sprintf("Error parsing env data: %s", err.Error()))
+	}
 	awsCfg.RetryMaxAttempts = maxAWSRetries
 	AwsClient = dynamodb.NewFromConfig(awsCfg)
 }
@@ -56,8 +60,7 @@ func awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsInput) (sta
 	if writeItemsInput == nil {
 		return http.StatusBadRequest, "writeItemsInput is nil"
 	}
-	provisionedCapacity := 5                     // Replace with the actual provisioned capacity of your table.
-	maxItemsPerSecond := provisionedCapacity / 2 // Adjust as needed based on the size of your items and the amount of provisioned capacity.
+	maxItemsPerSecond := blockTableMinWriteCapacity / 2 // Adjust as needed based on the size of your items and the amount of provisioned capacity.
 
 	for numRetries := 0; numRetries < maxAWSRetries; numRetries++ {
 		if _, err := AwsClient.TransactWriteItems(context.Background(), writeItemsInput); err == nil {

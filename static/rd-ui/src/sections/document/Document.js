@@ -174,7 +174,7 @@ const Document = () => {
       switch(op.type) {
         case "delete": {
           try {
-            await deleteBlocksFromServer(filterAndReduceDBOperations(op, i));
+            deleteBlocksFromServer(filterAndReduceDBOperations(op, i));
           } catch(e) {
               console.error(e)
               if (e.indexOf("SERVER") > -1) {
@@ -186,7 +186,8 @@ const Document = () => {
           }
         case "save": {
           try {
-            await saveBlocksToServer(filterAndReduceDBOperations(op, i));
+            console.log("wtf", op);
+            saveBlocksToServer(filterAndReduceDBOperations(op, i));
           } catch(e) {
             console.error(e)
             if (e.indexOf("SERVER") > -1) {
@@ -199,9 +200,13 @@ const Document = () => {
         case "syncOrder": {
           try {
             syncBlockOrderMap(op.blockList);
-            dbOperationQueue.splice(dbOperationQueue.indexOf(op), 1);
+            dbOperationQueue.splice(i, 1);
           } catch(e) {
             console.error(e)
+            if (e.indexOf("SERVER") > -1) {
+              dbOperationQueue.splice(i, 1);
+              continue;
+            }
           }
           break;
         }
@@ -361,7 +366,7 @@ const Document = () => {
       const modifiedContent = Modifier.setBlockData(newEditorState.getCurrentContent(), SelectionState.createEmpty(key), Immutable.Map([['styles', styles]]));
       const updatedBlock = modifiedContent.getBlockForKey(key);
       const index = newEditorState.getCurrentContent().getBlockMap().keySeq().findIndex(k => k === key);
-      dbOperationQueue.push({type:"save", key:key, block:updatedBlock, index:index, time: Date.now()});
+      dbOperationQueue.push({type:"save", time:Date.now(), ops:[{keyID:key, chunk:updatedBlock, place:index.toString()}]});
     })
   }
 
@@ -413,7 +418,8 @@ const Document = () => {
     const newBlockMap = newContent.getBlockMap();
     const oldContent = editorState.getCurrentContent();
     const oldBlockMap = oldContent.getBlockMap();
-    const selectedKeys = getSelectedBlocks(newEditorState);
+    const selectedKeys = getSelectedBlocks(editorState);
+    
 
     const blocksToSave = [];
     const blocksToDelete = [];
@@ -508,7 +514,7 @@ const Document = () => {
         <button onMouseDown={(e) => {handleStyleClick(e,'UNDERLINE')}}><u>U</u></button>
         <button onMouseDown={(e) => {handleStyleClick(e,'STRIKETHROUGH')}}><s>S</s></button>
       </nav>
-      <section onContextMenu={handleContextMenu} onClick={setFocus}>
+      <section className="editor_container" onContextMenu={handleContextMenu} onClick={setFocus}>
         <Editor blockStyleFn={applyBlockStyles} customStyleMap={styleMap} preserveSelectionOnBlur={true} editorState={editorState} stripPastedStyles={true} onChange={updateEditorState} handlePastedText={handlePasteAction} handleKeyCommand={handleKeyCommand} keyBindingFn={keyBindings} ref={domEditor} />
       </section>
       <Menu id="custom_context">

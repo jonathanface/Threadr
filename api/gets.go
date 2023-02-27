@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -22,7 +21,6 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	fmt.Println("wtf", mux.Vars(r)["story"])
 	if story, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
 		return

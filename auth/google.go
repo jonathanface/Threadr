@@ -146,7 +146,6 @@ func ValidateGoogleToken(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("tok", newToken.AccessToken == token.AccessToken)
 	if newToken.AccessToken != token.AccessToken {
 		if newToken.Extra("id_token") == nil {
 			return fmt.Errorf("missing id token in renewal: %s", err.Error())

@@ -23,6 +23,8 @@ type StoryBlocks struct {
 	Blocks []StoryBlock `json:"blocks"`
 }
 
+const writeBatchSize = 50
+
 func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		err        error
@@ -46,10 +48,10 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Group the storyBlocks into batches of 25.
-	batches := make([][]StoryBlock, 0, (len(storyBlocks.Blocks)+24)/25)
-	for i := 0; i < len(storyBlocks.Blocks); i += 25 {
-		end := i + 25
+	// Group the storyBlocks into batches of 50.
+	batches := make([][]StoryBlock, 0, (len(storyBlocks.Blocks)+(writeBatchSize-1))/writeBatchSize)
+	for i := 0; i < len(storyBlocks.Blocks); i += writeBatchSize {
+		end := i + writeBatchSize
 		if end > len(storyBlocks.Blocks) {
 			end = len(storyBlocks.Blocks)
 		}
@@ -127,10 +129,10 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Group the storyBlocks into batches of 25.
-	batches := make([][]StoryBlock, 0, (len(storyBlocks)+24)/25)
-	for i := 0; i < len(storyBlocks); i += 25 {
-		end := i + 25
+	// Group the storyBlocks into batches of 50.
+	batches := make([][]StoryBlock, 0, (len(storyBlocks)+(writeBatchSize-1))/writeBatchSize)
+	for i := 0; i < len(storyBlocks); i += writeBatchSize {
+		end := i + writeBatchSize
 		if end > len(storyBlocks) {
 			end = len(storyBlocks)
 		}
