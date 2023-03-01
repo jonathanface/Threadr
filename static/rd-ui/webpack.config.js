@@ -16,7 +16,7 @@ module.exports = {
         directory: path.join(__dirname, "build"),
     },
     port: 83,
-    host: '127.0.0.1',
+    host: 'localhost',
     hot: true
   },
   module: {

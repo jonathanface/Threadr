@@ -23,14 +23,6 @@ var AwsClient *dynamodb.Client
 var maxAWSRetries int
 var blockTableMinWriteCapacity int
 
-type PseudoCookie struct {
-	AccessToken string
-	IdToken     string
-	Expiry      time.Time
-	Type        string
-	Email       string
-}
-
 func init() {
 	var (
 		awsCfg aws.Config
@@ -100,11 +92,11 @@ func getUserEmail(r *http.Request) (string, error) {
 	if err != nil || token.IsNew {
 		return "", errors.New("unable to retrieve token")
 	}
-	pc := PseudoCookie{}
-	if err = json.Unmarshal(token.Values["token_data"].([]byte), &pc); err != nil {
+	user := UserInfo{}
+	if err = json.Unmarshal(token.Values["token_data"].([]byte), &user); err != nil {
 		return "", err
 	}
-	return pc.Email, nil
+	return user.Email, nil
 }
 
 func RespondWithError(w http.ResponseWriter, code int, msg string) {

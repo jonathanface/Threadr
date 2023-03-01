@@ -1,7 +1,9 @@
 package api
 
 import (
+	"RichDocter/sessions"
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/url"
 
@@ -89,4 +91,23 @@ func AllSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	RespondWithJson(w, http.StatusOK, out.Items)
+}
+
+type UserInfo struct {
+	Email     string `json:"email"`
+	FirstName string `json:"first_name"`
+}
+
+func GetUserData(w http.ResponseWriter, r *http.Request) {
+	session, err := sessions.Get(r, "token")
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	var user UserInfo
+	if err = json.Unmarshal(session.Values["token_data"].([]byte), &user); err != nil {
+		RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	RespondWithJson(w, http.StatusOK, user)
 }

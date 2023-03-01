@@ -66,7 +66,7 @@ const Sidebar = (props) => {
     const currentStoryID = useSelector((state) => state.currentStoryID.value);
 
     const dispatch = useDispatch()
-
+ 
     const getStories = () => {
         fetch(process.env.REACT_APP_SERVER_URL + '/api/stories')
         .then((response) => {
@@ -99,11 +99,11 @@ const Sidebar = (props) => {
     }
 
     const signin = () => {
-        window.location.href = process.env.REACT_APP_SERVER_URL + '/auth/google/token';
+        window.location.href = process.env.REACT_APP_SERVER_URL + '/auth/google';
     }
 
     const signout = () => {
-        fetch(process.env.REACT_APP_SERVER_URL + '/auth/logout', {
+        fetch(process.env.REACT_APP_SERVER_URL + '/logout/google', {
             method: "DELETE"
         })
         .then((response) => {

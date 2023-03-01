@@ -89,24 +89,12 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 			api.RespondWithError(w, http.StatusNotFound, "cannot find token")
 			return
 		}
-		pc := auth.PseudoCookie{}
-		if err = json.Unmarshal(token.Values["token_data"].([]byte), &pc); err != nil {
-			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		var user api.UserInfo
+		if err = json.Unmarshal(token.Values["token_data"].([]byte), &user); err != nil {
+			api.RespondWithError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		switch pc.Type {
-		case auth.TokenTypeGoogle:
-			tokenCheck := auth.ValidateGoogleToken(w, r)
-			if tokenCheck != nil {
-				api.RespondWithError(w, http.StatusBadRequest, "invalid token")
-				return
-			}
-			break
-		default:
-			api.RespondWithError(w, http.StatusBadRequest, "unable to determine token oauth type")
-			return
-		}
-		if err = upsertUser(pc.Email); err != nil {
+		if err = upsertUser(user.Email); err != nil {
 			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -120,18 +108,22 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 
 func main() {
 	log.Println("Listening for http on " + port)
+	auth.New()
 	rtr := mux.NewRouter()
 
-	rtr.HandleFunc("/auth/google/token", auth.RequestGoogleToken).Methods("GET", "OPTIONS")
-	rtr.HandleFunc("/auth/google/receive", auth.ReceiveGoogleToken).Methods("GET", "OPTIONS")
+	//rtr.HandleFunc("/auth/token/{service}", auth.ProcessTokenRequest).Methods("GET", "OPTIONS")
+	//rtr.HandleFunc("/auth/google/receive", auth.ReceiveGoogleToken).Methods("GET", "OPTIONS")
 	// DEV ONLY!!
 	//rtr.HandleFunc("/auth/logout", auth.DeleteToken).Methods("GET", "OPTIONS")
+	rtr.HandleFunc("/logout/{provider}", auth.Logout)
+	rtr.HandleFunc("/auth/{provider}", auth.Login)
+	rtr.HandleFunc("/auth/{provider}/callback", auth.Callback)
 
 	apiPath := rtr.PathPrefix(servicePath).Subrouter()
 	apiPath.Use(accessControlMiddleware)
 
 	// GETs
-	apiPath.HandleFunc("/user", auth.GetUserData).Methods("GET", "OPTIONS")
+	apiPath.HandleFunc("/user", api.GetUserData).Methods("GET", "OPTIONS")
 	apiPath.HandleFunc("/stories", api.AllStoriesEndPoint).Methods("GET", "OPTIONS")
 	apiPath.HandleFunc("/stories/{story}", api.StoryEndPoint).Methods("GET", "OPTIONS")
 	apiPath.HandleFunc("/series", api.AllSeriesEndPoint).Methods("GET", "OPTIONS")
@@ -144,7 +136,7 @@ func main() {
 	apiPath.HandleFunc("/stories/{story}/orderMap", api.RewriteBlockOrderEndpoint).Methods("PUT", "OPTIONS")
 
 	// DELETEs
-	rtr.HandleFunc("/auth/logout", auth.DeleteToken).Methods("DELETE", "OPTIONS")
+	//rtr.HandleFunc("/auth/logout", auth.DeleteToken).Methods("DELETE", "OPTIONS")
 	apiPath.HandleFunc("/stories/{story}/block", api.DeleteBlocksFromStoryEndpoint).Methods("DELETE", "OPTIONS")
 
 	rtr.PathPrefix("/").HandlerFunc(serveRootDirectory)
