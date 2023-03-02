@@ -350,7 +350,7 @@ const Document = () => {
 
   const { show } =  useContextMenu();
 
-  const handleContextMenu = (event) => {
+  const handleTextualContextMenu = (event) => {
     const text = GetSelectedText(editorState);
     // regex check for separated word?
     if (text.length) {
@@ -527,7 +527,7 @@ const Document = () => {
         <button onMouseDown={(e) => {handleStyleClick(e,'UNDERLINE')}}><u>U</u></button>
         <button onMouseDown={(e) => {handleStyleClick(e,'STRIKETHROUGH')}}><s>S</s></button>
       </nav>
-      <section className="editor_container" onContextMenu={handleContextMenu} onClick={setFocus}>
+      <section className="editor_container" onContextMenu={handleTextualContextMenu} onClick={setFocus}>
         <Editor blockStyleFn={applyBlockStyles} customStyleMap={styleMap} preserveSelectionOnBlur={true} editorState={editorState} stripPastedStyles={true} onChange={updateEditorState} handlePastedText={handlePasteAction} handleKeyCommand={handleKeyCommand} keyBindingFn={keyBindings} ref={domEditor} />
       </section>
       <Menu id="plaintext_context">
