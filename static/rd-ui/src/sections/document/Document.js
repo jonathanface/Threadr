@@ -1,7 +1,6 @@
-import React, {useRef, useEffect} from 'react';
+import React, {useRef, useEffect, useState} from 'react';
 import Immutable from 'immutable';
-import {convertFromRaw, Editor, EditorState, ContentBlock, RichUtils, getDefaultKeyBinding, Modifier, SelectionState, ContentState} from 'draft-js';
-import {CreateDecorators} from './decorators.js'
+import {convertFromRaw, Editor, EditorState, ContentBlock, RichUtils, getDefaultKeyBinding, Modifier, SelectionState, ContentState, CompositeDecorator} from 'draft-js';
 import {GetSelectedText, InsertTab, FilterAndReduceDBOperations, SetFocusAndRestoreCursor, GetStyleData, GetSelectedBlocks} from './utilities.js'
 import 'draft-js/dist/Draft.css';
 import '../../css/document.css';
@@ -9,6 +8,8 @@ import { Menu, Item, Submenu, useContextMenu } from 'react-contexify';
 import 'react-contexify/ReactContexify.css';
 import { useSelector} from 'react-redux'
 import { setDBOperationInterval } from '../../stores/dbOperationIntervalSlice';
+import { FindHighlightable, HighlightSpan, FindTabs, TabSpan} from './decorators'
+import { current } from '@reduxjs/toolkit';
 
 const ASSOCIATION_TYPE_CHARACTER = "character";
 const ASSOCIATION_TYPE_EVENT = "event";
@@ -16,7 +17,6 @@ const ASSOCIATION_TYPE_PLACE = "place";
 
 
 const associations = [];
-associations.push({type:ASSOCIATION_TYPE_CHARACTER, name:"lo", details:{aliases:""}})
 
 const styleMap = {
   'STRIKETHROUGH': {
@@ -39,10 +39,51 @@ const Document = () => {
   const domEditor = useRef(null);
   const currentStoryID = useSelector((state) => state.currentStoryID.value);
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
+  const [currentRightClickedAssoc, setCurrentRightClickedAssoc] = useState(null);
+
+  const createDecorators = () => {
+    const decorators = [];
+    associations.forEach((association) => {
+      decorators.push({
+        strategy: FindHighlightable(association.association_type, associations),
+        component: HighlightSpan,
+        props: {
+          type: association.association_type,
+          //leftClickFunc: leftClickedDecorator,
+          rightClickFunc: handleAssociationContextMenu
+          
+        }
+      });
+    });
+    decorators.push({
+      strategy: FindTabs,
+      component: TabSpan
+    });
+    return new CompositeDecorator(decorators);
+  }
 
   const [editorState, setEditorState] = React.useState(
-    () => EditorState.createEmpty(CreateDecorators(associations))
+    () => EditorState.createEmpty(createDecorators(associations))
   );
+
+  const getAllAssociations = () => {
+    fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID + "/associations")
+    .then((response) => {
+        if (response.ok) {
+            return response.json();
+          }
+          throw new Error('Fetch problem associations ' + response.status);
+    })
+    .then((data) => {
+      data.map(assoc => {
+        associations.push({association_name:assoc.association_name.Value,
+          association_type:assoc.association_type.Value,
+          details:{aliases:"", caseSensitive:assoc.case_sensitive}});
+      });
+    }).catch(error => {
+      console.error("get story associations", error);
+    })
+  }
 
   const getAllStoryBlocks = () => {
     fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID)
@@ -86,7 +127,7 @@ const Document = () => {
           })
         }
       })
-      setEditorState(EditorState.createWithContent(newContentState, CreateDecorators(associations)));
+      setEditorState(EditorState.createWithContent(newContentState, createDecorators(associations)));
     }).catch(error => {
       console.error("get story blocks", error);
     })
@@ -99,6 +140,7 @@ const Document = () => {
       setDBOperationInterval(setInterval(() => {
         processDBQueue();
       }, process.env.REACT_APP_DB_OP_INTERVAL));
+      getAllAssociations();
     }
   }, [isLoggedIn, currentStoryID]);
 
@@ -123,7 +165,6 @@ const Document = () => {
           }
         case "save": {
           try {
-            console.log("wtf", op);
             saveBlocksToServer(FilterAndReduceDBOperations(dbOperationQueue, op, i));
           } catch(e) {
             console.error(e)
@@ -203,7 +244,6 @@ const Document = () => {
   }
 
   const saveBlocksToServer = (blocks) => {
-    console.log("blockstoisave", blocks);
     return new Promise(async(resolve, reject) => {
       try {
         console.log("saving", blocks);
@@ -222,7 +262,47 @@ const Document = () => {
         reject("ERROR SAVING BLOCK: ", e);
       }
     });
-    
+  }
+
+  const saveAssociationsToServer = (associations) => {
+    return new Promise(async(resolve, reject) => {
+      try {
+        console.log("saving associations", associations);
+        const response = await fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID + '/associations', {
+          method: "PUT",
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(associations)
+        });
+        if (!response.ok) {
+          reject("SERVER ERROR SAVING BLOCK: ", response);
+        }
+        resolve(response.json());
+      } catch (e) {
+        reject("ERROR SAVING BLOCK: ", e);
+      }
+    });
+  }
+
+  const deleteAssociationsFromServer = (associations) => {
+    return new Promise(async(resolve, reject) => {
+      try {
+        const response = await fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID + '/associations', {
+          method: "DELETE",
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(associations)
+        });
+        if (!response.ok) {
+          reject("SERVER ERROR SAVING BLOCK: ", response);
+        }
+        resolve(response.json());
+      } catch (e) {
+        reject("ERROR SAVING BLOCK: ", e);
+      }
+    });
   }
 
   const keyBindings = (event) => {
@@ -234,37 +314,67 @@ const Document = () => {
     return getDefaultKeyBinding(event);
   }
 
-  const { show } = useContextMenu({
-    id: "custom_context",
-  });
+  const formatAssociation = (type, name) => {return {association_type:type, association_name:name, details:{aliases:""}}};
 
-  const forceStateUpdate = (editorState) => {
-    return ;
-  }
 
   const handleMenuItemClick = ({ id, event}) => {
     const text = GetSelectedText(editorState);
     if (text.length) { 
       event.preventDefault();
       // check if !contains
-      associations.push({type:id, name:text, details:{aliases:""}});
-      const withSelection = SetFocusAndRestoreCursor(editorState, domEditor)
-      const newEditorState = EditorState.set(withSelection, {decorator: CreateDecorators(associations)})
+      const newAssociation = formatAssociation(id, text);
+      associations.push(newAssociation);
+      const withSelection = SetFocusAndRestoreCursor(editorState, domEditor);
+      const newEditorState = EditorState.set(withSelection, {decorator: createDecorators(associations)});
+      try {
+        saveAssociationsToServer([newAssociation]);
+      } catch(e) {
+        console.error(e)
+      }
       setEditorState(newEditorState);
     }
   };
+
+  const handleDeleteAssociationClick = ({event}) => {
+    associations.splice(associations.findIndex(assoc => assoc === currentRightClickedAssoc));
+    const withSelection = SetFocusAndRestoreCursor(editorState, domEditor);
+    const newEditorState = EditorState.set(withSelection, {decorator: createDecorators(associations)});
+    try {
+      deleteAssociationsFromServer([currentRightClickedAssoc]);
+    } catch(e) {
+      console.error(e)
+    }
+    setCurrentRightClickedAssoc(null);
+    setEditorState(newEditorState);
+  }
+
+  const { show } =  useContextMenu();
 
   const handleContextMenu = (event) => {
     const text = GetSelectedText(editorState);
     // regex check for separated word?
     if (text.length) {
       show({
+        id: "plaintext_context",
         event,
         props: {
             editorState: editorState
         }
       })
     }
+  }
+
+  const handleAssociationContextMenu = (name, type, event) => {
+    setCurrentRightClickedAssoc(formatAssociation(type, name));
+    show({
+      id: "association_context",
+      event: event,
+      props: {
+          editorState: editorState,
+          name: name,
+          type: type
+      }
+    })
   }
 
   const handleStyleClick = (event, style) => {
@@ -420,12 +530,15 @@ const Document = () => {
       <section className="editor_container" onContextMenu={handleContextMenu} onClick={setFocus}>
         <Editor blockStyleFn={applyBlockStyles} customStyleMap={styleMap} preserveSelectionOnBlur={true} editorState={editorState} stripPastedStyles={true} onChange={updateEditorState} handlePastedText={handlePasteAction} handleKeyCommand={handleKeyCommand} keyBindingFn={keyBindings} ref={domEditor} />
       </section>
-      <Menu id="custom_context">
+      <Menu id="plaintext_context">
         <Submenu label="Create Association">
           <Item id={ASSOCIATION_TYPE_CHARACTER} onClick={handleMenuItemClick}>Character</Item>
           <Item id={ASSOCIATION_TYPE_PLACE} onClick={handleMenuItemClick}>Place</Item>
           <Item id={ASSOCIATION_TYPE_EVENT} onClick={handleMenuItemClick}>Event</Item>
         </Submenu>
+      </Menu>
+      <Menu id="association_context">
+        <Item onClick={handleDeleteAssociationClick}>Delete Association</Item>
       </Menu>
     </div>);
 }

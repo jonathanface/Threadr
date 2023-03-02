@@ -1,15 +1,16 @@
-import {CompositeDecorator} from 'draft-js';
+
 import React from 'react';
 
-const TabSpan = (props) => { 
+export const TabSpan = (props) => { 
     return (
       <span className="tabEntity">{props.children}</span>
     );
   };
+  
 
-const HighlightSpan = (props) => {
+export const HighlightSpan = (props) => {
     return (
-      <span onClick={(e)=> {props.leftclickFunc(props.decoratedText, props.type);}} className={"highlight " + props.type }>
+      <span onClick={(e)=> {props.leftClickFunc(props.decoratedText, props.type, e);}} onContextMenu={(e)=> {props.rightClickFunc(props.decoratedText, props.type, e);}} className={"highlight " + props.type }>
         {props.children}
       </span>
     );
@@ -26,15 +27,14 @@ const HighlightSpan = (props) => {
      * @param {function} callback
      * @param {ContentState} contentState
      */
-  const findHighlightable = (entityType, associations) => {
+export const FindHighlightable = (entityType, associations) => {
     return (contentBlock, callback) => {
       const text = contentBlock.getText();
       associations.forEach((association) => {
-        if (association.type !== entityType) {
+        if (association.association_type !== entityType) {
           return;
         }
-        console.log("looking for", association.type)
-        const name = association.name.trim();
+        const name = association.association_name.trim();
         if (!name.length) {
           return;
         }
@@ -65,32 +65,10 @@ const HighlightSpan = (props) => {
       });
     }
   }
+
   
-  const clickedDecorator = (name, type) => {
-    console.log('clicked', name, type);
-  }
   
-  export const CreateDecorators = (associations) => {
-    const decorators = [];
-    associations.forEach((association) => {
-      decorators.push({
-        strategy: findHighlightable(association.type, associations),
-        component: HighlightSpan,
-        props: {
-          type: association.type,
-          leftclickFunc: clickedDecorator
-          // rightclickFunc: this.clickedCharacterContext.bind(this)
-        }
-      });
-    });
-    decorators.push({
-      strategy: findTabs,
-      component: TabSpan
-    });
-    return new CompositeDecorator(decorators);
-  }
-  
-  const findTabs = (contentBlock, callback, contentState) => {
+ export const FindTabs = (contentBlock, callback, contentState) => {
     contentBlock.findEntityRanges((character) => {
       const entityKey = character.getEntity();
       return (

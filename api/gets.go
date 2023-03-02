@@ -47,7 +47,6 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
-
 	var (
 		email string
 		err   error
@@ -61,6 +60,39 @@ func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		FilterExpression: aws.String("attribute_not_exists(deleted_at) AND contains(author, :eml)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
+		},
+	})
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	RespondWithJson(w, http.StatusOK, out.Items)
+}
+
+func AllAssociationsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {
+	var (
+		email string
+		err   error
+		story string
+	)
+	if email, err = getUserEmail(r); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if story, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
+		return
+	}
+	if story == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing story name")
+		return
+	}
+	out, err := AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName:        aws.String("associations"),
+		FilterExpression: aws.String("contains(author, :eml) AND contains(story, :s)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":eml": &types.AttributeValueMemberS{Value: email},
+			":s":   &types.AttributeValueMemberS{Value: story},
 		},
 	})
 	if err != nil {

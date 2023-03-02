@@ -23,6 +23,28 @@ var AwsClient *dynamodb.Client
 var maxAWSRetries int
 var blockTableMinWriteCapacity int
 
+const (
+	writeBatchSize           = 50
+	associationTypeCharacter = "character"
+	associationTypePlace     = "place"
+	associationTypeEvent     = "event"
+)
+
+type StoryBlock struct {
+	KeyID string          `json:"keyID"`
+	Chunk json.RawMessage `json:"chunk"`
+	Place string          `json:"place"`
+}
+type StoryBlocks struct {
+	Title  string       `json:"title"`
+	Blocks []StoryBlock `json:"blocks"`
+}
+
+type Association struct {
+	Name string `json:"association_name"`
+	Type string `json:"association_type"`
+}
+
 func init() {
 	var (
 		awsCfg aws.Config

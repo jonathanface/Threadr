@@ -126,6 +126,7 @@ func main() {
 	apiPath.HandleFunc("/user", api.GetUserData).Methods("GET", "OPTIONS")
 	apiPath.HandleFunc("/stories", api.AllStoriesEndPoint).Methods("GET", "OPTIONS")
 	apiPath.HandleFunc("/stories/{story}", api.StoryEndPoint).Methods("GET", "OPTIONS")
+	apiPath.HandleFunc("/stories/{story}/associations", api.AllAssociationsByStoryEndPoint).Methods("GET", "OPTIONS")
 	apiPath.HandleFunc("/series", api.AllSeriesEndPoint).Methods("GET", "OPTIONS")
 
 	// POSTs
@@ -134,10 +135,11 @@ func main() {
 	// PUTs
 	apiPath.HandleFunc("/stories/{story}", api.WriteBlocksToStoryEndpoint).Methods("PUT", "OPTIONS")
 	apiPath.HandleFunc("/stories/{story}/orderMap", api.RewriteBlockOrderEndpoint).Methods("PUT", "OPTIONS")
+	apiPath.HandleFunc("/stories/{story}/associations", api.WriteAssocationsEndpoint).Methods("PUT", "OPTIONS")
 
 	// DELETEs
-	//rtr.HandleFunc("/auth/logout", auth.DeleteToken).Methods("DELETE", "OPTIONS")
 	apiPath.HandleFunc("/stories/{story}/block", api.DeleteBlocksFromStoryEndpoint).Methods("DELETE", "OPTIONS")
+	apiPath.HandleFunc("/stories/{story}/associations", api.DeleteAssociationsEndpoint).Methods("DELETE", "OPTIONS")
 
 	rtr.PathPrefix("/").HandlerFunc(serveRootDirectory)
 	http.Handle("/", rtr)
