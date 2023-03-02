@@ -78,3 +78,16 @@ div.DraftEditor-editorContainer, div.public-DraftEditor-content {
     height:100vh;
     max-height:100vh;
 }
+
+.public-DraftEditor-content .left .public-DraftStyleDefault-ltr {
+    text-align:left;
+}
+.public-DraftEditor-content .center .public-DraftStyleDefault-ltr {
+    text-align:center;
+}
+.public-DraftEditor-content .right .public-DraftStyleDefault-ltr {
+    text-align:right;
+}
+.public-DraftEditor-content .justify .public-DraftStyleDefault-ltr {
+    text-align:justify;
+}

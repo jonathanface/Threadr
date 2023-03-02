@@ -9,7 +9,11 @@ import 'react-contexify/ReactContexify.css';
 import { useSelector} from 'react-redux'
 import { setDBOperationInterval } from '../../stores/dbOperationIntervalSlice';
 import { FindHighlightable, HighlightSpan, FindTabs, TabSpan} from './decorators'
-import { current } from '@reduxjs/toolkit';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faAlignLeft } from '@fortawesome/free-solid-svg-icons'
+import { faAlignCenter } from '@fortawesome/free-solid-svg-icons'
+import { faAlignRight } from '@fortawesome/free-solid-svg-icons'
+import { faAlignJustify } from '@fortawesome/free-solid-svg-icons'
 
 const ASSOCIATION_TYPE_CHARACTER = "character";
 const ASSOCIATION_TYPE_EVENT = "event";
@@ -503,20 +507,35 @@ const Document = () => {
     domEditor.current.focus();
   }
 
-  const applyBlockStyles = (contentBlock) => {
-    let classStr = ''; 
+  const getBlockStyles = (contentBlock) => {
     const data = contentBlock.getData();
-    const alignment = data.getIn(['alignment']);
-    if (alignment) {
-      classStr += 'align_' + data.getIn(['alignment']);
-    }
-    const lineHeight = data.getIn(['lineHeight']);
-    if (lineHeight) {
-      if (classStr.length) {
-        classStr += ' ';
+    let classStr = ""
+    const alignment = data.getIn(['alignment']) ? data.getIn(['alignment']) : 'left';
+    classStr += alignment;
+    const lineHeight = data.getIn(['lineHeight']) ? data.getIn(['lineHeight']) : 'lineheight_double';
+    classStr += " " + lineHeight;
+    return classStr;
+  }
+
+  const updateBlockAlignment = (event, alignment) => {
+    const selection = editorState.getSelection();
+    const content = editorState.getCurrentContent();
+    let newContentState = Modifier.mergeBlockData(content, selection, Immutable.Map([['alignment', alignment]]));
+    if (alignment == 'center') {
+      // remove any whitespace if line is blank
+      const regexStr = '\S+';
+      const regex = new RegExp(regexStr, 'gmi');
+      const text = newContentState.getBlockForKey(selection.getFocusKey()).getText();
+      if (regex.test(text)) {
+        console.log('removing whitespace before center');
+        newContentState = Modifier.replaceText(newContentState, selection, '');
       }
-      classStr += lineHeight;
     }
+    const block = newContentState.getBlockForKey(selection.getFocusKey());
+    const key = block.getKey();
+    const index = newContentState.getBlockMap().keySeq().findIndex(k => k === key);
+    dbOperationQueue.push({type:"save", time:Date.now(), ops:[{keyID:key, chunk:block, place:index.toString()}]});
+    setEditorState(EditorState.push(editorState, newContentState, 'change-block-data'));
   }
 
   return (
@@ -526,9 +545,24 @@ const Document = () => {
         <button onMouseDown={(e) => {handleStyleClick(e,'ITALIC')}}><i>I</i></button>
         <button onMouseDown={(e) => {handleStyleClick(e,'UNDERLINE')}}><u>U</u></button>
         <button onMouseDown={(e) => {handleStyleClick(e,'STRIKETHROUGH')}}><s>S</s></button>
+        <button onMouseDown={(e) => {updateBlockAlignment(e, 'left')}}><FontAwesomeIcon icon={faAlignLeft} /></button>
+        <button onMouseDown={(e) => {updateBlockAlignment(e, 'center')}}><FontAwesomeIcon icon={faAlignCenter} /></button>
+        <button onMouseDown={(e) => {updateBlockAlignment(e, 'right')}}><FontAwesomeIcon icon={faAlignRight} /></button>
+        <button onMouseDown={(e) => {updateBlockAlignment(e, 'justify')}}><FontAwesomeIcon icon={faAlignJustify} /></button>
       </nav>
       <section className="editor_container" onContextMenu={handleTextualContextMenu} onClick={setFocus}>
-        <Editor blockStyleFn={applyBlockStyles} customStyleMap={styleMap} preserveSelectionOnBlur={true} editorState={editorState} stripPastedStyles={true} onChange={updateEditorState} handlePastedText={handlePasteAction} handleKeyCommand={handleKeyCommand} keyBindingFn={keyBindings} ref={domEditor} />
+        <Editor
+          blockStyleFn={getBlockStyles}
+          customStyleMap={styleMap}
+          preserveSelectionOnBlur={true}
+          editorState={editorState}
+          stripPastedStyles={true}
+          onChange={updateEditorState}
+          handlePastedText={handlePasteAction}
+          handleKeyCommand={handleKeyCommand}
+          keyBindingFn={keyBindings}
+          ref={domEditor}
+        />
       </section>
       <Menu id="plaintext_context">
         <Submenu label="Create Association">
