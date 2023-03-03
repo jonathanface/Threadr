@@ -52,6 +52,7 @@ div.DraftEditor-root {
     filter: drop-shadow(2px 2px 2px #1a1a1a);
     height:80%;
 }
+
 div.DraftEditor-editorContainer, div.public-DraftEditor-content {
     height: 100%;
     line-height:2em;
@@ -94,4 +95,18 @@ div.DraftEditor-editorContainer, div.public-DraftEditor-content {
     text-align:justify;
     text-justify: auto;
     white-space:normal;
+}
+
+@media only screen and (max-width: 600px) {
+    div.DraftEditor-root {
+        width:90%;
+    }
+    div.DraftEditor-editorContainer {
+        padding:0;
+    }
+    nav.rich-controls {
+        height:initial;
+        width:auto;
+        padding-left:70px;
+    }
 }
