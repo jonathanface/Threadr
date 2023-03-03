@@ -1,4 +1,4 @@
-import {EditorState, Modifier, SelectionState} from 'draft-js';
+import {EditorState, Modifier, SelectionState, convertToRaw} from 'draft-js';
 
 export const GetSelectedBlocks = (editorState) => {
   const lastSelection = editorState.getSelection();
@@ -66,6 +66,7 @@ export const GetSelectedText = (editorState) => {
 }
   
 export const GenerateTabCharacter = (tabLength) => {
+  tabLength = tabLength ? tabLength = tabLength : tabLength = 5;
   let tab = '';
   for (let i=0; i < tabLength; i++) {
     tab += ' ';
@@ -73,19 +74,22 @@ export const GenerateTabCharacter = (tabLength) => {
   return tab;
 }
 
-export const InsertTab = (editorState, key) => {
-  const selection = new SelectionState({
-    anchorKey: key,
-    focusKey: key,
-    anchorOffset: 0,
-    focusOffset: 0
-  });
-  const currentContent = editorState.getCurrentContent();
-  const contentStateWithEntity = currentContent.createEntity('TAB', 'IMMUTABLE');
-  const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
-  const textWithEntity = Modifier.insertText(currentContent, selection, generateTabCharacter(), null, entityKey);
-  const newState = EditorState.push(editorState, textWithEntity, 'apply-entity');
-  return EditorState.forceSelection(newState, textWithEntity.getSelectionAfter());
+export const InsertTab = (editorState, keys) => {
+  console.log("keys", keys);
+  const content = editorState.getCurrentContent();
+  let newEditorState = editorState;
+  keys.map(key => {
+    const block = content.getBlockForKey(key);
+    const firstChar = block.getCharacterList().get(0);
+    const newBlockSelection = SelectionState.createEmpty(block.getKey());
+    if (!firstChar || (firstChar && firstChar.entity === null) || (firstChar && content.getEntity(firstChar.entity).getType() !== 'TAB')) {
+      const contentStateWithEntity = content.createEntity('TAB', 'IMMUTABLE');
+      const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
+      const adjustedEditorState = EditorState.push(newEditorState, Modifier.insertText(content, newBlockSelection, GenerateTabCharacter(), null, entityKey));
+      newEditorState = EditorState.forceSelection(adjustedEditorState, adjustedEditorState.getCurrentContent().getSelectionAfter());
+    }
+  })
+  return newEditorState;
 }
 
 export const SetFocusAndRestoreCursor = (editorState, ref) => {

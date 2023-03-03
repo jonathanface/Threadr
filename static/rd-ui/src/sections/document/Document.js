@@ -119,16 +119,18 @@ const Document = () => {
       };
       let newContentState = convertFromRaw(contentState);
       newBlocks.forEach(block => {
-        if (block.getData(["styles"]) && block.getData(["styles"]).styles) {
-          block.getData(["styles"]).styles.forEach(style => {
-            const styleSelection = new SelectionState({
-              focusKey: block.key,
-              anchorKey: block.key,
-              focusOffset: style.end,
-              anchorOffset: style.start
+        if (block.getText().length) {
+          if (block.getData(["styles"]) && block.getData(["styles"]).styles) {
+            block.getData(["styles"]).styles.forEach(style => {
+              const styleSelection = new SelectionState({
+                focusKey: block.key,
+                anchorKey: block.key,
+                focusOffset: style.end,
+                anchorOffset: style.start
+              });
+              newContentState = Modifier.applyInlineStyle(newContentState, styleSelection, style.style)
             })
-            newContentState = Modifier.applyInlineStyle(newContentState, styleSelection, style.style)
-          })
+          }
         }
       })
       setEditorState(EditorState.createWithContent(newContentState, createDecorators(associations)));
@@ -313,7 +315,8 @@ const Document = () => {
     // tab pressed
     if (event.keyCode === 9) {
       event.preventDefault();
-      setEditorState(InsertTab(editorState, editorState.getSelection().getFocusKey()));
+      const selectedKeys = GetSelectedBlocks(editorState);
+      setEditorState(InsertTab(editorState, selectedKeys));
     }
     return getDefaultKeyBinding(event);
   }
@@ -435,7 +438,7 @@ const Document = () => {
         }
         blocksToDelete.push(oldBlockKey);
         const index = oldContent.getBlockMap().keySeq().findIndex(k => k === oldBlockKey);
-        if (index != oldBlockMap.size-1) {
+        if (index !== oldBlockMap.size-1) {
           resyncRequired = true;
         }
       }
@@ -445,26 +448,25 @@ const Document = () => {
       // If the new block is not in the old block map, it's a new block
       if (!oldBlock) {
         const index = newContent.getBlockMap().keySeq().findIndex(k => k === newBlockKey);
-        if (index != newBlockMap.size-1) {
+        if (index !== newBlockMap.size-1) {
           // If it's not in the last place of blocks, we will need to resync
           // the order of all blocks
           resyncRequired = true;
         }
-        
-        const firstChar = newBlock.getCharacterList().get(0);
-        if ((firstChar && firstChar.entity == null) || (firstChar && newContent.getEntity(firstChar.entity).getType() != 'TAB')) {
-          newEditorState = InsertTab(newEditorState, newBlockKey);
-        }
+        newEditorState = InsertTab(newEditorState, [newBlockKey]);
+        /*
+        const tempSelection = SelectionState.createEmpty(newBlockKey);
+        const nextContentState = Modifier.setBlockData(newEditorState.getCurrentContent(), tempSelection,
+            Immutable.Map([['lineHeight', this.state.currentLineHeight], ['alignment', this.state.currentAlignment]])
+        );
+        newEditorState = EditorState.push(newEditorState, nextContentState, 'change-block-data');*/
         blocksToSave.push(newBlockKey);
-        return;
       }
       // If the block is selected, save it to the server
       if (selectedKeys.includes(newBlockKey)) {
         blocksToSave.push(newBlockKey);
       }
     });
-
-    
     setEditorState(newEditorState);
 
     if (blocksToDelete.length) {
@@ -556,7 +558,6 @@ const Document = () => {
           customStyleMap={styleMap}
           preserveSelectionOnBlur={true}
           editorState={editorState}
-          stripPastedStyles={true}
           onChange={updateEditorState}
           handlePastedText={handlePasteAction}
           handleKeyCommand={handleKeyCommand}
