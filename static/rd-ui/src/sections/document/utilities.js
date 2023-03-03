@@ -75,7 +75,6 @@ export const GenerateTabCharacter = (tabLength) => {
 }
 
 export const InsertTab = (editorState, keys) => {
-  console.log("keys", keys);
   const content = editorState.getCurrentContent();
   let newEditorState = editorState;
   keys.map(key => {

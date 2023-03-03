@@ -44,6 +44,11 @@ const Document = () => {
   const currentStoryID = useSelector((state) => state.currentStoryID.value);
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
   const [currentRightClickedAssoc, setCurrentRightClickedAssoc] = useState(null);
+  const [currentBlockAlignment, setCurrentBlockAlignment] = useState('left');
+  const [currentItalicsState, setCurrentItalicsState] = useState(false);
+  const [currentBoldState, setCurrentBoldState] = useState(false);
+  const [currentUnderscoreState, setCurrentUnderscoreState] = useState(false);
+  const [currentStrikethroughState, setCurrentStrikethroughState] = useState(false);
 
   const createDecorators = () => {
     const decorators = [];
@@ -410,8 +415,52 @@ const Document = () => {
     setEditorState(RichUtils.handleKeyCommand(editorState, command));
   }
 
+  const resetNavButtonStates = () => {
+    setCurrentBoldState(false);
+    setCurrentItalicsState(false);
+    setCurrentUnderscoreState(false);
+    setCurrentStrikethroughState(false);
+    setCurrentBlockAlignment('left');
+  }
+
+  const toggleNavButtonState = (style) => {
+    switch(style) {
+      case "BOLD": {
+        setCurrentBoldState(true);
+        break;
+      }
+      case "ITALIC": {
+        setCurrentItalicsState(true);
+        break;
+      }
+      case "UNDERSCORE": {
+        setCurrentUnderscoreState(true);
+        break;
+      }
+      case "STRIKETHROUGH": {
+        setCurrentStrikethroughState(true);
+        break;
+      }
+    }
+  }
+
   const updateEditorState = (newEditorState) => {
     // Cursor has moved but no text changes detected
+    resetNavButtonStates();
+    const selection = newEditorState.getSelection();
+    const block = newEditorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
+    for (const entry in styleMap) {
+      const styles = GetStyleData(block, entry, []);
+      styles.forEach(style => {
+        if (selection.hasEdgeWithin(block.getKey(), style.start, style.end)) {
+          toggleNavButtonState(style.style);
+        }
+      });
+    };
+    const data = block.getData();
+    const alignment = data.getIn(['alignment']) ? data.getIn(['alignment']) : 'left';
+    setCurrentBlockAlignment(alignment);
+
     if (editorState.getCurrentContent() === newEditorState.getCurrentContent()) {
       console.log("cursor action");
       setEditorState(newEditorState);
@@ -423,7 +472,6 @@ const Document = () => {
     const oldContent = editorState.getCurrentContent();
     const oldBlockMap = oldContent.getBlockMap();
     const selectedKeys = GetSelectedBlocks(editorState);
-    
 
     const blocksToSave = [];
     const blocksToDelete = [];
@@ -533,24 +581,25 @@ const Document = () => {
         newContentState = Modifier.replaceText(newContentState, selection, '');
       }
     }
-    const block = newContentState.getBlockForKey(selection.getFocusKey());
-    const key = block.getKey();
-    const index = newContentState.getBlockMap().keySeq().findIndex(k => k === key);
-    dbOperationQueue.push({type:"save", time:Date.now(), ops:[{keyID:key, chunk:block, place:index.toString()}]});
+    const selectedKeys = GetSelectedBlocks(editorState);
+    selectedKeys.forEach(key => {
+      const block = newContentState.getBlockForKey(key);
+      const index = newContentState.getBlockMap().keySeq().findIndex(k => k === key);
+      dbOperationQueue.push({type:"save", time:Date.now(), ops:[{keyID:key, chunk:block, place:index.toString()}]});
+    })
     setEditorState(EditorState.push(editorState, newContentState, 'change-block-data'));
   }
-
   return (
     <div>
       <nav className="rich-controls">
-        <button onMouseDown={(e) => {handleStyleClick(e,'BOLD')}}><b>B</b></button>
-        <button onMouseDown={(e) => {handleStyleClick(e,'ITALIC')}}><i>I</i></button>
-        <button onMouseDown={(e) => {handleStyleClick(e,'UNDERLINE')}}><u>U</u></button>
-        <button onMouseDown={(e) => {handleStyleClick(e,'STRIKETHROUGH')}}><s>S</s></button>
-        <button onMouseDown={(e) => {updateBlockAlignment(e, 'left')}}><FontAwesomeIcon icon={faAlignLeft} /></button>
-        <button onMouseDown={(e) => {updateBlockAlignment(e, 'center')}}><FontAwesomeIcon icon={faAlignCenter} /></button>
-        <button onMouseDown={(e) => {updateBlockAlignment(e, 'right')}}><FontAwesomeIcon icon={faAlignRight} /></button>
-        <button onMouseDown={(e) => {updateBlockAlignment(e, 'justify')}}><FontAwesomeIcon icon={faAlignJustify} /></button>
+        <button className={currentBoldState ? "active": ""} onMouseDown={(e) => {handleStyleClick(e,'BOLD')}}><b>B</b></button>
+        <button className={currentItalicsState ? "active": ""} onMouseDown={(e) => {handleStyleClick(e,'ITALIC')}}><i>I</i></button>
+        <button className={currentUnderscoreState ? "active": ""} onMouseDown={(e) => {handleStyleClick(e,'UNDERLINE')}}><u>U</u></button>
+        <button className={currentStrikethroughState ? "active": ""} onMouseDown={(e) => {handleStyleClick(e,'STRIKETHROUGH')}}><s>S</s></button>
+        <button className={currentBlockAlignment === 'left' ? "active": ""} onMouseDown={(e) => {updateBlockAlignment(e, 'left')}}><FontAwesomeIcon icon={faAlignLeft} /></button>
+        <button className={currentBlockAlignment === 'center' ? "active": ""} onMouseDown={(e) => {updateBlockAlignment(e, 'center')}}><FontAwesomeIcon icon={faAlignCenter} /></button>
+        <button className={currentBlockAlignment === 'right' ? "active": ""} onMouseDown={(e) => {updateBlockAlignment(e, 'right')}}><FontAwesomeIcon icon={faAlignRight} /></button>
+        <button className={currentBlockAlignment === 'justify' ? "active": ""} onMouseDown={(e) => {updateBlockAlignment(e, 'justify')}}><FontAwesomeIcon icon={faAlignJustify} /></button>
       </nav>
       <section className="editor_container" onContextMenu={handleTextualContextMenu} onClick={setFocus}>
         <Editor
