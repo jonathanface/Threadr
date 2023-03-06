@@ -1,3 +1,9 @@
+name: Push-to-EC2
+on:
+  push:
+    branches:
+      - production
+
 jobs:
   deploy:
     name: Deploy to EC2
@@ -12,7 +18,3 @@ jobs:
           REMOTE_HOST: ${ { secrets.HOST_DNS }}
           REMOTE_USER: ${ { secrets.USERNAME }}
           TARGET: ${ { secrets.TARGET_DIR }}
-    on:
-      push:
-        branches:
-          - production
