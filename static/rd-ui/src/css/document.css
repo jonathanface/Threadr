@@ -1,0 +1,112 @@
+nav.rich-controls {
+    width: 51%;
+    display:inline-block;
+    text-align: left;
+    padding: 10px;
+    background: #545e55;
+    border-radius: 10px;
+    filter: drop-shadow(2px 2px 2px #1a1a1a);
+    z-index: 10;
+    margin-top:10px;
+    height:40px;
+    line-height:40px;
+    
+}
+nav.rich-controls:not(:hover) {
+    opacity:0.8;
+    transition: opacity 0.2s ease-in-out;
+}
+nav.rich-controls:hover {
+    opacity:0.95;
+    transition: opacity 0.2s ease-in-out;
+    
+}
+
+nav.rich-controls button { 
+    text-align: center;
+    margin: 0px 5px 0px 5px;
+    font-size: 1em;
+    padding: 5px;
+    width: 34px;
+    cursor:pointer;
+    border-radius:5px;
+    border:none;
+    filter: drop-shadow(2px 2px 2px #1a1a1a);
+}
+nav.rich-controls button.active {
+    filter: none;
+    border: 1px solid black;
+    background-color: gray;
+}
+
+div.DraftEditor-root {
+    border: 1px solid #000;
+    border-radius:10px;
+    background-color: #F0F0F0;
+    min-height: 400px;
+    width:50%;
+    padding:10px;
+    margin:10px auto;
+    overflow-y: auto;
+    color:#000;
+    filter: drop-shadow(2px 2px 2px #1a1a1a);
+    height:80%;
+}
+
+div.DraftEditor-editorContainer, div.public-DraftEditor-content {
+    height: 100%;
+    line-height:2em;
+    padding:1em;
+}
+
+.highlight {
+    cursor:pointer;
+}
+.highlight:hover {
+    opacity:0.8;
+}
+
+.highlight.character {
+    color:green;
+}
+.highlight.place {
+    color:blue;
+}
+.highlight.event {
+    color:red;
+}
+
+.editor_container {
+    overflow-y:hidden;
+    height:100vh;
+    max-height:100vh;
+}
+
+.public-DraftEditor-content .left .public-DraftStyleDefault-ltr {
+    text-align:left;
+}
+.public-DraftEditor-content .center .public-DraftStyleDefault-ltr {
+    text-align:center;
+}
+.public-DraftEditor-content .right .public-DraftStyleDefault-ltr {
+    text-align:right;
+}
+.public-DraftEditor-content .justify .public-DraftStyleDefault-ltr {
+    text-align:justify;
+    text-justify: auto;
+    white-space:normal;
+}
+
+@media only screen and (max-width: 600px) {
+    div.DraftEditor-root {
+        width:90%;
+    }
+    div.DraftEditor-editorContainer {
+        padding:0;
+    }
+    nav.rich-controls {
+        height:initial;
+        width:auto;
+        padding-left:70px;
+    }
+}

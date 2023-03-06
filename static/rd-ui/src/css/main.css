@@ -1,0 +1,41 @@
+
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  font-family: "Roboto","Helvetica","Arial",sans-serif;
+  font-weight: 400;
+  font-size: 1rem;
+  line-height: 1.5;
+  letter-spacing: 0.00938em;
+  height: 100%;
+  box-sizing:border-box;
+  overflow-y:hidden;
+  height:100vh;
+  max-height:100vh;
+}
+
+.form-error {
+  color:rgba(255,0,0, 0.6);
+  margin:1.1em;
+}
+
+body {
+  min-height:100%;
+  background-color: #495960;
+}
+
+.App {
+  text-align:center;
+}
+
+main {
+  display:inline-block;
+  width:100%;
+}
+
+.MultiTreeItem-root {
+  padding-top:0px;
+  padding-left:0.5em;
+}

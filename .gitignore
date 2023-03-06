@@ -3,10 +3,12 @@
 *.dll
 *.so
 *.dylib
+.env
 
 config.json
 bundle.js
 application
+RichDocter
 richdocter.zip
 
 # Test binary, build with `go test -c`
