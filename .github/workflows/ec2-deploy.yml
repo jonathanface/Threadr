@@ -19,8 +19,7 @@ jobs:
         run: go get .
       - name: Build
         run: |
-          echo "GH_REPO: ${GITHUB_REPOSITORY}"
-          go build -v -o ${GITHUB_REPOSITORY}/dist ./... 
+          go build -v ./... -o ${{secrets.SOURCE}}
 
   deploy:
     name: Deploy to EC2
@@ -32,6 +31,7 @@ jobs:
       - name: Deploy to ec2
         uses: easingthemes/ssh-deploy@main
         env:
+          SOURCE: ${{secrets.SOURCE}}
           SSH_PRIVATE_KEY: ${ { secrets.EC2_SSH_KEY }}
           REMOTE_HOST: ${ { secrets.HOST_DNS }}
           REMOTE_USER: ${ { secrets.USERNAME }}
