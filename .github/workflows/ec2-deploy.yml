@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: go get .
       - name: Build
-        run: go build -v ./... -o ./dist/RichDocter
+        run: go build -v ./... -o ${GITHUB_WORKSPACE}/dist/RichDocter
 
   deploy:
     name: Deploy to EC2
