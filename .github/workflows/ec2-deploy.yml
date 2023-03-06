@@ -20,7 +20,7 @@ jobs:
       - name: Build
         run: |
           echo "GH_REPO: ${GITHUB_WORKSPACE}"
-        run: go build -v ./... -o ${GITHUB_WORKSPACE}/dist/
+          go build -v ./... -o ${GITHUB_WORKSPACE}/dist/
 
   deploy:
     name: Deploy to EC2
