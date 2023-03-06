@@ -18,7 +18,8 @@ jobs:
       - name: Install dependencies
         run: go get .
       - name: Build
-        run: echo "dir ${GITHUB_WORKSPACE}"
+        run: |
+          echo "GH_REPO: ${GITHUB_WORKSPACE}"
         run: go build -v ./... -o ${GITHUB_WORKSPACE}/dist/
 
   deploy:
