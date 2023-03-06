@@ -23,6 +23,7 @@ jobs:
   deploy:
     name: Deploy to EC2
     runs-on: ubuntu-latest
+    needs: build
     steps:
       - name: Checkout the files
         uses: actions/checkout@v3
