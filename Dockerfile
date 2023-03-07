@@ -1,8 +1,8 @@
 FROM golang:1.18-alpine
 #RUN apk add --no-cache bash
 WORKDIR /app
-
-RUN echo "MY_SECRET: ${AWS_ACCESS_KEY_ID}"
+ENV AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+RUN echo "MY_SECRET: $AWS_ACCESS_KEY_ID"
 
 
 COPY ./go.mod ./go.mod
