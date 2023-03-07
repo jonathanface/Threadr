@@ -1,4 +1,4 @@
-name: Push-to-EC2
+name: Build-And-Deploy
 on:
   push:
     branches:
