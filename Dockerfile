@@ -1,6 +1,7 @@
 FROM golang:1.18-alpine
 #RUN apk add --no-cache bash
 WORKDIR /app
+ARG AWS_ACCESS_KEY_ID
 ENV AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
 RUN echo "MY_SECRET: $AWS_ACCESS_KEY_ID"
 
