@@ -1,0 +1,15 @@
+name: Build-And-Deploy
+on:
+  push:
+    branches:
+      - master
+      - production
+
+jobs:
+  build:
+    name: Build go backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build the Docker image
+        run: docker build . --file Dockerfile --tag richdocter:$(date +%s)
