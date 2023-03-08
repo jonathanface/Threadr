@@ -30,7 +30,7 @@ COPY ./api ./api
 COPY ./auth ./auth
 COPY ./sessions ./sessions
 COPY ./RichDocter.go ./RichDocter.go
-COPY ./static/rd-ui/build/* ./static/rd-ui/build/*
+COPY ./static/rd-ui/build/. /static/rd-ui/build/
 RUN go build -o /RichDocter
 
 CMD ["/RichDocter"]
