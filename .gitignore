@@ -22,15 +22,12 @@ richdocter.zip
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+static/rd-ui/node_modules/
 /.pnp
 .pnp.js
 
 # testing
 /coverage
-
-# production
-/build
 
 # misc
 .DS_Store
