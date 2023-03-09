@@ -19,7 +19,7 @@ env:
   ECR_REPOSITORY: ${{ secrets.AWS_ECS_REPO }}           # set this to your Amazon ECR repository name
   ECS_SERVICE: ${{ secrets.AWS_ECS_SERVICE }}                 # set this to your Amazon ECS service name
   ECS_CLUSTER: ${{ secrets.AWS_ECS_CLUSTER }}                 # set this to your Amazon ECS cluster name
-  ECS_TASK_DEFINITION: ${{ secrets.AWS_ECS_TASK }} # set this to the path to your Amazon ECS task definition                               # file, e.g. .aws/task-definition.json
+  ECS_TASK_DEFINITION: aws_ecs_task.json # set this to the path to your Amazon ECS task definition                               # file, e.g. .aws/task-definition.json
   CONTAINER_NAME: RichDocter           # set this to the name of the container in the
                                                # containerDefinitions section of your task definition
 
