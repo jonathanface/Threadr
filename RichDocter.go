@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	port           = ":83"
+	port           = ":80"
 	staticFilesDir = "static/rd-ui/build"
 	servicePath    = "/api"
 )
