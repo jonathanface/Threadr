@@ -16,11 +16,11 @@ on:
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}                  # set this to your preferred AWS region, e.g. us-west-1
-  ECR_REPOSITORY: ${{ secrets.AWS_ECS_REPO }}           # set this to your Amazon ECR repository name
+  ECR_REPOSITORY: "richdocter"           # set this to your Amazon ECR repository name
   ECS_SERVICE: ${{ secrets.AWS_ECS_SERVICE }}                 # set this to your Amazon ECS service name
-  ECS_CLUSTER: ${{ secrets.AWS_ECS_CLUSTER }}                 # set this to your Amazon ECS cluster name
+  ECS_CLUSTER: "richdocter"               # set this to your Amazon ECS cluster name
   ECS_TASK_DEFINITION: .aws/aws_ecs_task.json # set this to the path to your Amazon ECS task definition                               # file, e.g. .aws/task-definition.json
-  CONTAINER_NAME: Threadr_v2           # set this to the name of the container in the
+  CONTAINER_NAME: "richdocter"           # set this to the name of the container in the
                                                # containerDefinitions section of your task definition
 
 jobs:
@@ -49,7 +49,7 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t "$ECR_REGISTRY/$ECR_REPOSITORY:latest2" . \
+          docker build -t "$ECR_REGISTRY/$ECR_REPOSITORY:latest" . \
           --build-arg AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
           --build-arg AWS_REGION=${{ secrets.AWS_REGION }} \
           --build-arg AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
@@ -60,8 +60,8 @@ jobs:
           --build-arg GOOGLE_OAUTH_REDIRECT_URL=${{ secrets.GOOGLE_OAUTH_REDIRECT_URL }} \
           --build-arg ROOT_URL=${{ secrets.ROOT_URL }} \
           --build-arg SESSION_SECRET=${{ secrets.SESSION_SECRET }}
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest2
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:latest2" >> $GITHUB_OUTPUT
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:latest" >> $GITHUB_OUTPUT
 
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
