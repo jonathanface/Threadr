@@ -98,7 +98,7 @@ const Sidebar = (props) => {
         history.pushState({storyID}, 'clicked story', '/story/' + encodeURIComponent(storyID));
     }
 
-    const signin = () => {
+    const signin = () => { 
         window.location.href = process.env.REACT_APP_SERVER_URL + '/auth/google';
     }
 
