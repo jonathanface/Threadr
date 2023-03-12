@@ -22,7 +22,7 @@ const Threadr = () => {
       dispatch(setCurrentStoryID(decodeURIComponent(splitDirectories[2])));
     }
   }
-
+ 
   useEffect(() => {
     fetch('/api/user')
     .then((response) => { 
