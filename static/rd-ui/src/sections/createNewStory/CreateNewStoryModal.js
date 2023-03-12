@@ -36,7 +36,7 @@ const CreateNewStory = () => {
   }
 
   const getSeries = () => {
-    fetch(process.env.REACT_APP_SERVER_URL + '/api/series')
+    fetch('/api/series')
     .then((response) => {
         if (response.ok) {
             return response.json();
@@ -54,10 +54,10 @@ const CreateNewStory = () => {
     })
   };
   useEffect(() => {
-    if (isLoggedIn) {
+    if (isLoggedIn && isCreatingNewStory) {
       getSeries();
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, isCreatingNewStory]);
 
   const handleSubmit = () => {
     if (!formInput["title"] || !formInput["title"].trim().length) {
@@ -77,7 +77,7 @@ const CreateNewStory = () => {
     }
     setCurrentError("");
     setAreErrors(false);
-    fetch(process.env.REACT_APP_SERVER_URL + '/api/stories', {
+    fetch('/api/stories', {
       method: "POST",
       headers: {
         'Content-Type': 'application/json'

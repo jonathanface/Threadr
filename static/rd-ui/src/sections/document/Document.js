@@ -18,6 +18,7 @@ import { faAlignJustify } from '@fortawesome/free-solid-svg-icons'
 const ASSOCIATION_TYPE_CHARACTER = "character";
 const ASSOCIATION_TYPE_EVENT = "event";
 const ASSOCIATION_TYPE_PLACE = "place";
+const DB_OP_INTERVAL = 5000;
 
 
 const associations = [];
@@ -76,7 +77,7 @@ const Document = () => {
   );
 
   const getAllAssociations = () => {
-    fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID + "/associations")
+    fetch('/api/stories/' + currentStoryID + "/associations")
     .then((response) => {
         if (response.ok) {
             return response.json();
@@ -95,7 +96,7 @@ const Document = () => {
   }
 
   const getAllStoryBlocks = () => {
-    fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID)
+    fetch('/api/stories/' + currentStoryID)
     .then((response) => {
         if (response.ok) {
             return response.json();
@@ -150,7 +151,7 @@ const Document = () => {
       getAllStoryBlocks();
       setDBOperationInterval(setInterval(() => {
         processDBQueue();
-      }, process.env.REACT_APP_DB_OP_INTERVAL));
+      }, DB_OP_INTERVAL));
       getAllAssociations();
     }
   }, [isLoggedIn, currentStoryID]);

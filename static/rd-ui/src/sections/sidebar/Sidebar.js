@@ -68,7 +68,7 @@ const Sidebar = (props) => {
     const dispatch = useDispatch()
  
     const getStories = () => {
-        fetch(process.env.REACT_APP_SERVER_URL + '/api/stories')
+        fetch('/api/stories')
         .then((response) => {
             if (response.ok) {
                 return response.json();
@@ -99,11 +99,11 @@ const Sidebar = (props) => {
     }
 
     const signin = () => { 
-        window.location.href = process.env.REACT_APP_SERVER_URL + '/auth/google';
+        window.location.href = '/auth/google';
     }
 
     const signout = () => {
-        fetch(process.env.REACT_APP_SERVER_URL + '/logout/google', {
+        fetch('/logout/google', {
             method: "DELETE"
         })
         .then((response) => {
