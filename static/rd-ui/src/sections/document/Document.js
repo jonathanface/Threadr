@@ -217,7 +217,7 @@ const Document = () => {
           params.blocks.push({keyID:block.getKey(), place:index.toString()})
           index++;
         })
-        const response = await fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID + '/orderMap', {
+        const response = await fetch('/api/stories/' + currentStoryID + '/orderMap', {
           method: "PUT",
           headers: {
             'Content-Type': 'application/json'
@@ -238,7 +238,7 @@ const Document = () => {
     return new Promise(async(resolve, reject) => {
       try {
         console.log("del", blocks);
-        const response = await fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID + '/block', {
+        const response = await fetch('/api/stories/' + currentStoryID + '/block', {
           method: "DELETE",
           headers: {
             'Content-Type': 'application/json'
@@ -259,7 +259,7 @@ const Document = () => {
     return new Promise(async(resolve, reject) => {
       try {
         console.log("saving", blocks);
-        const response = await fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID, {
+        const response = await fetch('/api/stories/' + currentStoryID, {
           method: "PUT",
           headers: {
             'Content-Type': 'application/json'
@@ -280,7 +280,7 @@ const Document = () => {
     return new Promise(async(resolve, reject) => {
       try {
         console.log("saving associations", associations);
-        const response = await fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID + '/associations', {
+        const response = await fetch('/api/stories/' + currentStoryID + '/associations', {
           method: "PUT",
           headers: {
             'Content-Type': 'application/json'
@@ -300,7 +300,7 @@ const Document = () => {
   const deleteAssociationsFromServer = (associations) => {
     return new Promise(async(resolve, reject) => {
       try {
-        const response = await fetch(process.env.REACT_APP_SERVER_URL + '/api/stories/' + currentStoryID + '/associations', {
+        const response = await fetch('/api/stories/' + currentStoryID + '/associations', {
           method: "DELETE",
           headers: {
             'Content-Type': 'application/json'
