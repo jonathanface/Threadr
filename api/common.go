@@ -50,7 +50,6 @@ func init() {
 		awsCfg aws.Config
 		err    error
 	)
-	fmt.Println("wtf", os.Getenv("APP_MODE"))
 	if os.Getenv("APP_MODE") != "PRODUCTION" {
 		if err = godotenv.Load(); err != nil {
 			log.Fatal("Error loading .env file")
