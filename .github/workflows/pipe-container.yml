@@ -47,9 +47,8 @@ jobs:
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" . \
+          docker build -t "$ECR_REGISTRY/$ECR_REPOSITORY:latest" . \
           --build-arg AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
           --build-arg AWS_REGION=${{ secrets.AWS_REGION }} \
           --build-arg AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
@@ -61,21 +60,5 @@ jobs:
           --build-arg ROOT_URL=${{ secrets.ROOT_URL }} \
           --build-arg SESSION_SECRET=${{ secrets.SESSION_SECRET }} \
           --build-arg VERSION=${{ github.sha }}
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" >> $GITHUB_OUTPUT
-
-      - name: Fill in the new image ID in the Amazon ECS task definition
-        id: task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: ${{ env.ECS_TASK_DEFINITION }}
-          container-name: ${{ env.CONTAINER_NAME }}
-          image: ${{ steps.build-image.outputs.image }}
-
-      - name: Deploy Amazon ECS task definition
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: ${{  secrets.AWS_ECS_SERVICE }}
-          cluster: ${{  secrets.AWS_ECS_CLUSTER }}
-          wait-for-service-stability: true
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:latest" >> $GITHUB_OUTPUT
