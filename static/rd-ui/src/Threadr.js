@@ -24,6 +24,7 @@ const Threadr = () => {
   }
 
   useEffect(() => {
+    console.log("effect", process.env.REACT_APP_SERVER_URL)
     fetch(process.env.REACT_APP_SERVER_URL + '/api/user')
     .then((response) => { 
       if (response.ok) { 
