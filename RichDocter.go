@@ -107,6 +107,7 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
+	log.Println("Launching RichDocter version", os.Getenv("VERSION"))
 	log.Println("Listening for http on " + port)
 	auth.New()
 	rtr := mux.NewRouter()
