@@ -59,7 +59,7 @@ jobs:
           --build-arg GOOGLE_OAUTH_CLIENT_SECRET=${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }} \
           --build-arg GOOGLE_OAUTH_REDIRECT_URL=${{ secrets.GOOGLE_OAUTH_REDIRECT_URL }} \
           --build-arg ROOT_URL=${{ secrets.ROOT_URL }} \
-          --build-arg SESSION_SECRET=${{ secrets.SESSION_SECRET }}
+          --build-arg SESSION_SECRET=${{ secrets.SESSION_SECRET }} \
           --build-arg VERSION=${{ github.sha }}
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" >> $GITHUB_OUTPUT
