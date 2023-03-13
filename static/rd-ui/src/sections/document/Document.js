@@ -1,4 +1,5 @@
 import React, {useRef, useEffect, useState} from 'react';
+import {findDOMNode} from 'react-dom'
 import Immutable from 'immutable';
 import {convertFromRaw, Editor, EditorState, ContentBlock, RichUtils, getDefaultKeyBinding, Modifier, SelectionState, ContentState, CompositeDecorator} from 'draft-js';
 import {GetSelectedText, InsertTab, FilterAndReduceDBOperations, SetFocusAndRestoreCursor, GetStyleData, GetSelectedBlocks} from './utilities.js'
@@ -50,6 +51,8 @@ const Document = () => {
   const [currentBoldState, setCurrentBoldState] = useState(false);
   const [currentUnderscoreState, setCurrentUnderscoreState] = useState(false);
   const [currentStrikethroughState, setCurrentStrikethroughState] = useState(false);
+  
+  let lastRetrievedBlockKey = ""
 
   const createDecorators = () => {
     const decorators = [];
@@ -95,8 +98,8 @@ const Document = () => {
     })
   }
 
-  const getAllStoryBlocks = () => {
-    fetch('/api/stories/' + currentStoryID)
+  const getBatchedStoryBlocks = (startKey) => {
+    fetch('/api/stories/' + currentStoryID + "?key=" + startKey)
     .then((response) => {
         if (response.ok) {
             return response.json();
@@ -104,9 +107,11 @@ const Document = () => {
           throw new Error('Fetch problem blocks ' + response.status);
     })
     .then((data) => {
-      data.sort((a, b) => parseInt(a.place.Value) > parseInt(b.place.Value));
+      data.last_evaluated_key && data.last_evaluated_key.keyID.Value ? lastRetrievedBlockKey = data.last_evaluated_key.keyID.Value : lastRetrievedBlockKey = null;
+      console.log("last retrieved", lastRetrievedBlockKey)
+      data.items.sort((a, b) => parseInt(a.place.Value) > parseInt(b.place.Value));
       const newBlocks = [];
-      data.forEach(piece => {
+      data.items.forEach(piece => {
         const jsonBlock = JSON.parse(piece.chunk.Value);
         const block = new ContentBlock({
           characterList: jsonBlock.characterList,
@@ -148,11 +153,19 @@ const Document = () => {
   useEffect(() => {
     if (isLoggedIn && currentStoryID) {
       SetFocusAndRestoreCursor(editorState, domEditor);
-      getAllStoryBlocks();
+      getBatchedStoryBlocks("");
       setDBOperationInterval(setInterval(() => {
         processDBQueue();
       }, DB_OP_INTERVAL));
       getAllAssociations();
+      const handleScroll = (e) => {
+        const bottom = e.target.scrollHeight - e.target.scrollTop === e.target.clientHeight;
+        if (bottom && lastRetrievedBlockKey) { 
+          getBatchedStoryBlocks(lastRetrievedBlockKey);
+        }
+      }
+      findDOMNode(domEditor.current).addEventListener("scroll", handleScroll);
+      return () => findDOMNode(domEditor.current).removeEventListener("scroll", handleScroll);
     }
   }, [isLoggedIn, currentStoryID]);
 
@@ -497,6 +510,7 @@ const Document = () => {
       // If the new block is not in the old block map, it's a new block
       if (!oldBlock) {
         const index = newContent.getBlockMap().keySeq().findIndex(k => k === newBlockKey);
+        console.log("new block at", index, newBlockMap.size-1);
         if (index !== newBlockMap.size-1) {
           // If it's not in the last place of blocks, we will need to resync
           // the order of all blocks
@@ -590,6 +604,9 @@ const Document = () => {
     })
     setEditorState(EditorState.push(editorState, newContentState, 'change-block-data'));
   }
+
+  
+
   return (
     <div>
       <nav className="rich-controls">
@@ -602,7 +619,7 @@ const Document = () => {
         <button className={currentBlockAlignment === 'right' ? "active": ""} onMouseDown={(e) => {updateBlockAlignment(e, 'right')}}><FontAwesomeIcon icon={faAlignRight} /></button>
         <button className={currentBlockAlignment === 'justify' ? "active": ""} onMouseDown={(e) => {updateBlockAlignment(e, 'justify')}}><FontAwesomeIcon icon={faAlignJustify} /></button>
       </nav>
-      <section className="editor_container" onContextMenu={handleTextualContextMenu} onClick={setFocus}>
+      <section className="editor_container" onContextMenu={handleTextualContextMenu} onClick={setFocus} >
         <Editor
           blockStyleFn={getBlockStyles}
           customStyleMap={styleMap}

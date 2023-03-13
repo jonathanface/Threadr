@@ -4,6 +4,7 @@ import (
 	"RichDocter/sessions"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -14,6 +15,7 @@ import (
 )
 
 func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
+	startKey := r.URL.Query().Get("key")
 	var (
 		email string
 		err   error
@@ -31,19 +33,38 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing story name")
 		return
 	}
-	out, err := AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
+	input := dynamodb.ScanInput{
 		TableName:        aws.String("blocks"),
-		FilterExpression: aws.String("attribute_not_exists(deleted_at) AND contains(author, :eml) AND contains(story, :stry)"),
+		FilterExpression: aws.String("contains(author, :eml) AND contains(story, :stry)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml":  &types.AttributeValueMemberS{Value: email},
 			":stry": &types.AttributeValueMemberS{Value: story},
 		},
-	})
+	}
+	if startKey != "" {
+		input.ExclusiveStartKey = map[string]types.AttributeValue{
+			"keyID": &types.AttributeValueMemberS{Value: startKey},
+			"story": &types.AttributeValueMemberS{Value: story},
+		}
+	}
+	out, err := AwsClient.Scan(context.TODO(), &input)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	RespondWithJson(w, http.StatusOK, out.Items)
+	fmt.Println("got back", out.LastEvaluatedKey, out.ScannedCount, out)
+	type BlocksData struct {
+		LastEvaluated map[string]types.AttributeValue   `json:"last_evaluated_key"`
+		ScannedCount  int32                             `json:"scanned_count"`
+		Items         []map[string]types.AttributeValue `json:"items"`
+	}
+	blocks := BlocksData{
+		LastEvaluated: out.LastEvaluatedKey,
+		ScannedCount:  out.ScannedCount,
+		Items:         out.Items,
+	}
+
+	RespondWithJson(w, http.StatusOK, blocks)
 }
 
 func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {

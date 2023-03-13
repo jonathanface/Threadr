@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/smithy-go"
 	"github.com/joho/godotenv"
 )
 
@@ -81,27 +82,29 @@ func awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsInput) (sta
 	for numRetries := 0; numRetries < maxAWSRetries; numRetries++ {
 		if _, err := AwsClient.TransactWriteItems(context.Background(), writeItemsInput); err == nil {
 			return http.StatusOK, ""
-		} else if exception, ok := err.(*types.TransactionCanceledException); ok && exception.CancellationReasons != nil {
-			for _, reason := range exception.CancellationReasons {
-				if reason.Code == aws.String("ConditionalCheckFailed") {
-					continue
-				}
-				// For other types of cancellation reasons, we retry.
-				if reason.Code == aws.String("TransactionConflict") || reason.Code == aws.String("CapacityExceededException") {
-					var delay time.Duration
-					if reason.Code == aws.String("CapacityExceededException") {
-						delay = time.Duration(float64(time.Second) / float64(maxItemsPerSecond))
+		} else if opErr, ok := err.(*smithy.OperationError); ok {
+			if txnErr, ok := opErr.Unwrap().(*types.TransactionCanceledException); ok && txnErr.CancellationReasons != nil {
+				for _, reason := range txnErr.CancellationReasons {
+					if reason.Code == aws.String("ConditionalCheckFailed") {
+						continue
+					}
+					// For other types of cancellation reasons, we retry.
+					if reason.Code == aws.String("TransactionConflict") || reason.Code == aws.String("CapacityExceededException") {
+						var delay time.Duration
+						if reason.Code == aws.String("CapacityExceededException") {
+							delay = time.Duration(float64(time.Second) / float64(maxItemsPerSecond))
+						} else {
+							delay = time.Duration((1 << uint(numRetries)) * time.Millisecond)
+						}
+						time.Sleep(delay)
+						break
 					} else {
-						delay = time.Duration((1 << uint(numRetries)) * time.Millisecond)
+						var code int
+						if code, err = strconv.Atoi(*reason.Code); err != nil {
+							return http.StatusInternalServerError, fmt.Sprintf("parsing error: %s", err.Error())
+						}
+						return code, fmt.Sprintf("transaction cancelled: %s", *reason.Message)
 					}
-					time.Sleep(delay)
-					break
-				} else {
-					var code int
-					if code, err = strconv.Atoi(*reason.Code); err != nil {
-						return http.StatusInternalServerError, fmt.Sprintf("parsing error: %s", err.Error())
-					}
-					return code, fmt.Sprintf("transaction cancelled: %s", *reason.Message)
 				}
 			}
 		} else {
