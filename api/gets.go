@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -15,61 +16,60 @@ import (
 )
 
 func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
-	/*
-		startKey := r.URL.Query().Get("key")
-		var (
-			email string
-			err   error
-			story string
-		)
-		if email, err = getUserEmail(r); err != nil {
-			RespondWithError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		if story, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
-			RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
-			return
-		}
-		if story == "" {
-			RespondWithError(w, http.StatusBadRequest, "Missing story name")
-			return
-		}
-		tableIndex := email + "_" + story
-		email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-		safeStory := strings.ToLower(strings.ReplaceAll(story, " ", "-"))
-		tableName := email + "_" + safeStory + "_chapter_" + "_blocks"
+	startKey := r.URL.Query().Get("key")
+	chapter := r.URL.Query().Get("chapter")
+	var (
+		email string
+		err   error
+		story string
+	)
+	if email, err = getUserEmail(r); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if story, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
+		return
+	}
+	if story == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing story name")
+		return
+	}
+	if chapter == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing chapter number")
+		return
+	}
+	tableIndex := email + "_" + story
+	email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
+	safeStory := strings.ToLower(strings.ReplaceAll(story, " ", "-"))
+	tableName := email + "_" + safeStory + "_" + chapter + "_blocks"
 
-		input := dynamodb.ScanInput{
-			TableName:        aws.String("blocks"),
-			FilterExpression: aws.String("contains(key_id, :ind) AND contains(story, :stry)"),
-			ExpressionAttributeValues: map[string]types.AttributeValue{
-				":ind":  &types.AttributeValueMemberS{Value: tableIndex},
-				":stry": &types.AttributeValueMemberS{Value: story},
-			},
+	input := dynamodb.ScanInput{
+		TableName:        aws.String(tableName),
+		FilterExpression: aws.String("contains(key_id, :ind) AND contains(story, :stry)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":ind":  &types.AttributeValueMemberS{Value: tableIndex},
+			":stry": &types.AttributeValueMemberS{Value: story},
+		},
+	}
+	if startKey != "" {
+		input.ExclusiveStartKey = map[string]types.AttributeValue{
+			"keyID": &types.AttributeValueMemberS{Value: startKey},
+			"story": &types.AttributeValueMemberS{Value: story},
 		}
-		if startKey != "" {
-			input.ExclusiveStartKey = map[string]types.AttributeValue{
-				"keyID": &types.AttributeValueMemberS{Value: startKey},
-				"story": &types.AttributeValueMemberS{Value: story},
-			}
-		}
-		out, err := AwsClient.Scan(context.TODO(), &input)
-		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		fmt.Println("got back", out.LastEvaluatedKey, out.ScannedCount, out)
-		type BlocksData struct {
-			LastEvaluated map[string]types.AttributeValue   `json:"last_evaluated_key"`
-			ScannedCount  int32                             `json:"scanned_count"`
-			Items         []map[string]types.AttributeValue `json:"items"`
-		}
-		blocks := BlocksData{
-			LastEvaluated: out.LastEvaluatedKey,
-			ScannedCount:  out.ScannedCount,
-			Items:         out.Items,
-		}*/
-	RespondWithJson(w, http.StatusOK, nil)
+	}
+	out, err := AwsClient.Scan(context.TODO(), &input)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	blocks := BlocksData{
+		LastEvaluated: out.LastEvaluatedKey,
+		ScannedCount:  out.ScannedCount,
+		Items:         out.Items,
+	}
+	RespondWithJson(w, http.StatusOK, blocks)
 }
 
 func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {

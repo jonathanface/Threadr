@@ -53,11 +53,18 @@ type Chapter struct {
 }
 
 type Story struct {
+	KeyID       string    `json:"key_id" dynamodbav:"key_id"`
+	CreatedAt   int       `json:"created_at" dynamodbav:"created_at"`
 	Title       string    `json:"title" dynamodbav:"title"`
 	Description string    `json:"description" dynamodbav:"description"`
 	Series      string    `json:"series" dynamodbav:"series"`
 	Place       int       `json:"place" dynamodbav:"place"`
 	Chapters    []Chapter `json:"chapters"`
+}
+type BlocksData struct {
+	LastEvaluated map[string]types.AttributeValue   `json:"last_evaluated_key"`
+	ScannedCount  int32                             `json:"scanned_count"`
+	Items         []map[string]types.AttributeValue `json:"items"`
 }
 
 func init() {

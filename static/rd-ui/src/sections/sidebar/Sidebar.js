@@ -18,34 +18,37 @@ import { flipRefreshStoryList } from '../../stores/refreshStoryListSlice';
 const groupBySeries = (stories) => {
     const groupedStories = [];
     stories.map(story => { 
-        if (story.series.Value) {
-            const exists = groupedStories.find(e => e.key === story.series.Value);
+        if (story.series !== "") {
+            const exists = groupedStories.find(e => e.key === story.series);
             if (exists) {
                 exists.nodes.push({ 
-                    key: story.title.Value,
-                    label: story.title.Value, 
-                    place: story.place_in_series.Value,
-                    created_at: story.created_at.Value
+                    key: story.title,
+                    label: story.title, 
+                    place: story.place,
+                    created_at: story.created_at,
+                    chapters: story.chapters
                 })
             } else {
                 groupedStories.push({
-                    key: story.series.Value,
-                    label: story.series.Value,
-                    nodes: [{
-                        key: story.title.Value,
-                        label: story.title.Value,
-                        place: story.place_in_series.Value,
-                        created_at: story.created_at.Value
+                    key: story.series,
+                    label: story.series,
+                    series: [{
+                        key: story.title,
+                        label: story.title,
+                        place: story.place,
+                        created_at: story.created_at,
+                        chapters: story.chapters
                     }]
                 });
             }
         } else {
             groupedStories.push({
-                key: story.title.Value,
-                label: story.title.Value,
-                place: story.place_in_series.Value,
-                created_at: story.created_at.Value
-            });
+                key: story.title,
+                label: story.title,
+                place: story.place,
+                created_at: story.created_at,
+                chapters:story.chapters
+            })
         }
         return groupedStories;
     });
@@ -92,10 +95,11 @@ const Sidebar = (props) => {
         }
     }, [isLoggedIn, refreshStoryList]);
 
-    const clickStory = (storyID) => {
+    const clickStory = (storyID, chapter) => {
+        console.log("loadingstory", storyID, chapter);
         dispatch(flipMenuOpen())
         dispatch(setCurrentStoryID(storyID))
-        history.pushState({storyID}, 'clicked story', '/story/' + encodeURIComponent(storyID));
+        history.pushState({storyID}, 'clicked story chapter', '/story/' + encodeURIComponent(storyID) + "?chapter=1");
     }
 
     const signin = () => { 
@@ -135,12 +139,21 @@ const Sidebar = (props) => {
                             }}></TreeItem>
                             {
                                 stories.map(story => {
-                                    return <TreeItem onClick={!story.nodes ? ()=>{clickStory(story.key)} : undefined} icon={!story.nodes ? <EditIcon/> : ""} key={story.key} nodeId={story.key} label={story.label}>
-                                    {Array.isArray(story.nodes)
-                                    ? story.nodes.map((node) => {
-                                        return <TreeItem onClick={()=>{clickStory(node.key)}} icon={<EditIcon/>} key={node.key} nodeId={node.key} label={node.label}/>
-                                    }) : null}                          
-                                    </TreeItem>
+                                    return Array.isArray(story.series) ?
+                                        <TreeItem key={story.key} label={story.label} nodeId={story.label}>
+                                            {story.series.map(seriesEntry => {
+                                                return <TreeItem key={seriesEntry.key} nodeId={seriesEntry.key} label={seriesEntry.label}>
+                                                        {seriesEntry.chapters.map(chapter => {
+                                                            return <TreeItem onClick={()=>clickStory(story.key, chapter.chapter_num)} key={chapter.chapter_num} label={chapter.chapter_title} icon={<EditIcon/>} nodeId={chapter.chapter_title} />
+                                                        })}
+                                                </TreeItem>
+                                            })}
+                                        </TreeItem> : 
+                                        <TreeItem key={story.key} nodeId={story.key} label={story.label}>
+                                            {story.chapters.map(chapter => {
+                                                    return <TreeItem onClick={()=>clickStory(story.key, chapter.chapter_num)} key={chapter.chapter_num} label={chapter.chapter_title} icon={<EditIcon/>} nodeId={chapter.chapter_title} />
+                                                })}
+                                        </TreeItem>
                                 })
                             }
                         </TreeItem>
