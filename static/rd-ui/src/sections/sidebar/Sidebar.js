@@ -24,7 +24,7 @@ const groupBySeries = (stories) => {
                 exists.nodes.push({ 
                     key: story.title.Value,
                     label: story.title.Value, 
-                    place: story.place.Value,
+                    place: story.place_in_series.Value,
                     created_at: story.created_at.Value
                 })
             } else {
@@ -34,7 +34,7 @@ const groupBySeries = (stories) => {
                     nodes: [{
                         key: story.title.Value,
                         label: story.title.Value,
-                        place: story.place.Value,
+                        place: story.place_in_series.Value,
                         created_at: story.created_at.Value
                     }]
                 });
@@ -43,7 +43,7 @@ const groupBySeries = (stories) => {
             groupedStories.push({
                 key: story.title.Value,
                 label: story.title.Value,
-                place: story.place.Value,
+                place: story.place_in_series.Value,
                 created_at: story.created_at.Value
             });
         }

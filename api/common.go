@@ -32,18 +32,32 @@ const (
 )
 
 type StoryBlock struct {
-	KeyID string          `json:"keyID"`
-	Chunk json.RawMessage `json:"chunk"`
-	Place string          `json:"place"`
+	KeyID string          `json:"keyID" dynamodbav:"key_id"`
+	Chunk json.RawMessage `json:"chunk" dynamodbav:"chunk"`
+	Place string          `json:"place" dynamodbav:"place"`
 }
 type StoryBlocks struct {
-	Title  string       `json:"title"`
-	Blocks []StoryBlock `json:"blocks"`
+	Title  string       `json:"title" dynamodbav:"title"`
+	Blocks []StoryBlock `json:"blocks" dynamodbav:"blocks"`
 }
 
 type Association struct {
-	Name string `json:"association_name"`
-	Type string `json:"association_type"`
+	Name string `json:"association_name" dynamodbav:"association_name"`
+	Type string `json:"association_type" dynamodbav:"association_type"`
+}
+
+type Chapter struct {
+	KeyID        string `json:"key_id" dynamodbav:"key_id"`
+	ChapterNum   int    `json:"chapter_num" dynamodbav:"chapter_num"`
+	ChapterTitle string `json:"chapter_title" dynamodbav:"chapter_title"`
+}
+
+type Story struct {
+	Title       string    `json:"title" dynamodbav:"title"`
+	Description string    `json:"description" dynamodbav:"description"`
+	Series      string    `json:"series" dynamodbav:"series"`
+	Place       int       `json:"place" dynamodbav:"place"`
+	Chapters    []Chapter `json:"chapters"`
 }
 
 func init() {
