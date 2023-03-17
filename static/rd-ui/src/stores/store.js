@@ -6,7 +6,7 @@ import refreshStoryListSlice from './refreshStoryListSlice'
 import menuOpenSlice from './toggleMenuOpenSlice'
 import currentStoryChapterSlice from './currentStoryChapterSlice'
 
-export default configureStore({
+export default configureStore({ 
   reducer: {
     isLoggedIn: loggedInSlice,
     currentStoryID: currentStorySlice,
