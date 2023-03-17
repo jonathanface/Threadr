@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -20,18 +21,19 @@ func generateStoryChapterTransaction(email string, story string, chapter int, ch
 		return types.TransactWriteItem{}, fmt.Errorf("CHAPTER CREATION: Email, story, and chapterTitle params must not be blank")
 	}
 	chapterNumStr := strconv.Itoa(chapter)
-	chapterKey := email + "_" + story
 
 	input := types.TransactWriteItem{
 		Update: &types.Update{
 			TableName: aws.String("chapters"),
 			Key: map[string]types.AttributeValue{
-				"key_id":      &types.AttributeValueMemberS{Value: chapterKey},
-				"chapter_num": &types.AttributeValueMemberN{Value: chapterNumStr},
+				"chapter_title": &types.AttributeValueMemberS{Value: chapterTitle},
+				"story_title":   &types.AttributeValueMemberS{Value: story},
 			},
-			UpdateExpression: aws.String("set chapter_title=:ct"),
+			ConditionExpression: aws.String("attribute_not_exists(series_title) AND attribute_not_exists(story_title)"),
+			UpdateExpression:    aws.String("set chapter_num=:n, author=:a"),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
-				":ct": &types.AttributeValueMemberS{Value: chapterTitle},
+				":n": &types.AttributeValueMemberN{Value: chapterNumStr},
+				":a": &types.AttributeValueMemberS{Value: email},
 			},
 		},
 	}
@@ -52,16 +54,10 @@ func createBlockTable(email string, story string, chapterTitle string, chapterNu
 		AttributeDefinitions: []types.AttributeDefinition{{
 			AttributeName: aws.String("key_id"),
 			AttributeType: types.ScalarAttributeTypeS,
-		}, {
-			AttributeName: aws.String("place"),
-			AttributeType: types.ScalarAttributeTypeN,
 		}},
 		KeySchema: []types.KeySchemaElement{{
 			AttributeName: aws.String("key_id"),
 			KeyType:       types.KeyTypeHash,
-		}, {
-			AttributeName: aws.String("place"),
-			KeyType:       types.KeyTypeRange,
 		}},
 		TableName:   aws.String(tableName),
 		BillingMode: types.BillingModePayPerRequest,
@@ -118,10 +114,11 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 			Update: &types.Update{
 				TableName: aws.String("series"),
 				Key: map[string]types.AttributeValue{
-					"title":  &types.AttributeValueMemberS{Value: story.Series},
-					"author": &types.AttributeValueMemberS{Value: email},
+					"series_title": &types.AttributeValueMemberS{Value: story.Series},
+					"author":       &types.AttributeValueMemberS{Value: email},
 				},
-				UpdateExpression: aws.String("set created_at=if_not_exists(created_at,:t), story_count=if_not_exists(story_count, :initIncr) + :incr"),
+				ConditionExpression: aws.String("attribute_not_exists(series_title)"),
+				UpdateExpression:    aws.String("set created_at=if_not_exists(created_at,:t), story_count=if_not_exists(story_count, :initIncr) + :incr"),
 				ExpressionAttributeValues: map[string]types.AttributeValue{
 					":t":        &types.AttributeValueMemberN{Value: now},
 					":incr":     &types.AttributeValueMemberN{Value: "1"},
@@ -131,25 +128,20 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 		twii.TransactItems = append(twii.TransactItems, twi)
 	}
-	keyStr := email + "_" + story.Title
 	place := strconv.Itoa(story.Place)
 	twi := types.TransactWriteItem{
 		Update: &types.Update{
 			TableName: aws.String("stories"),
 			Key: map[string]types.AttributeValue{
-				"key_id":     &types.AttributeValueMemberS{Value: keyStr},
-				"created_at": &types.AttributeValueMemberN{Value: now},
+				"story_title": &types.AttributeValueMemberS{Value: story.Title},
+				"author":      &types.AttributeValueMemberS{Value: email},
 			},
-			UpdateExpression: aws.String("set #title=:title, description=:descr, series=:srs, place_in_series=:p, author=:a"),
+			ConditionExpression: aws.String("attribute_not_exists(story_title)"),
+			UpdateExpression:    aws.String("set description=:descr, series=:srs, place_in_series=:p"),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
 				":descr": &types.AttributeValueMemberS{Value: story.Description},
 				":srs":   &types.AttributeValueMemberS{Value: story.Series},
-				":title": &types.AttributeValueMemberS{Value: story.Title},
 				":p":     &types.AttributeValueMemberN{Value: place},
-				":a":     &types.AttributeValueMemberS{Value: email},
-			},
-			ExpressionAttributeNames: map[string]string{
-				"#title": "title",
 			},
 		},
 	}
@@ -162,15 +154,21 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	twii.TransactItems = append(twii.TransactItems, chapTwi)
 
+	var code int
+	var awsError string
+	if code, awsError = awsWriteTransaction(twii); awsError != "" {
+		RespondWithError(w, code, awsError)
+		return
+	}
 	if err = createBlockTable(email, story.Title, "Chapter 1", 1); err != nil {
+		var riu *types.ResourceInUseException
+		if errors.As(err, &riu) {
+			RespondWithError(w, http.StatusConflict, "story already exists")
+			return
+		}
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	var code int
-	var awsError string
-	if code, awsError = awsWriteTransaction(twii); err != nil {
-		RespondWithError(w, code, awsError)
-	}
 	RespondWithJson(w, http.StatusCreated, nil)
 }

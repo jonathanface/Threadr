@@ -25,9 +25,9 @@ const Threadr = () => {
  
   useEffect(() => {
     fetch('/api/user')
-    .then((response) => { 
-      if (response.ok) { 
-        return response.json(); 
+    .then((response) => {
+      if (response.ok) {
+        return response.json();
       } 
       throw new Error('Fetch problem userData ' + response.status);
     }).then(data => dispatch(flipLoggedInState()))

@@ -10,7 +10,8 @@ import EditIcon from '@mui/icons-material/Edit';
 import TreeItem from '@mui/lab/TreeItem';
 import { useSelector, useDispatch } from 'react-redux'
 import { flipLoggedInState } from '../../stores/loggedInSlice'
-import { setCurrentStoryID } from '../../stores/currentStorySlice' 
+import { setCurrentStoryID } from '../../stores/currentStorySlice'
+import { setCurrentStoryChapter } from '../../stores/currentStoryChapterSlice' 
 import { flipCreatingNewStoryState } from '../../stores/creatingNewStorySlice';
 import { flipMenuOpen } from '../../stores/toggleMenuOpenSlice';
 import { flipRefreshStoryList } from '../../stores/refreshStoryListSlice';
@@ -97,9 +98,9 @@ const Sidebar = (props) => {
 
     const clickStory = (storyID, chapter) => {
         console.log("loadingstory", storyID, chapter);
-        dispatch(flipMenuOpen())
-        dispatch(setCurrentStoryID(storyID))
-        history.pushState({storyID}, 'clicked story chapter', '/story/' + encodeURIComponent(storyID) + "?chapter=1");
+        dispatch(setCurrentStoryID(encodeURIComponent(storyID)));
+        dispatch(setCurrentStoryChapter(chapter));
+        history.pushState({storyID}, 'clicked story chapter', '/story/' + encodeURIComponent(storyID) + "?chapter=" + chapter);
     }
 
     const signin = () => { 
@@ -144,7 +145,7 @@ const Sidebar = (props) => {
                                             {story.series.map(seriesEntry => {
                                                 return <TreeItem key={seriesEntry.key} nodeId={seriesEntry.key} label={seriesEntry.label}>
                                                         {seriesEntry.chapters.map(chapter => {
-                                                            return <TreeItem onClick={()=>clickStory(story.key, chapter.chapter_num)} key={chapter.chapter_num} label={chapter.chapter_title} icon={<EditIcon/>} nodeId={chapter.chapter_title} />
+                                                            return <TreeItem onClick={()=>clickStory(seriesEntry.key, chapter.chapter_num)} key={chapter.chapter_num} label={chapter.chapter_title} icon={<EditIcon/>} nodeId={chapter.chapter_title} />
                                                         })}
                                                 </TreeItem>
                                             })}

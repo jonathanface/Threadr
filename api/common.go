@@ -32,13 +32,14 @@ const (
 )
 
 type StoryBlock struct {
-	KeyID string          `json:"keyID" dynamodbav:"key_id"`
+	KeyID string          `json:"key_id" dynamodbav:"key_id"`
 	Chunk json.RawMessage `json:"chunk" dynamodbav:"chunk"`
 	Place string          `json:"place" dynamodbav:"place"`
 }
 type StoryBlocks struct {
-	Title  string       `json:"title" dynamodbav:"title"`
-	Blocks []StoryBlock `json:"blocks" dynamodbav:"blocks"`
+	Title   string       `json:"title" dynamodbav:"title"`
+	Chapter int          `json:"chapter"`
+	Blocks  []StoryBlock `json:"blocks" dynamodbav:"blocks"`
 }
 
 type Association struct {
@@ -53,12 +54,11 @@ type Chapter struct {
 }
 
 type Story struct {
-	KeyID       string    `json:"key_id" dynamodbav:"key_id"`
 	CreatedAt   int       `json:"created_at" dynamodbav:"created_at"`
-	Title       string    `json:"title" dynamodbav:"title"`
+	Title       string    `json:"title" dynamodbav:"story_title"`
 	Description string    `json:"description" dynamodbav:"description"`
 	Series      string    `json:"series" dynamodbav:"series"`
-	Place       int       `json:"place" dynamodbav:"place"`
+	Place       int       `json:"place" dynamodbav:"place_in_series"`
 	Chapters    []Chapter `json:"chapters"`
 }
 type BlocksData struct {
@@ -98,19 +98,21 @@ func awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsInput) (sta
 	if writeItemsInput == nil {
 		return http.StatusBadRequest, "writeItemsInput is nil"
 	}
-	maxItemsPerSecond := blockTableMinWriteCapacity / 2 // Adjust as needed based on the size of your items and the amount of provisioned capacity.
+	maxItemsPerSecond := blockTableMinWriteCapacity / 2
 
 	for numRetries := 0; numRetries < maxAWSRetries; numRetries++ {
 		if _, err := AwsClient.TransactWriteItems(context.Background(), writeItemsInput); err == nil {
 			return http.StatusOK, ""
 		} else if opErr, ok := err.(*smithy.OperationError); ok {
-			if txnErr, ok := opErr.Unwrap().(*types.TransactionCanceledException); ok && txnErr.CancellationReasons != nil {
+			fmt.Println("operr", opErr)
+			var txnErr *types.TransactionCanceledException
+			if errors.As(opErr.Unwrap(), &txnErr) && txnErr.CancellationReasons != nil {
 				for _, reason := range txnErr.CancellationReasons {
-					if reason.Code == aws.String("ConditionalCheckFailed") {
-						continue
+					if *reason.Code == "ConditionalCheckFailed" {
+						return http.StatusConflict, *reason.Message
 					}
 					// For other types of cancellation reasons, we retry.
-					if reason.Code == aws.String("TransactionConflict") || reason.Code == aws.String("CapacityExceededException") {
+					if *reason.Code == "TransactionConflict" || *reason.Code == "CapacityExceededException" {
 						var delay time.Duration
 						if reason.Code == aws.String("CapacityExceededException") {
 							delay = time.Duration(float64(time.Second) / float64(maxItemsPerSecond))
@@ -119,7 +121,7 @@ func awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsInput) (sta
 						}
 						time.Sleep(delay)
 						break
-					} else {
+					} else if *reason.Code != "None" {
 						var code int
 						if code, err = strconv.Atoi(*reason.Code); err != nil {
 							return http.StatusInternalServerError, fmt.Sprintf("parsing error: %s", err.Error())
@@ -127,6 +129,9 @@ func awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsInput) (sta
 						return code, fmt.Sprintf("transaction cancelled: %s", *reason.Message)
 					}
 				}
+			} else {
+				fmt.Println("Unhandled exception", opErr)
+				return http.StatusInternalServerError, opErr.Error()
 			}
 		} else {
 			return http.StatusInternalServerError, err.Error()

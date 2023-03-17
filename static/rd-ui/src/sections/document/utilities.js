@@ -35,8 +35,8 @@ export const FilterAndReduceDBOperations = (dbOperations, op, i) => {
     const obj = dbOperations[j];
     if (obj.type === op.type) {
       obj.ops.forEach(op => {
-        keyIDMap[op.keyID] = keyIDMap[op.keyID] === undefined ? [] : keyIDMap[op.keyID];
-        keyIDMap[op.keyID].push(op);
+        keyIDMap[op.key_id] = keyIDMap[op.key_id] === undefined ? [] : keyIDMap[op.key_id];
+        keyIDMap[op.key_id].push(op);
       });
       dbOperations.splice(j, 1);
     } else {

@@ -44,6 +44,7 @@ const dbOperationQueue = [];
 const Document = () => {
   const domEditor = useRef(null);
   const currentStoryID = useSelector((state) => state.currentStoryID.value);
+  const currentStoryChapter = useSelector((state) => state.currentStoryChapter.value);
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
   const [currentRightClickedAssoc, setCurrentRightClickedAssoc] = useState(null);
   const [currentBlockAlignment, setCurrentBlockAlignment] = useState('left');
@@ -99,7 +100,7 @@ const Document = () => {
   }
 
   const getBatchedStoryBlocks = (startKey) => {
-    fetch('/api/stories/' + currentStoryID + "?key=" + startKey)
+    fetch('/api/stories/' + currentStoryID + "?key=" + startKey + "&chapter=" + currentStoryChapter)
     .then((response) => {
         if (response.ok) {
             return response.json();
@@ -107,7 +108,7 @@ const Document = () => {
           throw new Error('Fetch problem blocks ' + response.status);
     })
     .then((data) => {
-      data.last_evaluated_key && data.last_evaluated_key.keyID.Value ? lastRetrievedBlockKey = data.last_evaluated_key.keyID.Value : lastRetrievedBlockKey = null;
+      data.last_evaluated_key && data.last_evaluated_key.key_id.Value ? lastRetrievedBlockKey = data.last_evaluated_key.key_id.Value : lastRetrievedBlockKey = null;
       console.log("last retrieved", lastRetrievedBlockKey)
       data.items.sort((a, b) => parseInt(a.place.Value) > parseInt(b.place.Value));
       const newBlocks = [];
@@ -116,7 +117,7 @@ const Document = () => {
         const block = new ContentBlock({
           characterList: jsonBlock.characterList,
           depth: jsonBlock.depth,
-          key: piece.keyID.Value,
+          key: piece.key_id.Value,
           text: jsonBlock.text,
           type: jsonBlock.type,
           data: jsonBlock.data,
@@ -167,7 +168,7 @@ const Document = () => {
       findDOMNode(domEditor.current).addEventListener("scroll", handleScroll);
       return () => findDOMNode(domEditor.current).removeEventListener("scroll", handleScroll);
     }
-  }, [isLoggedIn, currentStoryID]);
+  }, [isLoggedIn, currentStoryID, currentStoryChapter]);
 
   const processDBQueue = async() => {
     dbOperationQueue.sort((a, b) => parseInt(a.time) > parseInt(b.time));
@@ -224,12 +225,13 @@ const Document = () => {
       try {
         const params = {}
         params.title = currentStoryID;
+        params.chapter = currentStoryChapter;
         params.blocks = [];
         let index = 0;
         blockList.forEach((block) => {
-          params.blocks.push({keyID:block.getKey(), place:index.toString()})
+          params.blocks.push({key_id:block.getKey(), place:index.toString()})
           index++;
-        })
+        });
         const response = await fetch('/api/stories/' + currentStoryID + '/orderMap', {
           method: "PUT",
           headers: {
@@ -250,13 +252,17 @@ const Document = () => {
   const deleteBlocksFromServer = (blocks) => {
     return new Promise(async(resolve, reject) => {
       try {
+        const params = {}
+        params.title = currentStoryID;
+        params.chapter = currentStoryChapter;
+        params.blocks = blocks;
         console.log("del", blocks);
         const response = await fetch('/api/stories/' + currentStoryID + '/block', {
           method: "DELETE",
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(blocks)
+          body: JSON.stringify(params)
         });
         if (!response.ok) {
           reject("SERVER ERROR DELETING BLOCK: ", response.body);
@@ -271,13 +277,17 @@ const Document = () => {
   const saveBlocksToServer = (blocks) => {
     return new Promise(async(resolve, reject) => {
       try {
+        const params = {}
+        params.title = currentStoryID;
+        params.chapter = currentStoryChapter;
+        params.blocks = blocks;
         console.log("saving", blocks);
         const response = await fetch('/api/stories/' + currentStoryID, {
           method: "PUT",
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(blocks)
+          body: JSON.stringify(params)
         });
         if (!response.ok) {
           reject("SERVER ERROR SAVING BLOCK: ", response);
@@ -341,7 +351,6 @@ const Document = () => {
   }
 
   const formatAssociation = (type, name) => {return {association_type:type, association_name:name, details:{aliases:""}}};
-
 
   const handleMenuItemClick = ({ id, event}) => {
     const text = GetSelectedText(editorState);
@@ -417,7 +426,7 @@ const Document = () => {
       const modifiedContent = Modifier.setBlockData(newEditorState.getCurrentContent(), SelectionState.createEmpty(key), Immutable.Map([['styles', styles]]));
       const updatedBlock = modifiedContent.getBlockForKey(key);
       const index = newEditorState.getCurrentContent().getBlockMap().keySeq().findIndex(k => k === key);
-      dbOperationQueue.push({type:"save", time:Date.now(), ops:[{keyID:key, chunk:updatedBlock, place:index.toString()}]});
+      dbOperationQueue.push({type:"save", time:Date.now(), ops:[{key_id:key, chunk:updatedBlock, place:index.toString()}]});
     })
   }
 
@@ -458,7 +467,7 @@ const Document = () => {
     }
   }
 
-  const updateEditorState = (newEditorState) => {
+  const updateEditorState = (newEditorState, isPasteAction) => {
     // Cursor has moved but no text changes detected
     resetNavButtonStates();
     const selection = newEditorState.getSelection();
@@ -510,19 +519,13 @@ const Document = () => {
       // If the new block is not in the old block map, it's a new block
       if (!oldBlock) {
         const index = newContent.getBlockMap().keySeq().findIndex(k => k === newBlockKey);
-        console.log("new block at", index, newBlockMap.size-1);
+        console.log("new block", newBlockKey," at", index, newBlockMap.size-1);
         if (index !== newBlockMap.size-1) {
           // If it's not in the last place of blocks, we will need to resync
           // the order of all blocks
           resyncRequired = true;
         }
         newEditorState = InsertTab(newEditorState, [newBlockKey]);
-        /*
-        const tempSelection = SelectionState.createEmpty(newBlockKey);
-        const nextContentState = Modifier.setBlockData(newEditorState.getCurrentContent(), tempSelection,
-            Immutable.Map([['lineHeight', this.state.currentLineHeight], ['alignment', this.state.currentAlignment]])
-        );
-        newEditorState = EditorState.push(newEditorState, nextContentState, 'change-block-data');*/
         blocksToSave.push(newBlockKey);
       }
       // If the block is selected, save it to the server
@@ -530,20 +533,25 @@ const Document = () => {
         blocksToSave.push(newBlockKey);
       }
     });
+    if (isPasteAction) {
+      resyncRequired = true;
+    }
     setEditorState(newEditorState);
 
     if (blocksToDelete.length) {
+      console.log("delete arr", blocksToDelete)
       const deleteOp = {};
       deleteOp.type = "delete";
       deleteOp.time = Date.now();
       deleteOp.ops = [];
       blocksToDelete.forEach(blockKey => {
-        deleteOp.ops.push({keyID:blockKey});
+        deleteOp.ops.push({key_id:blockKey});
       });
       dbOperationQueue.push(deleteOp);
     }
 
     if (blocksToSave.length) {
+      console.log("save arr", blocksToSave)
       const updatedContent = newEditorState.getCurrentContent();
       const saveOp = {}
       saveOp.type = "save";
@@ -551,7 +559,7 @@ const Document = () => {
       saveOp.ops = [];
       blocksToSave.forEach(blockKey => {
         const index = updatedContent.getBlockMap().keySeq().findIndex(k => k === blockKey);
-        saveOp.ops.push({keyID:blockKey, chunk: updatedContent.getBlockForKey(blockKey), place:index.toString()});
+        saveOp.ops.push({key_id:blockKey, chunk: updatedContent.getBlockForKey(blockKey), place:index.toString()});
       });
       dbOperationQueue.push(saveOp);
     }
@@ -563,8 +571,15 @@ const Document = () => {
 
   const handlePasteAction = (text) => {
     const blockMap = ContentState.createFromText(text).getBlockMap();
+    if (blockMap.size > 100) {
+      console.error("Pasting more than 100 paragraphs at a time is not allowed.")
+      return true;
+    }
+    for (let i=0; i < blockMap.size; i++) {
+      console.log(blockMap[i]);
+    }
     const newState = Modifier.replaceWithFragment(editorState.getCurrentContent(), editorState.getSelection(), blockMap);
-    updateEditorState(EditorState.push(editorState, newState, 'insert-fragment'));
+    updateEditorState(EditorState.push(editorState, newState, 'insert-fragment'), true);
     return true;
   }
 
@@ -588,19 +603,12 @@ const Document = () => {
     let newContentState = Modifier.mergeBlockData(content, selection, Immutable.Map([['alignment', alignment]]));
     if (alignment == 'center') {
       // remove any whitespace if line is blank
-      const regexStr = '\S+';
-      const regex = new RegExp(regexStr, 'gmi');
-      const text = newContentState.getBlockForKey(selection.getFocusKey()).getText();
-      if (regex.test(text)) {
-        console.log('removing whitespace before center');
-        newContentState = Modifier.replaceText(newContentState, selection, '');
-      }
     }
     const selectedKeys = GetSelectedBlocks(editorState);
     selectedKeys.forEach(key => {
       const block = newContentState.getBlockForKey(key);
       const index = newContentState.getBlockMap().keySeq().findIndex(k => k === key);
-      dbOperationQueue.push({type:"save", time:Date.now(), ops:[{keyID:key, chunk:block, place:index.toString()}]});
+      dbOperationQueue.push({type:"save", time:Date.now(), ops:[{key_id:key, chunk:block, place:index.toString()}]});
     })
     setEditorState(EditorState.push(editorState, newContentState, 'change-block-data'));
   }

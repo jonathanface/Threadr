@@ -2,8 +2,11 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -32,21 +35,25 @@ func DeleteBlocksFromStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	decoder := json.NewDecoder(r.Body)
-	storyBlocks := []StoryBlock{}
-
+	storyBlocks := StoryBlocks{}
 	if err := decoder.Decode(&storyBlocks); err != nil {
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
+	safeStory := strings.ToLower(strings.ReplaceAll(story, " ", "-"))
+	chapter := strconv.Itoa(storyBlocks.Chapter)
+	tableName := email + "_" + safeStory + "_" + chapter + "_blocks"
+	fmt.Println("deleting from", tableName)
 
 	// Group the storyBlocks into batches of 25.
-	batches := make([][]StoryBlock, 0, (len(storyBlocks)+24)/25)
-	for i := 0; i < len(storyBlocks); i += 25 {
+	batches := make([][]StoryBlock, 0, (len(storyBlocks.Blocks)+24)/25)
+	for i := 0; i < len(storyBlocks.Blocks); i += 25 {
 		end := i + 25
-		if end > len(storyBlocks) {
-			end = len(storyBlocks)
+		if end > len(storyBlocks.Blocks) {
+			end = len(storyBlocks.Blocks)
 		}
-		batches = append(batches, storyBlocks[i:end])
+		batches = append(batches, storyBlocks.Blocks[i:end])
 	}
 
 	numWrote := 0
@@ -60,18 +67,13 @@ func DeleteBlocksFromStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		for i, item := range batch {
 			// Create a key for the item.
 			key := map[string]types.AttributeValue{
-				"keyID": &types.AttributeValueMemberS{Value: item.KeyID},
-				"story": &types.AttributeValueMemberS{Value: story},
+				"key_id": &types.AttributeValueMemberS{Value: item.KeyID},
 			}
 
 			// Create a delete input for the item.
 			deleteInput := &types.Delete{
-				Key:                 key,
-				TableName:           aws.String("blocks"),
-				ConditionExpression: aws.String("contains(author, :eml)"),
-				ExpressionAttributeValues: map[string]types.AttributeValue{
-					":eml": &types.AttributeValueMemberS{Value: email},
-				},
+				Key:       key,
+				TableName: aws.String(tableName),
 			}
 			// Create a transaction write item for the update operation.
 			writeItem := types.TransactWriteItem{
@@ -94,7 +96,7 @@ func DeleteBlocksFromStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		Success     bool `json:"success"`
 		NumberWrote int  `json:"deleted"`
 	}
-	RespondWithJson(w, http.StatusOK, answer{Success: true, NumberWrote: len(storyBlocks)})
+	RespondWithJson(w, http.StatusOK, answer{Success: true, NumberWrote: len(storyBlocks.Blocks)})
 }
 
 func DeleteAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {

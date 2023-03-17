@@ -4,6 +4,7 @@ import (
 	"RichDocter/sessions"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -39,23 +40,16 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing chapter number")
 		return
 	}
-	tableIndex := email + "_" + story
 	email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
 	safeStory := strings.ToLower(strings.ReplaceAll(story, " ", "-"))
 	tableName := email + "_" + safeStory + "_" + chapter + "_blocks"
 
 	input := dynamodb.ScanInput{
-		TableName:        aws.String(tableName),
-		FilterExpression: aws.String("contains(key_id, :ind) AND contains(story, :stry)"),
-		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":ind":  &types.AttributeValueMemberS{Value: tableIndex},
-			":stry": &types.AttributeValueMemberS{Value: story},
-		},
+		TableName: aws.String(tableName),
 	}
 	if startKey != "" {
 		input.ExclusiveStartKey = map[string]types.AttributeValue{
 			"keyID": &types.AttributeValueMemberS{Value: startKey},
-			"story": &types.AttributeValueMemberS{Value: story},
 		}
 	}
 	out, err := AwsClient.Scan(context.TODO(), &input)
@@ -99,15 +93,16 @@ func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	fmt.Println("stories", stories)
 
 	var outChaps *dynamodb.ScanOutput
 	for i := 0; i < len(stories); i++ {
-		chapterKey := email + "_" + stories[i].Title
 		if outChaps, err = AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
 			TableName:        aws.String("chapters"),
-			FilterExpression: aws.String("contains(key_id, :ck)"),
+			FilterExpression: aws.String("contains(story_title, :ck) AND contains(author, :eml)"),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
-				":ck": &types.AttributeValueMemberS{Value: chapterKey},
+				":ck":  &types.AttributeValueMemberS{Value: stories[i].Title},
+				":eml": &types.AttributeValueMemberS{Value: email},
 			},
 		}); err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
