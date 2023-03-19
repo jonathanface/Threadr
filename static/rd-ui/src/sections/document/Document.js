@@ -414,8 +414,9 @@ const Document = () => {
 
   const handleStyleClick = (event, style) => {
     event.preventDefault();
+    setFocus();
     const newEditorState = RichUtils.toggleInlineStyle(editorState, style);
-    setEditorState(newEditorState);
+    let newContent = newEditorState.getCurrentContent();
     const selectedKeys = GetSelectedBlocks(newEditorState);
     selectedKeys.forEach((key) => {
       const block = newEditorState.getCurrentContent().getBlockForKey(key);
@@ -423,11 +424,12 @@ const Document = () => {
       for (const entry in styleMap) {
         styles = GetStyleData(block, entry, styles);
       };
-      const modifiedContent = Modifier.setBlockData(newEditorState.getCurrentContent(), SelectionState.createEmpty(key), Immutable.Map([['styles', styles]]));
-      const updatedBlock = modifiedContent.getBlockForKey(key);
-      const index = newEditorState.getCurrentContent().getBlockMap().keySeq().findIndex(k => k === key);
+      newContent = Modifier.mergeBlockData(newContent, SelectionState.createEmpty(key), Immutable.Map([['styles', styles]]));
+      const updatedBlock = newContent.getBlockForKey(key);
+      const index = newContent.getBlockMap().keySeq().findIndex(k => k === key);
       dbOperationQueue.push({type:"save", time:Date.now(), ops:[{key_id:key, chunk:updatedBlock, place:index.toString()}]});
-    })
+    });
+    setEditorState(EditorState.push(newEditorState, newContent, 'change-block-data'));
   }
 
   const handleKeyCommand = (command) => {
@@ -598,18 +600,14 @@ const Document = () => {
   }
 
   const updateBlockAlignment = (event, alignment) => {
-    const selection = editorState.getSelection();
-    const content = editorState.getCurrentContent();
-    let newContentState = Modifier.mergeBlockData(content, selection, Immutable.Map([['alignment', alignment]]));
-    if (alignment == 'center') {
-      // remove any whitespace if line is blank
-    }
+    let newContentState = editorState.getCurrentContent();
     const selectedKeys = GetSelectedBlocks(editorState);
     selectedKeys.forEach(key => {
-      const block = newContentState.getBlockForKey(key);
+      newContentState = Modifier.mergeBlockData(newContentState, SelectionState.createEmpty(key), Immutable.Map([['alignment', alignment]]));
+      const updatedBlock = newContentState.getBlockForKey(key);
       const index = newContentState.getBlockMap().keySeq().findIndex(k => k === key);
-      dbOperationQueue.push({type:"save", time:Date.now(), ops:[{key_id:key, chunk:block, place:index.toString()}]});
-    })
+      dbOperationQueue.push({type:"save", time:Date.now(), ops:[{key_id:key, chunk:updatedBlock, place:index.toString()}]})
+    });
     setEditorState(EditorState.push(editorState, newContentState, 'change-block-data'));
   }
 
