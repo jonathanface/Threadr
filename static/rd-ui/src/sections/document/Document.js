@@ -414,7 +414,6 @@ const Document = () => {
 
   const handleStyleClick = (event, style) => {
     event.preventDefault();
-    setFocus();
     const newEditorState = RichUtils.toggleInlineStyle(editorState, style);
     let newContent = newEditorState.getCurrentContent();
     const selectedKeys = GetSelectedBlocks(newEditorState);
@@ -424,12 +423,13 @@ const Document = () => {
       for (const entry in styleMap) {
         styles = GetStyleData(block, entry, styles);
       };
-      newContent = Modifier.mergeBlockData(newContent, SelectionState.createEmpty(key), Immutable.Map([['styles', styles]]));
+      newContent = Modifier.mergeBlockData(newContent, editorState.getSelection(), Immutable.Map([['styles', styles]]));
       const updatedBlock = newContent.getBlockForKey(key);
       const index = newContent.getBlockMap().keySeq().findIndex(k => k === key);
       dbOperationQueue.push({type:"save", time:Date.now(), ops:[{key_id:key, chunk:updatedBlock, place:index.toString()}]});
     });
     setEditorState(EditorState.push(newEditorState, newContent, 'change-block-data'));
+    toggleNavButtonState(style);
   }
 
   const handleKeyCommand = (command) => {
@@ -451,19 +451,26 @@ const Document = () => {
   const toggleNavButtonState = (style) => {
     switch(style) {
       case "BOLD": {
-        setCurrentBoldState(true);
+        setCurrentBoldState(!currentBoldState);
         break;
       }
       case "ITALIC": {
-        setCurrentItalicsState(true);
+        setCurrentItalicsState(!currentItalicsState);
         break;
       }
       case "UNDERSCORE": {
-        setCurrentUnderscoreState(true);
+        setCurrentUnderscoreState(!currentUnderscoreState);
         break;
       }
       case "STRIKETHROUGH": {
-        setCurrentStrikethroughState(true);
+        setCurrentStrikethroughState(!currentStrikethroughState);
+        break;
+      }
+      case "left":
+        case "right":
+          case "center":
+            case "justify":{
+        setCurrentBlockAlignment(style);
         break;
       }
     }
@@ -609,6 +616,7 @@ const Document = () => {
       dbOperationQueue.push({type:"save", time:Date.now(), ops:[{key_id:key, chunk:updatedBlock, place:index.toString()}]})
     });
     setEditorState(EditorState.push(editorState, newContentState, 'change-block-data'));
+    toggleNavButtonState(alignment);
   }
 
   
