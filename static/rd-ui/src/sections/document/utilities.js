@@ -1,7 +1,7 @@
 import Immutable from 'immutable';
 import {EditorState, Modifier, SelectionState} from 'draft-js';
 
-export const GetSelectedBlocks = (editorState) => {
+export const GetSelectedBlockKeys = (editorState) => {
   const lastSelection = editorState.getSelection();
   const min = lastSelection.getIsBackward() ? lastSelection.getFocusKey() : lastSelection.getAnchorKey();
   const max = lastSelection.getIsBackward() ? lastSelection.getAnchorKey() : lastSelection.getFocusKey();
@@ -78,14 +78,14 @@ export const GenerateTabCharacter = (tabLength) => {
 }
 
 export const InsertTab = (editorState, selection) => {
-  const selectedKeys = GetSelectedBlocks(editorState);
+  const selectedKeys = GetSelectedBlockKeys(editorState);
   let newEditorState = editorState;
   
   if (selectedKeys.length > 1) {
     let content = newEditorState.getCurrentContent();
     selectedKeys.map(key => {
       const block = content.getBlockForKey(selection.getFocusKey());
-      block.getData().ENTITY_TABS ? block.getData().ENTITY_TABS : [];
+      const tabData = block.getData().getIn(["ENTITY_TABS"]) ? block.getData().getIn(["ENTITY_TABS"]) : [];
       tabData.push({start: 0, end: TAB_LENGTH});
       const contentStateWithEntityData = Modifier.mergeBlockData(
         content,
@@ -114,8 +114,7 @@ export const InsertTab = (editorState, selection) => {
     }
     const content = newEditorState.getCurrentContent();
     const block = content.getBlockForKey(selection.getFocusKey());
-    const tabData = block.getData().ENTITY_TABS ? block.getData().ENTITY_TABS : [];
-    console.log("data", tabData);
+    const tabData = block.getData().getIn(["ENTITY_TABS"]) ? block.getData().getIn(["ENTITY_TABS"]) : [];
     tabData.push({start: selection.getFocusOffset(), end: selection.getFocusOffset() + TAB_LENGTH});
     const contentStateWithEntityData = Modifier.mergeBlockData(
       content,
