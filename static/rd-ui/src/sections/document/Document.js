@@ -2,7 +2,7 @@ import React, {useRef, useEffect, useState} from 'react';
 import {findDOMNode} from 'react-dom'
 import Immutable from 'immutable';
 import {convertFromRaw, Editor, EditorState, ContentBlock, RichUtils, getDefaultKeyBinding, Modifier, SelectionState, ContentState, CompositeDecorator} from 'draft-js';
-import {GetSelectedText, InsertTab, FilterAndReduceDBOperations, SetFocusAndRestoreCursor, GetStyleData, GetSelectedBlocks} from './utilities.js'
+import {GetSelectedText, InsertTab, FilterAndReduceDBOperations, SetFocusAndRestoreCursor, GetStyleData, GetSelectedBlockKeys, GenerateTabCharacter} from './utilities.js'
 import 'draft-js/dist/Draft.css';
 import '../../css/document.css';
 import { Menu, Item, Submenu, useContextMenu } from 'react-contexify';
@@ -47,7 +47,7 @@ const Document = () => {
   const currentStoryChapter = useSelector((state) => state.currentStoryChapter.value);
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
   const [currentRightClickedAssoc, setCurrentRightClickedAssoc] = useState(null);
-  const [currentBlockAlignment, setCurrentBlockAlignment] = useState('left');
+  const [currentBlockAlignment, setCurrentBlockAlignment] = useState('LEFT');
   const [currentItalicsState, setCurrentItalicsState] = useState(false);
   const [currentBoldState, setCurrentBoldState] = useState(false);
   const [currentUnderscoreState, setCurrentUnderscoreState] = useState(false);
@@ -109,7 +109,6 @@ const Document = () => {
     })
     .then((data) => {
       data.last_evaluated_key && data.last_evaluated_key.key_id.Value ? lastRetrievedBlockKey = data.last_evaluated_key.key_id.Value : lastRetrievedBlockKey = null;
-      console.log("last retrieved", lastRetrievedBlockKey)
       data.items.sort((a, b) => parseInt(a.place.Value) > parseInt(b.place.Value));
       const newBlocks = [];
       data.items.forEach(piece => {
@@ -121,7 +120,6 @@ const Document = () => {
           text: jsonBlock.text,
           type: jsonBlock.type,
           data: jsonBlock.data,
-          
         });
         newBlocks.push(block);
       });
@@ -132,8 +130,8 @@ const Document = () => {
       let newContentState = convertFromRaw(contentState);
       newBlocks.forEach(block => {
         if (block.getText().length) {
-          if (block.getData(["styles"]) && block.getData(["styles"]).styles) {
-            block.getData(["styles"]).styles.forEach(style => {
+          if (block.getData().STYLES) {
+            block.getData().STYLES.forEach(style => {
               const styleSelection = new SelectionState({
                 focusKey: block.key,
                 anchorKey: block.key,
@@ -142,6 +140,28 @@ const Document = () => {
               });
               newContentState = Modifier.applyInlineStyle(newContentState, styleSelection, style.style)
             })
+          }
+          if (block.getData().ENTITY_TABS) {
+            block.getData().ENTITY_TABS.forEach(tab => {
+              const tabSelection = new SelectionState({
+                focusKey: block.getKey(),
+                anchorKey: block.getKey(),
+                anchorOffset: tab.start,
+                focusOffset: tab.start,
+              });
+              const contentStateWithEntity = newContentState.createEntity(
+                'TAB',
+                'IMMUTABLE'
+              );
+              const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
+              newContentState = Modifier.insertText(
+                contentStateWithEntity,
+                tabSelection,
+                GenerateTabCharacter(),
+                null,
+                entityKey
+              );
+            });
           }
         }
       })
@@ -340,12 +360,53 @@ const Document = () => {
     });
   }
 
+  const prepBlocksForSave = (content, blocks) => {
+    blocks.forEach(block => {
+      const key = block.getKey();
+      const index = content.getBlockMap().keySeq().findIndex(k => k === key);
+
+      const selection = SelectionState.createEmpty(key);
+      const updatedSelection = selection.merge({
+        anchorOffset: 0,
+        focusOffset: block.getText().length,
+      });
+      const newContent = Modifier.applyEntity(content, updatedSelection, null);
+      let updatedBlock = newContent.getBlockForKey(key);
+      
+      // Super annoying workaround, because for some reason I can't strip
+      // away tab entities at the beginning of the text if they were
+      // auto inserted by updateEditorState
+      const tabs = block.getData().getIn(["ENTITY_TABS"]);
+      if (tabs && tabs.length) {
+          tabs.forEach(tab => {
+            if (tab.start === 0 && tab.end > tab.start) {
+              updatedBlock = new ContentBlock({
+                characterList: updatedBlock.characterList,
+                depth: updatedBlock.depth,
+                key: updatedBlock.key,
+                text: updatedBlock.text.trim(),
+                type: updatedBlock.type,
+                data: updatedBlock.data,
+              });
+            }
+          });
+        }
+      dbOperationQueue.push({type:"save", time:Date.now(), ops:[{key_id:key, chunk:updatedBlock, place:index.toString()}]});
+    });
+  };
+
   const keyBindings = (event) => {
     // tab pressed
     if (event.keyCode === 9) {
       event.preventDefault();
-      const selectedKeys = GetSelectedBlocks(editorState);
-      setEditorState(InsertTab(editorState, selectedKeys));
+      const selection = editorState.getSelection();
+      setEditorState(InsertTab(editorState, selection));
+      const content = editorState.getCurrentContent();
+      const blocksToPrep = [];
+      GetSelectedBlockKeys(editorState).forEach(key => {
+        blocksToPrep.push(content.getBlockForKey(key));
+      })
+      prepBlocksForSave(content, blocksToPrep);
     }
     return getDefaultKeyBinding(event);
   }
@@ -415,27 +476,56 @@ const Document = () => {
   const handleStyleClick = (event, style) => {
     event.preventDefault();
     const newEditorState = RichUtils.toggleInlineStyle(editorState, style);
-    setEditorState(newEditorState);
-    const selectedKeys = GetSelectedBlocks(newEditorState);
+    let newContent = newEditorState.getCurrentContent();
+    const selectedKeys = GetSelectedBlockKeys(newEditorState);
+    const updatedBlocks = [];
     selectedKeys.forEach((key) => {
       const block = newEditorState.getCurrentContent().getBlockForKey(key);
       let styles = [];
       for (const entry in styleMap) {
         styles = GetStyleData(block, entry, styles);
       };
-      const modifiedContent = Modifier.setBlockData(newEditorState.getCurrentContent(), SelectionState.createEmpty(key), Immutable.Map([['styles', styles]]));
-      const updatedBlock = modifiedContent.getBlockForKey(key);
-      const index = newEditorState.getCurrentContent().getBlockMap().keySeq().findIndex(k => k === key);
-      dbOperationQueue.push({type:"save", time:Date.now(), ops:[{key_id:key, chunk:updatedBlock, place:index.toString()}]});
-    })
+      newContent = Modifier.mergeBlockData(newContent, editorState.getSelection(), Immutable.Map([['STYLES', styles]]));
+      updatedBlocks.push(newContent.getBlockForKey(key));
+    });
+    const updatedEditorState = EditorState.push(newEditorState, newContent, 'change-block-data');
+    setEditorState(updatedEditorState);
+    prepBlocksForSave(newContent, updatedBlocks)
+    toggleNavButtonState(style);
   }
 
   const handleKeyCommand = (command) => {
     console.log("cmd", command)
+    let newEditorState = editorState;
     if (command === 'backspace' || command === 'delete') {
-      return;
+      const selection = editorState.getSelection();
+      const postSelection = new SelectionState({
+        focusKey: selection.getFocusKey(),
+        anchorKey: selection.getAnchorKey(),
+        focusOffset: selection.isCollapsed() ? selection.getFocusOffset()-1 : selection.getFocusOffset(),
+        anchorOffset: selection.getAnchorOffset()
+      });
+      const selectedKeys = GetSelectedBlockKeys(editorState);
+      selectedKeys.forEach(key => {
+        const content = editorState.getCurrentContent();
+        const block = content.getBlockForKey(key);
+        let tabs = block.getData().getIn(["ENTITY_TABS"]);
+        if (tabs && tabs.length) {
+          tabs.forEach(tab => {
+            if (postSelection.hasEdgeWithin(key, tab.start, tab.end)) {
+              tabs.splice(tabs.indexOf(tab), 1);
+            }
+          });
+          const contentStateWithNewData = Modifier.mergeBlockData(
+            content,
+            selection,
+            Immutable.Map([['ENTITY_TABS', tabs]])
+          );
+          newEditorState = EditorState.push(newEditorState, contentStateWithNewData);
+        }
+      });
     }
-    setEditorState(RichUtils.handleKeyCommand(editorState, command));
+    setEditorState(RichUtils.handleKeyCommand(newEditorState, command));
   }
 
   const resetNavButtonStates = () => {
@@ -443,25 +533,32 @@ const Document = () => {
     setCurrentItalicsState(false);
     setCurrentUnderscoreState(false);
     setCurrentStrikethroughState(false);
-    setCurrentBlockAlignment('left');
+    setCurrentBlockAlignment('LEFT');
   }
 
   const toggleNavButtonState = (style) => {
     switch(style) {
       case "BOLD": {
-        setCurrentBoldState(true);
+        setCurrentBoldState(!currentBoldState);
         break;
       }
       case "ITALIC": {
-        setCurrentItalicsState(true);
+        setCurrentItalicsState(!currentItalicsState);
         break;
       }
       case "UNDERSCORE": {
-        setCurrentUnderscoreState(true);
+        setCurrentUnderscoreState(!currentUnderscoreState);
         break;
       }
       case "STRIKETHROUGH": {
-        setCurrentStrikethroughState(true);
+        setCurrentStrikethroughState(!currentStrikethroughState);
+        break;
+      }
+      case "LEFT":
+        case "RIGHT":
+          case "CENTER":
+            case "JUSTIFY":{
+        setCurrentBlockAlignment(style);
         break;
       }
     }
@@ -481,7 +578,7 @@ const Document = () => {
       });
     };
     const data = block.getData();
-    const alignment = data.getIn(['alignment']) ? data.getIn(['alignment']) : 'left';
+    const alignment = data.getIn(['ALIGNMENT']) ? data.getIn(['ALIGNMENT']) : 'LEFT';
     setCurrentBlockAlignment(alignment);
 
     if (editorState.getCurrentContent() === newEditorState.getCurrentContent()) {
@@ -494,7 +591,7 @@ const Document = () => {
     const newBlockMap = newContent.getBlockMap();
     const oldContent = editorState.getCurrentContent();
     const oldBlockMap = oldContent.getBlockMap();
-    const selectedKeys = GetSelectedBlocks(editorState);
+    const selectedKeys = GetSelectedBlockKeys(editorState);
 
     const blocksToSave = [];
     const blocksToDelete = [];
@@ -519,13 +616,12 @@ const Document = () => {
       // If the new block is not in the old block map, it's a new block
       if (!oldBlock) {
         const index = newContent.getBlockMap().keySeq().findIndex(k => k === newBlockKey);
-        console.log("new block", newBlockKey," at", index, newBlockMap.size-1);
         if (index !== newBlockMap.size-1) {
           // If it's not in the last place of blocks, we will need to resync
           // the order of all blocks
           resyncRequired = true;
         }
-        newEditorState = InsertTab(newEditorState, [newBlockKey]);
+        newEditorState = InsertTab(newEditorState, SelectionState.createEmpty(newBlockKey));
         blocksToSave.push(newBlockKey);
       }
       // If the block is selected, save it to the server
@@ -539,7 +635,6 @@ const Document = () => {
     setEditorState(newEditorState);
 
     if (blocksToDelete.length) {
-      console.log("delete arr", blocksToDelete)
       const deleteOp = {};
       deleteOp.type = "delete";
       deleteOp.time = Date.now();
@@ -551,17 +646,12 @@ const Document = () => {
     }
 
     if (blocksToSave.length) {
-      console.log("save arr", blocksToSave)
       const updatedContent = newEditorState.getCurrentContent();
-      const saveOp = {}
-      saveOp.type = "save";
-      saveOp.time = Date.now();
-      saveOp.ops = [];
-      blocksToSave.forEach(blockKey => {
-        const index = updatedContent.getBlockMap().keySeq().findIndex(k => k === blockKey);
-        saveOp.ops.push({key_id:blockKey, chunk: updatedContent.getBlockForKey(blockKey), place:index.toString()});
+      const blocksToPrep = [];
+      blocksToSave.forEach(key => {
+        blocksToPrep.push(updatedContent.getBlockForKey(key));
       });
-      dbOperationQueue.push(saveOp);
+      prepBlocksForSave(updatedContent, blocksToPrep);
     }
 
     if (resyncRequired) {
@@ -575,9 +665,6 @@ const Document = () => {
       console.error("Pasting more than 100 paragraphs at a time is not allowed.")
       return true;
     }
-    for (let i=0; i < blockMap.size; i++) {
-      console.log(blockMap[i]);
-    }
     const newState = Modifier.replaceWithFragment(editorState.getCurrentContent(), editorState.getSelection(), blockMap);
     updateEditorState(EditorState.push(editorState, newState, 'insert-fragment'), true);
     return true;
@@ -590,27 +677,24 @@ const Document = () => {
   const getBlockStyles = (contentBlock) => {
     const data = contentBlock.getData();
     let classStr = ""
-    const alignment = data.getIn(['alignment']) ? data.getIn(['alignment']) : 'left';
+    const alignment = data.getIn(['ALIGNMENT']) ? data.getIn(['ALIGNMENT']) : 'LEFT';
     classStr += alignment;
-    const lineHeight = data.getIn(['lineHeight']) ? data.getIn(['lineHeight']) : 'lineheight_double';
+    const lineHeight = data.getIn(['LINE_HEIGHT']) ? data.getIn(['LINE_HEIGHT']) : 'LINEHEIGHT_DOUBLE';
     classStr += " " + lineHeight;
     return classStr;
   }
 
   const updateBlockAlignment = (event, alignment) => {
-    const selection = editorState.getSelection();
-    const content = editorState.getCurrentContent();
-    let newContentState = Modifier.mergeBlockData(content, selection, Immutable.Map([['alignment', alignment]]));
-    if (alignment == 'center') {
-      // remove any whitespace if line is blank
-    }
-    const selectedKeys = GetSelectedBlocks(editorState);
+    let newContentState = editorState.getCurrentContent();
+    const selectedKeys = GetSelectedBlockKeys(editorState);
+    const blocksToPrep = [];
     selectedKeys.forEach(key => {
-      const block = newContentState.getBlockForKey(key);
-      const index = newContentState.getBlockMap().keySeq().findIndex(k => k === key);
-      dbOperationQueue.push({type:"save", time:Date.now(), ops:[{key_id:key, chunk:block, place:index.toString()}]});
-    })
+      newContentState = Modifier.mergeBlockData(newContentState, SelectionState.createEmpty(key), Immutable.Map([['ALIGNMENT', alignment]]));
+      blocksToPrep.push(newContentState.getBlockForKey(key))
+    });
     setEditorState(EditorState.push(editorState, newContentState, 'change-block-data'));
+    prepBlocksForSave(newContentState, blocksToPrep);
+    toggleNavButtonState(alignment);
   }
 
   
@@ -622,10 +706,10 @@ const Document = () => {
         <button className={currentItalicsState ? "active": ""} onMouseDown={(e) => {handleStyleClick(e,'ITALIC')}}><i>I</i></button>
         <button className={currentUnderscoreState ? "active": ""} onMouseDown={(e) => {handleStyleClick(e,'UNDERLINE')}}><u>U</u></button>
         <button className={currentStrikethroughState ? "active": ""} onMouseDown={(e) => {handleStyleClick(e,'STRIKETHROUGH')}}><s>S</s></button>
-        <button className={currentBlockAlignment === 'left' ? "active": ""} onMouseDown={(e) => {updateBlockAlignment(e, 'left')}}><FontAwesomeIcon icon={faAlignLeft} /></button>
-        <button className={currentBlockAlignment === 'center' ? "active": ""} onMouseDown={(e) => {updateBlockAlignment(e, 'center')}}><FontAwesomeIcon icon={faAlignCenter} /></button>
-        <button className={currentBlockAlignment === 'right' ? "active": ""} onMouseDown={(e) => {updateBlockAlignment(e, 'right')}}><FontAwesomeIcon icon={faAlignRight} /></button>
-        <button className={currentBlockAlignment === 'justify' ? "active": ""} onMouseDown={(e) => {updateBlockAlignment(e, 'justify')}}><FontAwesomeIcon icon={faAlignJustify} /></button>
+        <button className={currentBlockAlignment === 'LEFT' ? "active": ""} onMouseDown={(e) => {updateBlockAlignment(e, 'LEFT')}}><FontAwesomeIcon icon={faAlignLeft} /></button>
+        <button className={currentBlockAlignment === 'CENTER' ? "active": ""} onMouseDown={(e) => {updateBlockAlignment(e, 'CENTER')}}><FontAwesomeIcon icon={faAlignCenter} /></button>
+        <button className={currentBlockAlignment === 'RIGHT' ? "active": ""} onMouseDown={(e) => {updateBlockAlignment(e, 'RIGHT')}}><FontAwesomeIcon icon={faAlignRight} /></button>
+        <button className={currentBlockAlignment === 'JUSTIFY' ? "active": ""} onMouseDown={(e) => {updateBlockAlignment(e, 'JUSTIFY')}}><FontAwesomeIcon icon={faAlignJustify} /></button>
       </nav>
       <section className="editor_container" onContextMenu={handleTextualContextMenu} onClick={setFocus} >
         <Editor

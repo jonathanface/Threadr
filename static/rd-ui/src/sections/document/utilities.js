@@ -1,6 +1,7 @@
-import {EditorState, Modifier, SelectionState, convertToRaw} from 'draft-js';
+import Immutable from 'immutable';
+import {EditorState, Modifier, SelectionState} from 'draft-js';
 
-export const GetSelectedBlocks = (editorState) => {
+export const GetSelectedBlockKeys = (editorState) => {
   const lastSelection = editorState.getSelection();
   const min = lastSelection.getIsBackward() ? lastSelection.getFocusKey() : lastSelection.getAnchorKey();
   const max = lastSelection.getIsBackward() ? lastSelection.getAnchorKey() : lastSelection.getFocusKey();
@@ -64,9 +65,11 @@ export const GetSelectedText = (editorState) => {
   const selectedText = currentBlock.getText().slice(start, end);
   return selectedText;
 }
+
+const TAB_LENGTH = 5;
   
 export const GenerateTabCharacter = (tabLength) => {
-  tabLength = tabLength ? tabLength = tabLength : tabLength = 5;
+  tabLength = tabLength ? tabLength = tabLength : tabLength = TAB_LENGTH;
   let tab = '';
   for (let i=0; i < tabLength; i++) {
     tab += ' ';
@@ -74,20 +77,67 @@ export const GenerateTabCharacter = (tabLength) => {
   return tab;
 }
 
-export const InsertTab = (editorState, keys) => {
-  const content = editorState.getCurrentContent();
+export const InsertTab = (editorState, selection) => {
+  const selectedKeys = GetSelectedBlockKeys(editorState);
   let newEditorState = editorState;
-  keys.map(key => {
-    const block = content.getBlockForKey(key);
-    const firstChar = block.getCharacterList().get(0);
-    const newBlockSelection = SelectionState.createEmpty(block.getKey());
-    if (!firstChar || (firstChar && firstChar.entity === null) || (firstChar && content.getEntity(firstChar.entity).getType() !== 'TAB')) {
-      const contentStateWithEntity = content.createEntity('TAB', 'IMMUTABLE');
+  
+  if (selectedKeys.length > 1) {
+    let content = newEditorState.getCurrentContent();
+    selectedKeys.map(key => {
+      const block = content.getBlockForKey(selection.getFocusKey());
+      const tabData = block.getData().getIn(["ENTITY_TABS"]) ? block.getData().getIn(["ENTITY_TABS"]) : [];
+      tabData.push({start: 0, end: TAB_LENGTH});
+      const contentStateWithEntityData = Modifier.mergeBlockData(
+        content,
+        selection,
+        Immutable.Map([['ENTITY_TABS', tabData]])
+      );
+      const contentStateWithEntity = content.createEntity(
+        'TAB',
+        'IMMUTABLE'
+      );
       const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
-      const adjustedEditorState = EditorState.push(newEditorState, Modifier.insertText(content, newBlockSelection, GenerateTabCharacter(), null, entityKey));
-      newEditorState = EditorState.forceSelection(adjustedEditorState, adjustedEditorState.getCurrentContent().getSelectionAfter());
+      const contentStateWithEntityText = Modifier.insertText(
+        contentStateWithEntityData,
+        SelectionState.createEmpty(key),
+        GenerateTabCharacter(),
+        null,
+        entityKey
+      );
+      newEditorState = EditorState.push(newEditorState, contentStateWithEntityText);
+      content = newEditorState.getCurrentContent();
+    });
+    newEditorState = EditorState.forceSelection(newEditorState, content.getSelectionAfter());
+  } else if (selectedKeys.length) {
+    if (!selection.isCollapsed()) {
+      selection = SelectionState.createEmpty(selection.getFocusKey());
     }
-  })
+    const content = newEditorState.getCurrentContent();
+    const block = content.getBlockForKey(selection.getFocusKey());
+    const tabData = block.getData().getIn(["ENTITY_TABS"]) ? block.getData().getIn(["ENTITY_TABS"]) : [];
+    tabData.push({start: selection.getFocusOffset(), end: selection.getFocusOffset() + TAB_LENGTH});
+    const contentStateWithEntityData = Modifier.mergeBlockData(
+      content,
+      selection,
+      Immutable.Map([['ENTITY_TABS', tabData]])
+    );
+    const contentStateWithEntity = content.createEntity(
+      'TAB',
+      'IMMUTABLE'
+    );
+    const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
+    const contentStateWithEntityText = Modifier.insertText(
+      contentStateWithEntityData,
+      selection,
+      GenerateTabCharacter(),
+      null,
+      entityKey
+    );
+    const editorStateWithData = EditorState.push(newEditorState, contentStateWithEntityText);
+    newEditorState = EditorState.forceSelection(editorStateWithData, contentStateWithEntityText.getSelectionAfter());
+  } else {
+    console.error("no blocks selected");
+  }
   return newEditorState;
 }
 
