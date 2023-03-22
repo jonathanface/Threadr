@@ -2,7 +2,7 @@ import React, {useRef, useEffect, useState} from 'react';
 import {findDOMNode} from 'react-dom'
 import Immutable from 'immutable';
 import {convertFromRaw, Editor, EditorState, ContentBlock, RichUtils, getDefaultKeyBinding, Modifier, SelectionState, ContentState, CompositeDecorator} from 'draft-js';
-import {GetSelectedText, InsertTab, FilterAndReduceDBOperations, SetFocusAndRestoreCursor, GetStyleData, GetSelectedBlocks} from './utilities.js'
+import {GetSelectedText, InsertTab, FilterAndReduceDBOperations, SetFocusAndRestoreCursor, GetStyleData, GetSelectedBlocks, GenerateTabCharacter} from './utilities.js'
 import 'draft-js/dist/Draft.css';
 import '../../css/document.css';
 import { Menu, Item, Submenu, useContextMenu } from 'react-contexify';
@@ -109,7 +109,6 @@ const Document = () => {
     })
     .then((data) => {
       data.last_evaluated_key && data.last_evaluated_key.key_id.Value ? lastRetrievedBlockKey = data.last_evaluated_key.key_id.Value : lastRetrievedBlockKey = null;
-      console.log("last retrieved", lastRetrievedBlockKey)
       data.items.sort((a, b) => parseInt(a.place.Value) > parseInt(b.place.Value));
       const newBlocks = [];
       data.items.forEach(piece => {
@@ -132,8 +131,8 @@ const Document = () => {
       let newContentState = convertFromRaw(contentState);
       newBlocks.forEach(block => {
         if (block.getText().length) {
-          if (block.getData(["styles"]) && block.getData(["styles"]).styles) {
-            block.getData(["styles"]).styles.forEach(style => {
+          if (block.getData().styles) {
+            block.getData().styles.forEach(style => {
               const styleSelection = new SelectionState({
                 focusKey: block.key,
                 anchorKey: block.key,
@@ -142,6 +141,29 @@ const Document = () => {
               });
               newContentState = Modifier.applyInlineStyle(newContentState, styleSelection, style.style)
             })
+          }
+          if (block.getData().ENTITY_TABS) {
+            block.getData().ENTITY_TABS.forEach(tab => {
+              console.log(block.getKey());
+              const tabSelection = new SelectionState({
+                focusKey: block.getKey(),
+                anchorKey: block.getKey(),
+                anchorOffset: tab.start,
+                focusOffset: tab.end,
+              });
+              const contentStateWithEntity = newContentState.createEntity(
+                'TAB',
+                'IMMUTABLE'
+              );
+              const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
+              newContentState = Modifier.replaceText(
+                contentStateWithEntity,
+                tabSelection,
+                GenerateTabCharacter(),
+                null,
+                entityKey
+              );
+            });
           }
         }
       })
@@ -191,6 +213,9 @@ const Document = () => {
           }
         case "save": {
           try {
+            op.ops.forEach(part => {
+              console.log(part.chunk.getData());
+            })
             saveBlocksToServer(FilterAndReduceDBOperations(dbOperationQueue, op, i));
           } catch(e) {
             console.error(e)
@@ -344,8 +369,15 @@ const Document = () => {
     // tab pressed
     if (event.keyCode === 9) {
       event.preventDefault();
+      const selection = editorState.getSelection();
+      setEditorState(InsertTab(editorState, selection));
+      const newContent = editorState.getCurrentContent();
       const selectedKeys = GetSelectedBlocks(editorState);
-      setEditorState(InsertTab(editorState, selectedKeys));
+      selectedKeys.map(key => {
+        const updatedBlock = newContent.getBlockForKey(key);
+        const index = newContent.getBlockMap().keySeq().findIndex(k => k === key);
+        dbOperationQueue.push({type:"save", time:Date.now(), ops:[{key_id:key, chunk:updatedBlock, place:index.toString()}]});
+      });
     }
     return getDefaultKeyBinding(event);
   }
@@ -435,7 +467,7 @@ const Document = () => {
   const handleKeyCommand = (command) => {
     console.log("cmd", command)
     if (command === 'backspace' || command === 'delete') {
-      return;
+      // TO-DO detect tab deletion and remove from block.()data
     }
     setEditorState(RichUtils.handleKeyCommand(editorState, command));
   }
@@ -534,7 +566,7 @@ const Document = () => {
           // the order of all blocks
           resyncRequired = true;
         }
-        newEditorState = InsertTab(newEditorState, [newBlockKey]);
+        newEditorState = InsertTab(newEditorState, SelectionState.createEmpty(newBlockKey));
         blocksToSave.push(newBlockKey);
       }
       // If the block is selected, save it to the server
@@ -583,9 +615,6 @@ const Document = () => {
     if (blockMap.size > 100) {
       console.error("Pasting more than 100 paragraphs at a time is not allowed.")
       return true;
-    }
-    for (let i=0; i < blockMap.size; i++) {
-      console.log(blockMap[i]);
     }
     const newState = Modifier.replaceWithFragment(editorState.getCurrentContent(), editorState.getSelection(), blockMap);
     updateEditorState(EditorState.push(editorState, newState, 'insert-fragment'), true);

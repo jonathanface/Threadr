@@ -66,14 +66,11 @@ export const FindHighlightable = (entityType, associations) => {
     }
   }
 
-  
-  
- export const FindTabs = (contentBlock, callback, contentState) => {
+  export const FindTabs = (contentBlock, callback, contentState) => {
     contentBlock.findEntityRanges((character) => {
       const entityKey = character.getEntity();
       return (
-        entityKey !== null &&
-        contentState.getEntity(entityKey).getType() === 'TAB'
+        entityKey !== null && contentState.getEntity(entityKey).getType() === 'TAB'
       );
     },
     callback);
