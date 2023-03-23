@@ -56,7 +56,7 @@ const Document = () => {
   let lastRetrievedBlockKey = '';
 
   const createDecorators = () => {
-    const decorators = [];
+    const decorators = new Array(associations.length);
     associations.forEach((association) => {
       decorators.push({
         strategy: FindHighlightable(association.association_type, associations),
@@ -99,6 +99,44 @@ const Document = () => {
         });
   };
 
+  const processDBBlock = (content, block) => {
+    if (block.getData().STYLES) {
+      block.getData().STYLES.forEach((style) => {
+        console.log("???", style, block.key, block.getText());
+        const styleSelection = new SelectionState({
+          focusKey: block.key,
+          anchorKey: block.key,
+          focusOffset: style.end,
+          anchorOffset: style.start
+        });
+        content = Modifier.applyInlineStyle(content, styleSelection, style.style);
+      });
+    }
+    if (block.getData().ENTITY_TABS) {
+      block.getData().ENTITY_TABS.forEach((tab) => {
+        const tabSelection = new SelectionState({
+          focusKey: block.getKey(),
+          anchorKey: block.getKey(),
+          anchorOffset: tab.start,
+          focusOffset: tab.start,
+        });
+        const contentStateWithEntity = content.createEntity(
+            'TAB',
+            'IMMUTABLE'
+        );
+        const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
+        content = Modifier.insertText(
+            contentStateWithEntity,
+            tabSelection,
+            GenerateTabCharacter(),
+            null,
+            entityKey
+        );
+      });
+    }
+    return content;
+  }
+
   const getBatchedStoryBlocks = (startKey) => {
     fetch('/api/stories/' + currentStoryID + '?key=' + startKey + '&chapter=' + currentStoryChapter)
         .then((response) => {
@@ -112,16 +150,18 @@ const Document = () => {
       data.items.sort((a, b) => parseInt(a.place.Value) > parseInt(b.place.Value));
       const newBlocks = [];
       data.items.forEach((piece) => {
-        const jsonBlock = JSON.parse(piece.chunk.Value);
-        const block = new ContentBlock({
-          characterList: jsonBlock.characterList,
-          depth: jsonBlock.depth,
-          key: piece.key_id.Value,
-          text: jsonBlock.text,
-          type: jsonBlock.type,
-          data: jsonBlock.data,
-        });
-        newBlocks.push(block);
+        if (piece.chunk) {
+          const jsonBlock = JSON.parse(piece.chunk.Value);
+          const block = new ContentBlock({
+            characterList: jsonBlock.characterList,
+            depth: jsonBlock.depth,
+            key: piece.key_id.Value,
+            text: jsonBlock.text,
+            type: jsonBlock.type,
+            data: jsonBlock.data,
+          });
+          newBlocks.push(block);
+        }
       });
       const contentState = {
         entityMap: {},
@@ -130,39 +170,7 @@ const Document = () => {
       let newContentState = convertFromRaw(contentState);
       newBlocks.forEach((block) => {
         if (block.getText().length) {
-          if (block.getData().STYLES) {
-            block.getData().STYLES.forEach((style) => {
-              const styleSelection = new SelectionState({
-                focusKey: block.key,
-                anchorKey: block.key,
-                focusOffset: style.end,
-                anchorOffset: style.start
-              });
-              newContentState = Modifier.applyInlineStyle(newContentState, styleSelection, style.style);
-            });
-          }
-          if (block.getData().ENTITY_TABS) {
-            block.getData().ENTITY_TABS.forEach((tab) => {
-              const tabSelection = new SelectionState({
-                focusKey: block.getKey(),
-                anchorKey: block.getKey(),
-                anchorOffset: tab.start,
-                focusOffset: tab.start,
-              });
-              const contentStateWithEntity = newContentState.createEntity(
-                  'TAB',
-                  'IMMUTABLE'
-              );
-              const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
-              newContentState = Modifier.insertText(
-                  contentStateWithEntity,
-                  tabSelection,
-                  GenerateTabCharacter(),
-                  null,
-                  entityKey
-              );
-            });
-          }
+          newContentState = processDBBlock(newContentState, block);
         }
       });
       setEditorState(EditorState.createWithContent(newContentState, createDecorators(associations)));
@@ -235,14 +243,23 @@ const Document = () => {
     const editorRef = domEditor.current;
     if (isLoggedIn && currentStoryID) {
       setFocusAndRestoreCursor();
-      getBatchedStoryBlocks('');
+      try {
+        getBatchedStoryBlocks('');
+      } catch(e) {
+        console.error(e);
+      }
+      
       setDBOperationInterval(setInterval(() => {
-        processDBQueue();
+        try {
+          processDBQueue();
+        } catch(e) {
+          console.error(e);
+        }
       }, DB_OP_INTERVAL));
       getAllAssociations();
       const handleScroll = (e) => {
         const bottom = e.target.scrollHeight - e.target.scrollTop === e.target.clientHeight;
-        if (bottom && lastRetrievedBlockKey) {
+        if (bottom && lastRetrievedBlockKey !== null) {
           getBatchedStoryBlocks(lastRetrievedBlockKey);
         }
       };
@@ -250,7 +267,6 @@ const Document = () => {
       return () => findDOMNode(editorRef).removeEventListener('scroll', handleScroll);
     }
   }, [isLoggedIn, currentStoryID, currentStoryChapter, lastRetrievedBlockKey]);
-
 
   const syncBlockOrderMap = (blockList) => {
     return new Promise(async (resolve, reject) => {
