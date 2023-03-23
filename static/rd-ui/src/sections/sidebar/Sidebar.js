@@ -5,173 +5,173 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
-import ArticleIcon from '@mui/icons-material/Article'; 
-import EditIcon from '@mui/icons-material/Edit'; 
+import ArticleIcon from '@mui/icons-material/Article';
+import EditIcon from '@mui/icons-material/Edit';
 import TreeItem from '@mui/lab/TreeItem';
-import { useSelector, useDispatch } from 'react-redux'
-import { flipLoggedInState } from '../../stores/loggedInSlice'
-import { setCurrentStoryID } from '../../stores/currentStorySlice'
-import { setCurrentStoryChapter } from '../../stores/currentStoryChapterSlice' 
-import { flipCreatingNewStoryState } from '../../stores/creatingNewStorySlice';
-import { flipMenuOpen } from '../../stores/toggleMenuOpenSlice';
-import { flipRefreshStoryList } from '../../stores/refreshStoryListSlice';
+import {useSelector, useDispatch} from 'react-redux';
+import {flipLoggedInState} from '../../stores/loggedInSlice';
+import {setCurrentStoryID} from '../../stores/currentStorySlice';
+import {setCurrentStoryChapter} from '../../stores/currentStoryChapterSlice';
+import {flipCreatingNewStoryState} from '../../stores/creatingNewStorySlice';
+import {flipMenuOpen} from '../../stores/toggleMenuOpenSlice';
+import {flipRefreshStoryList} from '../../stores/refreshStoryListSlice';
 
 const groupBySeries = (stories) => {
-    const groupedStories = [];
-    stories.map(story => { 
-        if (story.series !== "") {
-            const exists = groupedStories.find(e => e.key === story.series);
-            if (exists) {
-                exists.nodes.push({ 
-                    key: story.title,
-                    label: story.title, 
-                    place: story.place,
-                    created_at: story.created_at,
-                    chapters: story.chapters
-                })
-            } else {
-                groupedStories.push({
-                    key: story.series,
-                    label: story.series,
-                    series: [{
-                        key: story.title,
-                        label: story.title,
-                        place: story.place,
-                        created_at: story.created_at,
-                        chapters: story.chapters
-                    }]
-                });
-            }
-        } else {
-            groupedStories.push({
-                key: story.title,
-                label: story.title,
-                place: story.place,
-                created_at: story.created_at,
-                chapters:story.chapters
-            })
-        }
-        return groupedStories;
-    });
-    groupedStories.forEach((story) => {
-        if (story.nodes) {
-            story.nodes.sort((a, b) => a.place > b.place)
-        }
-    });
+  const groupedStories = [];
+  stories.map((story) => {
+    if (story.series !== '') {
+      const exists = groupedStories.find((e) => e.key === story.series);
+      if (exists) {
+        exists.nodes.push({
+          key: story.title,
+          label: story.title,
+          place: story.place,
+          created_at: story.created_at,
+          chapters: story.chapters
+        });
+      } else {
+        groupedStories.push({
+          key: story.series,
+          label: story.series,
+          series: [{
+            key: story.title,
+            label: story.title,
+            place: story.place,
+            created_at: story.created_at,
+            chapters: story.chapters
+          }]
+        });
+      }
+    } else {
+      groupedStories.push({
+        key: story.title,
+        label: story.title,
+        place: story.place,
+        created_at: story.created_at,
+        chapters: story.chapters
+      });
+    }
     return groupedStories;
-}
+  });
+  groupedStories.forEach((story) => {
+    if (story.nodes) {
+      story.nodes.sort((a, b) => a.place > b.place);
+    }
+  });
+  return groupedStories;
+};
 
 const Sidebar = (props) => {
-    const [stories, setStories] = useState([]);
-    const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
-    const refreshStoryList = useSelector((state) => state.refreshStoryList.value);
-    const isOpen = useSelector((state) => state.isMenuOpen.value);
-    // maybe use this for color coding the active doc...?
-    const currentStoryID = useSelector((state) => state.currentStoryID.value);
+  const [stories, setStories] = useState([]);
+  const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
+  const refreshStoryList = useSelector((state) => state.refreshStoryList.value);
+  const isOpen = useSelector((state) => state.isMenuOpen.value);
+  // maybe use this for color coding the active doc...?
+  // const currentStoryID = useSelector((state) => state.currentStoryID.value);
 
-    const dispatch = useDispatch()
- 
-    const getStories = () => {
-        fetch('/api/stories')
+  const dispatch = useDispatch();
+
+  const getStories = () => {
+    fetch('/api/stories')
         .then((response) => {
-            if (response.ok) {
-                return response.json();
-              }
-              throw new Error('Fetch problem stories ' + response.status);
+          if (response.ok) {
+            return response.json();
+          }
+          throw new Error('Fetch problem stories ' + response.status);
         })
         .then((data) => {
-            const sortedStories = groupBySeries(data);
-            console.log("stories", sortedStories);
-            setStories(sortedStories);
-        }).catch(error => {
-            console.error("get stories", error);
-        })
-    };
-    useEffect(() => {
-        if (isLoggedIn || refreshStoryList) {
-            getStories();
-            if (refreshStoryList) {
-                dispatch(flipRefreshStoryList());
-            }
-        }
-    }, [isLoggedIn, refreshStoryList]);
-
-    const clickStory = (storyID, chapter) => {
-        console.log("loadingstory", storyID, chapter);
-        dispatch(setCurrentStoryID(encodeURIComponent(storyID)));
-        dispatch(setCurrentStoryChapter(chapter));
-        history.pushState({storyID}, 'clicked story chapter', '/story/' + encodeURIComponent(storyID) + "?chapter=" + chapter);
+          const sortedStories = groupBySeries(data);
+          console.log('stories', sortedStories);
+          setStories(sortedStories);
+        }).catch((error) => {
+          console.error('get stories', error);
+        });
+  };
+  useEffect(() => {
+    if (isLoggedIn || refreshStoryList) {
+      getStories();
+      if (refreshStoryList) {
+        dispatch(flipRefreshStoryList());
+      }
     }
+  }, [isLoggedIn, refreshStoryList, dispatch]);
 
-    const signin = () => { 
-        window.location.href = '/auth/google';
-    }
+  const clickStory = (storyID, chapter) => {
+    console.log('loadingstory', storyID, chapter);
+    dispatch(setCurrentStoryID(encodeURIComponent(storyID)));
+    dispatch(setCurrentStoryChapter(chapter));
+    window.history.pushState({storyID}, 'clicked story chapter', '/story/' + encodeURIComponent(storyID) + '?chapter=' + chapter);
+  };
 
-    const signout = () => {
-        fetch('/logout/google', {
-            method: "DELETE"
-        })
+  const signin = () => {
+    window.location.href = '/auth/google';
+  };
+
+  const signout = () => {
+    fetch('/logout/google', {
+      method: 'DELETE'
+    })
         .then((response) => {
-            if (response.ok) {
-                dispatch(flipLoggedInState())
-                history.pushState({}, '', '/');
-                return;
-            }
-            throw new Error('Fetch problem logout ' + response.status);
-        }).catch(error => {
-            console.error(error);
-        })
-    }
+          if (response.ok) {
+            dispatch(flipLoggedInState());
+            window.history.pushState({}, '', '/');
+            return;
+          }
+          throw new Error('Fetch problem logout ' + response.status);
+        }).catch((error) => {
+          console.error(error);
+        });
+  };
 
-    const createNewStory = () => {
-        dispatch(flipCreatingNewStoryState())
-    }
-    
-    return (
-        <nav className="menu-container">
-            <span className="checkbox-container">
-                <input className="checkbox-trigger" type="checkbox" onChange={() => {dispatch(flipMenuOpen())}} checked={isOpen} />
-                <span className="menu-content">
-                <TreeView  aria-label="documents navigator" defaultCollapseIcon={<ExpandMoreIcon />} defaultExpandIcon={<ChevronRightIcon />} defaultExpanded={["story_label"]}>
-                    {isLoggedIn ? 
+  const createNewStory = () => {
+    dispatch(flipCreatingNewStoryState());
+  };
+
+  return (
+    <nav className="menu-container">
+      <span className="checkbox-container">
+        <input className="checkbox-trigger" type="checkbox" onChange={() => {dispatch(flipMenuOpen());}} checked={isOpen} />
+        <span className="menu-content">
+          <TreeView aria-label="documents navigator" defaultCollapseIcon={<ExpandMoreIcon />} defaultExpandIcon={<ChevronRightIcon />} defaultExpanded={['story_label']}>
+            {isLoggedIn ?
                         <TreeItem key="story_label" nodeId="story_label" label="Stories">
-                            <TreeItem key="create_label" nodeId="create_label" label="Create" icon={<ArticleIcon/>} onClick={createNewStory} sx={{
-                                '& .MuiTreeItem-label': { fontWeight: 'bold' },
-                            }}></TreeItem>
-                            {
-                                stories.map(story => {
-                                    return Array.isArray(story.series) ?
+                          <TreeItem key="create_label" nodeId="create_label" label="Create" icon={<ArticleIcon/>} onClick={createNewStory} sx={{
+                            '& .MuiTreeItem-label': {fontWeight: 'bold'},
+                          }}></TreeItem>
+                          {
+                            stories.map((story) => {
+                              return Array.isArray(story.series) ?
                                         <TreeItem key={story.key} label={story.label} nodeId={story.label}>
-                                            {story.series.map(seriesEntry => {
-                                                return <TreeItem key={seriesEntry.key} nodeId={seriesEntry.key} label={seriesEntry.label}>
-                                                        {seriesEntry.chapters.map(chapter => {
-                                                            return <TreeItem onClick={()=>clickStory(seriesEntry.key, chapter.chapter_num)} key={chapter.chapter_num} label={chapter.chapter_title} icon={<EditIcon/>} nodeId={chapter.chapter_title} />
-                                                        })}
-                                                </TreeItem>
-                                            })}
-                                        </TreeItem> : 
+                                          {story.series.map((seriesEntry) => {
+                                            return <TreeItem key={seriesEntry.key} nodeId={seriesEntry.key} label={seriesEntry.label}>
+                                              {seriesEntry.chapters.map((chapter) => {
+                                                return <TreeItem onClick={()=>clickStory(seriesEntry.key, chapter.chapter_num)} key={chapter.chapter_num} label={chapter.chapter_title} icon={<EditIcon/>} nodeId={chapter.chapter_title} />;
+                                              })}
+                                            </TreeItem>;
+                                          })}
+                                        </TreeItem> :
                                         <TreeItem key={story.key} nodeId={story.key} label={story.label}>
-                                            {story.chapters.map(chapter => {
-                                                    return <TreeItem onClick={()=>clickStory(story.key, chapter.chapter_num)} key={chapter.chapter_num} label={chapter.chapter_title} icon={<EditIcon/>} nodeId={chapter.chapter_title} />
-                                                })}
-                                        </TreeItem>
-                                })
-                            }
-                        </TreeItem>
-                        : ""
-                    }
-                    {!isLoggedIn ? 
+                                          {story.chapters.map((chapter) => {
+                                            return <TreeItem onClick={()=>clickStory(story.key, chapter.chapter_num)} key={chapter.chapter_num} label={chapter.chapter_title} icon={<EditIcon/>} nodeId={chapter.chapter_title} />;
+                                          })}
+                                        </TreeItem>;
+                            })
+                          }
+                        </TreeItem> :
+                        ''
+            }
+            {!isLoggedIn ?
                         <TreeItem key="login" nodeId="login" label="Sign In">
-                            <TreeItem key="google" nodeId="google" label="Google" icon={<LoginIcon/>} onClick={signin}/>
-                        </TreeItem>
-                    : <TreeItem key="logout" nodeId="logout" label="Sign Out" icon={<LogoutIcon/>} onClick={signout}/>
-                    }
-                </TreeView>
-                <span className="hamburger-menu" />
-                </span>
-            </span>
-        </nav>
-    );
-  }
-  
-  export default Sidebar;
+                          <TreeItem key="google" nodeId="google" label="Google" icon={<LoginIcon/>} onClick={signin}/>
+                        </TreeItem> :
+                    <TreeItem key="logout" nodeId="logout" label="Sign Out" icon={<LogoutIcon/>} onClick={signout}/>
+            }
+          </TreeView>
+          <span className="hamburger-menu" />
+        </span>
+      </span>
+    </nav>
+  );
+};
+
+export default Sidebar;

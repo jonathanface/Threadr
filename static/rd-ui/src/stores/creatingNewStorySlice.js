@@ -1,17 +1,17 @@
-import { createSlice } from '@reduxjs/toolkit'
+import {createSlice} from '@reduxjs/toolkit';
 
 export const creatingNewStorySlice = createSlice({
-    name:'isCreatingNewStory',
-    initialState: {
-      value: false
-    },
-    reducers: {
-      flipCreatingNewStoryState: (state) => {
-        state.value = !state.value
-      }
+  name: 'isCreatingNewStory',
+  initialState: {
+    value: false
+  },
+  reducers: {
+    flipCreatingNewStoryState: (state) => {
+      state.value = !state.value;
     }
-})
+  }
+});
 
-export const { flipCreatingNewStoryState } = creatingNewStorySlice.actions
+export const {flipCreatingNewStoryState} = creatingNewStorySlice.actions;
 
-export default creatingNewStorySlice.reducer
+export default creatingNewStorySlice.reducer;

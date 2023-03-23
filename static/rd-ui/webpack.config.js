@@ -1,19 +1,18 @@
 const path = require('path');
 const Dotenv = require('dotenv-webpack');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const MiniCssExtractPlugin = require("mini-css-extract-plugin")
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 module.exports = {
-  entry: path.join(__dirname, "src", "index.js"),
+  entry: path.join(__dirname, 'src', 'index.js'),
   output: {
-    path:path.resolve(__dirname, "build"),
+    path: path.resolve(__dirname, 'build'),
   },
-  devtool: "inline-source-map",
+  devtool: 'inline-source-map',
   target: 'web',
   devServer: {
     open: true,
     static: {
-        directory: path.join(__dirname, "build"),
+      directory: path.join(__dirname, 'build'),
     },
     port: 80,
     host: 'localhost',
@@ -23,12 +22,12 @@ module.exports = {
     rules: [
       {
         test: /\.css$/i,
-        use: ["style-loader", "css-loader"],
-      },{
+        use: ['style-loader', 'css-loader'],
+      }, {
         test: /\.?js$/,
         exclude: /node_modules/,
         use: {
-          loader: "babel-loader",
+          loader: 'babel-loader',
           options: {
             presets: ['@babel/preset-env', '@babel/preset-react']
           }
@@ -37,9 +36,9 @@ module.exports = {
     ]
   },
   plugins: [
-    new MiniCssExtractPlugin({ filename: "styles.css" }),
+    new MiniCssExtractPlugin({filename: 'styles.css'}),
     new Dotenv({
-        path: './.env',
+      path: './.env',
     })
   ],
-}
+};
