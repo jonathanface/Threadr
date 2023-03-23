@@ -1,17 +1,17 @@
-import { createSlice } from '@reduxjs/toolkit'
+import {createSlice} from '@reduxjs/toolkit';
 
 export const menuOpenSlice = createSlice({
-    name:'isMenuOpen',
-    initialState: {
-      value: false
-    },
-    reducers: {
-      flipMenuOpen: (state) => {
-        state.value = !state.value
-      }
+  name: 'isMenuOpen',
+  initialState: {
+    value: false
+  },
+  reducers: {
+    flipMenuOpen: (state) => {
+      state.value = !state.value;
     }
-})
+  }
+});
 
-export const { flipMenuOpen } = menuOpenSlice.actions
+export const {flipMenuOpen} = menuOpenSlice.actions;
 
-export default menuOpenSlice.reducer
+export default menuOpenSlice.reducer;
