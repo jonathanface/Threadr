@@ -124,7 +124,7 @@ func awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsInput) (sta
 					} else if *reason.Code != "None" {
 						var code int
 						if code, err = strconv.Atoi(*reason.Code); err != nil {
-							return http.StatusInternalServerError, fmt.Sprintf("parsing error: %s", err.Error())
+							return http.StatusInternalServerError, *reason.Message
 						}
 						return code, fmt.Sprintf("transaction cancelled: %s", *reason.Message)
 					}

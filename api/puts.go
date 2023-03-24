@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -63,7 +62,6 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 			TransactItems:      make([]types.TransactWriteItem, len(batch)),
 		}
 		for i, item := range batch {
-			fmt.Println("write item", item.KeyID, item.Place)
 			// Create a key for the item.
 			key := map[string]types.AttributeValue{
 				"key_id": &types.AttributeValueMemberS{Value: item.KeyID},
@@ -126,10 +124,10 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
+	emailSafe := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
 	safeStory := strings.ToLower(strings.ReplaceAll(story, " ", "-"))
 	chapter := strconv.Itoa(storyBlocks.Chapter)
-	tableName := email + "_" + safeStory + "_" + chapter + "_blocks"
+	tableName := emailSafe + "_" + safeStory + "_" + chapter + "_blocks"
 
 	// Group the storyBlocks into batches of 50.
 	batches := make([][]StoryBlock, 0, (len(storyBlocks.Blocks)+(writeBatchSize-1))/writeBatchSize)
@@ -213,8 +211,6 @@ func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	fmt.Println("ass", associations)
-
 	// Group the storyBlocks into batches of 50.
 	batches := make([][]Association, 0, (len(associations)+(writeBatchSize-1))/writeBatchSize)
 	for i := 0; i < len(associations); i += writeBatchSize {

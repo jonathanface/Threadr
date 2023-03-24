@@ -49,18 +49,59 @@ func createBlockTable(email string, story string, chapterTitle string, chapterNu
 	chapter := strconv.Itoa(chapterNum)
 	tableName := email + "_" + story + "_" + chapter + "_blocks"
 	fmt.Println("attempting to create", tableName)
+	partitionKey := aws.String("key_id")
+	gsiPartKey := aws.String("story")
+	gsiSortKey := aws.String("place")
+
+	tableSchema := []types.KeySchemaElement{
+		{
+			AttributeName: partitionKey,
+			KeyType:       types.KeyTypeHash,
+		},
+	}
+
+	gsiSchema := []types.KeySchemaElement{
+		{
+			AttributeName: gsiPartKey,
+			KeyType:       types.KeyTypeHash,
+		},
+		{
+			AttributeName: gsiSortKey,
+			KeyType:       types.KeyTypeRange,
+		},
+	}
+
+	attributes := []types.AttributeDefinition{
+		{
+			AttributeName: partitionKey,
+			AttributeType: types.ScalarAttributeTypeS,
+		},
+		{
+			AttributeName: gsiPartKey,
+			AttributeType: types.ScalarAttributeTypeS,
+		},
+		{
+			AttributeName: gsiSortKey,
+			AttributeType: types.ScalarAttributeTypeN,
+		},
+	}
+
+	gsiSettings := []types.GlobalSecondaryIndex{
+		{
+			IndexName: aws.String("place"),
+			KeySchema: gsiSchema,
+			Projection: &types.Projection{
+				ProjectionType: types.ProjectionTypeAll,
+			},
+		},
+	}
 
 	_, err := AwsClient.CreateTable(context.TODO(), &dynamodb.CreateTableInput{
-		AttributeDefinitions: []types.AttributeDefinition{{
-			AttributeName: aws.String("key_id"),
-			AttributeType: types.ScalarAttributeTypeS,
-		}},
-		KeySchema: []types.KeySchemaElement{{
-			AttributeName: aws.String("key_id"),
-			KeyType:       types.KeyTypeHash,
-		}},
-		TableName:   aws.String(tableName),
-		BillingMode: types.BillingModePayPerRequest,
+		TableName:              aws.String(tableName),
+		KeySchema:              tableSchema,
+		AttributeDefinitions:   attributes,
+		BillingMode:            types.BillingModePayPerRequest,
+		GlobalSecondaryIndexes: gsiSettings,
 	})
 
 	if err != nil {

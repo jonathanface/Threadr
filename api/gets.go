@@ -44,24 +44,51 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	safeStory := strings.ToLower(strings.ReplaceAll(story, " ", "-"))
 	tableName := email + "_" + safeStory + "_" + chapter + "_blocks"
 
-	input := dynamodb.ScanInput{
-		TableName: aws.String(tableName),
+	queryInput := &dynamodb.QueryInput{
+		TableName:              aws.String(tableName),
+		IndexName:              aws.String("place"),
+		KeyConditionExpression: aws.String("#place > :place AND story=:s"),
+		ExpressionAttributeNames: map[string]string{
+			"#place": "place",
+		},
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":place": &types.AttributeValueMemberN{
+				Value: "-1",
+			},
+			":s": &types.AttributeValueMemberS{
+				Value: story,
+			},
+		},
 	}
+
 	if startKey != "" {
-		input.ExclusiveStartKey = map[string]types.AttributeValue{
+		queryInput.ExclusiveStartKey = map[string]types.AttributeValue{
 			"keyID": &types.AttributeValueMemberS{Value: startKey},
 		}
 	}
-	out, err := AwsClient.Scan(context.TODO(), &input)
-	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
 
+	var items []map[string]types.AttributeValue
+	paginator := dynamodb.NewQueryPaginator(AwsClient, queryInput)
+
+	var lastKey map[string]types.AttributeValue
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(context.Background())
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		if page.LastEvaluatedKey != nil {
+			lastKey = page.LastEvaluatedKey
+		}
+		items = append(items, page.Items...)
+	}
 	blocks := BlocksData{
-		LastEvaluated: out.LastEvaluatedKey,
-		ScannedCount:  out.ScannedCount,
-		Items:         out.Items,
+		Items:         items,
+		LastEvaluated: lastKey,
+	}
+	if len(items) == 0 {
+		RespondWithError(w, http.StatusNotFound, "no blocks for this title and chapter")
+		return
 	}
 	RespondWithJson(w, http.StatusOK, blocks)
 }
