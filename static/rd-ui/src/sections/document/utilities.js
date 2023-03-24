@@ -13,18 +13,36 @@ export const GetSelectedBlockKeys = (editorState) => {
   return selectedKeys;
 };
 
+export const GetEntityData = (block, type, list) => {
+  block.findEntityRanges((character) => {
+    console.log("char?", character.getEntity())
+    const entity = character.getEntity();
+    if (entity !== null) {
+      console.log("enttype", entity);
+    }
+    return character.getEntity()
+  }, (start, end) => {
+    list.push({
+      start: start,
+      end: end,
+      type: type
+    });
+  });
+  return list;
+}
+
 export const GetStyleData = (block, type, list) => {
   block.findStyleRanges(
-      (character) => {
-        return character.hasStyle(type);
-      },
-      (start, end) => {
-        list.push({
-          start: start,
-          end: end,
-          style: type
-        });
-      }
+    (character) => {
+      return character.hasStyle(type);
+    },
+    (start, end) => {
+      list.push({
+        start: start,
+        end: end,
+        style: type
+      });
+    }
   );
   return list;
 };
@@ -84,7 +102,7 @@ export const InsertTab = (editorState, selection) => {
     selectedKeys.forEach((key) => {
       const block = content.getBlockForKey(selection.getFocusKey());
       const tabData = block.getData().getIn(['ENTITY_TABS']) ? block.getData().getIn(['ENTITY_TABS']) : [];
-      tabData.push({start: 0, end: TAB_LENGTH});
+      tabData.push({start: 0, end: TAB_LENGTH, type: "TAB"});
       const contentStateWithEntityData = Modifier.mergeBlockData(
           content,
           selection,
@@ -113,7 +131,7 @@ export const InsertTab = (editorState, selection) => {
     const content = newEditorState.getCurrentContent();
     const block = content.getBlockForKey(selection.getFocusKey());
     const tabData = block.getData().getIn(['ENTITY_TABS']) ? block.getData().getIn(['ENTITY_TABS']) : [];
-    tabData.push({start: selection.getFocusOffset(), end: selection.getFocusOffset() + TAB_LENGTH});
+    tabData.push({start: selection.getFocusOffset(), end: selection.getFocusOffset() + TAB_LENGTH, type: "TAB"});
     const contentStateWithEntityData = Modifier.mergeBlockData(
         content,
         selection,

@@ -2,7 +2,7 @@ import React, {useRef, useEffect, useState} from 'react';
 import {findDOMNode} from 'react-dom';
 import Immutable from 'immutable';
 import {convertFromRaw, Editor, EditorState, ContentBlock, RichUtils, getDefaultKeyBinding, Modifier, SelectionState, ContentState, CompositeDecorator} from 'draft-js';
-import {GetSelectedText, InsertTab, FilterAndReduceDBOperations, GetStyleData, GetSelectedBlockKeys, GenerateTabCharacter} from './utilities.js';
+import {GetSelectedText, InsertTab, FilterAndReduceDBOperations, GetStyleData, GetEntityData, GetSelectedBlockKeys, GenerateTabCharacter} from './utilities.js';
 import 'draft-js/dist/Draft.css';
 import '../../css/document.css';
 import {Menu, Item, Submenu, useContextMenu} from 'react-contexify';
@@ -102,7 +102,6 @@ const Document = () => {
   const processDBBlock = (content, block) => {
     if (block.getData().STYLES) {
       block.getData().STYLES.forEach((style) => {
-        console.log("???", style, block.key, block.getText());
         const styleSelection = new SelectionState({
           focusKey: block.key,
           anchorKey: block.key,
@@ -113,19 +112,21 @@ const Document = () => {
       });
     }
     if (block.getData().ENTITY_TABS) {
+      
       block.getData().ENTITY_TABS.forEach((tab) => {
+        console.log("fromdb", block.getKey(), tab);
         const tabSelection = new SelectionState({
           focusKey: block.getKey(),
           anchorKey: block.getKey(),
           anchorOffset: tab.start,
-          focusOffset: tab.start,
+          focusOffset: tab.end,
         });
         const contentStateWithEntity = content.createEntity(
             'TAB',
             'IMMUTABLE'
         );
         const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
-        content = Modifier.insertText(
+        content = Modifier.replaceText(
             contentStateWithEntity,
             tabSelection,
             GenerateTabCharacter(),
@@ -146,34 +147,34 @@ const Document = () => {
           throw new Error('Fetch problem blocks ' + response.status);
         })
         .then((data) => {
-      data.last_evaluated_key && data.last_evaluated_key.key_id.Value ? lastRetrievedBlockKey = data.last_evaluated_key.key_id.Value : lastRetrievedBlockKey = null;
-      data.items.sort((a, b) => parseInt(a.place.Value) > parseInt(b.place.Value));
-      const newBlocks = [];
-      data.items.forEach((piece) => {
-        if (piece.chunk) {
-          const jsonBlock = JSON.parse(piece.chunk.Value);
-          const block = new ContentBlock({
-            characterList: jsonBlock.characterList,
-            depth: jsonBlock.depth,
-            key: piece.key_id.Value,
-            text: jsonBlock.text,
-            type: jsonBlock.type,
-            data: jsonBlock.data,
+          data.last_evaluated_key && data.last_evaluated_key.key_id.Value ? lastRetrievedBlockKey = data.last_evaluated_key.key_id.Value : lastRetrievedBlockKey = null;
+          data.items.sort((a, b) => parseInt(a.place.Value) > parseInt(b.place.Value));
+          const newBlocks = [];
+          data.items.forEach((piece) => {
+            if (piece.chunk) {
+              const jsonBlock = JSON.parse(piece.chunk.Value);
+              const block = new ContentBlock({
+                characterList: jsonBlock.characterList,
+                depth: jsonBlock.depth,
+                key: piece.key_id.Value,
+                text: jsonBlock.text,
+                type: jsonBlock.type,
+                data: jsonBlock.data,
+              });
+              newBlocks.push(block);
+            }
           });
-          newBlocks.push(block);
-        }
-      });
-      const contentState = {
-        entityMap: {},
-        blocks: newBlocks
-      };
-      let newContentState = convertFromRaw(contentState);
-      newBlocks.forEach((block) => {
-        if (block.getText().length) {
-          newContentState = processDBBlock(newContentState, block);
-        }
-      });
-      setEditorState(EditorState.createWithContent(newContentState, createDecorators(associations)));
+          const contentState = {
+            entityMap: {},
+            blocks: newBlocks
+          };
+          let newContentState = convertFromRaw(contentState);
+          newBlocks.forEach((block) => {
+            if (block.getText().length) {
+              newContentState = processDBBlock(newContentState, block);
+            }
+          });
+          setEditorState(EditorState.createWithContent(newContentState, createDecorators(associations)));
         }).catch((error) => {
           console.error('get story blocks', error);
         });
@@ -401,6 +402,7 @@ const Document = () => {
       const newContent = Modifier.applyEntity(content, updatedSelection, null);
       let updatedBlock = newContent.getBlockForKey(key);
 
+      /*
       // Super annoying workaround, because for some reason I can't strip
       // away tab entities at the beginning of the text if they were
       // auto inserted by updateEditorState
@@ -418,7 +420,7 @@ const Document = () => {
             });
           }
         });
-      }
+      }*/
       dbOperationQueue.push({type: 'save', time: Date.now(), ops: [{key_id: key, chunk: updatedBlock, place: index.toString()}]});
     });
   };
@@ -428,12 +430,13 @@ const Document = () => {
     if (event.keyCode === 9) {
       event.preventDefault();
       const selection = editorState.getSelection();
-      setEditorState(InsertTab(editorState, selection));
-      const content = editorState.getCurrentContent();
+      const newEditorState = InsertTab(editorState, selection);
+      const content = newEditorState.getCurrentContent();
       const blocksToPrep = [];
-      GetSelectedBlockKeys(editorState).forEach((key) => {
+      GetSelectedBlockKeys(newEditorState).forEach((key) => {
         blocksToPrep.push(content.getBlockForKey(key));
       });
+      setEditorState(newEditorState);
       prepBlocksForSave(content, blocksToPrep);
     }
     return getDefaultKeyBinding(event);
@@ -593,6 +596,26 @@ const Document = () => {
     }
   };
 
+  const adjustBlockDataPositions = (newEditorState, newBlock) => {
+    let content = newEditorState.getCurrentContent();
+    const styleData = newBlock.getData().getIn(['STYLES']);
+    if (styleData) {
+      let styles = [];
+      styleData.forEach(style => {
+        styles = GetStyleData(newBlock, style.style, styles);
+      });
+      content = Modifier.mergeBlockData(content, newEditorState.getSelection(), Immutable.Map([['STYLES', styles]]));
+    }
+
+    const tabData = newBlock.getData().getIn(['ENTITY_TABS']);
+    if (tabData) {
+      const tabs = GetEntityData(newBlock, "TAB", []);
+      content = Modifier.mergeBlockData(content, newEditorState.getSelection(), Immutable.Map([['ENTITY_TABS', tabs]]));
+    }
+    
+    return EditorState.push(newEditorState, content, 'change-block-data')
+  }
+
   const updateEditorState = (newEditorState, isPasteAction) => {
     // Cursor has moved but no text changes detected
     resetNavButtonStates();
@@ -652,6 +675,12 @@ const Document = () => {
         }
         newEditorState = InsertTab(newEditorState, SelectionState.createEmpty(newBlockKey));
         blocksToSave.push(newBlockKey);
+      }
+      const selectionKey = selection.getIsBackward() ? selection.getFocusKey() : selection.getAnchorKey();
+      if (selectionKey === newBlockKey && oldBlock) {
+        if (newBlock.getText().length !== oldBlock.getText().length) {
+          newEditorState = adjustBlockDataPositions(newEditorState, newBlock);
+        }
       }
       // If the block is selected, save it to the server
       if (selectedKeys.includes(newBlockKey)) {
