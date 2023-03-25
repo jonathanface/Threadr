@@ -7,6 +7,7 @@ import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
 import ArticleIcon from '@mui/icons-material/Article';
 import EditIcon from '@mui/icons-material/Edit';
+import AddCircleOutline from '@mui/icons-material/AddCircleOutline';
 import TreeItem from '@mui/lab/TreeItem';
 import {useSelector, useDispatch} from 'react-redux';
 import {flipLoggedInState} from '../../stores/loggedInSlice';
@@ -15,6 +16,7 @@ import {setCurrentStoryChapter} from '../../stores/currentStoryChapterSlice';
 import {flipCreatingNewStoryState} from '../../stores/creatingNewStorySlice';
 import {flipMenuOpen} from '../../stores/toggleMenuOpenSlice';
 import {flipRefreshStoryList} from '../../stores/refreshStoryListSlice';
+import { create } from '@mui/material/styles/createTransitions';
 
 const groupBySeries = (stories) => {
   const groupedStories = [];
@@ -97,7 +99,6 @@ const Sidebar = (props) => {
   }, [isLoggedIn, refreshStoryList, dispatch]);
 
   const clickStory = (storyID, chapter) => {
-    console.log('loadingstory', storyID, chapter);
     dispatch(setCurrentStoryID(encodeURIComponent(storyID)));
     dispatch(setCurrentStoryChapter(chapter));
     window.history.pushState({storyID}, 'clicked story chapter', '/story/' + encodeURIComponent(storyID) + '?chapter=' + chapter);
@@ -127,6 +128,12 @@ const Sidebar = (props) => {
     dispatch(flipCreatingNewStoryState());
   };
 
+  const createNewChapter = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    console.log("creating new chapter");
+  }
+
   return (
     <nav className="menu-container">
       <span className="checkbox-container">
@@ -143,16 +150,16 @@ const Sidebar = (props) => {
                               return Array.isArray(story.series) ?
                                         <TreeItem key={story.key} label={story.label} nodeId={story.label}>
                                           {story.series.map((seriesEntry) => {
-                                            return <TreeItem key={seriesEntry.key} nodeId={seriesEntry.key} label={seriesEntry.label}>
+                                            return <TreeItem key={seriesEntry.key} nodeId={seriesEntry.key} label={<div>{seriesEntry.label}<span onClick={createNewChapter} className="inline_menu_button"><AddCircleOutline/></span></div>}>
                                               {seriesEntry.chapters.map((chapter) => {
-                                                return <TreeItem onClick={()=>clickStory(seriesEntry.key, chapter.chapter_num)} key={chapter.chapter_num} label={chapter.chapter_title} icon={<EditIcon/>} nodeId={chapter.chapter_title} />;
+                                                return <TreeItem onClick={()=>clickStory(seriesEntry.key, chapter.chapter_num)} key={chapter.chapter_num} label={chapter.chapter_title} nodeId={chapter.chapter_title} />;
                                               })}
                                             </TreeItem>;
                                           })}
                                         </TreeItem> :
-                                        <TreeItem key={story.key} nodeId={story.key} label={story.label}>
+                                        <TreeItem key={story.key} nodeId={story.key} label={<div>{story.label}<span onClick={createNewChapter} className="inline_menu_button"><AddCircleOutline/></span></div>}>
                                           {story.chapters.map((chapter) => {
-                                            return <TreeItem onClick={()=>clickStory(story.key, chapter.chapter_num)} key={chapter.chapter_num} label={chapter.chapter_title} icon={<EditIcon/>} nodeId={chapter.chapter_title} />;
+                                            return <TreeItem onClick={()=>clickStory(story.key, chapter.chapter_num)} key={chapter.chapter_num} label={chapter.chapter_title} nodeId={chapter.chapter_title} />;
                                           })}
                                         </TreeItem>;
                             })

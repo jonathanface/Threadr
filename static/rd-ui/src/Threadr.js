@@ -6,6 +6,7 @@ import {flipLoggedInState} from './stores/loggedInSlice';
 import {setCurrentStoryID} from './stores/currentStorySlice';
 import CreateNewStory from './sections/createNewStory/CreateNewStoryModal';
 import './css/main.css';
+import { setCurrentStoryChapter } from './stores/currentStoryChapterSlice';
 
 
 const Threadr = () => {
@@ -26,8 +27,12 @@ const Threadr = () => {
         });
     const location = window.location.pathname;
     const splitDirectories = location.split('/');
+    var urlParams = new URLSearchParams(window.location.search);
     if (splitDirectories[1] === 'story' && splitDirectories[2].trim() !== '') {
       dispatch(setCurrentStoryID(decodeURIComponent(splitDirectories[2])));
+    }
+    if (urlParams.get('chapter') !== '') {
+      dispatch(setCurrentStoryChapter(parseInt(urlParams.get('chapter'))));
     }
   }, [dispatch]);
 

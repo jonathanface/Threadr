@@ -112,9 +112,7 @@ const Document = () => {
       });
     }
     if (block.getData().ENTITY_TABS) {
-      
       block.getData().ENTITY_TABS.forEach((tab) => {
-        console.log("fromdb", block.getKey(), tab);
         const tabSelection = new SelectionState({
           focusKey: block.getKey(),
           anchorKey: block.getKey(),
@@ -303,7 +301,7 @@ const Document = () => {
       try {
         const params = {};
         params.title = currentStoryID;
-        params.chapter = currentStoryChapter;
+        params.chapter = parseInt(currentStoryChapter);
         params.blocks = blocks;
         console.log('del', blocks);
         const response = await fetch('/api/stories/' + currentStoryID + '/block', {
@@ -400,27 +398,7 @@ const Document = () => {
         focusOffset: block.getText().length,
       });
       const newContent = Modifier.applyEntity(content, updatedSelection, null);
-      let updatedBlock = newContent.getBlockForKey(key);
-
-      /*
-      // Super annoying workaround, because for some reason I can't strip
-      // away tab entities at the beginning of the text if they were
-      // auto inserted by updateEditorState
-      const tabs = block.getData().getIn(['ENTITY_TABS']);
-      if (tabs && tabs.length) {
-        tabs.forEach((tab) => {
-          if (tab.start === 0 && tab.end > tab.start) {
-            updatedBlock = new ContentBlock({
-              characterList: updatedBlock.characterList,
-              depth: updatedBlock.depth,
-              key: updatedBlock.key,
-              text: updatedBlock.text.trim(),
-              type: updatedBlock.type,
-              data: updatedBlock.data,
-            });
-          }
-        });
-      }*/
+      const updatedBlock = newContent.getBlockForKey(key);
       dbOperationQueue.push({type: 'save', time: Date.now(), ops: [{key_id: key, chunk: updatedBlock, place: index.toString()}]});
     });
   };

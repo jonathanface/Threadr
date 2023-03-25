@@ -126,10 +126,10 @@ nav.menu-container .empty {
     transition: color 0.5s, background 0.5s;
 }
 .menu-content ul li ul li {
-    padding-left:1em;
+   
 }
 .menu-content ul li ul li ul li {
-    padding-left:1em;
+ 
 }
 .menu-content ui li:last-child {
     margin-bottom:0;
@@ -152,4 +152,10 @@ nav.menu-container .empty {
     background: transparent;
     border: none;
     color: #FFF;
+}
+
+.inline_menu_button {
+    float:right;
+    margin-right:25px;
+    height:24px;
 }
