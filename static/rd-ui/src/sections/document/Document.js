@@ -456,6 +456,7 @@ const Document = () => {
   const {show} = useContextMenu();
 
   const handleTextualContextMenu = (event) => {
+    event.preventDefault();
     const text = GetSelectedText(editorState);
     // regex check for separated word?
     if (text.length) {
@@ -744,18 +745,21 @@ const Document = () => {
     toggleNavButtonState(alignment);
   };
 
-
   return (
     <div>
       <nav className="rich-controls">
-        <button className={currentBoldState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'BOLD');}}><b>B</b></button>
-        <button className={currentItalicsState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'ITALIC');}}><i>I</i></button>
-        <button className={currentUnderscoreState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'UNDERLINE');}}><u>U</u></button>
-        <button className={currentStrikethroughState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'STRIKETHROUGH');}}><s>S</s></button>
-        <button className={currentBlockAlignment === 'LEFT' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'LEFT');}}><FontAwesomeIcon icon={faAlignLeft} /></button>
-        <button className={currentBlockAlignment === 'CENTER' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'CENTER');}}><FontAwesomeIcon icon={faAlignCenter} /></button>
-        <button className={currentBlockAlignment === 'RIGHT' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'RIGHT');}}><FontAwesomeIcon icon={faAlignRight} /></button>
-        <button className={currentBlockAlignment === 'JUSTIFY' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'JUSTIFY');}}><FontAwesomeIcon icon={faAlignJustify} /></button>
+        <span className="controls-row">
+          <button className={currentBoldState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'BOLD');}}><b>B</b></button>
+          <button className={currentItalicsState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'ITALIC');}}><i>I</i></button>
+          <button className={currentUnderscoreState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'UNDERLINE');}}><u>U</u></button>
+          <button className={currentStrikethroughState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'STRIKETHROUGH');}}><s>S</s></button>
+        </span>
+        <span className="controls-row">
+          <button className={currentBlockAlignment === 'LEFT' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'LEFT');}}><FontAwesomeIcon icon={faAlignLeft} /></button>
+          <button className={currentBlockAlignment === 'CENTER' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'CENTER');}}><FontAwesomeIcon icon={faAlignCenter} /></button>
+          <button className={currentBlockAlignment === 'RIGHT' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'RIGHT');}}><FontAwesomeIcon icon={faAlignRight} /></button>
+          <button className={currentBlockAlignment === 'JUSTIFY' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'JUSTIFY');}}><FontAwesomeIcon icon={faAlignJustify} /></button>
+        </span>
       </nav>
       <section className="editor_container" onContextMenu={handleTextualContextMenu} onClick={setFocus} >
         <Editor
