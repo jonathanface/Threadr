@@ -494,7 +494,17 @@ const Document = () => {
       for (const entry in styleMap) {
         styles = GetStyleData(block, entry, styles);
       }
-      newContent = Modifier.mergeBlockData(newContent, editorState.getSelection(), Immutable.Map([['STYLES', styles]]));
+      console.log("applying", styles)
+      styles.forEach(style => {
+        const styleState = new SelectionState({
+          anchorKey: key,
+          focusKey: key,
+          anchorOffset: style.start,
+          focusOffset: style.end,
+        })
+        newContent = Modifier.mergeBlockData(newContent, styleState, Immutable.Map([['STYLES', styles]]));
+      });
+      
       updatedBlocks.push(newContent.getBlockForKey(key));
     });
     const updatedEditorState = EditorState.push(newEditorState, newContent, 'change-block-data');
