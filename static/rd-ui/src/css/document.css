@@ -109,4 +109,7 @@ div.DraftEditor-editorContainer, div.public-DraftEditor-content {
         width:auto;
         padding-left:70px;
     }
+    nav.rich-controls .controls-row {
+        display:inline-block;
+    }
 }

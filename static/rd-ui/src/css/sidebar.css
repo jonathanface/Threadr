@@ -159,3 +159,9 @@ nav.menu-container .empty {
     margin-right:25px;
     height:24px;
 }
+
+@media only screen and (max-width: 600px) {
+    nav.menu-container {
+        top:25px;
+    }
+}
