@@ -4,6 +4,7 @@ import (
 	"RichDocter/sessions"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -13,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
 )
 
@@ -74,6 +76,14 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	for paginator.HasMorePages() {
 		page, err := paginator.NextPage(context.Background())
 		if err != nil {
+			fmt.Println("wtf")
+			if opErr, ok := err.(*smithy.OperationError); ok {
+				var notFoundErr *types.ResourceNotFoundException
+				if errors.As(opErr.Unwrap(), &notFoundErr) {
+					RespondWithError(w, http.StatusNotFound, err.Error())
+					return
+				}
+			}
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}

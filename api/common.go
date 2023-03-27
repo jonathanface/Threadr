@@ -108,6 +108,7 @@ func awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsInput) (sta
 			var txnErr *types.TransactionCanceledException
 			if errors.As(opErr.Unwrap(), &txnErr) && txnErr.CancellationReasons != nil {
 				for _, reason := range txnErr.CancellationReasons {
+
 					if *reason.Code == "ConditionalCheckFailed" {
 						return http.StatusConflict, *reason.Message
 					}
@@ -122,6 +123,7 @@ func awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsInput) (sta
 						time.Sleep(delay)
 						break
 					} else if *reason.Code != "None" {
+						fmt.Println("transaction error", *reason.Code)
 						var code int
 						if code, err = strconv.Atoi(*reason.Code); err != nil {
 							return http.StatusInternalServerError, *reason.Message

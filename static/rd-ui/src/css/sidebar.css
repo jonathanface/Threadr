@@ -115,23 +115,30 @@ nav.menu-container .empty {
 .menu-content ul ul {
     padding-bottom: 0;
 }
+
+.menu-content input[type="text"] {
+    background: transparent;
+    color: #FFF;
+    padding: 4px;
+    font-size: 1rem;
+    box-sizing: border-box;
+    outline:none;
+    max-width: 100%;
+}
   
 .menu-content ul li {
     cursor: pointer;
     white-space: nowrap;
     list-style: none;
     padding-top: 0em;
-    padding-left:0.5em;
     margin-bottom: 1em;
     transition: color 0.5s, background 0.5s;
+    box-sizing:border-box;
+    padding-left:0.5em;
+    padding-right:0.5em;
 }
-.menu-content ul li ul li {
-   
-}
-.menu-content ul li ul li ul li {
- 
-}
-.menu-content ui li:last-child {
+
+.menu-content ul li:last-child {
     margin-bottom:0;
 }
 
@@ -156,8 +163,11 @@ nav.menu-container .empty {
 
 .inline_menu_button {
     float:right;
-    margin-right:25px;
     height:24px;
+}
+
+.MuiTreeItem-content {
+    box-sizing: border-box;
 }
 
 @media only screen and (max-width: 600px) {
@@ -165,3 +175,4 @@ nav.menu-container .empty {
         top:25px;
     }
 }
+
