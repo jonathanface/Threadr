@@ -10,6 +10,7 @@ import IconButton from '@mui/material/IconButton';
 import AddBoxIcon from '@mui/icons-material/AddBox';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditableTreeItem from './EditableTreeItem';
+import FolderIcon from '@mui/icons-material/Folder';
 import TreeItem from '@mui/lab/TreeItem';
 import {useSelector, useDispatch} from 'react-redux';
 import {flipLoggedInState} from '../../stores/loggedInSlice';
@@ -211,9 +212,9 @@ const Sidebar = (props) => {
                               <IconButton  edge="end" size="small" sx={{
                                 float:'right',
                                 marginTop:'2px',
-                                marginRight:'0px'
+                                marginRight:'0px',
                               }}>
-                                <AddBoxIcon fontSize="small"/>
+                                <AddBoxIcon fontSize="small" sx={{color: '#a8d5b1'}}/>
                               </IconButton>
                             </div>
                           }/>
@@ -221,7 +222,11 @@ const Sidebar = (props) => {
                             [...stories.keys()].map(storyOrSeries => {
                               const entry = stories.get(storyOrSeries);
                               return Array.isArray(entry) ?
-                                <TreeItem className="chapter-listing" key={storyOrSeries} label={storyOrSeries} nodeId={storyOrSeries}>
+                                <TreeItem className="chapter-listing" key={storyOrSeries} label={
+                                  <div>
+                                  {storyOrSeries} 
+                                  <FolderIcon aria-label="series" fontSize="small" sx={{float:'right',color: '#a8d5b1'}}/>
+                                </div>} nodeId={storyOrSeries}>
                                   {
                                   entry.map(seriesEntry => {
                                     return <TreeItem key={seriesEntry.key} label={seriesEntry.label} nodeId={seriesEntry.label}>
@@ -235,7 +240,7 @@ const Sidebar = (props) => {
                                                   opacity:0.8,
                                                   cursor:'pointer'
                                                 }
-                                              }} onClick={(e)=> {deleteChapter(e, seriesEntry.label, chapter.chapter_num)}}><DeleteIcon fontSize="small"/>
+                                              }} onClick={(e)=> {deleteChapter(e, seriesEntry.label, chapter.chapter_num)}}><DeleteIcon fontSize="small" className={"menu-icon"}/>
                                               </IconButton>
                                             </div>
                                           } nodeId={chapter.chapter_title} />;

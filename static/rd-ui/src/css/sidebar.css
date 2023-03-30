@@ -116,9 +116,6 @@ nav.menu-container .empty {
     transition: max-height 0.4s ease-in, width 0.4s ease-in;
 }
 
-.menu-content .chapter-listing {
-    
-}
 .menu-content .chapter-entry {
     padding-left:10px;
 }
@@ -130,6 +127,13 @@ nav.menu-container .empty {
 }
 .menu-content .chapter-entry .MuiTreeItem-iconContainer {
     display:none;
+}
+.menu-content .menu-icon {
+    color: #a8d5b1
+}
+.menu-content .chapter-entry .MuiButton-text {
+    padding-left:10px;
+    color:#48c667;
 }
 .menu-content .stories-parent {
     padding: 0px 8px;
