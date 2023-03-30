@@ -7,6 +7,8 @@ nav.menu-container {
     left:10px;
     border-radius:4px;
     text-align: left;
+    width:300px;
+    box-sizing: border-box;
 }
 
 nav.menu-container .empty {
@@ -30,6 +32,7 @@ nav.menu-container .empty {
     left: 0px;
     cursor: pointer;
     z-index: 5;
+    margin:0;
 }
   
 .hamburger-menu, .hamburger-menu::before, .hamburger-menu::after {
@@ -85,13 +88,13 @@ nav.menu-container .empty {
     margin-top: 0.4em;
 }
 
-.checkbox-trigger:checked + .menu-content ul {
+.checkbox-trigger:checked + .menu-content > ul {
     width: 250px;
     max-height:400px;
     transition: max-height 0.4s ease-in, width 0.4s ease-in;
     overflow-y:scroll;
 }
-  
+
 .menu-content {
     display: flex;
     background: #182825;
@@ -100,7 +103,7 @@ nav.menu-container .empty {
     filter: drop-shadow(2px 2px 2px #1a1a1a);
 }
 
-.menu-content ul {
+.menu-content > ul {
     display: block;
     padding-left: 0;
     padding-top: 1em;
@@ -112,8 +115,49 @@ nav.menu-container .empty {
     overflow:hidden;
     transition: max-height 0.4s ease-in, width 0.4s ease-in;
 }
+
+.menu-content .chapter-listing {
+    margin-bottom:20px;
+}
+.menu-content .chapter-entry {
+    padding-left:10px;
+}
+.menu-content .chapter-entry .MuiTreeItem-iconContainer {
+    display:none;
+}
+.menu-content .stories-parent {
+    padding: 0px 8px;
+}
+.menu-content .MuiButtonBase-root {
+    color:inherit;
+    padding:0;
+}
+/*
 .menu-content ul ul {
     padding-bottom: 0;
+}
+
+.menu-content ul li {
+    cursor: pointer;
+    white-space: nowrap;
+    list-style: none;
+    padding-top: 0em;
+    margin-bottom: 1em;
+    transition: color 0.5s, background 0.5s;
+    box-sizing:border-box;
+    padding-left:0.5em;
+}
+
+
+
+.menu-content .MuiInputBase-input {
+    background: transparent;
+    color: #FFF;
+    padding: 4px;
+    font-size: 1rem;
+    box-sizing: border-box;
+    outline:none;
+    max-width: 100%;
 }
   
 .menu-content ul li {
@@ -121,17 +165,13 @@ nav.menu-container .empty {
     white-space: nowrap;
     list-style: none;
     padding-top: 0em;
-    padding-left:0.5em;
     margin-bottom: 1em;
     transition: color 0.5s, background 0.5s;
+    box-sizing:border-box;
+    padding-left:0.5em;
 }
-.menu-content ul li ul li {
-   
-}
-.menu-content ul li ul li ul li {
- 
-}
-.menu-content ui li:last-child {
+
+.menu-content ul li:last-child {
     margin-bottom:0;
 }
 
@@ -156,6 +196,18 @@ nav.menu-container .empty {
 
 .inline_menu_button {
     float:right;
-    margin-right:25px;
     height:24px;
 }
+
+.MuiTreeItem-content {
+    box-sizing: border-box;
+    padding:0;
+}
+
+@media only screen and (max-width: 600px) {
+    nav.menu-container {
+        top:25px;
+    }
+}
+
+*/

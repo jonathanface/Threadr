@@ -4,6 +4,7 @@ import (
 	"RichDocter/sessions"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -13,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
 )
 
@@ -46,13 +48,13 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 
 	queryInput := &dynamodb.QueryInput{
 		TableName:              aws.String(tableName),
-		IndexName:              aws.String("place"),
-		KeyConditionExpression: aws.String("#place > :place AND story=:s"),
+		IndexName:              aws.String("story-place-index"),
+		KeyConditionExpression: aws.String("#place>:p AND story=:s"),
 		ExpressionAttributeNames: map[string]string{
 			"#place": "place",
 		},
 		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":place": &types.AttributeValueMemberN{
+			":p": &types.AttributeValueMemberN{
 				Value: "-1",
 			},
 			":s": &types.AttributeValueMemberS{
@@ -74,6 +76,13 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	for paginator.HasMorePages() {
 		page, err := paginator.NextPage(context.Background())
 		if err != nil {
+			if opErr, ok := err.(*smithy.OperationError); ok {
+				var notFoundErr *types.ResourceNotFoundException
+				if errors.As(opErr.Unwrap(), &notFoundErr) {
+					RespondWithError(w, http.StatusNotFound, err.Error())
+					return
+				}
+			}
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -122,16 +131,23 @@ func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Println("stories", stories)
 
-	var outChaps *dynamodb.ScanOutput
+	var outChaps *dynamodb.QueryOutput
 	for i := 0; i < len(stories); i++ {
-		if outChaps, err = AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
-			TableName:        aws.String("chapters"),
-			FilterExpression: aws.String("contains(story_title, :ck) AND contains(author, :eml)"),
+		queryInput := &dynamodb.QueryInput{
+			TableName:              aws.String("chapters"),
+			IndexName:              aws.String("story_title-chapter_num-index"),
+			KeyConditionExpression: aws.String("chapter_num > :cn AND story_title=:s"),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
-				":ck":  &types.AttributeValueMemberS{Value: stories[i].Title},
-				":eml": &types.AttributeValueMemberS{Value: email},
+				":cn": &types.AttributeValueMemberN{
+					Value: "-1",
+				},
+				":s": &types.AttributeValueMemberS{
+					Value: stories[i].Title,
+				},
 			},
-		}); err != nil {
+		}
+
+		if outChaps, err = AwsClient.Query(context.TODO(), queryInput); err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -142,7 +158,23 @@ func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		}
 		stories[i].Chapters = chapters
 	}
-	RespondWithJson(w, http.StatusOK, stories)
+	groupedStories := map[string]map[string][]Story{
+		"series":     make(map[string][]Story),
+		"standalone": make(map[string][]Story),
+	}
+	for _, story := range stories {
+		if story.Series != "" {
+			series, exists := groupedStories["series"][story.Series]
+			if exists {
+				groupedStories["series"][story.Series] = append(series, story)
+			} else {
+				groupedStories["series"][story.Series] = []Story{story}
+			}
+		} else {
+			groupedStories["standalone"][story.Title] = append(groupedStories["standalone"][story.Title], story)
+		}
+	}
+	RespondWithJson(w, http.StatusOK, groupedStories)
 }
 
 func AllAssociationsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {

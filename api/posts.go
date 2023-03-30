@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/gorilla/mux"
 )
 
 func generateStoryChapterTransaction(email string, story string, chapter int, chapterTitle string) (types.TransactWriteItem, error) {
@@ -88,7 +90,7 @@ func createBlockTable(email string, story string, chapterTitle string, chapterNu
 
 	gsiSettings := []types.GlobalSecondaryIndex{
 		{
-			IndexName: aws.String("place"),
+			IndexName: aws.String("story-place-index"),
 			KeySchema: gsiSchema,
 			Projection: &types.Projection{
 				ProjectionType: types.ProjectionTypeAll,
@@ -115,6 +117,47 @@ func createBlockTable(email string, story string, chapterTitle string, chapterNu
 		}
 	}
 	return nil
+}
+
+func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
+	// this should be transactified
+	var (
+		email string
+		err   error
+		story string
+	)
+	if email, err = getUserEmail(r); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if story, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
+		return
+	}
+	if story == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing story ID")
+		return
+	}
+	decoder := json.NewDecoder(r.Body)
+	chapter := Chapter{}
+	if err := decoder.Decode(&chapter); err != nil {
+		RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	var chapTwi types.TransactWriteItem
+	if chapTwi, err = generateStoryChapterTransaction(email, story, chapter.ChapterNum, chapter.ChapterTitle); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	twii := &dynamodb.TransactWriteItemsInput{}
+	var code int
+	var awsError string
+	twii.TransactItems = append(twii.TransactItems, chapTwi)
+	if code, awsError = awsWriteTransaction(twii); awsError != "" {
+		RespondWithError(w, code, awsError)
+		return
+	}
 }
 
 func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -158,8 +201,8 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 					"series_title": &types.AttributeValueMemberS{Value: story.Series},
 					"author":       &types.AttributeValueMemberS{Value: email},
 				},
-				ConditionExpression: aws.String("attribute_not_exists(series_title)"),
-				UpdateExpression:    aws.String("set created_at=if_not_exists(created_at,:t), story_count=if_not_exists(story_count, :initIncr) + :incr"),
+				//ConditionExpression: aws.String("attribute_not_exists(series_title)"),
+				UpdateExpression: aws.String("set created_at=if_not_exists(created_at,:t), story_count=if_not_exists(story_count, :initIncr) + :incr"),
 				ExpressionAttributeValues: map[string]types.AttributeValue{
 					":t":        &types.AttributeValueMemberN{Value: now},
 					":incr":     &types.AttributeValueMemberN{Value: "1"},
