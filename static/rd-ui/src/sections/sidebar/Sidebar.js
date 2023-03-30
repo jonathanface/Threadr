@@ -206,13 +206,22 @@ const Sidebar = (props) => {
             {isLoggedIn ?
                         <TreeItem sx={materialStyles} key="story_label" nodeId="story_label" label="Stories" className="stories-parent">
                           <TreeItem key="create_label" nodeId="create_label" label={
-                            <Button size="small" variant="text" endIcon={<AddBoxIcon />} onClick={()=>{createNewStory()}}>New Story</Button>
+                            <div onClick={()=>{createNewStory()}}>
+                              <Button size="small" variant="text" sx={{fontWeight:'bold', '&:hover':{opacity:0.8}}}>New Story</Button>
+                              <IconButton  edge="end" size="small" sx={{
+                                float:'right',
+                                marginTop:'2px',
+                                marginRight:'0px'
+                              }}>
+                                <AddBoxIcon fontSize="small"/>
+                              </IconButton>
+                            </div>
                           }/>
                           {
                             [...stories.keys()].map(storyOrSeries => {
                               const entry = stories.get(storyOrSeries);
                               return Array.isArray(entry) ?
-                                <TreeItem key={storyOrSeries} label={storyOrSeries} nodeId={storyOrSeries}>
+                                <TreeItem className="chapter-listing" key={storyOrSeries} label={storyOrSeries} nodeId={storyOrSeries}>
                                   {
                                   entry.map(seriesEntry => {
                                     return <TreeItem key={seriesEntry.key} label={seriesEntry.label} nodeId={seriesEntry.label}>

@@ -117,10 +117,16 @@ nav.menu-container .empty {
 }
 
 .menu-content .chapter-listing {
-    margin-bottom:20px;
+    
 }
 .menu-content .chapter-entry {
     padding-left:10px;
+}
+.menu-content .chapter-entry:hover {
+    opacity:0.8;
+}
+.menu-content .chapter-entry:last-child {
+    padding-bottom:20px;
 }
 .menu-content .chapter-entry .MuiTreeItem-iconContainer {
     display:none;
