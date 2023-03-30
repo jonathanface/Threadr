@@ -2,7 +2,7 @@ import React from 'react';
 import TreeItem from '@mui/lab/TreeItem';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
-import SendIcon from '@mui/icons-material/Send';
+import AddBoxIcon from '@mui/icons-material/AddBox';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -30,7 +30,7 @@ const EditableTreeItem = (props) => {
               </InputAdornment>
             }
             onKeyUp={(event)=>props.onChange(event)}
-          /> : <Button size="small" variant="text" endIcon={<SendIcon />} onClick={()=>{props.toggleState()}}>Add Chapter</Button>
+          /> : <Button size="small" variant="text" endIcon={<AddBoxIcon />} onClick={()=>{props.toggleState()}}>Add Chapter</Button>
             
         }>
             

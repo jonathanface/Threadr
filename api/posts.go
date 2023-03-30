@@ -90,7 +90,7 @@ func createBlockTable(email string, story string, chapterTitle string, chapterNu
 
 	gsiSettings := []types.GlobalSecondaryIndex{
 		{
-			IndexName: aws.String("place"),
+			IndexName: aws.String("story-place-index"),
 			KeySchema: gsiSchema,
 			Projection: &types.Projection{
 				ProjectionType: types.ProjectionTypeAll,
@@ -201,8 +201,8 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 					"series_title": &types.AttributeValueMemberS{Value: story.Series},
 					"author":       &types.AttributeValueMemberS{Value: email},
 				},
-				ConditionExpression: aws.String("attribute_not_exists(series_title)"),
-				UpdateExpression:    aws.String("set created_at=if_not_exists(created_at,:t), story_count=if_not_exists(story_count, :initIncr) + :incr"),
+				//ConditionExpression: aws.String("attribute_not_exists(series_title)"),
+				UpdateExpression: aws.String("set created_at=if_not_exists(created_at,:t), story_count=if_not_exists(story_count, :initIncr) + :incr"),
 				ExpressionAttributeValues: map[string]types.AttributeValue{
 					":t":        &types.AttributeValueMemberN{Value: now},
 					":incr":     &types.AttributeValueMemberN{Value: "1"},

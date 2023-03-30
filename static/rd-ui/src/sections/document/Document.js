@@ -146,7 +146,7 @@ const Document = () => {
         })
         .then((data) => {
           data.last_evaluated_key && data.last_evaluated_key.key_id.Value ? lastRetrievedBlockKey = data.last_evaluated_key.key_id.Value : lastRetrievedBlockKey = null;
-          data.items.sort((a, b) => parseInt(a.place.Value) > parseInt(b.place.Value));
+          //data.items.sort((a, b) => parseInt(a.place.Value) > parseInt(b.place.Value));
           const newBlocks = [];
           data.items.forEach((piece) => {
             if (piece.chunk) {

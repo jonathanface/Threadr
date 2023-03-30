@@ -46,7 +46,7 @@ const CreateNewStory = () => {
         .then((data) => {
           const params = [];
           data.forEach((seriesItem) => {
-            params.push({'label': seriesItem.title.Value, 'id': seriesItem.title.Value, 'count': parseInt(seriesItem.story_count.Value)});
+            params.push({'label': seriesItem.series_title.Value, 'id': seriesItem.series_title.Value, 'count': parseInt(seriesItem.story_count.Value)});
           });
           setSeries(params);
         }).catch((error) => {

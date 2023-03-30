@@ -5,7 +5,10 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
-import ArticleIcon from '@mui/icons-material/Article';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import AddBoxIcon from '@mui/icons-material/AddBox';
+import DeleteIcon from '@mui/icons-material/Delete';
 import EditableTreeItem from './EditableTreeItem';
 import TreeItem from '@mui/lab/TreeItem';
 import {useSelector, useDispatch} from 'react-redux';
@@ -15,51 +18,6 @@ import {setCurrentStoryChapter} from '../../stores/currentStoryChapterSlice';
 import {flipCreatingNewStoryState} from '../../stores/creatingNewStorySlice';
 import {flipMenuOpen} from '../../stores/toggleMenuOpenSlice';
 import {flipRefreshStoryList} from '../../stores/refreshStoryListSlice';
-
-const groupBySeries = (stories) => {
-  const groupedStories = [];
-  stories.map((story) => {
-    if (story.series !== '') {
-      const exists = groupedStories.find((e) => e.key === story.series);
-      if (exists) {
-        exists.nodes.push({
-          key: story.title,
-          label: story.title,
-          place: story.place,
-          created_at: story.created_at,
-          chapters: story.chapters
-        });
-      } else {
-        groupedStories.push({
-          key: story.series,
-          label: story.series,
-          series: [{
-            key: story.title,
-            label: story.title,
-            place: story.place,
-            created_at: story.created_at,
-            chapters: story.chapters
-          }]
-        });
-      }
-    } else {
-      groupedStories.push({
-        key: story.title,
-        label: story.title,
-        place: story.place,
-        created_at: story.created_at,
-        chapters: story.chapters
-      });
-    }
-    return groupedStories;
-  });
-  groupedStories.forEach((story) => {
-    if (story.nodes) {
-      story.nodes.sort((a, b) => a.place > b.place);
-    }
-  });
-  return groupedStories;
-};
 
 const Sidebar = (props) => {
   const [stories, setStories] = useState([]);
@@ -82,9 +40,30 @@ const Sidebar = (props) => {
           throw new Error('Fetch problem stories ' + response.status);
         })
         .then((data) => {
-          const sortedStories = groupBySeries(data);
-          console.log('stories', sortedStories);
-          setStories(sortedStories);
+          const stories = new Map();
+          Object.keys(data.series).forEach(series => {
+            stories.set(series, []);
+            data.series[series].forEach(story => {
+              stories.get(series).push({
+                series: series,
+                key: story.title,
+                label: story.title,
+                place: story.place,
+                created_at: story.created_at,
+                chapters: story.chapters
+              });
+            });
+          });
+          Object.keys(data.standalone).forEach(story => {
+            stories.set(story, {
+              key: data.standalone[story][0].title,
+              label: data.standalone[story][0].title,
+              place: data.standalone[story][0].place, 
+              created_at: data.standalone[story][0].created_at,
+              chapters: data.standalone[story][0].chapters
+            });
+          });
+          setStories(stories);
         }).catch((error) => {
           console.error('get stories', error);
         });
@@ -173,7 +152,6 @@ const Sidebar = (props) => {
       console.error("Chapter title cannot be blank");
       return;
     }
-    console.log("key", event.keyCode)
     if (event.keyCode === 13) {
       fetch('/api/stories/' + bookTitle + "/chapter", {
         method: 'POST',
@@ -186,6 +164,7 @@ const Sidebar = (props) => {
           updateLocalStoryChaptersList(bookTitle, seriesTitle, title);
           setIsCreatingNewChapter(false);
           setCurrentStoryChapter(title);
+          window.
           return;
         }
         throw new Error('Fetch problem creating chapter ' + response.status);
@@ -213,6 +192,12 @@ const Sidebar = (props) => {
     }
   };
 
+  const deleteChapter = (event, story, chapter) => {
+    event.preventDefault();
+    event.stopPropagation();
+    console.log("del", story, chapter);
+  }
+
   return (
     <nav className="menu-container">
       <span className="checkbox-container">
@@ -221,39 +206,68 @@ const Sidebar = (props) => {
           <TreeView aria-label="documents navigator" onNodeSelect={(event, nodeId) => {updateMenuExpandedNodes(nodeId)}} defaultCollapseIcon={<ExpandMoreIcon />} defaultExpandIcon={<ChevronRightIcon />} expanded={expanded} defaultExpanded={['story_label']}>
             {isLoggedIn ?
                         <TreeItem sx={materialStyles} key="story_label" nodeId="story_label" label="Stories" className="stories-parent">
-                          <TreeItem key="create_label" nodeId="create_label" label="Create" icon={<ArticleIcon/>} onClick={createNewStory} sx={{
-                            '& .MuiTreeItem-label': {fontWeight: 'bold'},
-                          }}></TreeItem>
+                          <TreeItem key="create_label" nodeId="create_label" label={
+                            <Button size="small" variant="text" endIcon={<AddBoxIcon />} onClick={()=>{createNewStory()}}>New Story</Button>
+                          }/>
                           {
-                            stories.map((story) => {
-                              return Array.isArray(story.series) ?
-                                        <TreeItem key={story.key} label={story.label} nodeId={story.label}>
-                                          {story.series.map((seriesEntry) => {
-                                            return <TreeItem key={seriesEntry.key} className="chapter-listing" nodeId={seriesEntry.key} label={<div>{seriesEntry.label}</div>}>
-                                              {seriesEntry.chapters.map((chapter) => {
-                                                return <TreeItem className="chapter-entry" onClick={()=>clickStory(seriesEntry.key, chapter.chapter_num)} key={chapter.chapter_num} label={chapter.chapter_title} nodeId={chapter.chapter_title} />;
-                                              })}
-                                              <EditableTreeItem isCreating={isCreatingNewChapter} toggleState={flipCreateChapterState} key={seriesEntry.key} nodeId={seriesEntry.key} onChange={(event)=>{
-                                                setNewChapterTitle(event, seriesEntry.key, story.key, parseInt(seriesEntry.chapters.length+1));
-                                              }} keyVal={seriesEntry.key} defaultVal={"Chapter " + parseInt(seriesEntry.chapters.length+1)}/>
-                                            </TreeItem>;
-                                          })}
-                                        </TreeItem> :
-                                        <TreeItem key={story.key} nodeId={story.key} className="chapter-listing" label={story.label}>
-                                          {story.chapters.map((chapter) => {
-                                            return <TreeItem className="chapter-entry" onClick={()=>clickStory(story.key, chapter.chapter_num)} key={chapter.chapter_num} label={chapter.chapter_title} nodeId={chapter.chapter_title} />;
-                                          })}
-                                        </TreeItem>;
+                            [...stories.keys()].map(storyOrSeries => {
+                              const entry = stories.get(storyOrSeries);
+                              return Array.isArray(entry) ?
+                                <TreeItem key={storyOrSeries} label={storyOrSeries} nodeId={storyOrSeries}>
+                                  {
+                                  entry.map(seriesEntry => {
+                                    return <TreeItem key={seriesEntry.key} label={seriesEntry.label} nodeId={seriesEntry.label}>
+                                      {
+                                        seriesEntry.chapters.map((chapter) => {
+                                          return <TreeItem className="chapter-entry" onClick={()=>clickStory(seriesEntry.key, chapter.chapter_num)} key={chapter.chapter_num} label={
+                                            <div>{chapter.chapter_title}
+                                              <IconButton aria-label="delete" size="small" sx={{
+                                                float:'right',
+                                                '&:hover': {
+                                                  opacity:0.8,
+                                                  cursor:'pointer'
+                                                }
+                                              }} onClick={(e)=> {deleteChapter(e, seriesEntry.label, chapter.chapter_num)}}><DeleteIcon fontSize="small"/>
+                                              </IconButton>
+                                            </div>
+                                          } nodeId={chapter.chapter_title} />;
+                                        })
+                                      }
+                                      <EditableTreeItem isCreating={isCreatingNewChapter} toggleState={flipCreateChapterState} key={seriesEntry.key} nodeId={seriesEntry.key} onChange={(event)=>{
+                                          setNewChapterTitle(event, seriesEntry.key, story.key, parseInt(seriesEntry.chapters.length+1));
+                                        }} keyVal={seriesEntry.key} defaultVal={"Chapter " + parseInt(seriesEntry.chapters.length+1)}/>
+                                    </TreeItem>
+                                    })
+                                  }
+                                </TreeItem> :
+                                <TreeItem key={entry.key} nodeId={entry.key} className="chapter-listing" label={entry.label}>
+                                {
+                                  entry.chapters.map((chapter) => {
+                                    return <TreeItem className="chapter-entry" onClick={()=>clickStory(entry.key, chapter.chapter_num)} key={chapter.chapter_num} label={
+                                      <div>{chapter.chapter_title}
+                                        <IconButton aria-label="delete" size="small" sx={{
+                                          float:'right',
+                                          '&:hover': {
+                                            opacity:0.8,
+                                            cursor:'pointer'
+                                          }
+                                        }} onClick={(e)=> {deleteChapter(e, entry.label, chapter.chapter_num)}}><DeleteIcon fontSize="small"/>
+                                        </IconButton>
+                                      </div>
+                                    } nodeId={chapter.chapter_title} />;
+                                  })
+                                }
+                                </TreeItem>
                             })
                           }
                         </TreeItem> :
                         ''
             }
             {!isLoggedIn ?
-                        <TreeItem key="login" nodeId="login" label="Sign In">
-                          <TreeItem key="google" nodeId="google" label="Google" icon={<LoginIcon/>} onClick={signin}/>
-                        </TreeItem> :
-                    <TreeItem key="logout" nodeId="logout" label="Sign Out" icon={<LogoutIcon/>} onClick={signout}/>
+              <TreeItem key="login" nodeId="login" label="Sign In">
+                <TreeItem key="google" nodeId="google" label="Google" icon={<LoginIcon/>} onClick={signin}/>
+              </TreeItem> :
+              <TreeItem key="logout" nodeId="logout" label="Sign Out" icon={<LogoutIcon/>} onClick={signout}/>
             }
           </TreeView>
           <span className="hamburger-menu" />

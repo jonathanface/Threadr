@@ -119,6 +119,9 @@ nav.menu-container .empty {
 .menu-content .chapter-listing {
     margin-bottom:20px;
 }
+.menu-content .chapter-entry {
+    padding-left:10px;
+}
 .menu-content .chapter-entry .MuiTreeItem-iconContainer {
     display:none;
 }
