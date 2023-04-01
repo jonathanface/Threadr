@@ -27,7 +27,7 @@ const Sidebar = (props) => {
   const refreshStoryList = useSelector((state) => state.refreshStoryList.value);
   const [isCreatingNewChapter, setIsCreatingNewChapter] = useState(false);
   const isOpen = useSelector((state) => state.isMenuOpen.value);
-  const [expanded, setExpanded] = useState(["story_label"]);
+  const [expanded, setExpanded] = useState(['story_label']);
   // maybe use this for color coding the active doc...?
   // const currentStoryID = useSelector((state) => state.currentStoryID.value);
 
@@ -43,9 +43,9 @@ const Sidebar = (props) => {
         })
         .then((data) => {
           const stories = new Map();
-          Object.keys(data.series).forEach(series => {
+          Object.keys(data.series).forEach((series) => {
             stories.set(series, []);
-            data.series[series].forEach(story => { 
+            data.series[series].forEach((story) => {
               stories.get(series).push({
                 series: series,
                 key: story.title,
@@ -55,13 +55,12 @@ const Sidebar = (props) => {
                 chapters: story.chapters
               });
             });
-            
           });
-          Object.keys(data.standalone).forEach(story => {
+          Object.keys(data.standalone).forEach((story) => {
             stories.set(story, {
               key: data.standalone[story][0].title,
               label: data.standalone[story][0].title,
-              place: data.standalone[story][0].place, 
+              place: data.standalone[story][0].place,
               created_at: data.standalone[story][0].created_at,
               chapters: data.standalone[story][0].chapters
             });
@@ -84,8 +83,8 @@ const Sidebar = (props) => {
     dispatch(setCurrentStoryID(encodeURIComponent(storyID)));
     dispatch(setCurrentStoryChapterNumber(chapterNumber));
     dispatch(setCurrentStoryChapterTitle(chapterTitle));
-    console.log("chap", chapterTitle);
-    history.pushState({storyID}, 'clicked story chapter', '/story/' + encodeURIComponent(storyID) + '?chapter=' + chapterNumber + "&title=" + chapterTitle);
+    console.log('chap', chapterTitle);
+    window.history.pushState({storyID}, 'clicked story chapter', '/story/' + encodeURIComponent(storyID) + '?chapter=' + chapterNumber + '&title=' + chapterTitle);
   };
 
   const signin = () => {
@@ -112,31 +111,31 @@ const Sidebar = (props) => {
   };
 
   const updateLocalStoryChaptersList = (bookTitle, seriesTitle, newChapter) => {
-    const storiesWithNewChapter = stories.map(story => {
+    const storiesWithNewChapter = stories.map((story) => {
       if (seriesTitle && story.key === seriesTitle) {
         if (story.series) {
-          story.series.forEach(entry => {
+          story.series.forEach((entry) => {
             if (entry.key === bookTitle) {
-              if (entry.chapters.filter(e => e.chapter_title === newChapter).length > 0) {
-                console.error("chapter titles must be unique per book");
+              if (entry.chapters.filter((e) => e.chapter_title === newChapter).length > 0) {
+                console.error('chapter titles must be unique per book');
                 return;
               }
-              entry.chapters.push({chapter_title:newChapter, chapter_num: parseInt(entry.chapters.length+1)})
+              entry.chapters.push({chapter_title: newChapter, chapter_num: parseInt(entry.chapters.length+1)});
             }
-          })
+          });
         } else {
-          if (story.chapters.filter(e => e.chapter_title === newChapter).length > 0) {
-            console.error("chapter titles must be unique per book");
+          if (story.chapters.filter((e) => e.chapter_title === newChapter).length > 0) {
+            console.error('chapter titles must be unique per book');
             return;
           }
-          story.chapters.push({chapter_title:newChapter, chapter_num: parseInt(story.chapters.length+1)})
+          story.chapters.push({chapter_title: newChapter, chapter_num: parseInt(story.chapters.length+1)});
         }
       }
       return story;
     });
     setStories(storiesWithNewChapter);
-  }
-  
+  };
+
   const updateMenuExpandedNodes = (nodeId) => {
     const index = expanded.indexOf(nodeId);
     const copyExpanded = [...expanded];
@@ -146,29 +145,29 @@ const Sidebar = (props) => {
       copyExpanded.splice(index, 1);
     }
     setExpanded(copyExpanded);
-  }
+  };
 
   const setNewChapterTitle = (event, bookTitle, seriesTitle, chapterNum) => {
     event.preventDefault();
     event.stopPropagation();
-    console.log("setnewch", event, bookTitle, seriesTitle, chapterNum);
+    console.log('setnewch', event, bookTitle, seriesTitle, chapterNum);
     const title = event.target.value;
     if (!title.trim().length) {
-      console.error("Chapter title cannot be blank");
+      console.error('Chapter title cannot be blank');
       return;
     }
     if (event.keyCode === 13) {
-      fetch('/api/stories/' + bookTitle + "/chapter", {
+      fetch('/api/stories/' + bookTitle + '/chapter', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({chapter_title: title, chapter_num:chapterNum})
+        body: JSON.stringify({chapter_title: title, chapter_num: chapterNum})
       }).then((response) => {
         if (response.ok) {
           updateLocalStoryChaptersList(bookTitle, seriesTitle, title);
           setIsCreatingNewChapter(false);
-          setCurrentStoryChapter(title);
+          setCurrentStoryChapterTitle(title);
           return;
         }
         throw new Error('Fetch problem creating chapter ' + response.status);
@@ -176,11 +175,11 @@ const Sidebar = (props) => {
         console.error(error);
       });
     }
-  }
+  };
 
   const flipCreateChapterState = () => {
     setIsCreatingNewChapter(!isCreatingNewChapter);
-  }
+  };
 
   const materialStyles = {
     '.MuiTreeItem-group': {
@@ -188,96 +187,96 @@ const Sidebar = (props) => {
       paddingLeft: '10px',
       boxSizing: 'border-box'
     }, '.MuiTreeItem-content': {
-      padding:'0px'
+      padding: '0px'
     },
     '.MuiTreeItem-label,.MuiTreeItem-iconContainer': {
-      marginBottom:'5px',
-      marginTop:'5px'
+      marginBottom: '5px',
+      marginTop: '5px'
     }
   };
 
   const deleteChapter = (event, story, chapter) => {
     event.preventDefault();
     event.stopPropagation();
-    console.log("del", story, chapter);
-  }
+    console.log('del', story, chapter);
+  };
 
   return (
     <nav className="menu-container">
       <span className="checkbox-container">
         <input className="checkbox-trigger" type="checkbox" onChange={() => {dispatch(flipMenuOpen());}} checked={isOpen} />
         <span className="menu-content">
-          <TreeView aria-label="documents navigator" onNodeSelect={(event, nodeId) => {updateMenuExpandedNodes(nodeId)}} defaultCollapseIcon={<ExpandMoreIcon />} defaultExpandIcon={<ChevronRightIcon />} expanded={expanded} defaultExpanded={['story_label']}>
+          <TreeView aria-label="documents navigator" onNodeSelect={(event, nodeId) => {updateMenuExpandedNodes(nodeId);}} defaultCollapseIcon={<ExpandMoreIcon />} defaultExpandIcon={<ChevronRightIcon />} expanded={expanded} defaultExpanded={['story_label']}>
             {isLoggedIn ?
                         <TreeItem sx={materialStyles} key="story_label" nodeId="story_label" label="Stories" className="stories-parent">
                           <TreeItem key="create_label" nodeId="create_label" label={
-                            <div onClick={()=>{createNewStory()}}>
-                              <Button size="small" variant="text" sx={{fontWeight:'bold', '&:hover':{opacity:0.8}}}>New Story</Button>
-                              <IconButton  edge="end" size="small" sx={{
-                                float:'right',
-                                marginTop:'2px',
-                                marginRight:'0px',
+                            <div onClick={()=>{createNewStory();}}>
+                              <Button size="small" variant="text" sx={{'fontWeight': 'bold', '&:hover': {opacity: 0.8}}}>New Story</Button>
+                              <IconButton edge="end" size="small" sx={{
+                                float: 'right',
+                                marginTop: '2px',
+                                marginRight: '0px',
                               }}>
                                 <AddBoxIcon fontSize="small" sx={{color: '#a8d5b1'}}/>
                               </IconButton>
                             </div>
                           }/>
                           {
-                            [...stories.keys()].map(storyOrSeries => {
+                            [...stories.keys()].map((storyOrSeries) => {
                               const entry = stories.get(storyOrSeries);
                               return Array.isArray(entry) ?
                                 <TreeItem className="chapter-listing" key={storyOrSeries} label={
                                   <div>
-                                  {storyOrSeries} 
-                                  <FolderIcon aria-label="series" fontSize="small" sx={{float:'right',color: '#a8d5b1'}}/>
-                                </div>} nodeId={storyOrSeries}>
+                                    {storyOrSeries}
+                                    <FolderIcon aria-label="series" fontSize="small" sx={{float: 'right', color: '#a8d5b1'}}/>
+                                  </div>} nodeId={storyOrSeries}>
                                   {
-                                  entry.map(seriesEntry => {
-                                    return <TreeItem key={seriesEntry.key} label={seriesEntry.label} nodeId={seriesEntry.label}>
-                                      {
-                                        seriesEntry.chapters.map((chapter) => {
-                                          return <TreeItem className="chapter-entry" onClick={()=>clickStory(seriesEntry.key, chapter.chapter_num, chapter.chapter_title)} key={chapter.chapter_num} label={
-                                            <div>{chapter.chapter_title}
-                                              <IconButton aria-label="delete" size="small" sx={{
-                                                float:'right',
-                                                '&:hover': {
-                                                  opacity:0.8,
-                                                  cursor:'pointer'
-                                                }
-                                              }} onClick={(e)=> {deleteChapter(e, seriesEntry.label, chapter.chapter_num)}}><DeleteIcon fontSize="small" className={"menu-icon"}/>
-                                              </IconButton>
-                                            </div>
-                                          } nodeId={chapter.chapter_title} />;
-                                        })
-                                      }
-                                      <EditableTreeItem isCreating={isCreatingNewChapter} toggleState={flipCreateChapterState} key={seriesEntry.key + "_create_chap"} nodeId={seriesEntry.key + "_create_chap"} onChange={(event)=>{
+                                    entry.map((seriesEntry) => {
+                                      return <TreeItem key={seriesEntry.key} label={seriesEntry.label} nodeId={seriesEntry.label}>
+                                        {
+                                          seriesEntry.chapters.map((chapter) => {
+                                            return <TreeItem className="chapter-entry" onClick={()=>clickStory(seriesEntry.key, chapter.chapter_num, chapter.chapter_title)} key={chapter.chapter_num} label={
+                                              <div>{chapter.chapter_title}
+                                                <IconButton aria-label="delete" size="small" sx={{
+                                                  'float': 'right',
+                                                  '&:hover': {
+                                                    opacity: 0.8,
+                                                    cursor: 'pointer'
+                                                  }
+                                                }} onClick={(e)=> {deleteChapter(e, seriesEntry.label, chapter.chapter_num);}}><DeleteIcon fontSize="small" className={'menu-icon'}/>
+                                                </IconButton>
+                                              </div>
+                                            } nodeId={chapter.chapter_title} />;
+                                          })
+                                        }
+                                        <EditableTreeItem isCreating={isCreatingNewChapter} toggleState={flipCreateChapterState} key={seriesEntry.key + '_create_chap'} nodeId={seriesEntry.key + '_create_chap'} onChange={(event)=>{
                                           setNewChapterTitle(event, seriesEntry.key, storyOrSeries, parseInt(seriesEntry.chapters.length+1));
-                                        }} keyVal={seriesEntry.key} defaultVal={"Chapter " + parseInt(seriesEntry.chapters.length+1)}/>
-                                    </TreeItem>
+                                        }} keyVal={seriesEntry.key} defaultVal={'Chapter ' + parseInt(seriesEntry.chapters.length+1)}/>
+                                      </TreeItem>;
                                     })
                                   }
                                 </TreeItem> :
                                 <TreeItem key={entry.key} nodeId={entry.key} className="chapter-listing" label={entry.label}>
-                                {
-                                  entry.chapters.map((chapter) => {
-                                    return <TreeItem className="chapter-entry" onClick={()=>clickStory(entry.key, chapter.chapter_num, chapter.chapter_title)} key={chapter.chapter_num} label={
-                                      <div>{chapter.chapter_title}
-                                        <IconButton aria-label="delete" size="small" sx={{
-                                          float:'right',
-                                          '&:hover': {
-                                            opacity:0.8,
-                                            cursor:'pointer'
-                                          }
-                                        }} onClick={(e)=> {deleteChapter(e, entry.label, chapter.chapter_num)}}><DeleteIcon fontSize="small"/>
-                                        </IconButton>
-                                      </div>
-                                    } nodeId={chapter.chapter_title} />;
-                                  })
-                                }
-                                <EditableTreeItem isCreating={isCreatingNewChapter} toggleState={flipCreateChapterState} key={entry.key + "_create_chap"} nodeId={entry.key + "_create_chap"} onChange={(event)=>{
-                                  setNewChapterTitle(event, entry.key, null, parseInt(entry.chapters.length+1));
-                                }} keyVal={entry.key} defaultVal={"Chapter " + parseInt(entry.chapters.length+1)}/>
-                                </TreeItem>
+                                  {
+                                    entry.chapters.map((chapter) => {
+                                      return <TreeItem className="chapter-entry" onClick={()=>clickStory(entry.key, chapter.chapter_num, chapter.chapter_title)} key={chapter.chapter_num} label={
+                                        <div>{chapter.chapter_title}
+                                          <IconButton aria-label="delete" size="small" sx={{
+                                            'float': 'right',
+                                            '&:hover': {
+                                              opacity: 0.8,
+                                              cursor: 'pointer'
+                                            }
+                                          }} onClick={(e)=> {deleteChapter(e, entry.label, chapter.chapter_num);}}><DeleteIcon fontSize="small"/>
+                                          </IconButton>
+                                        </div>
+                                      } nodeId={chapter.chapter_title} />;
+                                    })
+                                  }
+                                  <EditableTreeItem isCreating={isCreatingNewChapter} toggleState={flipCreateChapterState} key={entry.key + '_create_chap'} nodeId={entry.key + '_create_chap'} onChange={(event)=>{
+                                    setNewChapterTitle(event, entry.key, null, parseInt(entry.chapters.length+1));
+                                  }} keyVal={entry.key} defaultVal={'Chapter ' + parseInt(entry.chapters.length+1)}/>
+                                </TreeItem>;
                             })
                           }
                         </TreeItem> :

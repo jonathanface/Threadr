@@ -56,7 +56,7 @@ const Document = () => {
   const [currentStrikethroughState, setCurrentStrikethroughState] = useState(false);
   const [associationWindowOpen, setAssociationWindowOpen] = useState(false);
   const [viewingAssociation, setViewingAssociation] = useState(null);
-  
+
 
   let lastRetrievedBlockKey = '';
 
@@ -87,21 +87,21 @@ const Document = () => {
 
   const getAllAssociations = () => {
     fetch('/api/stories/' + currentStoryID + '/associations')
-    .then((response) => {
-      if (response.ok) {
-        return response.json();
-      }
-      throw new Error('Fetch problem associations ' + response.status);
-    })
-    .then((data) => {
-      data.forEach((assoc) => {
-        associations.push({association_name: assoc.association_name.Value,
-          association_type: assoc.association_type.Value,
-          details: {aliases: '', caseSensitive: assoc.case_sensitive, portrait: assoc.portrait}});
-      });
-    }).catch((error) => {
-      console.error('get story associations', error);
-    });
+        .then((response) => {
+          if (response.ok) {
+            return response.json();
+          }
+          throw new Error('Fetch problem associations ' + response.status);
+        })
+        .then((data) => {
+          data.forEach((assoc) => {
+            associations.push({association_name: assoc.association_name.Value,
+              association_type: assoc.association_type.Value,
+              details: {aliases: '', caseSensitive: assoc.case_sensitive, portrait: assoc.portrait}});
+          });
+        }).catch((error) => {
+          console.error('get story associations', error);
+        });
   };
 
   const processDBBlock = (content, block) => {
@@ -139,7 +139,7 @@ const Document = () => {
       });
     }
     return content;
-  }
+  };
 
   const getBatchedStoryBlocks = (startKey) => {
     fetch('/api/stories/' + currentStoryID + '?key=' + startKey + '&chapter=' + currentStoryChapterNumber)
@@ -151,7 +151,7 @@ const Document = () => {
         })
         .then((data) => {
           data.last_evaluated_key && data.last_evaluated_key.key_id.Value ? lastRetrievedBlockKey = data.last_evaluated_key.key_id.Value : lastRetrievedBlockKey = null;
-          //data.items.sort((a, b) => parseInt(a.place.Value) > parseInt(b.place.Value));
+          // data.items.sort((a, b) => parseInt(a.place.Value) > parseInt(b.place.Value));
           const newBlocks = [];
           data.items.forEach((piece) => {
             if (piece.chunk) {
@@ -249,13 +249,13 @@ const Document = () => {
       setFocusAndRestoreCursor();
       try {
         getBatchedStoryBlocks('');
-      } catch(e) {
+      } catch (e) {
         console.error(e);
       }
       setDBOperationInterval(setInterval(() => {
         try {
           processDBQueue();
-        } catch(e) {
+        } catch (e) {
           console.error(e);
         }
       }, DB_OP_INTERVAL));
@@ -474,10 +474,10 @@ const Document = () => {
   };
 
   const handleAssociationClick = (association, event) => {
-    console.log("ass", association);
+    console.log('ass', association);
     setViewingAssociation(association);
     setAssociationWindowOpen(true);
-  }
+  };
 
   const handleAssociationContextMenu = (name, type, event) => {
     setCurrentRightClickedAssoc(formatAssociation(type, name));
@@ -504,17 +504,17 @@ const Document = () => {
       for (const entry in styleMap) {
         styles = GetStyleData(block, entry, styles);
       }
-      console.log("applying", styles)
-      styles.forEach(style => {
+      console.log('applying', styles);
+      styles.forEach((style) => {
         const styleState = new SelectionState({
           anchorKey: key,
           focusKey: key,
           anchorOffset: style.start,
           focusOffset: style.end,
-        })
+        });
         newContent = Modifier.mergeBlockData(newContent, styleState, Immutable.Map([['STYLES', styles]]));
       });
-      
+
       updatedBlocks.push(newContent.getBlockForKey(key));
     });
     const updatedEditorState = EditorState.push(newEditorState, newContent, 'change-block-data');
@@ -599,7 +599,7 @@ const Document = () => {
     const styleData = newBlock.getData().getIn(['STYLES']);
     if (styleData) {
       let styles = [];
-      styleData.forEach(style => {
+      styleData.forEach((style) => {
         styles = GetStyleData(newBlock, style.style, styles);
       });
       content = Modifier.mergeBlockData(content, newEditorState.getSelection(), Immutable.Map([['STYLES', styles]]));
@@ -607,12 +607,12 @@ const Document = () => {
 
     const tabData = newBlock.getData().getIn(['ENTITY_TABS']);
     if (tabData) {
-      const tabs = GetEntityData(newBlock, "TAB", []);
+      const tabs = GetEntityData(newBlock, 'TAB', []);
       content = Modifier.mergeBlockData(content, newEditorState.getSelection(), Immutable.Map([['ENTITY_TABS', tabs]]));
     }
-    
-    return EditorState.push(newEditorState, content, 'change-block-data')
-  }
+
+    return EditorState.push(newEditorState, content, 'change-block-data');
+  };
 
   const updateEditorState = (newEditorState, isPasteAction) => {
     // Cursor has moved but no text changes detected
@@ -756,7 +756,7 @@ const Document = () => {
 
   return (
     <div>
-      <AssociationUI open={associationWindowOpen} association={viewingAssociation} onClose={()=>{setAssociationWindowOpen(false)}} />
+      <AssociationUI open={associationWindowOpen} association={viewingAssociation} onClose={()=>{setAssociationWindowOpen(false);}} />
       <div className="title_info">
         <h2>{decodeURIComponent(currentStoryID)}</h2>
         <h3>{currentStoryChapterTitle}</h3>

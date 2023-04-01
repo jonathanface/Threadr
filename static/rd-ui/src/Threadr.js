@@ -27,7 +27,7 @@ const Threadr = () => {
         });
     const location = window.location.pathname;
     const splitDirectories = location.split('/');
-    var urlParams = new URLSearchParams(window.location.search);
+    const urlParams = new URLSearchParams(window.location.search);
     if (splitDirectories[1] === 'story' && splitDirectories[2].trim() !== '') {
       dispatch(setCurrentStoryID(decodeURIComponent(splitDirectories[2])));
     }
