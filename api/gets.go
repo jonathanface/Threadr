@@ -197,7 +197,7 @@ func AllAssociationsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	out, err := AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("associations"),
-		FilterExpression: aws.String("contains(author, :eml) AND contains(story, :s)"),
+		FilterExpression: aws.String("author=:eml AND story=:s"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
 			":s":   &types.AttributeValueMemberS{Value: story},

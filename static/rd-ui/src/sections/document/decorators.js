@@ -7,10 +7,13 @@ export const TabSpan = (props) => {
   );
 };
 
-
 export const HighlightSpan = (props) => {
   return (
-    <span onClick={(e)=> {props.leftClickFunc(props.decoratedText, props.type, e);}} onContextMenu={(e)=> {props.rightClickFunc(props.decoratedText, props.type, e);}} className={'highlight ' + props.type }>
+    <span onClick={(e)=> {
+      props.leftClickFunc(props.association, e);
+    }} onContextMenu={(e)=> {
+      props.rightClickFunc(props.decoratedText, props.association.association_type, e);
+    }} className={'highlight ' + props.association.association_type }>
       {props.children}
     </span>
   );
@@ -21,12 +24,12 @@ const getRegexString = (string) => {
 };
 
 /**
-     * Find entities of type character in block
-     *
-     * @param {ContentBlock} contentBlock
-     * @param {function} callback
-     * @param {ContentState} contentState
-     */
+ * Find entities of type character in block
+ *
+ * @param {ContentBlock} contentBlock
+ * @param {function} callback
+ * @param {ContentState} contentState
+ */
 export const FindHighlightable = (entityType, associations) => {
   return (contentBlock, callback) => {
     const text = contentBlock.getText();

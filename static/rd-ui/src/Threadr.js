@@ -6,8 +6,8 @@ import {flipLoggedInState} from './stores/loggedInSlice';
 import {setCurrentStoryID} from './stores/currentStorySlice';
 import CreateNewStory from './sections/createNewStory/CreateNewStoryModal';
 import './css/main.css';
-import { setCurrentStoryChapter } from './stores/currentStoryChapterSlice';
-
+import {setCurrentStoryChapterNumber} from './stores/currentStoryChapterNumberSlice';
+import {setCurrentStoryChapterTitle} from './stores/currentStoryChapterTitleSlice';
 
 const Threadr = () => {
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
@@ -32,7 +32,10 @@ const Threadr = () => {
       dispatch(setCurrentStoryID(decodeURIComponent(splitDirectories[2])));
     }
     if (urlParams.get('chapter') !== '') {
-      dispatch(setCurrentStoryChapter(parseInt(urlParams.get('chapter'))));
+      dispatch(setCurrentStoryChapterNumber(parseInt(urlParams.get('chapter'))));
+    }
+    if (urlParams.get('title') !== '') {
+      dispatch(setCurrentStoryChapterTitle(urlParams.get('title')));
     }
   }, [dispatch]);
 

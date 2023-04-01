@@ -15,7 +15,8 @@ import TreeItem from '@mui/lab/TreeItem';
 import {useSelector, useDispatch} from 'react-redux';
 import {flipLoggedInState} from '../../stores/loggedInSlice';
 import {setCurrentStoryID} from '../../stores/currentStorySlice';
-import {setCurrentStoryChapter} from '../../stores/currentStoryChapterSlice';
+import {setCurrentStoryChapterNumber} from '../../stores/currentStoryChapterNumberSlice';
+import {setCurrentStoryChapterTitle} from '../../stores/currentStoryChapterTitleSlice';
 import {flipCreatingNewStoryState} from '../../stores/creatingNewStorySlice';
 import {flipMenuOpen} from '../../stores/toggleMenuOpenSlice';
 import {flipRefreshStoryList} from '../../stores/refreshStoryListSlice';
@@ -44,7 +45,7 @@ const Sidebar = (props) => {
           const stories = new Map();
           Object.keys(data.series).forEach(series => {
             stories.set(series, []);
-            data.series[series].forEach(story => {
+            data.series[series].forEach(story => { 
               stories.get(series).push({
                 series: series,
                 key: story.title,
@@ -54,6 +55,7 @@ const Sidebar = (props) => {
                 chapters: story.chapters
               });
             });
+            
           });
           Object.keys(data.standalone).forEach(story => {
             stories.set(story, {
@@ -78,10 +80,12 @@ const Sidebar = (props) => {
     }
   }, [isLoggedIn, refreshStoryList, dispatch]);
 
-  const clickStory = (storyID, chapter) => {
+  const clickStory = (storyID, chapterNumber, chapterTitle) => {
     dispatch(setCurrentStoryID(encodeURIComponent(storyID)));
-    dispatch(setCurrentStoryChapter(chapter));
-    window.history.pushState({storyID}, 'clicked story chapter', '/story/' + encodeURIComponent(storyID) + '?chapter=' + chapter);
+    dispatch(setCurrentStoryChapterNumber(chapterNumber));
+    dispatch(setCurrentStoryChapterTitle(chapterTitle));
+    console.log("chap", chapterTitle);
+    history.pushState({storyID}, 'clicked story chapter', '/story/' + encodeURIComponent(storyID) + '?chapter=' + chapterNumber + "&title=" + chapterTitle);
   };
 
   const signin = () => {
@@ -232,7 +236,7 @@ const Sidebar = (props) => {
                                     return <TreeItem key={seriesEntry.key} label={seriesEntry.label} nodeId={seriesEntry.label}>
                                       {
                                         seriesEntry.chapters.map((chapter) => {
-                                          return <TreeItem className="chapter-entry" onClick={()=>clickStory(seriesEntry.key, chapter.chapter_num)} key={chapter.chapter_num} label={
+                                          return <TreeItem className="chapter-entry" onClick={()=>clickStory(seriesEntry.key, chapter.chapter_num, chapter.chapter_title)} key={chapter.chapter_num} label={
                                             <div>{chapter.chapter_title}
                                               <IconButton aria-label="delete" size="small" sx={{
                                                 float:'right',
@@ -256,7 +260,7 @@ const Sidebar = (props) => {
                                 <TreeItem key={entry.key} nodeId={entry.key} className="chapter-listing" label={entry.label}>
                                 {
                                   entry.chapters.map((chapter) => {
-                                    return <TreeItem className="chapter-entry" onClick={()=>clickStory(entry.key, chapter.chapter_num)} key={chapter.chapter_num} label={
+                                    return <TreeItem className="chapter-entry" onClick={()=>clickStory(entry.key, chapter.chapter_num, chapter.chapter_title)} key={chapter.chapter_num} label={
                                       <div>{chapter.chapter_title}
                                         <IconButton aria-label="delete" size="small" sx={{
                                           float:'right',
