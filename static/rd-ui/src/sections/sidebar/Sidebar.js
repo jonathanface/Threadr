@@ -83,8 +83,8 @@ const Sidebar = (props) => {
     dispatch(setCurrentStoryID(encodeURIComponent(storyID)));
     dispatch(setCurrentStoryChapterNumber(chapterNumber));
     dispatch(setCurrentStoryChapterTitle(chapterTitle));
-    console.log('chap', chapterTitle);
-    window.history.pushState({storyID}, 'clicked story chapter', '/story/' + encodeURIComponent(storyID) + '?chapter=' + chapterNumber + '&title=' + chapterTitle);
+    const history = window.history;
+    history.pushState({storyID}, 'clicked story chapter', '/story/' + encodeURIComponent(storyID) + '?chapter=' + chapterNumber + '&title=' + chapterTitle);
   };
 
   const signin = () => {
@@ -97,7 +97,8 @@ const Sidebar = (props) => {
     }).then((response) => {
       if (response.ok) {
         dispatch(flipLoggedInState());
-        window.history.pushState({}, '', '/');
+        const history = window.history;
+        history.pushState({}, '', '/');
         return;
       }
       throw new Error('Fetch problem logout ' + response.status);
