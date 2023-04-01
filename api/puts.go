@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -186,6 +187,7 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
+
 	var (
 		email      string
 		err        error
@@ -231,6 +233,9 @@ func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
 			TransactItems:      make([]types.TransactWriteItem, len(batch)),
 		}
 		for i, item := range batch {
+			rand.Seed(time.Now().UnixNano())
+			portraitFileName := rand.Intn(50-1) + 1
+			portrait := S3_PORTRAIT_BASE_URL + strconv.Itoa(portraitFileName) + ".jpg"
 			// Create a key for the item.
 			key := map[string]types.AttributeValue{
 				"association_name": &types.AttributeValueMemberS{Value: item.Name},
@@ -240,12 +245,13 @@ func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
 			updateInput := &types.Update{
 				TableName:        aws.String("associations"),
 				Key:              key,
-				UpdateExpression: aws.String("set created_at=if_not_exists(created_at,:t), story=:s, association_type=:at, case_sensitive=:c"),
+				UpdateExpression: aws.String("set created_at=if_not_exists(created_at,:t), story=:s, association_type=:at, case_sensitive=:c, portrait=:p"),
 				ExpressionAttributeValues: map[string]types.AttributeValue{
 					":t":  &types.AttributeValueMemberN{Value: now},
 					":at": &types.AttributeValueMemberS{Value: item.Type},
 					":c":  &types.AttributeValueMemberBOOL{Value: true},
 					":s":  &types.AttributeValueMemberS{Value: story},
+					":p":  &types.AttributeValueMemberS{Value: portrait},
 				},
 			}
 
@@ -265,9 +271,5 @@ func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		numWrote += len(batch)
 	}
 
-	type answer struct {
-		Success     bool `json:"success"`
-		NumberWrote int  `json:"wrote"`
-	}
-	RespondWithJson(w, http.StatusOK, answer{Success: true, NumberWrote: len(associations)})
+	RespondWithJson(w, http.StatusOK, associations)
 }

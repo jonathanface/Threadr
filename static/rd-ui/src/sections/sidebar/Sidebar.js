@@ -10,11 +10,13 @@ import IconButton from '@mui/material/IconButton';
 import AddBoxIcon from '@mui/icons-material/AddBox';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditableTreeItem from './EditableTreeItem';
+import FolderIcon from '@mui/icons-material/Folder';
 import TreeItem from '@mui/lab/TreeItem';
 import {useSelector, useDispatch} from 'react-redux';
 import {flipLoggedInState} from '../../stores/loggedInSlice';
 import {setCurrentStoryID} from '../../stores/currentStorySlice';
-import {setCurrentStoryChapter} from '../../stores/currentStoryChapterSlice';
+import {setCurrentStoryChapterNumber} from '../../stores/currentStoryChapterNumberSlice';
+import {setCurrentStoryChapterTitle} from '../../stores/currentStoryChapterTitleSlice';
 import {flipCreatingNewStoryState} from '../../stores/creatingNewStorySlice';
 import {flipMenuOpen} from '../../stores/toggleMenuOpenSlice';
 import {flipRefreshStoryList} from '../../stores/refreshStoryListSlice';
@@ -43,7 +45,7 @@ const Sidebar = (props) => {
           const stories = new Map();
           Object.keys(data.series).forEach(series => {
             stories.set(series, []);
-            data.series[series].forEach(story => {
+            data.series[series].forEach(story => { 
               stories.get(series).push({
                 series: series,
                 key: story.title,
@@ -53,6 +55,7 @@ const Sidebar = (props) => {
                 chapters: story.chapters
               });
             });
+            
           });
           Object.keys(data.standalone).forEach(story => {
             stories.set(story, {
@@ -77,10 +80,12 @@ const Sidebar = (props) => {
     }
   }, [isLoggedIn, refreshStoryList, dispatch]);
 
-  const clickStory = (storyID, chapter) => {
+  const clickStory = (storyID, chapterNumber, chapterTitle) => {
     dispatch(setCurrentStoryID(encodeURIComponent(storyID)));
-    dispatch(setCurrentStoryChapter(chapter));
-    window.history.pushState({storyID}, 'clicked story chapter', '/story/' + encodeURIComponent(storyID) + '?chapter=' + chapter);
+    dispatch(setCurrentStoryChapterNumber(chapterNumber));
+    dispatch(setCurrentStoryChapterTitle(chapterTitle));
+    console.log("chap", chapterTitle);
+    history.pushState({storyID}, 'clicked story chapter', '/story/' + encodeURIComponent(storyID) + '?chapter=' + chapterNumber + "&title=" + chapterTitle);
   };
 
   const signin = () => {
@@ -206,19 +211,32 @@ const Sidebar = (props) => {
             {isLoggedIn ?
                         <TreeItem sx={materialStyles} key="story_label" nodeId="story_label" label="Stories" className="stories-parent">
                           <TreeItem key="create_label" nodeId="create_label" label={
-                            <Button size="small" variant="text" endIcon={<AddBoxIcon />} onClick={()=>{createNewStory()}}>New Story</Button>
+                            <div onClick={()=>{createNewStory()}}>
+                              <Button size="small" variant="text" sx={{fontWeight:'bold', '&:hover':{opacity:0.8}}}>New Story</Button>
+                              <IconButton  edge="end" size="small" sx={{
+                                float:'right',
+                                marginTop:'2px',
+                                marginRight:'0px',
+                              }}>
+                                <AddBoxIcon fontSize="small" sx={{color: '#a8d5b1'}}/>
+                              </IconButton>
+                            </div>
                           }/>
                           {
                             [...stories.keys()].map(storyOrSeries => {
                               const entry = stories.get(storyOrSeries);
                               return Array.isArray(entry) ?
-                                <TreeItem key={storyOrSeries} label={storyOrSeries} nodeId={storyOrSeries}>
+                                <TreeItem className="chapter-listing" key={storyOrSeries} label={
+                                  <div>
+                                  {storyOrSeries} 
+                                  <FolderIcon aria-label="series" fontSize="small" sx={{float:'right',color: '#a8d5b1'}}/>
+                                </div>} nodeId={storyOrSeries}>
                                   {
                                   entry.map(seriesEntry => {
                                     return <TreeItem key={seriesEntry.key} label={seriesEntry.label} nodeId={seriesEntry.label}>
                                       {
                                         seriesEntry.chapters.map((chapter) => {
-                                          return <TreeItem className="chapter-entry" onClick={()=>clickStory(seriesEntry.key, chapter.chapter_num)} key={chapter.chapter_num} label={
+                                          return <TreeItem className="chapter-entry" onClick={()=>clickStory(seriesEntry.key, chapter.chapter_num, chapter.chapter_title)} key={chapter.chapter_num} label={
                                             <div>{chapter.chapter_title}
                                               <IconButton aria-label="delete" size="small" sx={{
                                                 float:'right',
@@ -226,7 +244,7 @@ const Sidebar = (props) => {
                                                   opacity:0.8,
                                                   cursor:'pointer'
                                                 }
-                                              }} onClick={(e)=> {deleteChapter(e, seriesEntry.label, chapter.chapter_num)}}><DeleteIcon fontSize="small"/>
+                                              }} onClick={(e)=> {deleteChapter(e, seriesEntry.label, chapter.chapter_num)}}><DeleteIcon fontSize="small" className={"menu-icon"}/>
                                               </IconButton>
                                             </div>
                                           } nodeId={chapter.chapter_title} />;
@@ -242,7 +260,7 @@ const Sidebar = (props) => {
                                 <TreeItem key={entry.key} nodeId={entry.key} className="chapter-listing" label={entry.label}>
                                 {
                                   entry.chapters.map((chapter) => {
-                                    return <TreeItem className="chapter-entry" onClick={()=>clickStory(entry.key, chapter.chapter_num)} key={chapter.chapter_num} label={
+                                    return <TreeItem className="chapter-entry" onClick={()=>clickStory(entry.key, chapter.chapter_num, chapter.chapter_title)} key={chapter.chapter_num} label={
                                       <div>{chapter.chapter_title}
                                         <IconButton aria-label="delete" size="small" sx={{
                                           float:'right',

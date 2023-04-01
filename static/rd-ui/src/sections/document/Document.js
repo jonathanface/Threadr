@@ -3,6 +3,7 @@ import {findDOMNode} from 'react-dom';
 import Immutable from 'immutable';
 import {convertFromRaw, Editor, EditorState, ContentBlock, RichUtils, getDefaultKeyBinding, Modifier, SelectionState, ContentState, CompositeDecorator} from 'draft-js';
 import {GetSelectedText, InsertTab, FilterAndReduceDBOperations, GetStyleData, GetEntityData, GetSelectedBlockKeys, GenerateTabCharacter} from './utilities.js';
+import AssociationUI from './AssociationUI.js';
 import 'draft-js/dist/Draft.css';
 import '../../css/document.css';
 import {Menu, Item, Submenu, useContextMenu} from 'react-contexify';
@@ -44,7 +45,8 @@ const dbOperationQueue = [];
 const Document = () => {
   const domEditor = useRef(null);
   const currentStoryID = useSelector((state) => state.currentStoryID.value);
-  const currentStoryChapter = useSelector((state) => state.currentStoryChapter.value);
+  const currentStoryChapterNumber = useSelector((state) => state.currentStoryChapterNumber.value);
+  const currentStoryChapterTitle = useSelector((state) => state.currentStoryChapterTitle.value);
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
   const [currentRightClickedAssoc, setCurrentRightClickedAssoc] = useState(null);
   const [currentBlockAlignment, setCurrentBlockAlignment] = useState('LEFT');
@@ -52,6 +54,9 @@ const Document = () => {
   const [currentBoldState, setCurrentBoldState] = useState(false);
   const [currentUnderscoreState, setCurrentUnderscoreState] = useState(false);
   const [currentStrikethroughState, setCurrentStrikethroughState] = useState(false);
+  const [associationWindowOpen, setAssociationWindowOpen] = useState(false);
+  const [viewingAssociation, setViewingAssociation] = useState(null);
+  
 
   let lastRetrievedBlockKey = '';
 
@@ -62,8 +67,8 @@ const Document = () => {
         strategy: FindHighlightable(association.association_type, associations),
         component: HighlightSpan,
         props: {
-          type: association.association_type,
-          // leftClickFunc: leftClickedDecorator,
+          association: association,
+          leftClickFunc: handleAssociationClick,
           rightClickFunc: handleAssociationContextMenu
 
         }
@@ -82,21 +87,21 @@ const Document = () => {
 
   const getAllAssociations = () => {
     fetch('/api/stories/' + currentStoryID + '/associations')
-        .then((response) => {
-          if (response.ok) {
-            return response.json();
-          }
-          throw new Error('Fetch problem associations ' + response.status);
-        })
-        .then((data) => {
-          data.forEach((assoc) => {
-            associations.push({association_name: assoc.association_name.Value,
-              association_type: assoc.association_type.Value,
-              details: {aliases: '', caseSensitive: assoc.case_sensitive}});
-          });
-        }).catch((error) => {
-          console.error('get story associations', error);
-        });
+    .then((response) => {
+      if (response.ok) {
+        return response.json();
+      }
+      throw new Error('Fetch problem associations ' + response.status);
+    })
+    .then((data) => {
+      data.forEach((assoc) => {
+        associations.push({association_name: assoc.association_name.Value,
+          association_type: assoc.association_type.Value,
+          details: {aliases: '', caseSensitive: assoc.case_sensitive, portrait: assoc.portrait}});
+      });
+    }).catch((error) => {
+      console.error('get story associations', error);
+    });
   };
 
   const processDBBlock = (content, block) => {
@@ -137,7 +142,7 @@ const Document = () => {
   }
 
   const getBatchedStoryBlocks = (startKey) => {
-    fetch('/api/stories/' + currentStoryID + '?key=' + startKey + '&chapter=' + currentStoryChapter)
+    fetch('/api/stories/' + currentStoryID + '?key=' + startKey + '&chapter=' + currentStoryChapterNumber)
         .then((response) => {
           if (response.ok) {
             return response.json();
@@ -247,7 +252,6 @@ const Document = () => {
       } catch(e) {
         console.error(e);
       }
-      
       setDBOperationInterval(setInterval(() => {
         try {
           processDBQueue();
@@ -265,14 +269,14 @@ const Document = () => {
       findDOMNode(editorRef).addEventListener('scroll', handleScroll);
       return () => findDOMNode(editorRef).removeEventListener('scroll', handleScroll);
     }
-  }, [isLoggedIn, currentStoryID, currentStoryChapter, lastRetrievedBlockKey]);
+  }, [isLoggedIn, currentStoryID, currentStoryChapterNumber, lastRetrievedBlockKey]);
 
   const syncBlockOrderMap = (blockList) => {
     return new Promise(async (resolve, reject) => {
       try {
         const params = {};
         params.title = currentStoryID;
-        params.chapter = currentStoryChapter;
+        params.chapter = currentStoryChapterNumber;
         params.blocks = [];
         let index = 0;
         blockList.forEach((block) => {
@@ -301,7 +305,7 @@ const Document = () => {
       try {
         const params = {};
         params.title = currentStoryID;
-        params.chapter = parseInt(currentStoryChapter);
+        params.chapter = parseInt(currentStoryChapterNumber);
         params.blocks = blocks;
         console.log('del', blocks);
         const response = await fetch('/api/stories/' + currentStoryID + '/block', {
@@ -326,7 +330,7 @@ const Document = () => {
       try {
         const params = {};
         params.title = currentStoryID;
-        params.chapter = currentStoryChapter;
+        params.chapter = currentStoryChapterNumber;
         params.blocks = blocks;
         console.log('saving', blocks);
         const response = await fetch('/api/stories/' + currentStoryID, {
@@ -391,7 +395,6 @@ const Document = () => {
     blocks.forEach((block) => {
       const key = block.getKey();
       const index = content.getBlockMap().keySeq().findIndex((k) => k === key);
-
       const selection = SelectionState.createEmpty(key);
       const updatedSelection = selection.merge({
         anchorOffset: 0,
@@ -469,6 +472,12 @@ const Document = () => {
       });
     }
   };
+
+  const handleAssociationClick = (association, event) => {
+    console.log("ass", association);
+    setViewingAssociation(association);
+    setAssociationWindowOpen(true);
+  }
 
   const handleAssociationContextMenu = (name, type, event) => {
     setCurrentRightClickedAssoc(formatAssociation(type, name));
@@ -747,6 +756,11 @@ const Document = () => {
 
   return (
     <div>
+      <AssociationUI open={associationWindowOpen} association={viewingAssociation} onClose={()=>{setAssociationWindowOpen(false)}} />
+      <div className="title_info">
+        <h2>{decodeURIComponent(currentStoryID)}</h2>
+        <h3>{currentStoryChapterTitle}</h3>
+      </div>
       <nav className="rich-controls">
         <span className="controls-row">
           <button className={currentBoldState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'BOLD');}}><b>B</b></button>

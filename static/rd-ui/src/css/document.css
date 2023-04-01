@@ -82,6 +82,17 @@ div.DraftEditor-editorContainer, div.public-DraftEditor-content {
     max-height:100vh;
 }
 
+.title_info {
+    color:#FFF;
+}
+.title_info h2 {
+    filter:drop-shadow(2px 2px 2px #1a1a1a);
+    margin-bottom:0;
+}
+.title_info h3 {
+    margin:0;
+}
+
 .public-DraftEditor-content .LEFT .public-DraftStyleDefault-ltr {
     text-align:left;
 }
@@ -107,7 +118,6 @@ div.DraftEditor-editorContainer, div.public-DraftEditor-content {
     nav.rich-controls {
         height:initial;
         width:auto;
-        padding-left:70px;
     }
     nav.rich-controls .controls-row {
         display:inline-block;

@@ -29,6 +29,7 @@ const (
 	associationTypeCharacter = "character"
 	associationTypePlace     = "place"
 	associationTypeEvent     = "event"
+	S3_PORTRAIT_BASE_URL     = "https://richdocterportraits.s3.amazonaws.com/"
 )
 
 type StoryBlock struct {
@@ -43,8 +44,9 @@ type StoryBlocks struct {
 }
 
 type Association struct {
-	Name string `json:"association_name" dynamodbav:"association_name"`
-	Type string `json:"association_type" dynamodbav:"association_type"`
+	Name     string `json:"association_name" dynamodbav:"association_name"`
+	Type     string `json:"association_type" dynamodbav:"association_type"`
+	Portrait string `json:"portrait" dynamodbav:"portrait"`
 }
 
 type Chapter struct {
