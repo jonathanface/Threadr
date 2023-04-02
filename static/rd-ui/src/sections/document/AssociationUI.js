@@ -74,7 +74,7 @@ const AssociationUI = (props) => {
         <div className="column">
           <figure className="portrait" {...getRootProps()}>
             <img src={imageURL} alt={name} title={name}/>
-            <figcaption>Drop an image over the portrait to replace, or <a>click here<input {...getInputProps()}/></a></figcaption>
+            <figcaption>Drop an image over the portrait to replace, or click here<input {...getInputProps()}/></figcaption>
           </figure>
         </div>
         <div className="column">

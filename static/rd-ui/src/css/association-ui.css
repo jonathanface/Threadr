@@ -18,16 +18,19 @@
     font-weight:normal;
     display:inline;
     margin-right:5px;
+    margin-top: 0.67em;
+    margin-bottom: 0.67em;
 }
 
 .association-ui-container .inline-editable-text {
+    text-overflow: ellipsis;
     font-size:1.5em;
     margin-top: 0.67em;
     margin-bottom: 0.67em;
 }
 
 .association-ui-container .multiline-editable-text {
-    
+    line-height: 1.5em;
 }
 
 .association-ui-container .column {
@@ -59,9 +62,16 @@
 }
 
 @media only screen and (max-width: 600px) {
+    .association-ui-container h1 {
+        font-size:1em;
+    }
+    .association-ui-container .inline-editable-text {
+        font-size:1em;
+        width:60%;
+    }
     .association-ui-container .portrait {
         margin-bottom:0;
-        font-size:0.9rem;
+        font-size:0.8rem;
     }
     .association-ui-container .portrait img {
         width:100%;
