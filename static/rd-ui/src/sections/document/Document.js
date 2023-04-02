@@ -754,9 +754,13 @@ const Document = () => {
     toggleNavButtonState(alignment);
   };
 
+  const onAssociationEdit = (association) => {
+    console.log("saving", association);
+  };
+
   return (
     <div>
-      <AssociationUI open={associationWindowOpen} association={viewingAssociation} onClose={()=>{setAssociationWindowOpen(false);}} />
+      <AssociationUI open={associationWindowOpen} association={viewingAssociation} onEditCallback={onAssociationEdit} onClose={()=>{setAssociationWindowOpen(false);}} />
       <div className="title_info">
         <h2>{decodeURIComponent(currentStoryID)}</h2>
         <h3>{currentStoryChapterTitle}</h3>

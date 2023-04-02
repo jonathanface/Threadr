@@ -13,6 +13,26 @@
     overflow:hidden;
     overflow-y:scroll;
 }
+.association-ui-container h1 {
+    font-size:1.5em;
+    font-weight:normal;
+    display:inline;
+    margin-right:5px;
+    margin-top: 0.67em;
+    margin-bottom: 0.67em;
+}
+
+.association-ui-container .inline-editable-text {
+    text-overflow: ellipsis;
+    font-size:1.5em;
+    margin-top: 0.67em;
+    margin-bottom: 0.67em;
+}
+
+.association-ui-container .multiline-editable-text {
+    line-height: 1.5em;
+}
+
 .association-ui-container .column {
     display:flex;
     flex-direction:column;
@@ -31,7 +51,7 @@
 }
 
 .association-ui-container .association-details .detail-bubble {
-    min-height: 200px;
+    height: 200px;
     border: 2px solid #333;
     border-radius: 15px;
     padding: 15px;
@@ -39,4 +59,41 @@
     margin-bottom:20px;
     overflow:hidden;
     overflow-y:scroll;
+}
+
+@media only screen and (max-width: 600px) {
+    .association-ui-container h1 {
+        font-size:1em;
+    }
+    .association-ui-container .inline-editable-text {
+        font-size:1em;
+        width:60%;
+    }
+    .association-ui-container .portrait {
+        margin-bottom:0;
+        font-size:0.8rem;
+    }
+    .association-ui-container .portrait img {
+        width:100%;
+    }
+    .association-ui-container {
+        flex-direction: column;
+        flex-wrap:nowrap;
+    }
+    .association-ui-container .column {
+        flex-direction: row;
+    }
+
+    .association-ui-container .association-details {
+        width:100%;
+    }
+    .association-ui-container .association-details .detail-bubble {
+        margin-right:10px;
+        margin-left:10px;
+    }
+    .association-ui-container .association-form {
+        margin-left:10px;
+        margin-right:10px;
+        padding:15px;
+    }
 }

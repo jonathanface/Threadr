@@ -119,7 +119,7 @@ const Sidebar = (props) => {
             if (entry.key === bookTitle) {
               if (entry.chapters.filter((e) => e.chapter_title === newChapter).length > 0) {
                 console.error('chapter titles must be unique per book');
-                return;
+                return null;
               }
               entry.chapters.push({chapter_title: newChapter, chapter_num: parseInt(entry.chapters.length+1)});
             }
@@ -127,7 +127,7 @@ const Sidebar = (props) => {
         } else {
           if (story.chapters.filter((e) => e.chapter_title === newChapter).length > 0) {
             console.error('chapter titles must be unique per book');
-            return;
+            return null;
           }
           story.chapters.push({chapter_title: newChapter, chapter_num: parseInt(story.chapters.length+1)});
         }

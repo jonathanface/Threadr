@@ -1,6 +1,7 @@
 const path = require('path');
 const Dotenv = require('dotenv-webpack');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
   entry: path.join(__dirname, 'src', 'index.js'),
@@ -39,6 +40,12 @@ module.exports = {
     new MiniCssExtractPlugin({filename: 'styles.css'}),
     new Dotenv({
       path: './.env',
-    })
+    }),
+    new CopyPlugin({
+      patterns: [
+        { from: 'img', to: 'img' },
+        { from: 'public/index.html', to: 'index.html', toType: 'file'},
+      ]
+    }),
   ],
 };
