@@ -8,37 +8,36 @@ import InputAdornment from '@mui/material/InputAdornment';
 import CancelIcon from '@mui/icons-material/Cancel';
 
 const EditableTreeItem = (props) => {
-    
-    return (
-        <TreeItem className="chapter-entry" nodeId="wrapped_item" label={
+  return (
+    <TreeItem className="chapter-entry" nodeId="wrapped_item" label={
             props.isCreating ? <OutlinedInput defaultValue={props.defaultVal} type='text' sx={{
-                '.MuiOutlinedInput-input': {
-                    width:'100%',
-                    color:'#FFF',
-                    padding:'4px'
-                },
-                border:'1px solid #FFF'
+              '.MuiOutlinedInput-input': {
+                width: '100%',
+                color: '#FFF',
+                padding: '4px'
+              },
+              'border': '1px solid #FFF'
             }}
             endAdornment={
               <InputAdornment position="end">
-                <IconButton aria-label="cancel" onClick={()=>{props.toggleState()}} edge="end">
-                  <CancelIcon sx={{color:"#FFF", cursor:'pointer'}}/>
+                <IconButton aria-label="cancel" onClick={()=>{props.toggleState();}} edge="end">
+                  <CancelIcon sx={{color: '#FFF', cursor: 'pointer'}}/>
                 </IconButton>
               </InputAdornment>
             }
             onKeyUp={(event)=>props.onChange(event)}
-          /> : <div onClick={()=>{props.toggleState()}}>
-            <Button size="small" aria-label="add chapter" variant="text">New Chapter</Button>
-            <IconButton  edge="end" size="small" aria-label="add chapter" sx={{float:'right', marginTop:'2px', marginRight:'0px'}}>
-              <AddBoxIcon fontSize="small" className={"menu-icon"}/>
-            </IconButton>
-          </div>
-            
-        }>
-            
-            
-        </TreeItem>
-    );
-}
+            /> : <div onClick={()=>{props.toggleState();}}>
+              <Button size="small" aria-label="add chapter" variant="text">New Chapter</Button>
+              <IconButton edge="end" size="small" aria-label="add chapter" sx={{float: 'right', marginTop: '2px', marginRight: '0px'}}>
+                <AddBoxIcon fontSize="small" className={'menu-icon'}/>
+              </IconButton>
+            </div>
+
+    }>
+
+
+    </TreeItem>
+  );
+};
 
 export default EditableTreeItem;

@@ -40,3 +40,37 @@
     overflow:hidden;
     overflow-y:scroll;
 }
+
+@media only screen and (max-width: 600px) {
+    .association-ui-container h1 {
+        font-size:1.1rem;
+        text-align: center;
+    }
+    .association-ui-container .portrait {
+        margin-bottom:0;
+        font-size:0.9rem;
+    }
+    .association-ui-container .portrait img {
+        width:100%;
+    }
+    .association-ui-container {
+        flex-direction: column;
+        flex-wrap:nowrap;
+    }
+    .association-ui-container .column {
+        flex-direction: row;
+    }
+
+    .association-ui-container .association-details {
+        width:100%;
+    }
+    .association-ui-container .association-details .detail-bubble {
+        margin-right:10px;
+        margin-left:10px;
+    }
+    .association-ui-container .association-form {
+        margin-left:10px;
+        margin-right:10px;
+        padding:15px;
+    }
+}
