@@ -1,6 +1,7 @@
 .inline-editable-text {
     background:none;
     border:none;
+    text-overflow: ellipsis;
 }
 
 .multiline-editable-text {

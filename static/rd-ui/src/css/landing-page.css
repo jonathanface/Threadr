@@ -1,0 +1,12 @@
+
+.landing-page {
+    color:#FFF;
+}
+.landing-page h1, h2, h3 {
+    filter: drop-shadow(2px 2px 2px #1a1a1a);
+}
+
+.landing-page img {
+    max-width:400px;
+    filter: drop-shadow(2px 2px 2px #1a1a1a);
+}

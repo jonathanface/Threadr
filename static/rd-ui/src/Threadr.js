@@ -2,6 +2,7 @@ import React, {useEffect} from 'react';
 import {useSelector, useDispatch} from 'react-redux';
 import Sidebar from './sections/sidebar/Sidebar';
 import Document from './sections/document/Document';
+import LandingPage from './sections/landingPage/LandingPage'
 import {flipLoggedInState} from './stores/loggedInSlice';
 import {setCurrentStoryID} from './stores/currentStorySlice';
 import CreateNewStory from './sections/createNewStory/CreateNewStoryModal';
@@ -44,7 +45,7 @@ const Threadr = () => {
       <Sidebar />
       <main>
         {
-          isLoggedIn && currentStoryID ? <Document storyID={currentStoryID}/> : ''
+          !isLoggedIn || (isLoggedIn && !currentStoryID) ? <LandingPage/> : <Document storyID={currentStoryID}/>
         }
         <CreateNewStory />
       </main>
