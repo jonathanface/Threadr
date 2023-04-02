@@ -1,0 +1,14 @@
+.inline-editable-text {
+    background:none;
+    border:none;
+}
+
+.multiline-editable-text {
+    height:100%;
+    background:none;
+    resize:none;
+    width:100%;
+    border: none;
+    font-family: inherit;
+    font-size: inherit;
+}

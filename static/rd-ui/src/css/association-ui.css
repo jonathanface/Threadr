@@ -13,6 +13,23 @@
     overflow:hidden;
     overflow-y:scroll;
 }
+.association-ui-container h1 {
+    font-size:1.5em;
+    font-weight:normal;
+    display:inline;
+    margin-right:5px;
+}
+
+.association-ui-container .inline-editable-text {
+    font-size:1.5em;
+    margin-top: 0.67em;
+    margin-bottom: 0.67em;
+}
+
+.association-ui-container .multiline-editable-text {
+    
+}
+
 .association-ui-container .column {
     display:flex;
     flex-direction:column;
@@ -31,7 +48,7 @@
 }
 
 .association-ui-container .association-details .detail-bubble {
-    min-height: 200px;
+    height: 200px;
     border: 2px solid #333;
     border-radius: 15px;
     padding: 15px;
@@ -42,10 +59,6 @@
 }
 
 @media only screen and (max-width: 600px) {
-    .association-ui-container h1 {
-        font-size:1.1rem;
-        text-align: center;
-    }
     .association-ui-container .portrait {
         margin-bottom:0;
         font-size:0.9rem;
