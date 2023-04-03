@@ -23,10 +23,8 @@ const MultilineEdit = (props) => {
   const textareaRef = useRef();
 
   useEffect(() => {
-    if (props.value !== editingValue) {
-      setEditingValue(props.value);
-    }
-  }, [props.value, editingValue]);
+    setEditingValue(props.value);
+  }, [props.value]);
 
   return (
     <textarea
@@ -34,6 +32,7 @@ const MultilineEdit = (props) => {
       rows={1}
       aria-label={props.label}
       defaultValue={editingValue}
+      value={editingValue}
       onBlur={onBlur}
       onChange={onChange}
       onKeyDown={onKeyDown}

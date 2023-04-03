@@ -5,10 +5,8 @@ const InlineEdit = (props) => {
   const [editingValue, setEditingValue] = useState(props.value);
 
   useEffect(() => {
-    if (props.value !== editingValue) {
-      setEditingValue(props.value);
-    }
-  }, [props.value, editingValue]);
+   setEditingValue(props.value);
+  }, [props.value]);
 
   const onChange = (event) => setEditingValue(event.target.value);
 
@@ -31,6 +29,7 @@ const InlineEdit = (props) => {
       className="inline-editable-text"
       type="text"
       aria-label={props.label}
+      defaultValue={editingValue}
       value={editingValue}
       onChange={onChange}
       onKeyDown={onKeyDown}
