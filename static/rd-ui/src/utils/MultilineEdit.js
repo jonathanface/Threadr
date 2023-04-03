@@ -31,7 +31,6 @@ const MultilineEdit = (props) => {
       className="multiline-editable-text"
       rows={1}
       aria-label={props.label}
-      defaultValue={editingValue}
       value={editingValue}
       onBlur={onBlur}
       onChange={onChange}

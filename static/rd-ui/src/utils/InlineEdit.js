@@ -29,7 +29,6 @@ const InlineEdit = (props) => {
       className="inline-editable-text"
       type="text"
       aria-label={props.label}
-      defaultValue={editingValue}
       value={editingValue}
       onChange={onChange}
       onKeyDown={onKeyDown}
