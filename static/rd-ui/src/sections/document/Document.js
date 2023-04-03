@@ -1,5 +1,4 @@
 import React, {useRef, useEffect, useState} from 'react';
-import {findDOMNode} from 'react-dom';
 import Immutable from 'immutable';
 import {convertFromRaw, Editor, EditorState, ContentBlock, RichUtils, getDefaultKeyBinding, Modifier, SelectionState, ContentState, CompositeDecorator} from 'draft-js';
 import {GetSelectedText, InsertTab, FilterAndReduceDBOperations, GetStyleData, GetEntityData, GetSelectedBlockKeys, GenerateTabCharacter} from './utilities.js';
@@ -243,8 +242,14 @@ const Document = () => {
     return EditorState.forceSelection(editorState, newSelection);
   };
 
+  const handleScroll = (e) => {
+    const bottom = e.target.scrollHeight - e.target.scrollTop === e.target.clientHeight;
+    if (bottom && lastRetrievedBlockKey !== null) {
+      getBatchedStoryBlocks(lastRetrievedBlockKey);
+    }
+  };
+
   useEffect(() => {
-    const editorRef = domEditor.current;
     if (isLoggedIn && currentStoryID) {
       setFocusAndRestoreCursor();
       try {
@@ -260,14 +265,6 @@ const Document = () => {
         }
       }, DB_OP_INTERVAL));
       getAllAssociations();
-      const handleScroll = (e) => {
-        const bottom = e.target.scrollHeight - e.target.scrollTop === e.target.clientHeight;
-        if (bottom && lastRetrievedBlockKey !== null) {
-          getBatchedStoryBlocks(lastRetrievedBlockKey);
-        }
-      };
-      findDOMNode(editorRef).addEventListener('scroll', handleScroll);
-      return () => findDOMNode(editorRef).removeEventListener('scroll', handleScroll);
     }
   }, [isLoggedIn, currentStoryID, currentStoryChapterNumber, lastRetrievedBlockKey]);
 
@@ -755,7 +752,7 @@ const Document = () => {
   };
 
   const onAssociationEdit = (association) => {
-    console.log("saving", association);
+    console.log('saving', association);
   };
 
   return (
@@ -779,7 +776,7 @@ const Document = () => {
           <button className={currentBlockAlignment === 'JUSTIFY' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'JUSTIFY');}}><FontAwesomeIcon icon={faAlignJustify} /></button>
         </span>
       </nav>
-      <section className="editor_container" onContextMenu={handleTextualContextMenu} onClick={setFocus} >
+      <section className="editor_container" onContextMenu={handleTextualContextMenu} onClick={setFocus} onScroll={handleScroll} >
         <Editor
           blockStyleFn={getBlockStyles}
           customStyleMap={styleMap}

@@ -7,11 +7,12 @@ nav.rich-controls {
     border-radius: 10px;
     filter: drop-shadow(2px 2px 2px #1a1a1a);
     z-index: 10;
-    margin-top:10px;
-    height:40px;
-    line-height:40px;
-    
+    position: relative;
+    margin-top: 10px;
+    height: 40px;
+    line-height: 40px;
 }
+
 nav.rich-controls:not(:hover) {
     opacity:0.8;
     transition: opacity 0.2s ease-in-out;
@@ -47,7 +48,7 @@ div.DraftEditor-root {
     width:50%;
     padding:10px;
     margin:10px auto;
-    overflow-y: auto;
+    overflow-y: hidden;
     color:#000;
     filter: drop-shadow(2px 2px 2px #1a1a1a);
     height:80%;
@@ -77,8 +78,7 @@ div.DraftEditor-editorContainer, div.public-DraftEditor-content {
 }
 
 .editor_container {
-    overflow-y:hidden;
-    height:100vh;
+    overflow-y:scroll;
     max-height:100vh;
 }
 

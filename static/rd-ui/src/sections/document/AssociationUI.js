@@ -5,14 +5,14 @@ import '../../css/association-ui.css';
 import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
-import InlineEdit from '../../utils/InlineEdit'
-import MultilineEdit from '../../utils/MultilineEdit'
+import InlineEdit from '../../utils/InlineEdit';
+import MultilineEdit from '../../utils/MultilineEdit';
 
 const AssociationUI = (props) => {
   const [caseSensitive, setCaseSensitive] = useState(!props.association ? false : props.association.details.caseSensitive.Value);
-  const [headerText, setHeaderText] = useState("Unknown");
-  const [description, setDescription] = useState("Here you can put a basic description.\nShift+Enter for new lines");
-  const [details, setDetails] = useState("Here you can put some extended details.\nShift+Enter for new lines");
+  const [headerText, setHeaderText] = useState('Unknown');
+  const [description, setDescription] = useState('Here you can put a basic description.\nShift+Enter for new lines');
+  const [details, setDetails] = useState('Here you can put some extended details.\nShift+Enter for new lines');
 
   const handleClose = () => {
     props.onClose();
@@ -37,33 +37,33 @@ const AssociationUI = (props) => {
   const imageURL = !props.association ? './img/default_association_portrait.jpg' : props.association.details.portrait.Value;
   const name = !props.association ? 'some guy' : props.association.association_name;
   const type = !props.association ? 'unknown' : props.association.association_type;
-  const headerLabel = !props.association ? "" : props.association.association_type[0].toUpperCase() +
+  const headerLabel = !props.association ? '' : props.association.association_type[0].toUpperCase() +
         props.association.association_type.slice(1) +':';
 
   useEffect(() => {
     if (props.association) {
-        setCaseSensitive(props.association.details.caseSensitive.Value);
-        setHeaderText(props.association.association_name);
+      setCaseSensitive(props.association.details.caseSensitive.Value);
+      setHeaderText(props.association.association_name);
     }
   }, [props.association]);
 
   const onAssociationEdit = (newValue, id) => {
     const newAssociation = props.association;
-    switch(id) {
-        case "header":
-            setHeaderText(newValue);
-            newAssociation.association_name = newValue;
-            break;
-        case "case":
-            setCaseSensitive(newValue);
-            newAssociation.details.caseSensitive.Value = newValue;
-            break;
-        case "description":
-            setDescription(newValue);
-            break;
-        case "details":
-            setDetails(newValue);
-            break;
+    switch (id) {
+      case 'header':
+        setHeaderText(newValue);
+        newAssociation.association_name = newValue;
+        break;
+      case 'case':
+        setCaseSensitive(newValue);
+        newAssociation.details.caseSensitive.Value = newValue;
+        break;
+      case 'description':
+        setDescription(newValue);
+        break;
+      case 'details':
+        setDetails(newValue);
+        break;
     }
     props.onEditCallback(newAssociation);
   };
@@ -80,19 +80,19 @@ const AssociationUI = (props) => {
         <div className="column">
           <div className="association-details">
             <div>
-                <h1>{headerLabel}</h1>
-                <InlineEdit value={headerText} setValueCallback={onAssociationEdit} label="Name" id="header" />
+              <h1>{headerLabel}</h1>
+              <InlineEdit value={headerText} setValueCallback={onAssociationEdit} label="Name" id="header" />
             </div>
             <div className="detail-bubble">
-                <MultilineEdit value={description} setValueCallback={onAssociationEdit} label="Description" id="description" />
+              <MultilineEdit value={description} setValueCallback={onAssociationEdit} label="Description" id="description" />
             </div>
             <div className="detail-bubble">
-                <MultilineEdit value={details} setValueCallback={onAssociationEdit} label="Details" id="details" />
+              <MultilineEdit value={details} setValueCallback={onAssociationEdit} label="Details" id="details" />
             </div>
             <div className="association-form">
-                <FormGroup>
-                <FormControlLabel control={<Switch onChange={()=>{onAssociationEdit(!caseSensitive, "case")}} checked={caseSensitive} />} label="Case-Sensitive" />
-                </FormGroup>
+              <FormGroup>
+                <FormControlLabel control={<Switch onChange={()=>{onAssociationEdit(!caseSensitive, 'case');}} checked={caseSensitive} />} label="Case-Sensitive" />
+              </FormGroup>
             </div>
           </div>
         </div>

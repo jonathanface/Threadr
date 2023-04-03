@@ -1,7 +1,8 @@
 {
     "env": {
         "browser": true,
-        "es2021": true
+        "es2021": true,
+        "node": true
     },
     "extends": [
         "eslint:recommended",
@@ -25,7 +26,8 @@
       "comma-dangle":"off",
       "new-cap":"off",
       "brace-style": [2, "1tbs", { "allowSingleLine": true }],
-      "valid-jsdoc": "off"
+      "valid-jsdoc": "off",
+      "react/prop-types": "off"
     },
     "settings": {
       "react": {
