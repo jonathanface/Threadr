@@ -3,22 +3,16 @@ const Dotenv = require('dotenv-webpack');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 
-module.exports = {
+module.exports = (env, argv) => {
+  console.log(`This is the Webpack 4 'mode': ${argv.mode}`);
+  const htmlFile = argv.mode === "development" ? "index-dev.html" : "index.html";
+  return {
   entry: path.join(__dirname, 'src', 'index.js'),
   output: {
     path: path.resolve(__dirname, 'build'),
   },
   devtool: 'inline-source-map',
   target: 'web',
-  devServer: {
-    open: true,
-    static: {
-      directory: path.join(__dirname, 'build'),
-    },
-    port: 80,
-    host: 'localhost',
-    hot: true
-  },
   module: {
     rules: [
       {
@@ -44,8 +38,8 @@ module.exports = {
     new CopyPlugin({
       patterns: [
         { from: 'img', to: 'img' },
-        { from: 'public/index.html', to: 'index.html', toType: 'file'},
+        { from: 'public/' + htmlFile, to: 'index.html', toType: 'file'},
       ]
     }),
   ],
-};
+}};
