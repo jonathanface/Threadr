@@ -37,7 +37,7 @@ module.exports = (env, argv) => {
     }),
     new CopyPlugin({
       patterns: [
-        { from: 'img', to: 'img' },
+        { from: 'public/img', to: 'img' },
         { from: 'public/' + htmlFile, to: 'index.html', toType: 'file'},
       ]
     }),
