@@ -30,15 +30,14 @@ const getRegexString = (string) => {
  * @param {function} callback
  * @param {ContentState} contentState
  */
-export const FindHighlightable = (entityType, associations) => {
+export const FindHighlightable = (type, name, associations) => {
   return (contentBlock, callback) => {
     const text = contentBlock.getText();
     associations.forEach((association) => {
-      if (association.association_type !== entityType) {
+      if (association.association_type !== type) {
         return;
       }
-      const name = association.association_name.trim();
-      if (!name.length) {
+      if (association.association_name !== name) {
         return;
       }
       let match;

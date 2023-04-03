@@ -34,7 +34,7 @@ const AssociationUI = (props) => {
   }, []);
   const {getRootProps, getInputProps, isDragActive} = useDropzone({onDrop});
 
-  const imageURL = !props.association ? './img/default_association_portrait.jpg' : props.association.details.portrait.Value;
+  const imageURL = !props.association ? './img/default_association_portrait.jpg' : props.association.portrait;
   const name = !props.association ? 'some guy' : props.association.association_name;
   const type = !props.association ? 'unknown' : props.association.association_type;
   const headerLabel = !props.association ? '' : props.association.association_type[0].toUpperCase() +
@@ -91,7 +91,7 @@ const AssociationUI = (props) => {
             </div>
             <div className="association-form">
               <FormGroup>
-                <FormControlLabel control={<Switch onChange={()=>{onAssociationEdit(!caseSensitive, 'case');}} checked={caseSensitive} />} label="Case-Sensitive" />
+                <FormControlLabel control={<Switch onChange={()=>{onAssociationEdit(!caseSensitive, 'case');}} defaultChecked={caseSensitive} />} label="Case-Sensitive" />
               </FormGroup>
             </div>
           </div>

@@ -61,9 +61,9 @@ const Document = () => {
 
   const createDecorators = () => {
     const decorators = new Array(associations.length);
-    associations.forEach((association) => {
+    associations.forEach((association) => { 
       decorators.push({
-        strategy: FindHighlightable(association.association_type, associations),
+        strategy: FindHighlightable(association.association_type, association.association_name, associations),
         component: HighlightSpan,
         props: {
           association: association,
@@ -94,9 +94,21 @@ const Document = () => {
         })
         .then((data) => {
           data.forEach((assoc) => {
-            associations.push({association_name: assoc.association_name.Value,
-              association_type: assoc.association_type.Value,
-              details: {aliases: '', caseSensitive: assoc.case_sensitive, portrait: assoc.portrait}});
+            if (assoc.association_name.Value.trim().length) {
+              associations.push(
+                {
+                  association_name: assoc.association_name.Value,
+                  association_type: assoc.association_type.Value,
+                  portrait: assoc.portrait,
+                  details: {
+                    aliases: '',
+                    caseSensitive: assoc.case_sensitive,
+                    description: assoc.description,
+                    extendedDescription: assoc.extended_description
+                  }
+                }
+              );
+            }
           });
         }).catch((error) => {
           console.error('get story associations', error);
@@ -420,30 +432,46 @@ const Document = () => {
     return getDefaultKeyBinding(event);
   };
 
-  const formatAssociation = (type, name) => {return {association_type: type, association_name: name, details: {aliases: ''}};};
+  const formatBlankAssociation = (type, name) => {
+    return {
+      association_type: type,
+      association_name: name,
+      short_description: "",
+      portrait: "",
+      details: {
+        aliases: '',
+        caseSensitive: true,
+        description: "",
+        extendedDescription: "",
+      }
+    };
+  };
 
-  const handleMenuItemClick = ({id, event}) => {
+  const handleMenuItemClick = async({id, event}) => {
     const text = GetSelectedText(editorState);
     if (text.length) {
       event.preventDefault();
       // check if !contains
-      const newAssociation = formatAssociation(id, text);
-      associations.push(newAssociation);
+      const newAssociation = formatBlankAssociation(id, text);
       const withSelection = setFocusAndRestoreCursor();
-      const newEditorState = EditorState.set(withSelection, {decorator: createDecorators(associations)});
+      
       try {
-        saveAssociationsToServer([newAssociation]);
+        const storedAssociation = await saveAssociationsToServer([newAssociation]);
+        newAssociation.portrait = storedAssociation[0].portrait;
+        associations.push(newAssociation);
+        const newEditorState = EditorState.set(withSelection, {decorator: createDecorators()});
+        setEditorState(newEditorState);
       } catch (e) {
         console.error(e);
       }
-      setEditorState(newEditorState);
+      
     }
   };
 
   const handleDeleteAssociationClick = ({event}) => {
     associations.splice(associations.findIndex((assoc) => assoc === currentRightClickedAssoc));
     const withSelection = setFocusAndRestoreCursor();
-    const newEditorState = EditorState.set(withSelection, {decorator: createDecorators(associations)});
+    const newEditorState = EditorState.set(withSelection, {decorator: createDecorators()});
     try {
       deleteAssociationsFromServer([currentRightClickedAssoc]);
     } catch (e) {
@@ -477,7 +505,7 @@ const Document = () => {
   };
 
   const handleAssociationContextMenu = (name, type, event) => {
-    setCurrentRightClickedAssoc(formatAssociation(type, name));
+    setCurrentRightClickedAssoc(formatBlankAssociation(type, name));
     show({
       id: 'association_context',
       event: event,
