@@ -145,33 +145,55 @@ func DeleteAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 			ClientRequestToken: nil,
 			TransactItems:      make([]types.TransactWriteItem, len(batch)),
 		}
+		writeItemsDetailsInput := &dynamodb.TransactWriteItemsInput{
+			ClientRequestToken: nil,
+			TransactItems:      make([]types.TransactWriteItem, len(batch)),
+		}
 		for i, item := range batch {
 			// Create a key for the item.
 			key := map[string]types.AttributeValue{
 				"association_name": &types.AttributeValueMemberS{Value: item.Name},
-				"story":            &types.AttributeValueMemberS{Value: story},
+				"author":           &types.AttributeValueMemberS{Value: email},
 			}
 
 			// Create a delete input for the item.
 			deleteInput := &types.Delete{
 				Key:                 key,
 				TableName:           aws.String("associations"),
-				ConditionExpression: aws.String("contains(author, :eml) AND contains(association_type, :t)"),
+				ConditionExpression: aws.String("story=:s AND association_type=:t"),
 				ExpressionAttributeValues: map[string]types.AttributeValue{
-					":eml": &types.AttributeValueMemberS{Value: email},
-					":t":   &types.AttributeValueMemberS{Value: item.Type},
+					":s": &types.AttributeValueMemberS{Value: story},
+					":t": &types.AttributeValueMemberS{Value: item.Type},
+				},
+			}
+			fmt.Println("story", story)
+			deleteDetailsInput := &types.Delete{
+				Key:                 key,
+				TableName:           aws.String("association_details"),
+				ConditionExpression: aws.String("story=:s"),
+				ExpressionAttributeValues: map[string]types.AttributeValue{
+					":s": &types.AttributeValueMemberS{Value: story},
 				},
 			}
 			// Create a transaction write item for the update operation.
 			writeItem := types.TransactWriteItem{
 				Delete: deleteInput,
 			}
+			writeDetailsItem := types.TransactWriteItem{
+				Delete: deleteDetailsInput,
+			}
 
 			// Add the transaction write item to the list of transaction write items.
 			writeItemsInput.TransactItems[i] = writeItem
+			writeItemsDetailsInput.TransactItems[i] = writeDetailsItem
 		}
 
 		awsStatus, awsMessage = awsWriteTransaction(writeItemsInput)
+		if awsStatus != http.StatusOK {
+			RespondWithError(w, awsStatus, awsMessage)
+			return
+		}
+		awsStatus, awsMessage = awsWriteTransaction(writeItemsDetailsInput)
 		if awsStatus != http.StatusOK {
 			RespondWithError(w, awsStatus, awsMessage)
 			return

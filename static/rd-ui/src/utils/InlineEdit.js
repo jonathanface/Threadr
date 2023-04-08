@@ -5,10 +5,8 @@ const InlineEdit = (props) => {
   const [editingValue, setEditingValue] = useState(props.value);
 
   useEffect(() => {
-    if (props.value !== editingValue) {
-      setEditingValue(props.value);
-    }
-  }, [props.value, editingValue]);
+   setEditingValue(props.value);
+  }, [props.value]);
 
   const onChange = (event) => setEditingValue(event.target.value);
 

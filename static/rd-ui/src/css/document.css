@@ -48,10 +48,10 @@ div.DraftEditor-root {
     width:50%;
     padding:10px;
     margin:10px auto;
-    overflow-y: hidden;
+    overflow-y: scroll;
     color:#000;
     filter: drop-shadow(2px 2px 2px #1a1a1a);
-    height:80%;
+    height:calc(100vh - 250px);
 }
 
 div.DraftEditor-editorContainer, div.public-DraftEditor-content {
@@ -78,7 +78,6 @@ div.DraftEditor-editorContainer, div.public-DraftEditor-content {
 }
 
 .editor_container {
-    overflow-y:scroll;
     max-height:100vh;
 }
 

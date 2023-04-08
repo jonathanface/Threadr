@@ -223,19 +223,32 @@ func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		batches = append(batches, associations[i:end])
 	}
 
-	numWrote := 0
 	now := strconv.FormatInt(time.Now().Unix(), 10)
-
 	// Loop through the items and create the transaction write items.
 	for _, batch := range batches {
 		writeItemsInput := &dynamodb.TransactWriteItemsInput{
 			ClientRequestToken: nil,
 			TransactItems:      make([]types.TransactWriteItem, len(batch)),
 		}
+		writeItemsDetailsInput := &dynamodb.TransactWriteItemsInput{
+			ClientRequestToken: nil,
+			TransactItems:      make([]types.TransactWriteItem, len(batch)),
+		}
 		for i, item := range batch {
 			rand.Seed(time.Now().UnixNano())
-			portraitFileName := rand.Intn(50-1) + 1
-			portrait := S3_PORTRAIT_BASE_URL + strconv.Itoa(portraitFileName) + ".jpg"
+			var imgFile string
+			switch item.Type {
+			case "character":
+				imageFileName := rand.Intn(MAX_DEFAULT_PORTRAIT_IMAGES-1) + 1
+				imgFile = S3_PORTRAIT_BASE_URL + strconv.Itoa(imageFileName) + ".jpg"
+			case "place":
+				imageFileName := rand.Intn(MAX_DEFAULT_LOCATION_IMAGES-1) + 1
+				imgFile = S3_LOCATION_BASE_URL + strconv.Itoa(imageFileName) + ".jpg"
+			case "event":
+				imageFileName := rand.Intn(MAX_DEFAULT_EVENT_IMAGES-1) + 1
+				imgFile = S3_EVENT_BASE_URL + strconv.Itoa(imageFileName) + ".jpg"
+			}
+			associations[i].Portrait = imgFile
 			// Create a key for the item.
 			key := map[string]types.AttributeValue{
 				"association_name": &types.AttributeValueMemberS{Value: item.Name},
@@ -245,13 +258,25 @@ func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
 			updateInput := &types.Update{
 				TableName:        aws.String("associations"),
 				Key:              key,
-				UpdateExpression: aws.String("set created_at=if_not_exists(created_at,:t), story=:s, association_type=:at, case_sensitive=:c, portrait=:p"),
+				UpdateExpression: aws.String("set created_at=if_not_exists(created_at,:t), story=:s, association_type=:at, case_sensitive=:c, portrait=:p, short_description=:sd"),
 				ExpressionAttributeValues: map[string]types.AttributeValue{
 					":t":  &types.AttributeValueMemberN{Value: now},
 					":at": &types.AttributeValueMemberS{Value: item.Type},
 					":c":  &types.AttributeValueMemberBOOL{Value: true},
 					":s":  &types.AttributeValueMemberS{Value: story},
-					":p":  &types.AttributeValueMemberS{Value: portrait},
+					":p":  &types.AttributeValueMemberS{Value: imgFile},
+					":sd": &types.AttributeValueMemberS{Value: "You may edit this descriptive text by clicking on the association."},
+				},
+			}
+
+			updateDetailsInput := &types.Update{
+				TableName:        aws.String("association_details"),
+				Key:              key,
+				UpdateExpression: aws.String("set story=:s, description=:d, extended_description=:ed"),
+				ExpressionAttributeValues: map[string]types.AttributeValue{
+					":s":  &types.AttributeValueMemberS{Value: story},
+					":d":  &types.AttributeValueMemberS{Value: "Here you can put a basic description.\nShift+Enter for new lines."},
+					":ed": &types.AttributeValueMemberS{Value: "Here you can put some extended details.\nShift+Enter for new lines."},
 				},
 			}
 
@@ -259,16 +284,24 @@ func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
 			writeItem := types.TransactWriteItem{
 				Update: updateInput,
 			}
+			writeDetailsItem := types.TransactWriteItem{
+				Update: updateDetailsInput,
+			}
 
 			// Add the transaction write item to the list of transaction write items.
 			writeItemsInput.TransactItems[i] = writeItem
+			writeItemsDetailsInput.TransactItems[i] = writeDetailsItem
 		}
 		awsStatus, awsMessage = awsWriteTransaction(writeItemsInput)
 		if awsStatus != http.StatusOK {
 			RespondWithError(w, awsStatus, awsMessage)
 			return
 		}
-		numWrote += len(batch)
+		awsStatus, awsMessage = awsWriteTransaction(writeItemsDetailsInput)
+		if awsStatus != http.StatusOK {
+			RespondWithError(w, awsStatus, awsMessage)
+			return
+		}
 	}
 
 	RespondWithJson(w, http.StatusOK, associations)
