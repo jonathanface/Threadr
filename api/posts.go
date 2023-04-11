@@ -108,14 +108,14 @@ func createBlockTable(email string, story string, chapterTitle string, chapterNu
 
 	if err != nil {
 		return err
-	} else {
+	} /*else {
 		waiter := dynamodb.NewTableExistsWaiter(AwsClient)
 		if err = waiter.Wait(context.TODO(), &dynamodb.DescribeTableInput{
 			TableName: aws.String(tableName),
 		}, 1*time.Minute); err != nil {
 			return err
 		}
-	}
+	}*/
 	return nil
 }
 
