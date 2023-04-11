@@ -5,7 +5,7 @@ const InlineEdit = (props) => {
   const [editingValue, setEditingValue] = useState(props.value);
 
   useEffect(() => {
-   setEditingValue(props.value);
+    setEditingValue(props.value);
   }, [props.value]);
 
   const onChange = (event) => setEditingValue(event.target.value);

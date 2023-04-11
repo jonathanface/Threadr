@@ -61,7 +61,7 @@ const Document = () => {
 
   const createDecorators = () => {
     const decorators = new Array(associations.length);
-    associations.forEach((association) => { 
+    associations.forEach((association) => {
       decorators.push({
         strategy: FindHighlightable(association.association_type, association.association_name, associations),
         component: HighlightSpan,
@@ -96,17 +96,17 @@ const Document = () => {
           data.forEach((assoc) => {
             if (assoc.association_name.Value.trim().length) {
               associations.push(
-                {
-                  association_name: assoc.association_name.Value,
-                  association_type: assoc.association_type.Value,
-                  portrait: assoc.portrait,
-                  details: {
-                    aliases: '',
-                    caseSensitive: assoc.case_sensitive,
-                    description: assoc.description,
-                    extendedDescription: assoc.extended_description
+                  {
+                    association_name: assoc.association_name.Value,
+                    association_type: assoc.association_type.Value,
+                    portrait: assoc.portrait,
+                    details: {
+                      aliases: '',
+                      caseSensitive: assoc.case_sensitive,
+                      description: assoc.description,
+                      extendedDescription: assoc.extended_description
+                    }
                   }
-                }
               );
             }
           });
@@ -436,25 +436,25 @@ const Document = () => {
     return {
       association_type: type,
       association_name: name,
-      short_description: "",
-      portrait: "",
+      short_description: '',
+      portrait: '',
       details: {
         aliases: '',
         caseSensitive: true,
-        description: "",
-        extendedDescription: "",
+        description: '',
+        extendedDescription: '',
       }
     };
   };
 
-  const handleMenuItemClick = async({id, event}) => {
+  const handleMenuItemClick = async ({id, event}) => {
     const text = GetSelectedText(editorState);
     if (text.length) {
       event.preventDefault();
       // check if !contains
       const newAssociation = formatBlankAssociation(id, text);
       const withSelection = setFocusAndRestoreCursor();
-      
+
       try {
         const storedAssociation = await saveAssociationsToServer([newAssociation]);
         newAssociation.portrait = storedAssociation[0].portrait;
@@ -464,7 +464,6 @@ const Document = () => {
       } catch (e) {
         console.error(e);
       }
-      
     }
   };
 
