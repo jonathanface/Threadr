@@ -158,7 +158,7 @@ const Document = () => {
           if (response.ok) {
             return response.json();
           }
-          throw new Error('Fetch problem blocks ' + response.status);
+          throw new Error(response.status);
         })
         .then((data) => {
           data.last_evaluated_key && data.last_evaluated_key.key_id.Value ? lastRetrievedBlockKey = data.last_evaluated_key.key_id.Value : lastRetrievedBlockKey = null;
@@ -190,7 +190,11 @@ const Document = () => {
           });
           setEditorState(EditorState.createWithContent(newContentState, createDecorators(associations)));
         }).catch((error) => {
-          console.error('get story blocks', error);
+          if (parseInt(error.message) !== 404) {
+            console.error('get story blocks', error);
+          } else {
+            setEditorState(EditorState.createEmpty(createDecorators(associations)));
+          }
         });
   };
 
@@ -203,7 +207,7 @@ const Document = () => {
       switch (op.type) {
         case 'delete': {
           try {
-            deleteBlocksFromServer(FilterAndReduceDBOperations(dbOperationQueue, op, i));
+            deleteBlocksFromServer(FilterAndReduceDBOperations(dbOperationQueue, op, i), op.story, op.chapter);
           } catch (e) {
             console.error(e);
             if (e.indexOf('SERVER') > -1) {
@@ -215,7 +219,7 @@ const Document = () => {
         }
         case 'save': {
           try {
-            saveBlocksToServer(FilterAndReduceDBOperations(dbOperationQueue, op, i));
+            saveBlocksToServer(FilterAndReduceDBOperations(dbOperationQueue, op, i), op.story, op.chapter);
           } catch (e) {
             console.error(e);
             if (e.indexOf('SERVER') > -1) {
@@ -309,12 +313,12 @@ const Document = () => {
     });
   };
 
-  const deleteBlocksFromServer = (blocks) => {
+  const deleteBlocksFromServer = (blocks, story, chapter) => {
     return new Promise(async (resolve, reject) => {
       try {
         const params = {};
-        params.title = currentStoryID;
-        params.chapter = parseInt(currentStoryChapterNumber);
+        params.title = story;
+        params.chapter = parseInt(chapter);
         params.blocks = blocks;
         console.log('del', blocks);
         const response = await fetch('/api/stories/' + currentStoryID + '/block', {
@@ -334,15 +338,15 @@ const Document = () => {
     });
   };
 
-  const saveBlocksToServer = (blocks) => {
+  const saveBlocksToServer = (blocks, story, chapter) => {
     return new Promise(async (resolve, reject) => {
       try {
         const params = {};
-        params.title = currentStoryID;
-        params.chapter = currentStoryChapterNumber;
+        params.title = story;
+        params.chapter = parseInt(chapter);
         params.blocks = blocks;
         console.log('saving', blocks);
-        const response = await fetch('/api/stories/' + currentStoryID, {
+        const response = await fetch('/api/stories/' + story, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
@@ -400,7 +404,7 @@ const Document = () => {
     });
   };
 
-  const prepBlocksForSave = (content, blocks) => {
+  const prepBlocksForSave = (content, blocks, story, chapter) => {
     blocks.forEach((block) => {
       const key = block.getKey();
       const index = content.getBlockMap().keySeq().findIndex((k) => k === key);
@@ -411,7 +415,8 @@ const Document = () => {
       });
       const newContent = Modifier.applyEntity(content, updatedSelection, null);
       const updatedBlock = newContent.getBlockForKey(key);
-      dbOperationQueue.push({type: 'save', time: Date.now(), ops: [{key_id: key, chunk: updatedBlock, place: index.toString()}]});
+      dbOperationQueue.push({type: 'save', story:story, chapter:chapter, time: Date.now(), ops:
+        [{key_id: key, chunk: updatedBlock, place: index.toString()}]});
     });
   };
 
@@ -718,6 +723,8 @@ const Document = () => {
       const deleteOp = {};
       deleteOp.type = 'delete';
       deleteOp.time = Date.now();
+      deleteOp.story=currentStoryID;
+      deleteOp.chapter=currentStoryChapterNumber;
       deleteOp.ops = [];
       blocksToDelete.forEach((blockKey) => {
         deleteOp.ops.push({key_id: blockKey});
@@ -731,7 +738,7 @@ const Document = () => {
       blocksToSave.forEach((key) => {
         blocksToPrep.push(updatedContent.getBlockForKey(key));
       });
-      prepBlocksForSave(updatedContent, blocksToPrep);
+      prepBlocksForSave(updatedContent, blocksToPrep, currentStoryID, currentStoryChapterNumber);
     }
 
     if (resyncRequired) {

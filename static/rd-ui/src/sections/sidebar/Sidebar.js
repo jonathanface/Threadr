@@ -111,7 +111,7 @@ const Sidebar = (props) => {
     dispatch(flipCreatingNewStoryState());
   };
 
-  const updateLocalStoryChaptersList = (bookTitle, seriesTitle, newChapter) => {
+  const updateLocalStoryChaptersList = (bookTitle, seriesTitle, newOrDeletedChapter) => {
     if (!stories) {
       console.error('stories is null or undefined');
       return;
@@ -121,19 +121,21 @@ const Sidebar = (props) => {
           if (seriesTitle && key === seriesTitle) {
             story.forEach((entry) => {
               if (entry.key === bookTitle) {
-                if (entry.chapters.filter((e) => e.chapter_title === newChapter).length > 0) {
-                  console.error('chapter titles must be unique per book');
-                  return [key, null];
+                const chapterIndex = entry["chapters"].findIndex((e) => e.chapter_title === newOrDeletedChapter);
+                if (chapterIndex >= 0) {
+                  entry.chapters.splice(chapterIndex, 1);
+                } else {
+                  entry.chapters.push({chapter_title: newOrDeletedChapter, chapter_num: parseInt(entry.chapters.length+1)});
                 }
-                entry.chapters.push({chapter_title: newChapter, chapter_num: parseInt(entry.chapters.length+1)});
               }
             });
           } else if (story['chapters'] && bookTitle === story.key) {
-            if (story['chapters'].filter((e) => e.chapter_title === newChapter).length > 0) {
-              console.error('chapter titles must be unique per book');
-              return [key, null];
+            const chapterIndex = story["chapters"].findIndex((e) => e.chapter_title === newOrDeletedChapter);
+            if (chapterIndex >= 0) {
+              story["chapters"].splice(chapterIndex, 1);
+            } else {
+              story["chapters"].push({chapter_title: newOrDeletedChapter, chapter_num: parseInt(story.chapters.length+1)});
             }
-            story['chapters'].push({chapter_title: newChapter, chapter_num: parseInt(story.chapters.length+1)});
           }
           return [key, story];
         })
@@ -172,7 +174,10 @@ const Sidebar = (props) => {
         if (response.ok) {
           updateLocalStoryChaptersList(bookTitle, seriesTitle, title);
           setIsCreatingNewChapter(false);
-          setCurrentStoryChapterTitle(title);
+          dispatch(setCurrentStoryChapterNumber(chapterNum));
+          dispatch(setCurrentStoryChapterTitle(title));
+          const history = window.history;
+          history.pushState({bookTitle}, 'created chapter', '/story/' + encodeURIComponent(bookTitle) + '?chapter=' + chapterNum + '&title=' + title);
           return;
         }
         throw new Error('Fetch problem creating chapter ' + response.status);
@@ -200,10 +205,39 @@ const Sidebar = (props) => {
     }
   };
 
-  const deleteChapter = (event, story, chapter) => {
+  const deleteChapter = (event, story, seriesTitle, chapterTitle, chapterNum) => {
     event.preventDefault();
     event.stopPropagation();
-    console.log('del', story, chapter);
+    const chaptersList = seriesTitle ? stories.get(seriesTitle)[stories.get(seriesTitle).findIndex((e) => e.key === story)].chapters : stories.get(story).chapters;
+    if (chaptersList.length === 1) {
+      console.error("story must contain at least one chapter")
+      return;
+    }
+    const chapterIndex = chaptersList.findIndex((e) => e.chapter_title === chapterTitle);
+    const prevChapter = chaptersList[chapterIndex-1];
+    const params = [];
+    params[0] = {'chapter_title': chapterTitle, 'chapter_num': chapterNum};
+    fetch('/api/stories/' + story + '/chapter', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(params)
+    }).then((response) => {
+      if (response.ok) {
+        updateLocalStoryChaptersList(story, seriesTitle, chapterTitle);
+        dispatch(setCurrentStoryChapterNumber(prevChapter.chapter_num));
+        dispatch(setCurrentStoryChapterTitle(prevChapter.chapter_title));
+        const history = window.history;
+        history.pushState({story}, 'deleted chapter', '/story/' + encodeURIComponent(story) + '?chapter=' + prevChapter.chapter_num + '&title=' + prevChapter.chapterTitle);
+        return;
+      }
+      throw new Error('Fetch problem deleting chapter ' + response.status);
+    }).catch((error) => {
+      console.error(error);
+    });
+    
+
   };
 
   return (
@@ -248,7 +282,7 @@ const Sidebar = (props) => {
                                                     opacity: 0.8,
                                                     cursor: 'pointer'
                                                   }
-                                                }} onClick={(e)=> {deleteChapter(e, seriesEntry.label, chapter.chapter_num);}}><DeleteIcon fontSize="small" className={'menu-icon'}/>
+                                                }} onClick={(e)=> {deleteChapter(e, seriesEntry.label, storyOrSeries, chapter.chapter_title, chapter.chapter_num);}}><DeleteIcon fontSize="small" className={'menu-icon'}/>
                                                 </IconButton>
                                               </div>
                                             } nodeId={chapter.chapter_title} />;
@@ -272,7 +306,7 @@ const Sidebar = (props) => {
                                               opacity: 0.8,
                                               cursor: 'pointer'
                                             }
-                                          }} onClick={(e)=> {deleteChapter(e, entry.label, chapter.chapter_num);}}><DeleteIcon fontSize="small"/>
+                                          }} onClick={(e)=> {deleteChapter(e, entry.label, null, chapter.chapter_title, chapter.chapter_num);}}><DeleteIcon fontSize="small"/>
                                           </IconButton>
                                         </div>
                                       } nodeId={chapter.chapter_title} />;

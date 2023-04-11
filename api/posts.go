@@ -158,6 +158,16 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, code, awsError)
 		return
 	}
+	if err = createBlockTable(email, story, chapter.ChapterTitle, chapter.ChapterNum); err != nil {
+		var riu *types.ResourceInUseException
+		if errors.As(err, &riu) {
+			RespondWithError(w, http.StatusConflict, "story or story with chapter already exists")
+			return
+		}
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	RespondWithJson(w, http.StatusCreated, nil)
 }
 
 func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -247,7 +257,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	if err = createBlockTable(email, story.Title, "Chapter 1", 1); err != nil {
 		var riu *types.ResourceInUseException
 		if errors.As(err, &riu) {
-			RespondWithError(w, http.StatusConflict, "story already exists")
+			RespondWithError(w, http.StatusConflict, "story or story with chapter already exists")
 			return
 		}
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
