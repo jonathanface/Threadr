@@ -32,6 +32,7 @@ const (
 	S3_PORTRAIT_BASE_URL        = "https://richdocterportraits.s3.amazonaws.com/"
 	S3_LOCATION_BASE_URL        = "https://richdocterlocations.s3.amazonaws.com/"
 	S3_EVENT_BASE_URL           = "https://richdocterevents.s3.amazonaws.com/"
+	S3_CUSTOM_PORTRAIT_BUCKET   = "richdocter-custom-portraits"
 	MAX_DEFAULT_PORTRAIT_IMAGES = 50
 	MAX_DEFAULT_LOCATION_IMAGES = 20
 	MAX_DEFAULT_EVENT_IMAGES    = 20

@@ -1,17 +1,23 @@
 package api
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gorilla/mux"
 )
 
@@ -187,7 +193,6 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
-
 	var (
 		email      string
 		err        error
@@ -303,6 +308,126 @@ func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
 	RespondWithJson(w, http.StatusOK, associations)
+}
+
+func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
+	var (
+		email           string
+		err             error
+		story           string
+		association     string
+		associationType string
+		awsCfg          aws.Config
+	)
+	const maxFileSize = 1024 * 1024 // 1 MB
+	if email, err = getUserEmail(r); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if story, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
+		return
+	}
+	if story == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing story ID")
+		return
+	}
+	if association, err = url.PathUnescape(mux.Vars(r)["association"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing association name")
+		return
+	}
+	if association == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing association name")
+		return
+	}
+	associationType = r.URL.Query().Get("type")
+	if associationType == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing association type")
+		return
+	}
+
+	err = r.ParseMultipartForm(10 << 20)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, "Unable to parse file")
+		return
+	}
+
+	file, handler, err := r.FormFile("file")
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	defer file.Close()
+
+	if handler.Size > maxFileSize {
+		RespondWithError(w, http.StatusBadRequest, "Filesize must be < 1MB")
+		return
+	}
+	allowedTypes := []string{"image/jpeg", "image/png"}
+	fileBytes := make([]byte, handler.Size)
+	if _, err := file.Read(fileBytes); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	fileType := http.DetectContentType(fileBytes)
+	allowed := false
+	for _, t := range allowedTypes {
+		if fileType == t {
+			allowed = true
+			break
+		}
+	}
+	if !allowed {
+		RespondWithError(w, http.StatusBadRequest, "Invalid file type")
+		return
+	}
+
+	ext := filepath.Ext(handler.Filename)
+	safeStory := strings.ToLower(strings.ReplaceAll(story, " ", "-"))
+	safeAssoc := strings.ToLower(strings.ReplaceAll(association, " ", "-"))
+	filename := safeStory + "_" + safeAssoc + "_" + associationType + ext
+	reader := bytes.NewReader(fileBytes)
+
+	if awsCfg, err = config.LoadDefaultConfig(context.TODO(), func(opts *config.LoadOptions) error {
+		opts.Region = os.Getenv("AWS_REGION")
+		return nil
+	}); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	s3Client := s3.NewFromConfig(awsCfg)
+	_, err = s3Client.PutObject(context.Background(), &s3.PutObjectInput{
+		Bucket:      aws.String(S3_CUSTOM_PORTRAIT_BUCKET),
+		Key:         aws.String(filename),
+		Body:        reader,
+		ContentType: aws.String(fileType),
+	})
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	url := "https://" + S3_CUSTOM_PORTRAIT_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
+	key := map[string]types.AttributeValue{
+		"association_name": &types.AttributeValueMemberS{Value: association},
+		"author":           &types.AttributeValueMemberS{Value: email},
+	}
+	updateInput := &dynamodb.UpdateItemInput{
+		TableName:        aws.String("associations"),
+		Key:              key,
+		UpdateExpression: aws.String("set portrait=:p"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":p": &types.AttributeValueMemberS{Value: url},
+		},
+	}
+	_, err = AwsClient.UpdateItem(context.Background(), updateInput)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	type answer struct {
+		Success bool   `json:"success"`
+		URL     string `json:"url"`
+	}
+	RespondWithJson(w, http.StatusOK, answer{Success: true, URL: url})
 }

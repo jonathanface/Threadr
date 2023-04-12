@@ -13,37 +13,47 @@ const AssociationUI = (props) => {
   const [headerText, setHeaderText] = useState('Unknown');
   const [description, setDescription] = useState('Here you can put a basic description.\nShift+Enter for new lines');
   const [details, setDetails] = useState('Here you can put some extended details.\nShift+Enter for new lines');
+  const [imageURL, setImageURL] = useState(!props.association ? './img/default_association_portrait.jpg' : props.association.portrait.Value);
 
   const handleClose = () => {
     props.onClose();
   };
 
-  const onDrop = useCallback((acceptedFiles) => {
-    acceptedFiles.forEach((file) => {
-      const reader = new FileReader();
-
-      reader.onabort = () => console.log('file reading was aborted');
-      reader.onerror = () => console.log('file reading has failed');
-      reader.onload = () => {
-        // Do whatever you want with the file contents
-        const binaryStr = reader.result;
-        console.log(binaryStr);
-      };
-      reader.readAsArrayBuffer(file);
-    });
-  }, []);
-  const {getRootProps, getInputProps, isDragActive} = useDropzone({onDrop});
-
-  const imageURL = !props.association ? './img/default_association_portrait.jpg' : props.association.portrait.Value;
   const name = !props.association ? 'some guy' : props.association.association_name;
   const type = !props.association ? 'unknown' : props.association.association_type;
   const headerLabel = !props.association ? '' : props.association.association_type[0].toUpperCase() +
         props.association.association_type.slice(1) +':';
 
+  const onDrop = useCallback((acceptedFiles) => {
+    acceptedFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onabort = () => console.log('file reading was aborted');
+      reader.onerror = () => console.log('file reading has failed');
+      reader.onload = () => {
+        console.log("p", props);
+        console.log(file);
+        const formData = new FormData();
+        formData.append("file", file);
+        fetch('/api/stories/' + props.story + "/associations/" + props.association.association_name + '/upload?type=' + props.association.association_type,
+          {method: "PUT", body: formData}
+        ).then(response => response.json())
+        .then(data => {
+          setImageURL(data.url + "?date="+Date.now());
+        })
+        .catch(error => console.error(error));
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }, [props]);
+  const {getRootProps, getInputProps, isDragActive} = useDropzone({onDrop});
+
+  
+
   useEffect(() => {
     if (props.association) {
       setCaseSensitive(props.association.details.caseSensitive.Value);
       setHeaderText(props.association.association_name);
+      setImageURL(props.association.portrait.Value);
     }
   }, [props.association]);
 
