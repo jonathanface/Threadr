@@ -219,6 +219,7 @@ const Document = () => {
         }
         case 'save': {
           try {
+            console.log("try", op);
             saveBlocksToServer(FilterAndReduceDBOperations(dbOperationQueue, op, i), op.story, op.chapter);
           } catch (e) {
             console.error(e);
@@ -432,7 +433,7 @@ const Document = () => {
         blocksToPrep.push(content.getBlockForKey(key));
       });
       setEditorState(newEditorState);
-      prepBlocksForSave(content, blocksToPrep);
+      prepBlocksForSave(content, blocksToPrep, currentStoryID, currentStoryChapterNumber);
     }
     return getDefaultKeyBinding(event);
   };
@@ -533,7 +534,6 @@ const Document = () => {
       for (const entry in styleMap) {
         styles = GetStyleData(block, entry, styles);
       }
-      console.log('applying', styles);
       styles.forEach((style) => {
         const styleState = new SelectionState({
           anchorKey: key,
@@ -548,7 +548,7 @@ const Document = () => {
     });
     const updatedEditorState = EditorState.push(newEditorState, newContent, 'change-block-data');
     setEditorState(updatedEditorState);
-    prepBlocksForSave(newContent, updatedBlocks);
+    prepBlocksForSave(newContent, updatedBlocks, currentStoryID, currentStoryChapterNumber);
     toggleNavButtonState(style);
   };
 
@@ -594,22 +594,22 @@ const Document = () => {
     setCurrentBlockAlignment('LEFT');
   };
 
-  const toggleNavButtonState = (style) => {
+  const setNavButtonState = (style, value) => {
     switch (style) {
       case 'BOLD': {
-        setCurrentBoldState(!currentBoldState);
+        setCurrentBoldState(value);
         break;
       }
       case 'ITALIC': {
-        setCurrentItalicsState(!currentItalicsState);
+        setCurrentItalicsState(value);
         break;
       }
       case 'UNDERSCORE': {
-        setCurrentUnderscoreState(!currentUnderscoreState);
+        setCurrentUnderscoreState(value);
         break;
       }
       case 'STRIKETHROUGH': {
-        setCurrentStrikethroughState(!currentStrikethroughState);
+        setCurrentStrikethroughState(value);
         break;
       }
       case 'LEFT':
@@ -643,8 +643,7 @@ const Document = () => {
     return EditorState.push(newEditorState, content, 'change-block-data');
   };
 
-  const updateEditorState = (newEditorState, isPasteAction) => {
-    // Cursor has moved but no text changes detected
+  const updateEditorState = (newEditorState, isPasteAction) => {  
     resetNavButtonStates();
     const selection = newEditorState.getSelection();
     const block = newEditorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
@@ -652,7 +651,9 @@ const Document = () => {
       const styles = GetStyleData(block, entry, []);
       styles.forEach((style) => {
         if (selection.hasEdgeWithin(block.getKey(), style.start, style.end)) {
-          toggleNavButtonState(style.style);
+          setNavButtonState(style.style, true);
+        } else {
+          setNavButtonState(style.style, false);
         }
       });
     }
@@ -660,6 +661,7 @@ const Document = () => {
     const alignment = data.getIn(['ALIGNMENT']) ? data.getIn(['ALIGNMENT']) : 'LEFT';
     setCurrentBlockAlignment(alignment);
 
+    // Cursor has moved but no text changes detected
     if (editorState.getCurrentContent() === newEditorState.getCurrentContent()) {
       console.log('cursor action');
       setEditorState(newEditorState);
@@ -781,7 +783,7 @@ const Document = () => {
       blocksToPrep.push(newContentState.getBlockForKey(key));
     });
     setEditorState(EditorState.push(editorState, newContentState, 'change-block-data'));
-    prepBlocksForSave(newContentState, blocksToPrep);
+    prepBlocksForSave(newContentState, blocksToPrep, currentStoryID, currentStoryChapterNumber);
     toggleNavButtonState(alignment);
   };
 
