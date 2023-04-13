@@ -85,6 +85,7 @@ const Document = () => {
   );
 
   const getAllAssociations = () => {
+    associations.splice(0, associations.length)
     fetch('/api/stories/' + currentStoryID + '/associations')
         .then((response) => {
           if (response.ok) {
