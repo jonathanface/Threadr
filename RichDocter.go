@@ -130,6 +130,7 @@ func main() {
 	apiPath.HandleFunc("/stories/{story}/content", api.StoryBlocksEndPoint).Methods("GET", "OPTIONS")
 	apiPath.HandleFunc("/stories/{story}/associations", api.AllAssociationsByStoryEndPoint).Methods("GET", "OPTIONS")
 	apiPath.HandleFunc("/series", api.AllSeriesEndPoint).Methods("GET", "OPTIONS")
+	apiPath.HandleFunc("/series/{series}/volumes", api.AllStoriesInSeriesEndPoint).Methods("GET", "OPTIONS")
 
 	// POSTs
 	apiPath.HandleFunc("/stories", api.CreateStoryEndpoint).Methods("POST", "OPTIONS")

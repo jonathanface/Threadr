@@ -5,21 +5,11 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
-import Button from '@mui/material/Button';
-import IconButton from '@mui/material/IconButton';
-import AddBoxIcon from '@mui/icons-material/AddBox';
-import DeleteIcon from '@mui/icons-material/Delete';
-import EditableTreeItem from './EditableTreeItem';
-import FolderIcon from '@mui/icons-material/Folder';
 import TreeItem from '@mui/lab/TreeItem';
 import {useSelector, useDispatch} from 'react-redux';
 import {flipLoggedInState} from '../../stores/loggedInSlice';
-import {setCurrentStoryID} from '../../stores/currentStorySlice';
-import {setCurrentStoryChapterNumber} from '../../stores/currentStoryChapterNumberSlice';
-import {setCurrentStoryChapterTitle} from '../../stores/currentStoryChapterTitleSlice';
 import {flipCreatingNewStoryState} from '../../stores/creatingNewStorySlice';
 import {flipMenuOpen} from '../../stores/toggleMenuOpenSlice';
-import {flipRefreshStoryList} from '../../stores/refreshStoryListSlice';
 
 const Sidebar = (props) => {
   const [stories, setStories] = useState([]);
@@ -28,22 +18,12 @@ const Sidebar = (props) => {
   const [isCreatingNewChapter, setIsCreatingNewChapter] = useState(false);
   const isOpen = useSelector((state) => state.isMenuOpen.value);
   const [expanded, setExpanded] = useState(['story_label']);
-  // maybe use this for color coding the active doc...?
-  // const currentStoryID = useSelector((state) => state.currentStoryID.value);
 
   const dispatch = useDispatch();
 
   useEffect(() => {
 
   }, [isLoggedIn, dispatch]);
-
-  const clickStory = (storyID, chapterNumber, chapterTitle) => {
-    dispatch(setCurrentStoryID(encodeURIComponent(storyID)));
-    dispatch(setCurrentStoryChapterNumber(chapterNumber));
-    dispatch(setCurrentStoryChapterTitle(chapterTitle));
-    const history = window.history;
-    history.pushState({storyID}, 'clicked story chapter', '/story/' + encodeURIComponent(storyID) + '?chapter=' + chapterNumber + '&title=' + chapterTitle);
-  };
 
   const signin = () => {
     window.location.href = '/auth/google';
@@ -79,7 +59,7 @@ const Sidebar = (props) => {
           if (seriesTitle && key === seriesTitle) {
             story.forEach((entry) => {
               if (entry.key === bookTitle) {
-                const chapterIndex = entry["chapters"].findIndex((e) => e.chapter_title === newOrDeletedChapter);
+                const chapterIndex = entry['chapters'].findIndex((e) => e.chapter_title === newOrDeletedChapter);
                 if (chapterIndex >= 0) {
                   entry.chapters.splice(chapterIndex, 1);
                 } else {
@@ -88,11 +68,11 @@ const Sidebar = (props) => {
               }
             });
           } else if (story['chapters'] && bookTitle === story.key) {
-            const chapterIndex = story["chapters"].findIndex((e) => e.chapter_title === newOrDeletedChapter);
+            const chapterIndex = story['chapters'].findIndex((e) => e.chapter_title === newOrDeletedChapter);
             if (chapterIndex >= 0) {
-              story["chapters"].splice(chapterIndex, 1);
+              story['chapters'].splice(chapterIndex, 1);
             } else {
-              story["chapters"].push({chapter_title: newOrDeletedChapter, chapter_num: parseInt(story.chapters.length+1)});
+              story['chapters'].push({chapter_title: newOrDeletedChapter, chapter_num: parseInt(story.chapters.length+1)});
             }
           }
           return [key, story];
@@ -168,7 +148,7 @@ const Sidebar = (props) => {
     event.stopPropagation();
     const chaptersList = seriesTitle ? stories.get(seriesTitle)[stories.get(seriesTitle).findIndex((e) => e.key === story)].chapters : stories.get(story).chapters;
     if (chaptersList.length === 1) {
-      console.error("story must contain at least one chapter")
+      console.error('story must contain at least one chapter');
       return;
     }
     const chapterIndex = chaptersList.findIndex((e) => e.chapter_title === chapterTitle);

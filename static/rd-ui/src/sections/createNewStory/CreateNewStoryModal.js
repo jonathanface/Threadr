@@ -12,7 +12,7 @@ import {flipCreatingNewStoryState} from '../../stores/creatingNewStorySlice';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Autocomplete from '@mui/material/Autocomplete';
 import {flipRefreshStoryList} from '../../stores/refreshStoryListSlice';
-import {setCurrentStoryID} from '../../stores/currentStorySlice';
+import {setSelectedStory} from '../../stores/selectedStorySlice';
 
 
 const CreateNewStory = () => {
@@ -87,7 +87,7 @@ const CreateNewStory = () => {
       if (response.ok) {
         series.push({'label': formInput['series'], 'id': formInput['series'], 'count': formInput['place']});
         setSeries(series);
-        dispatch(setCurrentStoryID(formInput['title']));
+        dispatch(setSelectedStory(formInput['title']));
         setTimeout(() => {
           dispatch(flipRefreshStoryList());
           dispatch(flipCreatingNewStoryState());

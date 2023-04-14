@@ -30,24 +30,23 @@ const AssociationUI = (props) => {
       reader.onabort = () => console.log('file reading was aborted');
       reader.onerror = () => console.log('file reading has failed');
       reader.onload = () => {
-        console.log("p", props);
+        console.log('p', props);
         console.log(file);
         const formData = new FormData();
-        formData.append("file", file);
-        fetch('/api/stories/' + props.story + "/associations/" + props.association.association_name + '/upload?type=' + props.association.association_type,
-          {method: "PUT", body: formData}
-        ).then(response => response.json())
-        .then(data => {
-          setImageURL(data.url + "?date="+Date.now());
-        })
-        .catch(error => console.error(error));
+        formData.append('file', file);
+        fetch('/api/stories/' + props.story + '/associations/' + props.association.association_name + '/upload?type=' + props.association.association_type,
+            {method: 'PUT', body: formData}
+        ).then((response) => response.json())
+            .then((data) => {
+              setImageURL(data.url + '?date='+Date.now());
+            })
+            .catch((error) => console.error(error));
       };
       reader.readAsArrayBuffer(file);
     });
   }, [props]);
   const {getRootProps, getInputProps, isDragActive} = useDropzone({onDrop});
 
-  
 
   useEffect(() => {
     if (props.association) {

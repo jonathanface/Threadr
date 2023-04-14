@@ -43,10 +43,13 @@ const dbOperationQueue = [];
 
 const Document = () => {
   const domEditor = useRef(null);
-  const currentStoryID = useSelector((state) => state.currentStoryID.value);
-  const currentStoryChapterNumber = useSelector((state) => state.currentStoryChapterNumber.value);
-  const currentStoryChapterTitle = useSelector((state) => state.currentStoryChapterTitle.value);
+
+  const urlParams = new URLSearchParams(window.location.search);
+
+  const selectedStory = useSelector((state) => state.selectedStory.value);
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
+  const [selectedChapterNumber, setSelectedChapterNumber] = useState(urlParams.get('chapter') !== '' ? parseInt(urlParams.get('chapter')) : 1);
+  const [selectedChapterTitle, setSelectedChapterTitle] = useState('');
   const [currentRightClickedAssoc, setCurrentRightClickedAssoc] = useState(null);
   const [currentBlockAlignment, setCurrentBlockAlignment] = useState('LEFT');
   const [currentItalicsState, setCurrentItalicsState] = useState(false);
@@ -85,8 +88,8 @@ const Document = () => {
   );
 
   const getAllAssociations = () => {
-    associations.splice(0, associations.length)
-    fetch('/api/stories/' + currentStoryID + '/associations')
+    associations.splice(0, associations.length);
+    fetch('/api/stories/' + selectedStory + '/associations')
         .then((response) => {
           if (response.ok) {
             return response.json();
@@ -154,7 +157,7 @@ const Document = () => {
   };
 
   const getBatchedStoryBlocks = (startKey) => {
-    fetch('/api/stories/' + currentStoryID + '?key=' + startKey + '&chapter=' + currentStoryChapterNumber)
+    fetch('/api/stories/' + selectedStory + '/content?key=' + startKey + '&chapter=' + selectedChapterNumber)
         .then((response) => {
           if (response.ok) {
             return response.json();
@@ -220,7 +223,7 @@ const Document = () => {
         }
         case 'save': {
           try {
-            console.log("try", op);
+            console.log('try', op);
             saveBlocksToServer(FilterAndReduceDBOperations(dbOperationQueue, op, i), op.story, op.chapter);
           } catch (e) {
             console.error(e);
@@ -268,7 +271,7 @@ const Document = () => {
   };
 
   useEffect(() => {
-    if (isLoggedIn && currentStoryID) {
+    if (isLoggedIn && selectedStory) {
       setFocusAndRestoreCursor();
       try {
         getBatchedStoryBlocks('');
@@ -284,21 +287,21 @@ const Document = () => {
       }, DB_OP_INTERVAL));
       getAllAssociations();
     }
-  }, [isLoggedIn, currentStoryID, currentStoryChapterNumber, lastRetrievedBlockKey]);
+  }, [isLoggedIn, selectedStory, selectedChapterNumber, lastRetrievedBlockKey]);
 
   const syncBlockOrderMap = (blockList) => {
     return new Promise(async (resolve, reject) => {
       try {
         const params = {};
-        params.title = currentStoryID;
-        params.chapter = currentStoryChapterNumber;
+        params.title = selectedStory;
+        params.chapter = selectedChapterNumber;
         params.blocks = [];
         let index = 0;
         blockList.forEach((block) => {
           params.blocks.push({key_id: block.getKey(), place: index.toString()});
           index++;
         });
-        const response = await fetch('/api/stories/' + currentStoryID + '/orderMap', {
+        const response = await fetch('/api/stories/' + selectedStory + '/orderMap', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
@@ -323,7 +326,7 @@ const Document = () => {
         params.chapter = parseInt(chapter);
         params.blocks = blocks;
         console.log('del', blocks);
-        const response = await fetch('/api/stories/' + currentStoryID + '/block', {
+        const response = await fetch('/api/stories/' + selectedStory + '/block', {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json'
@@ -369,7 +372,7 @@ const Document = () => {
     return new Promise(async (resolve, reject) => {
       try {
         console.log('saving associations', associations);
-        const response = await fetch('/api/stories/' + currentStoryID + '/associations', {
+        const response = await fetch('/api/stories/' + selectedStory + '/associations', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
@@ -389,7 +392,7 @@ const Document = () => {
   const deleteAssociationsFromServer = (associations) => {
     return new Promise(async (resolve, reject) => {
       try {
-        const response = await fetch('/api/stories/' + currentStoryID + '/associations', {
+        const response = await fetch('/api/stories/' + selectedStory + '/associations', {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json'
@@ -417,7 +420,7 @@ const Document = () => {
       });
       const newContent = Modifier.applyEntity(content, updatedSelection, null);
       const updatedBlock = newContent.getBlockForKey(key);
-      dbOperationQueue.push({type: 'save', story:story, chapter:chapter, time: Date.now(), ops:
+      dbOperationQueue.push({type: 'save', story: story, chapter: chapter, time: Date.now(), ops:
         [{key_id: key, chunk: updatedBlock, place: index.toString()}]});
     });
   };
@@ -434,7 +437,7 @@ const Document = () => {
         blocksToPrep.push(content.getBlockForKey(key));
       });
       setEditorState(newEditorState);
-      prepBlocksForSave(content, blocksToPrep, currentStoryID, currentStoryChapterNumber);
+      prepBlocksForSave(content, blocksToPrep, selectedStory, selectedChapterNumber);
     }
     return getDefaultKeyBinding(event);
   };
@@ -549,7 +552,7 @@ const Document = () => {
     });
     const updatedEditorState = EditorState.push(newEditorState, newContent, 'change-block-data');
     setEditorState(updatedEditorState);
-    prepBlocksForSave(newContent, updatedBlocks, currentStoryID, currentStoryChapterNumber);
+    prepBlocksForSave(newContent, updatedBlocks, selectedStory, selectedChapterNumber);
     toggleNavButtonState(style);
   };
 
@@ -644,7 +647,7 @@ const Document = () => {
     return EditorState.push(newEditorState, content, 'change-block-data');
   };
 
-  const updateEditorState = (newEditorState, isPasteAction) => {  
+  const updateEditorState = (newEditorState, isPasteAction) => {
     resetNavButtonStates();
     const selection = newEditorState.getSelection();
     const block = newEditorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
@@ -726,8 +729,8 @@ const Document = () => {
       const deleteOp = {};
       deleteOp.type = 'delete';
       deleteOp.time = Date.now();
-      deleteOp.story=currentStoryID;
-      deleteOp.chapter=currentStoryChapterNumber;
+      deleteOp.story=selectedStory;
+      deleteOp.chapter=selectedChapterNumber;
       deleteOp.ops = [];
       blocksToDelete.forEach((blockKey) => {
         deleteOp.ops.push({key_id: blockKey});
@@ -741,7 +744,7 @@ const Document = () => {
       blocksToSave.forEach((key) => {
         blocksToPrep.push(updatedContent.getBlockForKey(key));
       });
-      prepBlocksForSave(updatedContent, blocksToPrep, currentStoryID, currentStoryChapterNumber);
+      prepBlocksForSave(updatedContent, blocksToPrep, selectedStory, selectedChapterNumber);
     }
 
     if (resyncRequired) {
@@ -784,7 +787,7 @@ const Document = () => {
       blocksToPrep.push(newContentState.getBlockForKey(key));
     });
     setEditorState(EditorState.push(editorState, newContentState, 'change-block-data'));
-    prepBlocksForSave(newContentState, blocksToPrep, currentStoryID, currentStoryChapterNumber);
+    prepBlocksForSave(newContentState, blocksToPrep, selectedStory, selectedChapterNumber);
     toggleNavButtonState(alignment);
   };
 
@@ -794,10 +797,10 @@ const Document = () => {
 
   return (
     <div>
-      <AssociationUI open={associationWindowOpen} association={viewingAssociation} story={currentStoryID} onEditCallback={onAssociationEdit} onClose={()=>{setAssociationWindowOpen(false);}} />
+      <AssociationUI open={associationWindowOpen} association={viewingAssociation} story={selectedStory} onEditCallback={onAssociationEdit} onClose={()=>{setAssociationWindowOpen(false);}} />
       <div className="title_info">
-        <h2>{decodeURIComponent(currentStoryID)}</h2>
-        <h3>{currentStoryChapterTitle}</h3>
+        <h2>{decodeURIComponent(selectedStory)}</h2>
+        <h3>{selectedChapterTitle}</h3>
       </div>
       <nav className="rich-controls">
         <span className="controls-row">

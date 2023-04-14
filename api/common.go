@@ -74,6 +74,13 @@ type BlocksData struct {
 	Items         []map[string]types.AttributeValue `json:"items"`
 }
 
+type Series struct {
+	SeriesTitle string    `json:"series_title" dynamodbav:"series_title"`
+	StoryTitle  string    `json:"story_title" dynamodbav:"story_title"`
+	CreatedAt   time.Time `json:"created_at" dynamodbav:"created_at"`
+	Place       int       `json:"place" dynamodbav:"place"`
+}
+
 func init() {
 	var (
 		awsCfg aws.Config
