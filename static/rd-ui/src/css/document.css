@@ -40,6 +40,10 @@ nav.rich-controls button.active {
     background-color: gray;
 }
 
+nav.rich-controls .exit-btn {
+    float:right;
+}
+
 div.DraftEditor-root {
     border: 1px solid #000;
     border-radius:10px;

@@ -7,7 +7,7 @@ import 'draft-js/dist/Draft.css';
 import '../../css/document.css';
 import {Menu, Item, Submenu, useContextMenu} from 'react-contexify';
 import 'react-contexify/ReactContexify.css';
-import {useSelector} from 'react-redux';
+import {useSelector, useDispatch} from 'react-redux';
 import {setDBOperationInterval} from '../../stores/dbOperationIntervalSlice';
 import {FindHighlightable, HighlightSpan, FindTabs, TabSpan} from './decorators';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
@@ -15,6 +15,10 @@ import {faAlignLeft} from '@fortawesome/free-solid-svg-icons';
 import {faAlignCenter} from '@fortawesome/free-solid-svg-icons';
 import {faAlignRight} from '@fortawesome/free-solid-svg-icons';
 import {faAlignJustify} from '@fortawesome/free-solid-svg-icons';
+import CloseIcon from '@mui/icons-material/Close';
+import { IconButton } from '@mui/material';
+import { setSelectedSeries } from '../../stores/selectedSeriesSlice.js';
+import { setSelectedStory } from '../../stores/selectedStorySlice.js';
 
 const ASSOCIATION_TYPE_CHARACTER = 'character';
 const ASSOCIATION_TYPE_EVENT = 'event';
@@ -58,6 +62,8 @@ const Document = () => {
   const [currentStrikethroughState, setCurrentStrikethroughState] = useState(false);
   const [associationWindowOpen, setAssociationWindowOpen] = useState(false);
   const [viewingAssociation, setViewingAssociation] = useState(null);
+
+  const dispatch = useDispatch();
 
 
   let lastRetrievedBlockKey = '';
@@ -795,6 +801,13 @@ const Document = () => {
     console.log('saving', association);
   };
 
+  const onExitDocument = () => {
+    dispatch(setSelectedSeries(null));
+    dispatch(setSelectedStory(null));
+    const history = window.history;
+    history.pushState("root", 'exited story', '/');
+  };
+
   return (
     <div>
       <AssociationUI open={associationWindowOpen} association={viewingAssociation} story={selectedStory} onEditCallback={onAssociationEdit} onClose={()=>{setAssociationWindowOpen(false);}} />
@@ -803,18 +816,27 @@ const Document = () => {
         <h3>{selectedChapterTitle}</h3>
       </div>
       <nav className="rich-controls">
-        <span className="controls-row">
-          <button className={currentBoldState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'BOLD');}}><b>B</b></button>
-          <button className={currentItalicsState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'ITALIC');}}><i>I</i></button>
-          <button className={currentUnderscoreState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'UNDERLINE');}}><u>U</u></button>
-          <button className={currentStrikethroughState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'STRIKETHROUGH');}}><s>S</s></button>
-        </span>
-        <span className="controls-row">
-          <button className={currentBlockAlignment === 'LEFT' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'LEFT');}}><FontAwesomeIcon icon={faAlignLeft} /></button>
-          <button className={currentBlockAlignment === 'CENTER' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'CENTER');}}><FontAwesomeIcon icon={faAlignCenter} /></button>
-          <button className={currentBlockAlignment === 'RIGHT' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'RIGHT');}}><FontAwesomeIcon icon={faAlignRight} /></button>
-          <button className={currentBlockAlignment === 'JUSTIFY' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'JUSTIFY');}}><FontAwesomeIcon icon={faAlignJustify} /></button>
-        </span>
+        <div>
+          <span className="controls-row">
+            <button className={currentBoldState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'BOLD');}}><b>B</b></button>
+            <button className={currentItalicsState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'ITALIC');}}><i>I</i></button>
+            <button className={currentUnderscoreState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'UNDERLINE');}}><u>U</u></button>
+            <button className={currentStrikethroughState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'STRIKETHROUGH');}}><s>S</s></button>
+          </span>
+          <span className="controls-row">
+            <button className={currentBlockAlignment === 'LEFT' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'LEFT');}}><FontAwesomeIcon icon={faAlignLeft} /></button>
+            <button className={currentBlockAlignment === 'CENTER' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'CENTER');}}><FontAwesomeIcon icon={faAlignCenter} /></button>
+            <button className={currentBlockAlignment === 'RIGHT' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'RIGHT');}}><FontAwesomeIcon icon={faAlignRight} /></button>
+            <button className={currentBlockAlignment === 'JUSTIFY' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'JUSTIFY');}}><FontAwesomeIcon icon={faAlignJustify} /></button>
+          </span>
+          <span className="exit-btn">
+          <IconButton aria-label="exit" component="label" onClick={onExitDocument}>
+            <CloseIcon sx={{
+              color:'#F0F0F0'
+            }}/>
+          </IconButton>
+          </span>
+        </div>
       </nav>
       <section className="editor_container" onContextMenu={handleTextualContextMenu} onClick={setFocus} onScroll={handleScroll} >
         <Editor
