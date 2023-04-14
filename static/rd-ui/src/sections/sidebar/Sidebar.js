@@ -33,51 +33,9 @@ const Sidebar = (props) => {
 
   const dispatch = useDispatch();
 
-  const getStories = () => {
-    fetch('/api/stories')
-        .then((response) => {
-          if (response.ok) {
-            return response.json();
-          }
-          throw new Error('Fetch problem stories ' + response.status);
-        })
-        .then((data) => {
-          const stories = new Map();
-          Object.keys(data.series).forEach((series) => {
-            stories.set(series, []);
-            data.series[series].forEach((story) => {
-              stories.get(series).push({
-                series: series,
-                key: story.title,
-                label: story.title,
-                place: story.place,
-                created_at: story.created_at,
-                chapters: story.chapters
-              });
-            });
-          });
-          Object.keys(data.standalone).forEach((story) => {
-            stories.set(story, {
-              key: data.standalone[story][0].title,
-              label: data.standalone[story][0].title,
-              place: data.standalone[story][0].place,
-              created_at: data.standalone[story][0].created_at,
-              chapters: data.standalone[story][0].chapters
-            });
-          });
-          setStories(stories);
-        }).catch((error) => {
-          console.error('get stories', error);
-        });
-  };
   useEffect(() => {
-    if (isLoggedIn || refreshStoryList) {
-      getStories();
-      if (refreshStoryList) {
-        dispatch(flipRefreshStoryList());
-      }
-    }
-  }, [isLoggedIn, refreshStoryList, dispatch]);
+
+  }, [isLoggedIn, dispatch]);
 
   const clickStory = (storyID, chapterNumber, chapterTitle) => {
     dispatch(setCurrentStoryID(encodeURIComponent(storyID)));
@@ -236,8 +194,6 @@ const Sidebar = (props) => {
     }).catch((error) => {
       console.error(error);
     });
-    
-
   };
 
   return (
@@ -246,81 +202,6 @@ const Sidebar = (props) => {
         <input className="checkbox-trigger" type="checkbox" onChange={() => {dispatch(flipMenuOpen());}} checked={isOpen} />
         <span className="menu-content">
           <TreeView aria-label="documents navigator" onNodeSelect={(event, nodeId) => {updateMenuExpandedNodes(nodeId);}} defaultCollapseIcon={<ExpandMoreIcon />} defaultExpandIcon={<ChevronRightIcon />} expanded={expanded} defaultExpanded={['story_label']}>
-            {isLoggedIn ?
-                        <TreeItem sx={materialStyles} key="story_label" nodeId="story_label" label="Stories" className="stories-parent">
-                          <TreeItem key="create_label" nodeId="create_label" label={
-                            <div onClick={()=>{createNewStory();}}>
-                              <Button size="small" variant="text" sx={{'fontWeight': 'bold', '&:hover': {opacity: 0.8}}}>New Story</Button>
-                              <IconButton edge="end" size="small" sx={{
-                                float: 'right',
-                                marginTop: '2px',
-                                marginRight: '0px',
-                              }}>
-                                <AddBoxIcon fontSize="small" sx={{color: '#a8d5b1'}}/>
-                              </IconButton>
-                            </div>
-                          }/>
-                          {
-                            [...stories.keys()].map((storyOrSeries) => {
-                              const entry = stories.get(storyOrSeries);
-                              return Array.isArray(entry) ?
-                                <TreeItem className="chapter-listing" key={storyOrSeries} label={
-                                  <div>
-                                    {storyOrSeries}
-                                    <FolderIcon aria-label="series" fontSize="small" sx={{float: 'right', color: '#a8d5b1'}}/>
-                                  </div>} nodeId={storyOrSeries}>
-                                  {
-                                    entry.map((seriesEntry) => {
-                                      return <TreeItem key={seriesEntry.key} label={seriesEntry.label} nodeId={seriesEntry.label}>
-                                        {
-                                          seriesEntry.chapters.map((chapter) => {
-                                            return <TreeItem className="chapter-entry" onClick={()=>clickStory(seriesEntry.key, chapter.chapter_num, chapter.chapter_title)} key={chapter.chapter_num} label={
-                                              <div>{chapter.chapter_title}
-                                                <IconButton aria-label="delete" size="small" sx={{
-                                                  'float': 'right',
-                                                  '&:hover': {
-                                                    opacity: 0.8,
-                                                    cursor: 'pointer'
-                                                  }
-                                                }} onClick={(e)=> {deleteChapter(e, seriesEntry.label, storyOrSeries, chapter.chapter_title, chapter.chapter_num);}}><DeleteIcon fontSize="small" className={'menu-icon'}/>
-                                                </IconButton>
-                                              </div>
-                                            } nodeId={chapter.chapter_title} />;
-                                          })
-                                        }
-                                        <EditableTreeItem isCreating={isCreatingNewChapter} toggleState={flipCreateChapterState} key={seriesEntry.key + '_create_chap'} nodeId={seriesEntry.key + '_create_chap'} onChange={(event)=>{
-                                          setNewChapterTitle(event, seriesEntry.key, storyOrSeries, parseInt(seriesEntry.chapters.length+1));
-                                        }} keyVal={seriesEntry.key} defaultVal={'Chapter ' + parseInt(seriesEntry.chapters.length+1)}/>
-                                      </TreeItem>;
-                                    })
-                                  }
-                                </TreeItem> :
-                                <TreeItem key={entry.key} nodeId={entry.key} className="chapter-listing" label={entry.label}>
-                                  {
-                                    entry.chapters.map((chapter) => {
-                                      return <TreeItem className="chapter-entry" onClick={()=>clickStory(entry.key, chapter.chapter_num, chapter.chapter_title)} key={chapter.chapter_num} label={
-                                        <div>{chapter.chapter_title}
-                                          <IconButton aria-label="delete" size="small" sx={{
-                                            'float': 'right',
-                                            '&:hover': {
-                                              opacity: 0.8,
-                                              cursor: 'pointer'
-                                            }
-                                          }} onClick={(e)=> {deleteChapter(e, entry.label, null, chapter.chapter_title, chapter.chapter_num);}}><DeleteIcon fontSize="small"/>
-                                          </IconButton>
-                                        </div>
-                                      } nodeId={chapter.chapter_title} />;
-                                    })
-                                  }
-                                  <EditableTreeItem isCreating={isCreatingNewChapter} toggleState={flipCreateChapterState} key={entry.key + '_create_chap'} nodeId={entry.key + '_create_chap'} onChange={(event)=>{
-                                    setNewChapterTitle(event, entry.key, null, parseInt(entry.chapters.length+1));
-                                  }} keyVal={entry.key} defaultVal={'Chapter ' + parseInt(entry.chapters.length+1)}/>
-                                </TreeItem>;
-                            })
-                          }
-                        </TreeItem> :
-                        ''
-            }
             {!isLoggedIn ?
               <TreeItem key="login" nodeId="login" label="Sign In">
                 <TreeItem key="google" nodeId="google" label="Google" icon={<LoginIcon/>} onClick={signin}/>

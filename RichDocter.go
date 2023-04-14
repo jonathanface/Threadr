@@ -125,8 +125,9 @@ func main() {
 
 	// GETs
 	apiPath.HandleFunc("/user", api.GetUserData).Methods("GET", "OPTIONS")
-	apiPath.HandleFunc("/stories", api.AllStoriesEndPoint).Methods("GET", "OPTIONS")
+	apiPath.HandleFunc("/stories", api.AllStandaloneStoriesEndPoint).Methods("GET", "OPTIONS")
 	apiPath.HandleFunc("/stories/{story}", api.StoryEndPoint).Methods("GET", "OPTIONS")
+	apiPath.HandleFunc("/stories/{story}/content", api.StoryBlocksEndPoint).Methods("GET", "OPTIONS")
 	apiPath.HandleFunc("/stories/{story}/associations", api.AllAssociationsByStoryEndPoint).Methods("GET", "OPTIONS")
 	apiPath.HandleFunc("/series", api.AllSeriesEndPoint).Methods("GET", "OPTIONS")
 

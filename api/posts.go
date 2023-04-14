@@ -5,12 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -196,33 +194,34 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing story description")
 		return
 	}
-	now := strconv.FormatInt(time.Now().Unix(), 10)
+	//now := strconv.FormatInt(time.Now().Unix(), 10)
 	twii := &dynamodb.TransactWriteItemsInput{}
-	if len(story.Series) > 0 {
-		if story.Place <= 0 {
-			RespondWithError(w, http.StatusBadRequest, "Place must be > 0")
-			return
-		}
-		log.Println("creating series", story.Series)
-		twi := types.TransactWriteItem{
-			Update: &types.Update{
-				TableName: aws.String("series"),
-				Key: map[string]types.AttributeValue{
-					"series_title": &types.AttributeValueMemberS{Value: story.Series},
-					"author":       &types.AttributeValueMemberS{Value: email},
+	/*
+		if len(story.Series) > 0 {
+			if story.Place <= 0 {
+				RespondWithError(w, http.StatusBadRequest, "Place must be > 0")
+				return
+			}
+			log.Println("creating series", story.Series)
+			twi := types.TransactWriteItem{
+				Update: &types.Update{
+					TableName: aws.String("series"),
+					Key: map[string]types.AttributeValue{
+						"series_title": &types.AttributeValueMemberS{Value: story.Series},
+						"author":       &types.AttributeValueMemberS{Value: email},
+					},
+					//ConditionExpression: aws.String("attribute_not_exists(series_title)"),
+					UpdateExpression: aws.String("set created_at=if_not_exists(created_at,:t), story_count=if_not_exists(story_count, :initIncr) + :incr"),
+					ExpressionAttributeValues: map[string]types.AttributeValue{
+						":t":        &types.AttributeValueMemberN{Value: now},
+						":incr":     &types.AttributeValueMemberN{Value: "1"},
+						":initIncr": &types.AttributeValueMemberN{Value: "0"},
+					},
 				},
-				//ConditionExpression: aws.String("attribute_not_exists(series_title)"),
-				UpdateExpression: aws.String("set created_at=if_not_exists(created_at,:t), story_count=if_not_exists(story_count, :initIncr) + :incr"),
-				ExpressionAttributeValues: map[string]types.AttributeValue{
-					":t":        &types.AttributeValueMemberN{Value: now},
-					":incr":     &types.AttributeValueMemberN{Value: "1"},
-					":initIncr": &types.AttributeValueMemberN{Value: "0"},
-				},
-			},
-		}
-		twii.TransactItems = append(twii.TransactItems, twi)
-	}
-	place := strconv.Itoa(story.Place)
+			}
+			twii.TransactItems = append(twii.TransactItems, twi)
+		}*/
+
 	twi := types.TransactWriteItem{
 		Update: &types.Update{
 			TableName: aws.String("stories"),
@@ -234,8 +233,8 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 			UpdateExpression:    aws.String("set description=:descr, series=:srs, place_in_series=:p"),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
 				":descr": &types.AttributeValueMemberS{Value: story.Description},
-				":srs":   &types.AttributeValueMemberS{Value: story.Series},
-				":p":     &types.AttributeValueMemberN{Value: place},
+				//":srs":   &types.AttributeValueMemberS{Value: story.Series},
+				//":p":     &types.AttributeValueMemberN{Value: place},
 			},
 		},
 	}

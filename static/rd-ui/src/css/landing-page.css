@@ -1,12 +1,20 @@
 
 .landing-page {
     color:#FFF;
+    text-align: center;
 }
-.landing-page h1, h2, h3 {
+.landing-page h2 {
+    text-align: left;
+    margin: 0 auto;
+    max-width:900px;
     filter: drop-shadow(2px 2px 2px #1a1a1a);
+    margin-bottom: 20px;
+    margin-top: 40px;
 }
 
-.landing-page img {
-    max-width:400px;
-    filter: drop-shadow(2px 2px 2px #1a1a1a);
+
+.landing-page .icon-box {
+    display:flex;
+    margin: 0 auto;
+    max-width:900px;
 }
