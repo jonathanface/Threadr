@@ -163,7 +163,7 @@ const Document = () => {
     return content;
   };
 
-  const getBatchedStoryBlocks = (startKey) => {
+  const getBatchedStoryBlocks = async(startKey) => {
     return fetch('/api/stories/' + selectedStoryTitle + '/content?key=' + startKey + '&chapter=' + selectedChapterNumber).then((response) => {
       if (response.ok) {
         return response.json();
@@ -283,6 +283,7 @@ const Document = () => {
       throw new Error(response.status);
     }).then((data) => {
       setChapters(data.chapters);
+      setSelectedChapterTitle(data.chapters.find(chapter => chapter.chapter_num === selectedChapterNumber).chapter_title);
     });
   }
 
