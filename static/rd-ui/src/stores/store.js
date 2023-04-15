@@ -9,7 +9,7 @@ import menuOpenSlice from './toggleMenuOpenSlice';
 export default configureStore({
   reducer: {
     isLoggedIn: loggedInSlice,
-    selectedStory: selectedStorySlice,
+    selectedStoryTitle: selectedStorySlice,
     selectedSeries: selectedSeriesSlice,
     isCreatingNewStory: creatingNewStorySlice,
     refreshStoryList: refreshStoryListSlice,

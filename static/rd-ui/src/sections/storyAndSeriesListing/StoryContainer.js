@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from 'react';
-import {setSelectedStory} from '../../stores/selectedStorySlice';
+import {setSelectedStoryTitle} from '../../stores/selectedStorySlice';
 import {setSelectedSeries} from '../../stores/selectedSeriesSlice';
 import {useDispatch} from 'react-redux';
 import '../../css/story-container.css';
@@ -24,7 +24,7 @@ const StoryContainer = (props) => {
     const title = props.title;
     if (props.series === false) {
       dispatch(setSelectedSeries(null));
-      dispatch(setSelectedStory(encodeURIComponent(props.title)));
+      dispatch(setSelectedStoryTitle(encodeURIComponent(props.title)));
       history.pushState({title}, 'clicked story', '/story/' + encodeURIComponent(props.title) + '?chapter=1');
     } else {
       dispatch(setSelectedSeries(encodeURIComponent(props.title)));

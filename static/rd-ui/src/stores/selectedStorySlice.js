@@ -1,17 +1,17 @@
 import {createSlice} from '@reduxjs/toolkit';
 
 export const selectedStorySlice = createSlice({
-  name: 'selectedStory',
+  name: 'selectedStoryTitle',
   initialState: {
     value: null
   },
   reducers: {
-    setSelectedStory: (state, action) => {
+    setSelectedStoryTitle: (state, action) => {
       state.value = action.payload;
     }
   }
 });
 
-export const {setSelectedStory} = selectedStorySlice.actions;
+export const {setSelectedStoryTitle} = selectedStorySlice.actions;
 
 export default selectedStorySlice.reducer;

@@ -196,8 +196,6 @@ func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	fmt.Println("stories", stories)
-
 	var outChaps *dynamodb.QueryOutput
 	for i := 0; i < len(stories); i++ {
 		queryInput := &dynamodb.QueryInput{
