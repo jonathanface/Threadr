@@ -49,10 +49,17 @@ type StoryBlocks struct {
 	Blocks  []StoryBlock `json:"blocks" dynamodbav:"blocks"`
 }
 
+type AssociationDetails struct {
+	ExtendedDescription string `json:"extended_description" dynamodbav:"extended_description"`
+	CaseSensitive       bool   `json:"case_sensitive" dynamodbav:"case_sensitive"`
+}
+
 type Association struct {
-	Name     string `json:"association_name" dynamodbav:"association_name"`
-	Type     string `json:"association_type" dynamodbav:"association_type"`
-	Portrait string `json:"portrait" dynamodbav:"portrait"`
+	Name             string             `json:"association_name" dynamodbav:"association_name"`
+	Type             string             `json:"association_type" dynamodbav:"association_type"`
+	Portrait         string             `json:"portrait" dynamodbav:"portrait"`
+	ShortDescription string             `json:"short_description" dynamodbav:"short_description"`
+	Details          AssociationDetails `json:"details"`
 }
 
 type Chapter struct {

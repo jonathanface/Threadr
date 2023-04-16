@@ -9,11 +9,11 @@ import InlineEdit from '../../utils/InlineEdit';
 import MultilineEdit from '../../utils/MultilineEdit';
 
 const AssociationUI = (props) => {
-  const [caseSensitive, setCaseSensitive] = useState(!props.association ? false : props.association.details.caseSensitive.Value);
+  const [caseSensitive, setCaseSensitive] = useState(!props.association ? false : props.association.details.case_sensitive);
   const [headerText, setHeaderText] = useState('Unknown');
   const [description, setDescription] = useState('Here you can put a basic description.\nShift+Enter for new lines');
   const [details, setDetails] = useState('Here you can put some extended details.\nShift+Enter for new lines');
-  const [imageURL, setImageURL] = useState(!props.association ? './img/default_association_portrait.jpg' : props.association.portrait.Value);
+  const [imageURL, setImageURL] = useState(!props.association ? './img/default_association_portrait.jpg' : props.association.portrait);
 
   const handleClose = () => {
     props.onClose();
@@ -36,11 +36,14 @@ const AssociationUI = (props) => {
         formData.append('file', file);
         fetch('/api/stories/' + props.story + '/associations/' + props.association.association_name + '/upload?type=' + props.association.association_type,
             {method: 'PUT', body: formData}
-        ).then((response) => response.json())
-            .then((data) => {
-              setImageURL(data.url + '?date='+Date.now());
-            })
-            .catch((error) => console.error(error));
+        ).then((response) => {
+          if (response.ok) {
+            return response.json();
+          }
+          throw new Error('Fetch problem image upload ' + response.status);
+        }).then((data) => {
+          setImageURL(data.url + '?date='+Date.now());
+         }).catch((error) => console.error(error));
       };
       reader.readAsArrayBuffer(file);
     });
@@ -50,31 +53,48 @@ const AssociationUI = (props) => {
 
   useEffect(() => {
     if (props.association) {
-      setCaseSensitive(props.association.details.caseSensitive.Value);
+      setCaseSensitive(props.association.details.case_sensitive);
       setHeaderText(props.association.association_name);
-      setImageURL(props.association.portrait.Value);
+      setImageURL(props.association.portrait);
+      setDescription(props.association.short_description);
+      setDetails(props.association.details.extended_description);
     }
   }, [props.association]);
 
   const onAssociationEdit = (newValue, id) => {
     const newAssociation = props.association;
+    let saveRequired = false;
     switch (id) {
       case 'header':
-        setHeaderText(newValue);
-        newAssociation.association_name = newValue;
+        if (newValue !== headerText) {
+          setHeaderText(newValue);
+          newAssociation.association_name = newValue;
+          saveRequired = true;
+        }
         break;
       case 'case':
         setCaseSensitive(newValue);
-        newAssociation.details.caseSensitive.Value = newValue;
+        newAssociation.details.case_sensitive = newValue;
+        saveRequired = true;
         break;
       case 'description':
-        setDescription(newValue);
+        if (newValue !== description) {
+          setDescription(newValue);
+          newAssociation.short_description = newValue;
+          saveRequired = true;
+        }
         break;
       case 'details':
-        setDetails(newValue);
+        if (newValue !== details) {
+          setDetails(newValue);
+          newAssociation.details.extended_description = newValue;
+          saveRequired = true;
+        }
         break;
     }
-    props.onEditCallback(newAssociation);
+    if (saveRequired === true) {
+      props.onEditCallback(newAssociation);
+    }
   };
 
   return (

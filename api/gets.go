@@ -257,7 +257,35 @@ func AllAssociationsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	RespondWithJson(w, http.StatusOK, out.Items)
+	associations := []Association{}
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &associations); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	for i, v := range associations {
+		outDetails, err := AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
+			TableName:        aws.String("association_details"),
+			FilterExpression: aws.String("author=:eml AND story=:s AND association_name=:n"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":eml": &types.AttributeValueMemberS{Value: email},
+				":s":   &types.AttributeValueMemberS{Value: story},
+				":n":   &types.AttributeValueMemberS{Value: v.Name},
+			},
+		})
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		deets := []AssociationDetails{}
+		if err = attributevalue.UnmarshalListOfMaps(outDetails.Items, &deets); err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		associations[i].Details = deets[0]
+	}
+
+	RespondWithJson(w, http.StatusOK, associations)
 }
 
 func AllSeriesEndPoint(w http.ResponseWriter, r *http.Request) {

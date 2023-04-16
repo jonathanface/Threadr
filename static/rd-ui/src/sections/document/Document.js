@@ -105,17 +105,17 @@ const Document = () => {
         })
         .then((data) => {
           data.forEach((assoc) => {
-            if (assoc.association_name.Value.trim().length) {
+            if (assoc.association_name.trim().length) {
               associations.push(
                   {
-                    association_name: assoc.association_name.Value,
-                    association_type: assoc.association_type.Value,
+                    association_name: assoc.association_name,
+                    association_type: assoc.association_type,
                     portrait: assoc.portrait,
+                    short_description: assoc.short_description,
                     details: {
                       aliases: '',
-                      caseSensitive: assoc.case_sensitive,
-                      description: assoc.description,
-                      extendedDescription: assoc.extended_description
+                      case_sensitive: assoc.case_sensitive,
+                      extended_description: assoc.extended_description
                     }
                   }
               );
@@ -309,7 +309,7 @@ const Document = () => {
     return new Promise(async (resolve, reject) => {
       try {
         const params = {};
-        params.title = selectedStory;
+        params.title = selectedStoryTitle;
         params.chapter = selectedChapterNumber;
         params.blocks = [];
         let index = 0;
@@ -466,11 +466,18 @@ const Document = () => {
       portrait: '',
       details: {
         aliases: '',
-        caseSensitive: true,
-        description: '',
-        extendedDescription: '',
+        case_sensitive: true,
+        extended_description: '',
       }
     };
+  };
+
+  const onAssociationEdit = async(association) => {
+    console.log('editing', association);
+    const storedAssociation = await saveAssociationsToServer([association]);
+    const existingAssoc = associations.find(assoc => assoc.association_name === association.association_name &&
+      assoc.type === association.association_type);
+    associations[associations.indexOf(existingAssoc)] = storedAssociation;
   };
 
   const handleMenuItemClick = async ({id, event}) => {
@@ -480,7 +487,6 @@ const Document = () => {
       // check if !contains
       const newAssociation = formatBlankAssociation(id, text);
       const withSelection = setFocusAndRestoreCursor();
-
       try {
         const storedAssociation = await saveAssociationsToServer([newAssociation]);
         newAssociation.portrait = storedAssociation[0].portrait;
@@ -745,7 +751,7 @@ const Document = () => {
       const deleteOp = {};
       deleteOp.type = 'delete';
       deleteOp.time = Date.now();
-      deleteOp.story=selectedStory;
+      deleteOp.story=selectedStoryTitle;
       deleteOp.chapter=selectedChapterNumber;
       deleteOp.ops = [];
       blocksToDelete.forEach((blockKey) => {
@@ -805,10 +811,6 @@ const Document = () => {
     setEditorState(EditorState.push(editorState, newContentState, 'change-block-data'));
     prepBlocksForSave(newContentState, blocksToPrep, selectedStoryTitle, selectedChapterNumber);
     toggleNavButtonState(alignment);
-  };
-
-  const onAssociationEdit = (association) => {
-    console.log('saving', association);
   };
 
   const onExitDocument = () => {
