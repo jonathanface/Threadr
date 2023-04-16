@@ -7,7 +7,7 @@ import 'draft-js/dist/Draft.css';
 import '../../css/document.css';
 import {Menu, Item, Submenu, useContextMenu} from 'react-contexify';
 import 'react-contexify/ReactContexify.css';
-import {useSelector} from 'react-redux';
+import {useSelector, useDispatch} from 'react-redux';
 import {setDBOperationInterval} from '../../stores/dbOperationIntervalSlice';
 import {FindHighlightable, HighlightSpan, FindTabs, TabSpan} from './decorators';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
@@ -15,6 +15,11 @@ import {faAlignLeft} from '@fortawesome/free-solid-svg-icons';
 import {faAlignCenter} from '@fortawesome/free-solid-svg-icons';
 import {faAlignRight} from '@fortawesome/free-solid-svg-icons';
 import {faAlignJustify} from '@fortawesome/free-solid-svg-icons';
+import CloseIcon from '@mui/icons-material/Close';
+import { IconButton } from '@mui/material';
+import { setSelectedSeries } from '../../stores/selectedSeriesSlice.js';
+import { setSelectedStoryTitle } from '../../stores/selectedStorySlice.js';
+import { Sidebar, Menu as SideMenu, MenuItem, SubMenu, useProSidebar } from 'react-pro-sidebar';
 
 const ASSOCIATION_TYPE_CHARACTER = 'character';
 const ASSOCIATION_TYPE_EVENT = 'event';
@@ -43,10 +48,14 @@ const dbOperationQueue = [];
 
 const Document = () => {
   const domEditor = useRef(null);
-  const currentStoryID = useSelector((state) => state.currentStoryID.value);
-  const currentStoryChapterNumber = useSelector((state) => state.currentStoryChapterNumber.value);
-  const currentStoryChapterTitle = useSelector((state) => state.currentStoryChapterTitle.value);
+
+  const urlParams = new URLSearchParams(window.location.search);
+
+  const selectedStoryTitle = useSelector((state) => state.selectedStoryTitle.value);
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
+  const [selectedChapterNumber, setSelectedChapterNumber] = useState(urlParams.get('chapter') !== '' ? parseInt(urlParams.get('chapter')) : 1);
+  const [selectedChapterTitle, setSelectedChapterTitle] = useState('');
+  const [chapters, setChapters] = useState([]);
   const [currentRightClickedAssoc, setCurrentRightClickedAssoc] = useState(null);
   const [currentBlockAlignment, setCurrentBlockAlignment] = useState('LEFT');
   const [currentItalicsState, setCurrentItalicsState] = useState(false);
@@ -56,12 +65,13 @@ const Document = () => {
   const [associationWindowOpen, setAssociationWindowOpen] = useState(false);
   const [viewingAssociation, setViewingAssociation] = useState(null);
 
+  const {collapseSidebar, collapsed} = useProSidebar();
+  const dispatch = useDispatch();
 
   let lastRetrievedBlockKey = '';
-
   const createDecorators = () => {
     const decorators = new Array(associations.length);
-    associations.forEach((association) => { 
+    associations.forEach((association) => {
       decorators.push({
         strategy: FindHighlightable(association.association_type, association.association_name, associations),
         component: HighlightSpan,
@@ -85,7 +95,8 @@ const Document = () => {
   );
 
   const getAllAssociations = () => {
-    fetch('/api/stories/' + currentStoryID + '/associations')
+    associations.splice(0, associations.length);
+    fetch('/api/stories/' + selectedStoryTitle + '/associations')
         .then((response) => {
           if (response.ok) {
             return response.json();
@@ -94,19 +105,19 @@ const Document = () => {
         })
         .then((data) => {
           data.forEach((assoc) => {
-            if (assoc.association_name.Value.trim().length) {
+            if (assoc.association_name.trim().length) {
               associations.push(
-                {
-                  association_name: assoc.association_name.Value,
-                  association_type: assoc.association_type.Value,
-                  portrait: assoc.portrait,
-                  details: {
-                    aliases: '',
-                    caseSensitive: assoc.case_sensitive,
-                    description: assoc.description,
-                    extendedDescription: assoc.extended_description
+                  {
+                    association_name: assoc.association_name,
+                    association_type: assoc.association_type,
+                    portrait: assoc.portrait,
+                    short_description: assoc.short_description,
+                    details: {
+                      aliases: '',
+                      case_sensitive: assoc.case_sensitive,
+                      extended_description: assoc.extended_description
+                    }
                   }
-                }
               );
             }
           });
@@ -152,46 +163,48 @@ const Document = () => {
     return content;
   };
 
-  const getBatchedStoryBlocks = (startKey) => {
-    fetch('/api/stories/' + currentStoryID + '?key=' + startKey + '&chapter=' + currentStoryChapterNumber)
-        .then((response) => {
-          if (response.ok) {
-            return response.json();
-          }
-          throw new Error('Fetch problem blocks ' + response.status);
-        })
-        .then((data) => {
-          data.last_evaluated_key && data.last_evaluated_key.key_id.Value ? lastRetrievedBlockKey = data.last_evaluated_key.key_id.Value : lastRetrievedBlockKey = null;
-          // data.items.sort((a, b) => parseInt(a.place.Value) > parseInt(b.place.Value));
-          const newBlocks = [];
-          data.items.forEach((piece) => {
-            if (piece.chunk) {
-              const jsonBlock = JSON.parse(piece.chunk.Value);
-              const block = new ContentBlock({
-                characterList: jsonBlock.characterList,
-                depth: jsonBlock.depth,
-                key: piece.key_id.Value,
-                text: jsonBlock.text,
-                type: jsonBlock.type,
-                data: jsonBlock.data,
-              });
-              newBlocks.push(block);
-            }
+  const getBatchedStoryBlocks = async(startKey) => {
+    return fetch('/api/stories/' + selectedStoryTitle + '/content?key=' + startKey + '&chapter=' + selectedChapterNumber).then((response) => {
+      if (response.ok) {
+        return response.json();
+      }
+      throw new Error(response.status);
+    }).then((data) => {
+      data.last_evaluated_key && data.last_evaluated_key.key_id.Value ? lastRetrievedBlockKey = data.last_evaluated_key.key_id.Value : lastRetrievedBlockKey = null;
+      // data.items.sort((a, b) => parseInt(a.place.Value) > parseInt(b.place.Value));
+      const newBlocks = [];
+      data.items.forEach((piece) => {
+        if (piece.chunk) {
+          const jsonBlock = JSON.parse(piece.chunk.Value);
+          const block = new ContentBlock({
+            characterList: jsonBlock.characterList,
+            depth: jsonBlock.depth,
+            key: piece.key_id.Value,
+            text: jsonBlock.text,
+            type: jsonBlock.type,
+            data: jsonBlock.data,
           });
-          const contentState = {
-            entityMap: {},
-            blocks: newBlocks
-          };
-          let newContentState = convertFromRaw(contentState);
-          newBlocks.forEach((block) => {
-            if (block.getText().length) {
-              newContentState = processDBBlock(newContentState, block);
-            }
-          });
-          setEditorState(EditorState.createWithContent(newContentState, createDecorators(associations)));
-        }).catch((error) => {
-          console.error('get story blocks', error);
-        });
+          newBlocks.push(block);
+        }
+      });
+      const contentState = {
+        entityMap: {},
+        blocks: newBlocks
+      };
+      let newContentState = convertFromRaw(contentState);
+      newBlocks.forEach((block) => {
+        if (block.getText().length) {
+          newContentState = processDBBlock(newContentState, block);
+        }
+      });
+      setEditorState(EditorState.createWithContent(newContentState, createDecorators(associations)));
+    }).catch((error) => {
+      if (parseInt(error.message) !== 404) {
+        console.error('get story blocks', error);
+      } else {
+        setEditorState(EditorState.createEmpty(createDecorators(associations)));
+      }
+    });
   };
 
   const processDBQueue = async () => {
@@ -203,7 +216,7 @@ const Document = () => {
       switch (op.type) {
         case 'delete': {
           try {
-            deleteBlocksFromServer(FilterAndReduceDBOperations(dbOperationQueue, op, i));
+            deleteBlocksFromServer(FilterAndReduceDBOperations(dbOperationQueue, op, i), op.story, op.chapter);
           } catch (e) {
             console.error(e);
             if (e.indexOf('SERVER') > -1) {
@@ -215,7 +228,8 @@ const Document = () => {
         }
         case 'save': {
           try {
-            saveBlocksToServer(FilterAndReduceDBOperations(dbOperationQueue, op, i));
+            console.log('try', op);
+            saveBlocksToServer(FilterAndReduceDBOperations(dbOperationQueue, op, i), op.story, op.chapter);
           } catch (e) {
             console.error(e);
             if (e.indexOf('SERVER') > -1) {
@@ -261,38 +275,49 @@ const Document = () => {
     }
   };
 
+  const getStoryDetails = async() => {
+    return fetch('/api/stories/' + selectedStoryTitle).then((response) => {
+      if (response.ok) {
+        return response.json();
+      }
+      throw new Error(response.status);
+    }).then((data) => {
+      setChapters(data.chapters);
+      setSelectedChapterTitle(data.chapters.find(chapter => chapter.chapter_num === selectedChapterNumber).chapter_title);
+    });
+  }
+
   useEffect(() => {
-    if (isLoggedIn && currentStoryID) {
+    if (isLoggedIn && selectedStoryTitle) {
       setFocusAndRestoreCursor();
-      try {
+      getStoryDetails().then((response) => {
         getBatchedStoryBlocks('');
+        getAllAssociations();
+      });
+    }
+    setDBOperationInterval(setInterval(() => {
+      try {
+        processDBQueue();
       } catch (e) {
         console.error(e);
       }
-      setDBOperationInterval(setInterval(() => {
-        try {
-          processDBQueue();
-        } catch (e) {
-          console.error(e);
-        }
-      }, DB_OP_INTERVAL));
-      getAllAssociations();
-    }
-  }, [isLoggedIn, currentStoryID, currentStoryChapterNumber, lastRetrievedBlockKey]);
+    }, DB_OP_INTERVAL));
+    
+  }, [isLoggedIn, selectedStoryTitle, selectedChapterNumber, lastRetrievedBlockKey]);
 
   const syncBlockOrderMap = (blockList) => {
     return new Promise(async (resolve, reject) => {
       try {
         const params = {};
-        params.title = currentStoryID;
-        params.chapter = currentStoryChapterNumber;
+        params.title = selectedStoryTitle;
+        params.chapter = selectedChapterNumber;
         params.blocks = [];
         let index = 0;
         blockList.forEach((block) => {
           params.blocks.push({key_id: block.getKey(), place: index.toString()});
           index++;
         });
-        const response = await fetch('/api/stories/' + currentStoryID + '/orderMap', {
+        const response = await fetch('/api/stories/' + selectedStoryTitle + '/orderMap', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
@@ -309,15 +334,15 @@ const Document = () => {
     });
   };
 
-  const deleteBlocksFromServer = (blocks) => {
+  const deleteBlocksFromServer = (blocks, story, chapter) => {
     return new Promise(async (resolve, reject) => {
       try {
         const params = {};
-        params.title = currentStoryID;
-        params.chapter = parseInt(currentStoryChapterNumber);
+        params.title = story;
+        params.chapter = parseInt(chapter);
         params.blocks = blocks;
         console.log('del', blocks);
-        const response = await fetch('/api/stories/' + currentStoryID + '/block', {
+        const response = await fetch('/api/stories/' + selectedStoryTitle + '/block', {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json'
@@ -334,15 +359,15 @@ const Document = () => {
     });
   };
 
-  const saveBlocksToServer = (blocks) => {
+  const saveBlocksToServer = (blocks, story, chapter) => {
     return new Promise(async (resolve, reject) => {
       try {
         const params = {};
-        params.title = currentStoryID;
-        params.chapter = currentStoryChapterNumber;
+        params.title = story;
+        params.chapter = parseInt(chapter);
         params.blocks = blocks;
         console.log('saving', blocks);
-        const response = await fetch('/api/stories/' + currentStoryID, {
+        const response = await fetch('/api/stories/' + story, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
@@ -363,7 +388,7 @@ const Document = () => {
     return new Promise(async (resolve, reject) => {
       try {
         console.log('saving associations', associations);
-        const response = await fetch('/api/stories/' + currentStoryID + '/associations', {
+        const response = await fetch('/api/stories/' + selectedStoryTitle + '/associations', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
@@ -383,7 +408,7 @@ const Document = () => {
   const deleteAssociationsFromServer = (associations) => {
     return new Promise(async (resolve, reject) => {
       try {
-        const response = await fetch('/api/stories/' + currentStoryID + '/associations', {
+        const response = await fetch('/api/stories/' + selectedStoryTitle + '/associations', {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json'
@@ -400,7 +425,7 @@ const Document = () => {
     });
   };
 
-  const prepBlocksForSave = (content, blocks) => {
+  const prepBlocksForSave = (content, blocks, story, chapter) => {
     blocks.forEach((block) => {
       const key = block.getKey();
       const index = content.getBlockMap().keySeq().findIndex((k) => k === key);
@@ -411,7 +436,8 @@ const Document = () => {
       });
       const newContent = Modifier.applyEntity(content, updatedSelection, null);
       const updatedBlock = newContent.getBlockForKey(key);
-      dbOperationQueue.push({type: 'save', time: Date.now(), ops: [{key_id: key, chunk: updatedBlock, place: index.toString()}]});
+      dbOperationQueue.push({type: 'save', story: story, chapter: chapter, time: Date.now(), ops:
+        [{key_id: key, chunk: updatedBlock, place: index.toString()}]});
     });
   };
 
@@ -427,7 +453,7 @@ const Document = () => {
         blocksToPrep.push(content.getBlockForKey(key));
       });
       setEditorState(newEditorState);
-      prepBlocksForSave(content, blocksToPrep);
+      prepBlocksForSave(content, blocksToPrep, selectedStoryTitle, selectedChapterNumber);
     }
     return getDefaultKeyBinding(event);
   };
@@ -436,25 +462,31 @@ const Document = () => {
     return {
       association_type: type,
       association_name: name,
-      short_description: "",
-      portrait: "",
+      short_description: '',
+      portrait: '',
       details: {
         aliases: '',
-        caseSensitive: true,
-        description: "",
-        extendedDescription: "",
+        case_sensitive: true,
+        extended_description: '',
       }
     };
   };
 
-  const handleMenuItemClick = async({id, event}) => {
+  const onAssociationEdit = async(association) => {
+    console.log('editing', association);
+    const storedAssociation = await saveAssociationsToServer([association]);
+    const existingAssoc = associations.find(assoc => assoc.association_name === association.association_name &&
+      assoc.type === association.association_type);
+    associations[associations.indexOf(existingAssoc)] = storedAssociation;
+  };
+
+  const handleMenuItemClick = async ({id, event}) => {
     const text = GetSelectedText(editorState);
     if (text.length) {
       event.preventDefault();
       // check if !contains
       const newAssociation = formatBlankAssociation(id, text);
       const withSelection = setFocusAndRestoreCursor();
-      
       try {
         const storedAssociation = await saveAssociationsToServer([newAssociation]);
         newAssociation.portrait = storedAssociation[0].portrait;
@@ -464,7 +496,6 @@ const Document = () => {
       } catch (e) {
         console.error(e);
       }
-      
     }
   };
 
@@ -529,7 +560,6 @@ const Document = () => {
       for (const entry in styleMap) {
         styles = GetStyleData(block, entry, styles);
       }
-      console.log('applying', styles);
       styles.forEach((style) => {
         const styleState = new SelectionState({
           anchorKey: key,
@@ -544,8 +574,8 @@ const Document = () => {
     });
     const updatedEditorState = EditorState.push(newEditorState, newContent, 'change-block-data');
     setEditorState(updatedEditorState);
-    prepBlocksForSave(newContent, updatedBlocks);
-    toggleNavButtonState(style);
+    prepBlocksForSave(newContent, updatedBlocks, selectedStoryTitle, selectedChapterNumber);
+    setNavButtonState(style);
   };
 
   const handleKeyCommand = (command) => {
@@ -590,22 +620,22 @@ const Document = () => {
     setCurrentBlockAlignment('LEFT');
   };
 
-  const toggleNavButtonState = (style) => {
+  const setNavButtonState = (style, value) => {
     switch (style) {
       case 'BOLD': {
-        setCurrentBoldState(!currentBoldState);
+        setCurrentBoldState(value);
         break;
       }
       case 'ITALIC': {
-        setCurrentItalicsState(!currentItalicsState);
+        setCurrentItalicsState(value);
         break;
       }
       case 'UNDERSCORE': {
-        setCurrentUnderscoreState(!currentUnderscoreState);
+        setCurrentUnderscoreState(value);
         break;
       }
       case 'STRIKETHROUGH': {
-        setCurrentStrikethroughState(!currentStrikethroughState);
+        setCurrentStrikethroughState(value);
         break;
       }
       case 'LEFT':
@@ -640,7 +670,6 @@ const Document = () => {
   };
 
   const updateEditorState = (newEditorState, isPasteAction) => {
-    // Cursor has moved but no text changes detected
     resetNavButtonStates();
     const selection = newEditorState.getSelection();
     const block = newEditorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
@@ -648,7 +677,9 @@ const Document = () => {
       const styles = GetStyleData(block, entry, []);
       styles.forEach((style) => {
         if (selection.hasEdgeWithin(block.getKey(), style.start, style.end)) {
-          toggleNavButtonState(style.style);
+          setNavButtonState(style.style, true);
+        } else {
+          setNavButtonState(style.style, false);
         }
       });
     }
@@ -656,6 +687,7 @@ const Document = () => {
     const alignment = data.getIn(['ALIGNMENT']) ? data.getIn(['ALIGNMENT']) : 'LEFT';
     setCurrentBlockAlignment(alignment);
 
+    // Cursor has moved but no text changes detected
     if (editorState.getCurrentContent() === newEditorState.getCurrentContent()) {
       console.log('cursor action');
       setEditorState(newEditorState);
@@ -719,6 +751,8 @@ const Document = () => {
       const deleteOp = {};
       deleteOp.type = 'delete';
       deleteOp.time = Date.now();
+      deleteOp.story=selectedStoryTitle;
+      deleteOp.chapter=selectedChapterNumber;
       deleteOp.ops = [];
       blocksToDelete.forEach((blockKey) => {
         deleteOp.ops.push({key_id: blockKey});
@@ -732,7 +766,7 @@ const Document = () => {
       blocksToSave.forEach((key) => {
         blocksToPrep.push(updatedContent.getBlockForKey(key));
       });
-      prepBlocksForSave(updatedContent, blocksToPrep);
+      prepBlocksForSave(updatedContent, blocksToPrep, selectedStoryTitle, selectedChapterNumber);
     }
 
     if (resyncRequired) {
@@ -775,34 +809,56 @@ const Document = () => {
       blocksToPrep.push(newContentState.getBlockForKey(key));
     });
     setEditorState(EditorState.push(editorState, newContentState, 'change-block-data'));
-    prepBlocksForSave(newContentState, blocksToPrep);
-    toggleNavButtonState(alignment);
+    prepBlocksForSave(newContentState, blocksToPrep, selectedStoryTitle, selectedChapterNumber);
+    setNavButtonState(alignment);
   };
 
-  const onAssociationEdit = (association) => {
-    console.log('saving', association);
+  const onExitDocument = () => {
+    dispatch(setSelectedSeries(null));
+    dispatch(setSelectedStoryTitle(null));
+    const history = window.history;
+    history.pushState("root", 'exited story', '/');
   };
+
+  const onExpandChapterMenu = () => {
+    console.log("exp", collapsed);
+    collapseSidebar(!collapsed)
+  }
+
+  const onChapterClick = (title, num) => {
+    setSelectedChapterNumber(num);
+    setSelectedChapterTitle(title);
+  }
 
   return (
     <div>
-      <AssociationUI open={associationWindowOpen} association={viewingAssociation} onEditCallback={onAssociationEdit} onClose={()=>{setAssociationWindowOpen(false);}} />
+      <AssociationUI open={associationWindowOpen} association={viewingAssociation} story={selectedStoryTitle} onEditCallback={onAssociationEdit} onClose={()=>{setAssociationWindowOpen(false);}} />
       <div className="title_info">
-        <h2>{decodeURIComponent(currentStoryID)}</h2>
-        <h3>{currentStoryChapterTitle}</h3>
+        <h2>{decodeURIComponent(selectedStoryTitle)}</h2>
+        <h3>{selectedChapterTitle}</h3>
       </div>
       <nav className="rich-controls">
-        <span className="controls-row">
-          <button className={currentBoldState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'BOLD');}}><b>B</b></button>
-          <button className={currentItalicsState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'ITALIC');}}><i>I</i></button>
-          <button className={currentUnderscoreState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'UNDERLINE');}}><u>U</u></button>
-          <button className={currentStrikethroughState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'STRIKETHROUGH');}}><s>S</s></button>
-        </span>
-        <span className="controls-row">
-          <button className={currentBlockAlignment === 'LEFT' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'LEFT');}}><FontAwesomeIcon icon={faAlignLeft} /></button>
-          <button className={currentBlockAlignment === 'CENTER' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'CENTER');}}><FontAwesomeIcon icon={faAlignCenter} /></button>
-          <button className={currentBlockAlignment === 'RIGHT' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'RIGHT');}}><FontAwesomeIcon icon={faAlignRight} /></button>
-          <button className={currentBlockAlignment === 'JUSTIFY' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'JUSTIFY');}}><FontAwesomeIcon icon={faAlignJustify} /></button>
-        </span>
+        <div>
+          <span className="controls-row">
+            <button className={currentBoldState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'BOLD');}}><b>B</b></button>
+            <button className={currentItalicsState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'ITALIC');}}><i>I</i></button>
+            <button className={currentUnderscoreState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'UNDERLINE');}}><u>U</u></button>
+            <button className={currentStrikethroughState ? 'active': ''} onMouseDown={(e) => {handleStyleClick(e, 'STRIKETHROUGH');}}><s>S</s></button>
+          </span>
+          <span className="controls-row">
+            <button className={currentBlockAlignment === 'LEFT' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'LEFT');}}><FontAwesomeIcon icon={faAlignLeft} /></button>
+            <button className={currentBlockAlignment === 'CENTER' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'CENTER');}}><FontAwesomeIcon icon={faAlignCenter} /></button>
+            <button className={currentBlockAlignment === 'RIGHT' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'RIGHT');}}><FontAwesomeIcon icon={faAlignRight} /></button>
+            <button className={currentBlockAlignment === 'JUSTIFY' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'JUSTIFY');}}><FontAwesomeIcon icon={faAlignJustify} /></button>
+          </span>
+          <span className="exit-btn">
+          <IconButton aria-label="exit" component="label" onClick={onExitDocument}>
+            <CloseIcon sx={{
+              color:'#F0F0F0'
+            }}/>
+          </IconButton>
+          </span>
+        </div>
       </nav>
       <section className="editor_container" onContextMenu={handleTextualContextMenu} onClick={setFocus} onScroll={handleScroll} >
         <Editor
@@ -827,6 +883,18 @@ const Document = () => {
       <Menu id="association_context">
         <Item onClick={handleDeleteAssociationClick}>Delete Association</Item>
       </Menu>
+      <div className="sidebar-container">
+        <div className="handle" onClick={onExpandChapterMenu}>chapters</div>
+        <Sidebar rtl={true} collapsedWidth={0} defaultCollapsed={true}>
+          <SideMenu>
+            {
+              chapters.map((chapter, idx) => {
+                return <MenuItem key={idx} className={chapter.chapter_num === selectedChapterNumber ? "active":""} onClick={()=>onChapterClick(chapter.chapter_title, chapter.chapter_num)}>{chapter.chapter_title}</MenuItem>
+              })
+            }
+          </SideMenu>
+        </Sidebar>;
+      </div>
     </div>);
 };
 

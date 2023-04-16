@@ -1,18 +1,16 @@
 import {configureStore} from '@reduxjs/toolkit';
 import loggedInSlice from './loggedInSlice';
-import currentStorySlice from './currentStorySlice';
+import selectedStorySlice from './selectedStorySlice';
+import selectedSeriesSlice from './selectedSeriesSlice';
 import creatingNewStorySlice from './creatingNewStorySlice';
 import refreshStoryListSlice from './refreshStoryListSlice';
 import menuOpenSlice from './toggleMenuOpenSlice';
-import currentStoryChapterNumberSlice from './currentStoryChapterNumberSlice';
-import currentStoryChapterTitleSlice from './currentStoryChapterTitleSlice';
 
 export default configureStore({
   reducer: {
     isLoggedIn: loggedInSlice,
-    currentStoryID: currentStorySlice,
-    currentStoryChapterNumber: currentStoryChapterNumberSlice,
-    currentStoryChapterTitle: currentStoryChapterTitleSlice,
+    selectedStoryTitle: selectedStorySlice,
+    selectedSeries: selectedSeriesSlice,
     isCreatingNewStory: creatingNewStorySlice,
     refreshStoryList: refreshStoryListSlice,
     isMenuOpen: menuOpenSlice,

@@ -32,6 +32,7 @@ const (
 	S3_PORTRAIT_BASE_URL        = "https://richdocterportraits.s3.amazonaws.com/"
 	S3_LOCATION_BASE_URL        = "https://richdocterlocations.s3.amazonaws.com/"
 	S3_EVENT_BASE_URL           = "https://richdocterevents.s3.amazonaws.com/"
+	S3_CUSTOM_PORTRAIT_BUCKET   = "richdocter-custom-portraits"
 	MAX_DEFAULT_PORTRAIT_IMAGES = 50
 	MAX_DEFAULT_LOCATION_IMAGES = 20
 	MAX_DEFAULT_EVENT_IMAGES    = 20
@@ -48,10 +49,17 @@ type StoryBlocks struct {
 	Blocks  []StoryBlock `json:"blocks" dynamodbav:"blocks"`
 }
 
+type AssociationDetails struct {
+	ExtendedDescription string `json:"extended_description" dynamodbav:"extended_description"`
+	CaseSensitive       bool   `json:"case_sensitive" dynamodbav:"case_sensitive"`
+}
+
 type Association struct {
-	Name     string `json:"association_name" dynamodbav:"association_name"`
-	Type     string `json:"association_type" dynamodbav:"association_type"`
-	Portrait string `json:"portrait" dynamodbav:"portrait"`
+	Name             string             `json:"association_name" dynamodbav:"association_name"`
+	Type             string             `json:"association_type" dynamodbav:"association_type"`
+	Portrait         string             `json:"portrait" dynamodbav:"portrait"`
+	ShortDescription string             `json:"short_description" dynamodbav:"short_description"`
+	Details          AssociationDetails `json:"details"`
 }
 
 type Chapter struct {
@@ -64,14 +72,20 @@ type Story struct {
 	CreatedAt   int       `json:"created_at" dynamodbav:"created_at"`
 	Title       string    `json:"title" dynamodbav:"story_title"`
 	Description string    `json:"description" dynamodbav:"description"`
-	Series      string    `json:"series" dynamodbav:"series"`
-	Place       int       `json:"place" dynamodbav:"place_in_series"`
+	Series      bool      `json:"series" dynamodbav:"series"`
 	Chapters    []Chapter `json:"chapters"`
 }
 type BlocksData struct {
 	LastEvaluated map[string]types.AttributeValue   `json:"last_evaluated_key"`
 	ScannedCount  int32                             `json:"scanned_count"`
 	Items         []map[string]types.AttributeValue `json:"items"`
+}
+
+type Series struct {
+	SeriesTitle string    `json:"series_title" dynamodbav:"series_title"`
+	StoryTitle  string    `json:"story_title" dynamodbav:"story_title"`
+	CreatedAt   time.Time `json:"created_at" dynamodbav:"created_at"`
+	Place       int       `json:"place" dynamodbav:"place"`
 }
 
 func init() {

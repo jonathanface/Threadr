@@ -18,7 +18,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
+func StoryBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 	startKey := r.URL.Query().Get("key")
 	chapter := r.URL.Query().Get("chapter")
 	var (
@@ -102,7 +102,73 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	RespondWithJson(w, http.StatusOK, blocks)
 }
 
-func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
+func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
+	var (
+		email string
+		err   error
+		story string
+	)
+	if email, err = getUserEmail(r); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if story, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
+		return
+	}
+	if story == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing story name")
+		return
+	}
+
+	out, err := AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName:        aws.String("stories"),
+		FilterExpression: aws.String("author=:eml AND story_title=:s"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":eml": &types.AttributeValueMemberS{Value: email},
+			":s":   &types.AttributeValueMemberS{Value: story},
+		},
+	})
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	storyObj := []Story{}
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &storyObj); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	fmt.Println("stories", storyObj)
+	var outChaps *dynamodb.QueryOutput
+	queryInput := &dynamodb.QueryInput{
+		TableName:              aws.String("chapters"),
+		IndexName:              aws.String("story_title-chapter_num-index"),
+		KeyConditionExpression: aws.String("chapter_num > :cn AND story_title=:s"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":cn": &types.AttributeValueMemberN{
+				Value: "-1",
+			},
+			":s": &types.AttributeValueMemberS{
+				Value: story,
+			},
+		},
+	}
+
+	if outChaps, err = AwsClient.Query(context.TODO(), queryInput); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	chapters := []Chapter{}
+	if err = attributevalue.UnmarshalListOfMaps(outChaps.Items, &chapters); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	storyObj[0].Chapters = chapters
+	RespondWithJson(w, http.StatusOK, storyObj[0])
+}
+
+func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		email string
 		err   error
@@ -114,9 +180,10 @@ func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 	//todo transactionify
 	out, err := AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("stories"),
-		FilterExpression: aws.String("contains(author, :eml)"),
+		FilterExpression: aws.String("author=:eml AND series=:f"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
+			":f":   &types.AttributeValueMemberBOOL{Value: false},
 		},
 	})
 	if err != nil {
@@ -129,8 +196,6 @@ func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	fmt.Println("stories", stories)
-
 	var outChaps *dynamodb.QueryOutput
 	for i := 0; i < len(stories); i++ {
 		queryInput := &dynamodb.QueryInput{
@@ -158,23 +223,7 @@ func AllStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		}
 		stories[i].Chapters = chapters
 	}
-	groupedStories := map[string]map[string][]Story{
-		"series":     make(map[string][]Story),
-		"standalone": make(map[string][]Story),
-	}
-	for _, story := range stories {
-		if story.Series != "" {
-			series, exists := groupedStories["series"][story.Series]
-			if exists {
-				groupedStories["series"][story.Series] = append(series, story)
-			} else {
-				groupedStories["series"][story.Series] = []Story{story}
-			}
-		} else {
-			groupedStories["standalone"][story.Title] = append(groupedStories["standalone"][story.Title], story)
-		}
-	}
-	RespondWithJson(w, http.StatusOK, groupedStories)
+	RespondWithJson(w, http.StatusOK, stories)
 }
 
 func AllAssociationsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {
@@ -195,6 +244,7 @@ func AllAssociationsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing story name")
 		return
 	}
+
 	out, err := AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("associations"),
 		FilterExpression: aws.String("author=:eml AND story=:s"),
@@ -207,7 +257,35 @@ func AllAssociationsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	RespondWithJson(w, http.StatusOK, out.Items)
+	associations := []Association{}
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &associations); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	for i, v := range associations {
+		outDetails, err := AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
+			TableName:        aws.String("association_details"),
+			FilterExpression: aws.String("author=:eml AND story=:s AND association_name=:n"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":eml": &types.AttributeValueMemberS{Value: email},
+				":s":   &types.AttributeValueMemberS{Value: story},
+				":n":   &types.AttributeValueMemberS{Value: v.Name},
+			},
+		})
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		deets := []AssociationDetails{}
+		if err = attributevalue.UnmarshalListOfMaps(outDetails.Items, &deets); err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		associations[i].Details = deets[0]
+	}
+
+	RespondWithJson(w, http.StatusOK, associations)
 }
 
 func AllSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
@@ -219,18 +297,126 @@ func AllSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	out, err := AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
-		TableName:        aws.String("series"),
-		FilterExpression: aws.String("attribute_not_exists(deleted_at) AND contains(author, :eml)"),
+
+	var series *dynamodb.QueryOutput
+	queryInput := &dynamodb.QueryInput{
+		TableName:              aws.String("series"),
+		IndexName:              aws.String("author-place-index"),
+		KeyConditionExpression: aws.String("place > :p AND author=:eml"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":eml": &types.AttributeValueMemberS{Value: email},
+			":p": &types.AttributeValueMemberN{
+				Value: "-1",
+			},
+			":eml": &types.AttributeValueMemberS{
+				Value: email,
+			},
 		},
-	})
-	if err != nil {
+	}
+	if series, err = AwsClient.Query(context.TODO(), queryInput); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	RespondWithJson(w, http.StatusOK, out.Items)
+	RespondWithJson(w, http.StatusOK, series)
+}
+
+func AllStoriesInSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
+	var (
+		email  string
+		series string
+		err    error
+	)
+	if email, err = getUserEmail(r); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if series, err = url.PathUnescape(mux.Vars(r)["series"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing series name")
+		return
+	}
+	if series == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing series name")
+		return
+	}
+
+	queryInput := &dynamodb.QueryInput{
+		TableName:              aws.String("series"),
+		IndexName:              aws.String("author-place-index"),
+		KeyConditionExpression: aws.String("place > :p AND author=:eml"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":p": &types.AttributeValueMemberN{
+				Value: "-1",
+			},
+			":eml": &types.AttributeValueMemberS{
+				Value: email,
+			},
+		},
+	}
+
+	var seriesOutput *dynamodb.QueryOutput
+	if seriesOutput, err = AwsClient.Query(context.TODO(), queryInput); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	var stories []Story
+
+	for _, seriesEntry := range seriesOutput.Items {
+		storyTitle := ""
+		if av, ok := seriesEntry["story_title"].(*types.AttributeValueMemberS); ok {
+			storyTitle = av.Value
+		} else {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		storiesOutput, err := AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
+			TableName:        aws.String("stories"),
+			FilterExpression: aws.String("author=:eml AND story_title=:s AND series=:t"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":eml": &types.AttributeValueMemberS{Value: email},
+				":s":   &types.AttributeValueMemberS{Value: storyTitle},
+				":t":   &types.AttributeValueMemberBOOL{Value: true},
+			},
+		})
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		story := []Story{}
+		if err = attributevalue.UnmarshalListOfMaps(storiesOutput.Items, &story); err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		var outChaps *dynamodb.QueryOutput
+		queryInput := &dynamodb.QueryInput{
+			TableName:              aws.String("chapters"),
+			IndexName:              aws.String("story_title-chapter_num-index"),
+			KeyConditionExpression: aws.String("chapter_num > :cn AND story_title=:s"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":cn": &types.AttributeValueMemberN{
+					Value: "-1",
+				},
+				":s": &types.AttributeValueMemberS{
+					Value: storyTitle,
+				},
+			},
+		}
+
+		if outChaps, err = AwsClient.Query(context.TODO(), queryInput); err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		chapters := []Chapter{}
+		if err = attributevalue.UnmarshalListOfMaps(outChaps.Items, &chapters); err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		story[0].Chapters = chapters
+
+		stories = append(stories, story[0])
+	}
+	RespondWithJson(w, http.StatusOK, stories)
 }
 
 type UserInfo struct {
