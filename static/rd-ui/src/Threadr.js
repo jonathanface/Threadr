@@ -10,14 +10,35 @@ import CreateNewStory from './sections/createNewStory/CreateNewStoryModal';
 import './css/main.css';
 import './css/sidebar.css'
 
+
+
 const Threadr = () => {
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
   const selectedStoryTitle = useSelector((state) => state.selectedStoryTitle.value);
   const selectedSeries = useSelector((state) => state.selectedSeries.value);
   const dispatch = useDispatch();
 
-  useEffect(() => {
+  const handleNavChange = () => {
+    const location = window.location.pathname;
+    console.log("changed", location);
+    const splitDirectories = location.split('/');
+    if (splitDirectories[1] === 'story' && splitDirectories[2].trim() !== '') {
+      dispatch(setSelectedSeries(null));
+      dispatch(setSelectedStoryTitle(decodeURIComponent(splitDirectories[2])));
+    } else if (splitDirectories[1] === 'series' && splitDirectories[2].trim() !== '') {
+      dispatch(setSelectedStoryTitle(null));
+      dispatch(setSelectedSeries(decodeURIComponent(splitDirectories[2])));
+    } else {
+      dispatch(setSelectedStoryTitle(null));
+      dispatch(setSelectedSeries(null));
+    }
+  }
 
+  useEffect(() => {
+    window.addEventListener("popstate", () => {
+      console.log("pop")
+      handleNavChange();
+    });
     fetch('/api/user').then((response) => {
       if (response.ok) {
         return response.json();
@@ -27,14 +48,9 @@ const Threadr = () => {
       console.error('ERROR', e);
     });
 
-    const location = window.location.pathname;
-    const splitDirectories = location.split('/');
-    if (splitDirectories[1] === 'story' && splitDirectories[2].trim() !== '') {
-      dispatch(setSelectedStoryTitle(decodeURIComponent(splitDirectories[2])));
-    }
-    if (splitDirectories[1] === 'series' && splitDirectories[2].trim() !== '') {
-      dispatch(setSelectedSeries(decodeURIComponent(splitDirectories[2])));
-    }
+    handleNavChange();
+    
+    return () => window.removeEventListener("popstate", handleEvent);
   }, [dispatch]);
 
   let displayComponent = <StoryAndSeriesListing/>;
