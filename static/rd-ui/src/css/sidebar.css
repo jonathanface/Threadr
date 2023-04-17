@@ -17,7 +17,7 @@
     border-left:none !important;
 }
 .sidebar-container .ps-sidebar-container {
-    background-color: rgba(53, 48, 68, 0.7);
+    background-color: #515d57;
 }
 .sidebar-container .ps-menuitem-root {
     border-top-left-radius: 10px;
@@ -27,7 +27,7 @@
     cursor:default;
 }
 .sidebar-container .ps-menuitem-root a:hover {
-    background-color:#2c2e46;
+    background-color:#40554b;
 }
 .sidebar-container .ps-menuitem-root:last-child {
     margin-top:10px;
@@ -36,7 +36,7 @@
     background-color:initial;
 }
 .sidebar-container .ps-menuitem-root.active {
-    background-color:#006880;
+    background-color: #2e5543;
     font-weight: bold;
 }
 .sidebar-container .ps-menuitem-root .menu-icon {
@@ -58,7 +58,7 @@
     flex-basis: 100%;
     flex: 1;
     font-size: 0.8rem;
-    background-color: rgba(53, 48, 68, 0.7);
+    background-color: #515d57;
     border-left: 1px solid #EFEFEF;
     padding: 10px;
     border-top-left-radius: 15px;

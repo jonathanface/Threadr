@@ -23,6 +23,7 @@ import { Sidebar, Menu as SideMenu, MenuItem, SubMenu, useProSidebar } from 'rea
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import Button from '@mui/material/Button';
+import '../../css/sidebar.css';
 
 const ASSOCIATION_TYPE_CHARACTER = 'character';
 const ASSOCIATION_TYPE_EVENT = 'event';

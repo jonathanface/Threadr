@@ -7,8 +7,10 @@ import {flipLoggedInState} from './stores/loggedInSlice';
 import {setSelectedStoryTitle} from './stores/selectedStorySlice';
 import {setSelectedSeries} from './stores/selectedSeriesSlice';
 import CreateNewStory from './sections/createNewStory/CreateNewStoryModal';
+import UserMenu from './sections/UserMenu/UserMenu';
 import './css/main.css';
-import './css/sidebar.css'
+import './css/user-menu.css';
+
 
 
 
@@ -61,6 +63,7 @@ const Threadr = () => {
   
   return (
     <div className="App">
+      <UserMenu />
       <main>
         {displayComponent}
         <CreateNewStory />
