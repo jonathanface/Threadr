@@ -28,7 +28,7 @@ const EditableTreeItem = (props) => {
             onKeyUp={(event)=>props.onChange(event)}
             /> : <div onClick={()=>{props.toggleState();}}>
               <Button size="small" aria-label="add chapter" variant="text">New Chapter</Button>
-              <IconButton edge="end" size="small" aria-label="add chapter" sx={{float: 'right', marginTop: '2px', marginRight: '0px'}}>
+              <IconButton edge="end" size="small" aria-label="add chapter" sx={{ marginTop: '2px', marginRight: '0px'}}>
                 <AddBoxIcon fontSize="small" className={'menu-icon'}/>
               </IconButton>
             </div>

@@ -36,7 +36,6 @@ const Threadr = () => {
 
   useEffect(() => {
     window.addEventListener("popstate", () => {
-      console.log("pop")
       handleNavChange();
     });
     fetch('/api/user').then((response) => {
@@ -47,9 +46,7 @@ const Threadr = () => {
     }).then((data) => dispatch(flipLoggedInState())).catch((e) => {
       console.error('ERROR', e);
     });
-
     handleNavChange();
-    
     return () => window.removeEventListener("popstate", handleEvent);
   }, [dispatch]);
 

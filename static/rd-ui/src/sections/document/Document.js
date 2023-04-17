@@ -20,6 +20,9 @@ import { IconButton } from '@mui/material';
 import { setSelectedSeries } from '../../stores/selectedSeriesSlice.js';
 import { setSelectedStoryTitle } from '../../stores/selectedStorySlice.js';
 import { Sidebar, Menu as SideMenu, MenuItem, SubMenu, useProSidebar } from 'react-pro-sidebar';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
+import Button from '@mui/material/Button';
 
 const ASSOCIATION_TYPE_CHARACTER = 'character';
 const ASSOCIATION_TYPE_EVENT = 'event';
@@ -825,6 +828,67 @@ const Document = () => {
     setSelectedChapterTitle(title);
   }
 
+  const onNewChapterClick = () => {
+    const newChapterNum = chapters.length+1;
+    const newChapterTitle = "Chapter " + newChapterNum;
+    fetch('/api/stories/' + selectedStoryTitle + '/chapter', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({chapter_title: newChapterTitle, chapter_num: newChapterNum})
+    }).then((response) => {
+      if (response.ok) {
+        const newChapters = [...chapters]
+        newChapters.push({chapter_title: newChapterTitle, chapter_num: newChapterNum});
+        setChapters(newChapters);
+        setSelectedChapterNumber(newChapterNum);
+        setSelectedChapterTitle(newChapterTitle);
+        const history = window.history;
+        history.pushState({selectedStoryTitle}, 'created chapter', '/story/' + encodeURIComponent(selectedStoryTitle) + '?chapter=' + newChapterNum);
+      }
+      throw new Error('Fetch problem creating chapter ' + response.status);
+    }).catch((error) => {
+      console.error(error);
+    });
+  }
+
+  const onDeleteChapterClick = (event, chapterTitle) => {
+
+    const chapterIndex = chapters.findIndex((e) => e.chapter_title === chapterTitle);
+    const deleteChapter = chapters[chapterIndex];
+    const params = [];
+    params[0] = {'chapter_title': chapterTitle, 'chapter_num': deleteChapter.chapter_num};
+    fetch('/api/stories/' + selectedStoryTitle + '/chapter', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(params)
+    }).then((response) => {
+      if (response.ok) {
+        const newChapters = [...chapters]
+        newChapters.splice(chapterIndex);
+        setChapters(newChapters);
+        if (selectedChapterNumber === deleteChapter.chapter_num) {
+          const prevChapter = chapters[chapterIndex-1];
+          setSelectedChapterNumber(prevChapter.chapter_num);
+          setSelectedChapterTitle(prevChapter.chapter_title);
+          const history = window.history;
+          history.pushState({selectedStoryTitle}, 'deleted chapter', '/story/' + encodeURIComponent(selectedStoryTitle) + '?chapter=' + prevChapter.chapter_num);
+        }
+        return;
+      }
+      throw new Error('Fetch problem deleting chapter ' + response.status);
+    }).catch((error) => {
+      console.error(error);
+    });
+  };
+
+  const onChapterTitleDClick = () => {
+    console.log("edit chap");
+  }
+
   return (
     <div>
       <AssociationUI open={associationWindowOpen} association={viewingAssociation} story={selectedStoryTitle} onEditCallback={onAssociationEdit} onClose={()=>{setAssociationWindowOpen(false);}} />
@@ -847,11 +911,11 @@ const Document = () => {
             <button className={currentBlockAlignment === 'JUSTIFY' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'JUSTIFY');}}><FontAwesomeIcon icon={faAlignJustify} /></button>
           </span>
           <span className="exit-btn">
-          <IconButton aria-label="exit" component="label" onClick={onExitDocument}>
-            <CloseIcon sx={{
-              color:'#F0F0F0'
-            }}/>
-          </IconButton>
+            <IconButton aria-label="exit" component="label" onClick={onExitDocument}>
+              <CloseIcon sx={{
+                color:'#F0F0F0'
+              }}/>
+            </IconButton>
           </span>
         </div>
       </nav>
@@ -884,9 +948,20 @@ const Document = () => {
           <SideMenu>
             {
               chapters.map((chapter, idx) => {
-                return <MenuItem key={idx} className={chapter.chapter_num === selectedChapterNumber ? "active":""} onClick={()=>onChapterClick(chapter.chapter_title, chapter.chapter_num)}>{chapter.chapter_title}</MenuItem>
+                return <MenuItem onDoubleClick={onChapterTitleDClick} key={idx} className={chapter.chapter_num === selectedChapterNumber ? "active":""} onClick={
+                  ()=>onChapterClick(chapter.chapter_title, chapter.chapter_num)
+                }>{chapter.chapter_title}
+                <IconButton className="menu-icon" edge="end" size="small" aria-label="delete chapter" onClick={(event)=>{onDeleteChapterClick(event, chapter.chapter_title)}}>
+                  <DeleteIcon fontSize="small" className={'menu-icon'}/>
+                </IconButton>
+                </MenuItem>
               })
             }
+            <MenuItem key="add_chapter_btn" onClick={onNewChapterClick}>
+              <Button onClick={onNewChapterClick} variant="outlined" sx={{color:'#FFF'}} startIcon={
+                <AddIcon sx={{marginLeft:'5px'}}/>
+              }>New</Button>
+            </MenuItem>
           </SideMenu>
         </Sidebar>;
       </div>
