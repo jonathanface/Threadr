@@ -114,8 +114,8 @@ const Document = () => {
                     short_description: assoc.short_description,
                     details: {
                       aliases: '',
-                      case_sensitive: assoc.case_sensitive,
-                      extended_description: assoc.extended_description
+                      case_sensitive: assoc.details.case_sensitive,
+                      extended_description: assoc.details.extended_description
                     }
                   }
               );
@@ -290,10 +290,7 @@ const Document = () => {
   useEffect(() => {
     if (isLoggedIn && selectedStoryTitle) {
       setFocusAndRestoreCursor();
-      getStoryDetails().then((response) => {
-        getBatchedStoryBlocks('');
-        getAllAssociations();
-      });
+      getStoryDetails().then(getAllAssociations()).then(getBatchedStoryBlocks(''));
     }
     setDBOperationInterval(setInterval(() => {
       try {
@@ -530,7 +527,6 @@ const Document = () => {
   };
 
   const handleAssociationClick = (association, event) => {
-    console.log('ass', association);
     setViewingAssociation(association);
     setAssociationWindowOpen(true);
   };
@@ -804,7 +800,6 @@ const Document = () => {
     const selectedKeys = GetSelectedBlockKeys(editorState);
     const blocksToPrep = [];
     selectedKeys.forEach((key) => {
-      console.log('alignment', alignment);
       newContentState = Modifier.mergeBlockData(newContentState, SelectionState.createEmpty(key), Immutable.Map([['ALIGNMENT', alignment]]));
       blocksToPrep.push(newContentState.getBlockForKey(key));
     });

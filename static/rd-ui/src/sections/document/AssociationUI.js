@@ -30,8 +30,6 @@ const AssociationUI = (props) => {
       reader.onabort = () => console.log('file reading was aborted');
       reader.onerror = () => console.log('file reading has failed');
       reader.onload = () => {
-        console.log('p', props);
-        console.log(file);
         const formData = new FormData();
         formData.append('file', file);
         fetch('/api/stories/' + props.story + '/associations/' + props.association.association_name + '/upload?type=' + props.association.association_type,
@@ -120,7 +118,7 @@ const AssociationUI = (props) => {
             </div>
             <div className="association-form">
               <FormGroup>
-                <FormControlLabel control={<Switch onChange={()=>{onAssociationEdit(!caseSensitive, 'case');}} defaultChecked={caseSensitive} />} label="Case-Sensitive" />
+                <FormControlLabel control={<Switch onChange={()=>{onAssociationEdit(!caseSensitive, 'case');}} checked={caseSensitive || false} />} label="Case-Sensitive" />
               </FormGroup>
             </div>
           </div>

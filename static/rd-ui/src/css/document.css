@@ -117,10 +117,17 @@ div.DraftEditor-editorContainer, div.public-DraftEditor-content {
     }
     div.DraftEditor-editorContainer {
         padding:0;
+        width: calc(95% - 20px);
     }
     nav.rich-controls {
         height:initial;
-        width:auto;
+        width: calc(70% - 20px);
+        opacity:1;
+    }
+    nav.rich-controls .exit-btn {
+        position:absolute;
+        top:0px;
+        right:0px;
     }
     nav.rich-controls .controls-row {
         display:inline-block;
