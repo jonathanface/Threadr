@@ -49,7 +49,7 @@ const Threadr = () => {
       console.error('ERROR', e);
     });
     handleNavChange();
-    return () => window.removeEventListener("popstate", handleEvent);
+    return () => window.removeEventListener("popstate", handleNavChange);
   }, [dispatch]);
 
   let displayComponent = <StoryAndSeriesListing/>;
