@@ -180,10 +180,9 @@ func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 	//todo transactionify
 	out, err := AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("stories"),
-		FilterExpression: aws.String("author=:eml AND series=:f"),
+		FilterExpression: aws.String("author=:eml AND attribute_not_exists(series)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
-			":f":   &types.AttributeValueMemberS{Value: ""},
 		},
 	})
 	if err != nil {
@@ -417,11 +416,11 @@ func AllStoriesInSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 
 		storiesOutput, err := AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
 			TableName:        aws.String("stories"),
-			FilterExpression: aws.String("author=:eml AND story_title=:s AND series=:t"),
+			FilterExpression: aws.String("author=:eml AND story_title=:s AND series<>:f"),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
 				":eml": &types.AttributeValueMemberS{Value: email},
 				":s":   &types.AttributeValueMemberS{Value: storyTitle},
-				":t":   &types.AttributeValueMemberBOOL{Value: true},
+				":f":   &types.AttributeValueMemberS{Value: ""},
 			},
 		})
 		if err != nil {
