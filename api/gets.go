@@ -183,7 +183,7 @@ func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		FilterExpression: aws.String("author=:eml AND series=:f"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
-			":f":   &types.AttributeValueMemberBOOL{Value: false},
+			":f":   &types.AttributeValueMemberS{Value: ""},
 		},
 	})
 	if err != nil {
@@ -245,13 +245,59 @@ func AllAssociationsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	out, err := AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
-		TableName:        aws.String("associations"),
-		FilterExpression: aws.String("author=:eml AND story=:s"),
+	outStory, err := AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName:        aws.String("stories"),
+		FilterExpression: aws.String("author=:eml AND story_title=:s"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
 			":s":   &types.AttributeValueMemberS{Value: story},
 		},
+	})
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	storyObj := []Story{}
+	if err = attributevalue.UnmarshalListOfMaps(outStory.Items, &storyObj); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	filterString := "author=:eml AND story=:s"
+	expressionValues := map[string]types.AttributeValue{
+		":eml": &types.AttributeValueMemberS{Value: email},
+		":s":   &types.AttributeValueMemberS{Value: story},
+	}
+	if storyObj[0].Series != "" {
+		outStory, err := AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
+			TableName:        aws.String("series"),
+			FilterExpression: aws.String("author=:eml AND series_title=:srs"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":eml": &types.AttributeValueMemberS{Value: email},
+				":srs": &types.AttributeValueMemberS{Value: storyObj[0].Series},
+			},
+		})
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		seriesObj := []Series{}
+		if err = attributevalue.UnmarshalListOfMaps(outStory.Items, &seriesObj); err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		filterString = "author=:eml AND (story=:s"
+		for i, v := range seriesObj {
+			idxStr := fmt.Sprint(i)
+			filterString += " OR story=:" + idxStr + ""
+			expressionValues[":"+idxStr] = &types.AttributeValueMemberS{Value: v.StoryTitle}
+		}
+		filterString += ")"
+	}
+
+	out, err := AwsClient.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName:                 aws.String("associations"),
+		FilterExpression:          aws.String(filterString),
+		ExpressionAttributeValues: expressionValues,
 	})
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())

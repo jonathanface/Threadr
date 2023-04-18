@@ -72,7 +72,7 @@ type Story struct {
 	CreatedAt   int       `json:"created_at" dynamodbav:"created_at"`
 	Title       string    `json:"title" dynamodbav:"story_title"`
 	Description string    `json:"description" dynamodbav:"description"`
-	Series      bool      `json:"series" dynamodbav:"series"`
+	Series      string    `json:"series" dynamodbav:"series"`
 	Chapters    []Chapter `json:"chapters"`
 }
 type BlocksData struct {

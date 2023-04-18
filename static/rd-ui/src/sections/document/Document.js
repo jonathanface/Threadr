@@ -95,39 +95,39 @@ const Document = () => {
   };
 
   const [editorState, setEditorState] = React.useState(
-      () => EditorState.createEmpty(createDecorators(associations))
+      () => EditorState.createEmpty(createDecorators())
   );
 
-  const getAllAssociations = () => {
-    associations.splice(0, associations.length);
-    fetch('/api/stories/' + selectedStoryTitle + '/associations')
-        .then((response) => {
-          if (response.ok) {
-            return response.json();
-          }
-          throw new Error('Fetch problem associations ' + response.status);
-        })
-        .then((data) => {
-          data.forEach((assoc) => {
-            if (assoc.association_name.trim().length) {
-              associations.push(
-                  {
-                    association_name: assoc.association_name,
-                    association_type: assoc.association_type,
-                    portrait: assoc.portrait,
-                    short_description: assoc.short_description,
-                    details: {
-                      aliases: '',
-                      case_sensitive: assoc.details.case_sensitive,
-                      extended_description: assoc.details.extended_description
-                    }
+  const getAllAssociations = async() => {
+    associations.splice(0);
+    return fetch('/api/stories/' + selectedStoryTitle + '/associations')
+      .then((response) => {
+        if (response.ok) {
+          return response.json();
+        }
+        throw new Error('Fetch problem associations ' + response.status);
+      })
+      .then((data) => {
+        data.forEach((assoc) => {
+          if (assoc.association_name.trim().length) {
+            associations.push(
+                {
+                  association_name: assoc.association_name,
+                  association_type: assoc.association_type,
+                  portrait: assoc.portrait,
+                  short_description: assoc.short_description,
+                  details: {
+                    aliases: '',
+                    case_sensitive: assoc.details.case_sensitive,
+                    extended_description: assoc.details.extended_description
                   }
-              );
-            }
-          });
-        }).catch((error) => {
-          console.error('get story associations', error);
+                }
+            );
+          }
         });
+      }).catch((error) => {
+        console.error('get story associations', error);
+      });
   };
 
   const processDBBlock = (content, block) => {
@@ -201,12 +201,12 @@ const Document = () => {
           newContentState = processDBBlock(newContentState, block);
         }
       });
-      setEditorState(EditorState.createWithContent(newContentState, createDecorators(associations)));
+      setEditorState(EditorState.createWithContent(newContentState, createDecorators()));
     }).catch((error) => {
       if (parseInt(error.message) !== 404) {
         console.error('get story blocks', error);
       } else {
-        setEditorState(EditorState.createEmpty(createDecorators(associations)));
+        setEditorState(EditorState.createEmpty(createDecorators()));
       }
     });
   };
@@ -291,10 +291,16 @@ const Document = () => {
     });
   }
 
+  const getBaseData = async() => {
+    await getStoryDetails();
+    await getAllAssociations();
+    await getBatchedStoryBlocks('');
+  }
+
   useEffect(() => {
     if (isLoggedIn && selectedStoryTitle) {
       setFocusAndRestoreCursor();
-      getStoryDetails().then(getAllAssociations()).then(getBatchedStoryBlocks(''));
+      getBaseData();
     }
     setDBOperationInterval(setInterval(() => {
       try {
@@ -827,6 +833,8 @@ const Document = () => {
   const onChapterClick = (title, num) => {
     setSelectedChapterNumber(num);
     setSelectedChapterTitle(title);
+    const history = window.history;
+    history.pushState({selectedStoryTitle}, 'changed chapter', '/story/' + encodeURIComponent(selectedStoryTitle) + '?chapter=' + num);
   }
 
   const onNewChapterClick = () => {
