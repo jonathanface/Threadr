@@ -1,0 +1,31 @@
+
+
+.association-tooltip-body {
+    width:300px;
+    display: inline-block;
+}
+
+
+.association-tooltip-body .row {
+    display:flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.association-tooltip-body .column {
+    display:flex;
+    flex-direction: column;
+    flex-basis:100%;
+    flex:1;
+    vertical-align: top;
+    padding:5px;
+    text-align: center;
+}
+.association-tooltip-body .column:last-child {
+    text-align:left;
+    text-overflow: ellipsis;
+}
+.association-tooltip-body .column img {
+    filter:drop-shadow(1px 1px 1px #1a1a1a);
+}

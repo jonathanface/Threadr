@@ -25,6 +25,7 @@ import AddIcon from '@mui/icons-material/Add';
 import Button from '@mui/material/Button';
 import '../../css/sidebar.css';
 
+
 const ASSOCIATION_TYPE_CHARACTER = 'character';
 const ASSOCIATION_TYPE_EVENT = 'event';
 const ASSOCIATION_TYPE_PLACE = 'place';

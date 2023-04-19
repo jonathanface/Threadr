@@ -1,5 +1,5 @@
-
 import React from 'react';
+import AssociationTooltip from './AssociationTooltip';
 
 export const TabSpan = (props) => {
   return (
@@ -9,13 +9,15 @@ export const TabSpan = (props) => {
 
 export const HighlightSpan = (props) => {
   return (
-    <span onClick={(e)=> {
-      props.leftClickFunc(props.association, e);
-    }} onContextMenu={(e)=> {
-      props.rightClickFunc(props.decoratedText, props.association.association_type, e);
-    }} className={'highlight ' + props.association.association_type }>
-      {props.children}
-    </span>
+    <AssociationTooltip name={props.association.association_name} description={props.association.short_description} portrait={props.association.portrait}>
+      <span onClick={(e)=> {
+        props.leftClickFunc(props.association, e);
+      }} onContextMenu={(e)=> {
+        props.rightClickFunc(props.decoratedText, props.association.association_type, e);
+      }} className={'highlight ' + props.association.association_type }>
+        {props.children}
+      </span>
+    </AssociationTooltip>
   );
 };
 
