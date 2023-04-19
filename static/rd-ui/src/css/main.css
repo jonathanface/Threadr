@@ -11,7 +11,7 @@ html, body {
   letter-spacing: 0.00938em;
   height: 100%;
   box-sizing:border-box;
-  overflow-y:hidden;
+  overflow-y:auto;
   height:100vh;
   max-height:100vh;
 }

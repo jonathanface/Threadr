@@ -1,5 +1,5 @@
-
 import React from 'react';
+import AssociationTooltip from './AssociationTooltip';
 
 export const TabSpan = (props) => {
   return (
@@ -9,13 +9,15 @@ export const TabSpan = (props) => {
 
 export const HighlightSpan = (props) => {
   return (
-    <span onClick={(e)=> {
-      props.leftClickFunc(props.association, e);
-    }} onContextMenu={(e)=> {
-      props.rightClickFunc(props.decoratedText, props.association.association_type, e);
-    }} className={'highlight ' + props.association.association_type }>
-      {props.children}
-    </span>
+    <AssociationTooltip name={props.association.association_name} description={props.association.short_description} portrait={props.association.portrait}>
+      <span onClick={(e)=> {
+        props.leftClickFunc(props.association, e);
+      }} onContextMenu={(e)=> {
+        props.rightClickFunc(props.decoratedText, props.association.association_type, e);
+      }} className={'highlight ' + props.association.association_type }>
+        {props.children}
+      </span>
+    </AssociationTooltip>
   );
 };
 
@@ -40,25 +42,24 @@ export const FindHighlightable = (type, name, associations) => {
       if (association.association_name !== name) {
         return;
       }
-      let match;
-      const regexStr = getRegexString(name);
       let caseFlag = 'gm';
       const deets = association.details;
-      console.log("deets", deets.case_sensitive);
       if (!deets.case_sensitive) {
         caseFlag += 'i';
       }
-      const regex = new RegExp(regexStr, caseFlag);
-      while ((match = regex.exec(text)) !== null) {
-        const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
-        callback(start, start + name.length);
-      }
-      const aliasesToArray = deets.aliases.split(',');
-      for (let z=0; z < aliasesToArray.length; z++) {
-        const alias = aliasesToArray[z].trim();
+
+      const allNames = deets.aliases.split(',');
+      allNames.push(name);
+      allNames.sort((a, b) => {
+        return b.length - a.length;
+      });
+
+      for (let z=0; z < allNames.length; z++) {
+        const alias = allNames[z].trim();
         if (alias.length) {
           const regexStr = getRegexString(alias);
           const regex = new RegExp(regexStr, caseFlag);
+          let match;
           while ((match = regex.exec(text)) !== null) {
             const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
             callback(start, start + alias.length);

@@ -286,11 +286,12 @@ func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
 			updateDetailsInput := &types.Update{
 				TableName:        aws.String("association_details"),
 				Key:              key,
-				UpdateExpression: aws.String("set story=:s, case_sensitive=:c, extended_description=:ed"),
+				UpdateExpression: aws.String("set story=:s, case_sensitive=:c, extended_description=:ed, aliases=:al"),
 				ExpressionAttributeValues: map[string]types.AttributeValue{
 					":s":  &types.AttributeValueMemberS{Value: story},
 					":c":  &types.AttributeValueMemberBOOL{Value: item.Details.CaseSensitive},
 					":ed": &types.AttributeValueMemberS{Value: extendedDescription},
+					":al": &types.AttributeValueMemberS{Value: item.Details.Aliases},
 				},
 			}
 
