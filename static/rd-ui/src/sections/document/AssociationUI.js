@@ -2,17 +2,18 @@ import Backdrop from '@mui/material/Backdrop';
 import React, {useState, useEffect, useCallback} from 'react';
 import {useDropzone} from 'react-dropzone';
 import '../../css/association-ui.css';
-import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
 import InlineEdit from '../../utils/InlineEdit';
 import MultilineEdit from '../../utils/MultilineEdit';
+import { FormControl, FormGroup, InputLabel, TextField } from '@mui/material';
 
 const AssociationUI = (props) => {
   const [caseSensitive, setCaseSensitive] = useState(!props.association ? false : props.association.details.case_sensitive);
   const [headerText, setHeaderText] = useState('Unknown');
   const [description, setDescription] = useState('Here you can put a basic description.\nShift+Enter for new lines');
   const [details, setDetails] = useState('Here you can put some extended details.\nShift+Enter for new lines');
+  const [aliases, setAliases] = useState('');
   const [imageURL, setImageURL] = useState(!props.association ? './img/default_association_portrait.jpg' : props.association.portrait);
 
   const handleClose = () => {
@@ -23,6 +24,7 @@ const AssociationUI = (props) => {
   const type = !props.association ? 'unknown' : props.association.association_type;
   const headerLabel = !props.association ? '' : props.association.association_type[0].toUpperCase() +
         props.association.association_type.slice(1) +':';
+  const aliasText = !props.association || props.association.details.aliases.trim() === '' ? '' : props.association.details.aliases;
 
   const onDrop = useCallback((acceptedFiles) => {
     acceptedFiles.forEach((file) => {
@@ -56,6 +58,7 @@ const AssociationUI = (props) => {
       setImageURL(props.association.portrait);
       setDescription(props.association.short_description);
       setDetails(props.association.details.extended_description);
+      setAliases(props.association.details.aliases);
     }
   }, [props.association]);
 
@@ -63,13 +66,6 @@ const AssociationUI = (props) => {
     const newAssociation = props.association;
     let saveRequired = false;
     switch (id) {
-      case 'header':
-        if (newValue !== headerText) {
-          setHeaderText(newValue);
-          newAssociation.association_name = newValue;
-          saveRequired = true;
-        }
-        break;
       case 'case':
         setCaseSensitive(newValue);
         newAssociation.details.case_sensitive = newValue;
@@ -86,6 +82,13 @@ const AssociationUI = (props) => {
         if (newValue !== details) {
           setDetails(newValue);
           newAssociation.details.extended_description = newValue;
+          saveRequired = true;
+        }
+        break;
+      case 'aliases':
+        if (newValue !== aliases) {
+          setAliases(newValue);
+          newAssociation.details.aliases = newValue;
           saveRequired = true;
         }
         break;
@@ -107,8 +110,8 @@ const AssociationUI = (props) => {
         <div className="column">
           <div className="association-details">
             <div>
-              <h1>{headerLabel}</h1>
-              <InlineEdit value={headerText} setValueCallback={onAssociationEdit} label="Name" id="header" />
+              <h1>{headerLabel + headerText}</h1>
+              
             </div>
             <div className="detail-bubble">
               <MultilineEdit value={description} setValueCallback={onAssociationEdit} label="Description" id="description" />
@@ -117,6 +120,7 @@ const AssociationUI = (props) => {
               <MultilineEdit value={details} setValueCallback={onAssociationEdit} label="Details" id="details" />
             </div>
             <div className="association-form">
+              <TextField label="Aliases (comma separated)" type="search" value={aliases} onChange={(event)=>{onAssociationEdit(event.target.value, "aliases")}}/>
               <FormGroup>
                 <FormControlLabel control={<Switch onChange={()=>{onAssociationEdit(!caseSensitive, 'case');}} checked={caseSensitive || false} />} label="Case-Sensitive" />
               </FormGroup>

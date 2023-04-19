@@ -117,7 +117,7 @@ const Document = () => {
                   portrait: assoc.portrait,
                   short_description: assoc.short_description,
                   details: {
-                    aliases: '',
+                    aliases: assoc.details.aliases,
                     case_sensitive: assoc.details.case_sensitive,
                     extended_description: assoc.details.extended_description
                   }

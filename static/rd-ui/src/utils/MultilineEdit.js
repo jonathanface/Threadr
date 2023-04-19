@@ -7,7 +7,7 @@ const MultilineEdit = (props) => {
   const onChange = (event) => setEditingValue(event.target.value);
 
   const onKeyDown = (event) => {
-    if ((event.key === 'Enter' && !event.shiftKey) || event.key === 'Escape') {
+    if (event.key === 'Escape') {
       event.target.blur();
     }
   };
