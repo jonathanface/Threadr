@@ -12,8 +12,6 @@ import './css/main.css';
 import './css/user-menu.css';
 
 
-
-
 const Threadr = () => {
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
   const selectedStoryTitle = useSelector((state) => state.selectedStoryTitle.value);
@@ -22,7 +20,7 @@ const Threadr = () => {
 
   const handleNavChange = () => {
     const location = window.location.pathname;
-    console.log("changed", location);
+    console.log('changed', location);
     const splitDirectories = location.split('/');
     if (splitDirectories[1] === 'story' && splitDirectories[2].trim() !== '') {
       dispatch(setSelectedSeries(null));
@@ -34,10 +32,10 @@ const Threadr = () => {
       dispatch(setSelectedStoryTitle(null));
       dispatch(setSelectedSeries(null));
     }
-  }
+  };
 
   useEffect(() => {
-    window.addEventListener("popstate", () => {
+    window.addEventListener('popstate', () => {
       handleNavChange();
     });
     fetch('/api/user').then((response) => {
@@ -49,7 +47,7 @@ const Threadr = () => {
       console.error('ERROR', e);
     });
     handleNavChange();
-    return () => window.removeEventListener("popstate", handleNavChange);
+    return () => window.removeEventListener('popstate', handleNavChange);
   }, [dispatch]);
 
   let displayComponent = <StoryAndSeriesListing/>;
@@ -60,7 +58,7 @@ const Threadr = () => {
     displayComponent = <Document story={selectedStoryTitle}/>;
   }
 
-  
+
   return (
     <div className="App">
       <UserMenu />

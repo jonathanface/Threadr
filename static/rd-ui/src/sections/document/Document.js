@@ -16,10 +16,10 @@ import {faAlignCenter} from '@fortawesome/free-solid-svg-icons';
 import {faAlignRight} from '@fortawesome/free-solid-svg-icons';
 import {faAlignJustify} from '@fortawesome/free-solid-svg-icons';
 import CloseIcon from '@mui/icons-material/Close';
-import { IconButton } from '@mui/material';
-import { setSelectedSeries } from '../../stores/selectedSeriesSlice.js';
-import { setSelectedStoryTitle } from '../../stores/selectedStorySlice.js';
-import { Sidebar, Menu as SideMenu, MenuItem, SubMenu, useProSidebar } from 'react-pro-sidebar';
+import {IconButton} from '@mui/material';
+import {setSelectedSeries} from '../../stores/selectedSeriesSlice.js';
+import {setSelectedStoryTitle} from '../../stores/selectedStorySlice.js';
+import {Sidebar, Menu as SideMenu, MenuItem, SubMenu, useProSidebar} from 'react-pro-sidebar';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import Button from '@mui/material/Button';
@@ -99,36 +99,36 @@ const Document = () => {
       () => EditorState.createEmpty(createDecorators())
   );
 
-  const getAllAssociations = async() => {
+  const getAllAssociations = async () => {
     associations.splice(0);
     return fetch('/api/stories/' + selectedStoryTitle + '/associations')
-      .then((response) => {
-        if (response.ok) {
-          return response.json();
-        }
-        throw new Error('Fetch problem associations ' + response.status);
-      })
-      .then((data) => {
-        data.forEach((assoc) => {
-          if (assoc.association_name.trim().length) {
-            associations.push(
-                {
-                  association_name: assoc.association_name,
-                  association_type: assoc.association_type,
-                  portrait: assoc.portrait,
-                  short_description: assoc.short_description,
-                  details: {
-                    aliases: assoc.details.aliases,
-                    case_sensitive: assoc.details.case_sensitive,
-                    extended_description: assoc.details.extended_description
-                  }
-                }
-            );
+        .then((response) => {
+          if (response.ok) {
+            return response.json();
           }
+          throw new Error('Fetch problem associations ' + response.status);
+        })
+        .then((data) => {
+          data.forEach((assoc) => {
+            if (assoc.association_name.trim().length) {
+              associations.push(
+                  {
+                    association_name: assoc.association_name,
+                    association_type: assoc.association_type,
+                    portrait: assoc.portrait,
+                    short_description: assoc.short_description,
+                    details: {
+                      aliases: assoc.details.aliases,
+                      case_sensitive: assoc.details.case_sensitive,
+                      extended_description: assoc.details.extended_description
+                    }
+                  }
+              );
+            }
+          });
+        }).catch((error) => {
+          console.error('get story associations', error);
         });
-      }).catch((error) => {
-        console.error('get story associations', error);
-      });
   };
 
   const processDBBlock = (content, block) => {
@@ -168,7 +168,7 @@ const Document = () => {
     return content;
   };
 
-  const getBatchedStoryBlocks = async(startKey) => {
+  const getBatchedStoryBlocks = async (startKey) => {
     return fetch('/api/stories/' + selectedStoryTitle + '/content?key=' + startKey + '&chapter=' + selectedChapterNumber).then((response) => {
       if (response.ok) {
         return response.json();
@@ -280,7 +280,7 @@ const Document = () => {
     }
   };
 
-  const getStoryDetails = async() => {
+  const getStoryDetails = async () => {
     return fetch('/api/stories/' + selectedStoryTitle).then((response) => {
       if (response.ok) {
         return response.json();
@@ -288,15 +288,15 @@ const Document = () => {
       throw new Error(response.status);
     }).then((data) => {
       setChapters(data.chapters);
-      setSelectedChapterTitle(data.chapters.find(chapter => chapter.chapter_num === selectedChapterNumber).chapter_title);
+      setSelectedChapterTitle(data.chapters.find((chapter) => chapter.chapter_num === selectedChapterNumber).chapter_title);
     });
-  }
+  };
 
-  const getBaseData = async() => {
+  const getBaseData = async () => {
     await getStoryDetails();
     await getAllAssociations();
     await getBatchedStoryBlocks('');
-  }
+  };
 
   useEffect(() => {
     if (isLoggedIn && selectedStoryTitle) {
@@ -489,13 +489,13 @@ const Document = () => {
     };
   };
 
-  const onAssociationEdit = async(association) => {
+  const onAssociationEdit = async (association) => {
     console.log('editing', association);
     const storedAssociation = await saveAssociationsToServer([association]);
-    const existingAssoc = associations.find(assoc => assoc.association_name === association.association_name &&
+    const existingAssoc = associations.find((assoc) => assoc.association_name === association.association_name &&
                                                     assoc.type === association.association_type);
     associations[associations.indexOf(existingAssoc)] = storedAssociation;
-    setEditorState(EditorState.set(editorState, { decorator: createDecorators()}));
+    setEditorState(EditorState.set(editorState, {decorator: createDecorators()}));
   };
 
   const handleMenuItemClick = async ({id, event}) => {
@@ -591,7 +591,7 @@ const Document = () => {
         } else {
           const dataToRemove = Immutable.Map([[subStyle.style, undefined]]);
           const existingData = modifiedBlock.getData();
-          const updatedData = existingData.delete('STYLES').mergeDeep({ 'STYLES': newStyles });
+          const updatedData = existingData.delete('STYLES').mergeDeep({'STYLES': newStyles});
           const blockData = updatedData.merge(dataToRemove);
           const updatedContent = Modifier.mergeBlockData(newContent, originalSelectionState, blockData);
           updatedBlocks.push(updatedContent.getBlockForKey(key));
@@ -849,24 +849,24 @@ const Document = () => {
     dispatch(setSelectedSeries(null));
     dispatch(setSelectedStoryTitle(null));
     const history = window.history;
-    history.pushState("root", 'exited story', '/');
+    history.pushState('root', 'exited story', '/');
   };
 
   const onExpandChapterMenu = () => {
-    console.log("exp", collapsed);
-    collapseSidebar(!collapsed)
-  }
+    console.log('exp', collapsed);
+    collapseSidebar(!collapsed);
+  };
 
   const onChapterClick = (title, num) => {
     setSelectedChapterNumber(num);
     setSelectedChapterTitle(title);
     const history = window.history;
     history.pushState({selectedStoryTitle}, 'changed chapter', '/story/' + encodeURIComponent(selectedStoryTitle) + '?chapter=' + num);
-  }
+  };
 
   const onNewChapterClick = () => {
     const newChapterNum = chapters.length+1;
-    const newChapterTitle = "Chapter " + newChapterNum;
+    const newChapterTitle = 'Chapter ' + newChapterNum;
     fetch('/api/stories/' + selectedStoryTitle + '/chapter', {
       method: 'POST',
       headers: {
@@ -875,7 +875,7 @@ const Document = () => {
       body: JSON.stringify({chapter_title: newChapterTitle, chapter_num: newChapterNum})
     }).then((response) => {
       if (response.ok) {
-        const newChapters = [...chapters]
+        const newChapters = [...chapters];
         newChapters.push({chapter_title: newChapterTitle, chapter_num: newChapterNum});
         setChapters(newChapters);
         setSelectedChapterNumber(newChapterNum);
@@ -887,10 +887,9 @@ const Document = () => {
     }).catch((error) => {
       console.error(error);
     });
-  }
+  };
 
   const onDeleteChapterClick = (event, chapterTitle) => {
-
     const chapterIndex = chapters.findIndex((e) => e.chapter_title === chapterTitle);
     const deleteChapter = chapters[chapterIndex];
     const params = [];
@@ -903,7 +902,7 @@ const Document = () => {
       body: JSON.stringify(params)
     }).then((response) => {
       if (response.ok) {
-        const newChapters = [...chapters]
+        const newChapters = [...chapters];
         newChapters.splice(chapterIndex);
         setChapters(newChapters);
         if (selectedChapterNumber === deleteChapter.chapter_num) {
@@ -922,8 +921,8 @@ const Document = () => {
   };
 
   const onChapterTitleDClick = () => {
-    console.log("edit chap");
-  }
+    console.log('edit chap');
+  };
 
   return (
     <div>
@@ -949,7 +948,7 @@ const Document = () => {
           <span className="exit-btn">
             <IconButton aria-label="exit" component="label" onClick={onExitDocument}>
               <CloseIcon sx={{
-                color:'#F0F0F0'
+                color: '#F0F0F0'
               }}/>
             </IconButton>
           </span>
@@ -984,18 +983,18 @@ const Document = () => {
           <SideMenu>
             {
               chapters.map((chapter, idx) => {
-                return <MenuItem onDoubleClick={onChapterTitleDClick} key={idx} className={chapter.chapter_num === selectedChapterNumber ? "active":""} onClick={
+                return <MenuItem onDoubleClick={onChapterTitleDClick} key={idx} className={chapter.chapter_num === selectedChapterNumber ? 'active':''} onClick={
                   ()=>onChapterClick(chapter.chapter_title, chapter.chapter_num)
                 }>{chapter.chapter_title}
-                <IconButton className="menu-icon" edge="end" size="small" aria-label="delete chapter" onClick={(event)=>{onDeleteChapterClick(event, chapter.chapter_title)}}>
-                  <DeleteIcon fontSize="small" className={'menu-icon'}/>
-                </IconButton>
-                </MenuItem>
+                  <IconButton className="menu-icon" edge="end" size="small" aria-label="delete chapter" onClick={(event)=>{onDeleteChapterClick(event, chapter.chapter_title);}}>
+                    <DeleteIcon fontSize="small" className={'menu-icon'}/>
+                  </IconButton>
+                </MenuItem>;
               })
             }
             <MenuItem key="add_chapter_btn" onClick={onNewChapterClick}>
-              <Button onClick={onNewChapterClick} variant="outlined" sx={{color:'#FFF'}} startIcon={
-                <AddIcon sx={{marginLeft:'5px'}}/>
+              <Button onClick={onNewChapterClick} variant="outlined" sx={{color: '#FFF'}} startIcon={
+                <AddIcon sx={{marginLeft: '5px'}}/>
               }>New</Button>
             </MenuItem>
           </SideMenu>

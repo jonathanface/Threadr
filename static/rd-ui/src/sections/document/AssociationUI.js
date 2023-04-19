@@ -6,7 +6,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
 import InlineEdit from '../../utils/InlineEdit';
 import MultilineEdit from '../../utils/MultilineEdit';
-import { FormControl, FormGroup, InputLabel, TextField } from '@mui/material';
+import {FormControl, FormGroup, InputLabel, TextField} from '@mui/material';
 
 const AssociationUI = (props) => {
   const [caseSensitive, setCaseSensitive] = useState(!props.association ? false : props.association.details.case_sensitive);
@@ -38,7 +38,7 @@ const AssociationUI = (props) => {
           throw new Error('Fetch problem image upload ' + response.status);
         }).then((data) => {
           setImageURL(data.url + '?date='+Date.now());
-         }).catch((error) => console.error(error));
+        }).catch((error) => console.error(error));
       };
       reader.readAsArrayBuffer(file);
     });
@@ -48,7 +48,7 @@ const AssociationUI = (props) => {
 
   useEffect(() => {
     if (props.association) {
-      console.log("initial", props.association);
+      console.log('initial', props.association);
       setHeaderLabel(props.association.association_type[0].toUpperCase() + props.association.association_type.slice(1) +':');
       setCaseSensitive(props.association.details.case_sensitive);
       setName(props.association.association_name);
@@ -92,7 +92,7 @@ const AssociationUI = (props) => {
       props.onEditCallback(newAssociation);
     }
   };
-  console.log("desc", description);
+  console.log('desc', description);
   return (
     <Backdrop onClick={handleClose} open={props.open} className="association-ui-bg">
       <div className="association-ui-container" onClick={(e)=>{e.stopPropagation();}}>
@@ -111,29 +111,35 @@ const AssociationUI = (props) => {
             </div>
             <div className="detail-bubble">
               <TextField label="Description" multiline rows="6" onBlur={(event) => {
-                  onAssociationEdit(event.target.value, "description")}
-                }
-                onChange={(event)=>{
-                  setDescription(event.target.value)}
-                } value={description} sx={{
-                  width:'100%',
-                }} />
+                onAssociationEdit(event.target.value, 'description');
+              }
+              }
+              onChange={(event)=>{
+                setDescription(event.target.value);
+              }
+              } value={description} sx={{
+                width: '100%',
+              }} />
             </div>
             <div className="detail-bubble">
               <TextField label="Details" multiline rows="6" onBlur={(event) => {
-                  onAssociationEdit(event.target.value, "details")}
-                }
-                onChange={(event)=>{
-                  setDetails(event.target.value)}
-                } value={details} sx={{
-                  width:'100%',
-                }} />
+                onAssociationEdit(event.target.value, 'details');
+              }
+              }
+              onChange={(event)=>{
+                setDetails(event.target.value);
+              }
+              } value={details} sx={{
+                width: '100%',
+              }} />
             </div>
             <div className="association-form">
               <TextField label="Aliases (comma separated)" type="search" value={aliases} onChange={(event) => {
-                setAliases(event.target.value);}
+                setAliases(event.target.value);
+              }
               } onBlur={(event)=>{
-                onAssociationEdit(event.target.value, "aliases")}
+                onAssociationEdit(event.target.value, 'aliases');
+              }
               }/>
               <FormGroup>
                 <FormControlLabel control={<Switch onChange={()=>{onAssociationEdit(!caseSensitive, 'case');}} checked={caseSensitive || false} />} label="Case-Sensitive" />
