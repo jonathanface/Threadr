@@ -674,10 +674,11 @@ const Document = () => {
   const adjustBlockDataPositions = (newEditorState, newBlock) => {
     let content = newEditorState.getCurrentContent();
     const styleData = newBlock.getData().getIn(['STYLES']);
+    const styles = [];
     if (styleData) {
-      let styles = [];
       styleData.forEach((style) => {
-        styles = GetStyleData(newBlock, style.style, styles);
+        const styleDataByType = GetBlockStyleDataByType(newBlock, style.style);
+        styles.push(...styleDataByType);
       });
       content = Modifier.mergeBlockData(content, newEditorState.getSelection(), Immutable.Map([['STYLES', styles]]));
     }
