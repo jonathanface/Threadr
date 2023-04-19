@@ -483,8 +483,9 @@ const Document = () => {
     console.log('editing', association);
     const storedAssociation = await saveAssociationsToServer([association]);
     const existingAssoc = associations.find(assoc => assoc.association_name === association.association_name &&
-      assoc.type === association.association_type);
+                                                    assoc.type === association.association_type);
     associations[associations.indexOf(existingAssoc)] = storedAssociation;
+    setEditorState(EditorState.set(editorState, { decorator: createDecorators()}));
   };
 
   const handleMenuItemClick = async ({id, event}) => {

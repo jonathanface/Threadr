@@ -44,7 +44,8 @@ export const FindHighlightable = (type, name, associations) => {
       const regexStr = getRegexString(name);
       let caseFlag = 'gm';
       const deets = association.details;
-      if (!deets.caseSensitive) {
+      console.log("deets", deets.case_sensitive);
+      if (!deets.case_sensitive) {
         caseFlag += 'i';
       }
       const regex = new RegExp(regexStr, caseFlag);
