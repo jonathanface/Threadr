@@ -1,7 +1,7 @@
 import React, {useRef, useEffect, useState} from 'react';
 import Immutable from 'immutable';
 import {convertFromRaw, Editor, EditorState, ContentBlock, RichUtils, getDefaultKeyBinding, Modifier, SelectionState, ContentState, CompositeDecorator} from 'draft-js';
-import {GetSelectedText, InsertTab, FilterAndReduceDBOperations, GetStyleData, GetEntityData, GetSelectedBlockKeys, GenerateTabCharacter} from './utilities.js';
+import {GetSelectedText, InsertTab, FilterAndReduceDBOperations, GetBlockStyleDataByType, GetEntityData, GetSelectedBlockKeys, GenerateTabCharacter} from './utilities.js';
 import AssociationUI from './AssociationUI.js';
 import 'draft-js/dist/Draft.css';
 import '../../css/document.css';
@@ -556,30 +556,45 @@ const Document = () => {
 
   const handleStyleClick = (event, style) => {
     event.preventDefault();
+    const originalSelectionState = editorState.getSelection();
     const newEditorState = RichUtils.toggleInlineStyle(editorState, style);
     let newContent = newEditorState.getCurrentContent();
     const selectedKeys = GetSelectedBlockKeys(newEditorState);
     const updatedBlocks = [];
     selectedKeys.forEach((key) => {
-      const block = newEditorState.getCurrentContent().getBlockForKey(key);
-      let styles = [];
+      const modifiedBlock = newEditorState.getCurrentContent().getBlockForKey(key);
+      const newStyles = [];
       for (const entry in styleMap) {
-        styles = GetStyleData(block, entry, styles);
+        const styleDataByType = GetBlockStyleDataByType(modifiedBlock, entry);
+        newStyles.push(...styleDataByType);
       }
-      styles.forEach((style) => {
+      newStyles.forEach((subStyle) => {
         const styleState = new SelectionState({
           anchorKey: key,
           focusKey: key,
-          anchorOffset: style.start,
-          focusOffset: style.end,
+          anchorOffset: subStyle.start,
+          focusOffset: subStyle.end,
         });
-        newContent = Modifier.mergeBlockData(newContent, styleState, Immutable.Map([['STYLES', styles]]));
+        if (newEditorState.getCurrentInlineStyle().has(subStyle.style)) {
+          newContent = Modifier.mergeBlockData(newContent, styleState, Immutable.Map([['STYLES', newStyles]]));
+        } else {
+          const dataToRemove = Immutable.Map([[subStyle.style, undefined]]);
+          const existingData = modifiedBlock.getData();
+          const updatedData = existingData.delete('STYLES').mergeDeep({ 'STYLES': newStyles });
+          const blockData = updatedData.merge(dataToRemove);
+          const updatedContent = Modifier.mergeBlockData(newContent, originalSelectionState, blockData);
+          updatedBlocks.push(updatedContent.getBlockForKey(key));
+          newContent = updatedContent;
+        }
       });
-
+      if (!newStyles.length) {
+        newContent = Modifier.setBlockData(newContent, newEditorState.getSelection(), Immutable.Map());
+      }
       updatedBlocks.push(newContent.getBlockForKey(key));
     });
     const updatedEditorState = EditorState.push(newEditorState, newContent, 'change-block-data');
-    setEditorState(updatedEditorState);
+    const updatedEditorStateWithSelection = EditorState.forceSelection(updatedEditorState, originalSelectionState);
+    setEditorState(updatedEditorStateWithSelection);
     prepBlocksForSave(newContent, updatedBlocks, selectedStoryTitle, selectedChapterNumber);
     setNavButtonState(style);
   };
@@ -680,7 +695,7 @@ const Document = () => {
     const selection = newEditorState.getSelection();
     const block = newEditorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
     for (const entry in styleMap) {
-      const styles = GetStyleData(block, entry, []);
+      const styles = GetBlockStyleDataByType(block, entry);
       styles.forEach((style) => {
         if (selection.hasEdgeWithin(block.getKey(), style.start, style.end)) {
           setNavButtonState(style.style, true);

@@ -31,7 +31,8 @@ export const GetEntityData = (block, type, list) => {
   return list;
 };
 
-export const GetStyleData = (block, type, list) => {
+export const GetBlockStyleDataByType = (block, type) => {
+  const list = [];
   block.findStyleRanges(
       (character) => {
         return character.hasStyle(type);

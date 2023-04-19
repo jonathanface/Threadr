@@ -32,6 +32,7 @@
 
 .association-ui-container .multiline-editable-text {
     line-height: 1.5em;
+    outline:none;
 }
 
 .association-ui-container .column {
