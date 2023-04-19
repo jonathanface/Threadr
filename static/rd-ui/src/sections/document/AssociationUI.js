@@ -10,21 +10,16 @@ import { FormControl, FormGroup, InputLabel, TextField } from '@mui/material';
 
 const AssociationUI = (props) => {
   const [caseSensitive, setCaseSensitive] = useState(!props.association ? false : props.association.details.case_sensitive);
-  const [headerText, setHeaderText] = useState('Unknown');
-  const [description, setDescription] = useState('Here you can put a basic description.\nShift+Enter for new lines');
-  const [details, setDetails] = useState('Here you can put some extended details.\nShift+Enter for new lines');
+  const [headerLabel, setHeaderLabel] = useState('');
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('Here you can put a basic description.');
+  const [details, setDetails] = useState('Here you can put some extended details.');
   const [aliases, setAliases] = useState('');
   const [imageURL, setImageURL] = useState(!props.association ? './img/default_association_portrait.jpg' : props.association.portrait);
 
   const handleClose = () => {
     props.onClose();
   };
-
-  const name = !props.association ? 'some guy' : props.association.association_name;
-  const type = !props.association ? 'unknown' : props.association.association_type;
-  const headerLabel = !props.association ? '' : props.association.association_type[0].toUpperCase() +
-        props.association.association_type.slice(1) +':';
-  const aliasText = !props.association || props.association.details.aliases.trim() === '' ? '' : props.association.details.aliases;
 
   const onDrop = useCallback((acceptedFiles) => {
     acceptedFiles.forEach((file) => {
@@ -53,8 +48,10 @@ const AssociationUI = (props) => {
 
   useEffect(() => {
     if (props.association) {
+      console.log("initial", props.association);
+      setHeaderLabel(props.association.association_type[0].toUpperCase() + props.association.association_type.slice(1) +':');
       setCaseSensitive(props.association.details.case_sensitive);
-      setHeaderText(props.association.association_name);
+      setName(props.association.association_name);
       setImageURL(props.association.portrait);
       setDescription(props.association.short_description);
       setDetails(props.association.details.extended_description);
@@ -67,27 +64,25 @@ const AssociationUI = (props) => {
     let saveRequired = false;
     switch (id) {
       case 'case':
-        setCaseSensitive(newValue);
-        newAssociation.details.case_sensitive = newValue;
-        saveRequired = true;
+        if (newAssociation.details.case_sensitive !== newValue) {
+          newAssociation.details.case_sensitive = newValue;
+          saveRequired = true;
+        }
         break;
       case 'description':
-        if (newValue !== description) {
-          setDescription(newValue);
+        if (newValue !== newAssociation.short_description) {
           newAssociation.short_description = newValue;
           saveRequired = true;
         }
         break;
       case 'details':
-        if (newValue !== details) {
-          setDetails(newValue);
+        if (newValue !== newAssociation.details.extended_description) {
           newAssociation.details.extended_description = newValue;
           saveRequired = true;
         }
         break;
       case 'aliases':
-        if (newValue !== aliases) {
-          setAliases(newValue);
+        if (newValue !== newAssociation.details.aliases) {
           newAssociation.details.aliases = newValue;
           saveRequired = true;
         }
@@ -97,30 +92,49 @@ const AssociationUI = (props) => {
       props.onEditCallback(newAssociation);
     }
   };
-
+  console.log("desc", description);
   return (
     <Backdrop onClick={handleClose} open={props.open} className="association-ui-bg">
       <div className="association-ui-container" onClick={(e)=>{e.stopPropagation();}}>
         <div className="column">
-          <figure className="portrait" {...getRootProps()}>
-            <img src={imageURL} alt={name} title={name}/>
-            <figcaption>Drop an image over the portrait to replace, or click here<input {...getInputProps()}/></figcaption>
+          <figure className="portrait">
+            <span {...getRootProps()}>
+              <img src={imageURL} alt={name} title={name}/>
+              <figcaption>Drop an image over the portrait to replace, or click here<input {...getInputProps()}/></figcaption>
+            </span>
           </figure>
         </div>
         <div className="column">
           <div className="association-details">
             <div>
-              <h1>{headerLabel + headerText}</h1>
-              
+              <h1>{headerLabel + ' ' + name}</h1>
             </div>
             <div className="detail-bubble">
-              <MultilineEdit value={description} setValueCallback={onAssociationEdit} label="Description" id="description" />
+              <TextField label="Description" multiline rows="6" onBlur={(event) => {
+                  onAssociationEdit(event.target.value, "description")}
+                }
+                onChange={(event)=>{
+                  setDescription(event.target.value)}
+                } value={description} sx={{
+                  width:'100%',
+                }} />
             </div>
             <div className="detail-bubble">
-              <MultilineEdit value={details} setValueCallback={onAssociationEdit} label="Details" id="details" />
+              <TextField label="Details" multiline rows="6" onBlur={(event) => {
+                  onAssociationEdit(event.target.value, "details")}
+                }
+                onChange={(event)=>{
+                  setDetails(event.target.value)}
+                } value={details} sx={{
+                  width:'100%',
+                }} />
             </div>
             <div className="association-form">
-              <TextField label="Aliases (comma separated)" type="search" value={aliases} onChange={(event)=>{onAssociationEdit(event.target.value, "aliases")}}/>
+              <TextField label="Aliases (comma separated)" type="search" value={aliases} onChange={(event) => {
+                setAliases(event.target.value);}
+              } onBlur={(event)=>{
+                onAssociationEdit(event.target.value, "aliases")}
+              }/>
               <FormGroup>
                 <FormControlLabel control={<Switch onChange={()=>{onAssociationEdit(!caseSensitive, 'case');}} checked={caseSensitive || false} />} label="Case-Sensitive" />
               </FormGroup>

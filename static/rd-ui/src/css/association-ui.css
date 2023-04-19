@@ -52,9 +52,6 @@
 }
 
 .association-ui-container .association-details .detail-bubble {
-    height: 200px;
-    border: 2px solid #333;
-    border-radius: 15px;
     padding: 15px;
     margin-right: 30px;
     margin-bottom:20px;

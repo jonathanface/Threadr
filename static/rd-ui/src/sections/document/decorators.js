@@ -40,24 +40,24 @@ export const FindHighlightable = (type, name, associations) => {
       if (association.association_name !== name) {
         return;
       }
-      let match;
-      const regexStr = getRegexString(name);
       let caseFlag = 'gm';
       const deets = association.details;
       if (!deets.case_sensitive) {
         caseFlag += 'i';
       }
-      const regex = new RegExp(regexStr, caseFlag);
-      while ((match = regex.exec(text)) !== null) {
-        const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
-        callback(start, start + name.length);
-      }
-      const aliasesToArray = deets.aliases.split(',');
-      for (let z=0; z < aliasesToArray.length; z++) {
-        const alias = aliasesToArray[z].trim();
+
+      const allNames = deets.aliases.split(',');
+      allNames.push(name);
+      allNames.sort((a, b) => {
+        return b.length - a.length;
+      });
+
+      for (let z=0; z < allNames.length; z++) {
+        const alias = allNames[z].trim();
         if (alias.length) {
           const regexStr = getRegexString(alias);
           const regex = new RegExp(regexStr, caseFlag);
+          let match;
           while ((match = regex.exec(text)) !== null) {
             const start = match.index + match[0].length - match[0].replace(/^\s+/, '').length;
             callback(start, start + alias.length);

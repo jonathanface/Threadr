@@ -220,7 +220,7 @@ const Document = () => {
       switch (op.type) {
         case 'delete': {
           try {
-            deleteBlocksFromServer(FilterAndReduceDBOperations(dbOperationQueue, op, i), op.story, op.chapter);
+            await deleteBlocksFromServer(FilterAndReduceDBOperations(dbOperationQueue, op, i), op.story, op.chapter);
           } catch (e) {
             console.error(e);
             if (e.indexOf('SERVER') > -1) {
@@ -233,7 +233,7 @@ const Document = () => {
         case 'save': {
           try {
             console.log('try', op);
-            saveBlocksToServer(FilterAndReduceDBOperations(dbOperationQueue, op, i), op.story, op.chapter);
+            await saveBlocksToServer(FilterAndReduceDBOperations(dbOperationQueue, op, i), op.story, op.chapter);
           } catch (e) {
             console.error(e);
             if (e.indexOf('SERVER') > -1) {
@@ -245,7 +245,7 @@ const Document = () => {
         }
         case 'syncOrder': {
           try {
-            syncBlockOrderMap(op.blockList);
+            await syncBlockOrderMap(op.blockList);
             dbOperationQueue.splice(i, 1);
           } catch (e) {
             console.error(e);
@@ -309,7 +309,11 @@ const Document = () => {
         console.error(e);
       }
     }, DB_OP_INTERVAL));
-    
+
+    window.addEventListener('unload', processDBQueue);
+    return () => {
+      window.removeEventListener('unload', processDBQueue);
+    };
   }, [isLoggedIn, selectedStoryTitle, selectedChapterNumber, lastRetrievedBlockKey]);
 
   const syncBlockOrderMap = (blockList) => {
@@ -329,7 +333,8 @@ const Document = () => {
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(params)
+          body: JSON.stringify(params),
+          keepalive: true
         });
         if (!response.ok) {
           reject('SERVER ERROR ORDERING BLOCKS: ', response.body);
@@ -354,7 +359,8 @@ const Document = () => {
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(params)
+          body: JSON.stringify(params),
+          keepalive: true
         });
         if (!response.ok) {
           reject('SERVER ERROR DELETING BLOCK: ', response.body);
@@ -376,6 +382,7 @@ const Document = () => {
         console.log('saving', blocks);
         const response = await fetch('/api/stories/' + story, {
           method: 'PUT',
+          keepalive: true,
           headers: {
             'Content-Type': 'application/json'
           },
@@ -397,6 +404,7 @@ const Document = () => {
         console.log('saving associations', associations);
         const response = await fetch('/api/stories/' + selectedStoryTitle + '/associations', {
           method: 'PUT',
+          keepalive: true,
           headers: {
             'Content-Type': 'application/json'
           },
@@ -420,7 +428,8 @@ const Document = () => {
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(associations)
+          body: JSON.stringify(associations),
+          keepalive: true
         });
         if (!response.ok) {
           reject('SERVER ERROR SAVING BLOCK: ', response);
