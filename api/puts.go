@@ -1,6 +1,7 @@
 package api
 
 import (
+	"RichDocter/models"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -43,7 +44,7 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	decoder := json.NewDecoder(r.Body)
-	storyBlocks := StoryBlocks{}
+	storyBlocks := models.StoryBlocks{}
 	if err := decoder.Decode(&storyBlocks); err != nil {
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
@@ -53,7 +54,7 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 	chapter := strconv.Itoa(storyBlocks.Chapter)
 	tableName := email + "_" + safeStory + "_" + chapter + "_blocks"
 	// Group the storyBlocks into batches of 50.
-	batches := make([][]StoryBlock, 0, (len(storyBlocks.Blocks)+(writeBatchSize-1))/writeBatchSize)
+	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(writeBatchSize-1))/writeBatchSize)
 	for i := 0; i < len(storyBlocks.Blocks); i += writeBatchSize {
 		end := i + writeBatchSize
 		if end > len(storyBlocks.Blocks) {
@@ -126,7 +127,7 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	decoder := json.NewDecoder(r.Body)
-	storyBlocks := StoryBlocks{}
+	storyBlocks := models.StoryBlocks{}
 	if err = decoder.Decode(&storyBlocks); err != nil {
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
@@ -137,7 +138,7 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	tableName := emailSafe + "_" + safeStory + "_" + chapter + "_blocks"
 
 	// Group the storyBlocks into batches of 50.
-	batches := make([][]StoryBlock, 0, (len(storyBlocks.Blocks)+(writeBatchSize-1))/writeBatchSize)
+	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(writeBatchSize-1))/writeBatchSize)
 	for i := 0; i < len(storyBlocks.Blocks); i += writeBatchSize {
 		end := i + writeBatchSize
 		if end > len(storyBlocks.Blocks) {
@@ -213,13 +214,13 @@ func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	decoder := json.NewDecoder(r.Body)
-	associations := []Association{}
+	associations := []models.Association{}
 	if err = decoder.Decode(&associations); err != nil {
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	// Group the storyBlocks into batches of 50.
-	batches := make([][]Association, 0, (len(associations)+(writeBatchSize-1))/writeBatchSize)
+	batches := make([][]models.Association, 0, (len(associations)+(writeBatchSize-1))/writeBatchSize)
 	for i := 0; i < len(associations); i += writeBatchSize {
 		end := i + writeBatchSize
 		if end > len(associations) {

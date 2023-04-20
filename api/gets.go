@@ -1,6 +1,7 @@
 package api
 
 import (
+	"RichDocter/models"
 	"RichDocter/sessions"
 	"context"
 	"encoding/json"
@@ -91,7 +92,7 @@ func StoryBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 		}
 		items = append(items, page.Items...)
 	}
-	blocks := BlocksData{
+	blocks := models.BlocksData{
 		Items:         items,
 		LastEvaluated: lastKey,
 	}
@@ -134,7 +135,7 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	storyObj := []Story{}
+	storyObj := []models.Story{}
 	if err = attributevalue.UnmarshalListOfMaps(out.Items, &storyObj); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -159,7 +160,7 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	chapters := []Chapter{}
+	chapters := []models.Chapter{}
 	if err = attributevalue.UnmarshalListOfMaps(outChaps.Items, &chapters); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -190,7 +191,7 @@ func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stories := []Story{}
+	stories := []models.Story{}
 	if err = attributevalue.UnmarshalListOfMaps(out.Items, &stories); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -215,7 +216,7 @@ func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		chapters := []Chapter{}
+		chapters := []models.Chapter{}
 		if err = attributevalue.UnmarshalListOfMaps(outChaps.Items, &chapters); err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -256,7 +257,7 @@ func AllAssociationsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	storyObj := []Story{}
+	storyObj := []models.Story{}
 	if err = attributevalue.UnmarshalListOfMaps(outStory.Items, &storyObj); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -279,7 +280,7 @@ func AllAssociationsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		seriesObj := []Series{}
+		seriesObj := []models.Series{}
 		if err = attributevalue.UnmarshalListOfMaps(outStory.Items, &seriesObj); err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -302,7 +303,7 @@ func AllAssociationsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	associations := []Association{}
+	associations := []models.Association{}
 	if err = attributevalue.UnmarshalListOfMaps(out.Items, &associations); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -322,7 +323,7 @@ func AllAssociationsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		deets := []AssociationDetails{}
+		deets := []models.AssociationDetails{}
 		if err = attributevalue.UnmarshalListOfMaps(outDetails.Items, &deets); err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -403,7 +404,7 @@ func AllStoriesInSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var stories []Story
+	var stories []models.Story
 
 	for _, seriesEntry := range seriesOutput.Items {
 		storyTitle := ""
@@ -427,7 +428,7 @@ func AllStoriesInSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		story := []Story{}
+		story := []models.Story{}
 		if err = attributevalue.UnmarshalListOfMaps(storiesOutput.Items, &story); err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -452,7 +453,7 @@ func AllStoriesInSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		chapters := []Chapter{}
+		chapters := []models.Chapter{}
 		if err = attributevalue.UnmarshalListOfMaps(outChaps.Items, &chapters); err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return

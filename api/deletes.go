@@ -1,6 +1,7 @@
 package api
 
 import (
+	"RichDocter/models"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -36,7 +37,7 @@ func DeleteBlocksFromStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	decoder := json.NewDecoder(r.Body)
-	storyBlocks := StoryBlocks{}
+	storyBlocks := models.StoryBlocks{}
 	if err := decoder.Decode(&storyBlocks); err != nil {
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
@@ -48,7 +49,7 @@ func DeleteBlocksFromStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("deleting from", tableName)
 
 	// Group the storyBlocks into batches of 25.
-	batches := make([][]StoryBlock, 0, (len(storyBlocks.Blocks)+24)/25)
+	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+24)/25)
 	for i := 0; i < len(storyBlocks.Blocks); i += 25 {
 		end := i + 25
 		if end > len(storyBlocks.Blocks) {
@@ -121,7 +122,7 @@ func DeleteAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	decoder := json.NewDecoder(r.Body)
-	associations := []Association{}
+	associations := []models.Association{}
 
 	if err := decoder.Decode(&associations); err != nil {
 		RespondWithError(w, http.StatusBadRequest, err.Error())
@@ -129,7 +130,7 @@ func DeleteAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Group the storyBlocks into batches of 25.
-	batches := make([][]Association, 0, (len(associations)+24)/25)
+	batches := make([][]models.Association, 0, (len(associations)+24)/25)
 	for i := 0; i < len(associations); i += 25 {
 		end := i + 25
 		if end > len(associations) {
@@ -230,7 +231,7 @@ func DeleteChaptersEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	decoder := json.NewDecoder(r.Body)
-	chapters := []Chapter{}
+	chapters := []models.Chapter{}
 
 	if err := decoder.Decode(&chapters); err != nil {
 		RespondWithError(w, http.StatusBadRequest, err.Error())
@@ -241,7 +242,7 @@ func DeleteChaptersEndpoint(w http.ResponseWriter, r *http.Request) {
 	tblStory := strings.ToLower(strings.ReplaceAll(story, " ", "-"))
 
 	// Group the storyBlocks into batches of 25.
-	batches := make([][]Chapter, 0, (len(chapters)+24)/25)
+	batches := make([][]models.Chapter, 0, (len(chapters)+24)/25)
 	for i := 0; i < len(chapters); i += 25 {
 		end := i + 25
 		if end > len(chapters) {

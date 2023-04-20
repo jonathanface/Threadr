@@ -1,6 +1,7 @@
 package api
 
 import (
+	"RichDocter/models"
 	"context"
 	"encoding/json"
 	"errors"
@@ -137,7 +138,7 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	decoder := json.NewDecoder(r.Body)
-	chapter := Chapter{}
+	chapter := models.Chapter{}
 	if err := decoder.Decode(&chapter); err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
@@ -179,7 +180,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	decoder := json.NewDecoder(r.Body)
-	story := Story{}
+	story := models.Story{}
 	if err := decoder.Decode(&story); err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
