@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -84,12 +85,17 @@ func (d *DAO) generateStoryChapterTransaction(email string, story string, chapte
 	return input, nil
 }
 
+func (d *DAO) sanitizeTableName(name string) string {
+	tablenamePattern := regexp.MustCompile(`[^\w.-]+`)
+	return strings.ToLower(tablenamePattern.ReplaceAllString(name, ""))
+}
+
 func (d *DAO) createBlockTable(email string, story string, chapterTitle string, chapterNum int) error {
 	if email == "" || story == "" || chapterTitle == "" {
 		return fmt.Errorf("BLOCKS TABLE CREATION: Email, story, and chapter params must not be blank")
 	}
 	email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	story = strings.ToLower(strings.ReplaceAll(story, " ", "-"))
+	story = d.sanitizeTableName(story)
 	chapter := strconv.Itoa(chapterNum)
 	tableName := email + "_" + story + "_" + chapter + "_blocks"
 	partitionKey := aws.String("key_id")

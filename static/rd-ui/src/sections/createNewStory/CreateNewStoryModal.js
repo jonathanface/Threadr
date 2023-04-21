@@ -44,10 +44,18 @@ const CreateNewStory = () => {
           throw new Error('Fetch problem series ' + response.status);
         })
         .then((data) => {
+          const reduced = data.reduce((accumulator, currentValue) => {
+            if (!accumulator.series[currentValue.series_title]) {
+              accumulator.series[currentValue.series_title] = 1;
+            } else {
+              accumulator.series[currentValue.series_title]++;
+            }
+            return accumulator;
+          }, {series: {}});
           const params = [];
-          data.forEach((seriesItem) => {
-            params.push({'label': seriesItem.series_title.Value, 'id': seriesItem.series_title.Value, 'count': parseInt(seriesItem.story_count.Value)});
-          });
+          for (const series in reduced.series) {
+            params.push({'label': series, 'id': series, 'count': reduced[series]});
+          }
           setSeries(params);
         }).catch((error) => {
           console.error('get series', error);
@@ -85,13 +93,13 @@ const CreateNewStory = () => {
       body: JSON.stringify(formInput)
     }).then((response) => {
       if (response.ok) {
-        series.push({'label': formInput['series'], 'id': formInput['series'], 'count': formInput['place']});
-        setSeries(series);
-        dispatch(setSelectedStoryTitle(formInput['title']));
+        const newStoryTitle = formInput['title'];
+        dispatch(setSelectedStoryTitle(newStoryTitle));
+        const history = window.history;
+        history.pushState({newStoryTitle}, 'created new story', '/story/' + encodeURIComponent(newStoryTitle) + '?chapter=1');
         setTimeout(() => {
-          dispatch(flipRefreshStoryList());
-          dispatch(flipCreatingNewStoryState());
           setIsInASeries(false);
+          dispatch(flipCreatingNewStoryState());
         }, 1000);
       } else {
         setCurrentError(response.error);
@@ -147,17 +155,10 @@ const CreateNewStory = () => {
                 <Autocomplete
                   onInputChange={(event) => {
                     formInput['series'] = event.target.value;
-                    formInput['place'] = 1;
-                    if (series.some((s) => {
-                      if (s.label === event.target.value) {
-                        formInput['place'] = s.count+1;
-                      }
-                      return null;
-                    })) {setFormInput(formInput);}
+                    setFormInput(formInput);
                   }}
                   onChange={(event, actions) => {
                     formInput['series'] = actions.id;
-                    formInput['place'] = actions.count+1;
                     setFormInput(formInput);
                   }}
                   freeSolo

@@ -2,6 +2,9 @@ import React, {useState, useEffect} from 'react';
 import '../../css/landing-page.css';
 import {useSelector, useDispatch} from 'react-redux';
 import StoryContainer from './StoryContainer';
+import AddIcon from '@mui/icons-material/Add';
+import {IconButton} from '@mui/material';
+import {flipCreatingNewStoryState} from '../../stores/creatingNewStorySlice';
 
 const StoryAndSeriesListing = () => {
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
@@ -57,11 +60,29 @@ const StoryAndSeriesListing = () => {
     }
   }, [isLoggedIn, dispatch]);
 
+  const createNewStory = () => {
+    dispatch(flipCreatingNewStoryState());
+  };
+
   return (
     <div className="landing-page">
+      <div className="btn-container">
+
+      </div>
       {isLoggedIn ?
         <div>
-          <h2>Stories</h2>
+          <h2>Stories
+            <IconButton aria-label="add new story" component="label" onClick={createNewStory} title="Create Story" className="icon-add-btn">
+              <AddIcon sx={{
+                'color': '#F0F0F0',
+                'fontSize': 50,
+                '&:hover': {
+                  fontWeight: 'bold',
+                  color: '#2a57e3'
+                }
+              }}/>
+            </IconButton>
+          </h2>
           <div className="icon-box">
             {
               [...seriesGroup.keys()].map((series) => {

@@ -7,8 +7,8 @@
     letter-spacing: 1.5px;
     text-align: center;
     margin:40px;
+    margin-bottom:0px;
     position:relative;
-    height:100px;
 }
 
 .doc-button:hover {
@@ -25,6 +25,7 @@
     height:auto;
     filter: drop-shadow(2px 2px 2px #1a1a1a);
     vertical-align: top;
+    max-height: 100%;
 }
 
 .doc-button img.series_badge {

@@ -76,6 +76,10 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	story, err := dao.GetStoryByName(email, storyTitle)
 	if err != nil {
+		if err.Error() == "story not ready" {
+			RespondWithError(w, http.StatusNotFound, err.Error())
+			return
+		}
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

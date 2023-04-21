@@ -161,6 +161,9 @@ func (d *DAO) GetStoryByName(email, storyTitle string) (*models.Story, error) {
 	if err = attributevalue.UnmarshalListOfMaps(outChaps.Items, &chapters); err != nil {
 		return &story, err
 	}
+	if len(storyFromMap) == 0 {
+		return &story, fmt.Errorf("table not ready")
+	}
 	storyFromMap[0].Chapters = chapters
 	return &storyFromMap[0], nil
 }
@@ -171,7 +174,7 @@ func (d *DAO) GetStoryParagraphs(email, storyTitle, chapter, startKey string) (*
 		blocks models.BlocksData
 	)
 	email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	safeStory := strings.ToLower(strings.ReplaceAll(storyTitle, " ", "-"))
+	safeStory := d.sanitizeTableName(storyTitle)
 	tableName := email + "_" + safeStory + "_" + chapter + "_blocks"
 
 	queryInput := &dynamodb.QueryInput{
@@ -304,7 +307,9 @@ func (d *DAO) GetStoryAssociations(email, storyTitle string) ([]*models.Associat
 		if err = attributevalue.UnmarshalListOfMaps(outDetails.Items, &deets); err != nil {
 			return associations, err
 		}
-		associations[i].Details = deets[0]
+		if len(deets) > 0 {
+			associations[i].Details = deets[0]
+		}
 	}
 	return associations, nil
 }
@@ -434,7 +439,7 @@ func (d *DAO) UpsertUser(email string) (err error) {
 
 func (d *DAO) ResetBlockOrder(email, story string, storyBlocks *models.StoryBlocks) (response models.AwsStatusResponse) {
 	email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	safeStory := strings.ToLower(strings.ReplaceAll(story, " ", "-"))
+	safeStory := d.sanitizeTableName(story)
 	chapter := strconv.Itoa(storyBlocks.Chapter)
 	tableName := email + "_" + safeStory + "_" + chapter + "_blocks"
 
@@ -487,7 +492,7 @@ func (d *DAO) ResetBlockOrder(email, story string, storyBlocks *models.StoryBloc
 
 func (d *DAO) WriteBlocks(email, story string, storyBlocks *models.StoryBlocks) (response models.AwsStatusResponse) {
 	emailSafe := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	safeStory := strings.ToLower(strings.ReplaceAll(story, " ", "-"))
+	safeStory := d.sanitizeTableName(story)
 	chapter := strconv.Itoa(storyBlocks.Chapter)
 	tableName := emailSafe + "_" + safeStory + "_" + chapter + "_blocks"
 
@@ -696,7 +701,18 @@ func (d *DAO) CreateChapter(email, story string, chapter models.Chapter) (respon
 }
 
 func (d *DAO) CreateStory(email string, story models.Story) (response models.AwsStatusResponse) {
+	fmt.Println("creating story", story)
 	twii := &dynamodb.TransactWriteItemsInput{}
+	now := strconv.FormatInt(time.Now().Unix(), 10)
+	sqlString := "set description=:descr, created_at=:t"
+	attributes := map[string]types.AttributeValue{
+		":descr": &types.AttributeValueMemberS{Value: story.Description},
+		":t":     &types.AttributeValueMemberN{Value: now},
+	}
+	if story.Series != "" {
+		sqlString = "set description=:descr, series=:srs, created_at=:t"
+		attributes[":srs"] = &types.AttributeValueMemberS{Value: story.Series}
+	}
 	twi := types.TransactWriteItem{
 		Update: &types.Update{
 			TableName: aws.String("stories"),
@@ -704,11 +720,9 @@ func (d *DAO) CreateStory(email string, story models.Story) (response models.Aws
 				"story_title": &types.AttributeValueMemberS{Value: story.Title},
 				"author":      &types.AttributeValueMemberS{Value: email},
 			},
-			ConditionExpression: aws.String("attribute_not_exists(story_title)"),
-			UpdateExpression:    aws.String("set description=:descr, series=:srs, place_in_series=:p"),
-			ExpressionAttributeValues: map[string]types.AttributeValue{
-				":descr": &types.AttributeValueMemberS{Value: story.Description},
-			},
+			ConditionExpression:       aws.String("attribute_not_exists(story_title)"),
+			UpdateExpression:          aws.String(sqlString),
+			ExpressionAttributeValues: attributes,
 		},
 	}
 	twii.TransactItems = append(twii.TransactItems, twi)
@@ -721,6 +735,43 @@ func (d *DAO) CreateStory(email string, story models.Story) (response models.Aws
 		return
 	}
 	twii.TransactItems = append(twii.TransactItems, chapTwi)
+
+	if story.Series != "" {
+		params := &dynamodb.ScanInput{
+			TableName:        aws.String("series"),
+			FilterExpression: aws.String("series_title=:st"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":st": &types.AttributeValueMemberS{Value: story.Series},
+			},
+			//ProjectionExpression: aws.String("COUNT(*)"),
+			Select: types.SelectCount,
+		}
+
+		// Execute the scan operation and get the count
+		resp, err := d.dynamoClient.Scan(context.TODO(), params)
+		if err != nil {
+			response.Code = http.StatusInternalServerError
+			response.Message = err.Error()
+			return
+		}
+		seriesTwi := types.TransactWriteItem{
+			Update: &types.Update{
+				TableName: aws.String("series"),
+				Key: map[string]types.AttributeValue{
+					"series_title": &types.AttributeValueMemberS{Value: story.Series},
+					"story_title":  &types.AttributeValueMemberS{Value: story.Title},
+				},
+				ConditionExpression: aws.String("attribute_not_exists(story_title)"),
+				UpdateExpression:    aws.String("set author=:eml, created_at=:t, place=:p"),
+				ExpressionAttributeValues: map[string]types.AttributeValue{
+					":t":   &types.AttributeValueMemberN{Value: now},
+					":eml": &types.AttributeValueMemberS{Value: email},
+					":p":   &types.AttributeValueMemberN{Value: strconv.Itoa(int(resp.Count))},
+				},
+			},
+		}
+		twii.TransactItems = append(twii.TransactItems, seriesTwi)
+	}
 
 	if response.Code, response.Message = d.awsWriteTransaction(twii); response.Message != "" {
 		return
@@ -744,7 +795,7 @@ func (d *DAO) CreateStory(email string, story models.Story) (response models.Aws
 func (d *DAO) DeleteStoryParagraphs(email, storyTitle string, storyBlocks *models.StoryBlocks) (response models.AwsStatusResponse) {
 
 	email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	safeStory := strings.ToLower(strings.ReplaceAll(storyTitle, " ", "-"))
+	safeStory := d.sanitizeTableName(storyTitle)
 	chapter := strconv.Itoa(storyBlocks.Chapter)
 	tableName := email + "_" + safeStory + "_" + chapter + "_blocks"
 
@@ -865,7 +916,7 @@ func (d *DAO) DeleteAssociations(email, storyTitle string, associations []*model
 
 func (d *DAO) DeleteChapters(email, storyTitle string, chapters []models.Chapter) (response models.AwsStatusResponse) {
 	tblEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	tblStory := strings.ToLower(strings.ReplaceAll(storyTitle, " ", "-"))
+	tblStory := d.sanitizeTableName(storyTitle)
 
 	batches := make([][]models.Chapter, 0, (len(chapters)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(chapters); i += d.writeBatchSize {
