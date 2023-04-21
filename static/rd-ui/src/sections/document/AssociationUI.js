@@ -38,6 +38,7 @@ const AssociationUI = (props) => {
           throw new Error('Fetch problem image upload ' + response.status);
         }).then((data) => {
           setImageURL(data.url + '?date='+Date.now());
+          onAssociationEdit("", "portrait");
         }).catch((error) => console.error(error));
       };
       reader.readAsArrayBuffer(file);
@@ -52,7 +53,7 @@ const AssociationUI = (props) => {
       setHeaderLabel(props.association.association_type[0].toUpperCase() + props.association.association_type.slice(1) +':');
       setCaseSensitive(props.association.details.case_sensitive);
       setName(props.association.association_name);
-      setImageURL(props.association.portrait);
+      setImageURL(props.association.portrait + '?t=' + new Date().getDate());
       setDescription(props.association.short_description);
       setDetails(props.association.details.extended_description);
       setAliases(props.association.details.aliases);
@@ -87,12 +88,15 @@ const AssociationUI = (props) => {
           saveRequired = true;
         }
         break;
+      case 'portrait': {
+        saveRequired = true;
+        break;
+      }
     }
     if (saveRequired === true) {
       props.onEditCallback(newAssociation);
     }
   };
-  console.log('desc', description);
   return (
     <Backdrop onClick={handleClose} open={props.open} className="association-ui-bg">
       <div className="association-ui-container" onClick={(e)=>{e.stopPropagation();}}>

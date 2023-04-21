@@ -8,7 +8,7 @@ export default function AssociationTooltip(props) {
   const [description, setDescription] = useState('Descriptive text goes here.');
 
   useEffect(() => {
-    setPortrait(props.portrait);
+    setPortrait(props.portrait + '?' + new Date().getTime());
     setName(props.name);
     setDescription(props.description);
   }, [props]);

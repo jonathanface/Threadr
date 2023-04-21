@@ -2,16 +2,13 @@ package daos
 
 import (
 	"RichDocter/models"
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"log"
 	"math/rand"
-	"mime/multipart"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -21,7 +18,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/smithy-go"
 	"github.com/joho/godotenv"
 )
@@ -30,7 +26,6 @@ const (
 	S3_PORTRAIT_BASE_URL        = "https://richdocterportraits.s3.amazonaws.com/"
 	S3_LOCATION_BASE_URL        = "https://richdocterlocations.s3.amazonaws.com/"
 	S3_EVENT_BASE_URL           = "https://richdocterevents.s3.amazonaws.com/"
-	S3_CUSTOM_PORTRAIT_BUCKET   = "richdocter-custom-portraits"
 	MAX_DEFAULT_PORTRAIT_IMAGES = 50
 	MAX_DEFAULT_LOCATION_IMAGES = 20
 	MAX_DEFAULT_EVENT_IMAGES    = 20
@@ -39,7 +34,6 @@ const (
 
 type DAO struct {
 	dynamoClient   *dynamodb.Client
-	s3Client       *s3.Client
 	maxRetries     int
 	capacity       int
 	writeBatchSize int
@@ -72,8 +66,8 @@ func NewDAO() *DAO {
 	}
 	awsCfg.RetryMaxAttempts = maxAWSRetries
 	return &DAO{
-		dynamoClient:   dynamodb.NewFromConfig(awsCfg),
-		s3Client:       s3.NewFromConfig(awsCfg),
+		dynamoClient: dynamodb.NewFromConfig(awsCfg),
+
 		maxRetries:     maxAWSRetries,
 		capacity:       blockTableMinWriteCapacity,
 		writeBatchSize: DYNAMO_WRITE_BATCH_SIZE,
@@ -651,23 +645,7 @@ func (d *DAO) WriteAssociations(email, story string, associations []*models.Asso
 	return response
 }
 
-func (d *DAO) UploadPortrait(email, story, associationName, associationType, fileType string, handler *multipart.FileHeader, fileBytes []byte) (url string, err error) {
-	ext := filepath.Ext(handler.Filename)
-	safeStory := strings.ToLower(strings.ReplaceAll(story, " ", "-"))
-	safeAssoc := strings.ToLower(strings.ReplaceAll(associationName, " ", "-"))
-	filename := safeStory + "_" + safeAssoc + "_" + associationType + ext
-	reader := bytes.NewReader(fileBytes)
-
-	_, err = d.s3Client.PutObject(context.Background(), &s3.PutObjectInput{
-		Bucket:      aws.String(S3_CUSTOM_PORTRAIT_BUCKET),
-		Key:         aws.String(filename),
-		Body:        reader,
-		ContentType: aws.String(fileType),
-	})
-	if err != nil {
-		return url, err
-	}
-	url = "https://" + S3_CUSTOM_PORTRAIT_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
+func (d *DAO) UpdatePortrait(email, associationName, url string) (err error) {
 	key := map[string]types.AttributeValue{
 		"association_name": &types.AttributeValueMemberS{Value: associationName},
 		"author":           &types.AttributeValueMemberS{Value: email},
@@ -682,9 +660,9 @@ func (d *DAO) UploadPortrait(email, story, associationName, associationType, fil
 	}
 	_, err = d.dynamoClient.UpdateItem(context.Background(), updateInput)
 	if err != nil {
-		return url, err
+		return err
 	}
-	return url, nil
+	return nil
 }
 
 func (d *DAO) CreateChapter(email, story string, chapter models.Chapter) (response models.AwsStatusResponse) {

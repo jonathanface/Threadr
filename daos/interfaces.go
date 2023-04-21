@@ -2,7 +2,6 @@ package daos
 
 import (
 	"RichDocter/models"
-	"mime/multipart"
 )
 
 type DaoInterface interface {
@@ -19,7 +18,7 @@ type DaoInterface interface {
 	ResetBlockOrder(email, story string, storyBlocks *models.StoryBlocks) models.AwsStatusResponse
 	WriteBlocks(email, story string, storyBlocks *models.StoryBlocks) models.AwsStatusResponse
 	WriteAssociations(email, story string, associations []*models.Association) models.AwsStatusResponse
-	UploadPortrait(email, story, associationName, associationType, fileType string, handler *multipart.FileHeader, fileBytes []byte) (url string, err error)
+	UpdatePortrait(email, associationName, url string) error
 
 	// POSTs
 	CreateChapter(email, story string, chapter models.Chapter) models.AwsStatusResponse

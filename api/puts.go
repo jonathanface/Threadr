@@ -3,10 +3,18 @@ package api
 import (
 	"RichDocter/daos"
 	"RichDocter/models"
+	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gorilla/mux"
 )
 
@@ -138,7 +146,7 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		associationType string
 		dao             daos.DaoInterface
 		ok              bool
-		portraitURL     string
+		awsCfg          aws.Config
 	)
 	const maxFileSize = 1024 * 1024 // 1 MB
 	if email, err = getUserEmail(r); err != nil {
@@ -184,7 +192,7 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Filesize must be < 1MB")
 		return
 	}
-	allowedTypes := []string{"image/jpeg", "image/png"}
+	allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
 	fileBytes := make([]byte, handler.Size)
 	if _, err := file.Read(fileBytes); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -202,14 +210,37 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Invalid file type")
 		return
 	}
-
 	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	if portraitURL, err = dao.UploadPortrait(email, story, associationName, associationType, fileType, handler, fileBytes); err != nil {
+
+	reader := bytes.NewReader(fileBytes)
+	ext := filepath.Ext(handler.Filename)
+	safeStory := strings.ToLower(strings.ReplaceAll(story, " ", "-"))
+	safeAssoc := strings.ToLower(strings.ReplaceAll(associationName, " ", "-"))
+	filename := safeStory + "_" + safeAssoc + "_" + associationType + ext
+
+	if awsCfg, err = config.LoadDefaultConfig(context.TODO(), func(opts *config.LoadOptions) error {
+		opts.Region = os.Getenv("AWS_REGION")
+		return nil
+	}); err != nil {
+		panic(err)
+	}
+	s3Client := s3.NewFromConfig(awsCfg)
+	if _, err = s3Client.PutObject(context.Background(), &s3.PutObjectInput{
+		Bucket:      aws.String(S3_CUSTOM_PORTRAIT_BUCKET),
+		Key:         aws.String(filename),
+		Body:        reader,
+		ContentType: aws.String(fileType),
+	}); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+	}
+	portraitURL := "https://" + S3_CUSTOM_PORTRAIT_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
+	if err = dao.UpdatePortrait(email, associationName, portraitURL); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
 	RespondWithJson(w, http.StatusOK, models.Answer{Success: true, URL: portraitURL})
 }

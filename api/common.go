@@ -9,9 +9,10 @@ import (
 )
 
 const (
-	associationTypeCharacter = "character"
-	associationTypePlace     = "place"
-	associationTypeEvent     = "event"
+	associationTypeCharacter  = "character"
+	associationTypePlace      = "place"
+	associationTypeEvent      = "event"
+	S3_CUSTOM_PORTRAIT_BUCKET = "richdocter-custom-portraits"
 )
 
 func getUserEmail(r *http.Request) (string, error) {
