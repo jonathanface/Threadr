@@ -1,124 +1,25 @@
 package api
 
 import (
+	"RichDocter/models"
 	"RichDocter/sessions"
-	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"log"
 	"net/http"
-	"os"
-	"strconv"
-	"time"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/aws/smithy-go"
-	"github.com/joho/godotenv"
 )
 
 const (
-	writeBatchSize              = 50
-	associationTypeCharacter    = "character"
-	associationTypePlace        = "place"
-	associationTypeEvent        = "event"
-	S3_PORTRAIT_BASE_URL        = "https://richdocterportraits.s3.amazonaws.com/"
-	S3_LOCATION_BASE_URL        = "https://richdocterlocations.s3.amazonaws.com/"
-	S3_EVENT_BASE_URL           = "https://richdocterevents.s3.amazonaws.com/"
-	S3_CUSTOM_PORTRAIT_BUCKET   = "richdocter-custom-portraits"
-	MAX_DEFAULT_PORTRAIT_IMAGES = 50
-	MAX_DEFAULT_LOCATION_IMAGES = 20
-	MAX_DEFAULT_EVENT_IMAGES    = 20
+	associationTypeCharacter = "character"
+	associationTypePlace     = "place"
+	associationTypeEvent     = "event"
 )
-
-var AwsClient *dynamodb.Client
-var maxAWSRetries int
-var blockTableMinWriteCapacity int
-
-func init() {
-	var (
-		awsCfg aws.Config
-		err    error
-	)
-	if os.Getenv("APP_MODE") != "PRODUCTION" {
-		if err = godotenv.Load(); err != nil {
-			log.Fatal("Error loading .env file")
-		}
-	}
-
-	if awsCfg, err = config.LoadDefaultConfig(context.TODO(), func(opts *config.LoadOptions) error {
-		opts.Region = os.Getenv("AWS_REGION")
-		return nil
-	}); err != nil {
-		panic(err)
-	}
-	if maxAWSRetries, err = strconv.Atoi(os.Getenv("AWS_MAX_RETRIES")); err != nil {
-		panic(fmt.Sprintf("Error parsing env data: %s", err.Error()))
-	}
-	if blockTableMinWriteCapacity, err = strconv.Atoi(os.Getenv("AWS_BLOCKTABLE_MIN_WRITE_CAPACITY")); err != nil {
-		panic(fmt.Sprintf("Error parsing env data: %s", err.Error()))
-	}
-	awsCfg.RetryMaxAttempts = maxAWSRetries
-	AwsClient = dynamodb.NewFromConfig(awsCfg)
-}
-
-func awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsInput) (statusCode int, awsError string) {
-	if writeItemsInput == nil {
-		return http.StatusBadRequest, "writeItemsInput is nil"
-	}
-	maxItemsPerSecond := blockTableMinWriteCapacity / 2
-
-	for numRetries := 0; numRetries < maxAWSRetries; numRetries++ {
-		if _, err := AwsClient.TransactWriteItems(context.Background(), writeItemsInput); err == nil {
-			return http.StatusOK, ""
-		} else if opErr, ok := err.(*smithy.OperationError); ok {
-			fmt.Println("operr", opErr)
-			var txnErr *types.TransactionCanceledException
-			if errors.As(opErr.Unwrap(), &txnErr) && txnErr.CancellationReasons != nil {
-				for _, reason := range txnErr.CancellationReasons {
-
-					if *reason.Code == "ConditionalCheckFailed" {
-						return http.StatusConflict, *reason.Message
-					}
-					// For other types of cancellation reasons, we retry.
-					if *reason.Code == "TransactionConflict" || *reason.Code == "CapacityExceededException" {
-						var delay time.Duration
-						if reason.Code == aws.String("CapacityExceededException") {
-							delay = time.Duration(float64(time.Second) / float64(maxItemsPerSecond))
-						} else {
-							delay = time.Duration((1 << uint(numRetries)) * time.Millisecond)
-						}
-						time.Sleep(delay)
-						break
-					} else if *reason.Code != "None" {
-						fmt.Println("transaction error", *reason.Code)
-						var code int
-						if code, err = strconv.Atoi(*reason.Code); err != nil {
-							return http.StatusInternalServerError, *reason.Message
-						}
-						return code, fmt.Sprintf("transaction cancelled: %s", *reason.Message)
-					}
-				}
-			} else {
-				fmt.Println("Unhandled exception", opErr)
-				return http.StatusInternalServerError, opErr.Error()
-			}
-		} else {
-			return http.StatusInternalServerError, err.Error()
-		}
-	}
-	return http.StatusTooManyRequests, fmt.Sprintf("transaction cancelled after %d retries", maxAWSRetries)
-}
 
 func getUserEmail(r *http.Request) (string, error) {
 	token, err := sessions.Get(r, "token")
 	if err != nil || token.IsNew {
 		return "", errors.New("unable to retrieve token")
 	}
-	user := UserInfo{}
+	user := models.UserInfo{}
 	if err = json.Unmarshal(token.Values["token_data"].([]byte), &user); err != nil {
 		return "", err
 	}

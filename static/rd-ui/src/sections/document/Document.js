@@ -178,20 +178,22 @@ const Document = () => {
       data.last_evaluated_key && data.last_evaluated_key.key_id.Value ? lastRetrievedBlockKey = data.last_evaluated_key.key_id.Value : lastRetrievedBlockKey = null;
       // data.items.sort((a, b) => parseInt(a.place.Value) > parseInt(b.place.Value));
       const newBlocks = [];
-      data.items.forEach((piece) => {
-        if (piece.chunk) {
-          const jsonBlock = JSON.parse(piece.chunk.Value);
-          const block = new ContentBlock({
-            characterList: jsonBlock.characterList,
-            depth: jsonBlock.depth,
-            key: piece.key_id.Value,
-            text: jsonBlock.text,
-            type: jsonBlock.type,
-            data: jsonBlock.data,
-          });
-          newBlocks.push(block);
-        }
-      });
+      if (data.items) {
+        data.items.forEach((piece) => {
+          if (piece.chunk) {
+            const jsonBlock = JSON.parse(piece.chunk.Value);
+            const block = new ContentBlock({
+              characterList: jsonBlock.characterList,
+              depth: jsonBlock.depth,
+              key: piece.key_id.Value,
+              text: jsonBlock.text,
+              type: jsonBlock.type,
+              data: jsonBlock.data,
+            });
+            newBlocks.push(block);
+          }
+        });
+      }
       const contentState = {
         entityMap: {},
         blocks: newBlocks
@@ -865,6 +867,7 @@ const Document = () => {
   };
 
   const onNewChapterClick = () => {
+    console.log('gen chap');
     const newChapterNum = chapters.length+1;
     const newChapterTitle = 'Chapter ' + newChapterNum;
     fetch('/api/stories/' + selectedStoryTitle + '/chapter', {
@@ -992,7 +995,7 @@ const Document = () => {
                 </MenuItem>;
               })
             }
-            <MenuItem key="add_chapter_btn" onClick={onNewChapterClick}>
+            <MenuItem key="add_chapter_btn">
               <Button onClick={onNewChapterClick} variant="outlined" sx={{color: '#FFF'}} startIcon={
                 <AddIcon sx={{marginLeft: '5px'}}/>
               }>New</Button>

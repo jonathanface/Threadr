@@ -2,6 +2,7 @@ package auth
 
 import (
 	"RichDocter/api"
+	"RichDocter/models"
 	"RichDocter/sessions"
 	"encoding/json"
 	"fmt"
@@ -13,11 +14,6 @@ import (
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/google"
 )
-
-type UserInfo struct {
-	FirstName string `json:"first_name"`
-	Email     string `json:"email"`
-}
 
 func New() {
 	goth.UseProviders(
@@ -51,7 +47,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	info := UserInfo{}
+	info := models.UserInfo{}
 	info.Email = user.Email
 	info.FirstName = determineName(user)
 

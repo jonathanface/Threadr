@@ -1,0 +1,953 @@
+package daos
+
+import (
+	"RichDocter/models"
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	"log"
+	"math/rand"
+	"mime/multipart"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/smithy-go"
+	"github.com/joho/godotenv"
+)
+
+const (
+	S3_PORTRAIT_BASE_URL        = "https://richdocterportraits.s3.amazonaws.com/"
+	S3_LOCATION_BASE_URL        = "https://richdocterlocations.s3.amazonaws.com/"
+	S3_EVENT_BASE_URL           = "https://richdocterevents.s3.amazonaws.com/"
+	S3_CUSTOM_PORTRAIT_BUCKET   = "richdocter-custom-portraits"
+	MAX_DEFAULT_PORTRAIT_IMAGES = 50
+	MAX_DEFAULT_LOCATION_IMAGES = 20
+	MAX_DEFAULT_EVENT_IMAGES    = 20
+	DYNAMO_WRITE_BATCH_SIZE     = 50
+)
+
+type DAO struct {
+	dynamoClient   *dynamodb.Client
+	s3Client       *s3.Client
+	maxRetries     int
+	capacity       int
+	writeBatchSize int
+}
+
+func NewDAO() *DAO {
+	var (
+		awsCfg                     aws.Config
+		err                        error
+		maxAWSRetries              int
+		blockTableMinWriteCapacity int
+	)
+	if os.Getenv("APP_MODE") != "PRODUCTION" {
+		if err = godotenv.Load(); err != nil {
+			log.Fatal("Error loading .env file")
+		}
+	}
+
+	if awsCfg, err = config.LoadDefaultConfig(context.TODO(), func(opts *config.LoadOptions) error {
+		opts.Region = os.Getenv("AWS_REGION")
+		return nil
+	}); err != nil {
+		panic(err)
+	}
+	if maxAWSRetries, err = strconv.Atoi(os.Getenv("AWS_MAX_RETRIES")); err != nil {
+		panic(fmt.Sprintf("Error parsing env data: %s", err.Error()))
+	}
+	if blockTableMinWriteCapacity, err = strconv.Atoi(os.Getenv("AWS_BLOCKTABLE_MIN_WRITE_CAPACITY")); err != nil {
+		panic(fmt.Sprintf("Error parsing env data: %s", err.Error()))
+	}
+	awsCfg.RetryMaxAttempts = maxAWSRetries
+	return &DAO{
+		dynamoClient:   dynamodb.NewFromConfig(awsCfg),
+		s3Client:       s3.NewFromConfig(awsCfg),
+		maxRetries:     maxAWSRetries,
+		capacity:       blockTableMinWriteCapacity,
+		writeBatchSize: DYNAMO_WRITE_BATCH_SIZE,
+	}
+}
+
+func (dao *DAO) GetAllStandalone(email string) (stories []*models.Story, err error) {
+	out, err := dao.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName:        aws.String("stories"),
+		FilterExpression: aws.String("author=:eml AND attribute_not_exists(series)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":eml": &types.AttributeValueMemberS{Value: email},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &stories); err != nil {
+		return nil, err
+	}
+	var outChaps *dynamodb.QueryOutput
+	for i := 0; i < len(stories); i++ {
+		queryInput := &dynamodb.QueryInput{
+			TableName:              aws.String("chapters"),
+			IndexName:              aws.String("story_title-chapter_num-index"),
+			KeyConditionExpression: aws.String("chapter_num > :cn AND story_title=:s"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":cn": &types.AttributeValueMemberN{
+					Value: "-1",
+				},
+				":s": &types.AttributeValueMemberS{
+					Value: stories[i].Title,
+				},
+			},
+		}
+
+		if outChaps, err = dao.dynamoClient.Query(context.TODO(), queryInput); err != nil {
+			//RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return nil, err
+		}
+		chapters := []models.Chapter{}
+		if err = attributevalue.UnmarshalListOfMaps(outChaps.Items, &chapters); err != nil {
+			return nil, err
+		}
+		stories[i].Chapters = chapters
+	}
+	return stories, nil
+}
+
+func (d *DAO) GetStoryByName(email, storyTitle string) (*models.Story, error) {
+	var (
+		story models.Story
+		err   error
+	)
+	out, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName:        aws.String("stories"),
+		FilterExpression: aws.String("author=:eml AND story_title=:s"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":eml": &types.AttributeValueMemberS{Value: email},
+			":s":   &types.AttributeValueMemberS{Value: storyTitle},
+		},
+	})
+	if err != nil {
+		return &story, err
+	}
+
+	storyFromMap := []models.Story{}
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &storyFromMap); err != nil {
+		return &story, err
+	}
+	var outChaps *dynamodb.QueryOutput
+	queryInput := &dynamodb.QueryInput{
+		TableName:              aws.String("chapters"),
+		IndexName:              aws.String("story_title-chapter_num-index"),
+		KeyConditionExpression: aws.String("chapter_num > :cn AND story_title=:s"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":cn": &types.AttributeValueMemberN{
+				Value: "-1",
+			},
+			":s": &types.AttributeValueMemberS{
+				Value: storyTitle,
+			},
+		},
+	}
+
+	if outChaps, err = d.dynamoClient.Query(context.TODO(), queryInput); err != nil {
+		return &story, err
+	}
+	chapters := []models.Chapter{}
+	if err = attributevalue.UnmarshalListOfMaps(outChaps.Items, &chapters); err != nil {
+		return &story, err
+	}
+	storyFromMap[0].Chapters = chapters
+	return &storyFromMap[0], nil
+}
+
+func (d *DAO) GetStoryParagraphs(email, storyTitle, chapter, startKey string) (*models.BlocksData, error) {
+	var (
+		err    error
+		blocks models.BlocksData
+	)
+	email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
+	safeStory := strings.ToLower(strings.ReplaceAll(storyTitle, " ", "-"))
+	tableName := email + "_" + safeStory + "_" + chapter + "_blocks"
+
+	queryInput := &dynamodb.QueryInput{
+		TableName:              aws.String(tableName),
+		IndexName:              aws.String("story-place-index"),
+		KeyConditionExpression: aws.String("#place>:p AND story=:s"),
+		ExpressionAttributeNames: map[string]string{
+			"#place": "place",
+		},
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":p": &types.AttributeValueMemberN{
+				Value: "-1",
+			},
+			":s": &types.AttributeValueMemberS{
+				Value: storyTitle,
+			},
+		},
+	}
+
+	if startKey != "" {
+		queryInput.ExclusiveStartKey = map[string]types.AttributeValue{
+			"keyID": &types.AttributeValueMemberS{Value: startKey},
+		}
+	}
+
+	var items []map[string]types.AttributeValue
+	paginator := dynamodb.NewQueryPaginator(d.dynamoClient, queryInput)
+
+	var lastKey map[string]types.AttributeValue
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(context.Background())
+		if err != nil {
+			if opErr, ok := err.(*smithy.OperationError); ok {
+				var notFoundErr *types.ResourceNotFoundException
+				if errors.As(opErr.Unwrap(), &notFoundErr) {
+					return &blocks, err
+				}
+			}
+			return &blocks, err
+		}
+		if page.LastEvaluatedKey != nil {
+			lastKey = page.LastEvaluatedKey
+		}
+		items = append(items, page.Items...)
+	}
+	if len(items) == 0 {
+		return &blocks, err
+	}
+	blocks.Items = items
+	blocks.LastEvaluated = lastKey
+	return &blocks, nil
+}
+
+func (d *DAO) GetStoryAssociations(email, storyTitle string) ([]*models.Association, error) {
+	var (
+		associations []*models.Association
+		err          error
+	)
+	outStory, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName:        aws.String("stories"),
+		FilterExpression: aws.String("author=:eml AND story_title=:s"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":eml": &types.AttributeValueMemberS{Value: email},
+			":s":   &types.AttributeValueMemberS{Value: storyTitle},
+		},
+	})
+	if err != nil {
+		return associations, err
+	}
+	storyObj := []models.Story{}
+	if err = attributevalue.UnmarshalListOfMaps(outStory.Items, &storyObj); err != nil {
+		return associations, err
+	}
+	filterString := "author=:eml AND story=:s"
+	expressionValues := map[string]types.AttributeValue{
+		":eml": &types.AttributeValueMemberS{Value: email},
+		":s":   &types.AttributeValueMemberS{Value: storyTitle},
+	}
+	if storyObj[0].Series != "" {
+		outStory, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+			TableName:        aws.String("series"),
+			FilterExpression: aws.String("author=:eml AND series_title=:srs"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":eml": &types.AttributeValueMemberS{Value: email},
+				":srs": &types.AttributeValueMemberS{Value: storyObj[0].Series},
+			},
+		})
+		if err != nil {
+			return associations, err
+		}
+		seriesObj := []models.Series{}
+		if err = attributevalue.UnmarshalListOfMaps(outStory.Items, &seriesObj); err != nil {
+			return associations, err
+		}
+		filterString = "author=:eml AND (story=:s"
+		for i, v := range seriesObj {
+			idxStr := fmt.Sprint(i)
+			filterString += " OR story=:" + idxStr + ""
+			expressionValues[":"+idxStr] = &types.AttributeValueMemberS{Value: v.StoryTitle}
+		}
+		filterString += ")"
+	}
+
+	out, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName:                 aws.String("associations"),
+		FilterExpression:          aws.String(filterString),
+		ExpressionAttributeValues: expressionValues,
+	})
+	if err != nil {
+		return associations, err
+	}
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &associations); err != nil {
+		return associations, err
+	}
+
+	for i, v := range associations {
+		outDetails, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+			TableName:        aws.String("association_details"),
+			FilterExpression: aws.String("author=:eml AND story=:s AND association_name=:n"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":eml": &types.AttributeValueMemberS{Value: email},
+				":s":   &types.AttributeValueMemberS{Value: storyTitle},
+				":n":   &types.AttributeValueMemberS{Value: v.Name},
+			},
+		})
+		if err != nil {
+			return associations, err
+		}
+		deets := []models.AssociationDetails{}
+		if err = attributevalue.UnmarshalListOfMaps(outDetails.Items, &deets); err != nil {
+			return associations, err
+		}
+		associations[i].Details = deets[0]
+	}
+	return associations, nil
+}
+
+func (d *DAO) GetAllSeries(email string) (series []models.Series, err error) {
+	queryInput := &dynamodb.QueryInput{
+		TableName:              aws.String("series"),
+		IndexName:              aws.String("author-place-index"),
+		KeyConditionExpression: aws.String("place > :p AND author=:eml"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":p": &types.AttributeValueMemberN{
+				Value: "-1",
+			},
+			":eml": &types.AttributeValueMemberS{
+				Value: email,
+			},
+		},
+	}
+	var out *dynamodb.QueryOutput
+	if out, err = d.dynamoClient.Query(context.TODO(), queryInput); err != nil {
+		return series, err
+	}
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &series); err != nil {
+		return series, err
+	}
+	return series, err
+}
+
+func (d *DAO) GetSeriesVolumes(email, seriesTitle string) (volumes []*models.Story, err error) {
+
+	queryInput := &dynamodb.QueryInput{
+		TableName:              aws.String("series"),
+		IndexName:              aws.String("author-place-index"),
+		KeyConditionExpression: aws.String("place > :p AND author=:eml"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":p": &types.AttributeValueMemberN{
+				Value: "-1",
+			},
+			":eml": &types.AttributeValueMemberS{
+				Value: email,
+			},
+		},
+	}
+
+	var seriesOutput *dynamodb.QueryOutput
+	if seriesOutput, err = d.dynamoClient.Query(context.TODO(), queryInput); err != nil {
+		return volumes, err
+	}
+
+	for _, seriesEntry := range seriesOutput.Items {
+		storyTitle := ""
+		if av, ok := seriesEntry["story_title"].(*types.AttributeValueMemberS); ok {
+			storyTitle = av.Value
+		} else {
+			return volumes, err
+		}
+
+		storiesOutput, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+			TableName:        aws.String("stories"),
+			FilterExpression: aws.String("author=:eml AND story_title=:s AND series<>:f"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":eml": &types.AttributeValueMemberS{Value: email},
+				":s":   &types.AttributeValueMemberS{Value: storyTitle},
+				":f":   &types.AttributeValueMemberS{Value: ""},
+			},
+		})
+		if err != nil {
+			return volumes, err
+		}
+		story := []models.Story{}
+		if err = attributevalue.UnmarshalListOfMaps(storiesOutput.Items, &story); err != nil {
+			return volumes, err
+		}
+		var outChaps *dynamodb.QueryOutput
+		queryInput := &dynamodb.QueryInput{
+			TableName:              aws.String("chapters"),
+			IndexName:              aws.String("story_title-chapter_num-index"),
+			KeyConditionExpression: aws.String("chapter_num > :cn AND story_title=:s"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":cn": &types.AttributeValueMemberN{
+					Value: "-1",
+				},
+				":s": &types.AttributeValueMemberS{
+					Value: storyTitle,
+				},
+			},
+		}
+
+		if outChaps, err = d.dynamoClient.Query(context.TODO(), queryInput); err != nil {
+			return volumes, err
+		}
+		chapters := []models.Chapter{}
+		if err = attributevalue.UnmarshalListOfMaps(outChaps.Items, &chapters); err != nil {
+			return volumes, err
+		}
+		story[0].Chapters = chapters
+		volumes = append(volumes, &story[0])
+	}
+	return volumes, nil
+}
+
+func (d *DAO) UpsertUser(email string) (err error) {
+	now := strconv.FormatInt(time.Now().Unix(), 10)
+	input := &dynamodb.UpdateItemInput{
+		TableName: aws.String("users"),
+		Key: map[string]types.AttributeValue{
+			"email": &types.AttributeValueMemberS{Value: email},
+		},
+		ReturnValues:     types.ReturnValueUpdatedNew,
+		UpdateExpression: aws.String("set last_accessed=:t, created_at=if_not_exists(created_at, :t)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":t": &types.AttributeValueMemberN{Value: now},
+		},
+	}
+	var out *dynamodb.UpdateItemOutput
+	if out, err = d.dynamoClient.UpdateItem(context.TODO(), input); err != nil {
+		return err
+	}
+	var createdAt string
+	attributevalue.Unmarshal(out.Attributes["created_at"], &createdAt)
+
+	if createdAt == now {
+		fmt.Println("new account created")
+	}
+	return
+}
+
+func (d *DAO) ResetBlockOrder(email, story string, storyBlocks *models.StoryBlocks) (response models.AwsStatusResponse) {
+	email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
+	safeStory := strings.ToLower(strings.ReplaceAll(story, " ", "-"))
+	chapter := strconv.Itoa(storyBlocks.Chapter)
+	tableName := email + "_" + safeStory + "_" + chapter + "_blocks"
+
+	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(d.writeBatchSize-1))/d.writeBatchSize)
+	for i := 0; i < len(storyBlocks.Blocks); i += d.writeBatchSize {
+		end := i + d.writeBatchSize
+		if end > len(storyBlocks.Blocks) {
+			end = len(storyBlocks.Blocks)
+		}
+		batches = append(batches, storyBlocks.Blocks[i:end])
+	}
+
+	// Loop through the items and create the transaction write items.
+	for _, batch := range batches {
+		writeItemsInput := &dynamodb.TransactWriteItemsInput{
+			ClientRequestToken: nil,
+			TransactItems:      make([]types.TransactWriteItem, len(batch)),
+		}
+		for i, item := range batch {
+			// Create a key for the item.
+			key := map[string]types.AttributeValue{
+				"key_id": &types.AttributeValueMemberS{Value: item.KeyID},
+			}
+			// Create an update input for the item.
+			updateInput := &types.Update{
+				TableName:        aws.String(tableName),
+				Key:              key,
+				UpdateExpression: aws.String("set place=:p"),
+				ExpressionAttributeValues: map[string]types.AttributeValue{
+					":p": &types.AttributeValueMemberN{Value: item.Place},
+				},
+			}
+
+			// Create a transaction write item for the update operation.
+			writeItem := types.TransactWriteItem{
+				Update: updateInput,
+			}
+
+			// Add the transaction write item to the list of transaction write items.
+			writeItemsInput.TransactItems[i] = writeItem
+		}
+		response.Code, response.Message = d.awsWriteTransaction(writeItemsInput)
+		if response.Code != http.StatusOK {
+			response.Success = false
+		}
+	}
+	response.Success = true
+	return response
+}
+
+func (d *DAO) WriteBlocks(email, story string, storyBlocks *models.StoryBlocks) (response models.AwsStatusResponse) {
+	emailSafe := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
+	safeStory := strings.ToLower(strings.ReplaceAll(story, " ", "-"))
+	chapter := strconv.Itoa(storyBlocks.Chapter)
+	tableName := emailSafe + "_" + safeStory + "_" + chapter + "_blocks"
+
+	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(d.writeBatchSize-1))/d.writeBatchSize)
+	for i := 0; i < len(storyBlocks.Blocks); i += d.writeBatchSize {
+		end := i + d.writeBatchSize
+		if end > len(storyBlocks.Blocks) {
+			end = len(storyBlocks.Blocks)
+		}
+		batches = append(batches, storyBlocks.Blocks[i:end])
+	}
+	numWrote := 0
+	// Loop through the items and create the transaction write items.
+	for _, batch := range batches {
+		writeItemsInput := &dynamodb.TransactWriteItemsInput{
+			ClientRequestToken: nil,
+			TransactItems:      make([]types.TransactWriteItem, len(batch)),
+		}
+		for i, item := range batch {
+			// Create a key for the item.
+			key := map[string]types.AttributeValue{
+				"key_id": &types.AttributeValueMemberS{Value: item.KeyID},
+			}
+			// Create an update input for the item.
+			updateInput := &types.Update{
+				TableName:        aws.String(tableName),
+				Key:              key,
+				UpdateExpression: aws.String("set chunk=:c, story=:s, place=:p"),
+				ExpressionAttributeValues: map[string]types.AttributeValue{
+					":c": &types.AttributeValueMemberS{Value: string(item.Chunk)},
+					":s": &types.AttributeValueMemberS{Value: story},
+					":p": &types.AttributeValueMemberN{Value: item.Place},
+				},
+			}
+
+			// Create a transaction write item for the update operation.
+			writeItem := types.TransactWriteItem{
+				Update: updateInput,
+			}
+
+			// Add the transaction write item to the list of transaction write items.
+			writeItemsInput.TransactItems[i] = writeItem
+		}
+		response.Code, response.Message = d.awsWriteTransaction(writeItemsInput)
+		if response.Code != http.StatusOK {
+			return response
+		}
+		numWrote += len(batch)
+	}
+	response.Success = true
+	return response
+}
+
+func (d *DAO) WriteAssociations(email, story string, associations []*models.Association) (response models.AwsStatusResponse) {
+
+	batches := make([][]*models.Association, 0, (len(associations)+(d.writeBatchSize-1))/d.writeBatchSize)
+	for i := 0; i < len(associations); i += d.writeBatchSize {
+		end := i + d.writeBatchSize
+		if end > len(associations) {
+			end = len(associations)
+		}
+		batches = append(batches, associations[i:end])
+	}
+
+	now := strconv.FormatInt(time.Now().Unix(), 10)
+	// Loop through the items and create the transaction write items.
+	for _, batch := range batches {
+		writeItemsInput := &dynamodb.TransactWriteItemsInput{
+			ClientRequestToken: nil,
+			TransactItems:      make([]types.TransactWriteItem, len(batch)),
+		}
+		writeItemsDetailsInput := &dynamodb.TransactWriteItemsInput{
+			ClientRequestToken: nil,
+			TransactItems:      make([]types.TransactWriteItem, len(batch)),
+		}
+		for i, item := range batch {
+			imgFile := item.Portrait
+			if imgFile == "" {
+				rand.Seed(time.Now().UnixNano())
+				switch item.Type {
+				case "character":
+					imageFileName := rand.Intn(MAX_DEFAULT_PORTRAIT_IMAGES-1) + 1
+					imgFile = S3_PORTRAIT_BASE_URL + strconv.Itoa(imageFileName) + ".jpg"
+				case "place":
+					imageFileName := rand.Intn(MAX_DEFAULT_LOCATION_IMAGES-1) + 1
+					imgFile = S3_LOCATION_BASE_URL + strconv.Itoa(imageFileName) + ".jpg"
+				case "event":
+					imageFileName := rand.Intn(MAX_DEFAULT_EVENT_IMAGES-1) + 1
+					imgFile = S3_EVENT_BASE_URL + strconv.Itoa(imageFileName) + ".jpg"
+				}
+			}
+			shortDescription := item.ShortDescription
+			if shortDescription == "" {
+				shortDescription = "You may edit this descriptive text by clicking on the association."
+			}
+			extendedDescription := item.Details.ExtendedDescription
+			if extendedDescription == "" {
+				extendedDescription = "Here you can put some extended details.\nShift+Enter for new lines."
+			}
+			associations[i].Portrait = imgFile
+			// Create a key for the item.
+			key := map[string]types.AttributeValue{
+				"association_name": &types.AttributeValueMemberS{Value: item.Name},
+				"author":           &types.AttributeValueMemberS{Value: email},
+			}
+			// Create an update input for the item.
+			updateInput := &types.Update{
+				TableName:        aws.String("associations"),
+				Key:              key,
+				UpdateExpression: aws.String("set created_at=if_not_exists(created_at,:t), story=:s, association_type=:at, portrait=:p, short_description=:sd"),
+				ExpressionAttributeValues: map[string]types.AttributeValue{
+					":t":  &types.AttributeValueMemberN{Value: now},
+					":at": &types.AttributeValueMemberS{Value: item.Type},
+					":s":  &types.AttributeValueMemberS{Value: story},
+					":p":  &types.AttributeValueMemberS{Value: imgFile},
+					":sd": &types.AttributeValueMemberS{Value: shortDescription},
+				},
+			}
+
+			updateDetailsInput := &types.Update{
+				TableName:        aws.String("association_details"),
+				Key:              key,
+				UpdateExpression: aws.String("set story=:s, case_sensitive=:c, extended_description=:ed, aliases=:al"),
+				ExpressionAttributeValues: map[string]types.AttributeValue{
+					":s":  &types.AttributeValueMemberS{Value: story},
+					":c":  &types.AttributeValueMemberBOOL{Value: item.Details.CaseSensitive},
+					":ed": &types.AttributeValueMemberS{Value: extendedDescription},
+					":al": &types.AttributeValueMemberS{Value: item.Details.Aliases},
+				},
+			}
+
+			// Create a transaction write item for the update operation.
+			writeItem := types.TransactWriteItem{
+				Update: updateInput,
+			}
+			writeDetailsItem := types.TransactWriteItem{
+				Update: updateDetailsInput,
+			}
+
+			// Add the transaction write item to the list of transaction write items.
+			writeItemsInput.TransactItems[i] = writeItem
+			writeItemsDetailsInput.TransactItems[i] = writeDetailsItem
+		}
+		response.Code, response.Message = d.awsWriteTransaction(writeItemsInput)
+		if response.Code != http.StatusOK {
+			return response
+		}
+		response.Code, response.Message = d.awsWriteTransaction(writeItemsDetailsInput)
+		if response.Code != http.StatusOK {
+			return response
+		}
+	}
+	response.Code = http.StatusOK
+	response.Success = true
+	return response
+}
+
+func (d *DAO) UploadPortrait(email, story, associationName, associationType, fileType string, handler *multipart.FileHeader, fileBytes []byte) (url string, err error) {
+	ext := filepath.Ext(handler.Filename)
+	safeStory := strings.ToLower(strings.ReplaceAll(story, " ", "-"))
+	safeAssoc := strings.ToLower(strings.ReplaceAll(associationName, " ", "-"))
+	filename := safeStory + "_" + safeAssoc + "_" + associationType + ext
+	reader := bytes.NewReader(fileBytes)
+
+	_, err = d.s3Client.PutObject(context.Background(), &s3.PutObjectInput{
+		Bucket:      aws.String(S3_CUSTOM_PORTRAIT_BUCKET),
+		Key:         aws.String(filename),
+		Body:        reader,
+		ContentType: aws.String(fileType),
+	})
+	if err != nil {
+		return url, err
+	}
+	url = "https://" + S3_CUSTOM_PORTRAIT_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
+	key := map[string]types.AttributeValue{
+		"association_name": &types.AttributeValueMemberS{Value: associationName},
+		"author":           &types.AttributeValueMemberS{Value: email},
+	}
+	updateInput := &dynamodb.UpdateItemInput{
+		TableName:        aws.String("associations"),
+		Key:              key,
+		UpdateExpression: aws.String("set portrait=:p"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":p": &types.AttributeValueMemberS{Value: url},
+		},
+	}
+	_, err = d.dynamoClient.UpdateItem(context.Background(), updateInput)
+	if err != nil {
+		return url, err
+	}
+	return url, nil
+}
+
+func (d *DAO) CreateChapter(email, story string, chapter models.Chapter) (response models.AwsStatusResponse) {
+	var chapTwi types.TransactWriteItem
+	var err error
+	if chapTwi, err = d.generateStoryChapterTransaction(email, story, chapter.ChapterNum, chapter.ChapterTitle); err != nil {
+		response.Code = http.StatusInternalServerError
+		response.Message = err.Error()
+		return
+	}
+
+	twii := &dynamodb.TransactWriteItemsInput{}
+	twii.TransactItems = append(twii.TransactItems, chapTwi)
+	if response.Code, response.Message = d.awsWriteTransaction(twii); response.Message != "" {
+		return
+	}
+	if err = d.createBlockTable(email, story, chapter.ChapterTitle, chapter.ChapterNum); err != nil {
+		var riu *types.ResourceInUseException
+		if errors.As(err, &riu) {
+			response.Code = http.StatusConflict
+			response.Message = "story or story with chapter already exists"
+			return
+		}
+		response.Code = http.StatusInternalServerError
+		response.Message = err.Error()
+		return
+	}
+	response.Code = http.StatusOK
+	response.Success = true
+	return
+}
+
+func (d *DAO) CreateStory(email string, story models.Story) (response models.AwsStatusResponse) {
+	twii := &dynamodb.TransactWriteItemsInput{}
+	twi := types.TransactWriteItem{
+		Update: &types.Update{
+			TableName: aws.String("stories"),
+			Key: map[string]types.AttributeValue{
+				"story_title": &types.AttributeValueMemberS{Value: story.Title},
+				"author":      &types.AttributeValueMemberS{Value: email},
+			},
+			ConditionExpression: aws.String("attribute_not_exists(story_title)"),
+			UpdateExpression:    aws.String("set description=:descr, series=:srs, place_in_series=:p"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":descr": &types.AttributeValueMemberS{Value: story.Description},
+			},
+		},
+	}
+	twii.TransactItems = append(twii.TransactItems, twi)
+
+	var chapTwi types.TransactWriteItem
+	var err error
+	if chapTwi, err = d.generateStoryChapterTransaction(email, story.Title, 1, "Chapter 1"); err != nil {
+		response.Code = http.StatusInternalServerError
+		response.Message = err.Error()
+		return
+	}
+	twii.TransactItems = append(twii.TransactItems, chapTwi)
+
+	if response.Code, response.Message = d.awsWriteTransaction(twii); response.Message != "" {
+		return
+	}
+	if err = d.createBlockTable(email, story.Title, "Chapter 1", 1); err != nil {
+		var riu *types.ResourceInUseException
+		if errors.As(err, &riu) {
+			response.Code = http.StatusConflict
+			response.Message = "story or story with chapter already exists"
+			return
+		}
+		response.Code = http.StatusInternalServerError
+		response.Message = err.Error()
+		return
+	}
+	response.Code = http.StatusOK
+	response.Success = true
+	return
+}
+
+func (d *DAO) DeleteStoryParagraphs(email, storyTitle string, storyBlocks *models.StoryBlocks) (response models.AwsStatusResponse) {
+
+	email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
+	safeStory := strings.ToLower(strings.ReplaceAll(storyTitle, " ", "-"))
+	chapter := strconv.Itoa(storyBlocks.Chapter)
+	tableName := email + "_" + safeStory + "_" + chapter + "_blocks"
+
+	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(d.writeBatchSize-1))/d.writeBatchSize)
+	for i := 0; i < len(storyBlocks.Blocks); i += d.writeBatchSize {
+		end := i + d.writeBatchSize
+		if end > len(storyBlocks.Blocks) {
+			end = len(storyBlocks.Blocks)
+		}
+		batches = append(batches, storyBlocks.Blocks[i:end])
+	}
+
+	// Loop through the items and create the transaction write items.
+	for _, batch := range batches {
+		writeItemsInput := &dynamodb.TransactWriteItemsInput{
+			ClientRequestToken: nil,
+			TransactItems:      make([]types.TransactWriteItem, len(batch)),
+		}
+		for i, item := range batch {
+			// Create a key for the item.
+			key := map[string]types.AttributeValue{
+				"key_id": &types.AttributeValueMemberS{Value: item.KeyID},
+			}
+
+			// Create a delete input for the item.
+			deleteInput := &types.Delete{
+				Key:       key,
+				TableName: aws.String(tableName),
+			}
+			// Create a transaction write item for the update operation.
+			writeItem := types.TransactWriteItem{
+				Delete: deleteInput,
+			}
+
+			// Add the transaction write item to the list of transaction write items.
+			writeItemsInput.TransactItems[i] = writeItem
+		}
+
+		if response.Code, response.Message = d.awsWriteTransaction(writeItemsInput); response.Message != "" {
+			return
+		}
+	}
+	response.Code = http.StatusOK
+	response.Success = true
+	return
+}
+
+func (d *DAO) DeleteAssociations(email, storyTitle string, associations []*models.Association) (response models.AwsStatusResponse) {
+	batches := make([][]*models.Association, 0, (len(associations)+(d.writeBatchSize-1))/d.writeBatchSize)
+	for i := 0; i < len(associations); i += d.writeBatchSize {
+		end := i + d.writeBatchSize
+		if end > len(associations) {
+			end = len(associations)
+		}
+		batches = append(batches, associations[i:end])
+	}
+
+	// Loop through the items and create the transaction write items.
+	for _, batch := range batches {
+		writeItemsInput := &dynamodb.TransactWriteItemsInput{
+			ClientRequestToken: nil,
+			TransactItems:      make([]types.TransactWriteItem, len(batch)),
+		}
+		writeItemsDetailsInput := &dynamodb.TransactWriteItemsInput{
+			ClientRequestToken: nil,
+			TransactItems:      make([]types.TransactWriteItem, len(batch)),
+		}
+		for i, item := range batch {
+			// Create a key for the item.
+			key := map[string]types.AttributeValue{
+				"association_name": &types.AttributeValueMemberS{Value: item.Name},
+				"author":           &types.AttributeValueMemberS{Value: email},
+			}
+
+			// Create a delete input for the item.
+			deleteInput := &types.Delete{
+				Key:                 key,
+				TableName:           aws.String("associations"),
+				ConditionExpression: aws.String("story=:s AND association_type=:t"),
+				ExpressionAttributeValues: map[string]types.AttributeValue{
+					":s": &types.AttributeValueMemberS{Value: storyTitle},
+					":t": &types.AttributeValueMemberS{Value: item.Type},
+				},
+			}
+			deleteDetailsInput := &types.Delete{
+				Key:                 key,
+				TableName:           aws.String("association_details"),
+				ConditionExpression: aws.String("story=:s"),
+				ExpressionAttributeValues: map[string]types.AttributeValue{
+					":s": &types.AttributeValueMemberS{Value: storyTitle},
+				},
+			}
+			// Create a transaction write item for the update operation.
+			writeItem := types.TransactWriteItem{
+				Delete: deleteInput,
+			}
+			writeDetailsItem := types.TransactWriteItem{
+				Delete: deleteDetailsInput,
+			}
+
+			// Add the transaction write item to the list of transaction write items.
+			writeItemsInput.TransactItems[i] = writeItem
+			writeItemsDetailsInput.TransactItems[i] = writeDetailsItem
+		}
+
+		if response.Code, response.Message = d.awsWriteTransaction(writeItemsInput); response.Message != "" {
+			return
+		}
+
+		if response.Code, response.Message = d.awsWriteTransaction(writeItemsDetailsInput); response.Message != "" {
+			return
+		}
+	}
+	response.Code = http.StatusOK
+	response.Success = true
+	return
+}
+
+func (d *DAO) DeleteChapters(email, storyTitle string, chapters []models.Chapter) (response models.AwsStatusResponse) {
+	tblEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
+	tblStory := strings.ToLower(strings.ReplaceAll(storyTitle, " ", "-"))
+
+	batches := make([][]models.Chapter, 0, (len(chapters)+(d.writeBatchSize-1))/d.writeBatchSize)
+	for i := 0; i < len(chapters); i += d.writeBatchSize {
+		end := i + d.writeBatchSize
+		if end > len(chapters) {
+			end = len(chapters)
+		}
+		batches = append(batches, chapters[i:end])
+	}
+	// Loop through the items and create the transaction write items.
+	for _, batch := range batches {
+		writeItemsInput := &dynamodb.TransactWriteItemsInput{
+			ClientRequestToken: nil,
+			TransactItems:      make([]types.TransactWriteItem, len(batch)),
+		}
+		for i, item := range batch {
+			// Create a key for the item.
+			key := map[string]types.AttributeValue{
+				"chapter_title": &types.AttributeValueMemberS{Value: item.ChapterTitle},
+				"story_title":   &types.AttributeValueMemberS{Value: storyTitle},
+			}
+
+			// Create a delete input for the item.
+			deleteInput := &types.Delete{
+				Key:                 key,
+				TableName:           aws.String("chapters"),
+				ConditionExpression: aws.String("author=:eml"),
+				ExpressionAttributeValues: map[string]types.AttributeValue{
+					":eml": &types.AttributeValueMemberS{Value: email},
+				},
+			}
+
+			// Create a transaction write item for the update operation.
+			writeItem := types.TransactWriteItem{
+				Delete: deleteInput,
+			}
+
+			// Add the transaction write item to the list of transaction write items.
+			writeItemsInput.TransactItems[i] = writeItem
+
+			chapter := strconv.Itoa(item.ChapterNum)
+			tableName := tblEmail + "_" + tblStory + "_" + chapter + "_blocks"
+
+			deleteTableInput := &dynamodb.DeleteTableInput{
+				TableName: aws.String(tableName),
+			}
+
+			// Delete the table
+			var err error
+			if _, err = d.dynamoClient.DeleteTable(context.Background(), deleteTableInput); err != nil {
+				response.Code = http.StatusInternalServerError
+				response.Message = err.Error()
+				return
+			}
+		}
+		if response.Code, response.Message = d.awsWriteTransaction(writeItemsInput); response.Message != "" {
+			return
+		}
+	}
+	response.Code = http.StatusOK
+	response.Success = true
+	return
+}

@@ -57,3 +57,20 @@ type Series struct {
 	CreatedAt   time.Time `json:"created_at" dynamodbav:"created_at"`
 	Place       int       `json:"place" dynamodbav:"place"`
 }
+
+type UserInfo struct {
+	Email     string `json:"email"`
+	FirstName string `json:"first_name"`
+}
+
+type Answer struct {
+	Success     bool   `json:"success"`
+	NumberWrote int    `json:"wrote"`
+	URL         string `json:"url"`
+}
+
+type AwsStatusResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+	Code    int    `json:"code"`
+}

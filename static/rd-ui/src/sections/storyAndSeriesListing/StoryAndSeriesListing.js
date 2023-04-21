@@ -17,14 +17,14 @@ const StoryAndSeriesListing = () => {
       throw new Error('Fetch problem series ' + response.status);
     }).then((data) => {
       const seriesStoriesFromDB = new Map();
-      data.Items.forEach((series) => {
-        if (!seriesStoriesFromDB.has(series.series_title.Value)) {
-          seriesStoriesFromDB.set(series.series_title.Value, []);
+      data.forEach((series) => {
+        if (!seriesStoriesFromDB.has(series.series_title)) {
+          seriesStoriesFromDB.set(series.series_title, []);
         }
-        seriesStoriesFromDB.get(series.series_title.Value).push({
-          volume: series.story_title.Value,
-          place: series.place.Value,
-          created_at: series.created_at.Value
+        seriesStoriesFromDB.get(series.series_title).push({
+          volume: series.story_title,
+          place: series.place,
+          created_at: series.created_at
         });
       });
       setSeriesGroups(seriesStoriesFromDB);
