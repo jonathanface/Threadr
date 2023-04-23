@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
@@ -16,22 +15,23 @@ import (
 	"github.com/aws/smithy-go"
 )
 
-func (d *DAO) awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsInput) (statusCode int, awsError string) {
+func (d *DAO) awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsInput) (awsError error) {
 	if writeItemsInput == nil {
-		return http.StatusBadRequest, "writeItemsInput is nil"
+		return fmt.Errorf("writeItemsInput is nil")
 	}
 	maxItemsPerSecond := d.capacity / 2
 
 	for numRetries := 0; numRetries < d.maxRetries; numRetries++ {
 		if _, err := d.dynamoClient.TransactWriteItems(context.Background(), writeItemsInput); err == nil {
-			return http.StatusOK, ""
+			return nil
 		} else if opErr, ok := err.(*smithy.OperationError); ok {
 			var txnErr *types.TransactionCanceledException
+
 			if errors.As(opErr.Unwrap(), &txnErr) && txnErr.CancellationReasons != nil {
 				for _, reason := range txnErr.CancellationReasons {
 
 					if *reason.Code == "ConditionalCheckFailed" {
-						return http.StatusConflict, *reason.Message
+						return err
 					}
 					// For other types of cancellation reasons, we retry.
 					if *reason.Code == "TransactionConflict" || *reason.Code == "CapacityExceededException" {
@@ -44,21 +44,17 @@ func (d *DAO) awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsIn
 						time.Sleep(delay)
 						break
 					} else if *reason.Code != "None" {
-						var code int
-						if code, err = strconv.Atoi(*reason.Code); err != nil {
-							return http.StatusInternalServerError, *reason.Message
-						}
-						return code, fmt.Sprintf("transaction cancelled: %s", *reason.Message)
+						return err
 					}
 				}
 			} else {
-				return http.StatusInternalServerError, opErr.Error()
+				return err
 			}
 		} else {
-			return http.StatusInternalServerError, err.Error()
+			return err
 		}
 	}
-	return http.StatusTooManyRequests, fmt.Sprintf("transaction cancelled after %d retries", d.maxRetries)
+	return fmt.Errorf("transaction cancelled after %d retries", d.maxRetries)
 }
 
 func (d *DAO) generateStoryChapterTransaction(email string, story string, chapter int, chapterTitle string) (types.TransactWriteItem, error) {
@@ -164,4 +160,22 @@ func (d *DAO) createBlockTable(email string, story string, chapterTitle string, 
 		}
 	}*/
 	return nil
+}
+
+func (d *DAO) WasStoryDeleted(email string, storyTitle string) (bool, error) {
+	exists, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName:        aws.String("stories"),
+		FilterExpression: aws.String("author=:eml AND story_title=:s AND attribute_exists(deleted_at)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":eml": &types.AttributeValueMemberS{Value: email},
+			":s":   &types.AttributeValueMemberS{Value: storyTitle},
+		},
+	})
+	if err != nil {
+		return false, err
+	}
+	if len(exists.Items) > 0 {
+		return true, nil
+	}
+	return false, nil
 }

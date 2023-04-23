@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
 )
 
@@ -42,8 +43,20 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	awsResponse := dao.CreateChapter(email, storyTitle, chapter)
-	RespondWithJson(w, awsResponse.Code, awsResponse.Message)
+	if err = dao.CreateChapter(email, storyTitle, chapter); err != nil {
+		if opErr, ok := err.(*smithy.OperationError); ok {
+			awsResponse := processAWSError(opErr)
+			if awsResponse.Code == 0 {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			RespondWithError(w, awsResponse.Code, awsResponse.Message)
+			return
+		}
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	RespondWithJson(w, http.StatusOK, nil)
 }
 
 func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -78,6 +91,18 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	awsResponse := dao.CreateStory(email, story)
-	RespondWithJson(w, awsResponse.Code, awsResponse.Message)
+	if err = dao.CreateStory(email, story); err != nil {
+		if opErr, ok := err.(*smithy.OperationError); ok {
+			awsResponse := processAWSError(opErr)
+			if awsResponse.Code == 0 {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			RespondWithError(w, awsResponse.Code, awsResponse.Message)
+			return
+		}
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	RespondWithJson(w, http.StatusOK, nil)
 }

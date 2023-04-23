@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
 )
 
@@ -41,8 +42,25 @@ func StoryBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
+	if ok, err = dao.WasStoryDeleted(email, storyTitle); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if ok {
+		RespondWithError(w, http.StatusNotFound, "story not found")
+		return
+	}
 	blocks, err := dao.GetStoryParagraphs(email, storyTitle, chapter, startKey)
 	if err != nil {
+		if opErr, ok := err.(*smithy.OperationError); ok {
+			awsResponse := processAWSError(opErr)
+			if awsResponse.Code == 0 {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			RespondWithError(w, awsResponse.Code, awsResponse.Message)
+			return
+		}
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -74,10 +92,23 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
+	if ok, err = dao.WasStoryDeleted(email, storyTitle); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if ok {
+		RespondWithError(w, http.StatusNotFound, "story not found")
+		return
+	}
 	story, err := dao.GetStoryByName(email, storyTitle)
 	if err != nil {
-		if err.Error() == "story not ready" {
-			RespondWithError(w, http.StatusNotFound, err.Error())
+		if opErr, ok := err.(*smithy.OperationError); ok {
+			awsResponse := processAWSError(opErr)
+			if awsResponse.Code == 0 {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			RespondWithError(w, awsResponse.Code, awsResponse.Message)
 			return
 		}
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -103,6 +134,15 @@ func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	stories, err := dao.GetAllStandalone(email)
 	if err != nil {
+		if opErr, ok := err.(*smithy.OperationError); ok {
+			awsResponse := processAWSError(opErr)
+			if awsResponse.Code == 0 {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			RespondWithError(w, awsResponse.Code, awsResponse.Message)
+			return
+		}
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -135,6 +175,15 @@ func AllAssociationsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	associations, err := dao.GetStoryAssociations(email, storyTitle)
 	if err != nil {
+		if opErr, ok := err.(*smithy.OperationError); ok {
+			awsResponse := processAWSError(opErr)
+			if awsResponse.Code == 0 {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			RespondWithError(w, awsResponse.Code, awsResponse.Message)
+			return
+		}
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -158,6 +207,15 @@ func AllSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	series, err := dao.GetAllSeries(email)
 	if err != nil {
+		if opErr, ok := err.(*smithy.OperationError); ok {
+			awsResponse := processAWSError(opErr)
+			if awsResponse.Code == 0 {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			RespondWithError(w, awsResponse.Code, awsResponse.Message)
+			return
+		}
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -190,6 +248,15 @@ func AllSeriesVolumesEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	volumes, err := dao.GetSeriesVolumes(email, seriesTitle)
 	if err != nil {
+		if opErr, ok := err.(*smithy.OperationError); ok {
+			awsResponse := processAWSError(opErr)
+			if awsResponse.Code == 0 {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			RespondWithError(w, awsResponse.Code, awsResponse.Message)
+			return
+		}
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
 )
 
@@ -51,12 +52,20 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := dao.ResetBlockOrder(email, story, &storyBlocks)
-	if !response.Success {
-		RespondWithError(w, response.Code, response.Message)
+	if err = dao.ResetBlockOrder(email, story, &storyBlocks); err != nil {
+		if opErr, ok := err.(*smithy.OperationError); ok {
+			awsResponse := processAWSError(opErr)
+			if awsResponse.Code == 0 {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			RespondWithError(w, awsResponse.Code, awsResponse.Message)
+			return
+		}
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	RespondWithJson(w, response.Code, models.Answer{Success: true})
+	RespondWithJson(w, http.StatusOK, nil)
 }
 
 func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -90,12 +99,20 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := dao.WriteBlocks(email, story, &storyBlocks)
-	if !response.Success {
-		RespondWithError(w, response.Code, response.Message)
+	if err = dao.WriteBlocks(email, story, &storyBlocks); err != nil {
+		if opErr, ok := err.(*smithy.OperationError); ok {
+			awsResponse := processAWSError(opErr)
+			if awsResponse.Code == 0 {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			RespondWithError(w, awsResponse.Code, awsResponse.Message)
+			return
+		}
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	RespondWithJson(w, response.Code, models.Answer{Success: true, NumberWrote: len(storyBlocks.Blocks)})
+	RespondWithJson(w, http.StatusOK, nil)
 }
 
 func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -129,9 +146,17 @@ func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := dao.WriteAssociations(email, story, associations)
-	if !response.Success {
-		RespondWithError(w, response.Code, response.Message)
+	if err = dao.WriteAssociations(email, story, associations); err != nil {
+		if opErr, ok := err.(*smithy.OperationError); ok {
+			awsResponse := processAWSError(opErr)
+			if awsResponse.Code == 0 {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			RespondWithError(w, awsResponse.Code, awsResponse.Message)
+			return
+		}
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	RespondWithJson(w, http.StatusOK, associations)

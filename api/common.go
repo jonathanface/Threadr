@@ -6,6 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/smithy-go"
 )
 
 const (
@@ -45,4 +48,45 @@ func RespondWithJson(w http.ResponseWriter, code int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	w.Write(response)
+}
+
+func processAWSError(opErr *smithy.OperationError) (err models.AwsStatusResponse) {
+	err.Code = 0
+	var resourceErr *types.ResourceNotFoundException
+	if errors.As(opErr.Unwrap(), &resourceErr) {
+		err.Message = *resourceErr.Message
+		err.Code = http.StatusNotImplemented
+		return
+	}
+
+	var conditionErr *types.ConditionalCheckFailedException
+	if errors.As(opErr.Unwrap(), &conditionErr) {
+		err.Message = *conditionErr.Message
+		err.Code = http.StatusNotImplemented
+		return
+	}
+
+	var txnErr *types.TransactionCanceledException
+	if errors.As(opErr.Unwrap(), &txnErr) && txnErr.CancellationReasons != nil {
+		for _, reason := range txnErr.CancellationReasons {
+			switch *reason.Code {
+			case "ConditionalCheckFailed":
+				{
+					err.Message = *reason.Message
+					err.Code = http.StatusConflict
+				}
+			case "ResourceNotFoundException":
+				{
+					err.Message = *reason.Message
+					err.Code = http.StatusNotImplemented
+				}
+			case "CapacityExceededException":
+				{
+					err.Message = *reason.Message
+					err.Code = http.StatusServiceUnavailable
+				}
+			}
+		}
+	}
+	return err
 }

@@ -15,17 +15,21 @@ type DaoInterface interface {
 
 	// PUTs
 	UpsertUser(email string) error
-	ResetBlockOrder(email, story string, storyBlocks *models.StoryBlocks) models.AwsStatusResponse
-	WriteBlocks(email, story string, storyBlocks *models.StoryBlocks) models.AwsStatusResponse
-	WriteAssociations(email, story string, associations []*models.Association) models.AwsStatusResponse
+	ResetBlockOrder(email, story string, storyBlocks *models.StoryBlocks) error
+	WriteBlocks(email, story string, storyBlocks *models.StoryBlocks) error
+	WriteAssociations(email, story string, associations []*models.Association) error
 	UpdatePortrait(email, associationName, url string) error
 
 	// POSTs
-	CreateChapter(email, story string, chapter models.Chapter) models.AwsStatusResponse
-	CreateStory(email string, story models.Story) models.AwsStatusResponse
+	CreateChapter(email, story string, chapter models.Chapter) error
+	CreateStory(email string, story models.Story) error
 
 	// DELETEs
-	DeleteStoryParagraphs(email, storyTitle string, storyBlocks *models.StoryBlocks) models.AwsStatusResponse
-	DeleteAssociations(email, storyTitle string, associations []*models.Association) models.AwsStatusResponse
-	DeleteChapters(email, storyTitle string, chapters []models.Chapter) (response models.AwsStatusResponse)
+	DeleteStoryParagraphs(email, storyTitle string, storyBlocks *models.StoryBlocks) error
+	DeleteAssociations(email, storyTitle string, associations []*models.Association) error
+	DeleteChapters(email, storyTitle string, chapters []models.Chapter) error
+	DeleteStory(email, storyTitle, seriesTitle string) error
+
+	// HELPERS
+	WasStoryDeleted(email string, storyTitle string) (bool, error)
 }

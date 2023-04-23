@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -77,7 +76,7 @@ func NewDAO() *DAO {
 func (dao *DAO) GetAllStandalone(email string) (stories []*models.Story, err error) {
 	out, err := dao.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("stories"),
-		FilterExpression: aws.String("author=:eml AND attribute_not_exists(series)"),
+		FilterExpression: aws.String("author=:eml AND attribute_not_exists(series) AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
 		},
@@ -125,7 +124,7 @@ func (d *DAO) GetStoryByName(email, storyTitle string) (*models.Story, error) {
 	)
 	out, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("stories"),
-		FilterExpression: aws.String("author=:eml AND story_title=:s"),
+		FilterExpression: aws.String("author=:eml AND story_title=:s AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
 			":s":   &types.AttributeValueMemberS{Value: storyTitle},
@@ -339,7 +338,6 @@ func (d *DAO) GetAllSeries(email string) (series []models.Series, err error) {
 }
 
 func (d *DAO) GetSeriesVolumes(email, seriesTitle string) (volumes []*models.Story, err error) {
-
 	queryInput := &dynamodb.QueryInput{
 		TableName:              aws.String("series"),
 		IndexName:              aws.String("author-place-index"),
@@ -352,6 +350,7 @@ func (d *DAO) GetSeriesVolumes(email, seriesTitle string) (volumes []*models.Sto
 				Value: email,
 			},
 		},
+		FilterExpression: aws.String("attribute_not_exists(deleted_at)"),
 	}
 
 	var seriesOutput *dynamodb.QueryOutput
@@ -360,6 +359,7 @@ func (d *DAO) GetSeriesVolumes(email, seriesTitle string) (volumes []*models.Sto
 	}
 
 	for _, seriesEntry := range seriesOutput.Items {
+		fmt.Println("found series", seriesEntry["story_title"])
 		storyTitle := ""
 		if av, ok := seriesEntry["story_title"].(*types.AttributeValueMemberS); ok {
 			storyTitle = av.Value
@@ -437,7 +437,7 @@ func (d *DAO) UpsertUser(email string) (err error) {
 	return
 }
 
-func (d *DAO) ResetBlockOrder(email, story string, storyBlocks *models.StoryBlocks) (response models.AwsStatusResponse) {
+func (d *DAO) ResetBlockOrder(email, story string, storyBlocks *models.StoryBlocks) (err error) {
 	email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
 	safeStory := d.sanitizeTableName(story)
 	chapter := strconv.Itoa(storyBlocks.Chapter)
@@ -481,16 +481,14 @@ func (d *DAO) ResetBlockOrder(email, story string, storyBlocks *models.StoryBloc
 			// Add the transaction write item to the list of transaction write items.
 			writeItemsInput.TransactItems[i] = writeItem
 		}
-		response.Code, response.Message = d.awsWriteTransaction(writeItemsInput)
-		if response.Code != http.StatusOK {
-			response.Success = false
+		if err = d.awsWriteTransaction(writeItemsInput); err != nil {
+			return
 		}
 	}
-	response.Success = true
-	return response
+	return
 }
 
-func (d *DAO) WriteBlocks(email, story string, storyBlocks *models.StoryBlocks) (response models.AwsStatusResponse) {
+func (d *DAO) WriteBlocks(email, story string, storyBlocks *models.StoryBlocks) (err error) {
 	emailSafe := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
 	safeStory := d.sanitizeTableName(story)
 	chapter := strconv.Itoa(storyBlocks.Chapter)
@@ -504,7 +502,6 @@ func (d *DAO) WriteBlocks(email, story string, storyBlocks *models.StoryBlocks) 
 		}
 		batches = append(batches, storyBlocks.Blocks[i:end])
 	}
-	numWrote := 0
 	// Loop through the items and create the transaction write items.
 	for _, batch := range batches {
 		writeItemsInput := &dynamodb.TransactWriteItemsInput{
@@ -536,17 +533,14 @@ func (d *DAO) WriteBlocks(email, story string, storyBlocks *models.StoryBlocks) 
 			// Add the transaction write item to the list of transaction write items.
 			writeItemsInput.TransactItems[i] = writeItem
 		}
-		response.Code, response.Message = d.awsWriteTransaction(writeItemsInput)
-		if response.Code != http.StatusOK {
-			return response
+		if err = d.awsWriteTransaction(writeItemsInput); err != nil {
+			return
 		}
-		numWrote += len(batch)
 	}
-	response.Success = true
-	return response
+	return
 }
 
-func (d *DAO) WriteAssociations(email, story string, associations []*models.Association) (response models.AwsStatusResponse) {
+func (d *DAO) WriteAssociations(email, story string, associations []*models.Association) (err error) {
 
 	batches := make([][]*models.Association, 0, (len(associations)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(associations); i += d.writeBatchSize {
@@ -636,18 +630,15 @@ func (d *DAO) WriteAssociations(email, story string, associations []*models.Asso
 			writeItemsInput.TransactItems[i] = writeItem
 			writeItemsDetailsInput.TransactItems[i] = writeDetailsItem
 		}
-		response.Code, response.Message = d.awsWriteTransaction(writeItemsInput)
-		if response.Code != http.StatusOK {
-			return response
+		if err = d.awsWriteTransaction(writeItemsInput); err != nil {
+			return
 		}
-		response.Code, response.Message = d.awsWriteTransaction(writeItemsDetailsInput)
-		if response.Code != http.StatusOK {
-			return response
+
+		if err = d.awsWriteTransaction(writeItemsDetailsInput); err != nil {
+			return
 		}
 	}
-	response.Code = http.StatusOK
-	response.Success = true
-	return response
+	return
 }
 
 func (d *DAO) UpdatePortrait(email, associationName, url string) (err error) {
@@ -670,37 +661,24 @@ func (d *DAO) UpdatePortrait(email, associationName, url string) (err error) {
 	return nil
 }
 
-func (d *DAO) CreateChapter(email, story string, chapter models.Chapter) (response models.AwsStatusResponse) {
+func (d *DAO) CreateChapter(email, story string, chapter models.Chapter) (err error) {
 	var chapTwi types.TransactWriteItem
-	var err error
 	if chapTwi, err = d.generateStoryChapterTransaction(email, story, chapter.ChapterNum, chapter.ChapterTitle); err != nil {
-		response.Code = http.StatusInternalServerError
-		response.Message = err.Error()
 		return
 	}
 
 	twii := &dynamodb.TransactWriteItemsInput{}
 	twii.TransactItems = append(twii.TransactItems, chapTwi)
-	if response.Code, response.Message = d.awsWriteTransaction(twii); response.Message != "" {
+	if err = d.awsWriteTransaction(twii); err != nil {
 		return
 	}
 	if err = d.createBlockTable(email, story, chapter.ChapterTitle, chapter.ChapterNum); err != nil {
-		var riu *types.ResourceInUseException
-		if errors.As(err, &riu) {
-			response.Code = http.StatusConflict
-			response.Message = "story or story with chapter already exists"
-			return
-		}
-		response.Code = http.StatusInternalServerError
-		response.Message = err.Error()
 		return
 	}
-	response.Code = http.StatusOK
-	response.Success = true
 	return
 }
 
-func (d *DAO) CreateStory(email string, story models.Story) (response models.AwsStatusResponse) {
+func (d *DAO) CreateStory(email string, story models.Story) (err error) {
 	fmt.Println("creating story", story)
 	twii := &dynamodb.TransactWriteItemsInput{}
 	now := strconv.FormatInt(time.Now().Unix(), 10)
@@ -728,10 +706,7 @@ func (d *DAO) CreateStory(email string, story models.Story) (response models.Aws
 	twii.TransactItems = append(twii.TransactItems, twi)
 
 	var chapTwi types.TransactWriteItem
-	var err error
 	if chapTwi, err = d.generateStoryChapterTransaction(email, story.Title, 1, "Chapter 1"); err != nil {
-		response.Code = http.StatusInternalServerError
-		response.Message = err.Error()
 		return
 	}
 	twii.TransactItems = append(twii.TransactItems, chapTwi)
@@ -748,10 +723,8 @@ func (d *DAO) CreateStory(email string, story models.Story) (response models.Aws
 		}
 
 		// Execute the scan operation and get the count
-		resp, err := d.dynamoClient.Scan(context.TODO(), params)
-		if err != nil {
-			response.Code = http.StatusInternalServerError
-			response.Message = err.Error()
+		var resp *dynamodb.ScanOutput
+		if resp, err = d.dynamoClient.Scan(context.TODO(), params); err != nil {
 			return
 		}
 		seriesTwi := types.TransactWriteItem{
@@ -773,26 +746,16 @@ func (d *DAO) CreateStory(email string, story models.Story) (response models.Aws
 		twii.TransactItems = append(twii.TransactItems, seriesTwi)
 	}
 
-	if response.Code, response.Message = d.awsWriteTransaction(twii); response.Message != "" {
+	if err = d.awsWriteTransaction(twii); err != nil {
 		return
 	}
 	if err = d.createBlockTable(email, story.Title, "Chapter 1", 1); err != nil {
-		var riu *types.ResourceInUseException
-		if errors.As(err, &riu) {
-			response.Code = http.StatusConflict
-			response.Message = "story or story with chapter already exists"
-			return
-		}
-		response.Code = http.StatusInternalServerError
-		response.Message = err.Error()
-		return
+		return err
 	}
-	response.Code = http.StatusOK
-	response.Success = true
 	return
 }
 
-func (d *DAO) DeleteStoryParagraphs(email, storyTitle string, storyBlocks *models.StoryBlocks) (response models.AwsStatusResponse) {
+func (d *DAO) DeleteStoryParagraphs(email, storyTitle string, storyBlocks *models.StoryBlocks) (err error) {
 
 	email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
 	safeStory := d.sanitizeTableName(storyTitle)
@@ -834,16 +797,14 @@ func (d *DAO) DeleteStoryParagraphs(email, storyTitle string, storyBlocks *model
 			writeItemsInput.TransactItems[i] = writeItem
 		}
 
-		if response.Code, response.Message = d.awsWriteTransaction(writeItemsInput); response.Message != "" {
+		if err = d.awsWriteTransaction(writeItemsInput); err != nil {
 			return
 		}
 	}
-	response.Code = http.StatusOK
-	response.Success = true
 	return
 }
 
-func (d *DAO) DeleteAssociations(email, storyTitle string, associations []*models.Association) (response models.AwsStatusResponse) {
+func (d *DAO) DeleteAssociations(email, storyTitle string, associations []*models.Association) (err error) {
 	batches := make([][]*models.Association, 0, (len(associations)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(associations); i += d.writeBatchSize {
 		end := i + d.writeBatchSize
@@ -901,20 +862,18 @@ func (d *DAO) DeleteAssociations(email, storyTitle string, associations []*model
 			writeItemsDetailsInput.TransactItems[i] = writeDetailsItem
 		}
 
-		if response.Code, response.Message = d.awsWriteTransaction(writeItemsInput); response.Message != "" {
+		if err = d.awsWriteTransaction(writeItemsInput); err != nil {
 			return
 		}
 
-		if response.Code, response.Message = d.awsWriteTransaction(writeItemsDetailsInput); response.Message != "" {
+		if err = d.awsWriteTransaction(writeItemsDetailsInput); err != nil {
 			return
 		}
 	}
-	response.Code = http.StatusOK
-	response.Success = true
 	return
 }
 
-func (d *DAO) DeleteChapters(email, storyTitle string, chapters []models.Chapter) (response models.AwsStatusResponse) {
+func (d *DAO) DeleteChapters(email, storyTitle string, chapters []models.Chapter) (err error) {
 	tblEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
 	tblStory := d.sanitizeTableName(storyTitle)
 
@@ -965,18 +924,56 @@ func (d *DAO) DeleteChapters(email, storyTitle string, chapters []models.Chapter
 			}
 
 			// Delete the table
-			var err error
 			if _, err = d.dynamoClient.DeleteTable(context.Background(), deleteTableInput); err != nil {
-				response.Code = http.StatusInternalServerError
-				response.Message = err.Error()
 				return
 			}
 		}
-		if response.Code, response.Message = d.awsWriteTransaction(writeItemsInput); response.Message != "" {
+		if err = d.awsWriteTransaction(writeItemsInput); err != nil {
 			return
 		}
 	}
-	response.Code = http.StatusOK
-	response.Success = true
 	return
+}
+
+func (d *DAO) DeleteStory(email, storyTitle, seriesTitle string) (err error) {
+	now := strconv.FormatInt(time.Now().Unix(), 10)
+	key := map[string]types.AttributeValue{
+		"story_title": &types.AttributeValueMemberS{Value: storyTitle},
+		"author":      &types.AttributeValueMemberS{Value: email},
+	}
+	updateInput := &dynamodb.UpdateItemInput{
+		TableName:        aws.String("stories"),
+		Key:              key,
+		UpdateExpression: aws.String("set deleted_at=:n"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":n": &types.AttributeValueMemberS{Value: now},
+		},
+	}
+	_, err = d.dynamoClient.UpdateItem(context.Background(), updateInput)
+	if err != nil {
+		return err
+	}
+
+	if len(seriesTitle) > 0 {
+		key := map[string]types.AttributeValue{
+			"series_title": &types.AttributeValueMemberS{Value: seriesTitle},
+			"story_title":  &types.AttributeValueMemberS{Value: storyTitle},
+		}
+
+		// Create a delete input for the item.
+		deleteInput := &dynamodb.DeleteItemInput{
+			Key:                 key,
+			TableName:           aws.String("series"),
+			ConditionExpression: aws.String("author=:eml"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":eml": &types.AttributeValueMemberS{Value: email},
+			},
+		}
+		_, err = d.dynamoClient.DeleteItem(context.TODO(), deleteInput)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
