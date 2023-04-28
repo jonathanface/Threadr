@@ -20,7 +20,6 @@ const Threadr = () => {
 
   const handleNavChange = () => {
     const location = window.location.pathname;
-    console.log('changed', location);
     const splitDirectories = location.split('/');
     if (splitDirectories[1] === 'story' && splitDirectories[2].trim() !== '') {
       dispatch(setSelectedSeries(null));

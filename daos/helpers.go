@@ -4,14 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/smithy-go"
 )
 
@@ -86,14 +89,7 @@ func (d *DAO) sanitizeTableName(name string) string {
 	return strings.ToLower(tablenamePattern.ReplaceAllString(name, ""))
 }
 
-func (d *DAO) createBlockTable(email string, story string, chapterTitle string, chapterNum int) error {
-	if email == "" || story == "" || chapterTitle == "" {
-		return fmt.Errorf("BLOCKS TABLE CREATION: Email, story, and chapter params must not be blank")
-	}
-	email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	story = d.sanitizeTableName(story)
-	chapter := strconv.Itoa(chapterNum)
-	tableName := email + "_" + story + "_" + chapter + "_blocks"
+func (d *DAO) createBlockTable(tableName string) error {
 	partitionKey := aws.String("key_id")
 	gsiPartKey := aws.String("story")
 	gsiSortKey := aws.String("place")
@@ -160,6 +156,70 @@ func (d *DAO) createBlockTable(email string, story string, chapterTitle string, 
 		}
 	}*/
 	return nil
+}
+
+func (d *DAO) BackupTable(tableName string, deletionKey string) (err error) {
+	fmt.Println("backing up", tableName)
+	var awsCfg aws.Config
+	if awsCfg, err = config.LoadDefaultConfig(context.TODO(), func(opts *config.LoadOptions) error {
+		opts.Region = os.Getenv("AWS_REGION")
+		return nil
+	}); err != nil {
+		return err
+	}
+	exportInput := &dynamodb.ExportTableToPointInTimeInput{
+		S3Bucket: aws.String(S3_BACKUP_BUCKET),
+		S3Prefix: &deletionKey,
+		TableArn: &tableName,
+	}
+
+	exportOutput, err := d.dynamoClient.ExportTableToPointInTime(context.Background(), exportInput)
+	if err != nil {
+		return fmt.Errorf("failed to export table, %v", err)
+	}
+
+	describeExportInput := &dynamodb.DescribeExportInput{
+		ExportArn: exportOutput.ExportDescription.ExportArn,
+	}
+
+	for {
+		describeExportOutput, err := d.dynamoClient.DescribeExport(context.Background(), describeExportInput)
+		if err != nil {
+			return fmt.Errorf("failed to describe export, %v", err)
+		}
+		status := describeExportOutput.ExportDescription.ExportStatus
+		if status == types.ExportStatusCompleted {
+			break
+		} else if status == types.ExportStatusFailed {
+			// The export job failed
+			return fmt.Errorf("export job failed, %v", describeExportOutput.ExportDescription.FailureMessage)
+		}
+		time.Sleep(10 * time.Second)
+	}
+
+	s3Client := s3.NewFromConfig(awsCfg)
+	// Read the export file from S3
+	response, err := s3Client.GetObject(context.Background(), &s3.GetObjectInput{
+		Bucket: aws.String(*exportOutput.ExportDescription.S3Bucket),
+		Key:    aws.String(*exportOutput.ExportDescription.S3Bucket),
+	})
+	if err != nil {
+		return
+	}
+	defer response.Body.Close()
+
+	backupFileName := fmt.Sprintf("%s.zip", deletionKey)
+	uploadInput := &s3.PutObjectInput{
+		Bucket: aws.String(S3_BACKUP_BUCKET),
+		Key:    &backupFileName,
+		Body:   response.Body,
+	}
+	_, err = s3Client.PutObject(context.Background(), uploadInput)
+	if err != nil {
+		panic(fmt.Errorf("failed to upload backup to S3, %v", err))
+	}
+
+	return
 }
 
 func (d *DAO) WasStoryDeleted(email string, storyTitle string) (bool, error) {

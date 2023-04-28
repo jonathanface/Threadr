@@ -116,14 +116,16 @@ const AssociationUI = (props) => {
             <div className="detail-bubble">
               <TextField label="Description" multiline rows="6" onBlur={(event) => {
                 onAssociationEdit(event.target.value, 'description');
-              }
-              }
+              }} sx={{
+                textarea: {
+                  color:'#F0F0F0'
+                },
+                width:'100%'
+              }}
               onChange={(event)=>{
                 setDescription(event.target.value);
               }
-              } value={description} sx={{
-                width: '100%',
-              }} />
+              } value={description} />
             </div>
             <div className="detail-bubble">
               <TextField label="Details" multiline rows="6" onBlur={(event) => {
@@ -134,19 +136,27 @@ const AssociationUI = (props) => {
                 setDetails(event.target.value);
               }
               } value={details} sx={{
-                width: '100%',
+                textarea: {
+                  color:'#F0F0F0'
+                },
+                width:'100%'
               }} />
             </div>
             <div className="association-form">
               <TextField label="Aliases (comma separated)" type="search" value={aliases} onChange={(event) => {
                 setAliases(event.target.value);
-              }
-              } onBlur={(event)=>{
+              }} onBlur={(event)=>{
                 onAssociationEdit(event.target.value, 'aliases');
-              }
-              }/>
+              }} sx={{
+                input: {
+                  color:'#F0F0F0'
+                }
+              }}
+              />
               <FormGroup>
-                <FormControlLabel control={<Switch onChange={()=>{onAssociationEdit(!caseSensitive, 'case');}} checked={caseSensitive || false} />} label="Case-Sensitive" />
+                <FormControlLabel control={<Switch onChange={()=>{
+                  onAssociationEdit(!caseSensitive, 'case');}
+                  } checked={caseSensitive || false} />} label="Case-Sensitive" />
               </FormGroup>
             </div>
           </div>

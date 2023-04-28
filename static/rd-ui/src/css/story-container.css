@@ -34,3 +34,12 @@
     top:5px;
     max-width: 40px;
 }
+
+.doc-button .story-text {
+    display:flex;
+    align-content: center;
+}
+
+.doc-button .story-text .icon-delete-btn {
+    margin-left:auto;
+}

@@ -32,4 +32,5 @@ type DaoInterface interface {
 
 	// HELPERS
 	WasStoryDeleted(email string, storyTitle string) (bool, error)
+	BackupTable(tableName string, deletionKey string) error
 }

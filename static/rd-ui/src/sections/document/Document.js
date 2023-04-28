@@ -217,6 +217,7 @@ const Document = () => {
   const processDBQueue = async () => {
     dbOperationQueue.sort((a, b) => parseInt(a.time) > parseInt(b.time));
     console.log('processing...', dbOperationQueue.length);
+    const retryArray = [];
     const i = 0;
     while (i < dbOperationQueue.length) {
       const op = dbOperationQueue[i];
@@ -225,24 +226,27 @@ const Document = () => {
           try {
             await deleteBlocksFromServer(FilterAndReduceDBOperations(dbOperationQueue, op, i), op.story, op.chapter);
           } catch (e) {
-            console.error(e);
-            if (e.indexOf('SERVER') > -1) {
+            if (e !== true) {
+              console.error(e);
               dbOperationQueue.splice(i, 1);
               continue;
             }
+            retryArray.push(op);
+            console.error("server response 501, retrying...")
           }
           break;
         }
         case 'save': {
           try {
-            console.log('try', op);
             await saveBlocksToServer(FilterAndReduceDBOperations(dbOperationQueue, op, i), op.story, op.chapter);
           } catch (e) {
-            console.error(e);
-            if (e.indexOf('SERVER') > -1) {
+            if (e !== true) {
+              console.error(e);
               dbOperationQueue.splice(i, 1);
               continue;
             }
+            retryArray.push(op);
+            console.error("server response 501, retrying...")
           }
           break;
         }
@@ -251,11 +255,14 @@ const Document = () => {
             await syncBlockOrderMap(op.blockList);
             dbOperationQueue.splice(i, 1);
           } catch (e) {
-            console.error(e);
-            if (e.indexOf('SERVER') > -1) {
+            if (e !== true) {
+              console.error(e);
+              retryArray.push(op);
               dbOperationQueue.splice(i, 1);
               continue;
             }
+            retryArray.push(op);
+            console.error("server response 501, retrying...")
           }
           break;
         }
@@ -263,6 +270,7 @@ const Document = () => {
           console.error('invalid operation:', op);
       }
     }
+    dbOperationQueue.push(...retryArray);
   };
 
   const setFocusAndRestoreCursor = () => {
@@ -340,6 +348,9 @@ const Document = () => {
           keepalive: true
         });
         if (!response.ok) {
+          if (response.status === 501) {
+            reject(true);
+          }
           reject('SERVER ERROR ORDERING BLOCKS: ', response.body);
         }
         resolve(response.json());
@@ -366,6 +377,9 @@ const Document = () => {
           keepalive: true
         });
         if (!response.ok) {
+          if (response.status === 501) {
+            reject(true);
+          }
           reject('SERVER ERROR DELETING BLOCK: ', response.body);
         }
         resolve(response.json());
@@ -392,6 +406,9 @@ const Document = () => {
           body: JSON.stringify(params)
         });
         if (!response.ok) {
+          if (response.status === 501) {
+            reject(true);
+          }
           reject('SERVER ERROR SAVING BLOCK: ', response);
         }
         resolve(response.json());
