@@ -30,7 +30,9 @@ ENV APP_MODE="PRODUCTION"
 COPY ./go.mod ./go.mod
 COPY ./go.sum ./go.sum
 COPY ./api ./api
+COPY ./models ./models
 COPY ./auth ./auth
+COPY ./daos ./daos
 COPY ./sessions ./sessions
 COPY ./RichDocter.go ./RichDocter.go
 COPY ./static/rd-ui/build/ ./static/rd-ui/build/
