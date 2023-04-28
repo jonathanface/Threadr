@@ -1,4 +1,4 @@
-FROM golang:1.18-alpine
+FROM golang:1.20.3-alpine
 #RUN apk add --no-cache bash
 WORKDIR /app
 

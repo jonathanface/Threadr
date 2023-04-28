@@ -16,10 +16,10 @@ import {faAlignCenter} from '@fortawesome/free-solid-svg-icons';
 import {faAlignRight} from '@fortawesome/free-solid-svg-icons';
 import {faAlignJustify} from '@fortawesome/free-solid-svg-icons';
 import CloseIcon from '@mui/icons-material/Close';
-import { IconButton } from '@mui/material';
-import { setSelectedSeries } from '../../stores/selectedSeriesSlice.js';
-import { setSelectedStoryTitle } from '../../stores/selectedStorySlice.js';
-import { Sidebar, Menu as SideMenu, MenuItem, SubMenu, useProSidebar } from 'react-pro-sidebar';
+import {IconButton} from '@mui/material';
+import {setSelectedSeries} from '../../stores/selectedSeriesSlice.js';
+import {setSelectedStoryTitle} from '../../stores/selectedStorySlice.js';
+import {Sidebar, Menu as SideMenu, MenuItem, SubMenu, useProSidebar} from 'react-pro-sidebar';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import Button from '@mui/material/Button';
@@ -99,36 +99,36 @@ const Document = () => {
       () => EditorState.createEmpty(createDecorators())
   );
 
-  const getAllAssociations = async() => {
+  const getAllAssociations = async () => {
     associations.splice(0);
     return fetch('/api/stories/' + selectedStoryTitle + '/associations')
-      .then((response) => {
-        if (response.ok) {
-          return response.json();
-        }
-        throw new Error('Fetch problem associations ' + response.status);
-      })
-      .then((data) => {
-        data.forEach((assoc) => {
-          if (assoc.association_name.trim().length) {
-            associations.push(
-                {
-                  association_name: assoc.association_name,
-                  association_type: assoc.association_type,
-                  portrait: assoc.portrait,
-                  short_description: assoc.short_description,
-                  details: {
-                    aliases: assoc.details.aliases,
-                    case_sensitive: assoc.details.case_sensitive,
-                    extended_description: assoc.details.extended_description
-                  }
-                }
-            );
+        .then((response) => {
+          if (response.ok) {
+            return response.json();
           }
+          throw new Error('Fetch problem associations ' + response.status);
+        })
+        .then((data) => {
+          data.forEach((assoc) => {
+            if (assoc.association_name.trim().length) {
+              associations.push(
+                  {
+                    association_name: assoc.association_name,
+                    association_type: assoc.association_type,
+                    portrait: assoc.portrait,
+                    short_description: assoc.short_description,
+                    details: {
+                      aliases: assoc.details.aliases,
+                      case_sensitive: assoc.details.case_sensitive,
+                      extended_description: assoc.details.extended_description
+                    }
+                  }
+              );
+            }
+          });
+        }).catch((error) => {
+          console.error('get story associations', error);
         });
-      }).catch((error) => {
-        console.error('get story associations', error);
-      });
   };
 
   const processDBBlock = (content, block) => {
@@ -168,7 +168,7 @@ const Document = () => {
     return content;
   };
 
-  const getBatchedStoryBlocks = async(startKey) => {
+  const getBatchedStoryBlocks = async (startKey) => {
     return fetch('/api/stories/' + selectedStoryTitle + '/content?key=' + startKey + '&chapter=' + selectedChapterNumber).then((response) => {
       if (response.ok) {
         return response.json();
@@ -178,20 +178,22 @@ const Document = () => {
       data.last_evaluated_key && data.last_evaluated_key.key_id.Value ? lastRetrievedBlockKey = data.last_evaluated_key.key_id.Value : lastRetrievedBlockKey = null;
       // data.items.sort((a, b) => parseInt(a.place.Value) > parseInt(b.place.Value));
       const newBlocks = [];
-      data.items.forEach((piece) => {
-        if (piece.chunk) {
-          const jsonBlock = JSON.parse(piece.chunk.Value);
-          const block = new ContentBlock({
-            characterList: jsonBlock.characterList,
-            depth: jsonBlock.depth,
-            key: piece.key_id.Value,
-            text: jsonBlock.text,
-            type: jsonBlock.type,
-            data: jsonBlock.data,
-          });
-          newBlocks.push(block);
-        }
-      });
+      if (data.items) {
+        data.items.forEach((piece) => {
+          if (piece.chunk) {
+            const jsonBlock = JSON.parse(piece.chunk.Value);
+            const block = new ContentBlock({
+              characterList: jsonBlock.characterList,
+              depth: jsonBlock.depth,
+              key: piece.key_id.Value,
+              text: jsonBlock.text,
+              type: jsonBlock.type,
+              data: jsonBlock.data,
+            });
+            newBlocks.push(block);
+          }
+        });
+      }
       const contentState = {
         entityMap: {},
         blocks: newBlocks
@@ -215,6 +217,7 @@ const Document = () => {
   const processDBQueue = async () => {
     dbOperationQueue.sort((a, b) => parseInt(a.time) > parseInt(b.time));
     console.log('processing...', dbOperationQueue.length);
+    const retryArray = [];
     const i = 0;
     while (i < dbOperationQueue.length) {
       const op = dbOperationQueue[i];
@@ -223,24 +226,27 @@ const Document = () => {
           try {
             await deleteBlocksFromServer(FilterAndReduceDBOperations(dbOperationQueue, op, i), op.story, op.chapter);
           } catch (e) {
-            console.error(e);
-            if (e.indexOf('SERVER') > -1) {
+            if (e !== true) {
+              console.error(e);
               dbOperationQueue.splice(i, 1);
               continue;
             }
+            retryArray.push(op);
+            console.error("server response 501, retrying...")
           }
           break;
         }
         case 'save': {
           try {
-            console.log('try', op);
             await saveBlocksToServer(FilterAndReduceDBOperations(dbOperationQueue, op, i), op.story, op.chapter);
           } catch (e) {
-            console.error(e);
-            if (e.indexOf('SERVER') > -1) {
+            if (e !== true) {
+              console.error(e);
               dbOperationQueue.splice(i, 1);
               continue;
             }
+            retryArray.push(op);
+            console.error("server response 501, retrying...")
           }
           break;
         }
@@ -249,11 +255,14 @@ const Document = () => {
             await syncBlockOrderMap(op.blockList);
             dbOperationQueue.splice(i, 1);
           } catch (e) {
-            console.error(e);
-            if (e.indexOf('SERVER') > -1) {
+            if (e !== true) {
+              console.error(e);
+              retryArray.push(op);
               dbOperationQueue.splice(i, 1);
               continue;
             }
+            retryArray.push(op);
+            console.error("server response 501, retrying...")
           }
           break;
         }
@@ -261,6 +270,7 @@ const Document = () => {
           console.error('invalid operation:', op);
       }
     }
+    dbOperationQueue.push(...retryArray);
   };
 
   const setFocusAndRestoreCursor = () => {
@@ -280,7 +290,7 @@ const Document = () => {
     }
   };
 
-  const getStoryDetails = async() => {
+  const getStoryDetails = async () => {
     return fetch('/api/stories/' + selectedStoryTitle).then((response) => {
       if (response.ok) {
         return response.json();
@@ -288,15 +298,15 @@ const Document = () => {
       throw new Error(response.status);
     }).then((data) => {
       setChapters(data.chapters);
-      setSelectedChapterTitle(data.chapters.find(chapter => chapter.chapter_num === selectedChapterNumber).chapter_title);
+      setSelectedChapterTitle(data.chapters.find((chapter) => chapter.chapter_num === selectedChapterNumber).chapter_title);
     });
-  }
+  };
 
-  const getBaseData = async() => {
+  const getBaseData = async () => {
     await getStoryDetails();
     await getAllAssociations();
     await getBatchedStoryBlocks('');
-  }
+  };
 
   useEffect(() => {
     if (isLoggedIn && selectedStoryTitle) {
@@ -338,6 +348,9 @@ const Document = () => {
           keepalive: true
         });
         if (!response.ok) {
+          if (response.status === 501) {
+            reject(true);
+          }
           reject('SERVER ERROR ORDERING BLOCKS: ', response.body);
         }
         resolve(response.json());
@@ -364,6 +377,9 @@ const Document = () => {
           keepalive: true
         });
         if (!response.ok) {
+          if (response.status === 501) {
+            reject(true);
+          }
           reject('SERVER ERROR DELETING BLOCK: ', response.body);
         }
         resolve(response.json());
@@ -390,6 +406,9 @@ const Document = () => {
           body: JSON.stringify(params)
         });
         if (!response.ok) {
+          if (response.status === 501) {
+            reject(true);
+          }
           reject('SERVER ERROR SAVING BLOCK: ', response);
         }
         resolve(response.json());
@@ -489,13 +508,13 @@ const Document = () => {
     };
   };
 
-  const onAssociationEdit = async(association) => {
+  const onAssociationEdit = async (association) => {
     console.log('editing', association);
     const storedAssociation = await saveAssociationsToServer([association]);
-    const existingAssoc = associations.find(assoc => assoc.association_name === association.association_name &&
+    const existingAssoc = associations.find((assoc) => assoc.association_name === association.association_name &&
                                                     assoc.type === association.association_type);
     associations[associations.indexOf(existingAssoc)] = storedAssociation;
-    setEditorState(EditorState.set(editorState, { decorator: createDecorators()}));
+    setEditorState(EditorState.set(editorState, {decorator: createDecorators()}));
   };
 
   const handleMenuItemClick = async ({id, event}) => {
@@ -591,7 +610,7 @@ const Document = () => {
         } else {
           const dataToRemove = Immutable.Map([[subStyle.style, undefined]]);
           const existingData = modifiedBlock.getData();
-          const updatedData = existingData.delete('STYLES').mergeDeep({ 'STYLES': newStyles });
+          const updatedData = existingData.delete('STYLES').mergeDeep({'STYLES': newStyles});
           const blockData = updatedData.merge(dataToRemove);
           const updatedContent = Modifier.mergeBlockData(newContent, originalSelectionState, blockData);
           updatedBlocks.push(updatedContent.getBlockForKey(key));
@@ -849,24 +868,25 @@ const Document = () => {
     dispatch(setSelectedSeries(null));
     dispatch(setSelectedStoryTitle(null));
     const history = window.history;
-    history.pushState("root", 'exited story', '/');
+    history.pushState('root', 'exited story', '/');
   };
 
   const onExpandChapterMenu = () => {
-    console.log("exp", collapsed);
-    collapseSidebar(!collapsed)
-  }
+    console.log('exp', collapsed);
+    collapseSidebar(!collapsed);
+  };
 
   const onChapterClick = (title, num) => {
     setSelectedChapterNumber(num);
     setSelectedChapterTitle(title);
     const history = window.history;
     history.pushState({selectedStoryTitle}, 'changed chapter', '/story/' + encodeURIComponent(selectedStoryTitle) + '?chapter=' + num);
-  }
+  };
 
   const onNewChapterClick = () => {
+    console.log('gen chap');
     const newChapterNum = chapters.length+1;
-    const newChapterTitle = "Chapter " + newChapterNum;
+    const newChapterTitle = 'Chapter ' + newChapterNum;
     fetch('/api/stories/' + selectedStoryTitle + '/chapter', {
       method: 'POST',
       headers: {
@@ -875,7 +895,7 @@ const Document = () => {
       body: JSON.stringify({chapter_title: newChapterTitle, chapter_num: newChapterNum})
     }).then((response) => {
       if (response.ok) {
-        const newChapters = [...chapters]
+        const newChapters = [...chapters];
         newChapters.push({chapter_title: newChapterTitle, chapter_num: newChapterNum});
         setChapters(newChapters);
         setSelectedChapterNumber(newChapterNum);
@@ -887,10 +907,9 @@ const Document = () => {
     }).catch((error) => {
       console.error(error);
     });
-  }
+  };
 
   const onDeleteChapterClick = (event, chapterTitle) => {
-
     const chapterIndex = chapters.findIndex((e) => e.chapter_title === chapterTitle);
     const deleteChapter = chapters[chapterIndex];
     const params = [];
@@ -903,7 +922,7 @@ const Document = () => {
       body: JSON.stringify(params)
     }).then((response) => {
       if (response.ok) {
-        const newChapters = [...chapters]
+        const newChapters = [...chapters];
         newChapters.splice(chapterIndex);
         setChapters(newChapters);
         if (selectedChapterNumber === deleteChapter.chapter_num) {
@@ -922,8 +941,8 @@ const Document = () => {
   };
 
   const onChapterTitleDClick = () => {
-    console.log("edit chap");
-  }
+    console.log('edit chap');
+  };
 
   return (
     <div>
@@ -949,7 +968,7 @@ const Document = () => {
           <span className="exit-btn">
             <IconButton aria-label="exit" component="label" onClick={onExitDocument}>
               <CloseIcon sx={{
-                color:'#F0F0F0'
+                color: '#F0F0F0'
               }}/>
             </IconButton>
           </span>
@@ -984,18 +1003,18 @@ const Document = () => {
           <SideMenu>
             {
               chapters.map((chapter, idx) => {
-                return <MenuItem onDoubleClick={onChapterTitleDClick} key={idx} className={chapter.chapter_num === selectedChapterNumber ? "active":""} onClick={
+                return <MenuItem onDoubleClick={onChapterTitleDClick} key={idx} className={chapter.chapter_num === selectedChapterNumber ? 'active':''} onClick={
                   ()=>onChapterClick(chapter.chapter_title, chapter.chapter_num)
                 }>{chapter.chapter_title}
-                <IconButton className="menu-icon" edge="end" size="small" aria-label="delete chapter" onClick={(event)=>{onDeleteChapterClick(event, chapter.chapter_title)}}>
-                  <DeleteIcon fontSize="small" className={'menu-icon'}/>
-                </IconButton>
-                </MenuItem>
+                  <IconButton className="menu-icon" edge="end" size="small" aria-label="delete chapter" onClick={(event)=>{onDeleteChapterClick(event, chapter.chapter_title);}}>
+                    <DeleteIcon fontSize="small" className={'menu-icon'}/>
+                  </IconButton>
+                </MenuItem>;
               })
             }
-            <MenuItem key="add_chapter_btn" onClick={onNewChapterClick}>
-              <Button onClick={onNewChapterClick} variant="outlined" sx={{color:'#FFF'}} startIcon={
-                <AddIcon sx={{marginLeft:'5px'}}/>
+            <MenuItem key="add_chapter_btn">
+              <Button onClick={onNewChapterClick} variant="outlined" sx={{color: '#FFF'}} startIcon={
+                <AddIcon sx={{marginLeft: '5px'}}/>
               }>New</Button>
             </MenuItem>
           </SideMenu>
