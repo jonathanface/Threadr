@@ -4,17 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/smithy-go"
 )
 
@@ -144,82 +141,46 @@ func (d *DAO) createBlockTable(tableName string) error {
 		BillingMode:            types.BillingModePayPerRequest,
 		GlobalSecondaryIndexes: gsiSettings,
 	})
-
 	if err != nil {
 		return err
-	} /*else {
-		waiter := dynamodb.NewTableExistsWaiter(AwsClient)
+	}
+
+	go func() {
+		waiter := dynamodb.NewTableExistsWaiter(d.dynamoClient)
 		if err = waiter.Wait(context.TODO(), &dynamodb.DescribeTableInput{
 			TableName: aws.String(tableName),
 		}, 1*time.Minute); err != nil {
-			return err
+			fmt.Println("error waiting for table creation", err)
 		}
-	}*/
-	return nil
-}
+		// Enable Point-in-Time Recovery (PITR)
+		pitrInput := &dynamodb.UpdateContinuousBackupsInput{
+			TableName: aws.String(tableName),
+			PointInTimeRecoverySpecification: &types.PointInTimeRecoverySpecification{
+				PointInTimeRecoveryEnabled: aws.Bool(true),
+			},
+		}
 
-func (d *DAO) BackupTable(tableName string, deletionKey string) (err error) {
-	fmt.Println("backing up", tableName)
-	var awsCfg aws.Config
-	if awsCfg, err = config.LoadDefaultConfig(context.TODO(), func(opts *config.LoadOptions) error {
-		opts.Region = os.Getenv("AWS_REGION")
-		return nil
-	}); err != nil {
-		return err
-	}
-	exportInput := &dynamodb.ExportTableToPointInTimeInput{
-		S3Bucket: aws.String(S3_BACKUP_BUCKET),
-		S3Prefix: &deletionKey,
-		TableArn: &tableName,
-	}
+		for {
+			_, err := d.dynamoClient.UpdateContinuousBackups(context.TODO(), pitrInput)
+			if err == nil {
+				break // PITR enabled successfully
+			}
 
-	exportOutput, err := d.dynamoClient.ExportTableToPointInTime(context.Background(), exportInput)
-	if err != nil {
-		return fmt.Errorf("failed to export table, %v", err)
-	}
+			// Check if the error indicates ongoing backup enablement
+			if err.Error() == "ContinuousBackupsUnavailableException: Backups are being enabled for the table" {
+				fmt.Println("enabling backups error", err)
+				return
+			}
+			fmt.Println("Backups are being enabled for the table. Retrying in 10 seconds...")
+			time.Sleep(10 * time.Second)
+		}
 
-	describeExportInput := &dynamodb.DescribeExportInput{
-		ExportArn: exportOutput.ExportDescription.ExportArn,
-	}
-
-	for {
-		describeExportOutput, err := d.dynamoClient.DescribeExport(context.Background(), describeExportInput)
+		_, err := d.dynamoClient.UpdateContinuousBackups(context.Background(), pitrInput)
 		if err != nil {
-			return fmt.Errorf("failed to describe export, %v", err)
+			fmt.Println("error enabling continuous backups", err)
 		}
-		status := describeExportOutput.ExportDescription.ExportStatus
-		if status == types.ExportStatusCompleted {
-			break
-		} else if status == types.ExportStatusFailed {
-			// The export job failed
-			return fmt.Errorf("export job failed, %v", describeExportOutput.ExportDescription.FailureMessage)
-		}
-		time.Sleep(10 * time.Second)
-	}
-
-	s3Client := s3.NewFromConfig(awsCfg)
-	// Read the export file from S3
-	response, err := s3Client.GetObject(context.Background(), &s3.GetObjectInput{
-		Bucket: aws.String(*exportOutput.ExportDescription.S3Bucket),
-		Key:    aws.String(*exportOutput.ExportDescription.S3Bucket),
-	})
-	if err != nil {
-		return
-	}
-	defer response.Body.Close()
-
-	backupFileName := fmt.Sprintf("%s.zip", deletionKey)
-	uploadInput := &s3.PutObjectInput{
-		Bucket: aws.String(S3_BACKUP_BUCKET),
-		Key:    &backupFileName,
-		Body:   response.Body,
-	}
-	_, err = s3Client.PutObject(context.Background(), uploadInput)
-	if err != nil {
-		panic(fmt.Errorf("failed to upload backup to S3, %v", err))
-	}
-
-	return
+	}()
+	return nil
 }
 
 func (d *DAO) WasStoryDeleted(email string, storyTitle string) (bool, error) {

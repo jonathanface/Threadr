@@ -18,7 +18,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/smithy-go"
-	"github.com/gofrs/uuid"
 	"github.com/joho/godotenv"
 )
 
@@ -954,18 +953,14 @@ func (d *DAO) DeleteStory(email, storyTitle, seriesTitle string) (err error) {
 		},
 		Select: types.SelectAllAttributes,
 	})
-
-	now := strconv.FormatInt(time.Now().Unix(), 10)
-	deletionKey, err := uuid.NewV4()
 	if err != nil {
 		return
 	}
 
-	fmt.Printf("Found %d items\n", out.Count)
-	fmt.Printf("Items length: %d\n", len(out.Items))
+	now := strconv.FormatInt(time.Now().Unix(), 10)
+
 	for i := 0; i < len(out.Items); i++ {
 		chapterTitle := out.Items[i]["chapter_title"].(*types.AttributeValueMemberS).Value
-		fmt.Println("chaptitle", chapterTitle)
 		key := map[string]types.AttributeValue{
 			"chapter_title": &types.AttributeValueMemberS{Value: chapterTitle},
 			"story_title":   &types.AttributeValueMemberS{Value: storyTitle},
@@ -973,22 +968,27 @@ func (d *DAO) DeleteStory(email, storyTitle, seriesTitle string) (err error) {
 		updateInput := &dynamodb.UpdateItemInput{
 			TableName:        aws.String("chapters"),
 			Key:              key,
-			UpdateExpression: aws.String("set deleted_at=:n, deletion_key=:k"),
+			UpdateExpression: aws.String("set deleted_at=:n"),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
 				":n": &types.AttributeValueMemberN{Value: now},
-				":k": &types.AttributeValueMemberS{Value: deletionKey.String()},
 			},
 		}
 		_, err = d.dynamoClient.UpdateItem(context.Background(), updateInput)
 		if err != nil {
-			return err
+			return
 		}
 
 		safeEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
 		safeStory := d.sanitizeTableName(storyTitle)
 		chapNum := strconv.Itoa(i + 1)
 		oldTableName := safeEmail + "_" + safeStory + "_" + chapNum + "_blocks"
-		d.BackupTable(oldTableName, deletionKey.String())
+		deleteTableInput := &dynamodb.DeleteTableInput{
+			TableName: aws.String(oldTableName),
+		}
+		// Delete the table
+		if _, err = d.dynamoClient.DeleteTable(context.Background(), deleteTableInput); err != nil {
+			return
+		}
 	}
 
 	key := map[string]types.AttributeValue{
@@ -998,10 +998,9 @@ func (d *DAO) DeleteStory(email, storyTitle, seriesTitle string) (err error) {
 	updateInput := &dynamodb.UpdateItemInput{
 		TableName:        aws.String("stories"),
 		Key:              key,
-		UpdateExpression: aws.String("set deleted_at=:n, deletion_key=:k"),
+		UpdateExpression: aws.String("set deleted_at=:n"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":n": &types.AttributeValueMemberN{Value: now},
-			":k": &types.AttributeValueMemberS{Value: deletionKey.String()},
 		},
 	}
 	_, err = d.dynamoClient.UpdateItem(context.Background(), updateInput)
@@ -1021,12 +1020,56 @@ func (d *DAO) DeleteStory(email, storyTitle, seriesTitle string) (err error) {
 			UpdateExpression: aws.String("set deleted_at=:n"),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
 				":n": &types.AttributeValueMemberN{Value: now},
-				":k": &types.AttributeValueMemberS{Value: deletionKey.String()},
 			},
 		}
 		_, err = d.dynamoClient.UpdateItem(context.Background(), updateInput)
 		if err != nil {
-			return err
+			return
+		}
+	}
+
+	out, err = d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName:        aws.String("associations"),
+		FilterExpression: aws.String("author=:eml AND attribute_not_exists(deleted_at) AND story=:st"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":eml": &types.AttributeValueMemberS{Value: email},
+			":st":  &types.AttributeValueMemberS{Value: storyTitle},
+		},
+		Select: types.SelectAllAttributes,
+	})
+	if err != nil {
+		return
+	}
+
+	for i := 0; i < len(out.Items); i++ {
+		assocTitle := out.Items[i]["association_name"].(*types.AttributeValueMemberS).Value
+		key := map[string]types.AttributeValue{
+			"association_name": &types.AttributeValueMemberS{Value: assocTitle},
+			"author":           &types.AttributeValueMemberS{Value: email},
+		}
+		updateInput := &dynamodb.UpdateItemInput{
+			TableName:        aws.String("associations"),
+			Key:              key,
+			UpdateExpression: aws.String("set deleted_at=:n"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":n": &types.AttributeValueMemberN{Value: now},
+			},
+		}
+		_, err = d.dynamoClient.UpdateItem(context.Background(), updateInput)
+		if err != nil {
+			return
+		}
+		updateInput = &dynamodb.UpdateItemInput{
+			TableName:        aws.String("association_details"),
+			Key:              key,
+			UpdateExpression: aws.String("set deleted_at=:n"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":n": &types.AttributeValueMemberN{Value: now},
+			},
+		}
+		_, err = d.dynamoClient.UpdateItem(context.Background(), updateInput)
+		if err != nil {
+			return
 		}
 	}
 
