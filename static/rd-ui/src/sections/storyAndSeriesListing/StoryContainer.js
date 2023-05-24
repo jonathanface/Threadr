@@ -10,6 +10,7 @@ const StoryContainer = (props) => {
   const dispatch = useDispatch();
   const [hoverString, setHoverString] = useState('');
   const [seriesName, setSeriesName] = useState(null);
+  const [wasDeleted, setWasDeleted] = useState(false);
 
   useEffect(() => {
     console.log("p", props);
@@ -51,33 +52,35 @@ const StoryContainer = (props) => {
       }
     }).then((response) => {
       if (response.ok) {
-
+        setWasDeleted(true)
       }
     });
   }
-
+  console.log("delted", wasDeleted)
   return (
-    <button className="doc-button" title={hoverString} onClick={handleClick}>
-      <div>
-        <img src="/img/icons/default_doc_icon_blank.png" alt={props.title}/>
-        {props.series === true ? <img className="series_badge" alt="series" title="series" src="/img/icons/series_icon.png"/> : ''}
-      </div>
-      <div className="story-text">
-        <h3>{props.title}</h3>
-        {props.series === false ? 
-          <IconButton aria-label="remove story" component="label" onClick={(event) => {deleteStory(event, props.title)}} title="Delete Story" className="icon-delete-btn">
-            <RemoveCircleOutlineIcon sx={{
-              'color': '#F0F0F0',
-              'fontSize': 20,
-              '&:hover': {
-                fontWeight: 'bold',
-                color: '#2a57e3'
-              }
-            }}/>
-          </IconButton>
-        : ""}
-      </div>
-    </button>
+    !wasDeleted ? 
+      <button className="doc-button" title={hoverString} onClick={handleClick}>
+        <div>
+          <img src="/img/icons/default_doc_icon_blank.png" alt={props.title}/>
+          {props.series === true ? <img className="series_badge" alt="series" title="series" src="/img/icons/series_icon.png"/> : ''}
+        </div>
+        <div className="story-text">
+          <h3>{props.title}</h3>
+          {props.series === false ? 
+            <IconButton aria-label="remove story" component="label" onClick={(event) => {deleteStory(event, props.title)}} title="Delete Story" className="icon-delete-btn">
+              <RemoveCircleOutlineIcon sx={{
+                'color': '#F0F0F0',
+                'fontSize': 20,
+                '&:hover': {
+                  fontWeight: 'bold',
+                  color: '#2a57e3'
+                }
+              }}/>
+            </IconButton>
+          : ""}
+        </div>
+      </button>
+      : ""
   );
 };
 export default StoryContainer;

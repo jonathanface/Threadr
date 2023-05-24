@@ -29,12 +29,13 @@ func (d *DAO) awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsIn
 
 			if errors.As(opErr.Unwrap(), &txnErr) && txnErr.CancellationReasons != nil {
 				for _, reason := range txnErr.CancellationReasons {
-
 					if *reason.Code == "ConditionalCheckFailed" {
 						return err
 					}
 					// For other types of cancellation reasons, we retry.
-					if *reason.Code == "TransactionConflict" || *reason.Code == "CapacityExceededException" {
+					if *reason.Code == "TransactionConflict" ||
+						*reason.Code == "CapacityExceededException" ||
+						*reason.Code == "ResourceInUseException" {
 						var delay time.Duration
 						if reason.Code == aws.String("CapacityExceededException") {
 							delay = time.Duration(float64(time.Second) / float64(maxItemsPerSecond))
@@ -151,6 +152,7 @@ func (d *DAO) createBlockTable(tableName string) error {
 			TableName: aws.String(tableName),
 		}, 1*time.Minute); err != nil {
 			fmt.Println("error waiting for table creation", err)
+			return
 		}
 		// Enable Point-in-Time Recovery (PITR)
 		pitrInput := &dynamodb.UpdateContinuousBackupsInput{
