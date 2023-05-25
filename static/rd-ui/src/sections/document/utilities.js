@@ -15,11 +15,6 @@ export const GetSelectedBlockKeys = (editorState) => {
 
 export const GetEntityData = (block, type, list) => {
   block.findEntityRanges((character) => {
-    console.log('char?', character.getEntity());
-    const entity = character.getEntity();
-    if (entity !== null) {
-      console.log('enttype', entity);
-    }
     return character.getEntity();
   }, (start, end) => {
     list.push({

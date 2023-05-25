@@ -223,29 +223,31 @@ const Document = () => {
       const op = dbOperationQueue[i];
       switch (op.type) {
         case 'delete': {
+          const minifiedOps = FilterAndReduceDBOperations(dbOperationQueue, op, i);
           try {
-            await deleteBlocksFromServer(FilterAndReduceDBOperations(dbOperationQueue, op, i), op.story, op.chapter);
-          } catch (e) {
-            if (e !== true) {
+            await deleteBlocksFromServer(minifiedOps, op.story, op.chapter);
+          } catch (retry) {
+            if (retry !== true) {
               console.error(e);
               dbOperationQueue.splice(i, 1);
               continue;
             }
-            retryArray.push(op);
+            retryArray.push({story:op.story, chapter:op.chapter, type:op.type, ops:minifiedOps, time:op.time})
             console.error("server response 501, retrying...")
           }
           break;
         }
         case 'save': {
+          const minifiedOps = FilterAndReduceDBOperations(dbOperationQueue, op, i);
           try {
-            await saveBlocksToServer(FilterAndReduceDBOperations(dbOperationQueue, op, i), op.story, op.chapter);
-          } catch (e) {
-            if (e !== true) {
+            await saveBlocksToServer(minifiedOps, op.story, op.chapter);
+          } catch (retry) {
+            if (retry !== true) {
               console.error(e);
               dbOperationQueue.splice(i, 1);
               continue;
             }
-            retryArray.push(op);
+            retryArray.push({story:op.story, chapter:op.chapter, type:op.type, ops:minifiedOps, time:op.time})
             console.error("server response 501, retrying...")
           }
           break;
@@ -254,14 +256,12 @@ const Document = () => {
           try {
             await syncBlockOrderMap(op.blockList);
             dbOperationQueue.splice(i, 1);
-          } catch (e) {
-            if (e !== true) {
+          } catch (retry) {
+            if (retry !== true) {
               console.error(e);
-              retryArray.push(op);
-              dbOperationQueue.splice(i, 1);
+              // keep retrying failed block order syncs
               continue;
             }
-            retryArray.push(op);
             console.error("server response 501, retrying...")
           }
           break;
