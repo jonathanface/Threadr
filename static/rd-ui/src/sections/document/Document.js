@@ -16,14 +16,16 @@ import {faAlignCenter} from '@fortawesome/free-solid-svg-icons';
 import {faAlignRight} from '@fortawesome/free-solid-svg-icons';
 import {faAlignJustify} from '@fortawesome/free-solid-svg-icons';
 import CloseIcon from '@mui/icons-material/Close';
-import {IconButton} from '@mui/material';
 import {setSelectedSeries} from '../../stores/selectedSeriesSlice.js';
 import {setSelectedStoryTitle} from '../../stores/selectedStorySlice.js';
 import {Sidebar, Menu as SideMenu, MenuItem, SubMenu, useProSidebar} from 'react-pro-sidebar';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
+import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
+import {IconButton, TextField, ListItemIcon, ListItemText, MenuItem as MaterialMenuItem} from '@mui/material';
 import Button from '@mui/material/Button';
 import '../../css/sidebar.css';
+import Exporter from './Exporter.js';
 
 
 const ASSOCIATION_TYPE_CHARACTER = 'character';
@@ -52,6 +54,7 @@ const styleMap = {
 const dbOperationQueue = [];
 
 const Document = () => {
+  
   const domEditor = useRef(null);
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -69,6 +72,7 @@ const Document = () => {
   const [currentStrikethroughState, setCurrentStrikethroughState] = useState(false);
   const [associationWindowOpen, setAssociationWindowOpen] = useState(false);
   const [viewingAssociation, setViewingAssociation] = useState(null);
+  const [exportMenuValue, setExportMenuValue] = React.useState(false);
 
   const {collapseSidebar, collapsed} = useProSidebar();
   const dispatch = useDispatch();
@@ -98,6 +102,12 @@ const Document = () => {
   const [editorState, setEditorState] = React.useState(
       () => EditorState.createEmpty(createDecorators())
   );
+
+  const exportDoc = async(type) => {
+    const exp = new Exporter(selectedStoryTitle);
+    const html = await exp.DocToHTML();
+    console.log("got html", html);
+  }
 
   const getAllAssociations = async () => {
     associations.splice(0);
@@ -965,12 +975,43 @@ const Document = () => {
             <button className={currentBlockAlignment === 'RIGHT' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'RIGHT');}}><FontAwesomeIcon icon={faAlignRight} /></button>
             <button className={currentBlockAlignment === 'JUSTIFY' ? 'active': ''} onMouseDown={(e) => {updateBlockAlignment(e, 'JUSTIFY');}}><FontAwesomeIcon icon={faAlignJustify} /></button>
           </span>
-          <span className="exit-btn">
-            <IconButton aria-label="exit" component="label" onClick={onExitDocument}>
-              <CloseIcon sx={{
-                color: '#F0F0F0'
-              }}/>
-            </IconButton>
+          <span className="right-controls">
+            <span>
+              <TextField
+                select
+                label="Save as..."
+                InputLabelProps={{
+                  style: { color: '#f0f0f0' },
+                }}
+                SelectProps={{
+                  value:exportMenuValue,
+                  onChange:(evt) => {
+                    setExportMenuValue(!exportMenuValue);
+                  },
+                  onClose:(evt) => {
+                    setTimeout(() => {
+                      document.activeElement.blur();
+                    }, 0);
+                  }
+                }}
+                size="small"
+                sx={{
+                  width: '120px'
+                }}
+              >
+                <MaterialMenuItem value="docx" onClick={(e)=> {exportDoc("docx");}}>
+                  <ListItemIcon>
+                    <ArticleOutlinedIcon/>
+                  </ListItemIcon> 
+                  <ListItemText primary="DOCX" />
+                </MaterialMenuItem>
+              </TextField>
+              <IconButton aria-label="exit" component="label" onClick={onExitDocument}>
+                <CloseIcon sx={{
+                  color: '#F0F0F0'
+                }}/>
+              </IconButton>
+            </span>
           </span>
         </div>
       </nav>

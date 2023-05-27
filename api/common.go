@@ -1,10 +1,12 @@
 package api
 
 import (
+	"RichDocter/daos"
 	"RichDocter/models"
 	"RichDocter/sessions"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
@@ -89,4 +91,31 @@ func processAWSError(opErr *smithy.OperationError) (err models.AwsStatusResponse
 		}
 	}
 	return err
+}
+
+func staggeredStoryBlockRetrieval(dao daos.DaoInterface, email string, storyTitle string, chapter string, key string) (*models.BlocksData, error) {
+	blocks, err := dao.GetStoryParagraphs(email, storyTitle, chapter, key)
+	if err != nil {
+		if opErr, ok := err.(*smithy.OperationError); ok {
+			awsResponse := processAWSError(opErr)
+			if awsResponse.Code == 0 {
+				return nil, fmt.Errorf("error getting story blocks: %s", err.Error())
+			}
+			return nil, fmt.Errorf("error getting story blocks: %s", awsResponse.Message)
+		}
+		return nil, fmt.Errorf("error getting story blocks: %s", err.Error())
+	}
+	fmt.Println("last evaluated", blocks.LastEvaluated)
+	if blocks.LastEvaluated == nil {
+		return blocks, nil
+	}
+	lastEvaluatedKeyID, ok := blocks.LastEvaluated["key_id"]
+	if !ok {
+		return nil, fmt.Errorf("error getting story blocks: key_id not found in LastEvaluated")
+	}
+	keyID, ok := lastEvaluatedKeyID.(*types.AttributeValueMemberS)
+	if !ok {
+		return nil, fmt.Errorf("error getting story blocks: invalid key_id type")
+	}
+	return staggeredStoryBlockRetrieval(dao, email, storyTitle, chapter, keyID.Value)
 }

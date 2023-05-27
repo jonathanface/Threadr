@@ -40,7 +40,7 @@ nav.rich-controls button.active {
     background-color: gray;
 }
 
-nav.rich-controls .exit-btn {
+nav.rich-controls .right-controls {
     float:right;
 }
 
@@ -124,7 +124,7 @@ div.DraftEditor-editorContainer, div.public-DraftEditor-content {
         width: calc(70% - 20px);
         opacity:1;
     }
-    nav.rich-controls .exit-btn {
+    nav.rich-controls .right-controls {
         position:absolute;
         top:0px;
         right:0px;
