@@ -9,7 +9,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.31.3
 	github.com/gorilla/mux v1.8.0
 	github.com/joho/godotenv v1.5.1
+	github.com/jung-kurt/gofpdf v1.16.2
 	github.com/markbates/goth v1.76.1
+	github.com/nguyenthenguyen/docx v0.0.0-20220721043308-1903da0ef37d
 )
 
 require (

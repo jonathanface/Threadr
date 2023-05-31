@@ -48,6 +48,15 @@ const styleMap = {
   },
   'UNDERLINE': {
     textDecoration: 'underline'
+  },
+  'CENTER': {
+    textAlign: 'center'
+  },
+  'RIGHT': {
+    textAlign: 'right'
+  },
+  'JUSTIFY': {
+    textAlign: 'justify'
   }
 };
 
@@ -105,8 +114,20 @@ const Document = () => {
 
   const exportDoc = async(type) => {
     const exp = new Exporter(selectedStoryTitle);
-    const html = await exp.DocToHTML();
-    console.log("got html", html);
+    const htmlData = await exp.DocToHTML();
+    fetch('/api/stories/' + selectedStoryTitle + '/export', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        story_title: selectedStoryTitle,
+        html_by_chapter: htmlData,
+        type:"docx"
+      })
+    }).then((response) => {
+      console.log("response", response);
+    });
   }
 
   const getAllAssociations = async () => {
@@ -181,16 +202,16 @@ const Document = () => {
   const getBatchedStoryBlocks = async (startKey) => {
     return fetch('/api/stories/' + selectedStoryTitle + '/content?key=' + startKey + '&chapter=' + selectedChapterNumber).then((response) => {
       if (response.ok) {
+        console.log("response", response)
         return response.json();
       }
       throw new Error(response.status);
     }).then((data) => {
       data.last_evaluated_key && data.last_evaluated_key.key_id.Value ? lastRetrievedBlockKey = data.last_evaluated_key.key_id.Value : lastRetrievedBlockKey = null;
-      // data.items.sort((a, b) => parseInt(a.place.Value) > parseInt(b.place.Value));
       const newBlocks = [];
       if (data.items) {
         data.items.forEach((piece) => {
-          if (piece.chunk) {
+          if (piece.chunk && piece.chunk.Value) {
             const jsonBlock = JSON.parse(piece.chunk.Value);
             const block = new ContentBlock({
               characterList: jsonBlock.characterList,
@@ -838,10 +859,11 @@ const Document = () => {
 
   const handlePasteAction = (text) => {
     const blockMap = ContentState.createFromText(text).getBlockMap();
+    /*
     if (blockMap.size > 100) {
       console.error('Pasting more than 100 paragraphs at a time is not allowed.');
       return true;
-    }
+    }*/
     const newState = Modifier.replaceWithFragment(editorState.getCurrentContent(), editorState.getSelection(), blockMap);
     updateEditorState(EditorState.push(editorState, newState, 'insert-fragment'), true);
     return true;

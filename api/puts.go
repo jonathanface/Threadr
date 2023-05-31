@@ -250,7 +250,8 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		opts.Region = os.Getenv("AWS_REGION")
 		return nil
 	}); err != nil {
-		panic(err)
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 	s3Client := s3.NewFromConfig(awsCfg)
 	if _, err = s3Client.PutObject(context.Background(), &s3.PutObjectInput{
@@ -260,6 +261,7 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		ContentType: aws.String(fileType),
 	}); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 	portraitURL := "https://" + S3_CUSTOM_PORTRAIT_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
 	if err = dao.UpdatePortrait(email, associationName, portraitURL); err != nil {

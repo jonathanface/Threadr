@@ -108,6 +108,7 @@ func main() {
 	// POSTs
 	apiPath.HandleFunc("/stories", api.CreateStoryEndpoint).Methods("POST", "OPTIONS")
 	apiPath.HandleFunc("/stories/{story}/chapter", api.CreateStoryChapterEndpoint).Methods("POST", "OPTIONS")
+	apiPath.HandleFunc("/stories/{story}/export", api.ExportStoryEndpoint).Methods("POST", "OPTIONS")
 
 	// PUTs
 	apiPath.HandleFunc("/stories/{story}", api.WriteBlocksToStoryEndpoint).Methods("PUT", "OPTIONS")

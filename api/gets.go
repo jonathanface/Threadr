@@ -4,13 +4,13 @@ import (
 	"RichDocter/daos"
 	"RichDocter/models"
 	"RichDocter/sessions"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
 
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
 )
@@ -107,22 +107,32 @@ func FullStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 
 	story, err := dao.GetStoryByName(email, storyTitle)
 	if err != nil {
-		RespondWithError(w, http.StatusNotFound, err.Error())
+		if err == sql.ErrNoRows {
+			RespondWithError(w, http.StatusNotFound, "story not found")
+			return
+		}
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	var blocksList models.BlocksData
-	blocksList.Items = []map[string]types.AttributeValue{}
+	fullStory := models.FullStoryContent{}
+	fullStory.StoryTitle = storyTitle
+
+	//var blocksList models.BlocksData
+	//blocksList.Items = []map[string]types.AttributeValue{}
 	var key string
-	for _, chaps := range story.Chapters {
-		chapter := strconv.Itoa(chaps.ChapterNum)
-		blocks, err := staggeredStoryBlockRetrieval(dao, email, storyTitle, chapter, key)
+	for _, chap := range story.Chapters {
+		chapWithContents := models.ChapterWithContents{}
+		chapWithContents.Chapter = chap
+		chapterNumber := strconv.Itoa(chap.ChapterNum)
+		chapWithContents.Blocks, err = staggeredStoryBlockRetrieval(dao, email, storyTitle, chapterNumber, key)
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		blocksList.Items = append(blocksList.Items, blocks.Items...)
+		//blocksList.Items = append(blocksList.Items, blocks.Items...)
+		fullStory.ChaptersWithContents = append(fullStory.ChaptersWithContents, chapWithContents)
 	}
-	RespondWithJson(w, http.StatusOK, blocksList)
+	RespondWithJson(w, http.StatusOK, fullStory)
 }
 
 func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
@@ -167,6 +177,10 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			RespondWithError(w, awsResponse.Code, awsResponse.Message)
+			return
+		}
+		if err == sql.ErrNoRows {
+			RespondWithError(w, http.StatusNotFound, "story not found")
 			return
 		}
 		RespondWithError(w, http.StatusInternalServerError, err.Error())

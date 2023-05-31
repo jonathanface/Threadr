@@ -38,6 +38,11 @@ type Chapter struct {
 	ChapterTitle string `json:"chapter_title" dynamodbav:"chapter_title"`
 }
 
+type ChapterWithContents struct {
+	Chapter Chapter     `json:"chapter"`
+	Blocks  *BlocksData `json:"blocks"`
+}
+
 type Story struct {
 	CreatedAt   int       `json:"created_at" dynamodbav:"created_at"`
 	Title       string    `json:"title" dynamodbav:"story_title"`
@@ -49,6 +54,11 @@ type BlocksData struct {
 	LastEvaluated map[string]types.AttributeValue   `json:"last_evaluated_key"`
 	ScannedCount  int32                             `json:"scanned_count"`
 	Items         []map[string]types.AttributeValue `json:"items"`
+}
+
+type FullStoryContent struct {
+	StoryTitle           string                `json:"story_title"`
+	ChaptersWithContents []ChapterWithContents `json:"chapters_with_contents"`
 }
 
 type Series struct {
@@ -73,4 +83,15 @@ type AwsStatusResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
 	Code    int    `json:"code"`
+}
+
+type HTMLData struct {
+	Chapter string `json:"chapter"`
+	HTML    string `json:"html"`
+}
+
+type DocumentExportRequest struct {
+	HtmlByChapter []HTMLData `json:"html_by_chapter"`
+	Type          string     `json:"type"`
+	StoryTitle    string     `json:"story_title"`
 }
