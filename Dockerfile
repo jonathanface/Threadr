@@ -1,5 +1,14 @@
 FROM golang:1.20.3-alpine
-#RUN apk add --no-cache bash
+
+# Install wkhtmltopdf dependencies
+RUN apk add --no-cache xvfb libfontconfig libxrender libjpeg-turbo
+
+# Download and install wkhtmltopdf
+RUN wget -q -O /tmp/wkhtmltox.tar.xz https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.6-1/wkhtmltox-0.12.6-1.alpine3.12.x86_64.tar.xz && \
+    tar -xvf /tmp/wkhtmltox.tar.xz -C /tmp && \
+    mv /tmp/wkhtmltox/bin/wkhtmltopdf /usr/local/bin/wkhtmltopdf && \
+    rm -rf /tmp/wkhtmltox*
+
 WORKDIR /app
 
 ARG AWS_ACCESS_KEY_ID
@@ -36,6 +45,9 @@ COPY ./daos ./daos
 COPY ./sessions ./sessions
 COPY ./RichDocter.go ./RichDocter.go
 COPY ./static/rd-ui/build/ ./static/rd-ui/build/
+
+RUN apt-get install pandoc
+
 RUN go build -o /RichDocter
 
 CMD ["/RichDocter"]

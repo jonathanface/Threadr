@@ -19,6 +19,7 @@ const (
 	associationTypeEvent      = "event"
 	S3_CUSTOM_PORTRAIT_BUCKET = "richdocter-custom-portraits"
 	S3_EXPORTS_BUCKET         = "richdocter-document-exports"
+	TMP_EXPORT_DIR            = "./tmp"
 )
 
 func getUserEmail(r *http.Request) (string, error) {

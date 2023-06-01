@@ -3,15 +3,15 @@ module RichDocter
 go 1.20
 
 require (
+	github.com/SebastiaanKlippert/go-wkhtmltopdf v1.9.0
 	github.com/aws/aws-sdk-go-v2/config v1.18.15
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.10.15
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.18.5
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.31.3
 	github.com/gorilla/mux v1.8.0
 	github.com/joho/godotenv v1.5.1
-	github.com/jung-kurt/gofpdf v1.16.2
 	github.com/markbates/goth v1.76.1
-	github.com/nguyenthenguyen/docx v0.0.0-20220721043308-1903da0ef37d
+	github.com/microcosm-cc/bluemonday v1.0.24
 )
 
 require (
@@ -28,14 +28,17 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.12.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.14.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.5 // indirect
+	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
+	github.com/gorilla/css v1.0.0 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/stretchr/testify v1.8.1 // indirect
-	golang.org/x/net v0.7.0 // indirect
+	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
 require (

@@ -1,0 +1,136 @@
+package converters
+
+import (
+	"RichDocter/models"
+	"fmt"
+	"io"
+	"os"
+	"os/exec"
+	"regexp"
+	"strings"
+
+	"github.com/SebastiaanKlippert/go-wkhtmltopdf"
+	"github.com/microcosm-cc/bluemonday"
+)
+
+const (
+	FONT_NAME         = "Arial"
+	FONT_PATH         = "fonts/arial.ttf"
+	FONT_SIZE_DEFAULT = "12px"
+	FONT_SIZE_HEADER  = "18px"
+	LINE_HEIGHT       = "24px"
+	MARGIN_1INCH      = "1in"
+)
+
+var regexes = []*regexp.Regexp{
+	regexp.MustCompile(`<CENTER>(.*?)<\/CENTER>`),
+	regexp.MustCompile(`<RIGHT>(.*?)<\/RIGHT>`),
+	regexp.MustCompile(`<JUSTIFY>(.*?)<\/JUSTIFY>`),
+	regexp.MustCompile(`’`),
+	regexp.MustCompile(`&#x27;`),
+	regexp.MustCompile(`&#39;`),
+	regexp.MustCompile(`“`),
+	regexp.MustCompile(`”`),
+	regexp.MustCompile(`&quot;`),
+	regexp.MustCompile(`&#34;`),
+	regexp.MustCompile(`—`),
+	regexp.MustCompile(`<p>(.*?)<\/p>`),
+	regexp.MustCompile(`&amp;`),
+}
+var reMatches = []string{
+	`<p style="margin:0;padding:0;white-space:pre-wrap;text-align:center;">$1</p>`,
+	`<p style="margin:0;padding:0;white-space:pre-wrap;text-align:right;">$1</p>`,
+	`<p style="margin:0;padding:0;white-space:pre-wrap;text-align:justify;">$1</p>`,
+	`'`,
+	`'`,
+	`'`,
+	`"`,
+	`"`,
+	`"`,
+	`"`,
+	`--`,
+	`<p style="margin:0;padding:0;white-space:pre-wrap;">$1</p>`,
+	`&`,
+}
+
+func PDFtoDOCX(pdfPath string, docxPath string) (filename string, err error) {
+	cmd := exec.Command("pandoc", pdfPath, "-o", docxPath)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("failed to convert PDF to DOCX: %w", err)
+	}
+	return docxPath, nil
+}
+
+func HTMLToPDF(export models.DocumentExportRequest) (filename string, err error) {
+	pdfg, err := wkhtmltopdf.NewPDFGenerator()
+	if err != nil {
+		return "", err
+	}
+	htmlContent := `<html><body style="font-family:Arial,san-serif;font-size:` + FONT_SIZE_DEFAULT + `;line-height:` + LINE_HEIGHT + `;margin:0">`
+	for _, htmlData := range export.HtmlByChapter {
+		for idx, re := range regexes {
+			htmlData.HTML = re.ReplaceAllString(htmlData.HTML, reMatches[idx])
+		}
+		sanitizer := bluemonday.UGCPolicy()
+		sanitizer.AllowAttrs("style").OnElements("p", "span")
+		sanitizedHTML := sanitizer.Sanitize(htmlData.HTML)
+		htmlContent += `<p style="page-break-before:always;margin:0;margin-bottom:` + FONT_SIZE_HEADER + `;padding:0;text-align:center;font-weight:bold;font-size:` + FONT_SIZE_HEADER + `;line-height:` + FONT_SIZE_HEADER + `;">` + htmlData.Chapter + `</p>`
+		htmlContent += sanitizedHTML
+		pdfg.AddPage(wkhtmltopdf.NewPageReader(strings.NewReader(htmlContent)))
+	}
+	htmlContent += "</body></html>"
+
+	filename = fmt.Sprintf("%s.pdf", export.StoryTitle)
+	cmd := exec.Command("wkhtmltopdf",
+		"--margin-top", "1in",
+		"--margin-right", "1in",
+		"--margin-bottom", "1in",
+		"--margin-left", "1in",
+		"-", // Read HTML from stdin
+		"./tmp/"+filename,
+	)
+
+	// Get pipes for stdin and stdout
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return "", err
+	}
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return "", err
+	}
+
+	// Start the command
+	if err := cmd.Start(); err != nil {
+		return "", err
+	}
+
+	// Write HTML string to stdin
+	_, err = io.WriteString(stdin, htmlContent)
+	if err != nil {
+		return "", err
+	}
+	stdin.Close() // Close stdin to signal end of input
+
+	// Read the generated PDF from stdout
+	file, err := os.Create("./tmp/" + filename)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, stdout)
+	if err != nil {
+		return "", err
+	}
+
+	// Wait for the command to finish
+	if err := cmd.Wait(); err != nil {
+		return "", err
+	}
+	return filename, nil
+}

@@ -1,3 +1,4 @@
+import React from 'react';
 import {convertFromRaw, Editor, EditorState, ContentBlock, Modifier, SelectionState, CompositeDecorator} from 'draft-js';
 import { GenerateTabCharacter} from './utilities';
 import { FindTabs, TabSpan } from './decorators';
@@ -93,8 +94,38 @@ export default class Exporter {
                         blockToHTML: (block) => {
                             const alignment = block.data.ALIGNMENT;
                             if (alignment && alignment != "LEFT") {
-                                return "<p><" + alignment + ">" + block.text + "</" + alignment + "></p>";
+                                let text = block.text;
+                                const styles = block.inlineStyleRanges;
+                                if (styles) {
+                                    let modifier = 0;
+                                    styles.forEach(style => {
+                                        switch (style.style) {
+                                            case "BOLD":
+                                                text = text.slice(0, style.offset+modifier) + '<b>' + text.slice(style.offset+modifier, text.length+modifier)
+                                                text = text.slice(0, style.offset + style.length+3+modifier) + '</b>' + text.slice(style.offset+style.length+3+modifier, text.length+modifier)
+                                                modifier += 7;
+                                                break;
+                                            case "ITALIC":
+                                                text = text.slice(0, style.offset+modifier) + '<i>' + text.slice(style.offset+modifier, text.length+modifier)
+                                                text = text.slice(0, style.offset + style.length+3+modifier) + '</i>' + text.slice(style.offset+style.length+3+modifier, text.length+modifier)
+                                                modifier += 7;
+                                                break;
+                                            case "UNDERLINE":
+                                                text = text.slice(0, style.offset+modifier) + '<u>' + text.slice(style.offset+modifier, text.length+modifier)
+                                                text = text.slice(0, style.offset + style.length+3+modifier) + '</u>' + text.slice(style.offset+style.length+3+modifier, text.length+modifier)
+                                                modifier += 7;
+                                                break;
+                                            case "STRIKETHROUGH":
+                                                text = text.slice(0, style.offset+modifier) + '<s>' + text.slice(style.offset+modifier, text.length+modifier)
+                                                text = text.slice(0, style.offset + style.length+3+modifier) + '</s>' + text.slice(style.offset+style.length+3+modifier, text.length+modifier)
+                                                modifier += 7;
+                                                break;
+                                        }
+                                    });
+                                }
+                                return "<" + alignment + ">" + text + "</" + alignment + ">";
                             }
+
                         }}
                     )(this.assembler.editorState.getCurrentContent())
                 });

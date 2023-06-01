@@ -161,7 +161,7 @@ func (d *DAO) GetStoryByName(email, storyTitle string) (*models.Story, error) {
 		return &story, err
 	}
 	if len(storyFromMap) == 0 {
-		return &story, fmt.Errorf("table not ready")
+		return &story, fmt.Errorf("no story found")
 	}
 	storyFromMap[0].Chapters = chapters
 	return &storyFromMap[0], nil

@@ -1,31 +1,59 @@
-import React, {useRef, useEffect, useState} from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import Immutable from 'immutable';
-import {convertFromRaw, Editor, EditorState, ContentBlock, RichUtils, getDefaultKeyBinding, Modifier, SelectionState, ContentState, CompositeDecorator} from 'draft-js';
-import {GetSelectedText, InsertTab, FilterAndReduceDBOperations, GetBlockStyleDataByType, GetEntityData, GetSelectedBlockKeys, GenerateTabCharacter} from './utilities.js';
+import {
+  convertFromRaw,
+  Editor,
+  EditorState,
+  ContentBlock,
+  RichUtils,
+  getDefaultKeyBinding,
+  Modifier,
+  SelectionState,
+  ContentState,
+  CompositeDecorator
+} from 'draft-js';
+import {
+  GetSelectedText,
+  InsertTab,
+  FilterAndReduceDBOperations,
+  GetBlockStyleDataByType,
+  GetEntityData,
+  GetSelectedBlockKeys,
+  GenerateTabCharacter
+} from './utilities.js';
 import AssociationUI from './AssociationUI.js';
 import 'draft-js/dist/Draft.css';
 import '../../css/document.css';
-import {Menu, Item, Submenu, useContextMenu} from 'react-contexify';
+import { Menu, Item, Submenu, useContextMenu } from 'react-contexify';
 import 'react-contexify/ReactContexify.css';
-import {useSelector, useDispatch} from 'react-redux';
-import {setDBOperationInterval} from '../../stores/dbOperationIntervalSlice';
-import {FindHighlightable, HighlightSpan, FindTabs, TabSpan} from './decorators';
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {faAlignLeft} from '@fortawesome/free-solid-svg-icons';
-import {faAlignCenter} from '@fortawesome/free-solid-svg-icons';
-import {faAlignRight} from '@fortawesome/free-solid-svg-icons';
-import {faAlignJustify} from '@fortawesome/free-solid-svg-icons';
+import { useSelector, useDispatch } from 'react-redux';
+import { setDBOperationInterval } from '../../stores/dbOperationIntervalSlice';
+import { FindHighlightable, HighlightSpan, FindTabs, TabSpan } from './decorators';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faAlignLeft,
+  faAlignCenter,
+  faAlignRight,
+  faAlignJustify
+} from '@fortawesome/free-solid-svg-icons';
 import CloseIcon from '@mui/icons-material/Close';
-import {setSelectedSeries} from '../../stores/selectedSeriesSlice.js';
-import {setSelectedStoryTitle} from '../../stores/selectedStorySlice.js';
-import {Sidebar, Menu as SideMenu, MenuItem, SubMenu, useProSidebar} from 'react-pro-sidebar';
+import { setSelectedSeries } from '../../stores/selectedSeriesSlice.js';
+import { setSelectedStoryTitle } from '../../stores/selectedStorySlice.js';
+import { Sidebar, Menu as SideMenu, MenuItem, SubMenu, useProSidebar } from 'react-pro-sidebar';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
-import {IconButton, TextField, ListItemIcon, ListItemText, MenuItem as MaterialMenuItem} from '@mui/material';
+import {
+  IconButton,
+  TextField,
+  ListItemIcon,
+  ListItemText,
+  MenuItem as MaterialMenuItem
+} from '@mui/material';
 import Button from '@mui/material/Button';
 import '../../css/sidebar.css';
 import Exporter from './Exporter.js';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 
 
 const ASSOCIATION_TYPE_CHARACTER = 'character';
@@ -123,10 +151,15 @@ const Document = () => {
       body: JSON.stringify({
         story_title: selectedStoryTitle,
         html_by_chapter: htmlData,
-        type:"docx"
+        type:type
       })
     }).then((response) => {
-      console.log("response", response);
+      if (response.ok) {
+        return response.json();
+      }
+      throw new Error('Fetch problem associations ' + response.status);
+    }).then(results => {
+      window.open(results.url, '_blank')
     });
   }
 
@@ -1026,6 +1059,12 @@ const Document = () => {
                     <ArticleOutlinedIcon/>
                   </ListItemIcon> 
                   <ListItemText primary="DOCX" />
+                </MaterialMenuItem>
+                <MaterialMenuItem value="pdf" onClick={(e)=> {exportDoc("pdf");}}>
+                  <ListItemIcon>
+                    <PictureAsPdfIcon/>
+                  </ListItemIcon> 
+                  <ListItemText primary="PDF" />
                 </MaterialMenuItem>
               </TextField>
               <IconButton aria-label="exit" component="label" onClick={onExitDocument}>
