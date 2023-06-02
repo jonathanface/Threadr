@@ -53,13 +53,13 @@ COPY ./api ./api
 COPY ./converters ./converters
 COPY ./models ./models
 COPY ./auth ./auth
-COPY ./tmp ./tmp
 COPY ./bins /usr/local/bin/
 COPY ./daos ./daos
 COPY ./sessions ./sessions
 COPY ./RichDocter.go ./RichDocter.go
 COPY ./static/rd-ui/build/ ./static/rd-ui/build/
 
+RUN mkdir -p ./tmp
 RUN go build -o /RichDocter
 
 CMD ["/RichDocter"]
