@@ -1,15 +1,26 @@
-FROM golang:1.20.3-alpine
+# Base image with Go and wkhtmltox dependencies
+FROM golang:1.20.3
 
-# Install wkhtmltopdf dependencies
-RUN apk add --no-cache xvfb libfontconfig libxrender libjpeg-turbo
-
-# Download and install wkhtmltopdf
-RUN wget -q -O /tmp/wkhtmltox.tar.xz https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.6-1/wkhtmltox-0.12.6-1.alpine3.12.x86_64.tar.xz && \
-    tar -xvf /tmp/wkhtmltox.tar.xz -C /tmp && \
-    mv /tmp/wkhtmltox/bin/wkhtmltopdf /usr/local/bin/wkhtmltopdf && \
-    rm -rf /tmp/wkhtmltox*
+# Install wkhtmltox dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        fontconfig \
+        libjpeg62-turbo \
+        libx11-6 \
+        libxcb1 \
+        libxext6 \
+        libxrender1 \
+        xfonts-75dpi \
+        xfonts-base \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+
+# Set environment variables for Go
+ENV GO111MODULE=auto \
+    GOPATH=/go \
+    PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
+
 
 ARG AWS_ACCESS_KEY_ID
 ENV AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
@@ -39,14 +50,15 @@ ENV APP_MODE="PRODUCTION"
 COPY ./go.mod ./go.mod
 COPY ./go.sum ./go.sum
 COPY ./api ./api
+COPY ./converters ./converters
 COPY ./models ./models
 COPY ./auth ./auth
+COPY ./tmp ./tmp
+COPY ./bins /usr/local/bin/
 COPY ./daos ./daos
 COPY ./sessions ./sessions
 COPY ./RichDocter.go ./RichDocter.go
 COPY ./static/rd-ui/build/ ./static/rd-ui/build/
-
-RUN apt-get install pandoc
 
 RUN go build -o /RichDocter
 

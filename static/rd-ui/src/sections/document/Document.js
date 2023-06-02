@@ -292,7 +292,7 @@ const Document = () => {
             await deleteBlocksFromServer(minifiedOps, op.story, op.chapter);
           } catch (retry) {
             if (retry !== true) {
-              console.error(e);
+              console.error(retry);
               dbOperationQueue.splice(i, 1);
               continue;
             }
@@ -307,7 +307,7 @@ const Document = () => {
             await saveBlocksToServer(minifiedOps, op.story, op.chapter);
           } catch (retry) {
             if (retry !== true) {
-              console.error(e);
+              console.error(retry);
               dbOperationQueue.splice(i, 1);
               continue;
             }
@@ -322,7 +322,7 @@ const Document = () => {
             dbOperationQueue.splice(i, 1);
           } catch (retry) {
             if (retry !== true) {
-              console.error(e);
+              console.error(retry);
               // keep retrying failed block order syncs
               continue;
             }
