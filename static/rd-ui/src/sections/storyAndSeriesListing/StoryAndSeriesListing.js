@@ -1,7 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import '../../css/landing-page.css';
 import {useSelector, useDispatch} from 'react-redux';
-import StoryContainer from './StoryContainer';
+import Story from '../story/Story';
 import AddIcon from '@mui/icons-material/Add';
 import {IconButton} from '@mui/material';
 import {flipCreatingNewStoryState} from '../../stores/creatingNewStorySlice';
@@ -71,28 +71,29 @@ const StoryAndSeriesListing = () => {
       </div>
       {isLoggedIn ?
         <div>
-          <h2>Stories
-            <IconButton aria-label="add new story" component="label" onClick={createNewStory} title="Create Story" className="icon-add-btn">
-              <AddIcon sx={{
-                'color': '#F0F0F0',
-                'fontSize': 50,
-                '&:hover': {
-                  fontWeight: 'bold',
-                  color: '#2a57e3'
-                }
-              }}/>
-            </IconButton>
-          </h2>
+          <h2>Stories</h2>
           <div className="icon-box">
+            <span className="create-story-button">
+              <IconButton aria-label="add new story" sx={{margin: '0 auto'}} component="label" onClick={createNewStory} title="Create Story">
+                  <AddIcon sx={{
+                    'color': '#F0F0F0',
+                    'fontSize': 100,
+                    '&:hover': {
+                      fontWeight: 'bold',
+                      color: '#2a57e3',
+                    }
+                  }}/>
+              </IconButton>
+            </span>
             {
               [...seriesGroup.keys()].map((series) => {
                 const entries = seriesGroup.get(series);
-                return <StoryContainer key={series} series={true} title={series} data={entries}/>;
+                return <Story key={series} series={true} title={series} data={entries}/>;
               })
             }
             {
               stories.map((story) => {
-                return <StoryContainer key={story.title} series={false} title={story.title}/>;
+                return <Story key={story.title} series={false} title={story.title} description={story.description}/>;
               })
             }
           </div>

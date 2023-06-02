@@ -2,7 +2,6 @@ import React, {useEffect} from 'react';
 import {useSelector, useDispatch} from 'react-redux';
 import Document from './sections/document/Document';
 import StoryAndSeriesListing from './sections/storyAndSeriesListing/StoryAndSeriesListing';
-import SeriesListing from './sections/seriesListing/SeriesListing';
 import {flipLoggedInState} from './stores/loggedInSlice';
 import {setSelectedStoryTitle} from './stores/selectedStorySlice';
 import {setSelectedSeries} from './stores/selectedSeriesSlice';
@@ -10,6 +9,7 @@ import CreateNewStory from './sections/createNewStory/CreateNewStoryModal';
 import UserMenu from './sections/UserMenu/UserMenu';
 import './css/main.css';
 import './css/user-menu.css';
+import Story from './sections/story/Story';
 
 
 const Threadr = () => {
@@ -49,13 +49,7 @@ const Threadr = () => {
     return () => window.removeEventListener('popstate', handleNavChange);
   }, [dispatch]);
 
-  let displayComponent = <StoryAndSeriesListing/>;
-  if (isLoggedIn && selectedSeries) {
-    displayComponent = <SeriesListing/>;
-  }
-  if (isLoggedIn && selectedStoryTitle) {
-    displayComponent = <Document story={selectedStoryTitle}/>;
-  }
+  const displayComponent = isLoggedIn && selectedStoryTitle ? <Document story={selectedStoryTitle}/> : <StoryAndSeriesListing/>
 
 
   return (
