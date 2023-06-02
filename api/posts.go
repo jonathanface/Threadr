@@ -162,20 +162,18 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	generatedFile, err := converters.HTMLToPDF(export)
+	var generatedFile string
+	switch export.Type {
+	case "pdf":
+		generatedFile, err = converters.HTMLToPDF(export)
+	case "docx":
+		generatedFile, err = converters.HTMLToDOCX(export)
+	}
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	defer os.Remove(TMP_EXPORT_DIR + "/" + generatedFile)
-
-	if export.Type == "docx" {
-		generatedFile, err = converters.PDFtoDOCX(TMP_EXPORT_DIR+"/"+generatedFile, TMP_EXPORT_DIR+"/"+storyTitle+".docx")
-		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-	}
 
 	reader, err := os.Open(TMP_EXPORT_DIR + "/" + generatedFile)
 	if err != nil {
@@ -188,6 +186,9 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		Key:         aws.String(generatedFile),
 		Body:        reader,
 		ContentType: aws.String(filetype),
+		/*		Metadata: map[string]string{
+				"Content-Disposition": "attachment; filename=" + generatedFile,
+			},*/
 	}); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return

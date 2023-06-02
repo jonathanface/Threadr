@@ -157,7 +157,7 @@ const Document = () => {
       if (response.ok) {
         return response.json();
       }
-      throw new Error('Fetch problem associations ' + response.status);
+      throw new Error('Fetch problem export ' + response.status);
     }).then(results => {
       window.open(results.url, '_blank')
     });

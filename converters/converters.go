@@ -53,15 +53,44 @@ var reMatches = []string{
 	`&`,
 }
 
-func PDFtoDOCX(pdfPath string, docxPath string) (filename string, err error) {
-	cmd := exec.Command("pandoc", pdfPath, "-o", docxPath)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("failed to convert PDF to DOCX: %w", err)
+func HTMLToDOCX(export models.DocumentExportRequest) (filename string, err error) {
+	htmlContent := `<html><body style="font-family:Arial,san-serif;font-size:` + FONT_SIZE_DEFAULT + `;line-height:` + LINE_HEIGHT + `;margin:0">`
+	for _, htmlData := range export.HtmlByChapter {
+		for idx, re := range regexes {
+			htmlData.HTML = re.ReplaceAllString(htmlData.HTML, reMatches[idx])
+		}
+		sanitizer := bluemonday.UGCPolicy()
+		sanitizer.AllowAttrs("style").OnElements("p")
+		sanitizedHTML := sanitizer.Sanitize(htmlData.HTML)
+		chapterTitle := fmt.Sprintf(`<div style="page-break-before: always; margin: 0; margin-bottom: %s; padding: 0; text-align: center; font-weight: bold; font-size: %s; line-height: %s;">%s</div>`, FONT_SIZE_HEADER, FONT_SIZE_HEADER, FONT_SIZE_HEADER, htmlData.Chapter)
+		htmlContent += chapterTitle + sanitizedHTML
 	}
-	return docxPath, nil
+	htmlContent += "</body></html>"
+
+	// Create a temporary HTML file
+	tmpFile, err := os.CreateTemp("", "html_to_docx_*.html")
+	if err != nil {
+		return "", err
+	}
+	defer os.Remove(tmpFile.Name())
+
+	// Write HTML content to the temporary file
+	_, err = tmpFile.WriteString(htmlContent)
+	if err != nil {
+		return "", err
+	}
+	tmpFile.Close()
+
+	// Convert HTML to DOCX using Pandoc command-line tool
+	filename = fmt.Sprintf("%s.docx", export.StoryTitle)
+	cmd := exec.Command("pandoc", "-f", "html", "-t", "docx", "-o", "./tmp/"+filename, tmpFile.Name())
+
+	// Execute the command
+	err = cmd.Run()
+	if err != nil {
+		return "", err
+	}
+	return filename, nil
 }
 
 func HTMLToPDF(export models.DocumentExportRequest) (filename string, err error) {
@@ -75,10 +104,10 @@ func HTMLToPDF(export models.DocumentExportRequest) (filename string, err error)
 			htmlData.HTML = re.ReplaceAllString(htmlData.HTML, reMatches[idx])
 		}
 		sanitizer := bluemonday.UGCPolicy()
-		sanitizer.AllowAttrs("style").OnElements("p", "span")
+		sanitizer.AllowAttrs("style").OnElements("p")
 		sanitizedHTML := sanitizer.Sanitize(htmlData.HTML)
-		htmlContent += `<p style="page-break-before:always;margin:0;margin-bottom:` + FONT_SIZE_HEADER + `;padding:0;text-align:center;font-weight:bold;font-size:` + FONT_SIZE_HEADER + `;line-height:` + FONT_SIZE_HEADER + `;">` + htmlData.Chapter + `</p>`
-		htmlContent += sanitizedHTML
+		chapterTitle := fmt.Sprintf(`<div style="page-break-before: always; margin: 0; margin-bottom: %s; padding: 0; text-align: center; font-weight: bold; font-size: %s; line-height: %s;">%s</div>`, FONT_SIZE_HEADER, FONT_SIZE_HEADER, FONT_SIZE_HEADER, htmlData.Chapter)
+		htmlContent += chapterTitle + sanitizedHTML
 		pdfg.AddPage(wkhtmltopdf.NewPageReader(strings.NewReader(htmlContent)))
 	}
 	htmlContent += "</body></html>"
