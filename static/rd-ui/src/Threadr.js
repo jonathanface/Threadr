@@ -9,13 +9,13 @@ import CreateNewStory from './sections/createNewStory/CreateNewStoryModal';
 import UserMenu from './sections/UserMenu/UserMenu';
 import './css/main.css';
 import './css/user-menu.css';
-import Story from './sections/story/Story';
+import Loader from './utils/Loader';
+
 
 
 const Threadr = () => {
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
   const selectedStoryTitle = useSelector((state) => state.selectedStoryTitle.value);
-  const selectedSeries = useSelector((state) => state.selectedSeries.value);
   const dispatch = useDispatch();
 
   const handleNavChange = () => {
@@ -37,12 +37,15 @@ const Threadr = () => {
     window.addEventListener('popstate', () => {
       handleNavChange();
     });
+    
     fetch('/api/user').then((response) => {
       if (response.ok) {
         return response.json();
       }
       throw new Error('Fetch problem userData ' + response.status);
-    }).then((data) => dispatch(flipLoggedInState())).catch((e) => {
+    }).then((data) => {
+        dispatch(flipLoggedInState());
+    }).catch((e) => {
       console.error('ERROR', e);
     });
     handleNavChange();

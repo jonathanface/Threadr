@@ -54,6 +54,7 @@ import Button from '@mui/material/Button';
 import '../../css/sidebar.css';
 import Exporter from './Exporter.js';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import { setLoaderVisible } from '../../stores/displayLoaderSlice.js';
 
 
 const ASSOCIATION_TYPE_CHARACTER = 'character';
@@ -91,8 +92,8 @@ const styleMap = {
 const dbOperationQueue = [];
 
 const Document = () => {
-  
   const domEditor = useRef(null);
+  const dispatch = useDispatch();
 
   const urlParams = new URLSearchParams(window.location.search);
 
@@ -110,9 +111,11 @@ const Document = () => {
   const [associationWindowOpen, setAssociationWindowOpen] = useState(false);
   const [viewingAssociation, setViewingAssociation] = useState(null);
   const [exportMenuValue, setExportMenuValue] = React.useState(false);
-
+  const [associationsLoaded, setAssociationsLoaded] = React.useState(false);
+  const [storyDetailsLoaded, setStoryDetailsLoaded] = React.useState(false);
+  const [blocksLoaded, setBlocksLoaded] = React.useState(false);
   const {collapseSidebar, collapsed} = useProSidebar();
-  const dispatch = useDispatch();
+  
 
   let lastRetrievedBlockKey = '';
   const createDecorators = () => {
@@ -190,6 +193,7 @@ const Document = () => {
               );
             }
           });
+          setAssociationsLoaded(true);
         }).catch((error) => {
           console.error('get story associations', error);
         });
@@ -269,6 +273,7 @@ const Document = () => {
         }
       });
       setEditorState(EditorState.createWithContent(newContentState, createDecorators()));
+      setBlocksLoaded(true);
     }).catch((error) => {
       if (parseInt(error.message) !== 404) {
         console.error('get story blocks', error);
@@ -363,6 +368,7 @@ const Document = () => {
     }).then((data) => {
       setChapters(data.chapters);
       setSelectedChapterTitle(data.chapters.find((chapter) => chapter.chapter_num === selectedChapterNumber).chapter_title);
+      setStoryDetailsLoaded(true);
     });
   };
 
@@ -373,10 +379,12 @@ const Document = () => {
   };
 
   useEffect(() => {
+    dispatch(setLoaderVisible(true));
     if (isLoggedIn && selectedStoryTitle) {
       setFocusAndRestoreCursor();
       getBaseData();
     }
+
     setDBOperationInterval(setInterval(() => {
       try {
         processDBQueue();
@@ -386,10 +394,13 @@ const Document = () => {
     }, DB_OP_INTERVAL));
 
     window.addEventListener('unload', processDBQueue);
+    if (storyDetailsLoaded && associationsLoaded && blocksLoaded) {
+      dispatch(setLoaderVisible(false));
+    }
     return () => {
       window.removeEventListener('unload', processDBQueue);
     };
-  }, [isLoggedIn, selectedStoryTitle, selectedChapterNumber, lastRetrievedBlockKey]);
+  }, [isLoggedIn, selectedStoryTitle, selectedChapterNumber, lastRetrievedBlockKey, storyDetailsLoaded, associationsLoaded, blocksLoaded]);
 
   const syncBlockOrderMap = (blockList) => {
     return new Promise(async (resolve, reject) => {

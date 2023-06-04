@@ -5,11 +5,14 @@ import Story from '../story/Story';
 import AddIcon from '@mui/icons-material/Add';
 import {IconButton} from '@mui/material';
 import {flipCreatingNewStoryState} from '../../stores/creatingNewStorySlice';
+import { setLoaderVisible } from '../../stores/displayLoaderSlice';
 
 const StoryAndSeriesListing = () => {
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
   const [stories, setStories] = useState([]);
   const [seriesGroup, setSeriesGroups] = useState([]);
+  const [seriesLoaded, setSeriesLoaded] = useState(false);
+  const [storiesLoaded, setStoriesLoaded] = useState(false);
   const dispatch = useDispatch();
 
   const getSeries = () => {
@@ -31,6 +34,7 @@ const StoryAndSeriesListing = () => {
         });
       });
       setSeriesGroups(seriesStoriesFromDB);
+      setSeriesLoaded(true);
     });
   };
 
@@ -50,15 +54,20 @@ const StoryAndSeriesListing = () => {
         };
       });
       setStories(storiesFromDB);
+      setStoriesLoaded(true);
     });
   };
 
   useEffect(() => {
+    dispatch(setLoaderVisible(true));
     if (isLoggedIn) {
       getSeries();
       getStories();
     }
-  }, [isLoggedIn, dispatch]);
+    if (seriesLoaded && storiesLoaded) {
+      dispatch(setLoaderVisible(false));
+    }
+  }, [isLoggedIn, dispatch, seriesLoaded, storiesLoaded]);
 
   const createNewStory = () => {
     dispatch(flipCreatingNewStoryState());

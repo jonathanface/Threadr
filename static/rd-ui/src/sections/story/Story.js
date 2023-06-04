@@ -4,6 +4,8 @@ import '../../css/story.css';
 import DetailsSlider from './DetailsSlider';
 import {setSelectedStoryTitle} from '../../stores/selectedStorySlice';
 import {setSelectedSeries} from '../../stores/selectedSeriesSlice';
+import { setLoaderVisible } from '../../stores/displayLoaderSlice';
+
 
 const Story = (props) => {
     const dispatch = useDispatch();
@@ -16,6 +18,7 @@ const Story = (props) => {
             dispatch(setSelectedSeries(encodeURIComponent(series)));
         }
         history.pushState({title}, 'clicked story', '/story/' + encodeURIComponent(title) + '?chapter=1');
+        dispatch(setLoaderVisible(true));
     };
 
     const iconUrl = props.series ? "/img/icons/story_series_icon.jpg" : "/img/icons/story_standalone_icon.jpg"

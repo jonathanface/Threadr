@@ -1,12 +1,10 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {IconButton} from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import {useDispatch} from 'react-redux';
 import '../../css/story.css';
 
 const DetailsSlider = (props) => {
-    const dispatch = useDispatch();
     const deleteStory = (event,) => {
         event.stopPropagation();
         let url = '/api/stories/' + props.title + '?series=' + props.series;
@@ -25,7 +23,6 @@ const DetailsSlider = (props) => {
     const deleteHoverText = props.series ? "Delete Series" : "Delete Story"
     const editHoverText = props.series ? "Edit Series" : "Edit Story"
 
-    console.log("p", props);
     return (
         <div className="details-slider">
             <div className="details-title">
@@ -41,16 +38,18 @@ const DetailsSlider = (props) => {
                             }
                         }}/>
                     </IconButton>
-                    <IconButton aria-label="delete story" component="label" title={deleteHoverText} onClick={deleteStory}>
-                        <DeleteIcon sx={{
-                            fontSize: '18px',
-                            color: '#F0F0F0',
-                            '&:hover': {
-                                fontWeight: 'bold',
-                                color: '#2a57e3'
-                            }
-                        }}/>
-                    </IconButton>
+                    { !props.series ? 
+                        <IconButton aria-label="delete story" component="label" title={deleteHoverText} onClick={deleteStory}>
+                            <DeleteIcon sx={{
+                                fontSize: '18px',
+                                color: '#F0F0F0',
+                                '&:hover': {
+                                    fontWeight: 'bold',
+                                    color: '#2a57e3'
+                                }
+                            }}/>
+                        </IconButton>
+                        : "" }
                 </span>
             </div>
             {

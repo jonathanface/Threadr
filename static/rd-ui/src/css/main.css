@@ -39,3 +39,24 @@ main {
   padding-top:0px;
   padding-left:0.5em;
 }
+
+.progress-box {
+  background-color:#000;
+  height:100%;
+  width:100%;
+  opacity:0.3;
+  z-index: 998;
+  position:absolute;
+  top:0px;
+  
+}
+.prog-anim-holder {
+  display:flex;
+  justify-content: center;
+  height:100%;
+  width:100%;
+  align-items: center;
+  position:absolute;
+  top:0px;
+  z-index:999;
+}
