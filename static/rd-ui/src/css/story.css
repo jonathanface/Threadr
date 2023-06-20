@@ -1,0 +1,88 @@
+
+.doc-button {
+    max-width: 300px;
+    background:none;
+    border:none;
+    color:#eaeaea;
+    filter: drop-shadow(2px 2px 2px #1a1a1a);
+    letter-spacing: 1.5px;
+    text-align: center;
+    margin-right:20px;
+    margin-bottom:20px;
+}
+
+.doc-button:hover {
+    cursor:pointer;
+    color:#FFF;
+}
+
+.doc-button:hover:not(.details-slider) .details-slider {
+    margin-top:-150px;
+    opacity:1;
+    visibility: visible;
+}
+
+.doc-button img {
+    width:100%;
+    height:auto;
+    filter: drop-shadow(2px 2px 2px #1a1a1a);
+    vertical-align: top;
+    max-height: 100%;
+    border-radius:20px;
+}
+
+.doc-button .story-text {
+    display:flex;
+    align-content: center;
+}
+
+.doc-button .story-text .icon-delete-btn {
+    margin-left:auto;
+}
+
+.doc-button > div {
+    position:relative;
+}
+.doc-button .details-slider {
+    filter:none;
+    border-radius:10px;
+    border:1px solid #000;
+    top: 100%;
+    position: absolute;
+    transition: all .2s ease-in-out;
+    background: #1e1e20;
+    height: 150px;
+    width:100%;
+    z-index:300;
+    padding: 10px;
+    box-sizing: border-box;
+    text-align: left;
+    overflow-x:hidden;
+    overflow-y:auto;
+    cursor:default;
+    visibility: hidden;
+    opacity: 0;
+}
+
+.doc-button .details-slider .details-title {
+    display:flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.doc-button .details-slider .details-title h4 {
+    overflow: hidden;
+    word-wrap: break-word;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    margin: 0px;
+}
+
+.doc-button .details-slider .series-listing > div {
+    padding:5px;
+    padding-left:15px;
+}
+
+.doc-button .details-slider .series-listing li:hover {
+    cursor:pointer;
+    text-decoration:underline;
+}

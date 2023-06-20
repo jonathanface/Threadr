@@ -5,6 +5,7 @@ import selectedSeriesSlice from './selectedSeriesSlice';
 import creatingNewStorySlice from './creatingNewStorySlice';
 import refreshStoryListSlice from './refreshStoryListSlice';
 import menuOpenSlice from './toggleMenuOpenSlice';
+import displayLoaderSlice from './displayLoaderSlice';
 
 export default configureStore({
   reducer: {
@@ -14,5 +15,6 @@ export default configureStore({
     isCreatingNewStory: creatingNewStorySlice,
     refreshStoryList: refreshStoryListSlice,
     isMenuOpen: menuOpenSlice,
+    isLoaderVisible: displayLoaderSlice,
   },
 });
