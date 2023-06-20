@@ -419,8 +419,7 @@ const Document = () => {
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(params),
-          keepalive: true
+          body: JSON.stringify(params)
         });
         if (!response.ok) {
           if (response.status === 501) {
@@ -449,7 +448,6 @@ const Document = () => {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify(params),
-          keepalive: true
         });
         if (!response.ok) {
           if (response.status === 501) {
@@ -474,7 +472,6 @@ const Document = () => {
         console.log('saving', blocks);
         const response = await fetch('/api/stories/' + story, {
           method: 'PUT',
-          keepalive: true,
           headers: {
             'Content-Type': 'application/json'
           },
@@ -499,7 +496,6 @@ const Document = () => {
         console.log('saving associations', associations);
         const response = await fetch('/api/stories/' + selectedStoryTitle + '/associations', {
           method: 'PUT',
-          keepalive: true,
           headers: {
             'Content-Type': 'application/json'
           },
@@ -524,7 +520,6 @@ const Document = () => {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify(associations),
-          keepalive: true
         });
         if (!response.ok) {
           reject('SERVER ERROR SAVING BLOCK: ', response);
