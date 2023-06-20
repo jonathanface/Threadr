@@ -10,6 +10,7 @@ import UserMenu from './sections/UserMenu/UserMenu';
 import './css/main.css';
 import './css/user-menu.css';
 import Loader from './utils/Loader';
+import { setLoaderVisible } from './stores/displayLoaderSlice';
 
 
 
@@ -46,6 +47,7 @@ const Threadr = () => {
     }).then((data) => {
         dispatch(flipLoggedInState());
     }).catch((e) => {
+      dispatch(setLoaderVisible)
       console.error('ERROR', e);
     });
     handleNavChange();
@@ -53,7 +55,6 @@ const Threadr = () => {
   }, [dispatch]);
 
   const displayComponent = isLoggedIn && selectedStoryTitle ? <Document story={selectedStoryTitle}/> : <StoryAndSeriesListing/>
-
 
   return (
     <div className="App">
