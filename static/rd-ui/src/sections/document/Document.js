@@ -27,7 +27,7 @@ import '../../css/document.css';
 import { Menu, Item, Submenu, useContextMenu } from 'react-contexify';
 import 'react-contexify/ReactContexify.css';
 import { useSelector, useDispatch } from 'react-redux';
-import { setDBOperationInterval } from '../../stores/dbOperationIntervalSlice';
+import { clearDBOperationInterval, setDBOperationInterval } from '../../stores/dbOperationIntervalSlice';
 import { FindHighlightable, HighlightSpan, FindTabs, TabSpan } from './decorators';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -936,6 +936,8 @@ const Document = () => {
   };
 
   const onExitDocument = () => {
+    clearDBOperationInterval()
+    processDBQueue();
     dispatch(setSelectedSeries(null));
     dispatch(setSelectedStoryTitle(null));
     const history = window.history;

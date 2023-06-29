@@ -8,10 +8,14 @@ export const dbOperationIntervalSlice = createSlice({
   reducers: {
     setDBOperationInterval: (state, action) => {
       state.value = action.payload;
+    },
+    clearDBOperationInterval: (state) => {
+      clearInterval(state.value);
+      state.value = null;
     }
   }
 });
 
-export const {setDBOperationInterval} = dbOperationIntervalSlice.actions;
+export const {setDBOperationInterval, clearDBOperationInterval} = dbOperationIntervalSlice.actions;
 
 export default dbOperationIntervalSlice.reducer;

@@ -1,6 +1,7 @@
 package daos
 
 import (
+	"RichDocter/models"
 	"context"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/smithy-go"
@@ -201,4 +203,28 @@ func (d *DAO) WasStoryDeleted(email string, storyTitle string) (bool, error) {
 		return true, nil
 	}
 	return false, nil
+}
+
+// check if passed story is a member of a series
+// return series name if yes, blank if no
+func (d *DAO) IsStoryInASeries(email string, storyTitle string) (string, error) {
+	var (
+		err error
+	)
+	out, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName:        aws.String("stories"),
+		FilterExpression: aws.String("author=:eml AND story_title=:s AND attribute_not_exists(deleted_at)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":eml": &types.AttributeValueMemberS{Value: email},
+			":s":   &types.AttributeValueMemberS{Value: storyTitle},
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+	storyFromMap := []models.Story{}
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &storyFromMap); err != nil {
+		return "", err
+	}
+	return storyFromMap[0].Series, nil
 }

@@ -7,10 +7,10 @@ import (
 type DaoInterface interface {
 	// GETs
 	GetAllStandalone(email string) ([]*models.Story, error)
-	GetAllSeries(email string) ([]models.Series, error)
+	GetAllSeriesWithStories(email string) ([]models.Series, error)
 	GetStoryByName(email string, storyTitle string) (*models.Story, error)
 	GetStoryParagraphs(email string, storyTitle string, chapter string, startKey string) (*models.BlocksData, error)
-	GetStoryAssociations(email string, storyTitle string) ([]*models.Association, error)
+	GetStoryOrSeriesAssociations(email string, storyTitle string) ([]*models.Association, error)
 	GetSeriesVolumes(email string, seriesTitle string) ([]*models.Story, error)
 
 	// PUTs
@@ -18,7 +18,7 @@ type DaoInterface interface {
 	ResetBlockOrder(email, story string, storyBlocks *models.StoryBlocks) error
 	WriteBlocks(email, story string, storyBlocks *models.StoryBlocks) error
 	WriteAssociations(email, story string, associations []*models.Association) error
-	UpdatePortrait(email, associationName, url string) error
+	UpdatePortraitEntryInDB(email, story, associationName, url string) error
 
 	// POSTs
 	CreateChapter(email, story string, chapter models.Chapter) error
@@ -32,4 +32,5 @@ type DaoInterface interface {
 
 	// HELPERS
 	WasStoryDeleted(email string, storyTitle string) (bool, error)
+	IsStoryInASeries(email string, storyTitle string) (string, error)
 }

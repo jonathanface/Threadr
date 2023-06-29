@@ -245,7 +245,7 @@ func AllAssociationsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	associations, err := dao.GetStoryAssociations(email, storyTitle)
+	associations, err := dao.GetStoryOrSeriesAssociations(email, storyTitle)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
@@ -277,7 +277,7 @@ func AllSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	series, err := dao.GetAllSeries(email)
+	series, err := dao.GetAllSeriesWithStories(email)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
@@ -290,6 +290,13 @@ func AllSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		}
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
+	}
+	for _, srs := range series {
+		srs.Stories, err = dao.GetSeriesVolumes(email, srs.SeriesTitle)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 	RespondWithJson(w, http.StatusOK, series)
 }

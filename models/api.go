@@ -49,6 +49,7 @@ type Story struct {
 	Description string    `json:"description" dynamodbav:"description"`
 	Series      string    `json:"series" dynamodbav:"series"`
 	Chapters    []Chapter `json:"chapters"`
+	Place       int       `json:"place"`
 }
 type BlocksData struct {
 	LastEvaluated map[string]types.AttributeValue   `json:"last_evaluated_key"`
@@ -63,7 +64,7 @@ type FullStoryContent struct {
 
 type Series struct {
 	SeriesTitle string    `json:"series_title" dynamodbav:"series_title"`
-	StoryTitle  string    `json:"story_title" dynamodbav:"story_title"`
+	Stories     []*Story  `json:"stories"`
 	CreatedAt   time.Time `json:"created_at" dynamodbav:"created_at"`
 	Place       int       `json:"place" dynamodbav:"place"`
 }
