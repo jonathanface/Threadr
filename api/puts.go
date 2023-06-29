@@ -146,7 +146,13 @@ func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = dao.WriteAssociations(email, story, associations); err != nil {
+	storyOrSeries := story
+	if storyOrSeries, err = dao.IsStoryInASeries(email, story); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "unable to check series membership of story")
+		return
+	}
+
+	if err = dao.WriteAssociations(email, storyOrSeries, associations); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
@@ -240,11 +246,18 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	storyOrSeries := story
+	if storyOrSeries, err = dao.IsStoryInASeries(email, story); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	reader := bytes.NewReader(fileBytes)
 	ext := filepath.Ext(handler.Filename)
-	safeStory := strings.ToLower(strings.ReplaceAll(story, " ", "-"))
+	safeStory := strings.ToLower(strings.ReplaceAll(storyOrSeries, " ", "-"))
 	safeAssoc := strings.ToLower(strings.ReplaceAll(associationName, " ", "-"))
-	filename := safeStory + "_" + safeAssoc + "_" + associationType + ext
+	safeEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
+	filename := safeEmail + "_" + safeStory + "_" + safeAssoc + "_" + associationType + ext
 
 	if awsCfg, err = config.LoadDefaultConfig(context.TODO(), func(opts *config.LoadOptions) error {
 		opts.Region = os.Getenv("AWS_REGION")
@@ -264,7 +277,7 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	portraitURL := "https://" + S3_CUSTOM_PORTRAIT_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
-	if err = dao.UpdatePortrait(email, associationName, portraitURL); err != nil {
+	if err = dao.UpdatePortraitEntryInDB(email, storyOrSeries, associationName, portraitURL); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

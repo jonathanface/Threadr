@@ -89,8 +89,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 func Login(w http.ResponseWriter, r *http.Request) {
 	session, err := sessions.Get(r, "login_referral")
 	if err != nil {
-		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
+		fmt.Printf("Session Error: %s\n", err.Error())
 	}
 	session.Options.Path = "/auth"
 	session.Options.MaxAge = int(5 * time.Minute)

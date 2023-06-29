@@ -24,13 +24,13 @@ const StoryAndSeriesListing = () => {
     }).then((data) => {
       const seriesStoriesFromDB = new Map();
       data.forEach((series) => {
-        if (!seriesStoriesFromDB.has(series.series_title)) {
-          seriesStoriesFromDB.set(series.series_title, []);
-        }
-        seriesStoriesFromDB.get(series.series_title).push({
-          volume: series.story_title,
-          place: series.place,
-          created_at: series.created_at
+        seriesStoriesFromDB.set(series.series_title, []);
+        series.stories.forEach((story) => {
+          seriesStoriesFromDB.get(series.series_title).push({
+            volume: story.title,
+            place: story.place,
+            created_at: story.created_at
+          })
         });
       });
       setSeriesGroups(seriesStoriesFromDB);
@@ -72,7 +72,7 @@ const StoryAndSeriesListing = () => {
   const createNewStory = () => {
     dispatch(flipCreatingNewStoryState());
   };
-
+  console.log("srs", seriesGroup)
   return (
     <div className="landing-page">
       <div className="btn-container">

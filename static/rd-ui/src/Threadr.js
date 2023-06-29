@@ -47,7 +47,7 @@ const Threadr = () => {
     }).then((data) => {
         dispatch(flipLoggedInState());
     }).catch((e) => {
-      dispatch(setLoaderVisible)
+      dispatch(setLoaderVisible(false))
       console.error('ERROR', e);
     });
     handleNavChange();
