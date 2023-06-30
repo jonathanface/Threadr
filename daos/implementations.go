@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -122,6 +123,10 @@ func (d *DAO) GetStoryByName(email, storyTitle string) (*models.Story, error) {
 		story models.Story
 		err   error
 	)
+	storyTitle, err = url.QueryUnescape(storyTitle)
+	if err != nil {
+		return &story, err
+	}
 	out, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("stories"),
 		FilterExpression: aws.String("author=:eml AND story_title=:s AND attribute_not_exists(deleted_at)"),
