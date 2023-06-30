@@ -12,6 +12,7 @@ RUN apt-get update && \
         libxrender1 \
         xfonts-75dpi \
         xfonts-base \
+        pandoc \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
