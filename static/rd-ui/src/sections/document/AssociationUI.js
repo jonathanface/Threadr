@@ -38,7 +38,7 @@ const AssociationUI = (props) => {
           throw new Error('Fetch problem image upload ' + response.status);
         }).then((data) => {
           setImageURL(data.url + '?date='+Date.now());
-          //onAssociationEdit('', 'portrait');
+          onAssociationEdit(data.url, 'portrait');
         }).catch((error) => console.error(error));
       };
       reader.readAsArrayBuffer(file);
@@ -61,7 +61,6 @@ const AssociationUI = (props) => {
   }, [props.association]);
 
   const onAssociationEdit = (newValue, id) => {
-    console.log("do edit ass")
     const newAssociation = props.association;
     let saveRequired = false;
     switch (id) {
@@ -90,6 +89,7 @@ const AssociationUI = (props) => {
         }
         break;
       case 'portrait': {
+        newAssociation.portrait = newValue;
         saveRequired = true;
         break;
       }
