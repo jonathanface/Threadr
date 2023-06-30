@@ -20,8 +20,7 @@ WORKDIR /app
 # Set environment variables for Go
 ENV GO111MODULE=auto \
     GOPATH=/go \
-    PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
-
+    PATH=$GOPATH/bin:/usr/local/go/bin:/usr/local/bin:/usr/local/:$PATH
 
 ARG AWS_ACCESS_KEY_ID
 ENV AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
