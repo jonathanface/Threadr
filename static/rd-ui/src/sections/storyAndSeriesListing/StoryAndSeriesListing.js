@@ -72,7 +72,6 @@ const StoryAndSeriesListing = () => {
   const createNewStory = () => {
     dispatch(flipCreatingNewStoryState());
   };
-  console.log("srs", seriesGroup)
   return (
     <div className="landing-page">
       <div className="btn-container">
