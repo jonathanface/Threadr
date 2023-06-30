@@ -27,7 +27,6 @@ import '../../css/document.css';
 import { Menu, Item, Submenu, useContextMenu } from 'react-contexify';
 import 'react-contexify/ReactContexify.css';
 import { useSelector, useDispatch } from 'react-redux';
-import { clearDBOperationInterval, setDBOperationInterval } from '../../stores/dbOperationIntervalSlice';
 import { FindHighlightable, HighlightSpan, FindTabs, TabSpan } from './decorators';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -239,7 +238,6 @@ const Document = () => {
   const getBatchedStoryBlocks = async (startKey) => {
     return fetch('/api/stories/' + selectedStoryTitle + '/content?key=' + startKey + '&chapter=' + selectedChapterNumber).then((response) => {
       if (response.ok) {
-        console.log("response", response)
         return response.json();
       }
       throw new Error(response.status);
@@ -380,24 +378,25 @@ const Document = () => {
 
   useEffect(() => {
     dispatch(setLoaderVisible(true));
-    if (isLoggedIn && selectedStoryTitle) {
-      setFocusAndRestoreCursor();
-      getBaseData();
-    }
-
-    setDBOperationInterval(setInterval(() => {
+    const processInterval = setInterval(() => {
       try {
         processDBQueue();
       } catch (e) {
         console.error(e);
       }
-    }, DB_OP_INTERVAL));
+    }, DB_OP_INTERVAL);
+    if (isLoggedIn && selectedStoryTitle) {
+      setFocusAndRestoreCursor();
+      getBaseData()
+      
+    }
 
     window.addEventListener('unload', processDBQueue);
     if (storyDetailsLoaded && associationsLoaded && blocksLoaded) {
       dispatch(setLoaderVisible(false));
     }
     return () => {
+      clearInterval(processInterval);
       window.removeEventListener('unload', processDBQueue);
     };
   }, [isLoggedIn, selectedStoryTitle, selectedChapterNumber, lastRetrievedBlockKey, storyDetailsLoaded, associationsLoaded, blocksLoaded]);
@@ -936,7 +935,6 @@ const Document = () => {
   };
 
   const onExitDocument = () => {
-    clearDBOperationInterval()
     processDBQueue();
     dispatch(setSelectedSeries(null));
     dispatch(setSelectedStoryTitle(null));
@@ -1047,7 +1045,7 @@ const Document = () => {
                   style: { color: '#f0f0f0' },
                 }}
                 SelectProps={{
-                  value:exportMenuValue,
+                  value:"",
                   onChange:(evt) => {
                     setExportMenuValue(!exportMenuValue);
                   },
