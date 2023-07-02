@@ -380,12 +380,6 @@ const Document = () => {
       }
     }, DB_OP_INTERVAL);
     window.addEventListener('unload', processDBQueue);
-
-    const getBaseData = async () => {
-      await getStoryDetails();
-      await getAllAssociations();
-      await getBatchedStoryBlocks('');
-    };
     
     if (isLoggedIn) {
       if (selectedStoryTitle) {
@@ -950,11 +944,11 @@ const Document = () => {
   };
 
   const onExpandChapterMenu = () => {
-    console.log('exp', collapsed);
     collapseSidebar(!collapsed);
   };
 
   const onChapterClick = (title, num) => {
+    setBlocksLoaded(false);
     setSelectedChapterNumber(num);
     setSelectedChapterTitle(title);
     const history = window.history;
