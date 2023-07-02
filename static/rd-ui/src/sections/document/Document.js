@@ -389,10 +389,14 @@ const Document = () => {
     
     if (isLoggedIn) {
       if (selectedStoryTitle) {
-        if (!storyDetailsLoaded && !associationsLoaded && !blocksLoaded) {
-          setFocusAndRestoreCursor();
-          getBaseData();
-        } else {
+        if (!storyDetailsLoaded) {
+          getStoryDetails();
+        } else if (!associationsLoaded) {
+          getAllAssociations();
+        } else if (!blocksLoaded) {
+          getBatchedStoryBlocks('');
+        }
+        if (storyDetailsLoaded && associationsLoaded && blocksLoaded) {
           dispatch(setLoaderVisible(false));
         }
       }
