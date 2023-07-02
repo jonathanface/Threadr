@@ -370,12 +370,6 @@ const Document = () => {
     });
   };
 
-  const getBaseData = async () => {
-    await getStoryDetails();
-    await getAllAssociations();
-    await getBatchedStoryBlocks('');
-  };
-
   useEffect(() => {
     dispatch(setLoaderVisible(true));
     const processInterval = setInterval(() => {
@@ -385,16 +379,25 @@ const Document = () => {
         console.error(e);
       }
     }, DB_OP_INTERVAL);
-    if (isLoggedIn && selectedStoryTitle) {
-      setFocusAndRestoreCursor();
-      getBaseData()
-      
-    }
-
     window.addEventListener('unload', processDBQueue);
-    if (storyDetailsLoaded && associationsLoaded && blocksLoaded) {
-      dispatch(setLoaderVisible(false));
+
+    const getBaseData = async () => {
+      await getStoryDetails();
+      await getAllAssociations();
+      await getBatchedStoryBlocks('');
+    };
+    
+    if (isLoggedIn) {
+      if (selectedStoryTitle) {
+        if (!storyDetailsLoaded && !associationsLoaded && !blocksLoaded) {
+          setFocusAndRestoreCursor();
+          getBaseData();
+        } else {
+          dispatch(setLoaderVisible(false));
+        }
+      }
     }
+    
     return () => {
       clearInterval(processInterval);
       window.removeEventListener('unload', processDBQueue);

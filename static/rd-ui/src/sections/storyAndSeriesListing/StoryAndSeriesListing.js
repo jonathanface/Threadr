@@ -11,72 +11,76 @@ const StoryAndSeriesListing = () => {
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
   const [stories, setStories] = useState([]);
   const [seriesGroup, setSeriesGroups] = useState([]);
+  const dispatch = useDispatch();
   const [seriesLoaded, setSeriesLoaded] = useState(false);
   const [storiesLoaded, setStoriesLoaded] = useState(false);
-  const dispatch = useDispatch();
 
-  const getSeries = () => {
-    fetch('/api/series').then((response) => {
-      if (response.ok) {
-        return response.json();
-      }
-      throw new Error('Fetch problem series ' + response.status);
-    }).then((data) => {
-      const seriesStoriesFromDB = new Map();
-      data.forEach((series) => {
-        seriesStoriesFromDB.set(series.series_title, []);
-        series.stories.forEach((story) => {
-          seriesStoriesFromDB.get(series.series_title).push({
-            volume: story.title,
-            place: story.place,
-            created_at: story.created_at
-          })
-        });
-      });
-      setSeriesGroups(seriesStoriesFromDB);
-      setSeriesLoaded(true);
-    });
-  };
-
-  const getStories = () => {
-    fetch('/api/stories').then((response) => {
-      if (response.ok) {
-        return response.json();
-      }
-      throw new Error('Fetch problem stories ' + response.status);
-    }).then((data) => {
-      const storiesFromDB = data.map((story) => {
-        return {
-          title: story.title,
-          description: story.description,
-          created_at: story.created_at,
-          chapter: story.chapters
-        };
-      });
-      setStories(storiesFromDB);
-      setStoriesLoaded(true);
-    });
-  };
+  let initCycle = 0;
 
   useEffect(() => {
+    initCycle++;
     dispatch(setLoaderVisible(true));
+
+    const getSeries = () => {
+      fetch('/api/series').then((response) => {
+        if (response.ok) {
+          return response.json();
+        }
+        throw new Error('Fetch problem series ' + response.status);
+      }).then((data) => {
+        const seriesStoriesFromDB = new Map();
+        data.forEach((series) => {
+          seriesStoriesFromDB.set(series.series_title, []);
+          series.stories.forEach((story) => {
+            seriesStoriesFromDB.get(series.series_title).push({
+              volume: story.title,
+              place: story.place,
+              created_at: story.created_at
+            })
+          });
+        });
+        setSeriesGroups(seriesStoriesFromDB);
+        setSeriesLoaded(true);
+      });
+    };
+
+    const getStories = () => {
+      fetch('/api/stories').then((response) => {
+        if (response.ok) {
+          return response.json();
+        }
+        throw new Error('Fetch problem stories ' + response.status);
+      }).then((data) => {
+        const storiesFromDB = data.map((story) => {
+          return {
+            title: story.title,
+            description: story.description,
+            created_at: story.created_at,
+            chapter: story.chapters
+          };
+        });
+        setStories(storiesFromDB);
+        setStoriesLoaded(true);
+      });
+    };
     if (isLoggedIn) {
-      getSeries();
-      getStories();
-    }
-    if (seriesLoaded && storiesLoaded) {
-      dispatch(setLoaderVisible(false));
+      if (!seriesLoaded) {
+        getSeries();
+      } else if (!storiesLoaded) {
+        getStories();
+      } else {
+        dispatch(setLoaderVisible(false));
+      }
     }
   }, [isLoggedIn, dispatch, seriesLoaded, storiesLoaded]);
 
   const createNewStory = () => {
     dispatch(flipCreatingNewStoryState());
   };
+
   return (
     <div className="landing-page">
-      <div className="btn-container">
-
-      </div>
+      <div className="btn-container"></div>
       {isLoggedIn ?
         <div>
           <h2>Stories</h2>

@@ -20,6 +20,7 @@ const Threadr = () => {
   const dispatch = useDispatch();
 
   const handleNavChange = () => {
+    console.log("nav change")
     const location = window.location.pathname;
     const splitDirectories = location.split('/');
     if (splitDirectories[1] === 'story' && splitDirectories[2].trim() !== '') {
@@ -29,8 +30,8 @@ const Threadr = () => {
       dispatch(setSelectedStoryTitle(null));
       dispatch(setSelectedSeries(decodeURIComponent(splitDirectories[2])));
     } else {
-      dispatch(setSelectedStoryTitle(null));
-      dispatch(setSelectedSeries(null));
+      //dispatch(setSelectedStoryTitle(null));
+      //dispatch(setSelectedSeries(null));
     }
   };
 
@@ -55,7 +56,7 @@ const Threadr = () => {
   }, [dispatch]);
 
   const displayComponent = isLoggedIn && selectedStoryTitle ? <Document story={selectedStoryTitle}/> : <StoryAndSeriesListing/>
-
+  console.log("render threardr")
   return (
     <div className="App">
       <UserMenu />
