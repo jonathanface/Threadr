@@ -919,6 +919,7 @@ const Document = () => {
     classStr += alignment;
     const lineHeight = data.getIn(['LINE_HEIGHT']) ? data.getIn(['LINE_HEIGHT']) : 'LINEHEIGHT_DOUBLE';
     classStr += ' ' + lineHeight;
+    classStr += ' content-block';
     return classStr;
   };
 

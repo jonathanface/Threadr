@@ -64,6 +64,10 @@ div.DraftEditor-editorContainer, div.public-DraftEditor-content {
     padding:1em;
 }
 
+div.DraftEditor-editorContainer, div.public-DraftEditor-content .content-block:last-child {
+    padding-bottom:40px;
+}
+
 .highlight {
     cursor:pointer;
 }
