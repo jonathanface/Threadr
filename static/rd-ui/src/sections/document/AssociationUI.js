@@ -157,7 +157,7 @@ const AssociationUI = (props) => {
               <FormGroup>
                 <FormControlLabel control={<Switch onChange={()=>{
                   onAssociationEdit(!caseSensitive, 'case');}
-                  } checked={caseSensitive || false} />} label="Case-Sensitive" />
+                  } defaultChecked={caseSensitive || false} />} label="Case-Sensitive" />
               </FormGroup>
             </div>
           </div>
