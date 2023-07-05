@@ -275,6 +275,7 @@ const Document = () => {
     }).catch((error) => {
       if (parseInt(error.message) !== 404) {
         console.error('get story blocks', error);
+        setBlocksLoaded(true);
       } else {
         setEditorState(EditorState.createEmpty(createDecorators()));
       }
@@ -976,7 +977,7 @@ const Document = () => {
         const history = window.history;
         history.pushState({selectedStoryTitle}, 'created chapter', '/story/' + encodeURIComponent(selectedStoryTitle) + '?chapter=' + newChapterNum);
       }
-      throw new Error('Fetch problem creating chapter ' + response.status);
+      throw new Error('Fetch problem creating chapter ' + response.status, response.statusText);
     }).catch((error) => {
       console.error(error);
     });
