@@ -73,7 +73,7 @@ func (d *DAO) generateStoryChapterTransaction(email string, story string, chapte
 				"chapter_title": &types.AttributeValueMemberS{Value: chapterTitle},
 				"story_title":   &types.AttributeValueMemberS{Value: story},
 			},
-			ConditionExpression: aws.String("attribute_not_exists(series_title) AND attribute_not_exists(story_title)"),
+			ConditionExpression: aws.String("attribute_not_exists(story_title)"),
 			UpdateExpression:    aws.String("set chapter_num=:n, author=:a"),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
 				":n": &types.AttributeValueMemberN{Value: chapterNumStr},
@@ -227,4 +227,23 @@ func (d *DAO) IsStoryInASeries(email string, storyTitle string) (string, error) 
 		return "", err
 	}
 	return storyFromMap[0].Series, nil
+}
+
+func (d *DAO) wasErrorOfTypeConditionalFailure(err error) bool {
+	if opErr, ok := err.(*smithy.OperationError); ok {
+		var txnErr *types.TransactionCanceledException
+		if errors.As(opErr.Unwrap(), &txnErr) && txnErr.CancellationReasons != nil {
+			for _, reason := range txnErr.CancellationReasons {
+				if *reason.Code == "ConditionalCheckFailed" {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func (d *DAO) purgeSoftDeletedStory(title, series, email string) (err error) {
+
+	return
 }
