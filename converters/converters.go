@@ -82,7 +82,9 @@ func HTMLToDOCX(export models.DocumentExportRequest) (filename string, err error
 	tmpFile.Close()
 
 	// Convert HTML to DOCX using Pandoc command-line tool
-	filename = fmt.Sprintf("%s.docx", export.StoryTitle)
+	safeTitlePattern := regexp.MustCompile(`[^\w.-]+`)
+	safeTitle := strings.ToLower(safeTitlePattern.ReplaceAllString(export.StoryTitle, ""))
+	filename = fmt.Sprintf("%s.docx", safeTitle)
 	cmd := exec.Command("pandoc", "-f", "html", "-t", "docx", "-o", "./tmp/"+filename, tmpFile.Name())
 
 	// Execute the command
@@ -111,8 +113,10 @@ func HTMLToPDF(export models.DocumentExportRequest) (filename string, err error)
 		pdfg.AddPage(wkhtmltopdf.NewPageReader(strings.NewReader(htmlContent)))
 	}
 	htmlContent += "</body></html>"
+	safeTitlePattern := regexp.MustCompile(`[^\w.-]+`)
+	safeTitle := strings.ToLower(safeTitlePattern.ReplaceAllString(export.StoryTitle, ""))
 
-	filename = fmt.Sprintf("%s.pdf", export.StoryTitle)
+	filename = fmt.Sprintf("%s.pdf", safeTitle)
 	cmd := exec.Command("wkhtmltopdf",
 		"--margin-top", "1in",
 		"--margin-right", "1in",
