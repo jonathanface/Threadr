@@ -1020,7 +1020,7 @@ const Document = () => {
 
   return (
     <div>
-      <AssociationUI open={associationWindowOpen} association={viewingAssociation} story={selectedStoryTitle} onEditCallback={onAssociationEdit} onClose={()=>{setAssociationWindowOpen(false);}} />
+      <AssociationUI open={associationWindowOpen} association={viewingAssociation} story={selectedStoryTitle} onEditCallback={onAssociationEdit} onClose={()=>{setAssociationWindowOpen(false);setFocusAndRestoreCursor();}} />
       <div className="title_info">
         <h2>{decodeURIComponent(selectedStoryTitle)}</h2>
         <h3>{selectedChapterTitle}</h3>
