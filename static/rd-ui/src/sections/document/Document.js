@@ -275,6 +275,7 @@ const Document = () => {
     }).catch((error) => {
       if (parseInt(error.message) !== 404) {
         console.error('get story blocks', error);
+        setBlocksLoaded(true);
       } else {
         setEditorState(EditorState.createEmpty(createDecorators()));
       }
@@ -919,6 +920,7 @@ const Document = () => {
     classStr += alignment;
     const lineHeight = data.getIn(['LINE_HEIGHT']) ? data.getIn(['LINE_HEIGHT']) : 'LINEHEIGHT_DOUBLE';
     classStr += ' ' + lineHeight;
+    classStr += ' content-block';
     return classStr;
   };
 
@@ -975,7 +977,7 @@ const Document = () => {
         const history = window.history;
         history.pushState({selectedStoryTitle}, 'created chapter', '/story/' + encodeURIComponent(selectedStoryTitle) + '?chapter=' + newChapterNum);
       }
-      throw new Error('Fetch problem creating chapter ' + response.status);
+      throw new Error('Fetch problem creating chapter ' + response.status, response.statusText);
     }).catch((error) => {
       console.error(error);
     });
@@ -1018,7 +1020,7 @@ const Document = () => {
 
   return (
     <div>
-      <AssociationUI open={associationWindowOpen} association={viewingAssociation} story={selectedStoryTitle} onEditCallback={onAssociationEdit} onClose={()=>{setAssociationWindowOpen(false);}} />
+      <AssociationUI open={associationWindowOpen} association={viewingAssociation} story={selectedStoryTitle} onEditCallback={onAssociationEdit} onClose={()=>{setAssociationWindowOpen(false);setFocusAndRestoreCursor();}} />
       <div className="title_info">
         <h2>{decodeURIComponent(selectedStoryTitle)}</h2>
         <h3>{selectedChapterTitle}</h3>
@@ -1085,6 +1087,7 @@ const Document = () => {
       </nav>
       <section className="editor_container" onContextMenu={handleTextualContextMenu} onClick={setFocus} onScroll={handleScroll} >
         <Editor
+          spellCheck={true}
           blockStyleFn={getBlockStyles}
           customStyleMap={styleMap}
           preserveSelectionOnBlur={true}

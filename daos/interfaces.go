@@ -28,7 +28,8 @@ type DaoInterface interface {
 	DeleteStoryParagraphs(email, storyTitle string, storyBlocks *models.StoryBlocks) error
 	DeleteAssociations(email, storyTitle string, associations []*models.Association) error
 	DeleteChapters(email, storyTitle string, chapters []models.Chapter) error
-	DeleteStory(email, storyTitle, seriesTitle string) error
+	SoftDeleteStory(email, storyTitle, seriesTitle string) error
+	hardDeleteStory(email, storyTitle, seriesTitle string) error
 
 	// HELPERS
 	WasStoryDeleted(email string, storyTitle string) (bool, error)
