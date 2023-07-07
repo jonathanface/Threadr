@@ -1087,6 +1087,7 @@ const Document = () => {
       </nav>
       <section className="editor_container" onContextMenu={handleTextualContextMenu} onClick={setFocus} onScroll={handleScroll} >
         <Editor
+          spellCheck={true}
           blockStyleFn={getBlockStyles}
           customStyleMap={styleMap}
           preserveSelectionOnBlur={true}
