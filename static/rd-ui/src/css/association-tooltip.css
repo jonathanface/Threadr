@@ -5,26 +5,21 @@
     display: inline-block;
 }
 
-
-.association-tooltip-body .row {
-    display:flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    width: 100%;
-}
-
 .association-tooltip-body .column {
-    display:flex;
-    flex-direction: column;
-    flex-basis:100%;
-    flex:1;
+    width:50%;
     vertical-align: top;
     padding:5px;
     text-align: center;
+    min-height:0;
+    box-sizing: border-box;
+    float:left;
 }
 .association-tooltip-body .column:last-child {
     text-align:left;
     text-overflow: ellipsis;
+    height:100%;
+    overflow:hidden;
+    max-height:150px;
 }
 .association-tooltip-body .column img {
     filter:drop-shadow(1px 1px 1px #1a1a1a);

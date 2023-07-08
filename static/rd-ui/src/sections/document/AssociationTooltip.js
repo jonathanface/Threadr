@@ -16,7 +16,7 @@ export default function AssociationTooltip(props) {
   return (
     <Tooltip placement="top" title={
       <div className="association-tooltip-body">
-        <span className="row">
+        <div className="row">
           <span className="column">
             <Box
               component="img"
@@ -31,7 +31,7 @@ export default function AssociationTooltip(props) {
           <span className="column">
             {description}
           </span>
-        </span>
+        </div>
       </div>
     } sx={{
       backgroundColor: '#445c66;',
