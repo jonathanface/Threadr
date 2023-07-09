@@ -1028,7 +1028,7 @@ func (d *DAO) SoftDeleteStory(email, storyTitle, seriesTitle string) error {
 	if len(seriesTitle) > 0 {
 		seriesKey := map[string]types.AttributeValue{
 			"series_title": &types.AttributeValueMemberS{Value: seriesTitle},
-			"story_title":  &types.AttributeValueMemberS{Value: storyTitle},
+			"author":       &types.AttributeValueMemberS{Value: email},
 		}
 		seriesUpdateInput := &dynamodb.UpdateItemInput{
 			TableName:        aws.String("series"),
@@ -1062,8 +1062,8 @@ func (d *DAO) SoftDeleteStory(email, storyTitle, seriesTitle string) error {
 	for _, item := range associationOut.Items {
 		assocTitle := item["association_name"].(*types.AttributeValueMemberS).Value
 		associationKey := map[string]types.AttributeValue{
-			"association_name": &types.AttributeValueMemberS{Value: assocTitle},
-			"author":           &types.AttributeValueMemberS{Value: email},
+			"association_name":     &types.AttributeValueMemberS{Value: assocTitle},
+			"story_or_series_name": &types.AttributeValueMemberS{Value: storyTitle},
 		}
 		associationUpdateInput := &dynamodb.UpdateItemInput{
 			TableName:        aws.String("associations"),
