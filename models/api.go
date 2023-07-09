@@ -70,8 +70,10 @@ type Series struct {
 }
 
 type UserInfo struct {
-	Email     string `json:"email"`
-	FirstName string `json:"first_name"`
+	Email      string `json:"email" dynamodbav:"email"`
+	FirstName  string `json:"first_name" dynamodbav:"first_name"`
+	Admin      bool   `json:"admin" dynamodbav:"admin"`
+	Subscriber bool   `json:"subscriber" dynamodbav:"subscriber"`
 }
 
 type Answer struct {

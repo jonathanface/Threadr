@@ -14,12 +14,13 @@ import (
 )
 
 const (
-	associationTypeCharacter  = "character"
-	associationTypePlace      = "place"
-	associationTypeEvent      = "event"
-	S3_CUSTOM_PORTRAIT_BUCKET = "richdocter-custom-portraits"
-	S3_EXPORTS_BUCKET         = "richdocter-document-exports"
-	TMP_EXPORT_DIR            = "./tmp"
+	associationTypeCharacter     = "character"
+	associationTypePlace         = "place"
+	associationTypeEvent         = "event"
+	S3_CUSTOM_PORTRAIT_BUCKET    = "richdocter-custom-portraits"
+	S3_EXPORTS_BUCKET            = "richdocter-document-exports"
+	TMP_EXPORT_DIR               = "./tmp"
+	MAX_UNSUBSCRIBED_BLOCK_COUNT = 50
 )
 
 func getUserEmail(r *http.Request) (string, error) {

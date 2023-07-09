@@ -22,11 +22,12 @@ import (
 func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	// this should be transactified
 	var (
-		email      string
-		err        error
-		storyTitle string
-		dao        daos.DaoInterface
-		ok         bool
+		email        string
+		err          error
+		storyTitle   string
+		dao          daos.DaoInterface
+		ok           bool
+		isSubscriber bool
 	)
 	if email, err = getUserEmail(r); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -40,16 +41,33 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing story ID")
 		return
 	}
+	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
+		return
+	}
+	if isSubscriber, err = dao.IsUserSubscribed(email); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "unable to retrieve user subscription status")
+		return
+	}
+	if !isSubscriber {
+		chapters, err := dao.GetChaptersByStory(email, storyTitle)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, "unable to retrieve total chapters")
+			return
+		}
+		if len(chapters) >= 1 {
+			RespondWithError(w, http.StatusUnauthorized, "insufficient subscription")
+			return
+		}
+	}
+
 	decoder := json.NewDecoder(r.Body)
 	chapter := models.Chapter{}
 	if err := decoder.Decode(&chapter); err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
-		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
-		return
-	}
+
 	if err = dao.CreateChapter(email, storyTitle, chapter); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
@@ -69,15 +87,17 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	// this should be transactified
 	var (
-		email string
-		err   error
-		dao   daos.DaoInterface
-		ok    bool
+		email        string
+		err          error
+		dao          daos.DaoInterface
+		ok           bool
+		isSubscriber bool
 	)
 	if email, err = getUserEmail(r); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
 	decoder := json.NewDecoder(r.Body)
 	story := models.Story{}
 	if err := decoder.Decode(&story); err != nil {
@@ -97,6 +117,20 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
+	}
+	if isSubscriber, err = dao.IsUserSubscribed(email); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "unable to retrieve user subscription status")
+		return
+	}
+	if !isSubscriber {
+		totalCreated, err := dao.GetStoryCountByUser(email)
+		if err != nil {
+			return
+		}
+		if totalCreated >= 1 {
+			RespondWithError(w, http.StatusUnauthorized, "insufficient subscription")
+			return
+		}
 	}
 	if err = dao.CreateStory(email, story); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
