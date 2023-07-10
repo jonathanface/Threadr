@@ -9,10 +9,8 @@ import CreateNewStory from './sections/createNewStory/CreateNewStoryModal';
 import UserMenu from './sections/UserMenu/UserMenu';
 import './css/main.css';
 import './css/user-menu.css';
-import Loader from './utils/Loader';
 import { setLoaderVisible } from './stores/displayLoaderSlice';
-
-
+import Toaster from './utils/Toaster';
 
 const Threadr = () => {
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
@@ -62,6 +60,7 @@ const Threadr = () => {
         {displayComponent}
         <CreateNewStory />
       </main>
+      <Toaster/>
     </div>
   );
 };

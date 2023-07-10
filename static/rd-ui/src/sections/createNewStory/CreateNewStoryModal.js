@@ -11,9 +11,10 @@ import DialogTitle from '@mui/material/DialogTitle';
 import {flipCreatingNewStoryState} from '../../stores/creatingNewStorySlice';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Autocomplete from '@mui/material/Autocomplete';
-import {flipRefreshStoryList} from '../../stores/refreshStoryListSlice';
 import {setSelectedStoryTitle} from '../../stores/selectedStorySlice';
-
+import { setAlertMessage } from '../../stores/alertMessageSlice';
+import { setAlertOpen } from '../../stores/alertOpenSlice';
+import { setAlertSeverity } from '../../stores/alertSeveritySlice';
 
 const CreateNewStory = () => {
   const [isInASeries, setIsInASeries] = useState(false);
@@ -102,6 +103,13 @@ const CreateNewStory = () => {
           dispatch(flipCreatingNewStoryState());
         }, 1000);
       } else {
+        if (response.status === 401) {
+          dispatch(setAlertMessage('inadequate subscription'));
+          dispatch(setAlertSeverity('error'));
+          dispatch(setAlertOpen(true));
+          handleClose();
+          return
+        }
         setCurrentError(response.error);
         setAreErrors(true);
       }
