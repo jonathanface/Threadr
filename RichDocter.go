@@ -66,6 +66,19 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 			api.RespondWithError(w, http.StatusBadRequest, err.Error())
 			return
 		}
+		if !user.Subscriber {
+			if r.Method == "POST" {
+				stories, chapters, err := dao.GetTotalCreatedStoriesAndChapters(user.Email)
+				if err != nil {
+					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+					return
+				}
+				if stories == 1 || chapters == 1 {
+					api.RespondWithError(w, http.StatusUnauthorized, "insufficient subscription")
+					return
+				}
+			}
+		}
 		if err = dao.UpsertUser(user.Email); err != nil {
 			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -108,13 +121,13 @@ func main() {
 	// POSTs
 	apiPath.HandleFunc("/stories", api.CreateStoryEndpoint).Methods("POST", "OPTIONS")
 	apiPath.HandleFunc("/stories/{story}/chapter", api.CreateStoryChapterEndpoint).Methods("POST", "OPTIONS")
-	apiPath.HandleFunc("/stories/{story}/export", api.ExportStoryEndpoint).Methods("POST", "OPTIONS")
 
 	// PUTs
 	apiPath.HandleFunc("/stories/{story}", api.WriteBlocksToStoryEndpoint).Methods("PUT", "OPTIONS")
 	apiPath.HandleFunc("/stories/{story}/orderMap", api.RewriteBlockOrderEndpoint).Methods("PUT", "OPTIONS")
 	apiPath.HandleFunc("/stories/{story}/associations", api.WriteAssocationsEndpoint).Methods("PUT", "OPTIONS")
 	apiPath.HandleFunc("/stories/{story}/associations/{association}/upload", api.UploadPortraitEndpoint).Methods("PUT", "OPTIONS")
+	apiPath.HandleFunc("/stories/{story}/export", api.ExportStoryEndpoint).Methods("PUT", "OPTIONS")
 
 	// DELETEs
 	apiPath.HandleFunc("/stories/{story}/block", api.DeleteBlocksFromStoryEndpoint).Methods("DELETE", "OPTIONS")

@@ -38,4 +38,5 @@ type DaoInterface interface {
 	WasStoryDeleted(email string, storyTitle string) (bool, error)
 	IsStoryInASeries(email string, storyTitle string) (string, error)
 	IsUserSubscribed(email string) (bool, error)
+	GetTotalCreatedStoriesAndChapters(email string) (int, int, error)
 }

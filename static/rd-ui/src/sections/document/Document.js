@@ -146,7 +146,7 @@ const Document = () => {
     const exp = new Exporter(selectedStoryTitle);
     const htmlData = await exp.DocToHTML();
     fetch('/api/stories/' + selectedStoryTitle + '/export', {
-      method: 'POST',
+      method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
       },

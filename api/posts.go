@@ -22,12 +22,11 @@ import (
 func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	// this should be transactified
 	var (
-		email        string
-		err          error
-		storyTitle   string
-		dao          daos.DaoInterface
-		ok           bool
-		isSubscriber bool
+		email      string
+		err        error
+		storyTitle string
+		dao        daos.DaoInterface
+		ok         bool
 	)
 	if email, err = getUserEmail(r); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -44,21 +43,6 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
-	}
-	if isSubscriber, err = dao.IsUserSubscribed(email); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "unable to retrieve user subscription status")
-		return
-	}
-	if !isSubscriber {
-		chapters, err := dao.GetChaptersByStory(email, storyTitle)
-		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, "unable to retrieve total chapters")
-			return
-		}
-		if len(chapters) >= 1 {
-			RespondWithError(w, http.StatusUnauthorized, "insufficient subscription")
-			return
-		}
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -87,11 +71,10 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	// this should be transactified
 	var (
-		email        string
-		err          error
-		dao          daos.DaoInterface
-		ok           bool
-		isSubscriber bool
+		email string
+		err   error
+		dao   daos.DaoInterface
+		ok    bool
 	)
 	if email, err = getUserEmail(r); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -117,20 +100,6 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
-	}
-	if isSubscriber, err = dao.IsUserSubscribed(email); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "unable to retrieve user subscription status")
-		return
-	}
-	if !isSubscriber {
-		totalCreated, err := dao.GetStoryCountByUser(email)
-		if err != nil {
-			return
-		}
-		if totalCreated >= 1 {
-			RespondWithError(w, http.StatusUnauthorized, "insufficient subscription")
-			return
-		}
 	}
 	if err = dao.CreateStory(email, story); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
