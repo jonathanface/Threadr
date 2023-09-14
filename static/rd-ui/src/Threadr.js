@@ -9,7 +9,7 @@ import CreateNewStory from './sections/createNewStory/CreateNewStoryModal';
 import UserMenu from './sections/UserMenu/UserMenu';
 import './css/main.css';
 import './css/user-menu.css';
-import { setLoaderVisible } from './stores/displayLoaderSlice';
+import {setLoaderVisible} from './stores/displayLoaderSlice';
 import Toaster from './utils/Toaster';
 
 const Threadr = () => {
@@ -36,23 +36,23 @@ const Threadr = () => {
     window.addEventListener('popstate', () => {
       handleNavChange();
     });
-    
+
     fetch('/api/user').then((response) => {
       if (response.ok) {
         return response.json();
       }
       throw new Error('Fetch problem userData ' + response.status);
     }).then((data) => {
-        dispatch(flipLoggedInState());
+      dispatch(flipLoggedInState());
     }).catch((e) => {
-      dispatch(setLoaderVisible(false))
+      dispatch(setLoaderVisible(false));
       console.error('ERROR', e);
     });
     handleNavChange();
     return () => window.removeEventListener('popstate', handleNavChange);
   }, [dispatch]);
 
-  const displayComponent = isLoggedIn && selectedStoryTitle ? <Document story={selectedStoryTitle}/> : <StoryAndSeriesListing/>
+  const displayComponent = isLoggedIn && selectedStoryTitle ? <Document story={selectedStoryTitle}/> : <StoryAndSeriesListing/>;
   return (
     <div className="App">
       <UserMenu />

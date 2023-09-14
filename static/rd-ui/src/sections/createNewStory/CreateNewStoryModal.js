@@ -12,9 +12,9 @@ import {flipCreatingNewStoryState} from '../../stores/creatingNewStorySlice';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Autocomplete from '@mui/material/Autocomplete';
 import {setSelectedStoryTitle} from '../../stores/selectedStorySlice';
-import { setAlertMessage } from '../../stores/alertMessageSlice';
-import { setAlertOpen } from '../../stores/alertOpenSlice';
-import { setAlertSeverity } from '../../stores/alertSeveritySlice';
+import {setAlertMessage} from '../../stores/alertMessageSlice';
+import {setAlertOpen} from '../../stores/alertOpenSlice';
+import {setAlertSeverity} from '../../stores/alertSeveritySlice';
 
 const CreateNewStory = () => {
   const [isInASeries, setIsInASeries] = useState(false);
@@ -108,7 +108,7 @@ const CreateNewStory = () => {
           dispatch(setAlertSeverity('error'));
           dispatch(setAlertOpen(true));
           handleClose();
-          return
+          return;
         }
         setCurrentError(response.error);
         setAreErrors(true);
