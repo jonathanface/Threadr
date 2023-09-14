@@ -40,16 +40,18 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing story ID")
 		return
 	}
+	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
+		return
+	}
+
 	decoder := json.NewDecoder(r.Body)
 	chapter := models.Chapter{}
 	if err := decoder.Decode(&chapter); err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
-		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
-		return
-	}
+
 	if err = dao.CreateChapter(email, storyTitle, chapter); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
@@ -78,6 +80,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
 	decoder := json.NewDecoder(r.Body)
 	story := models.Story{}
 	if err := decoder.Decode(&story); err != nil {

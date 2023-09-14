@@ -70,11 +70,12 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 
 func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
-		email string
-		err   error
-		story string
-		dao   daos.DaoInterface
-		ok    bool
+		email        string
+		err          error
+		story        string
+		dao          daos.DaoInterface
+		ok           bool
+		isSubscriber bool
 	)
 	if email, err = getUserEmail(r); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -97,6 +98,22 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
+	}
+
+	if isSubscriber, err = dao.IsUserSubscribed(email); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "unable to retrieve user subscription status")
+		return
+	}
+	if !isSubscriber {
+		blocks, err := dao.GetStoryParagraphs(email, story, "1", "")
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, "unable to retrieve story block count")
+			return
+		}
+		if len(blocks.Items) >= MAX_UNSUBSCRIBED_BLOCK_COUNT {
+			RespondWithError(w, http.StatusUnauthorized, "insufficient subscription")
+			return
+		}
 	}
 
 	if err = dao.WriteBlocks(email, story, &storyBlocks); err != nil {

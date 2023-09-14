@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, {useRef, useEffect, useState} from 'react';
 import Immutable from 'immutable';
 import {
   convertFromRaw,
@@ -24,11 +24,11 @@ import {
 import AssociationUI from './AssociationUI.js';
 import 'draft-js/dist/Draft.css';
 import '../../css/document.css';
-import { Menu, Item, Submenu, useContextMenu } from 'react-contexify';
+import {Menu, Item, Submenu, useContextMenu} from 'react-contexify';
 import 'react-contexify/ReactContexify.css';
-import { useSelector, useDispatch } from 'react-redux';
-import { FindHighlightable, HighlightSpan, FindTabs, TabSpan } from './decorators';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {useSelector, useDispatch} from 'react-redux';
+import {FindHighlightable, HighlightSpan, FindTabs, TabSpan} from './decorators';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {
   faAlignLeft,
   faAlignCenter,
@@ -36,9 +36,9 @@ import {
   faAlignJustify
 } from '@fortawesome/free-solid-svg-icons';
 import CloseIcon from '@mui/icons-material/Close';
-import { setSelectedSeries } from '../../stores/selectedSeriesSlice.js';
-import { setSelectedStoryTitle } from '../../stores/selectedStorySlice.js';
-import { Sidebar, Menu as SideMenu, MenuItem, SubMenu, useProSidebar } from 'react-pro-sidebar';
+import {setSelectedSeries} from '../../stores/selectedSeriesSlice.js';
+import {setSelectedStoryTitle} from '../../stores/selectedStorySlice.js';
+import {Sidebar, Menu as SideMenu, MenuItem, SubMenu, useProSidebar} from 'react-pro-sidebar';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
@@ -53,7 +53,7 @@ import Button from '@mui/material/Button';
 import '../../css/sidebar.css';
 import Exporter from './Exporter.js';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import { setLoaderVisible } from '../../stores/displayLoaderSlice.js';
+import {setLoaderVisible} from '../../stores/displayLoaderSlice.js';
 
 
 const ASSOCIATION_TYPE_CHARACTER = 'character';
@@ -114,7 +114,7 @@ const Document = () => {
   const [storyDetailsLoaded, setStoryDetailsLoaded] = React.useState(false);
   const [blocksLoaded, setBlocksLoaded] = React.useState(false);
   const {collapseSidebar, collapsed} = useProSidebar();
-  
+
 
   let lastRetrievedBlockKey = '';
   const createDecorators = () => {
@@ -142,28 +142,28 @@ const Document = () => {
       () => EditorState.createEmpty(createDecorators())
   );
 
-  const exportDoc = async(type) => {
+  const exportDoc = async (type) => {
     const exp = new Exporter(selectedStoryTitle);
     const htmlData = await exp.DocToHTML();
     fetch('/api/stories/' + selectedStoryTitle + '/export', {
-      method: 'POST',
+      method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         story_title: selectedStoryTitle,
         html_by_chapter: htmlData,
-        type:type
+        type: type
       })
     }).then((response) => {
       if (response.ok) {
         return response.json();
       }
       throw new Error('Fetch problem export ' + response.status);
-    }).then(results => {
-      window.open(results.url, '_blank')
+    }).then((results) => {
+      window.open(results.url, '_blank');
     });
-  }
+  };
 
   const getAllAssociations = async () => {
     associations.splice(0);
@@ -300,8 +300,8 @@ const Document = () => {
               dbOperationQueue.splice(i, 1);
               continue;
             }
-            retryArray.push({story:op.story, chapter:op.chapter, type:op.type, ops:minifiedOps, time:op.time})
-            console.error("server response 501, retrying...")
+            retryArray.push({story: op.story, chapter: op.chapter, type: op.type, ops: minifiedOps, time: op.time});
+            console.error('server response 501, retrying...');
           }
           break;
         }
@@ -315,8 +315,8 @@ const Document = () => {
               dbOperationQueue.splice(i, 1);
               continue;
             }
-            retryArray.push({story:op.story, chapter:op.chapter, type:op.type, ops:minifiedOps, time:op.time})
-            console.error("server response 501, retrying...")
+            retryArray.push({story: op.story, chapter: op.chapter, type: op.type, ops: minifiedOps, time: op.time});
+            console.error('server response 501, retrying...');
           }
           break;
         }
@@ -330,7 +330,7 @@ const Document = () => {
               // keep retrying failed block order syncs
               continue;
             }
-            console.error("server response 501, retrying...")
+            console.error('server response 501, retrying...');
           }
           break;
         }
@@ -381,7 +381,7 @@ const Document = () => {
       }
     }, DB_OP_INTERVAL);
     window.addEventListener('unload', processDBQueue);
-    
+
     if (isLoggedIn) {
       if (selectedStoryTitle) {
         if (!storyDetailsLoaded) {
@@ -396,7 +396,7 @@ const Document = () => {
         }
       }
     }
-    
+
     return () => {
       clearInterval(processInterval);
       window.removeEventListener('unload', processDBQueue);
@@ -1020,7 +1020,7 @@ const Document = () => {
 
   return (
     <div>
-      <AssociationUI open={associationWindowOpen} association={viewingAssociation} story={selectedStoryTitle} onEditCallback={onAssociationEdit} onClose={()=>{setAssociationWindowOpen(false);setFocusAndRestoreCursor();}} />
+      <AssociationUI open={associationWindowOpen} association={viewingAssociation} story={selectedStoryTitle} onEditCallback={onAssociationEdit} onClose={()=>{setAssociationWindowOpen(false); setFocusAndRestoreCursor();}} />
       <div className="title_info">
         <h2>{decodeURIComponent(selectedStoryTitle)}</h2>
         <h3>{selectedChapterTitle}</h3>
@@ -1045,14 +1045,14 @@ const Document = () => {
                 select
                 label="Save as..."
                 InputLabelProps={{
-                  style: { color: '#f0f0f0' },
+                  style: {color: '#f0f0f0'},
                 }}
                 SelectProps={{
-                  value:"",
-                  onChange:(evt) => {
+                  value: '',
+                  onChange: (evt) => {
                     setExportMenuValue(!exportMenuValue);
                   },
-                  onClose:(evt) => {
+                  onClose: (evt) => {
                     setTimeout(() => {
                       document.activeElement.blur();
                     }, 0);
@@ -1063,16 +1063,16 @@ const Document = () => {
                   width: '120px'
                 }}
               >
-                <MaterialMenuItem value="docx" onClick={(e)=> {exportDoc("docx");}}>
+                <MaterialMenuItem value="docx" onClick={(e)=> {exportDoc('docx');}}>
                   <ListItemIcon>
                     <ArticleOutlinedIcon/>
-                  </ListItemIcon> 
+                  </ListItemIcon>
                   <ListItemText primary="DOCX" />
                 </MaterialMenuItem>
-                <MaterialMenuItem value="pdf" onClick={(e)=> {exportDoc("pdf");}}>
+                <MaterialMenuItem value="pdf" onClick={(e)=> {exportDoc('pdf');}}>
                   <ListItemIcon>
                     <PictureAsPdfIcon/>
-                  </ListItemIcon> 
+                  </ListItemIcon>
                   <ListItemText primary="PDF" />
                 </MaterialMenuItem>
               </TextField>

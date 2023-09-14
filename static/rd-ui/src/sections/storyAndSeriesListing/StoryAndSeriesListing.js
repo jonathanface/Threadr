@@ -5,7 +5,7 @@ import Story from '../story/Story';
 import AddIcon from '@mui/icons-material/Add';
 import {IconButton} from '@mui/material';
 import {flipCreatingNewStoryState} from '../../stores/creatingNewStorySlice';
-import { setLoaderVisible } from '../../stores/displayLoaderSlice';
+import {setLoaderVisible} from '../../stores/displayLoaderSlice';
 
 const StoryAndSeriesListing = () => {
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
@@ -36,7 +36,7 @@ const StoryAndSeriesListing = () => {
               volume: story.title,
               place: story.place,
               created_at: story.created_at
-            })
+            });
           });
         });
         setSeriesGroups(seriesStoriesFromDB);
@@ -87,14 +87,14 @@ const StoryAndSeriesListing = () => {
           <div className="icon-box">
             <span className="create-story-button">
               <IconButton aria-label="add new story" sx={{margin: '0 auto'}} component="label" onClick={createNewStory} title="Create Story">
-                  <AddIcon sx={{
-                    'color': '#F0F0F0',
-                    'fontSize': 100,
-                    '&:hover': {
-                      fontWeight: 'bold',
-                      color: '#2a57e3',
-                    }
-                  }}/>
+                <AddIcon sx={{
+                  'color': '#F0F0F0',
+                  'fontSize': 100,
+                  '&:hover': {
+                    fontWeight: 'bold',
+                    color: '#2a57e3',
+                  }
+                }}/>
               </IconButton>
             </span>
             {

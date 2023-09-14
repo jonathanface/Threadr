@@ -8,10 +8,13 @@ type DaoInterface interface {
 	// GETs
 	GetAllStandalone(email string) ([]*models.Story, error)
 	GetAllSeriesWithStories(email string) ([]models.Series, error)
+	GetChaptersByStory(email, storyTitle string) ([]models.Chapter, error)
 	GetStoryByName(email string, storyTitle string) (*models.Story, error)
+	GetStoryCountByUser(email string) (int, error)
 	GetStoryParagraphs(email string, storyTitle string, chapter string, startKey string) (*models.BlocksData, error)
 	GetStoryOrSeriesAssociations(email string, storyTitle string) ([]*models.Association, error)
 	GetSeriesVolumes(email string, seriesTitle string) ([]*models.Story, error)
+	GetUserDetails(email string) (*models.UserInfo, error)
 
 	// PUTs
 	UpsertUser(email string) error
@@ -34,4 +37,6 @@ type DaoInterface interface {
 	// HELPERS
 	WasStoryDeleted(email string, storyTitle string) (bool, error)
 	IsStoryInASeries(email string, storyTitle string) (string, error)
+	IsUserSubscribed(email string) (bool, error)
+	GetTotalCreatedStoriesAndChapters(email string) (int, int, error)
 }

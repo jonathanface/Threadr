@@ -28,7 +28,7 @@
     "react-redux": "^8.0.5"
   },
   "scripts": {
-    "dev": "webpack --mode development && sleep 1 && ./reloadbrowser.sh",
+    "dev": "webpack --mode development",
     "build": "react-scripts build",
     "optimize": "eslint -c eslint_config.json --ext .js,.jsx --fix --ignore-path .eslintignore .",
     "test": "node scripts/test.js"

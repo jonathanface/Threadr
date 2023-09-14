@@ -119,9 +119,9 @@ const AssociationUI = (props) => {
                 onAssociationEdit(event.target.value, 'description');
               }} sx={{
                 textarea: {
-                  color:'#F0F0F0'
+                  color: '#F0F0F0'
                 },
-                width:'100%'
+                width: '100%'
               }}
               onChange={(event)=>{
                 setDescription(event.target.value);
@@ -138,9 +138,9 @@ const AssociationUI = (props) => {
               }
               } value={details} sx={{
                 textarea: {
-                  color:'#F0F0F0'
+                  color: '#F0F0F0'
                 },
-                width:'100%'
+                width: '100%'
               }} />
             </div>
             <div className="association-form">
@@ -150,14 +150,15 @@ const AssociationUI = (props) => {
                 onAssociationEdit(event.target.value, 'aliases');
               }} sx={{
                 input: {
-                  color:'#F0F0F0'
+                  color: '#F0F0F0'
                 }
               }}
               />
               <FormGroup>
                 <FormControlLabel control={<Switch onChange={()=>{
-                  onAssociationEdit(!caseSensitive, 'case');}
-                  } defaultChecked={caseSensitive || false} />} label="Case-Sensitive" />
+                  onAssociationEdit(!caseSensitive, 'case');
+                }
+                } defaultChecked={caseSensitive || false} />} label="Case-Sensitive" />
               </FormGroup>
             </div>
           </div>

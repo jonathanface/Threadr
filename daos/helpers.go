@@ -247,3 +247,30 @@ func (d *DAO) purgeSoftDeletedStory(title, series, email string) (err error) {
 
 	return
 }
+
+func (d *DAO) GetTotalCreatedStoriesAndChapters(email string) (storiesCount int, chaptersCount int, err error) {
+	out, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName:        aws.String("stories"),
+		FilterExpression: aws.String("author=:eml AND attribute_not_exists(deleted_at)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":eml": &types.AttributeValueMemberS{Value: email},
+		},
+	})
+	if err != nil {
+		return 0, 0, err
+	}
+	storiesCount = int(out.Count)
+
+	out, err = d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName:        aws.String("chapters"),
+		FilterExpression: aws.String("author=:eml AND attribute_not_exists(deleted_at)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":eml": &types.AttributeValueMemberS{Value: email},
+		},
+	})
+	if err != nil {
+		return 0, 0, err
+	}
+	chaptersCount = int(out.Count)
+	return
+}

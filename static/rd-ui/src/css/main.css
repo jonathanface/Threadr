@@ -60,3 +60,7 @@ main {
   top:0px;
   z-index:999;
 }
+
+.alert-toast {
+  text-align:left;
+}
