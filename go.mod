@@ -15,6 +15,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/markbates/goth v1.77.0
 	github.com/microcosm-cc/bluemonday v1.0.24
+	github.com/stripe/stripe-go/v72 v72.122.0
 )
 
 require (

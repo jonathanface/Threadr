@@ -3,6 +3,7 @@ package main
 import (
 	"RichDocter/api"
 	"RichDocter/auth"
+	"RichDocter/billing"
 	"RichDocter/daos"
 	"RichDocter/models"
 	"RichDocter/sessions"
@@ -18,12 +19,14 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/gorilla/mux"
+	stripe "github.com/stripe/stripe-go/v72"
 )
 
 const (
 	port           = ":80"
 	staticFilesDir = "static/rd-ui/build"
 	servicePath    = "/api"
+	billingPath    = "/billing"
 )
 
 var dao *daos.DAO
@@ -95,6 +98,9 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 func main() {
 	log.Println("Launching RichDocter version", os.Getenv("VERSION"))
 	log.Println("Listening for http on " + port)
+
+	stripe.Key = os.Getenv("STRIPE_KEY")
+
 	dao = daos.NewDAO()
 	auth.New()
 
@@ -104,6 +110,10 @@ func main() {
 	rtr.HandleFunc("/logout/{provider}", auth.Logout)
 	rtr.HandleFunc("/auth/{provider}", auth.Login)
 	rtr.HandleFunc("/auth/{provider}/callback", auth.Callback)
+
+	billingPath := rtr.PathPrefix(billingPath).Subrouter()
+	billingPath.HandleFunc("/customer", billing.CreateCustomerEndpoint).Methods("POST", "OPTIONS")
+	billingPath.HandleFunc("/card", billing.CreateCustomerEndpoint).Methods("POST", "OPTIONS")
 
 	apiPath := rtr.PathPrefix(servicePath).Subrouter()
 	apiPath.Use(accessControlMiddleware)
