@@ -1,5 +1,6 @@
 import React, {useRef, useEffect, useState} from 'react';
 import Immutable from 'immutable';
+
 import {
   convertFromRaw,
   Editor,
@@ -54,13 +55,12 @@ import '../../css/sidebar.css';
 import Exporter from './Exporter.js';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import {setLoaderVisible} from '../../stores/displayLoaderSlice.js';
-
+import {setAlertMessage, setAlertOpen, setAlertSeverity, setAlertTimeout} from '../../stores/alertSlice.js';
 
 const ASSOCIATION_TYPE_CHARACTER = 'character';
 const ASSOCIATION_TYPE_EVENT = 'event';
 const ASSOCIATION_TYPE_PLACE = 'place';
 const DB_OP_INTERVAL = 5000;
-
 
 const associations = [];
 
@@ -481,6 +481,13 @@ const Document = () => {
         if (!response.ok) {
           if (response.status === 501) {
             reject(true);
+          }
+          if (response.status === 401) {
+            console.log("wtf")
+            dispatch(setAlertMessage('Your story has exceeded the limit for unpaid subscribers. <br /><a href="#">SUBSCRIBE/RENEW</a>'));
+            dispatch(setAlertSeverity('error'));
+            dispatch(setAlertTimeout(null));
+            dispatch(setAlertOpen(true));
           }
           reject('SERVER ERROR SAVING BLOCK: ', response);
         }

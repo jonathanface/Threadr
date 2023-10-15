@@ -63,4 +63,5 @@ main {
 
 .alert-toast {
   text-align:left;
+  filter:drop-shadow(1px 1px 1px #1a1a1a);
 }
