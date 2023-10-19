@@ -55,7 +55,7 @@ import '../../css/sidebar.css';
 import Exporter from './Exporter.js';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import {setLoaderVisible} from '../../stores/displayLoaderSlice.js';
-import {setAlertMessage, setAlertOpen, setAlertSeverity, setAlertTimeout} from '../../stores/alertSlice.js';
+import {setAlertMessage, setAlertOpen, setAlertSeverity, setAlertTimeout, setAlertLink} from '../../stores/alertSlice.js';
 
 const ASSOCIATION_TYPE_CHARACTER = 'character';
 const ASSOCIATION_TYPE_EVENT = 'event';
@@ -483,8 +483,8 @@ const Document = () => {
             reject(true);
           }
           if (response.status === 401) {
-            console.log("wtf")
-            dispatch(setAlertMessage('Your story has exceeded the limit for unpaid subscribers. <br /><a href="#">SUBSCRIBE/RENEW</a>'));
+            dispatch(setAlertMessage('Your story has exceeded the limit for unpaid subscribers.'));
+            dispatch(setAlertLink({location:'subscribe'}));
             dispatch(setAlertSeverity('error'));
             dispatch(setAlertTimeout(null));
             dispatch(setAlertOpen(true));

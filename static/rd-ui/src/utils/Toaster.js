@@ -3,7 +3,8 @@ import Snackbar from '@mui/material/Snackbar';
 import {useSelector, useDispatch} from 'react-redux';
 import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
-import {setAlertMessage, setAlertOpen, setAlertTitle, setAlertSeverity, setAlertTimeout} from '../stores/alertSlice';
+import {setAlertMessage, setAlertOpen, setAlertTitle, setAlertSeverity, setAlertTimeout, setAlertLink} from '../stores/alertSlice';
+import { setSubscriptionFormOpen } from '../stores/subscriptionSlice';
 
 const Toaster = () => {
   const dispatch = useDispatch();
@@ -12,6 +13,11 @@ const Toaster = () => {
   const alertMessage = useSelector((state) => state.alerts.message);
   const title = useSelector((state) => state.alerts.title);
   const timeout = useSelector((state) => state.alerts.timeout);
+  const link = useSelector((state) => state.alerts.link);
+
+  const openSubscribe = () => {
+    dispatch(setSubscriptionFormOpen(true));
+  }
 
   const handleClose = () => {
     dispatch(setAlertMessage(''));
@@ -19,6 +25,7 @@ const Toaster = () => {
     dispatch(setAlertTitle("Announcement"));
     dispatch(setAlertOpen(false));
     dispatch(setAlertTimeout(6000));
+    dispatch(setAlertLink({}));
   };
 
   return (
@@ -31,7 +38,10 @@ const Toaster = () => {
       key='bottom_right'>
       <Alert severity={severity}>
         <AlertTitle>{title}</AlertTitle>
-        <div dangerouslySetInnerHTML={{ __html: alertMessage}}/>
+        {alertMessage}
+        {link && link.location && link.location === 'subscribe' ? (
+          <a href="#" onClick={openSubscribe}>RENEW</a>
+        ): null}
       </Alert>
     </Snackbar>
   );

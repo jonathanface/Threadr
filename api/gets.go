@@ -157,6 +157,7 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+		fmt.Println("wtf", dao)
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}

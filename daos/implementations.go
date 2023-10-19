@@ -1234,10 +1234,54 @@ func (d *DAO) GetBlockCountByChapter(email, storyTitle, chapter string) (count i
 	return len(blocksOut.Items), nil
 }
 
-func (d *DAO) IsUserSubscribed(email string) (isSubscriber bool, err error) {
+func (d *DAO) IsUserSubscribed(email string) (subscriberID string, err error) {
 	userInfo, err := d.GetUserDetails(email)
 	if err != nil {
 		return
 	}
-	return userInfo.Subscriber, nil
+	return userInfo.SubscriptionID, nil
+}
+
+func (d *DAO) AddCustomerID(email, customerID *string) error {
+	fmt.Println("billing", email, customerID)
+	key := map[string]types.AttributeValue{
+		"email": &types.AttributeValueMemberS{Value: *email},
+	}
+	updateInput := &dynamodb.UpdateItemInput{
+		TableName:        aws.String("users"),
+		Key:              key,
+		UpdateExpression: aws.String("set customer_id=:b"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":b": &types.AttributeValueMemberS{Value: *customerID},
+		},
+		ReturnValues: types.ReturnValueAllNew,
+	}
+	_, err := d.dynamoClient.UpdateItem(context.Background(), updateInput)
+	if err != nil {
+		fmt.Println("error saving", err)
+		return err
+	}
+	return nil
+}
+
+func (d *DAO) AddSubscriptionID(email, subscriptionID *string) error {
+	fmt.Println("billing", *email, *subscriptionID)
+	key := map[string]types.AttributeValue{
+		"email": &types.AttributeValueMemberS{Value: *email},
+	}
+	updateInput := &dynamodb.UpdateItemInput{
+		TableName:        aws.String("users"),
+		Key:              key,
+		UpdateExpression: aws.String("set subscription_id=:s"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":s": &types.AttributeValueMemberS{Value: *subscriptionID},
+		},
+		ReturnValues: types.ReturnValueAllNew,
+	}
+	_, err := d.dynamoClient.UpdateItem(context.Background(), updateInput)
+	if err != nil {
+		fmt.Println("error saving", err)
+		return err
+	}
+	return nil
 }

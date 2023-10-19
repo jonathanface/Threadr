@@ -22,6 +22,8 @@ type DaoInterface interface {
 	WriteBlocks(email, story string, storyBlocks *models.StoryBlocks) error
 	WriteAssociations(email, story string, associations []*models.Association) error
 	UpdatePortraitEntryInDB(email, story, associationName, url string) error
+	AddCustomerID(email, customerID *string) error
+	AddSubscriptionID(email, subscriptionID *string) error
 
 	// POSTs
 	CreateChapter(email, story string, chapter models.Chapter) error
@@ -37,6 +39,6 @@ type DaoInterface interface {
 	// HELPERS
 	WasStoryDeleted(email string, storyTitle string) (bool, error)
 	IsStoryInASeries(email string, storyTitle string) (string, error)
-	IsUserSubscribed(email string) (bool, error)
+	IsUserSubscribed(email string) (string, error)
 	GetTotalCreatedStoriesAndChapters(email string) (int, int, error)
 }

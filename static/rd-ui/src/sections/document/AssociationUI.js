@@ -4,9 +4,7 @@ import {useDropzone} from 'react-dropzone';
 import '../../css/association-ui.css';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
-import InlineEdit from '../../utils/InlineEdit';
-import MultilineEdit from '../../utils/MultilineEdit';
-import {FormControl, FormGroup, InputLabel, TextField} from '@mui/material';
+import {FormGroup, TextField} from '@mui/material';
 
 const AssociationUI = (props) => {
   const [caseSensitive, setCaseSensitive] = useState(!props.association ? false : props.association.details.case_sensitive);

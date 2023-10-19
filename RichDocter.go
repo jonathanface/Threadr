@@ -19,7 +19,6 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/gorilla/mux"
-	stripe "github.com/stripe/stripe-go/v72"
 )
 
 const (
@@ -54,6 +53,29 @@ func serveRootDirectory(w http.ResponseWriter, r *http.Request) {
 	http.FileServer(http.Dir(staticFilesDir+string(os.PathSeparator))).ServeHTTP(w, r)
 }
 
+func billingControlMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			return
+		}
+		token, err := sessions.Get(r, "token")
+		if err != nil || token.IsNew {
+			api.RespondWithError(w, http.StatusNotFound, "cannot find token")
+			return
+		}
+		var user models.UserInfo
+		if err = json.Unmarshal(token.Values["token_data"].([]byte), &user); err != nil {
+			api.RespondWithError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(time.Second*5))
+		defer cancel()
+		ctx = context.WithValue(ctx, "dao", dao)
+		r = r.WithContext(ctx)
+		next.ServeHTTP(w, r)
+	})
+}
+
 func accessControlMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "OPTIONS" {
@@ -69,7 +91,7 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 			api.RespondWithError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		if !user.Subscriber {
+		if user.SubscriptionID == "" {
 			if r.Method == "POST" {
 				stories, chapters, err := dao.GetTotalCreatedStoriesAndChapters(user.Email)
 				if err != nil {
@@ -99,21 +121,24 @@ func main() {
 	log.Println("Launching RichDocter version", os.Getenv("VERSION"))
 	log.Println("Listening for http on " + port)
 
-	stripe.Key = os.Getenv("STRIPE_KEY")
-
 	dao = daos.NewDAO()
 	auth.New()
 
 	rtr := mux.NewRouter()
 	// DEV ONLY!!
 	//rtr.HandleFunc("/auth/logout", auth.DeleteToken).Methods("GET", "OPTIONS")
-	rtr.HandleFunc("/logout/{provider}", auth.Logout)
-	rtr.HandleFunc("/auth/{provider}", auth.Login)
-	rtr.HandleFunc("/auth/{provider}/callback", auth.Callback)
+	rtr.HandleFunc("/logout/{provider}", auth.Logout).Methods("DELETE", "OPTIONS")
+	rtr.HandleFunc("/auth/{provider}", auth.Login).Methods("PUT", "OPTIONS")
+	rtr.HandleFunc("/auth/{provider}/callback", auth.Callback).Methods("POST", "OPTIONS")
 
 	billingPath := rtr.PathPrefix(billingPath).Subrouter()
+	billingPath.Use(billingControlMiddleware)
+	billingPath.HandleFunc("/products", billing.GetProductsEndpoint).Methods("GET", "OPTIONS")
+	billingPath.HandleFunc("/customer", billing.GetCustomerEndpoint).Methods("GET", "OPTIONS")
 	billingPath.HandleFunc("/customer", billing.CreateCustomerEndpoint).Methods("POST", "OPTIONS")
-	billingPath.HandleFunc("/card", billing.CreateCustomerEndpoint).Methods("POST", "OPTIONS")
+	billingPath.HandleFunc("/customer", billing.UpdateCustomerPaymentMethodEndpoint).Methods("PUT", "OPTIONS")
+	billingPath.HandleFunc("/card", billing.CreateCardIntentEndpoint).Methods("POST", "OPTIONS")
+	billingPath.HandleFunc("/subscribe", billing.SubscribeCustomerEndpoint).Methods("POST", "OPTIONS")
 
 	apiPath := rtr.PathPrefix(servicePath).Subrouter()
 	apiPath.Use(accessControlMiddleware)

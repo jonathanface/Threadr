@@ -11,8 +11,12 @@ import './css/main.css';
 import './css/user-menu.css';
 import {setLoaderVisible} from './stores/displayLoaderSlice';
 import Toaster from './utils/Toaster';
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
+import Subscribe from './sections/subscribe/Subscribe';
 
 const Threadr = () => {
+  const stripe = loadStripe(process.env.REACT_APP_STRIPE_KEY);
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
   const selectedStoryTitle = useSelector((state) => state.selectedStoryTitle.value);
   const dispatch = useDispatch();
@@ -61,6 +65,8 @@ const Threadr = () => {
         <CreateNewStory />
       </main>
       <Toaster/>
+      <Elements stripe={stripe}><Subscribe/></Elements>
+     
     </div>
   );
 };

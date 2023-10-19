@@ -7,6 +7,7 @@ import refreshStoryListSlice from './refreshStoryListSlice';
 import menuOpenSlice from './toggleMenuOpenSlice';
 import displayLoaderSlice from './displayLoaderSlice';
 import alertSlice from './alertSlice';
+import subscriptionSlice from './subscriptionSlice';
 
 export default configureStore({
   reducer: {
@@ -17,6 +18,7 @@ export default configureStore({
     refreshStoryList: refreshStoryListSlice,
     isMenuOpen: menuOpenSlice,
     isLoaderVisible: displayLoaderSlice,
-    alerts: alertSlice
+    alerts: alertSlice,
+    subscription: subscriptionSlice
   },
 });
