@@ -1,5 +1,5 @@
 # Base image with Go and wkhtmltox dependencies
-FROM golang:1.20.3
+FROM golang:1.21.2
 
 # Install wkhtmltox dependencies
 RUN apt-get update && \
@@ -56,6 +56,7 @@ COPY ./api ./api
 COPY ./converters ./converters
 COPY ./models ./models
 COPY ./auth ./auth
+COPY ./billing ./billing
 COPY ./bins /usr/local/bin/
 COPY ./daos ./daos
 COPY ./sessions ./sessions
