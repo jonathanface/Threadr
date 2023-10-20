@@ -33,21 +33,7 @@ func GetCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var (
-		dao daos.DaoInterface
-		ok  bool
-	)
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
-		api.RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
-		return
-	}
-	var userWithDetails *models.UserInfo
-	if userWithDetails, err = dao.GetUserDetails(user.Email); err != nil {
-		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	c, err := customer.Get(userWithDetails.CustomerID, nil)
+	c, err := customer.Get(user.CustomerID, nil)
 	if err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"RichDocter/api"
+	"RichDocter/daos"
 	"RichDocter/models"
 	"RichDocter/sessions"
 	"encoding/json"
@@ -36,7 +37,6 @@ func determineName(info goth.User) string {
 }
 
 func Callback(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("callback")
 	sess, err := sessions.Get(r, "login_referral")
 	fmt.Println("Refer", sess.Values["referrer"].(string))
 	if err != nil {
@@ -51,6 +51,23 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	info := models.UserInfo{}
 	info.Email = user.Email
 	info.FirstName = determineName(user)
+
+	var (
+		dao         daos.DaoInterface
+		ok          bool
+		fullDetails *models.UserInfo
+	)
+	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+		api.RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
+		return
+	}
+	fullDetails, err = dao.GetUserDetails(info.Email)
+	if err != nil {
+		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	info.CustomerID = fullDetails.CustomerID
+	info.SubscriptionID = fullDetails.SubscriptionID
 
 	toJSON, err := json.Marshal(info)
 	if err != nil {
@@ -72,7 +89,6 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 }
 
 func Logout(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("logout")
 	session, err := sessions.Get(r, "token")
 	if err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -93,7 +109,6 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("login")
 	session, err := sessions.Get(r, "login_referral")
 	if err != nil {
 		fmt.Printf("Session Error: %s\n", err.Error())

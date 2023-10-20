@@ -12,8 +12,7 @@ const DefaultPage = () => {
                 </span>
                 <span className="column">
                     <figure>
-                        <video width="320" height="240"/>
-                        <figcaption>Placeholder</figcaption>
+                    <iframe width="560" height="315" src="https://www.youtube.com/embed/Jr2IjkhCrBQ?si=KQ3FpPMWlbAO1qSN?autoplay=1&muted=1&controls=0" title="RichDocter Demo" frameborder="0" allow="autoplay" allowfullscreen></iframe>
                     </figure>
                 </span>
             </div>

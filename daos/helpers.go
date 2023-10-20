@@ -206,7 +206,7 @@ func (d *DAO) WasStoryDeleted(email string, storyTitle string) (bool, error) {
 }
 
 // check if passed story is a member of a series
-// return series name if yes, blank if no
+// return series name if yes, story title if no
 func (d *DAO) IsStoryInASeries(email string, storyTitle string) (string, error) {
 	var (
 		err error
@@ -226,7 +226,10 @@ func (d *DAO) IsStoryInASeries(email string, storyTitle string) (string, error) 
 	if err = attributevalue.UnmarshalListOfMaps(out.Items, &storyFromMap); err != nil {
 		return "", err
 	}
-	return storyFromMap[0].Series, nil
+	if storyFromMap[0].Series != "" {
+		return storyFromMap[0].Series, nil
+	}
+	return storyFromMap[0].Title, nil
 }
 
 func (d *DAO) wasErrorOfTypeConditionalFailure(err error) bool {
