@@ -1,0 +1,39 @@
+.default-page {
+    margin-top:100px;
+    color:#333;
+}
+
+.default-page .blurb {
+    background-color: azure;
+    width: 60%;
+    margin: 0 auto 50px;
+    border-radius: 15px;
+    filter: drop-shadow(2px 2px 2px #1a1a1a);
+    display:flex;
+    flex-direction: row;
+    flex-wrap:wrap;
+    padding:50px;
+}
+
+.default-page .blurb .column {
+    display:flex;
+    flex-direction: column;
+    flex-basis:100%;
+    flex:1;
+}
+
+.default-page .blurb .column.leftText {
+    text-align: left;
+}
+
+.default-page .blurb .column img {
+    max-height:350px;
+    border-radius:15px;
+    border:1px solid #333;
+}
+
+@media only screen and (max-width: 600px) {
+    .default-page .blurb {
+        width:90%;
+    }
+}

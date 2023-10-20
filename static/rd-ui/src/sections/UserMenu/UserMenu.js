@@ -3,6 +3,7 @@ import Person4Icon from '@mui/icons-material/Person4';
 import {IconButton} from '@mui/material';
 import {useSelector, useDispatch} from 'react-redux';
 import {flipLoggedInState} from '../../stores/loggedInSlice';
+import { setLoaderVisible } from '../../stores/displayLoaderSlice';
 
 const UserMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -14,6 +15,7 @@ const UserMenu = () => {
   };
 
   const signout = () => {
+    dispatch(setLoaderVisible(false));
     fetch('/logout/google', {
       method: 'DELETE'
     }).then((response) => {

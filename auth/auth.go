@@ -36,6 +36,7 @@ func determineName(info goth.User) string {
 }
 
 func Callback(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("callback")
 	sess, err := sessions.Get(r, "login_referral")
 	fmt.Println("Refer", sess.Values["referrer"].(string))
 	if err != nil {
@@ -71,6 +72,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 }
 
 func Logout(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("logout")
 	session, err := sessions.Get(r, "token")
 	if err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -81,12 +83,17 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	gothic.Logout(w, r)
+	err = gothic.Logout(w, r)
+	if err != nil {
+		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 	w.Header().Set("Location", "/")
 	api.RespondWithJson(w, http.StatusTemporaryRedirect, nil)
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("login")
 	session, err := sessions.Get(r, "login_referral")
 	if err != nil {
 		fmt.Printf("Session Error: %s\n", err.Error())

@@ -75,7 +75,7 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		story        string
 		dao          daos.DaoInterface
 		ok           bool
-		isSubscriber bool
+		subscriberID string
 	)
 	if email, err = getUserEmail(r); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -100,11 +100,11 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if isSubscriber, err = dao.IsUserSubscribed(email); err != nil {
+	if subscriberID, err = dao.IsUserSubscribed(email); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "unable to retrieve user subscription status")
 		return
 	}
-	if !isSubscriber {
+	if subscriberID == "" {
 		blocks, err := dao.GetStoryParagraphs(email, story, "1", "")
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, "unable to retrieve story block count")
