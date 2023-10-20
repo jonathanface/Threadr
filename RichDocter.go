@@ -55,7 +55,20 @@ func serveRootDirectory(w http.ResponseWriter, r *http.Request) {
 	http.FileServer(http.Dir(staticFilesDir+string(os.PathSeparator))).ServeHTTP(w, r)
 }
 
-func billingControlMiddleware(next http.Handler) http.Handler {
+func looseMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "OPTIONS" {
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(time.Second*5))
+		defer cancel()
+		ctx = context.WithValue(ctx, "dao", dao)
+		r = r.WithContext(ctx)
+		next.ServeHTTP(w, r)
+	})
+}
+
+func billingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "OPTIONS" {
 			return
@@ -79,7 +92,6 @@ func billingControlMiddleware(next http.Handler) http.Handler {
 }
 
 func accessControlMiddleware(next http.Handler) http.Handler {
-	fmt.Println("access")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "OPTIONS" {
 			return
@@ -130,6 +142,7 @@ func main() {
 
 	rtr := mux.NewRouter()
 	authRtr := rtr.PathPrefix(authPath).Subrouter()
+	authRtr.Use(looseMiddleware)
 	// DEV ONLY!!
 	//rtr.HandleFunc("/auth/logout", auth.DeleteToken).Methods("GET", "OPTIONS")
 	rtr.HandleFunc("/logout/{provider}", auth.Logout).Methods("DELETE", "OPTIONS")
@@ -137,7 +150,7 @@ func main() {
 	authRtr.HandleFunc("/{provider}/callback", auth.Callback).Methods("POST", "GET", "OPTIONS")
 
 	billingRtr := rtr.PathPrefix(billingPath).Subrouter()
-	billingRtr.Use(billingControlMiddleware)
+	billingRtr.Use(billingMiddleware)
 	billingRtr.HandleFunc("/products", billing.GetProductsEndpoint).Methods("GET", "OPTIONS")
 	billingRtr.HandleFunc("/customer", billing.GetCustomerEndpoint).Methods("GET", "OPTIONS")
 	billingRtr.HandleFunc("/customer", billing.CreateCustomerEndpoint).Methods("POST", "OPTIONS")
