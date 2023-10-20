@@ -9,6 +9,7 @@ import (
 	"RichDocter/sessions"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -26,6 +27,7 @@ const (
 	staticFilesDir = "static/rd-ui/build"
 	servicePath    = "/api"
 	billingPath    = "/billing"
+	authPath       = "/auth"
 )
 
 var dao *daos.DAO
@@ -77,6 +79,7 @@ func billingControlMiddleware(next http.Handler) http.Handler {
 }
 
 func accessControlMiddleware(next http.Handler) http.Handler {
+	fmt.Println("access")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "OPTIONS" {
 			return
@@ -91,6 +94,7 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 			api.RespondWithError(w, http.StatusBadRequest, err.Error())
 			return
 		}
+		fmt.Println("sub", user.SubscriptionID)
 		if user.SubscriptionID == "" {
 			if r.Method == "POST" {
 				stories, chapters, err := dao.GetTotalCreatedStoriesAndChapters(user.Email)
@@ -125,50 +129,51 @@ func main() {
 	auth.New()
 
 	rtr := mux.NewRouter()
+	authRtr := rtr.PathPrefix(authPath).Subrouter()
 	// DEV ONLY!!
 	//rtr.HandleFunc("/auth/logout", auth.DeleteToken).Methods("GET", "OPTIONS")
 	rtr.HandleFunc("/logout/{provider}", auth.Logout).Methods("DELETE", "OPTIONS")
-	rtr.HandleFunc("/auth/{provider}", auth.Login).Methods("PUT", "OPTIONS")
-	rtr.HandleFunc("/auth/{provider}/callback", auth.Callback).Methods("POST", "OPTIONS")
+	authRtr.HandleFunc("/{provider}", auth.Login).Methods("GET", "PUT", "OPTIONS")
+	authRtr.HandleFunc("/{provider}/callback", auth.Callback).Methods("POST", "GET", "OPTIONS")
 
-	billingPath := rtr.PathPrefix(billingPath).Subrouter()
-	billingPath.Use(billingControlMiddleware)
-	billingPath.HandleFunc("/products", billing.GetProductsEndpoint).Methods("GET", "OPTIONS")
-	billingPath.HandleFunc("/customer", billing.GetCustomerEndpoint).Methods("GET", "OPTIONS")
-	billingPath.HandleFunc("/customer", billing.CreateCustomerEndpoint).Methods("POST", "OPTIONS")
-	billingPath.HandleFunc("/customer", billing.UpdateCustomerPaymentMethodEndpoint).Methods("PUT", "OPTIONS")
-	billingPath.HandleFunc("/card", billing.CreateCardIntentEndpoint).Methods("POST", "OPTIONS")
-	billingPath.HandleFunc("/subscribe", billing.SubscribeCustomerEndpoint).Methods("POST", "OPTIONS")
+	billingRtr := rtr.PathPrefix(billingPath).Subrouter()
+	billingRtr.Use(billingControlMiddleware)
+	billingRtr.HandleFunc("/products", billing.GetProductsEndpoint).Methods("GET", "OPTIONS")
+	billingRtr.HandleFunc("/customer", billing.GetCustomerEndpoint).Methods("GET", "OPTIONS")
+	billingRtr.HandleFunc("/customer", billing.CreateCustomerEndpoint).Methods("POST", "OPTIONS")
+	billingRtr.HandleFunc("/customer", billing.UpdateCustomerPaymentMethodEndpoint).Methods("PUT", "OPTIONS")
+	billingRtr.HandleFunc("/card", billing.CreateCardIntentEndpoint).Methods("POST", "OPTIONS")
+	billingRtr.HandleFunc("/subscribe", billing.SubscribeCustomerEndpoint).Methods("POST", "OPTIONS")
 
-	apiPath := rtr.PathPrefix(servicePath).Subrouter()
-	apiPath.Use(accessControlMiddleware)
+	apiRtr := rtr.PathPrefix(servicePath).Subrouter()
+	apiRtr.Use(accessControlMiddleware)
 
 	// GETs
-	apiPath.HandleFunc("/user", api.GetUserData).Methods("GET", "OPTIONS")
-	apiPath.HandleFunc("/stories", api.AllStandaloneStoriesEndPoint).Methods("GET", "OPTIONS")
-	apiPath.HandleFunc("/stories/{story}", api.StoryEndPoint).Methods("GET", "OPTIONS")
-	apiPath.HandleFunc("/stories/{story}/full", api.FullStoryEndPoint).Methods("GET", "OPTIONS")
-	apiPath.HandleFunc("/stories/{story}/content", api.StoryBlocksEndPoint).Methods("GET", "OPTIONS")
-	apiPath.HandleFunc("/stories/{story}/associations", api.AllAssociationsByStoryEndPoint).Methods("GET", "OPTIONS")
-	apiPath.HandleFunc("/series", api.AllSeriesEndPoint).Methods("GET", "OPTIONS")
-	apiPath.HandleFunc("/series/{series}/volumes", api.AllSeriesVolumesEndPoint).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/user", api.GetUserData).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/stories", api.AllStandaloneStoriesEndPoint).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{story}", api.StoryEndPoint).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{story}/full", api.FullStoryEndPoint).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{story}/content", api.StoryBlocksEndPoint).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{story}/associations", api.AllAssociationsByStoryEndPoint).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/series", api.AllSeriesEndPoint).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/series/{series}/volumes", api.AllSeriesVolumesEndPoint).Methods("GET", "OPTIONS")
 
 	// POSTs
-	apiPath.HandleFunc("/stories", api.CreateStoryEndpoint).Methods("POST", "OPTIONS")
-	apiPath.HandleFunc("/stories/{story}/chapter", api.CreateStoryChapterEndpoint).Methods("POST", "OPTIONS")
+	apiRtr.HandleFunc("/stories", api.CreateStoryEndpoint).Methods("POST", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{story}/chapter", api.CreateStoryChapterEndpoint).Methods("POST", "OPTIONS")
 
 	// PUTs
-	apiPath.HandleFunc("/stories/{story}", api.WriteBlocksToStoryEndpoint).Methods("PUT", "OPTIONS")
-	apiPath.HandleFunc("/stories/{story}/orderMap", api.RewriteBlockOrderEndpoint).Methods("PUT", "OPTIONS")
-	apiPath.HandleFunc("/stories/{story}/associations", api.WriteAssocationsEndpoint).Methods("PUT", "OPTIONS")
-	apiPath.HandleFunc("/stories/{story}/associations/{association}/upload", api.UploadPortraitEndpoint).Methods("PUT", "OPTIONS")
-	apiPath.HandleFunc("/stories/{story}/export", api.ExportStoryEndpoint).Methods("PUT", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{story}", api.WriteBlocksToStoryEndpoint).Methods("PUT", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{story}/orderMap", api.RewriteBlockOrderEndpoint).Methods("PUT", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{story}/associations", api.WriteAssocationsEndpoint).Methods("PUT", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{story}/associations/{association}/upload", api.UploadPortraitEndpoint).Methods("PUT", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{story}/export", api.ExportStoryEndpoint).Methods("PUT", "OPTIONS")
 
 	// DELETEs
-	apiPath.HandleFunc("/stories/{story}/block", api.DeleteBlocksFromStoryEndpoint).Methods("DELETE", "OPTIONS")
-	apiPath.HandleFunc("/stories/{story}/associations", api.DeleteAssociationsEndpoint).Methods("DELETE", "OPTIONS")
-	apiPath.HandleFunc("/stories/{story}/chapter", api.DeleteChaptersEndpoint).Methods("DELETE", "OPTIONS")
-	apiPath.HandleFunc("/stories/{story}", api.DeleteStoryEndpoint).Methods("DELETE", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{story}/block", api.DeleteBlocksFromStoryEndpoint).Methods("DELETE", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{story}/associations", api.DeleteAssociationsEndpoint).Methods("DELETE", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{story}/chapter", api.DeleteChaptersEndpoint).Methods("DELETE", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{story}", api.DeleteStoryEndpoint).Methods("DELETE", "OPTIONS")
 
 	rtr.PathPrefix("/").HandlerFunc(serveRootDirectory)
 	http.Handle("/", rtr)

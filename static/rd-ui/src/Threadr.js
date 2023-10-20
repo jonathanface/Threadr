@@ -42,6 +42,7 @@ const Threadr = () => {
     });
 
     fetch('/api/user').then((response) => {
+      console.log("fetch user")
       if (response.ok) {
         return response.json();
       }
@@ -66,7 +67,6 @@ const Threadr = () => {
       </main>
       <Toaster/>
       <Elements stripe={stripe}><Subscribe/></Elements>
-     
     </div>
   );
 };

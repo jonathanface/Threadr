@@ -136,6 +136,18 @@ func CreateCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+		user.CustomerID = customerID
+		toJSON, err := json.Marshal(user)
+		if err != nil {
+			api.RespondWithError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		session, _ := sessions.Get(r, "token")
+		session.Values["token_data"] = toJSON
+		if err = session.Save(r, w); err != nil {
+			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 
 	sources, err := getPaymentMethodsForCustomer(customerID)
