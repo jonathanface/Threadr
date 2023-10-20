@@ -1,26 +1,27 @@
-import React, {useEffect} from 'react';
-import {useSelector, useDispatch} from 'react-redux';
-import Document from './sections/document/Document';
-import StoryAndSeriesListing from './sections/storyAndSeriesListing/StoryAndSeriesListing';
-import {flipLoggedInState} from './stores/loggedInSlice';
-import {setSelectedStoryTitle} from './stores/selectedStorySlice';
-import {setSelectedSeries} from './stores/selectedSeriesSlice';
-import CreateNewStory from './sections/createNewStory/CreateNewStoryModal';
-import UserMenu from './sections/UserMenu/UserMenu';
+import { Elements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import './css/main.css';
 import './css/user-menu.css';
-import {setLoaderVisible} from './stores/displayLoaderSlice';
-import Toaster from './utils/Toaster';
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements } from "@stripe/react-stripe-js";
+import DefaultPage from './sections/DefaultPage/DefaultPage';
+import UserMenu from './sections/UserMenu/UserMenu';
+import CreateNewStory from './sections/createNewStory/CreateNewStoryModal';
+import Document from './sections/document/Document';
+import StoryAndSeriesListing from './sections/storyAndSeriesListing/StoryAndSeriesListing';
 import Subscribe from './sections/subscribe/Subscribe';
+import { setLoaderVisible } from './stores/displayLoaderSlice';
+import { flipLoggedInState } from './stores/loggedInSlice';
+import { setSelectedSeries } from './stores/selectedSeriesSlice';
+import { setSelectedStoryTitle } from './stores/selectedStorySlice';
+import Toaster from './utils/Toaster';
 
 const Threadr = () => {
-  const stripe = loadStripe(process.env.REACT_APP_STRIPE_KEY);
+  const stripe = loadStripe(process.env.REACT_APP_STRIPE_KEY)
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
   const selectedStoryTitle = useSelector((state) => state.selectedStoryTitle.value);
-  const dispatch = useDispatch();
-
+  const dispatch = useDispatch(); 
+ 
   const handleNavChange = () => {
     const location = window.location.pathname;
     const splitDirectories = location.split('/');
@@ -57,13 +58,26 @@ const Threadr = () => {
     return () => window.removeEventListener('popstate', handleNavChange);
   }, [dispatch]);
 
-  const displayComponent = isLoggedIn && selectedStoryTitle ? <Document story={selectedStoryTitle}/> : <StoryAndSeriesListing/>;
+  const displayComponent =
+  isLoggedIn && selectedStoryTitle
+    ? <Document story={selectedStoryTitle} />
+    : !isLoggedIn && !selectedStoryTitle
+      ? <DefaultPage />
+      : <StoryAndSeriesListing />;
+
   return (
     <div className="App">
       <UserMenu />
       <main>
-        {displayComponent}
-        <CreateNewStory />
+        <header>
+            <h4>
+              <span>R</span>ich<span>D</span>octer
+              <img src="./img/logo_trans_scaled.png" alt="RichDocter"/>
+            </h4>
+            <div className="version">beta</div>
+        </header>
+          {displayComponent}
+          <CreateNewStory />
       </main>
       <Toaster/>
       <Elements stripe={stripe}><Subscribe/></Elements>

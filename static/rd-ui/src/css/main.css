@@ -1,5 +1,4 @@
 
-
 html, body {
   margin: 0;
   padding: 0;
@@ -14,6 +13,9 @@ html, body {
   overflow-y:auto;
   height:100vh;
   max-height:100vh;
+}
+html {
+  padding-bottom:100px;
 }
 
 .form-error {
@@ -33,6 +35,37 @@ body {
 main {
   display:inline-block;
   width:100%;
+}
+main header {
+  position: fixed;
+  right: 50px;
+  top: 10px;
+  margin: 0;
+}
+main header h4 {
+  font-size:1.1em;
+  color:#78a4a4;
+  filter: drop-shadow(2px 2px 2px #1a1a1a);
+  letter-spacing: 2px;
+  margin:0px;
+}
+main header h4 span {
+  font-size:1.2em;
+}
+main header h4 img {
+  max-height:40px;
+  vertical-align: middle;
+  position:relative;
+  top:-5px;
+}
+main header .version {
+  color: azure;
+  font-size: 0.8em;
+  font-style: italic;
+  font-weight: bold;
+  text-align: right;
+  margin-right: 6px;
+  margin-top: -10px;
 }
 
 .MultiTreeItem-root {
@@ -64,4 +97,12 @@ main {
 .alert-toast {
   text-align:left;
   filter:drop-shadow(1px 1px 1px #1a1a1a);
+}
+
+footer {
+  text-align: center;
+  width:100%;
+  font-size: 0.7em;
+  color:azure;
+  padding:25px;
 }
