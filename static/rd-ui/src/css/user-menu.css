@@ -13,9 +13,12 @@
     padding: 15px;
     position: relative;
     top: 10px;
+    background-color:#1b2828;
+    filter: drop-shadow(2px 2px 2px #1a1a1a);
 }
 .user-menu > a:hover {
     color:#FFF;
+    background-color:#131c1c;
 }
 
 .menu-container {

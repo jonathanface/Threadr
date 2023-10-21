@@ -54,7 +54,7 @@ const UserMenu = () => {
         </span>
       )}
       {!isLoggedIn && (
-        <a onClick={signin}>Signin</a>
+        <a onClick={signin}>SignIn</a>
       )}
     </span>
   );

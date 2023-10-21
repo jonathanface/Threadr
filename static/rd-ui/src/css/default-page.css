@@ -32,8 +32,30 @@
     border:1px solid #333;
 }
 
+.default-page .blurb iframe {
+    width:100%;
+    min-height:300px;
+}
+
 @media only screen and (max-width: 600px) {
     .default-page .blurb {
-        width:90%;
+        width:initial;
+        margin-left:10px;
+        margin-right:10px;
+        padding:10px;
+        flex-direction:column;
+    }
+    .default-page .blurb iframe {
+        min-height:200px;
+    }
+    .default-page .blurb figure {
+        margin:0;
+    }
+    .default-page .blurb img {
+        width:100%;
+    }
+    .default-page .blurb .column h2,
+    .default-page .blurb .column p {
+        margin:0;
     }
 }
