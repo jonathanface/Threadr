@@ -35,6 +35,7 @@
 .default-page .blurb iframe {
     width:100%;
     min-height:300px;
+    border-radius:15px;
 }
 
 @media only screen and (max-width: 600px) {
