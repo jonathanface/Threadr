@@ -67,14 +67,15 @@ const Threadr = () => {
 
   return (
     <div className="App">
-      <UserMenu />
+      
       <main>
         <header>
+            <UserMenu />
             <h4>
               <span>R</span>ich<span>D</span>octer
               <img src="./img/logo_trans_scaled.png" alt="RichDocter"/>
+              <div className="version">beta</div>
             </h4>
-            <div className="version">beta</div>
         </header>
           {displayComponent}
           <CreateNewStory />
