@@ -292,13 +292,6 @@ func AllSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	for _, srs := range series {
-		srs.Stories, err = dao.GetSeriesVolumes(email, srs.SeriesTitle)
-		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-	}
 	RespondWithJson(w, http.StatusOK, series)
 }
 
