@@ -1,10 +1,10 @@
-import React, {useState} from 'react';
-import {useDispatch} from 'react-redux';
+import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
 import '../../css/story.css';
+import { setLoaderVisible } from '../../stores/displayLoaderSlice';
+import { setSelectedSeries } from '../../stores/selectedSeriesSlice';
+import { setSelectedStoryTitle } from '../../stores/selectedStorySlice';
 import DetailsSlider from './DetailsSlider';
-import {setSelectedStoryTitle} from '../../stores/selectedStorySlice';
-import {setSelectedSeries} from '../../stores/selectedSeriesSlice';
-import {setLoaderVisible} from '../../stores/displayLoaderSlice';
 
 
 const Story = (props) => {
@@ -22,11 +22,13 @@ const Story = (props) => {
   };
 
   const iconUrl = props.series ? '/img/icons/story_series_icon.jpg' : '/img/icons/story_standalone_icon.jpg';
+  const typeLabel = props.series ? "series" : "story";
   return (
         !wasDeleted ?
             <button className="doc-button" onClick={ !props.series ? (e)=>handleClick(e, props.title) : ()=>{}}>
               <div>
                 <img src={iconUrl} alt={props.title}/>
+                <span className="typeLabel">{typeLabel}</span>
                 <DetailsSlider key={props.title} data={props.data} onStoryClick={handleClick} setDeleted={setWasDeleted} series={props.series} title={props.title} description={props.description} />
               </div>
             </button> : ''

@@ -40,6 +40,17 @@
     margin-left:auto;
 }
 
+.doc-button .typeLabel {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    border: 1px dashed white;
+    padding: 5px;
+    border-radius: 10px;
+    background: #515050;
+    opacity:0.9;
+}
+
 .doc-button > div {
     position:relative;
 }

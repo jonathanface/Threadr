@@ -9,7 +9,6 @@ import (
 	"RichDocter/sessions"
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -106,7 +105,6 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 			api.RespondWithError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		fmt.Println("sub", user.SubscriptionID)
 		if user.SubscriptionID == "" {
 			if r.Method == "POST" {
 				stories, chapters, err := dao.GetTotalCreatedStoriesAndChapters(user.Email)

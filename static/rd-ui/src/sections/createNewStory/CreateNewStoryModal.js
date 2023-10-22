@@ -1,18 +1,18 @@
-import React, {useState, useEffect} from 'react';
-import {useSelector, useDispatch} from 'react-redux';
-import Button from '@mui/material/Button';
+import Autocomplete from '@mui/material/Autocomplete';
 import Box from '@mui/material/Box';
-import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
-import Checkbox from '@mui/material/Checkbox';
 import DialogTitle from '@mui/material/DialogTitle';
-import {flipCreatingNewStoryState} from '../../stores/creatingNewStorySlice';
 import FormControlLabel from '@mui/material/FormControlLabel';
-import Autocomplete from '@mui/material/Autocomplete';
-import {setSelectedStoryTitle} from '../../stores/selectedStorySlice';
-import {setAlertMessage, setAlertOpen, setAlertSeverity} from '../../stores/alertSlice';
+import TextField from '@mui/material/TextField';
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { setAlertMessage, setAlertOpen, setAlertSeverity } from '../../stores/alertSlice';
+import { flipCreatingNewStoryState } from '../../stores/creatingNewStorySlice';
+import { setSelectedStoryTitle } from '../../stores/selectedStorySlice';
 
 const CreateNewStory = () => {
   const [isInASeries, setIsInASeries] = useState(false);
@@ -101,6 +101,7 @@ const CreateNewStory = () => {
           dispatch(flipCreatingNewStoryState());
         }, 1000);
       } else {
+        console.log("resp", response);
         if (response.status === 401) {
           dispatch(setAlertMessage('inadequate subscription'));
           dispatch(setAlertSeverity('error'));
@@ -108,7 +109,12 @@ const CreateNewStory = () => {
           handleClose();
           return;
         }
-        setCurrentError(response.error);
+        if (response.status === 409) {
+          setCurrentError("A story by that name already exists. All stories must be uniquely titled.");
+          setAreErrors(true);
+          return;
+        }
+        setCurrentError("Unable to create a story at this time. Please try again later.");
         setAreErrors(true);
       }
     });

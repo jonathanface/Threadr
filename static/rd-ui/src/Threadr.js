@@ -1,6 +1,6 @@
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import './css/main.css';
 import './css/user-menu.css';
@@ -17,7 +17,8 @@ import { setSelectedStoryTitle } from './stores/selectedStorySlice';
 import Toaster from './utils/Toaster';
 
 const Threadr = () => {
-  const stripe = loadStripe(process.env.REACT_APP_STRIPE_KEY)
+  const [isLoading, setIsLoading] = useState(true)
+  const [stripe, setStripe] = useState(() => loadStripe(process.env.REACT_APP_STRIPE_KEY))
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
   const selectedStoryTitle = useSelector((state) => state.selectedStoryTitle.value);
   const dispatch = useDispatch(); 
@@ -37,40 +38,45 @@ const Threadr = () => {
     }
   };
 
+  
+
   useEffect(() => {
+    dispatch(setLoaderVisible(true));
     window.addEventListener('popstate', () => {
       handleNavChange();
     });
 
     fetch('/api/user').then((response) => {
-      console.log("fetch user")
       if (response.ok) {
         return response.json();
       }
       throw new Error('Fetch problem userData ' + response.status);
     }).then((data) => {
+      setIsLoading(false);
       dispatch(flipLoggedInState());
     }).catch((e) => {
+      setIsLoading(false);
       dispatch(setLoaderVisible(false));
       console.error('ERROR', e);
     });
     handleNavChange();
     return () => window.removeEventListener('popstate', handleNavChange);
   }, [dispatch]);
-
+  console.log("isLaoding", isLoading)
   const displayComponent =
-  isLoggedIn && selectedStoryTitle
-    ? <Document story={selectedStoryTitle} />
-    : !isLoggedIn && !selectedStoryTitle
-      ? <DefaultPage />
-      : <StoryAndSeriesListing />;
+    !isLoading
+      ? isLoggedIn && selectedStoryTitle
+        ? <Document story={selectedStoryTitle} />
+        : isLoggedIn && !selectedStoryTitle
+          ? <StoryAndSeriesListing />
+          : <DefaultPage />
+      : <div/>
 
   return (
     <div className="App">
-      
       <main>
         <header>
-            <UserMenu />
+            <UserMenu isParentLoading={isLoading}/>
             <h4>
               <span>R</span>ich<span>D</span>octer
               <img src="./img/logo_trans_scaled.png" alt="RichDocter"/>

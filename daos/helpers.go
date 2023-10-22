@@ -65,7 +65,7 @@ func (d *DAO) generateStoryChapterTransaction(email string, story string, chapte
 		return types.TransactWriteItem{}, fmt.Errorf("CHAPTER CREATION: Email, story, and chapterTitle params must not be blank")
 	}
 	chapterNumStr := strconv.Itoa(chapter)
-
+	fmt.Println("creating chap", story, chapter, email, chapterTitle)
 	input := types.TransactWriteItem{
 		Update: &types.Update{
 			TableName: aws.String("chapters"),
@@ -73,8 +73,7 @@ func (d *DAO) generateStoryChapterTransaction(email string, story string, chapte
 				"chapter_title": &types.AttributeValueMemberS{Value: chapterTitle},
 				"story_title":   &types.AttributeValueMemberS{Value: story},
 			},
-			ConditionExpression: aws.String("attribute_not_exists(story_title)"),
-			UpdateExpression:    aws.String("set chapter_num=:n, author=:a"),
+			UpdateExpression: aws.String("set chapter_num=:n, author=:a"),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
 				":n": &types.AttributeValueMemberN{Value: chapterNumStr},
 				":a": &types.AttributeValueMemberS{Value: email},
