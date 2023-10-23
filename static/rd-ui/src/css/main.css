@@ -111,6 +111,8 @@ footer {
   font-size: 0.7em;
   color:azure;
   padding:25px;
+  position:absolute;
+  bottom:0px;
 }
 
 @media only screen and (max-width: 600px) {
