@@ -30,12 +30,14 @@
     max-height:350px;
     border-radius:15px;
     border:1px solid #333;
+    filter: drop-shadow(2px 2px 2px #1a1a1a);
 }
 
-.default-page .blurb iframe {
-    width:100%;
-    min-height:300px;
+.default-page .blurb video {
+    width:500px;
     border-radius:15px;
+    border:1px solid #333;
+    filter: drop-shadow(2px 2px 2px #1a1a1a);
 }
 
 @media only screen and (max-width: 600px) {
@@ -46,8 +48,9 @@
         padding:10px;
         flex-direction:column;
     }
-    .default-page .blurb iframe {
-        min-height:200px;
+    .default-page .blurb video {
+        width:100%;
+        margin-top:20px;
     }
     .default-page .blurb figure {
         margin:0;

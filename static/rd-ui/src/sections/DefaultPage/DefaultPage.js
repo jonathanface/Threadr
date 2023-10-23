@@ -12,7 +12,10 @@ const DefaultPage = () => {
                 </span>
                 <span className="column">
                     <figure>
-                    <iframe src="https://www.youtube.com/embed/Jr2IjkhCrBQ?si=KQ3FpPMWlbAO1qSN?autoplay=1&muted=1&controls=1" title="RichDocter Demo" frameborder="0" allow="autoplay" allowfullscreen></iframe>
+                        <video width="500" autoPlay muted loop playsInline>
+                            <source src="https://richdocter-demo-videos.s3.amazonaws.com/rd-demo-yt-2.mp4" type="video/mp4"/>
+                            Unable to play demo video on this browser.
+                        </video>
                     </figure>
                 </span>
             </div>
@@ -24,25 +27,25 @@ const DefaultPage = () => {
                 </span>
                 <span className="column leftText">
                 <h2>Craft Characters, Build Worlds, Tell Stories</h2>
-                    <p>
+                    <div>
                         <ul>
                             <li>Easily highlight and reference your characters, places, and events while you write.</li>
                             <li>Stay immersed in your story without losing your creative flow.</li>
                             <li>Bring your fictional world to life with the click of a button.</li>
                         </ul>
-                    </p>
+                    </div>
                 </span>
             </div>
             <div className="blurb">
                 <span className="column leftText">
                     <h2>Character Backstories at Your Fingertips</h2>
-                    <p>
+                    <div>
                         <ul>
                             <li>Instantly access in-depth character profiles with a single click.</li>
                             <li>Uncover your characters' hidden depths, motivations, and quirks.</li>
                             <li>Craft multi-dimensional characters that resonate with your readers.</li>
                         </ul>
-                    </p>
+                    </div>
                 </span>
                 <span className="column">
                     <figure>
@@ -58,13 +61,13 @@ const DefaultPage = () => {
                 </span>
                 <span className="column leftText">
                 <h2>Explore Your Story's Universe</h2>
-                    <p>
+                    <div>
                         <ul>
                             <li>Dive deep into the lore of your story's world and settings.</li>
                             <li>Never lose track of important locations or key events.</li>
                             <li>Maintain consistency and richness throughout your narrative.</li>
                         </ul>
-                    </p>
+                    </div>
                 </span>
             </div>
         </div>

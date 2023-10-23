@@ -39,7 +39,6 @@ const StoryAndSeriesListing = () => {
         });
         setSeriesGroups(seriesStoriesFromDB);
         setSeriesLoaded(true);
-        setTotalWorks(totalWorks + seriesStoriesFromDB.size);
       });
     };
 
