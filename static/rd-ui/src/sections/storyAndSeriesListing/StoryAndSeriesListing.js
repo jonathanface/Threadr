@@ -10,7 +10,7 @@ import Story from '../story/Story';
 const StoryAndSeriesListing = () => {
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
   const [stories, setStories] = useState([]);
-  const [seriesGroup, setSeriesGroups] = useState([]);
+  const [seriesGroups, setSeriesGroups] = useState([]);
   const dispatch = useDispatch();
   const [seriesLoaded, setSeriesLoaded] = useState(false);
   const [storiesLoaded, setStoriesLoaded] = useState(false);
@@ -78,8 +78,8 @@ const StoryAndSeriesListing = () => {
 
   
   // If there are works, we prepare our series and stories components.
-  const seriesComponents = [...seriesGroup.keys()].map((series) => {
-    const entries = seriesGroup.get(series);
+  const seriesComponents = [...seriesGroups.keys()].map((series) => {
+    const entries = seriesGroups.get(series);
     return <Story key={series} series={true} title={series} data={entries} />;
   });
 
@@ -88,7 +88,7 @@ const StoryAndSeriesListing = () => {
   });
 
   let content = <div/>;
-  if (seriesLoaded && storiesLoaded && (seriesGroup.length || stories.length)) {
+  if (seriesLoaded && storiesLoaded && (seriesGroups.size || stories.length)) {
     content = (
       <React.Fragment>
         {seriesComponents}
