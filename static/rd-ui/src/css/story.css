@@ -93,6 +93,18 @@
     padding-left:15px;
 }
 
+.doc-button .details-slider .series-listing ul {
+    line-height:1.25rem;
+}
+.doc-button .details-slider .delete-series-story {
+    
+}
+
+.doc-button .details-slider .series-listing li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 .doc-button .details-slider .series-listing li:hover {
     cursor:pointer;
     text-decoration:underline;
