@@ -8,6 +8,7 @@ import DefaultPage from './sections/DefaultPage/DefaultPage';
 import UserMenu from './sections/UserMenu/UserMenu';
 import CreateNewStory from './sections/createNewStory/CreateNewStoryModal';
 import Document from './sections/document/Document';
+import EditStory from "./sections/editStory/EditStoryModal";
 import StoryAndSeriesListing from './sections/storyAndSeriesListing/StoryAndSeriesListing';
 import Subscribe from './sections/subscribe/Subscribe';
 import { setLoaderVisible } from './stores/displayLoaderSlice';
@@ -62,7 +63,7 @@ const Threadr = () => {
     handleNavChange();
     return () => window.removeEventListener('popstate', handleNavChange);
   }, [dispatch]);
-  console.log("isLaoding", isLoading)
+
   const displayComponent =
     !isLoading
       ? isLoggedIn && selectedStoryTitle
@@ -85,6 +86,7 @@ const Threadr = () => {
         </header>
           {displayComponent}
           <CreateNewStory />
+          <EditStory />
       </main>
       <Toaster/>
       <Elements stripe={stripe}><Subscribe/></Elements>

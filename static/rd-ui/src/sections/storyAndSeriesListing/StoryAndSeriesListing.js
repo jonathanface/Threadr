@@ -32,7 +32,8 @@ const StoryAndSeriesListing = () => {
               seriesStoriesFromDB.get(series.series_title).push({
                 volume: story.title,
                 place: story.place,
-                created_at: story.created_at
+                created_at: story.created_at,
+                description: story.description
               });
             });
           }

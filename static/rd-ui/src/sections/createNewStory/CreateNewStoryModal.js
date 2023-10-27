@@ -17,8 +17,10 @@ import { setSelectedStoryTitle } from '../../stores/selectedStorySlice';
 const CreateNewStory = () => {
   const [isInASeries, setIsInASeries] = useState(false);
   const [series, setSeries] = useState([]);
-  const isCreatingNewStory = useSelector((state) => state.isCreatingNewStory.value);
+  const isCreatingNewStory = useSelector((state) => state.isCreatingNewStory.isOpen);
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
+  const isAssignedSeries = useSelector((state) => state.isCreatingNewStory.seriesToAppend);
+  
   const dispatch = useDispatch();
   const initMap = new Map();
   initMap['place'] = 1;
@@ -60,11 +62,13 @@ const CreateNewStory = () => {
           console.error('get series', error);
         });
   };
+  
   useEffect(() => {
     if (isLoggedIn && isCreatingNewStory) {
       getSeries();
     }
-  }, [isLoggedIn, isCreatingNewStory]);
+    setIsInASeries(isAssignedSeries.length ? true : false);
+  }, [isLoggedIn, isCreatingNewStory, isAssignedSeries]);
 
   const handleSubmit = () => {
     if (!formInput['title'] || !formInput['title'].trim().length) {
@@ -155,7 +159,7 @@ const CreateNewStory = () => {
             </div>
             <div>
               <FormControlLabel label="This is part of a series" control={
-                <Checkbox id="isSeries" label="" onChange={toggleSeries} />
+                <Checkbox checked={isInASeries} id="isSeries" label="" onChange={toggleSeries} />
               } sx={{
                 '& .MuiFormControlLabel-label': {color: 'rgba(0, 0, 0, 0.6)'},
               }}
@@ -165,13 +169,19 @@ const CreateNewStory = () => {
             isInASeries ?
               <div>
                 <Autocomplete
+                  value={isAssignedSeries}
                   onInputChange={(event) => {
-                    formInput['series'] = event.target.value;
-                    setFormInput(formInput);
+                    if (event) {
+                      formInput['series'] = event.target.value;
+                      setFormInput(formInput);
+                    }
+                    
                   }}
                   onChange={(event, actions) => {
-                    formInput['series'] = actions.id;
-                    setFormInput(formInput);
+                    if (event) {
+                      formInput['series'] = actions.id;
+                      setFormInput(formInput);
+                    }
                   }}
                   freeSolo
                   options={series}

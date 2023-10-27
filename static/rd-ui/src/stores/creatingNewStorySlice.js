@@ -1,13 +1,17 @@
-import {createSlice} from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
 
 export const creatingNewStorySlice = createSlice({
   name: 'isCreatingNewStory',
   initialState: {
-    value: false
+    isOpen: false,
+    seriesToAppend: ""
   },
   reducers: {
-    flipCreatingNewStoryState: (state) => {
-      state.value = !state.value;
+    flipCreatingNewStoryState: (state, action) => {
+      state.isOpen = !state.isOpen;
+      if (action.payload) {
+        state.seriesToAppend = action.payload;
+      }
     }
   }
 });

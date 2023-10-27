@@ -35,8 +35,6 @@ const UserMenu = (props) => {
     });
   };
 
-  console.log("prop", props.isParentLoading);
-
   const displayComponent =
     !props.isParentLoading
       ? isLoggedIn
