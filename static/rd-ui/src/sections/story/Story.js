@@ -124,7 +124,7 @@ const Story = (props) => {
                     }
                   </span>
                 </div>
-                <DetailsSlider key={props.title} data={props.data} onStoryClick={handleClick} setDeleted={setWasDeleted} series={props.series} title={props.title} description={props.description} />
+                <DetailsSlider deleteFunc={deleteStory} editFunc={editStory} key={props.title} data={props.data} onStoryClick={handleClick} setDeleted={setWasDeleted} series={props.series} title={props.title} description={props.description} />
               </div>
             </button> : ''
   );
