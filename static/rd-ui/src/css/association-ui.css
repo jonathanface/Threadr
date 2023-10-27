@@ -41,7 +41,7 @@
     flex:1;
 }
 
-.association-ui-container .portrait img {
+.portrait-dropper .portrait img {
     max-width:100%;
     border-radius:15px;
     filter:drop-shadow(4px 4px 4px #1a1a1a);

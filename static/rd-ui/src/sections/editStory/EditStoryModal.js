@@ -11,6 +11,7 @@ import TextField from '@mui/material/TextField';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { flipEditingStoryState } from '../../stores/editingStorySlice';
+import PortraitDropper from '../portraitdropper/PortraitDropper';
 
 const EditStory = () => {
     
@@ -23,7 +24,6 @@ const EditStory = () => {
     const [formInput, setFormInput] = React.useState(initMap);
     const [areErrors, setAreErrors] = React.useState(false);
     const [currentError, setCurrentError] = React.useState('');
-
 
     const editables = useSelector((state) => state.isEditingStory.editables);
     const [isInASeries, setIsInASeries] = useState(editables.series);
@@ -71,6 +71,32 @@ const EditStory = () => {
     const handleSubmit = () => {
     }
 
+    const processImage = (acceptedFiles) => {
+        acceptedFiles.forEach((file) => {
+            const reader = new FileReader();
+            reader.onabort = () => console.log('file reading was aborted');
+            reader.onerror = () => console.log('file reading has failed');
+            reader.onload = () => {
+                const formData = new FormData();
+                formData.append('file', file);
+                fetch('/api/stories/' + props.story + '/associations/' + props.association.association_name + '/upload?type=' + props.association.association_type,
+                    {method: 'PUT', body: formData}
+                ).then((response) => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Fetch problem image upload ' + response.status);
+                }).then((data) => {
+                    setImageURL(data.url + '?date='+Date.now());
+                    onAssociationEdit(data.url, 'portrait');
+                }).catch((error) => console.error(error));
+           };
+           reader.readAsArrayBuffer(file);
+        });
+    }
+
+    const storyTitle = editables.title ? editables.title : "Unknown Story";
+
     return (
         <div>
           <Dialog open={isEditingStory} onClose={handleClose}>
@@ -81,6 +107,8 @@ const EditStory = () => {
                 sx={{
                   '& .MuiTextField-root': {m: 1, width: 300},
                 }}>
+                <h3>Image for {storyTitle}</h3>
+                <PortraitDropper imageURL="https://picsum.photos/300" name={storyTitle} onComplete={processImage}/>
                 <div>
                   <TextField
                     onChange={(event) => {

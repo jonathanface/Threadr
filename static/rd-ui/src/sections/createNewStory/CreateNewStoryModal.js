@@ -13,6 +13,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setAlertMessage, setAlertOpen, setAlertSeverity } from '../../stores/alertSlice';
 import { flipCreatingNewStoryState } from '../../stores/creatingNewStorySlice';
 import { setSelectedStoryTitle } from '../../stores/selectedStorySlice';
+import PortraitDropper from '../portraitdropper/PortraitDropper';
 
 const CreateNewStory = () => {
   const [isInASeries, setIsInASeries] = useState(false);
@@ -124,6 +125,30 @@ const CreateNewStory = () => {
     });
   };
 
+  const processImage = (acceptedFiles) => {
+    acceptedFiles.forEach((file) => {
+        const reader = new FileReader();
+        reader.onabort = () => console.log('file reading was aborted');
+        reader.onerror = () => console.log('file reading has failed');
+        reader.onload = () => {
+            const formData = new FormData();
+            formData.append('file', file);
+            fetch('/api/stories/' + props.story + '/associations/' + props.association.association_name + '/upload?type=' + props.association.association_type,
+                {method: 'PUT', body: formData}
+            ).then((response) => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Fetch problem image upload ' + response.status);
+            }).then((data) => {
+                setImageURL(data.url + '?date='+Date.now());
+                onAssociationEdit(data.url, 'portrait');
+            }).catch((error) => console.error(error));
+       };
+       reader.readAsArrayBuffer(file);
+    });
+  }
+
   return (
     <div>
       <Dialog open={isCreatingNewStory} onClose={handleClose}>
@@ -135,6 +160,8 @@ const CreateNewStory = () => {
               '& .MuiTextField-root': {m: 1, width: 300},
             }}>
             <div>
+            <h3>Image for Your Story</h3>
+                <PortraitDropper imageURL="https://picsum.photos/300" name="New Story" onComplete={processImage}/>
               <TextField
                 onChange={(event) => {
                   formInput['title'] = event.target.value;

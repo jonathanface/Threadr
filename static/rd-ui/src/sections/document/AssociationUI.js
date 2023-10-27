@@ -1,10 +1,11 @@
 import Backdrop from '@mui/material/Backdrop';
-import React, {useState, useEffect, useCallback} from 'react';
-import {useDropzone} from 'react-dropzone';
-import '../../css/association-ui.css';
+import React, { useEffect, useState } from 'react';
+
+import { FormGroup, TextField } from '@mui/material';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
-import {FormGroup, TextField} from '@mui/material';
+import '../../css/association-ui.css';
+import PortraitDropper from '../portraitdropper/PortraitDropper';
 
 const AssociationUI = (props) => {
   const [caseSensitive, setCaseSensitive] = useState(!props.association ? false : props.association.details.case_sensitive);
@@ -19,35 +20,8 @@ const AssociationUI = (props) => {
     props.onClose();
   };
 
-  const onDrop = useCallback((acceptedFiles) => {
-    acceptedFiles.forEach((file) => {
-      const reader = new FileReader();
-      reader.onabort = () => console.log('file reading was aborted');
-      reader.onerror = () => console.log('file reading has failed');
-      reader.onload = () => {
-        const formData = new FormData();
-        formData.append('file', file);
-        fetch('/api/stories/' + props.story + '/associations/' + props.association.association_name + '/upload?type=' + props.association.association_type,
-            {method: 'PUT', body: formData}
-        ).then((response) => {
-          if (response.ok) {
-            return response.json();
-          }
-          throw new Error('Fetch problem image upload ' + response.status);
-        }).then((data) => {
-          setImageURL(data.url + '?date='+Date.now());
-          onAssociationEdit(data.url, 'portrait');
-        }).catch((error) => console.error(error));
-      };
-      reader.readAsArrayBuffer(file);
-    });
-  }, [props]);
-  const {getRootProps, getInputProps, isDragActive} = useDropzone({onDrop});
-
-
   useEffect(() => {
     if (props.association) {
-      console.log('initial', props.association);
       setHeaderLabel(props.association.association_type[0].toUpperCase() + props.association.association_type.slice(1) +':');
       setCaseSensitive(props.association.details.case_sensitive);
       setName(props.association.association_name);
@@ -96,16 +70,36 @@ const AssociationUI = (props) => {
       props.onEditCallback(newAssociation);
     }
   };
+
+  const processImage = (acceptedFiles) => {
+      acceptedFiles.forEach((file) => {
+          const reader = new FileReader();
+          reader.onabort = () => console.log('file reading was aborted');
+          reader.onerror = () => console.log('file reading has failed');
+          reader.onload = () => {
+              const formData = new FormData();
+              formData.append('file', file);
+              fetch('/api/stories/' + props.story + '/associations/' + props.association.association_name + '/upload?type=' + props.association.association_type,
+                  {method: 'PUT', body: formData}
+              ).then((response) => {
+                  if (response.ok) {
+                      return response.json();
+                  }
+                  throw new Error('Fetch problem image upload ' + response.status);
+              }).then((data) => {
+                  setImageURL(data.url + '?date='+Date.now());
+                  onAssociationEdit(data.url, 'portrait');
+              }).catch((error) => console.error(error));
+          };
+          reader.readAsArrayBuffer(file);
+      });
+  }
+
   return (
     <Backdrop onClick={handleClose} open={props.open} className="association-ui-bg">
       <div className="association-ui-container" onClick={(e)=>{e.stopPropagation();}}>
         <div className="column">
-          <figure className="portrait">
-            <span {...getRootProps()}>
-              <img src={imageURL} alt={name} title={name}/>
-              <figcaption>Drop an image over the portrait to replace, or click here<input {...getInputProps()}/></figcaption>
-            </span>
-          </figure>
+          <PortraitDropper imageURL={imageURL} name={name} onComplete={processImage}/>
         </div>
         <div className="column">
           <div className="association-details">
