@@ -294,7 +294,7 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	portraitURL := "https://" + S3_CUSTOM_PORTRAIT_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
-	if err = dao.UpdatePortraitEntryInDB(email, storyOrSeries, associationName, portraitURL); err != nil {
+	if err = dao.UpdateAssociationPortraitEntryInDB(email, storyOrSeries, associationName, portraitURL); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

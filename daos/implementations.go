@@ -518,7 +518,6 @@ func (d *DAO) WriteAssociations(email, storyOrSeriesTitle string, associations [
 		for i, item := range batch {
 			imgFile := item.Portrait
 			if imgFile == "" {
-				rand.Seed(time.Now().UnixNano())
 				switch item.Type {
 				case "character":
 					imageFileName := rand.Intn(MAX_DEFAULT_PORTRAIT_IMAGES-1) + 1
@@ -594,7 +593,7 @@ func (d *DAO) WriteAssociations(email, storyOrSeriesTitle string, associations [
 	return
 }
 
-func (d *DAO) UpdatePortraitEntryInDB(email, story, associationName, url string) (err error) {
+func (d *DAO) UpdateAssociationPortraitEntryInDB(email, story, associationName, url string) (err error) {
 	key := map[string]types.AttributeValue{
 		"association_name":     &types.AttributeValueMemberS{Value: associationName},
 		"story_or_series_name": &types.AttributeValueMemberS{Value: story},
@@ -646,10 +645,11 @@ func (d *DAO) CreateStory(email string, story models.Story) (err error) {
 	fmt.Println("creating story", story)
 	twii := &dynamodb.TransactWriteItemsInput{}
 	now := strconv.FormatInt(time.Now().Unix(), 10)
-	sqlString := "set description=:descr, created_at=:t"
+	sqlString := "set description=:descr, created_at=:t, imageURL=:u"
 	attributes := map[string]types.AttributeValue{
 		":descr": &types.AttributeValueMemberS{Value: story.Description},
 		":t":     &types.AttributeValueMemberN{Value: now},
+		":u":     &types.AttributeValueMemberS{Value: story.PortraitURL},
 	}
 	if story.Series != "" {
 		sqlString = "set description=:descr, series=:srs, created_at=:t"
@@ -1216,6 +1216,7 @@ func (d *DAO) hardDeleteStory(email, storyTitle, seriesTitle string) error {
 			return err
 		}
 	}
+	//TO-DO delete images from s3
 	return nil
 }
 

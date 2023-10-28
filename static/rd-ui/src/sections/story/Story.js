@@ -64,7 +64,7 @@ const Story = (props) => {
   };
 
   const editHoverText = props.series ? 'Edit Series' : 'Edit Story';
-  const iconUrl = props.series ? '/img/icons/story_series_icon.jpg' : '/img/icons/story_standalone_icon.jpg';
+  //const iconUrl = props.series ? '/img/icons/story_series_icon.jpg' : '/img/icons/story_standalone_icon.jpg';
   const deleteHoverText = props.series ? 'Delete Series Volume' : 'Delete Story';
 
   const addToSeries = (event) => {
@@ -75,7 +75,7 @@ const Story = (props) => {
         !wasDeleted ?
             <button className="doc-button" onClick={ !props.series ? (e)=>handleClick(e, props.title) : ()=>{}}>
               <div>
-                <img src={iconUrl} alt={props.title}/>
+                <img src={props.portrait} alt={props.title}/>
                 <div className="story-label">
                   <span className="title">{props.title}</span>
                   <span className="buttons">

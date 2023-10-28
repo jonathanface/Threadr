@@ -41,11 +41,7 @@
     flex:1;
 }
 
-.portrait-dropper .portrait img {
-    max-width:100%;
-    border-radius:15px;
-    filter:drop-shadow(4px 4px 4px #1a1a1a);
-}
+
 
 .association-ui-container .association-details {
     text-align:left;

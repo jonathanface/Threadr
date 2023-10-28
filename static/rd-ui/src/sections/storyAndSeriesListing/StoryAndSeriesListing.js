@@ -26,14 +26,19 @@ const StoryAndSeriesListing = () => {
       }).then((data) => {
         const seriesStoriesFromDB = new Map();
         data.forEach((series) => {
-          seriesStoriesFromDB.set(series.series_title, []);
+          seriesStoriesFromDB.set(series.series_title, {});
+          seriesStoriesFromDB.get(series.series_title).listings = [];
+          seriesStoriesFromDB.get(series.series_title).image = series.portrait_url.length ? series.portrait_url : '/img/icons/story_series_icon.jpg';
+          //
           if (series.stories) {
             series.stories.forEach((story) => {
-              seriesStoriesFromDB.get(series.series_title).push({
+              const img = story.portrait_url.length ? story.portrait_url : '/img/icons/story_icon.jpg';
+              seriesStoriesFromDB.get(series.series_title).listings.push({
                 volume: story.title,
                 place: story.place,
                 created_at: story.created_at,
-                description: story.description
+                description: story.description,
+                image: img
               });
             });
           }
@@ -51,9 +56,11 @@ const StoryAndSeriesListing = () => {
         throw new Error('Fetch problem stories ' + response.status);
       }).then((data) => {
         const storiesFromDB = data.map((story) => {
+          const img = story.portrait_url.length ? story.portrait_url : '/img/icons/story_standalone_icon.jpg';
           return {
             title: story.title,
             description: story.description,
+            image: img,
             created_at: story.created_at,
             chapter: story.chapters
           };
@@ -81,11 +88,12 @@ const StoryAndSeriesListing = () => {
   // If there are works, we prepare our series and stories components.
   const seriesComponents = [...seriesGroups.keys()].map((series) => {
     const entries = seriesGroups.get(series);
-    return <Story key={series} series={true} title={series} data={entries} />;
+    console.log("entry", entries);
+    return <Story key={series} series={true} title={series} data={entries.listings} portrait={entries.image} />;
   });
 
   const storyComponents = stories.map((story) => {
-    return <Story key={story.title} series={false} title={story.title} description={story.description} />;
+    return <Story key={story.title} series={false} title={story.title} description={story.description} portrait={story.image} />;
   });
 
   let content = <div/>;

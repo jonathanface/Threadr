@@ -21,7 +21,7 @@ type DaoInterface interface {
 	ResetBlockOrder(email, story string, storyBlocks *models.StoryBlocks) error
 	WriteBlocks(email, story string, storyBlocks *models.StoryBlocks) error
 	WriteAssociations(email, story string, associations []*models.Association) error
-	UpdatePortraitEntryInDB(email, story, associationName, url string) error
+	UpdateAssociationPortraitEntryInDB(email, story, associationName, url string) error
 	AddCustomerID(email, customerID *string) error
 	AddSubscriptionID(email, subscriptionID *string) error
 

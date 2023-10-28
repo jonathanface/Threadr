@@ -4,12 +4,15 @@ import (
 	"RichDocter/converters"
 	"RichDocter/daos"
 	"RichDocter/models"
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -69,7 +72,7 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
-	// this should be transactified
+	fmt.Println("hit create endpoint")
 	var (
 		email string
 		err   error
@@ -80,27 +83,90 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	const maxFileSize = 1024 * 1024 // 1 MB
+	// image upload
+	err = r.ParseMultipartForm(10 << 20)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, "Unable to parse file")
+		return
+	}
 
-	decoder := json.NewDecoder(r.Body)
-	story := models.Story{}
-	if err := decoder.Decode(&story); err != nil {
-		RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
+	file, handler, err := r.FormFile("file")
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	story.Title = strings.TrimSpace(story.Title)
-	if story.Title == "" {
-		RespondWithError(w, http.StatusBadRequest, "Missing story name")
+	defer file.Close()
+
+	if handler.Size > maxFileSize {
+		RespondWithError(w, http.StatusBadRequest, "Filesize must be < 1MB")
 		return
 	}
-	story.Description = strings.TrimSpace(story.Description)
-	if story.Description == "" {
-		RespondWithError(w, http.StatusBadRequest, "Missing story description")
+	allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
+	fileBytes := make([]byte, handler.Size)
+	if _, err := file.Read(fileBytes); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	fileType := http.DetectContentType(fileBytes)
+	fmt.Println("filetype", fileType)
+	allowed := false
+	for _, t := range allowedTypes {
+		if fileType == t {
+			allowed = true
+			break
+		}
+	}
+	if !allowed {
+		RespondWithError(w, http.StatusBadRequest, "Invalid file type")
+		return
+	}
+
 	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
+
+	story := models.Story{}
+	story.Title = strings.TrimSpace(r.FormValue("title"))
+	if story.Title == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing story name")
+		return
+	}
+	story.Description = strings.TrimSpace(r.FormValue("description"))
+	if story.Description == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing story description")
+		return
+	}
+
+	reader := bytes.NewReader(fileBytes)
+	ext := filepath.Ext(handler.Filename)
+
+	safeStory := strings.ToLower(strings.ReplaceAll(story.Title, " ", "-"))
+	safeEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
+	filename := safeEmail + "_" + safeStory + ext
+
+	var awsCfg aws.Config
+	fmt.Println("wtf", os.Getenv("AWS_REGION"), filename, ext, fileType, handler.Filename)
+	if awsCfg, err = config.LoadDefaultConfig(context.TODO(), func(opts *config.LoadOptions) error {
+		opts.Region = os.Getenv("AWS_REGION")
+		return nil
+	}); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	s3Client := s3.NewFromConfig(awsCfg)
+	if _, err = s3Client.PutObject(context.Background(), &s3.PutObjectInput{
+		Bucket:      aws.String(S3_STORY_IMAGE_BUCKET),
+		Key:         aws.String(filename),
+		Body:        reader,
+		ContentType: aws.String(fileType),
+	}); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	story.PortraitURL = "https://" + S3_STORY_IMAGE_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
+	fmt.Println("story portrait", story.PortraitURL)
 	if err = dao.CreateStory(email, story); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)

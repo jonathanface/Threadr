@@ -25,9 +25,11 @@ const CreateNewStory = () => {
   const dispatch = useDispatch();
   const initMap = new Map();
   initMap['place'] = 1;
-  const [formInput, setFormInput] = React.useState(initMap);
-  const [areErrors, setAreErrors] = React.useState(false);
-  const [currentError, setCurrentError] = React.useState('');
+  const [formInput, setFormInput] = useState(initMap);
+  const [areErrors, setAreErrors] = useState(false);
+  const [currentError, setCurrentError] = useState('');
+  const [imageURL, setImageURL] = useState();
+  const defaultImageURL = 'img/icons/story_standalone_icon.jpg'
 
   const handleClose = () => {
     dispatch(flipCreatingNewStoryState());
@@ -63,15 +65,72 @@ const CreateNewStory = () => {
           console.error('get series', error);
         });
   };
+
+  const getDefaultImage = () => { 
+    const randomImageURL = "https://picsum.photos/300";
+    fetch(randomImageURL).then((response) => {
+      if (response.ok) {
+        console.log("setting img url to", response.url);
+        setImageURL(response.url);
+      } else {
+        setImageURL(defaultImageURL);
+      }
+      updateFormImage();
+    }).catch((error) => {
+      console.error(error);
+    });
+  }
+
+  const getBlobExtension = (mimeType) => {
+    console.log("ext for", mimeType);
+    switch (mimeType) {
+        case 'image/jpeg':
+            return '.jpg';
+        case 'image/png':
+            return '.png';
+        case 'image/gif':
+            return '.gif';
+        default:
+            return '';
+    }
+}
+  const updateFormImage = async() => {
+    console.log("fetching", imageURL);
+    fetch(imageURL, {
+      headers: {
+        'Accept': 'image/*'
+      },
+    }).then(response => response.blob()).then(blob => {
+      
+      console.log("blob types", blob.type); // This should now be something like 'image/jpeg' if it's an image
+      const fd = new FormData();
+      fd.append('file', blob, 'temp'+getBlobExtension(blob.type));
+      setFormInput((prevFormInput) => ({
+        ...prevFormInput, // spread previous form input
+        image: fd, // set new image data
+      }));
+    }).catch(error => {
+        console.error('Fetch operation failed: ', error);
+    });
+    
+  }
   
+  useEffect(() => {
+    if (imageURL) {
+      updateFormImage();
+    }
+  }, [imageURL]);
+
   useEffect(() => {
     if (isLoggedIn && isCreatingNewStory) {
       getSeries();
+      getDefaultImage();
+      setIsInASeries(isAssignedSeries.length ? true : false);
     }
-    setIsInASeries(isAssignedSeries.length ? true : false);
   }, [isLoggedIn, isCreatingNewStory, isAssignedSeries]);
 
   const handleSubmit = () => {
+    console.log("sending...", formInput);
     if (!formInput['title'] || !formInput['title'].trim().length) {
       setCurrentError('Title cannot be blank');
       setAreErrors(true);
@@ -89,12 +148,17 @@ const CreateNewStory = () => {
     }
     setCurrentError('');
     setAreErrors(false);
+
+    const formData = formInput.image; 
+    for (const key in formInput) {
+      if (key !== 'image' && formInput.hasOwnProperty(key)) {
+        formData.append(key, formInput[key]);
+      }
+    }
+
     fetch('/api/stories', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(formInput)
+      body: formData
     }).then((response) => {
       if (response.ok) {
         const newStoryTitle = formInput['title'];
@@ -129,21 +193,14 @@ const CreateNewStory = () => {
     acceptedFiles.forEach((file) => {
         const reader = new FileReader();
         reader.onabort = () => console.log('file reading was aborted');
-        reader.onerror = () => console.log('file reading has failed');
+        reader.onerror = () => console.error('file reading has failed');
         reader.onload = () => {
-            const formData = new FormData();
-            formData.append('file', file);
-            fetch('/api/stories/' + props.story + '/associations/' + props.association.association_name + '/upload?type=' + props.association.association_type,
-                {method: 'PUT', body: formData}
-            ).then((response) => {
-                if (response.ok) {
-                    return response.json();
-                }
-                throw new Error('Fetch problem image upload ' + response.status);
-            }).then((data) => {
-                setImageURL(data.url + '?date='+Date.now());
-                onAssociationEdit(data.url, 'portrait');
-            }).catch((error) => console.error(error));
+            const newFormData = new FormData();
+            newFormData.append('file', file, 'temp'+getBlobExtension(file.type));
+            setFormInput((prevFormInput) => ({
+              ...prevFormInput, // spread previous form input
+              image: newFormData, // set new image data
+            }));
        };
        reader.readAsArrayBuffer(file);
     });
@@ -161,11 +218,13 @@ const CreateNewStory = () => {
             }}>
             <div>
             <h3>Image for Your Story</h3>
-                <PortraitDropper imageURL="https://picsum.photos/300" name="New Story" onComplete={processImage}/>
+                <PortraitDropper imageURL={imageURL} name="New Story" onComplete={processImage}/>
               <TextField
                 onChange={(event) => {
-                  formInput['title'] = event.target.value;
-                  setFormInput(formInput);
+                  setFormInput(prevFormInput => ({
+                    ...prevFormInput,
+                    title: event.target.value
+                  }));
                 }}
                 autoFocus
                 label="Title"
@@ -175,8 +234,10 @@ const CreateNewStory = () => {
             <div>
               <TextField
                 onChange={(event) => {
-                  formInput['description'] = event.target.value;
-                  setFormInput(formInput);
+                  setFormInput(prevFormInput => ({
+                    ...prevFormInput,
+                    description: event.target.value
+                  }));
                 }}
                 label="Description"
                 helperText="Cannot be blank"
@@ -199,15 +260,19 @@ const CreateNewStory = () => {
                   value={isAssignedSeries}
                   onInputChange={(event) => {
                     if (event) {
-                      formInput['series'] = event.target.value;
-                      setFormInput(formInput);
+                      setFormInput(prevFormInput => ({
+                        ...prevFormInput,
+                        series: event.target.value
+                      }));
                     }
                     
                   }}
                   onChange={(event, actions) => {
                     if (event) {
-                      formInput['series'] = actions.id;
-                      setFormInput(formInput);
+                      setFormInput(prevFormInput => ({
+                        ...prevFormInput,
+                        series: actions.id
+                      }));
                     }
                   }}
                   freeSolo
@@ -217,11 +282,7 @@ const CreateNewStory = () => {
               </div> :
             ''
             }
-            {
-            areErrors ?
-              <div id="error_report" className="form-error">{currentError}</div> :
-            ''
-            }
+            {areErrors && <div id="error_report" className="form-error">{currentError}</div>}
           </Box>
         </DialogContent>
         <DialogActions>

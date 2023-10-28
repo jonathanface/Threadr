@@ -1,5 +1,9 @@
 .portrait-dropper {
     width:300px;
+    margin:8px;
+}
+.portrait-dropper .portrait {
+    margin:0;
 }
 .portrait-dropper .portrait img {
     max-width:100%;

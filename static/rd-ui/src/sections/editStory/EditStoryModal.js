@@ -75,10 +75,12 @@ const EditStory = () => {
         acceptedFiles.forEach((file) => {
             const reader = new FileReader();
             reader.onabort = () => console.log('file reading was aborted');
-            reader.onerror = () => console.log('file reading has failed');
+            reader.onerror = () => console.error('file reading has failed');
             reader.onload = () => {
                 const formData = new FormData();
                 formData.append('file', file);
+                
+                /*
                 fetch('/api/stories/' + props.story + '/associations/' + props.association.association_name + '/upload?type=' + props.association.association_type,
                     {method: 'PUT', body: formData}
                 ).then((response) => {
@@ -89,7 +91,7 @@ const EditStory = () => {
                 }).then((data) => {
                     setImageURL(data.url + '?date='+Date.now());
                     onAssociationEdit(data.url, 'portrait');
-                }).catch((error) => console.error(error));
+                }).catch((error) => console.error(error));*/
            };
            reader.readAsArrayBuffer(file);
         });

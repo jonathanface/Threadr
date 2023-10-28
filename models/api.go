@@ -50,6 +50,7 @@ type Story struct {
 	Series      string    `json:"series" dynamodbav:"series"`
 	Chapters    []Chapter `json:"chapters"`
 	Place       int       `json:"place"`
+	PortraitURL string    `json:"portrait_url" dynamodbav:"imageURL"`
 }
 type BlocksData struct {
 	LastEvaluated map[string]types.AttributeValue   `json:"last_evaluated_key"`
@@ -67,6 +68,7 @@ type Series struct {
 	Stories     []*Story  `json:"stories"`
 	CreatedAt   time.Time `json:"created_at" dynamodbav:"created_at"`
 	Place       int       `json:"place" dynamodbav:"place"`
+	PortraitURL string    `json:"portrait_url" dynamodbav:"imageURL"`
 }
 
 type UserInfo struct {
