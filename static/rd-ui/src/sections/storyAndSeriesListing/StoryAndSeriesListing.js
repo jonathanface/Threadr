@@ -88,7 +88,6 @@ const StoryAndSeriesListing = () => {
   // If there are works, we prepare our series and stories components.
   const seriesComponents = [...seriesGroups.keys()].map((series) => {
     const entries = seriesGroups.get(series);
-    console.log("entry", entries);
     return <Story key={series} series={true} title={series} data={entries.listings} portrait={entries.image} />;
   });
 

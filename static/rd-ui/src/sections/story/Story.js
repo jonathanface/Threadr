@@ -37,6 +37,7 @@ const Story = (props) => {
     }
     newProps.series = props.series;
     newProps.seriesTitle = props.series ? props.title : "";
+    newProps.portrait = props.portrait;
     dispatch(setStoryEditables(newProps));
     dispatch(flipEditingStoryState());
   }
@@ -64,13 +65,13 @@ const Story = (props) => {
   };
 
   const editHoverText = props.series ? 'Edit Series' : 'Edit Story';
-  //const iconUrl = props.series ? '/img/icons/story_series_icon.jpg' : '/img/icons/story_standalone_icon.jpg';
   const deleteHoverText = props.series ? 'Delete Series Volume' : 'Delete Story';
 
   const addToSeries = (event) => {
     event.preventDefault();
     dispatch(flipCreatingNewStoryState(props.title));
   }
+  
   return (
         !wasDeleted ?
             <button className="doc-button" onClick={ !props.series ? (e)=>handleClick(e, props.title) : ()=>{}}>

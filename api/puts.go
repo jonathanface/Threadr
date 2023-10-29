@@ -19,6 +19,50 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
+
+	var (
+		originalStoryTitle string
+		//email              string
+		err error
+		//dao                daos.DaoInterface
+		//ok                 bool
+	)
+	if originalStoryTitle, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
+		return
+	}
+	if originalStoryTitle == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing story ID")
+		return
+	}
+
+	story := models.Story{}
+	if len(strings.TrimSpace(r.FormValue("title"))) > 0 {
+		story.Title = strings.TrimSpace(r.FormValue("title"))
+		if story.Title == "" {
+			RespondWithError(w, http.StatusBadRequest, "Missing story name")
+			return
+		}
+	} else {
+		story.Title = originalStoryTitle
+	}
+
+	if len(strings.TrimSpace(r.FormValue("description"))) > 0 {
+		story.Description = strings.TrimSpace(r.FormValue("description"))
+		if story.Description == "" {
+			RespondWithError(w, http.StatusBadRequest, "Missing story description")
+			return
+		}
+	}
+
+	// if email, err = getUserEmail(r); err != nil {
+	// 	RespondWithError(w, http.StatusInternalServerError, err.Error())
+	// 	return
+	// }
+	RespondWithJson(w, http.StatusOK, story.Title)
+}
+
 func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		email string

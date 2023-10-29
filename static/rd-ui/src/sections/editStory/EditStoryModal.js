@@ -28,6 +28,13 @@ const EditStory = () => {
     const editables = useSelector((state) => state.isEditingStory.editables);
     const [isInASeries, setIsInASeries] = useState(editables.series);
 
+    const resetForm = () => {
+      setFormInput(initMap);
+      setAreErrors(false);
+      setCurrentError("");
+      setIsInASeries(false);
+    }
+
     const getSeries = () => {
         fetch('/api/series').then((response) => {
             if (response.ok) {
@@ -54,6 +61,7 @@ const EditStory = () => {
     };
 
     const handleClose = () => {
+        resetForm();
         dispatch(flipEditingStoryState());
     };
 
@@ -69,35 +77,95 @@ const EditStory = () => {
     }, [isLoggedIn, isEditingStory, editables.series]);
     
     const handleSubmit = () => {
+      if (!formInput['title'] || !formInput['title'].trim().length) {
+        setCurrentError('Title cannot be blank');
+        setAreErrors(true);
+        return;
+      }
+      if (!formInput['description'] || !formInput['description'].trim().length) {
+        setCurrentError('Description cannot be blank');
+        setAreErrors(true);
+        return;
+      }
+      if (formInput['series'] && formInput['place'] < 1) {
+        setCurrentError('Place must be > 1 when assigning to a series');
+        setAreErrors(true);
+        return;
+      }
+
+      const formData = formInput.image; 
+      for (const key in formInput) {
+        if (key !== 'image' && formInput.hasOwnProperty(key)) {
+          formData.append(key, formInput[key]);
+        }
+      }
+
+      setCurrentError('');
+      setAreErrors(false);
+  
+
+      fetch('/api/stories/' + editables.title + '/details', {
+        method: 'PUT',
+        body: formData
+      }).then((response) => {
+        if (response.ok) {
+          setTimeout(() => {
+            handleClose();
+          }, 1000);
+        } else {
+          
+
+          if (response.status === 401) {
+            dispatch(setAlertMessage('inadequate subscription'));
+            dispatch(setAlertSeverity('error'));
+            dispatch(setAlertOpen(true));
+            handleClose();
+            return;
+          }
+          if (response.status === 409) {
+            setCurrentError("A story by that name already exists. All stories must be uniquely titled.");
+            setAreErrors(true);
+            return;
+          }
+          setCurrentError("Unable to create a story at this time. Please try again later.");
+          setAreErrors(true);
+        }
+      });
+    }
+
+
+    const storyTitle = editables.title ? editables.title : "Unknown Story";
+
+    const getBlobExtension = (mimeType) => {
+      console.log("ext for", mimeType);
+      switch (mimeType) {
+          case 'image/jpeg':
+              return '.jpg';
+          case 'image/png':
+              return '.png';
+          case 'image/gif':
+              return '.gif';
+          default:
+              return '';
+      }
     }
 
     const processImage = (acceptedFiles) => {
-        acceptedFiles.forEach((file) => {
-            const reader = new FileReader();
-            reader.onabort = () => console.log('file reading was aborted');
-            reader.onerror = () => console.error('file reading has failed');
-            reader.onload = () => {
-                const formData = new FormData();
-                formData.append('file', file);
-                
-                /*
-                fetch('/api/stories/' + props.story + '/associations/' + props.association.association_name + '/upload?type=' + props.association.association_type,
-                    {method: 'PUT', body: formData}
-                ).then((response) => {
-                    if (response.ok) {
-                        return response.json();
-                    }
-                    throw new Error('Fetch problem image upload ' + response.status);
-                }).then((data) => {
-                    setImageURL(data.url + '?date='+Date.now());
-                    onAssociationEdit(data.url, 'portrait');
-                }).catch((error) => console.error(error));*/
-           };
-           reader.readAsArrayBuffer(file);
-        });
+      acceptedFiles.forEach((file) => {
+          const reader = new FileReader();
+          reader.onabort = () => console.log('file reading was aborted');
+          reader.onerror = () => console.error('file reading has failed');
+          reader.onload = () => {
+              const newFormData = new FormData();
+              newFormData.append('file', file, 'temp'+getBlobExtension(file.type));
+              setFormInput((prevFormInput) => ({
+                ...prevFormInput, // spread previous form input
+                image: newFormData, // set new image data
+              }));
+         };
+         reader.readAsArrayBuffer(file);
+      });
     }
-
-    const storyTitle = editables.title ? editables.title : "Unknown Story";
 
     return (
         <div>
@@ -110,28 +178,32 @@ const EditStory = () => {
                   '& .MuiTextField-root': {m: 1, width: 300},
                 }}>
                 <h3>Image for {storyTitle}</h3>
-                <PortraitDropper imageURL="https://picsum.photos/300" name={storyTitle} onComplete={processImage}/>
+                <PortraitDropper imageURL={editables.portrait} name={storyTitle} onComplete={processImage}/>
                 <div>
                   <TextField
                     onChange={(event) => {
-                      formInput['title'] = event.target.value;
-                      setFormInput(formInput);
+                      setFormInput(prevFormInput => ({
+                        ...prevFormInput,
+                        title: event.target.value
+                      }));
                     }}
                     autoFocus
                     label="Title"
-                    value={editables.title}
+                    defaultValue={editables.title}
                     helperText="Cannot be blank"
                   />
                 </div>
                 <div>
                   <TextField
                     onChange={(event) => {
-                      formInput['description'] = event.target.value;
-                      setFormInput(formInput);
+                      setFormInput(prevFormInput => ({
+                        ...prevFormInput,
+                        description: event.target.value
+                      }));
                     }}
                     label="Description"
                     helperText="Cannot be blank"
-                    value={editables.description}
+                    defaultValue={editables.description}
                     multiline
                     maxRows={4}
                   />
@@ -150,14 +222,18 @@ const EditStory = () => {
                     <Autocomplete
                       onInputChange={(event) => {
                         if (event) {
-                            formInput['series'] = event.target.value;
-                            setFormInput(formInput);
+                          setFormInput(prevFormInput => ({
+                            ...prevFormInput,
+                            series: event.target.value
+                          }));
                         }
                       }}
                       onChange={(event, actions) => {
                         if (event && actions) {
-                            formInput['series'] = actions.id;
-                            setFormInput(formInput);
+                          setFormInput(prevFormInput => ({
+                            ...prevFormInput,
+                            series: actions.id
+                          }));
                         }
                       }}
                       freeSolo
@@ -177,7 +253,7 @@ const EditStory = () => {
             </DialogContent>
             <DialogActions>
               <Button onClick={handleClose}>Cancel</Button>
-              <Button onClick={handleSubmit}>Create</Button>
+              <Button onClick={handleSubmit}>Update</Button>
             </DialogActions>
           </Dialog>
         </div>

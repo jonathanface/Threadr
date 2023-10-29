@@ -31,7 +31,15 @@ const CreateNewStory = () => {
   const [imageURL, setImageURL] = useState();
   const defaultImageURL = 'img/icons/story_standalone_icon.jpg'
 
+  const resetForm = () => {
+    setFormInput(initMap);
+    setAreErrors(false);
+    setCurrentError("");
+    setIsInASeries(false);
+  }
+
   const handleClose = () => {
+    resetForm();
     dispatch(flipCreatingNewStoryState());
   };
 
@@ -93,16 +101,14 @@ const CreateNewStory = () => {
         default:
             return '';
     }
-}
+  }
+
   const updateFormImage = async() => {
-    console.log("fetching", imageURL);
     fetch(imageURL, {
       headers: {
         'Accept': 'image/*'
       },
     }).then(response => response.blob()).then(blob => {
-      
-      console.log("blob types", blob.type); // This should now be something like 'image/jpeg' if it's an image
       const fd = new FormData();
       fd.append('file', blob, 'temp'+getBlobExtension(blob.type));
       setFormInput((prevFormInput) => ({
@@ -112,7 +118,6 @@ const CreateNewStory = () => {
     }).catch(error => {
         console.error('Fetch operation failed: ', error);
     });
-    
   }
   
   useEffect(() => {
@@ -130,7 +135,6 @@ const CreateNewStory = () => {
   }, [isLoggedIn, isCreatingNewStory, isAssignedSeries]);
 
   const handleSubmit = () => {
-    console.log("sending...", formInput);
     if (!formInput['title'] || !formInput['title'].trim().length) {
       setCurrentError('Title cannot be blank');
       setAreErrors(true);
@@ -166,8 +170,7 @@ const CreateNewStory = () => {
         const history = window.history;
         history.pushState({newStoryTitle}, 'created new story', '/story/' + encodeURIComponent(newStoryTitle) + '?chapter=1');
         setTimeout(() => {
-          setIsInASeries(false);
-          dispatch(flipCreatingNewStoryState());
+          handleClose();
         }, 1000);
       } else {
         console.log("resp", response);
@@ -265,7 +268,6 @@ const CreateNewStory = () => {
                         series: event.target.value
                       }));
                     }
-                    
                   }}
                   onChange={(event, actions) => {
                     if (event) {

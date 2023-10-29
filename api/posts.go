@@ -72,7 +72,6 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("hit create endpoint")
 	var (
 		email string
 		err   error
@@ -147,7 +146,6 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	filename := safeEmail + "_" + safeStory + ext
 
 	var awsCfg aws.Config
-	fmt.Println("wtf", os.Getenv("AWS_REGION"), filename, ext, fileType, handler.Filename)
 	if awsCfg, err = config.LoadDefaultConfig(context.TODO(), func(opts *config.LoadOptions) error {
 		opts.Region = os.Getenv("AWS_REGION")
 		return nil
@@ -166,7 +164,6 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	story.PortraitURL = "https://" + S3_STORY_IMAGE_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
-	fmt.Println("story portrait", story.PortraitURL)
 	if err = dao.CreateStory(email, story); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
