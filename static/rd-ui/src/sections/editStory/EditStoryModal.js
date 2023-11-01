@@ -10,13 +10,13 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import TextField from '@mui/material/TextField';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { flipEditingStoryState } from '../../stores/editingStorySlice';
+import { flipEditingStory, setSeriesList, setStandaloneList } from '../../stores/storiesSlice';
 import PortraitDropper from '../portraitdropper/PortraitDropper';
 
 const EditStory = () => {
     
     const [series, setSeries] = useState([]);
-    const isEditingStory = useSelector((state) => state.isEditingStory.isOpen);
+    const isEditingStory = useSelector((state) => state.stories.isEditing);
     const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
     const dispatch = useDispatch();
 
@@ -25,8 +25,10 @@ const EditStory = () => {
     const [areErrors, setAreErrors] = React.useState(false);
     const [currentError, setCurrentError] = React.useState('');
 
-    const editables = useSelector((state) => state.isEditingStory.editables);
+    const editables = useSelector((state) => state.stories.editables);
     const [isInASeries, setIsInASeries] = useState(editables.series);
+    const seriesList = useSelector((state) => state.stories.seriesList);
+    const standaloneList = useSelector((state) => state.stories.standaloneList);
 
     const resetForm = () => {
       setFormInput(initMap);
@@ -62,7 +64,7 @@ const EditStory = () => {
 
     const handleClose = () => {
         resetForm();
-        dispatch(flipEditingStoryState());
+        dispatch(flipEditingStory());
     };
 
     const toggleSeries = () => {
@@ -74,7 +76,16 @@ const EditStory = () => {
             getSeries();
         }
         setIsInASeries(editables.series);
-    }, [isLoggedIn, isEditingStory, editables.series]);
+    }, [isLoggedIn, isEditingStory, editables.series, editables]);
+
+    useEffect(() => {
+      setFormInput(prevFormInput => ({
+        ...prevFormInput,
+        description: editables.description,
+        title: editables.title,
+        series: editables.series
+      }));
+    }, [editables.description, editables.title, editables.series])
     
     const handleSubmit = () => {
       if (!formInput['title'] || !formInput['title'].trim().length) {
@@ -92,23 +103,37 @@ const EditStory = () => {
         setAreErrors(true);
         return;
       }
-
-      const formData = formInput.image; 
+      if (formInput['series'] == false) {
+        delete formInput['series'];
+      }
+      const formData = new FormData()
       for (const key in formInput) {
-        if (key !== 'image' && formInput.hasOwnProperty(key)) {
+        if (formInput.hasOwnProperty(key)) {
           formData.append(key, formInput[key]);
         }
       }
-
       setCurrentError('');
       setAreErrors(false);
-  
 
       fetch('/api/stories/' + editables.title + '/details', {
         method: 'PUT',
         body: formData
       }).then((response) => {
         if (response.ok) {
+          // todo switching story from series to standalone
+          if (formInput.series) {
+            const ind = seriesList.findIndex(obj => obj.title === editables.title)
+            seriesList[ind].title = formInput.title;
+            seriesList[ind].description = formInput.description;
+            seriesList[ind].image = formInput.image;
+            dispatch(setSeriesList(standaloneList));
+          } else {
+            const ind = standaloneList.findIndex(obj => obj.title === editables.title)
+            standaloneList[ind].title = formInput.title;
+            standaloneList[ind].description = formInput.description;
+            standaloneList[ind].image = formInput.image;
+            dispatch(setStandaloneList(standaloneList));
+          }
           setTimeout(() => {
             handleClose();
           }, 1000);

@@ -5,11 +5,10 @@ import { IconButton } from '@mui/material';
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import '../../css/story.css';
-import { flipCreatingNewStoryState } from '../../stores/creatingNewStorySlice';
 import { setLoaderVisible } from '../../stores/displayLoaderSlice';
-import { flipEditingStoryState, setStoryEditables } from '../../stores/editingStorySlice';
 import { setSelectedSeries } from '../../stores/selectedSeriesSlice';
 import { setSelectedStoryTitle } from '../../stores/selectedStorySlice';
+import { flipCreatingNewStory, flipEditingStory, setStoryEditables } from '../../stores/storiesSlice';
 import DetailsSlider from './DetailsSlider';
 
 
@@ -39,7 +38,7 @@ const Story = (props) => {
     newProps.seriesTitle = props.series ? props.title : "";
     newProps.portrait = props.portrait;
     dispatch(setStoryEditables(newProps));
-    dispatch(flipEditingStoryState());
+    dispatch(flipEditingStory());
   }
 
   const deleteStory = (event, title) => {
@@ -69,7 +68,7 @@ const Story = (props) => {
 
   const addToSeries = (event) => {
     event.preventDefault();
-    dispatch(flipCreatingNewStoryState(props.title));
+    dispatch(flipCreatingNewStory(props.title));
   }
   
   return (
@@ -111,7 +110,7 @@ const Story = (props) => {
                         </IconButton> :
                         '' }
                     { props.series ?
-                      <IconButton onClick={addToSeries} aria-label="add story to series" sx={{padding:'0', paddingLeft:'5px'}} component="label"  title="Add Story">
+                      <IconButton onClick={addToSeries} aria-label="add story to series" sx={{padding:'0', paddingLeft:'5px'}} component="label"  title="Add Series Volume">
                         <AddIcon sx={{
                           'padding': '0',
                           'color': '#F0F0F0',

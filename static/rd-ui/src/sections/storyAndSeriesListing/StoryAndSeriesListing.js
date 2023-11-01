@@ -3,14 +3,14 @@ import { IconButton } from '@mui/material';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import '../../css/landing-page.css';
-import { flipCreatingNewStoryState } from '../../stores/creatingNewStorySlice';
 import { setLoaderVisible } from '../../stores/displayLoaderSlice';
+import { flipCreatingNewStory, setSeriesList, setStandaloneList } from '../../stores/storiesSlice';
 import Story from '../story/Story';
 
 const StoryAndSeriesListing = () => {
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
-  const [stories, setStories] = useState([]);
-  const [seriesGroups, setSeriesGroups] = useState([]);
+  const storiesList = useSelector((state) => state.stories.standaloneList);
+  const seriesList = useSelector((state) => state.stories.seriesList);
   const dispatch = useDispatch();
   const [seriesLoaded, setSeriesLoaded] = useState(false);
   const [storiesLoaded, setStoriesLoaded] = useState(false);
@@ -43,7 +43,7 @@ const StoryAndSeriesListing = () => {
             });
           }
         });
-        setSeriesGroups(seriesStoriesFromDB);
+        dispatch(setSeriesList(seriesStoriesFromDB));
         setSeriesLoaded(true);
       });
     };
@@ -65,7 +65,7 @@ const StoryAndSeriesListing = () => {
             chapter: story.chapters
           };
         });
-        setStories(storiesFromDB);
+        dispatch(setStandaloneList(storiesFromDB));
         setStoriesLoaded(true);
       });
     };
@@ -81,22 +81,22 @@ const StoryAndSeriesListing = () => {
   }, [isLoggedIn, dispatch, seriesLoaded, storiesLoaded]);
 
   const createNewStory = () => {
-    dispatch(flipCreatingNewStoryState());
+    dispatch(flipCreatingNewStory());
   };
 
   
   // If there are works, we prepare our series and stories components.
-  const seriesComponents = [...seriesGroups.keys()].map((series) => {
-    const entries = seriesGroups.get(series);
+  const seriesComponents = [...seriesList.keys()].map((series) => {
+    const entries = seriesList.get(series);
     return <Story key={series} series={true} title={series} data={entries.listings} portrait={entries.image} />;
   });
 
-  const storyComponents = stories.map((story) => {
+  const storyComponents = storiesList.map((story) => {
     return <Story key={story.title} series={false} title={story.title} description={story.description} portrait={story.image} />;
   });
 
   let content = <div/>;
-  if (seriesLoaded && storiesLoaded && (seriesGroups.size || stories.length)) {
+  if (seriesLoaded && storiesLoaded && (seriesList.size || storiesList.length)) {
     content = (
       <React.Fragment>
         {seriesComponents}

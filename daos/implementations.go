@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"net/url"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -18,11 +19,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/smithy-go"
 	"github.com/joho/godotenv"
 )
 
 const (
+	S3_STORY_BASE_URL           = "https://richdocter-story-portraits.s3.amazonaws.com"
+	S3_SERIES_BASE_URL          = "https://richdocter-series-portraits.s3.amazonaws.com"
 	S3_PORTRAIT_BASE_URL        = "https://richdocterportraits.s3.amazonaws.com/"
 	S3_LOCATION_BASE_URL        = "https://richdocterlocations.s3.amazonaws.com/"
 	S3_EVENT_BASE_URL           = "https://richdocterevents.s3.amazonaws.com/"
@@ -34,6 +38,7 @@ const (
 
 type DAO struct {
 	dynamoClient   *dynamodb.Client
+	s3Client       *s3.Client
 	maxRetries     int
 	capacity       int
 	writeBatchSize int
@@ -66,8 +71,8 @@ func NewDAO() *DAO {
 	}
 	awsCfg.RetryMaxAttempts = maxAWSRetries
 	return &DAO{
-		dynamoClient: dynamodb.NewFromConfig(awsCfg),
-
+		dynamoClient:   dynamodb.NewFromConfig(awsCfg),
+		s3Client:       s3.NewFromConfig(awsCfg),
 		maxRetries:     maxAWSRetries,
 		capacity:       blockTableMinWriteCapacity,
 		writeBatchSize: DYNAMO_WRITE_BATCH_SIZE,
@@ -641,6 +646,170 @@ func (d *DAO) CreateChapter(email, story string, chapter models.Chapter) (err er
 	return
 }
 
+func (d *DAO) waitForTableToGoActive(tableName string, maxRetries int, delayBetweenRetries time.Duration) error {
+	for i := 0; i < maxRetries; i++ {
+		resp, err := d.dynamoClient.DescribeTable(context.TODO(), &dynamodb.DescribeTableInput{
+			TableName: &tableName,
+		})
+		if err != nil {
+			return err
+		}
+
+		if resp.Table.TableStatus == types.TableStatusActive {
+			return nil
+		}
+		time.Sleep(delayBetweenRetries)
+	}
+	return fmt.Errorf("table %s did not become active after %d retries", tableName, maxRetries)
+}
+
+func (d *DAO) copyTableContents(email, srcTableName, destTableName string) error {
+	describeInput := &dynamodb.DescribeTableInput{
+		TableName: &destTableName,
+	}
+	describeResp, err := d.dynamoClient.DescribeTable(context.TODO(), describeInput)
+	var resourceNotFoundErr *types.ResourceNotFoundException
+	if err != nil {
+		fmt.Println("can't access dest table")
+		return err
+	}
+	if err == nil {
+		// The destination table exists, check its status.
+		if describeResp.Table.TableStatus != types.TableStatusActive {
+			// Table exists but is not active, you may need to wait.
+			err = d.waitForTableToGoActive(destTableName, 20, time.Second*1)
+			if err != nil {
+				return fmt.Errorf("destination table %s is not ready: %v", destTableName, err)
+			}
+		}
+	} else if !errors.As(err, &resourceNotFoundErr) {
+		// Other error other than not found, fail the operation.
+		return fmt.Errorf("error checking status of destination table %s: %v", destTableName, err)
+	}
+
+	paginator := dynamodb.NewScanPaginator(d.dynamoClient, &dynamodb.ScanInput{
+		TableName: &srcTableName,
+	})
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(context.TODO())
+		if err != nil {
+			fmt.Println("paginator", err)
+			return err
+		}
+
+		for _, item := range page.Items {
+			_, err := d.dynamoClient.PutItem(context.TODO(), &dynamodb.PutItemInput{
+				TableName: &destTableName,
+				Item:      item,
+			})
+
+			if err != nil {
+				fmt.Println("rename table put", err)
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (d *DAO) EditStory(email string, story models.Story, originalTitle string, originalSeries string) (err error) {
+	fmt.Println("editing story", story)
+
+	if originalTitle != story.Title {
+		// Update chapters with sort_key = originalTitle
+		// Update associations & association_details with sort_key = story_or_series
+		// rename tables with old story title in name AND story title field
+		// Update stories table with story_title key
+		// soft delete old story
+		chapters, err := d.GetChaptersByStory(email, originalTitle)
+		if err != nil {
+			return err
+		}
+		safeEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
+		originalSafeStory := d.sanitizeTableName(originalTitle)
+		newSafeStory := d.sanitizeTableName(story.Title)
+		for _, chapter := range chapters {
+			err = d.CreateChapter(email, story.Title, chapter)
+			if err != nil {
+				return err
+			}
+			originalTableName := safeEmail + "_" + originalSafeStory + "_" + fmt.Sprint(chapter.ChapterNum) + "_blocks"
+			newTableName := safeEmail + "_" + newSafeStory + "_" + fmt.Sprint(chapter.ChapterNum) + "_blocks"
+			err = d.copyTableContents(email, originalTableName, newTableName)
+			if err != nil {
+				fmt.Println("copy table err", err)
+				return err
+			}
+
+		}
+		useStoryOrSeriesRetrieval := originalTitle
+		if len(originalSeries) > 0 {
+			useStoryOrSeriesRetrieval = originalSeries
+		}
+		useStoryOrSeries := story.Title
+		if len(story.Series) > 0 {
+			useStoryOrSeries = story.Series
+		}
+
+		associations, err := d.GetStoryOrSeriesAssociations(email, useStoryOrSeriesRetrieval)
+		if err != nil {
+			return err
+		}
+
+		if err = d.WriteAssociations(email, useStoryOrSeries, associations); err != nil {
+			if opErr, ok := err.(*smithy.OperationError); !ok {
+				return opErr
+			}
+		}
+
+		createdAtStr := strconv.Itoa(story.CreatedAt)
+		modifiedAtStr := strconv.FormatInt(time.Now().Unix(), 10)
+		fmt.Println("creating entry for", story.Title)
+		item := map[string]types.AttributeValue{
+			"story_title": &types.AttributeValueMemberS{Value: story.Title},
+			"author":      &types.AttributeValueMemberS{Value: email},
+			"description": &types.AttributeValueMemberS{Value: story.Description},
+			"imageURL":    &types.AttributeValueMemberS{Value: story.PortraitURL},
+			"created_at":  &types.AttributeValueMemberN{Value: createdAtStr},
+			"modified_at": &types.AttributeValueMemberN{Value: modifiedAtStr},
+			"place":       &types.AttributeValueMemberN{Value: strconv.Itoa(story.Place)},
+		}
+		if story.Series != "" {
+			item["series"] = &types.AttributeValueMemberS{Value: story.Series}
+		}
+		storyUpdateInput := &dynamodb.PutItemInput{
+			TableName: aws.String("stories"),
+			Item:      item,
+		}
+		_, err = d.dynamoClient.PutItem(context.Background(), storyUpdateInput)
+		if err != nil {
+			return err
+		}
+		return d.SoftDeleteStory(email, originalTitle, "")
+	}
+	modifiedAtStr := strconv.FormatInt(time.Now().Unix(), 10)
+	item := map[string]types.AttributeValue{
+		"story_title": &types.AttributeValueMemberS{Value: story.Title},
+		"author":      &types.AttributeValueMemberS{Value: email},
+		"description": &types.AttributeValueMemberS{Value: story.Description},
+		"imageURL":    &types.AttributeValueMemberS{Value: story.PortraitURL},
+		"modified_at": &types.AttributeValueMemberN{Value: modifiedAtStr},
+		"place":       &types.AttributeValueMemberN{Value: strconv.Itoa(story.Place)},
+	}
+	if story.Series != "" {
+		item["series"] = &types.AttributeValueMemberS{Value: story.Series}
+	}
+	storyUpdateInput := &dynamodb.PutItemInput{
+		TableName: aws.String("stories"),
+		Item:      item,
+	}
+	_, err = d.dynamoClient.PutItem(context.Background(), storyUpdateInput)
+	if err != nil {
+		return err
+	}
+	return
+}
+
 func (d *DAO) CreateStory(email string, story models.Story) (err error) {
 	fmt.Println("creating story", story)
 	twii := &dynamodb.TransactWriteItemsInput{}
@@ -1112,6 +1281,10 @@ func (d *DAO) SoftDeleteStory(email, storyTitle, seriesTitle string) error {
 }
 
 func (d *DAO) hardDeleteStory(email, storyTitle, seriesTitle string) error {
+	originalStory, err := d.GetStoryByName(email, storyTitle)
+	if err != nil {
+		return err
+	}
 	// Delete chapters
 	chapterScanInput := &dynamodb.ScanInput{
 		TableName:        aws.String("chapters"),
@@ -1175,6 +1348,21 @@ func (d *DAO) hardDeleteStory(email, storyTitle, seriesTitle string) error {
 		if err != nil {
 			return err
 		}
+		// delete series portrait image from s3
+		bucketName := "richdocter-series-portraits"
+		parsedPath, err := url.Parse(originalStory.PortraitURL)
+		if err != nil {
+			return err
+		}
+		objectKey := path.Base(parsedPath.Path)
+
+		_, err = d.s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
+			Bucket: &bucketName,
+			Key:    &objectKey,
+		})
+		if err != nil {
+			fmt.Println("DELETE IMAGE ERROR:", err)
+		}
 	}
 
 	// Delete associations
@@ -1215,8 +1403,45 @@ func (d *DAO) hardDeleteStory(email, storyTitle, seriesTitle string) error {
 		if err != nil {
 			return err
 		}
+		// delete association images
+		var bucketName string
+		switch item["association_type"].(*types.AttributeValueMemberS).Value {
+		case "character":
+			bucketName = "richdocterportraits"
+		case "event":
+			bucketName = "richdocterevents"
+		case "location":
+			bucketName = "richdocterlocations"
+		}
+		parsedPath, err := url.Parse(item["portrait"].(*types.AttributeValueMemberS).Value)
+		if err != nil {
+			return err
+		}
+		objectKey := path.Base(parsedPath.Path)
+
+		_, err = d.s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
+			Bucket: &bucketName,
+			Key:    &objectKey,
+		})
+		if err != nil {
+			fmt.Println("DELETE IMAGE ERROR:", err)
+		}
 	}
-	//TO-DO delete images from s3
+	// delete story portrait image from s3
+	bucketName := "richdocter-story-portraits"
+	parsedPath, err := url.Parse(originalStory.PortraitURL)
+	if err != nil {
+		return err
+	}
+	objectKey := path.Base(parsedPath.Path)
+
+	_, err = d.s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
+		Bucket: &bucketName,
+		Key:    &objectKey,
+	})
+	if err != nil {
+		fmt.Println("DELETE IMAGE ERROR:", err)
+	}
 	return nil
 }
 

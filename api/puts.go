@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -23,11 +24,20 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	var (
 		originalStoryTitle string
-		//email              string
-		err error
-		//dao                daos.DaoInterface
-		//ok                 bool
+		email              string
+		err                error
+		dao                daos.DaoInterface
+		ok                 bool
 	)
+	if email, err = getUserEmail(r); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
+		return
+	}
+
 	if originalStoryTitle, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
 		return
@@ -56,11 +66,108 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// if email, err = getUserEmail(r); err != nil {
-	// 	RespondWithError(w, http.StatusInternalServerError, err.Error())
-	// 	return
-	// }
-	RespondWithJson(w, http.StatusOK, story.Title)
+	originalStory, err := dao.GetStoryByName(email, originalStoryTitle)
+	if err != nil {
+		RespondWithError(w, http.StatusNotFound, "Unable to find story")
+		return
+	}
+
+	// TODO removing from series ??
+	if len(strings.TrimSpace(r.FormValue("series"))) > 0 {
+		story.Series = strings.TrimSpace(r.FormValue("series"))
+	}
+	if story.Series == "false" {
+		story.Series = ""
+	}
+	story.Place = originalStory.Place
+	story.CreatedAt = originalStory.CreatedAt
+	story.PortraitURL = originalStory.PortraitURL
+
+	const maxFileSize = 1024 * 1024 // 1 MB
+	// image upload
+	err = r.ParseMultipartForm(10 << 20)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, "Unable to parse file")
+		return
+	}
+
+	file, handler, err := r.FormFile("file")
+	if err != nil {
+		if err != http.ErrMissingFile {
+			RespondWithError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+	}
+	if file != nil {
+		defer file.Close()
+
+		if handler.Size > maxFileSize {
+			RespondWithError(w, http.StatusBadRequest, "Filesize must be < 1MB")
+			return
+		}
+		allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
+		fileBytes := make([]byte, handler.Size)
+		if _, err := file.Read(fileBytes); err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		fileType := http.DetectContentType(fileBytes)
+		fmt.Println("filetype", fileType)
+		allowed := false
+		for _, t := range allowedTypes {
+			if fileType == t {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			RespondWithError(w, http.StatusBadRequest, "Invalid file type")
+			return
+		}
+
+		reader := bytes.NewReader(fileBytes)
+		ext := filepath.Ext(handler.Filename)
+
+		safeStory := strings.ToLower(strings.ReplaceAll(story.Title, " ", "-"))
+		safeEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
+		filename := safeEmail + "_" + safeStory + ext
+
+		var awsCfg aws.Config
+		if awsCfg, err = config.LoadDefaultConfig(context.TODO(), func(opts *config.LoadOptions) error {
+			opts.Region = os.Getenv("AWS_REGION")
+			return nil
+		}); err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		s3Client := s3.NewFromConfig(awsCfg)
+		if _, err = s3Client.PutObject(context.Background(), &s3.PutObjectInput{
+			Bucket:      aws.String(S3_STORY_IMAGE_BUCKET),
+			Key:         aws.String(filename),
+			Body:        reader,
+			ContentType: aws.String(fileType),
+		}); err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		story.PortraitURL = "https://" + S3_STORY_IMAGE_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
+	}
+
+	if err = dao.EditStory(email, story, originalStoryTitle, originalStory.Series); err != nil {
+		if opErr, ok := err.(*smithy.OperationError); ok {
+			awsResponse := processAWSError(opErr)
+			if awsResponse.Code == 0 {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			RespondWithError(w, awsResponse.Code, awsResponse.Message)
+			return
+		}
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	RespondWithJson(w, http.StatusOK, nil)
 }
 
 func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {

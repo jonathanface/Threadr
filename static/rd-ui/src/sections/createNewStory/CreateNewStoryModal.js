@@ -11,16 +11,16 @@ import TextField from '@mui/material/TextField';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setAlertMessage, setAlertOpen, setAlertSeverity } from '../../stores/alertSlice';
-import { flipCreatingNewStoryState } from '../../stores/creatingNewStorySlice';
 import { setSelectedStoryTitle } from '../../stores/selectedStorySlice';
+import { flipCreatingNewStory } from '../../stores/storiesSlice';
 import PortraitDropper from '../portraitdropper/PortraitDropper';
 
 const CreateNewStory = () => {
   const [isInASeries, setIsInASeries] = useState(false);
   const [series, setSeries] = useState([]);
-  const isCreatingNewStory = useSelector((state) => state.isCreatingNewStory.isOpen);
+  const isCreatingNewStory = useSelector((state) => state.stories.isCreatingNew);
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
-  const isAssignedSeries = useSelector((state) => state.isCreatingNewStory.seriesToAppend);
+  const isAssignedSeries = useSelector((state) => state.stories.isCreatingNew.seriesToAppend);
   
   const dispatch = useDispatch();
   const initMap = new Map();
@@ -40,7 +40,7 @@ const CreateNewStory = () => {
 
   const handleClose = () => {
     resetForm();
-    dispatch(flipCreatingNewStoryState());
+    dispatch(flipCreatingNewStory());
   };
 
   const toggleSeries = () => {
