@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setLoaderVisible } from '../../stores/displayLoaderSlice';
 import { flipLoggedInState } from '../../stores/loggedInSlice';
 import { setSelectedSeries } from '../../stores/selectedSeriesSlice';
-import { setSelectedStoryTitle } from '../../stores/selectedStorySlice';
+import { setSelectedStory } from '../../stores/storiesSlice';
 
 const UserMenu = (props) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -22,7 +22,7 @@ const UserMenu = (props) => {
       method: 'DELETE'
     }).then((response) => {
       if (response.ok) {
-        dispatch(setSelectedStoryTitle(null));
+        dispatch(setSelectedStory(null));
         dispatch(setSelectedSeries(null));
         dispatch(flipLoggedInState());
         const history = window.history;

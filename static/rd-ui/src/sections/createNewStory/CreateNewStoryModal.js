@@ -11,8 +11,7 @@ import TextField from '@mui/material/TextField';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setAlertMessage, setAlertOpen, setAlertSeverity } from '../../stores/alertSlice';
-import { setSelectedStoryTitle } from '../../stores/selectedStorySlice';
-import { flipCreatingNewStory } from '../../stores/storiesSlice';
+import { flipCreatingNewStory, setSelectedStory } from '../../stores/storiesSlice';
 import PortraitDropper from '../portraitdropper/PortraitDropper';
 
 const CreateNewStory = () => {
@@ -20,7 +19,7 @@ const CreateNewStory = () => {
   const [series, setSeries] = useState([]);
   const isCreatingNewStory = useSelector((state) => state.stories.isCreatingNew);
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
-  const isAssignedSeries = useSelector((state) => state.stories.isCreatingNew.seriesToAppend);
+  const isAssignedSeries = useSelector((state) => state.stories.seriesToAppend);
   
   const dispatch = useDispatch();
   const initMap = new Map();
@@ -57,10 +56,10 @@ const CreateNewStory = () => {
         })
         .then((data) => {
           const reduced = data.reduce((accumulator, currentValue) => {
-            if (!accumulator.series[currentValue.series_title]) {
-              accumulator.series[currentValue.series_title] = 1;
+            if (!accumulator.series[currentValue.series_id]) {
+              accumulator.series[currentValue.series_id] = 1;
             } else {
-              accumulator.series[currentValue.series_title]++;
+              accumulator.series[currentValue.series_id]++;
             }
             return accumulator;
           }, {series: {}});
@@ -78,7 +77,6 @@ const CreateNewStory = () => {
     const randomImageURL = "https://picsum.photos/300";
     fetch(randomImageURL).then((response) => {
       if (response.ok) {
-        console.log("setting img url to", response.url);
         setImageURL(response.url);
       } else {
         setImageURL(defaultImageURL);
@@ -165,15 +163,8 @@ const CreateNewStory = () => {
       body: formData
     }).then((response) => {
       if (response.ok) {
-        const newStoryTitle = formInput['title'];
-        dispatch(setSelectedStoryTitle(newStoryTitle));
-        const history = window.history;
-        history.pushState({newStoryTitle}, 'created new story', '/story/' + encodeURIComponent(newStoryTitle) + '?chapter=1');
-        setTimeout(() => {
-          handleClose();
-        }, 1000);
+        return response.json();
       } else {
-        console.log("resp", response);
         if (response.status === 401) {
           dispatch(setAlertMessage('inadequate subscription'));
           dispatch(setAlertSeverity('error'));
@@ -189,6 +180,14 @@ const CreateNewStory = () => {
         setCurrentError("Unable to create a story at this time. Please try again later.");
         setAreErrors(true);
       }
+    }).then((json) => {
+      const storyID = json.story_id;
+      dispatch(setSelectedStory(storyID));
+      const history = window.history;
+      history.pushState({storyID}, 'created new story', '/story/' + encodeURIComponent(storyID) + '?chapter=1');
+      setTimeout(() => {
+        handleClose();
+      }, 1000);
     });
   };
 
@@ -263,6 +262,7 @@ const CreateNewStory = () => {
                   value={isAssignedSeries}
                   onInputChange={(event) => {
                     if (event) {
+
                       setFormInput(prevFormInput => ({
                         ...prevFormInput,
                         series: event.target.value

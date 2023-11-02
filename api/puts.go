@@ -23,11 +23,11 @@ import (
 func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	var (
-		originalStoryTitle string
-		email              string
-		err                error
-		dao                daos.DaoInterface
-		ok                 bool
+		storyID string
+		email   string
+		err     error
+		dao     daos.DaoInterface
+		ok      bool
 	)
 	if email, err = getUserEmail(r); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -38,24 +38,26 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if originalStoryTitle, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
 		return
 	}
-	if originalStoryTitle == "" {
+	if storyID == "" {
 		RespondWithError(w, http.StatusBadRequest, "Missing story ID")
 		return
 	}
 
-	story := models.Story{}
+	story, err := dao.GetStoryByID(email, storyID)
+	if err != nil {
+		RespondWithError(w, http.StatusNotFound, "Unable to locate story")
+		return
+	}
 	if len(strings.TrimSpace(r.FormValue("title"))) > 0 {
 		story.Title = strings.TrimSpace(r.FormValue("title"))
 		if story.Title == "" {
 			RespondWithError(w, http.StatusBadRequest, "Missing story name")
 			return
 		}
-	} else {
-		story.Title = originalStoryTitle
 	}
 
 	if len(strings.TrimSpace(r.FormValue("description"))) > 0 {
@@ -66,22 +68,10 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	originalStory, err := dao.GetStoryByName(email, originalStoryTitle)
-	if err != nil {
-		RespondWithError(w, http.StatusNotFound, "Unable to find story")
-		return
-	}
-
 	// TODO removing from series ??
 	if len(strings.TrimSpace(r.FormValue("series"))) > 0 {
-		story.Series = strings.TrimSpace(r.FormValue("series"))
+		story.SeriesID = strings.TrimSpace(r.FormValue("series"))
 	}
-	if story.Series == "false" {
-		story.Series = ""
-	}
-	story.Place = originalStory.Place
-	story.CreatedAt = originalStory.CreatedAt
-	story.PortraitURL = originalStory.PortraitURL
 
 	const maxFileSize = 1024 * 1024 // 1 MB
 	// image upload
@@ -128,9 +118,8 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		reader := bytes.NewReader(fileBytes)
 		ext := filepath.Ext(handler.Filename)
 
-		safeStory := strings.ToLower(strings.ReplaceAll(story.Title, " ", "-"))
 		safeEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-		filename := safeEmail + "_" + safeStory + ext
+		filename := safeEmail + "_" + storyID + ext
 
 		var awsCfg aws.Config
 		if awsCfg, err = config.LoadDefaultConfig(context.TODO(), func(opts *config.LoadOptions) error {
@@ -150,10 +139,10 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		story.PortraitURL = "https://" + S3_STORY_IMAGE_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
+		story.ImageURL = "https://" + S3_STORY_IMAGE_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
 	}
 
-	if err = dao.EditStory(email, story, originalStoryTitle, originalStory.Series); err != nil {
+	if err = dao.EditStory(email, *story); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
@@ -172,21 +161,21 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 
 func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
-		email string
-		err   error
-		story string
-		dao   daos.DaoInterface
-		ok    bool
+		email   string
+		err     error
+		storyID string
+		dao     daos.DaoInterface
+		ok      bool
 	)
 	if email, err = getUserEmail(r); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if story, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
 		return
 	}
-	if story == "" {
+	if storyID == "" {
 		RespondWithError(w, http.StatusBadRequest, "Missing story ID")
 		return
 	}
@@ -203,7 +192,7 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = dao.ResetBlockOrder(email, story, &storyBlocks); err != nil {
+	if err = dao.ResetBlockOrder(email, storyID, &storyBlocks); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {

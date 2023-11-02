@@ -7,8 +7,9 @@ export const storiesSlice = createSlice({
     isEditing: false,
     seriesToAppend: "",
     standaloneList: [],
-    seriesList:new Map(),
-    editables: {}
+    seriesList:[],
+    editables: {},
+    selectedStory: ""
   },
   reducers: {
     flipCreatingNewStory: (state, action) => {
@@ -28,10 +29,13 @@ export const storiesSlice = createSlice({
     },
     setStoryEditables: (state, action) => {
       state.editables = action.payload;
+    },
+    setSelectedStory: (state, action) => {
+      state.selectedStory = action.payload;
     }
   }
 });
 
-export const {flipCreatingNewStory, flipEditingStory, setStandaloneList, setSeriesList, setStoryEditables} = storiesSlice.actions;
+export const {flipCreatingNewStory, flipEditingStory, setStandaloneList, setSeriesList, setStoryEditables, setSelectedStory} = storiesSlice.actions;
 
 export default storiesSlice.reducer;

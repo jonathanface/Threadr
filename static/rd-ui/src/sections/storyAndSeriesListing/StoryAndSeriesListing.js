@@ -24,24 +24,26 @@ const StoryAndSeriesListing = () => {
         }
         throw new Error('Fetch problem series ' + response.status);
       }).then((data) => {
-        const seriesStoriesFromDB = new Map();
-        data.forEach((series) => {
-          seriesStoriesFromDB.set(series.series_title, {});
-          seriesStoriesFromDB.get(series.series_title).listings = [];
-          seriesStoriesFromDB.get(series.series_title).image = series.portrait_url.length ? series.portrait_url : '/img/icons/story_series_icon.jpg';
-          //
+        const seriesStoriesFromDB = data.map(series => {
+          const seriesObj = {
+            id: series.series_id,
+            title: series.series_title,
+            listings: [],
+            image: series.image_url.length ? series.image_url : '/img/icons/story_series_icon.jpg',
+          }
           if (series.stories) {
             series.stories.forEach((story) => {
-              const img = story.portrait_url.length ? story.portrait_url : '/img/icons/story_icon.jpg';
-              seriesStoriesFromDB.get(series.series_title).listings.push({
+              seriesObj.listings.push({
+                
                 volume: story.title,
                 place: story.place,
                 created_at: story.created_at,
                 description: story.description,
-                image: img
+                image: story.image_url.length ? story.image_url : '/img/icons/story_icon.jpg'
               });
             });
           }
+          return seriesObj;
         });
         dispatch(setSeriesList(seriesStoriesFromDB));
         setSeriesLoaded(true);
@@ -56,8 +58,10 @@ const StoryAndSeriesListing = () => {
         throw new Error('Fetch problem stories ' + response.status);
       }).then((data) => {
         const storiesFromDB = data.map((story) => {
-          const img = story.portrait_url.length ? story.portrait_url : '/img/icons/story_standalone_icon.jpg';
+          console.log("story", story)
+          const img = story.image_url.length ? story.image_url : '/img/icons/story_standalone_icon.jpg';
           return {
+            id: story.story_id,
             title: story.title,
             description: story.description,
             image: img,
@@ -86,13 +90,12 @@ const StoryAndSeriesListing = () => {
 
   
   // If there are works, we prepare our series and stories components.
-  const seriesComponents = [...seriesList.keys()].map((series) => {
-    const entries = seriesList.get(series);
-    return <Story key={series} series={true} title={series} data={entries.listings} portrait={entries.image} />;
+  const seriesComponents = seriesList.map((series) => {
+    return <Story key={series.id} seriesID={series.id} title={series.title} data={series.listings} portrait={series.image} />;
   });
 
   const storyComponents = storiesList.map((story) => {
-    return <Story key={story.title} series={false} title={story.title} description={story.description} portrait={story.image} />;
+    return <Story key={story.id} id={story.id} title={story.title} description={story.description} portrait={story.image} />;
   });
 
   let content = <div/>;

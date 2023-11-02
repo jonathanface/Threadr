@@ -33,9 +33,9 @@ type Association struct {
 }
 
 type Chapter struct {
-	KeyID        string `json:"key_id" dynamodbav:"key_id"`
+	ID           string `json:"id" dynamodbav:"story_id"`
 	ChapterNum   int    `json:"chapter_num" dynamodbav:"chapter_num"`
-	ChapterTitle string `json:"chapter_title" dynamodbav:"chapter_title"`
+	ChapterTitle string `json:"chapter_title" dynamodbav:"title"`
 }
 
 type ChapterWithContents struct {
@@ -44,13 +44,14 @@ type ChapterWithContents struct {
 }
 
 type Story struct {
+	ID          string    `json:"story_id" dynamodbav:"story_id"`
 	CreatedAt   int       `json:"created_at" dynamodbav:"created_at"`
-	Title       string    `json:"title" dynamodbav:"story_title"`
+	Title       string    `json:"title" dynamodbav:"title"`
 	Description string    `json:"description" dynamodbav:"description"`
-	Series      string    `json:"series" dynamodbav:"series"`
+	SeriesID    string    `json:"series" dynamodbav:"series"`
 	Chapters    []Chapter `json:"chapters"`
 	Place       int       `json:"place"`
-	PortraitURL string    `json:"portrait_url" dynamodbav:"imageURL"`
+	ImageURL    string    `json:"image_url" dynamodbav:"image_url"`
 }
 type BlocksData struct {
 	LastEvaluated map[string]types.AttributeValue   `json:"last_evaluated_key"`
@@ -64,11 +65,12 @@ type FullStoryContent struct {
 }
 
 type Series struct {
-	SeriesTitle string    `json:"series_title" dynamodbav:"series_title"`
-	Stories     []*Story  `json:"stories"`
-	CreatedAt   time.Time `json:"created_at" dynamodbav:"created_at"`
-	Place       int       `json:"place" dynamodbav:"place"`
-	PortraitURL string    `json:"portrait_url" dynamodbav:"imageURL"`
+	ID        string    `json:"series_id" dynamodbav:"series_id"`
+	Title     string    `json:"series_title" dynamodbav:"title"`
+	Stories   []*Story  `json:"stories"`
+	CreatedAt time.Time `json:"created_at" dynamodbav:"created_at"`
+	Place     int       `json:"place" dynamodbav:"place"`
+	ImageURL  string    `json:"image_url" dynamodbav:"image_url"`
 }
 
 type UserInfo struct {
@@ -97,6 +99,7 @@ type HTMLData struct {
 }
 
 type DocumentExportRequest struct {
+	StoryID       string     `json:"story_id"`
 	HtmlByChapter []HTMLData `json:"html_by_chapter"`
 	Type          string     `json:"type"`
 	StoryTitle    string     `json:"story_title"`

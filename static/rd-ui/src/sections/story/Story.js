@@ -7,49 +7,49 @@ import { useDispatch } from 'react-redux';
 import '../../css/story.css';
 import { setLoaderVisible } from '../../stores/displayLoaderSlice';
 import { setSelectedSeries } from '../../stores/selectedSeriesSlice';
-import { setSelectedStoryTitle } from '../../stores/selectedStorySlice';
-import { flipCreatingNewStory, flipEditingStory, setStoryEditables } from '../../stores/storiesSlice';
+import { flipCreatingNewStory, flipEditingStory, setSelectedStory, setStoryEditables } from '../../stores/storiesSlice';
 import DetailsSlider from './DetailsSlider';
-
 
 const Story = (props) => {
   const dispatch = useDispatch();
   const [wasDeleted, setWasDeleted] = useState(false);
 
-  const handleClick = (event, title, series) => {
+  const handleClick = (event, storyID, series) => {
+    console.log("props", storyID)
     const history = window.history;
-    dispatch(setSelectedStoryTitle(encodeURIComponent(title)));
+    dispatch(setSelectedStory(encodeURIComponent(storyID)));
     if (series) {
       dispatch(setSelectedSeries(encodeURIComponent(series)));
     }
-    history.pushState({title}, 'clicked story', '/story/' + encodeURIComponent(title) + '?chapter=1');
+    history.pushState({storyID}, 'clicked story', '/story/' + encodeURIComponent(storyID) + '?chapter=1');
     dispatch(setLoaderVisible(true));
   };
 
-  const editStory = (event, title) => {
+  const editStory = (event, storyID) => {
     event.stopPropagation();
     const newProps = {};
-    newProps.title = title;
+    newProps.storyID = storyID;
+    newProps.title = props.title;
     newProps.description = props.description;
     if (props.series) {
-      newProps.description = props.data.find(entry => entry.volume === title).description;
+      newProps.description = props.data.find(entry => entry.volume === storyID).description;
     }
     newProps.series = props.series;
-    newProps.seriesTitle = props.series ? props.title : "";
+    newProps.seriesID = props.seriesID ? props.storyID : "";
     newProps.portrait = props.portrait;
     dispatch(setStoryEditables(newProps));
     dispatch(flipEditingStory());
   }
 
-  const deleteStory = (event, title) => {
+  const deleteStory = (event, id, title) => {
     event.stopPropagation();
     const confirmText = (!props.series ? "Delete story " + title + "?" : "Delete " + title + " from your series " + props.title + "?") +
                         (props.series && props.data.length === 1 ? "\n\nThere are no other titles in this series, so deleting it will also remove the series.": "");
 
     const conf = confirm(confirmText)
-    
+    const seriesID = props.seriesID && props.seriesID.length ? props.seriesID.length : ""
     if (conf) {
-      const url = '/api/stories/' + title + '?series=' + props.series;
+      const url = '/api/stories/' + id + '?series=' + seriesID;
       fetch(url, {
         method: 'DELETE',
         headers: {
@@ -57,7 +57,7 @@ const Story = (props) => {
         }
       }).then((response) => {
         if (response.ok) {
-          props.setDeleted(true);
+          setWasDeleted(true);
         }
       });
     }
@@ -73,7 +73,7 @@ const Story = (props) => {
   
   return (
         !wasDeleted ?
-            <button className="doc-button" onClick={ !props.series ? (e)=>handleClick(e, props.title) : ()=>{}}>
+            <button className="doc-button" onClick={ !props.series ? (e)=>handleClick(e, props.id) : ()=>{}}>
               <div>
                 <img src={props.portrait} alt={props.title}/>
                 <div className="story-label">
@@ -83,7 +83,7 @@ const Story = (props) => {
                       if (props.series) {
 
                       } else {
-                        editStory(event, props.title)
+                        editStory(event, props.id)
                       }
                       
                     }}>
@@ -98,7 +98,7 @@ const Story = (props) => {
                       }}/>
                     </IconButton>
                     { !props.series ?
-                        <IconButton aria-label="delete story" component="label" title={deleteHoverText} onClick={(event)=>{deleteStory(event, props.title)}}>
+                        <IconButton aria-label="delete story" component="label" title={deleteHoverText} onClick={(event)=>{deleteStory(event, props.id, props.title)}}>
                           <DeleteIcon sx={{
                             'fontSize': '18px',
                             'color': '#F0F0F0',
@@ -124,7 +124,7 @@ const Story = (props) => {
                     }
                   </span>
                 </div>
-                <DetailsSlider deleteFunc={deleteStory} editFunc={editStory} key={props.title} data={props.data} onStoryClick={handleClick} setDeleted={setWasDeleted} series={props.series} title={props.title} description={props.description} />
+                <DetailsSlider deleteFunc={deleteStory} editFunc={editStory} key={props.id} data={props.data} onStoryClick={handleClick} setDeleted={setWasDeleted} series={props.series} title={props.title} description={props.description} />
               </div>
             </button> : ''
   );

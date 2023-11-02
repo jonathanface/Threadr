@@ -19,21 +19,21 @@ func StoryBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 	startKey := r.URL.Query().Get("key")
 	chapter := r.URL.Query().Get("chapter")
 	var (
-		email      string
-		err        error
-		storyTitle string
-		dao        daos.DaoInterface
-		ok         bool
+		email   string
+		err     error
+		storyID string
+		dao     daos.DaoInterface
+		ok      bool
 	)
 	if email, err = getUserEmail(r); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if storyTitle, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
 		return
 	}
-	if storyTitle == "" {
+	if storyID == "" {
 		RespondWithError(w, http.StatusBadRequest, "Missing story name")
 		return
 	}
@@ -45,7 +45,7 @@ func StoryBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	if ok, err = dao.WasStoryDeleted(email, storyTitle); err != nil {
+	if ok, err = dao.WasStoryDeleted(email, storyID); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -53,7 +53,7 @@ func StoryBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusNotFound, "story not found")
 		return
 	}
-	blocks, err := dao.GetStoryParagraphs(email, storyTitle, chapter, startKey)
+	blocks, err := dao.GetStoryParagraphs(email, storyID, chapter, startKey)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
@@ -74,21 +74,21 @@ func StoryBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 func FullStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("full")
 	var (
-		email      string
-		err        error
-		storyTitle string
-		dao        daos.DaoInterface
-		ok         bool
+		email   string
+		err     error
+		storyID string
+		dao     daos.DaoInterface
+		ok      bool
 	)
 	if email, err = getUserEmail(r); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if storyTitle, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
 		return
 	}
-	if storyTitle == "" {
+	if storyID == "" {
 		RespondWithError(w, http.StatusBadRequest, "Missing story name")
 		return
 	}
@@ -96,7 +96,7 @@ func FullStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	if ok, err = dao.WasStoryDeleted(email, storyTitle); err != nil {
+	if ok, err = dao.WasStoryDeleted(email, storyID); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -105,7 +105,7 @@ func FullStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	story, err := dao.GetStoryByName(email, storyTitle)
+	story, err := dao.GetStoryByID(email, storyID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			RespondWithError(w, http.StatusNotFound, "story not found")
@@ -115,7 +115,7 @@ func FullStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fullStory := models.FullStoryContent{}
-	fullStory.StoryTitle = storyTitle
+	fullStory.StoryTitle = story.Title
 
 	//var blocksList models.BlocksData
 	//blocksList.Items = []map[string]types.AttributeValue{}
@@ -124,7 +124,7 @@ func FullStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		chapWithContents := models.ChapterWithContents{}
 		chapWithContents.Chapter = chap
 		chapterNumber := strconv.Itoa(chap.ChapterNum)
-		chapWithContents.Blocks, err = staggeredStoryBlockRetrieval(dao, email, storyTitle, chapterNumber, key)
+		chapWithContents.Blocks, err = staggeredStoryBlockRetrieval(dao, email, storyID, chapterNumber, key)
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -137,21 +137,21 @@ func FullStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 
 func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	var (
-		email      string
-		err        error
-		storyTitle string
-		dao        daos.DaoInterface
-		ok         bool
+		email   string
+		err     error
+		storyID string
+		dao     daos.DaoInterface
+		ok      bool
 	)
 	if email, err = getUserEmail(r); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if storyTitle, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
 		return
 	}
-	if storyTitle == "" {
+	if storyID == "" {
 		RespondWithError(w, http.StatusBadRequest, "Missing story name")
 		return
 	}
@@ -161,7 +161,7 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	if ok, err = dao.WasStoryDeleted(email, storyTitle); err != nil {
+	if ok, err = dao.WasStoryDeleted(email, storyID); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -169,7 +169,7 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusNotFound, "story not found")
 		return
 	}
-	story, err := dao.GetStoryByName(email, storyTitle)
+	story, err := dao.GetStoryByID(email, storyID)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)

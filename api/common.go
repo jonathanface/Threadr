@@ -98,8 +98,8 @@ func processAWSError(opErr *smithy.OperationError) (err models.AwsStatusResponse
 	return err
 }
 
-func staggeredStoryBlockRetrieval(dao daos.DaoInterface, email string, storyTitle string, chapter string, key string) (*models.BlocksData, error) {
-	blocks, err := dao.GetStoryParagraphs(email, storyTitle, chapter, key)
+func staggeredStoryBlockRetrieval(dao daos.DaoInterface, email string, storyID string, chapter string, key string) (*models.BlocksData, error) {
+	blocks, err := dao.GetStoryParagraphs(email, storyID, chapter, key)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
@@ -122,5 +122,5 @@ func staggeredStoryBlockRetrieval(dao daos.DaoInterface, email string, storyTitl
 	if !ok {
 		return nil, fmt.Errorf("error getting story blocks: invalid key_id type")
 	}
-	return staggeredStoryBlockRetrieval(dao, email, storyTitle, chapter, keyID.Value)
+	return staggeredStoryBlockRetrieval(dao, email, storyID, chapter, keyID.Value)
 }
