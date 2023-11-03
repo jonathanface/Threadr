@@ -202,14 +202,18 @@ func (d *DAO) GetSeriesByID(email, seriesID string) (series *models.Series, err 
 	if len(seriesFromMap) == 0 {
 		return series, fmt.Errorf("no series found")
 	}
-	for range seriesFromMap {
-		for _, story := range series.Stories {
-			story.Chapters, err = d.GetChaptersByStoryID(story.ID)
-			if err != nil {
-				return series, err
-			}
+	seriesFromMap[0].Stories, err = d.GetSeriesVolumes(email, seriesID)
+	if err != nil {
+		return series, err
+	}
+	fmt.Println("srs", seriesFromMap)
+	for _, story := range seriesFromMap[0].Stories {
+		story.Chapters, err = d.GetChaptersByStoryID(story.ID)
+		if err != nil {
+			return series, err
 		}
 	}
+
 	return &seriesFromMap[0], nil
 }
 
@@ -262,7 +266,7 @@ func (d *DAO) GetStoryParagraphs(email, storyID, chapter, startKey string) (*mod
 		items = append(items, page.Items...)
 	}
 	if len(items) == 0 {
-		return &blocks, fmt.Errorf("no results")
+		return nil, nil
 	}
 	blocks.Items = items
 	blocks.LastEvaluated = lastKey
@@ -396,7 +400,6 @@ func (d *DAO) GetSeriesVolumes(email, seriesID string) (volumes []*models.Story,
 		fmt.Println("chaps", story.Chapters[0])
 		volumes = append(volumes, &story)
 	}
-	fmt.Println("vols", volumes[0].ID)
 	return volumes, nil
 }
 
@@ -819,7 +822,6 @@ func (d *DAO) CreateStory(email string, story models.Story) (storyID string, err
 	if !awsErr.IsNil() {
 		return "", fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 	}
-	fmt.Println("done with story")
 	twii = &dynamodb.TransactWriteItemsInput{}
 	var chapTwi types.TransactWriteItem
 	if chapTwi, err = d.generateStoryChapterTransaction(story.ID, 1, "Chapter 1"); err != nil {

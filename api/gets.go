@@ -67,12 +67,13 @@ func StoryBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-
+	if blocks == nil || len(blocks.Items) == 0 {
+		RespondWithError(w, http.StatusNotFound, "no content")
+	}
 	RespondWithJson(w, http.StatusOK, blocks)
 }
 
 func FullStoryEndPoint(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("full")
 	var (
 		email   string
 		err     error
