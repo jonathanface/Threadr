@@ -765,7 +765,7 @@ func (d *DAO) EditStory(email string, story models.Story) (err error) {
 	modifiedAtStr := strconv.FormatInt(time.Now().Unix(), 10)
 	item := map[string]types.AttributeValue{
 		"story_id":    &types.AttributeValueMemberS{Value: story.ID},
-		"story_title": &types.AttributeValueMemberS{Value: story.Title},
+		"title":       &types.AttributeValueMemberS{Value: story.Title},
 		"author":      &types.AttributeValueMemberS{Value: email},
 		"description": &types.AttributeValueMemberS{Value: story.Description},
 		"image_url":   &types.AttributeValueMemberS{Value: story.ImageURL},
@@ -773,7 +773,7 @@ func (d *DAO) EditStory(email string, story models.Story) (err error) {
 		"place":       &types.AttributeValueMemberN{Value: strconv.Itoa(story.Place)},
 	}
 	if story.SeriesID != "" {
-		item["series"] = &types.AttributeValueMemberS{Value: story.SeriesID}
+		item["series_id"] = &types.AttributeValueMemberS{Value: story.SeriesID}
 	}
 	storyUpdateInput := &dynamodb.PutItemInput{
 		TableName: aws.String("stories"),

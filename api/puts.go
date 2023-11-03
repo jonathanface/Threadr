@@ -89,6 +89,8 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if file != nil {
+		// TODO delete previous image
+		// TODO resize image
 		defer file.Close()
 
 		if handler.Size > maxFileSize {
@@ -140,6 +142,7 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		story.ImageURL = "https://" + S3_STORY_IMAGE_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
+		fmt.Println("img", story.ImageURL)
 	}
 
 	if err = dao.EditStory(email, *story); err != nil {
@@ -156,7 +159,7 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJson(w, http.StatusOK, story)
 }
 
 func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {

@@ -6,20 +6,18 @@ import React from 'react';
 import '../../css/story.css';
 
 const DetailsSlider = (props) => {
-  console.log("details props", props)
   return (
     <div className="details-slider">
       {
-        props.series && props.data && props.data.length ?
+        props.data && props.data.length ?
             <div className="series-listing">
               <div>Volumes:</div>
               <ul>
                 {props.data.map((entry) => {
-                  console.log("entry", entry);
-                  return <li key={entry.place} title={entry.description} onClick={(e)=> props.onStoryClick(e, entry.id, props.series)}>
+                  return <li key={entry.place} title={entry.description} onClick={(e)=> props.onStoryClick(e, entry.id, props.title)}>
                     {entry.volume}
                     <span>
-                      <IconButton className="edit-series-story" aria-label="edit story" sx={{padding:'0'}} component="label" title="Edit Series Volume" onClick={(event)=>{props.editFunc(event, entry.volume)}}>
+                      <IconButton className="edit-series-story" aria-label="edit story" sx={{padding:'0'}} component="label" title="Edit Series Volume" onClick={(event)=>{props.editFunc(event, entry.id)}}>
                         <EditIcon sx={{
                           'padding': '0',
                           'fontSize': '18px',
@@ -30,7 +28,7 @@ const DetailsSlider = (props) => {
                           }
                         }}/>
                       </IconButton>
-                      <IconButton className="delete-series-story" aria-label="delete story" component="label" title="Delete Series Volume" onClick={(event)=>{props.deleteFunc(event, entry.volume)}}>
+                      <IconButton className="delete-series-story" aria-label="delete story" component="label" title="Delete Series Volume" onClick={(event)=>{props.deleteFunc(event, entry.id)}}>
                         <DeleteIcon sx={{
                           'fontSize': '18px',
                           'color': '#F0F0F0',

@@ -48,7 +48,7 @@ type Story struct {
 	CreatedAt   int       `json:"created_at" dynamodbav:"created_at"`
 	Title       string    `json:"title" dynamodbav:"title"`
 	Description string    `json:"description" dynamodbav:"description"`
-	SeriesID    string    `json:"series" dynamodbav:"series"`
+	SeriesID    string    `json:"series_id" dynamodbav:"series_id"`
 	Chapters    []Chapter `json:"chapters"`
 	Place       int       `json:"place"`
 	ImageURL    string    `json:"image_url" dynamodbav:"image_url"`

@@ -11,12 +11,10 @@ import { flipCreatingNewStory, flipEditingStory, setSelectedStory, setStoryEdita
 import DetailsSlider from './DetailsSlider';
 
 const Story = (props) => {
-  console.log("story props", props)
   const dispatch = useDispatch();
   const [wasDeleted, setWasDeleted] = useState(false);
 
   const handleClick = (event, storyID, series) => {
-    console.log("clicked", storyID);
     const history = window.history;
     dispatch(setSelectedStory(encodeURIComponent(storyID)));
     if (series) {
@@ -29,26 +27,22 @@ const Story = (props) => {
   const editStory = (event, storyID) => {
     event.stopPropagation();
     const newProps = {};
-    newProps.storyID = storyID;
+    newProps.id = storyID;
     newProps.title = props.title;
     newProps.description = props.description;
-    if (props.series) {
-      newProps.description = props.data.find(entry => entry.volume === storyID).description;
-    }
-    newProps.series = props.series;
-    newProps.seriesID = props.seriesID ? props.storyID : "";
-    newProps.portrait = props.portrait;
+    newProps.series_id = props.data ? props.id : null
+    newProps.image = props.image;
     dispatch(setStoryEditables(newProps));
     dispatch(flipEditingStory());
   }
 
   const deleteStory = (event, id, title) => {
     event.stopPropagation();
-    const confirmText = (!props.series ? "Delete story " + title + "?" : "Delete " + title + " from your series " + props.title + "?") +
+    const confirmText = (!props.data ? "Delete story " + title + "?" : "Delete " + title + " from your series " + props.title + "?") +
                         (props.series && props.data.length === 1 ? "\n\nThere are no other titles in this series, so deleting it will also remove the series.": "");
 
     const conf = confirm(confirmText)
-    const seriesID = props.seriesID && props.seriesID.length ? props.seriesID.length : ""
+    const seriesID = props.data ? props.id : "";
     if (conf) {
       const url = '/api/stories/' + id + '?series=' + seriesID;
       fetch(url, {
@@ -64,8 +58,8 @@ const Story = (props) => {
     }
   };
 
-  const editHoverText = props.series ? 'Edit Series' : 'Edit Story';
-  const deleteHoverText = props.series ? 'Delete Series Volume' : 'Delete Story';
+  const editHoverText = props.data ? 'Edit Series' : 'Edit Story';
+  const deleteHoverText = props.data ? 'Delete Series Volume' : 'Delete Story';
 
   const addToSeries = (event) => {
     event.preventDefault();
@@ -74,14 +68,14 @@ const Story = (props) => {
   
   return (
         !wasDeleted ?
-            <button className="doc-button" onClick={ !props.series ? (e)=>handleClick(e, props.id) : ()=>{}}>
+            <button className="doc-button" onClick={ !props.data ? (e)=>handleClick(e, props.id) : ()=>{}}>
               <div>
-                <img src={props.portrait} alt={props.title}/>
+                <img src={props.image} alt={props.title}/>
                 <div className="story-label">
                   <span className="title">{props.title}</span>
                   <span className="buttons">
                     <IconButton aria-label="edit story" sx={{padding:'0'}} component="label" title={editHoverText} onClick={(event)=>{
-                      if (props.series) {
+                      if (props.data) {
 
                       } else {
                         editStory(event, props.id)
@@ -98,7 +92,7 @@ const Story = (props) => {
                         }
                       }}/>
                     </IconButton>
-                    { !props.series ?
+                    { !props.data ?
                         <IconButton aria-label="delete story" component="label" title={deleteHoverText} onClick={(event)=>{deleteStory(event, props.id, props.title)}}>
                           <DeleteIcon sx={{
                             'fontSize': '18px',
@@ -110,7 +104,7 @@ const Story = (props) => {
                           }}/>
                         </IconButton> :
                         '' }
-                    { props.series ?
+                    { props.data ?
                       <IconButton onClick={addToSeries} aria-label="add story to series" sx={{padding:'0', paddingLeft:'5px'}} component="label"  title="Add Series Volume">
                         <AddIcon sx={{
                           'padding': '0',
@@ -125,7 +119,7 @@ const Story = (props) => {
                     }
                   </span>
                 </div>
-                <DetailsSlider deleteFunc={deleteStory} editFunc={editStory} key={props.id} data={props.data} onStoryClick={handleClick} setDeleted={setWasDeleted} series={props.seriesID} title={props.title} description={props.description} />
+                <DetailsSlider deleteFunc={deleteStory} editFunc={editStory} key={props.id} data={props.data} onStoryClick={handleClick} setDeleted={setWasDeleted} series_id={props.id} title={props.title} description={props.description} />
               </div>
             </button> : ''
   );

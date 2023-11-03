@@ -83,7 +83,7 @@ const EditStory = () => {
         ...prevFormInput,
         description: editables.description,
         title: editables.title,
-        series: editables.series
+        series_id: editables.series_id
       }));
     }, [editables.description, editables.title, editables.series])
     
@@ -98,63 +98,80 @@ const EditStory = () => {
         setAreErrors(true);
         return;
       }
-      if (formInput['series'] && formInput['place'] < 1) {
+      if (!isInASeries && formInput['series_id']) {
+        formInput.delete('series_id');
+      }
+      if (formInput['series_id'] && formInput['place'] < 1) {
         setCurrentError('Place must be > 1 when assigning to a series');
         setAreErrors(true);
         return;
       }
-      if (formInput['series'] == false) {
-        delete formInput['series'];
-      }
-      const formData = new FormData()
+      const formData = formInput.image ? formInput.image : new FormData();
       for (const key in formInput) {
-        if (formInput.hasOwnProperty(key)) {
+        if (key !== 'image' && formInput.hasOwnProperty(key)) {
           formData.append(key, formInput[key]);
         }
       }
       setCurrentError('');
       setAreErrors(false);
-
-      fetch('/api/stories/' + editables.title + '/details', {
+      fetch('/api/stories/' + editables.id + '/details', {
         method: 'PUT',
         body: formData
       }).then((response) => {
         if (response.ok) {
-          // todo switching story from series to standalone
-          if (formInput.series) {
-            const ind = seriesList.findIndex(obj => obj.title === editables.title)
-            seriesList[ind].title = formInput.title;
-            seriesList[ind].description = formInput.description;
-            seriesList[ind].image = formInput.image;
-            dispatch(setSeriesList(standaloneList));
-          } else {
-            const ind = standaloneList.findIndex(obj => obj.title === editables.title)
-            standaloneList[ind].title = formInput.title;
-            standaloneList[ind].description = formInput.description;
-            standaloneList[ind].image = formInput.image;
-            dispatch(setStandaloneList(standaloneList));
-          }
-          setTimeout(() => {
-            handleClose();
-          }, 1000);
+          return response.json();
         } else {
-          
-
-          if (response.status === 401) {
-            dispatch(setAlertMessage('inadequate subscription'));
-            dispatch(setAlertSeverity('error'));
-            dispatch(setAlertOpen(true));
-            handleClose();
-            return;
-          }
-          if (response.status === 409) {
-            setCurrentError("A story by that name already exists. All stories must be uniquely titled.");
-            setAreErrors(true);
-            return;
-          }
-          setCurrentError("Unable to create a story at this time. Please try again later.");
-          setAreErrors(true);
+          throw new Error(response);
         }
+      }).then((json) => {
+        // todo switching story from series to standalone
+        if (formInput.series_id) {
+          const newList = seriesList.map(story => {
+            if (story.id === editables.id) {
+              return {
+                ...story,
+                title: formInput.title ? formInput.title : story.title,
+                description: formInput.description ? formInput.description : story.description,
+                image: formInput.image ? json.image_url : story.image
+              }
+            };
+            return story;
+          });
+          dispatch(setSeriesList(newList));
+        } else {
+          const newList = standaloneList.map(story => {
+            if (story.id === editables.id) {
+              return {
+                ...story,
+                ...(formInput.title && { title: formInput.title }),
+                ...(formInput.description && { description: formInput.description }),
+                ...(formInput.image && { image: json.image_url }),
+                ...(formInput.series_id && { series_id: formInput.series_id }),
+              };
+            };
+            return story;
+          });
+          dispatch(setStandaloneList(newList));
+        }
+        setTimeout(()=> {
+          handleClose();
+        }, 1000);
+      }).catch((error) => {
+        console.error("err", error)
+        if (error.status === 401) {
+          dispatch(setAlertMessage('inadequate subscription'));
+          dispatch(setAlertSeverity('error'));
+          dispatch(setAlertOpen(true));
+          handleClose();
+          return;
+        }
+        if (error.status === 409) {
+          setCurrentError("A story by that name already exists. All stories must be uniquely titled.");
+          setAreErrors(true);
+          return;
+        }
+        setCurrentError("Unable to create a story at this time. Please try again later.");
+        setAreErrors(true);
       });
     }
 
@@ -162,7 +179,6 @@ const EditStory = () => {
     const storyTitle = editables.title ? editables.title : "Unknown Story";
 
     const getBlobExtension = (mimeType) => {
-      console.log("ext for", mimeType);
       switch (mimeType) {
           case 'image/jpeg':
               return '.jpg';
@@ -203,7 +219,7 @@ const EditStory = () => {
                   '& .MuiTextField-root': {m: 1, width: 300},
                 }}>
                 <h3>Image for {storyTitle}</h3>
-                <PortraitDropper imageURL={editables.portrait} name={storyTitle} onComplete={processImage}/>
+                <PortraitDropper imageURL={editables.image} name={storyTitle} onComplete={processImage}/>
                 <div>
                   <TextField
                     onChange={(event) => {
@@ -235,7 +251,7 @@ const EditStory = () => {
                 </div>
                 <div>
                   <FormControlLabel label="This is part of a series" control={
-                    <Checkbox defaultChecked={editables.series} id="isSeries" label="" onChange={toggleSeries} />
+                    <Checkbox defaultChecked={editables.series_id} id="isSeries" label="" onChange={toggleSeries} />
                   } sx={{
                     '& .MuiFormControlLabel-label': {color: 'rgba(0, 0, 0, 0.6)'},
                   }}
@@ -249,7 +265,7 @@ const EditStory = () => {
                         if (event) {
                           setFormInput(prevFormInput => ({
                             ...prevFormInput,
-                            series: event.target.value
+                            series_id: event.target.value
                           }));
                         }
                       }}
@@ -257,7 +273,7 @@ const EditStory = () => {
                         if (event && actions) {
                           setFormInput(prevFormInput => ({
                             ...prevFormInput,
-                            series: actions.id
+                            series_id: actions.id
                           }));
                         }
                       }}
