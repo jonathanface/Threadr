@@ -11,11 +11,12 @@ import { flipCreatingNewStory, flipEditingStory, setSelectedStory, setStoryEdita
 import DetailsSlider from './DetailsSlider';
 
 const Story = (props) => {
+  console.log("story props", props)
   const dispatch = useDispatch();
   const [wasDeleted, setWasDeleted] = useState(false);
 
   const handleClick = (event, storyID, series) => {
-    console.log("props", storyID)
+    console.log("clicked", storyID);
     const history = window.history;
     dispatch(setSelectedStory(encodeURIComponent(storyID)));
     if (series) {
@@ -124,7 +125,7 @@ const Story = (props) => {
                     }
                   </span>
                 </div>
-                <DetailsSlider deleteFunc={deleteStory} editFunc={editStory} key={props.id} data={props.data} onStoryClick={handleClick} setDeleted={setWasDeleted} series={props.series} title={props.title} description={props.description} />
+                <DetailsSlider deleteFunc={deleteStory} editFunc={editStory} key={props.id} data={props.data} onStoryClick={handleClick} setDeleted={setWasDeleted} series={props.seriesID} title={props.title} description={props.description} />
               </div>
             </button> : ''
   );

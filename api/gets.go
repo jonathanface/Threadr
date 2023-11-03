@@ -123,7 +123,7 @@ func FullStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	for _, chap := range story.Chapters {
 		chapWithContents := models.ChapterWithContents{}
 		chapWithContents.Chapter = chap
-		chapterNumber := strconv.Itoa(chap.ChapterNum)
+		chapterNumber := strconv.Itoa(chap.Place)
 		chapWithContents.Blocks, err = staggeredStoryBlockRetrieval(dao, email, storyID, chapterNumber, key)
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())

@@ -91,37 +91,83 @@ func (d *DAO) sanitizeTableName(name string) string {
 	return strings.ToLower(tablenamePattern.ReplaceAllString(name, ""))
 }
 
+func (d *DAO) checkBackupStatus(arn string) error {
+	for {
+		describeInput := &dynamodb.DescribeBackupInput{
+			BackupArn: aws.String(arn),
+		}
+		output, err := d.dynamoClient.DescribeBackup(context.Background(), describeInput)
+		if err != nil {
+			return err
+		}
+
+		status := output.BackupDescription.BackupDetails.BackupStatus
+		if status == types.BackupStatusAvailable {
+			fmt.Println("Backup is available.")
+			break
+		} else if status == types.BackupStatusCreating {
+			fmt.Println("Backup is still being created...")
+			time.Sleep(10 * time.Second) // Polling interval
+		} else {
+			return fmt.Errorf("backup creation failed with status: %v", status)
+		}
+	}
+	return nil
+}
+
 func (d *DAO) createBlockTable(tableName string) error {
 	partitionKey := aws.String("key_id")
-	sortKey := aws.String("place")
+	gsiPartKey := aws.String("story_id")
+	gsiSortKey := aws.String("place")
 
 	tableSchema := []types.KeySchemaElement{
 		{
-			AttributeName: aws.String(*partitionKey),
+			AttributeName: partitionKey,
 			KeyType:       types.KeyTypeHash, // Partition key
-		},
-		{
-			AttributeName: aws.String(*sortKey),
-			KeyType:       types.KeyTypeRange, // Sort key
 		},
 	}
 
+	gsiSchema := []types.KeySchemaElement{
+		{
+			AttributeName: gsiPartKey,
+			KeyType:       types.KeyTypeHash,
+		},
+		{
+			AttributeName: gsiSortKey,
+			KeyType:       types.KeyTypeRange,
+		},
+	}
 	attributes := []types.AttributeDefinition{
 		{
 			AttributeName: partitionKey,
 			AttributeType: types.ScalarAttributeTypeS,
 		},
 		{
-			AttributeName: sortKey,
+			AttributeName: gsiPartKey,
+			AttributeType: types.ScalarAttributeTypeS,
+		},
+		{
+			AttributeName: gsiSortKey,
 			AttributeType: types.ScalarAttributeTypeN,
 		},
 	}
 
+	gsiSettings := []types.GlobalSecondaryIndex{
+		{
+			IndexName: aws.String("story_id-place-index"),
+			KeySchema: gsiSchema,
+			Projection: &types.Projection{
+				ProjectionType: types.ProjectionTypeAll,
+			},
+		},
+	}
+
 	_, err := d.dynamoClient.CreateTable(context.TODO(), &dynamodb.CreateTableInput{
-		TableName:            aws.String(tableName),
-		KeySchema:            tableSchema,
-		AttributeDefinitions: attributes,
-		BillingMode:          types.BillingModePayPerRequest,
+		TableName:              aws.String(tableName),
+		KeySchema:              tableSchema,
+		AttributeDefinitions:   attributes,
+		BillingMode:            types.BillingModePayPerRequest,
+		GlobalSecondaryIndexes: gsiSettings,
 	})
 	if err != nil {
 		return err

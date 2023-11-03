@@ -34,7 +34,7 @@ const StoryAndSeriesListing = () => {
           if (series.stories) {
             series.stories.forEach((story) => {
               seriesObj.listings.push({
-                
+                id: story.story_id,
                 volume: story.title,
                 place: story.place,
                 created_at: story.created_at,
@@ -58,7 +58,6 @@ const StoryAndSeriesListing = () => {
         throw new Error('Fetch problem stories ' + response.status);
       }).then((data) => {
         const storiesFromDB = data.map((story) => {
-          console.log("story", story)
           const img = story.image_url.length ? story.image_url : '/img/icons/story_standalone_icon.jpg';
           return {
             id: story.story_id,
@@ -97,9 +96,8 @@ const StoryAndSeriesListing = () => {
   const storyComponents = storiesList.map((story) => {
     return <Story key={story.id} id={story.id} title={story.title} description={story.description} portrait={story.image} />;
   });
-
   let content = <div/>;
-  if (seriesLoaded && storiesLoaded && (seriesList.size || storiesList.length)) {
+  if (seriesLoaded && storiesLoaded && (seriesList.length || storiesList.length)) {
     content = (
       <React.Fragment>
         {seriesComponents}

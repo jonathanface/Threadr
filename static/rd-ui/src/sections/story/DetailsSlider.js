@@ -6,7 +6,7 @@ import React from 'react';
 import '../../css/story.css';
 
 const DetailsSlider = (props) => {
-
+  console.log("details props", props)
   return (
     <div className="details-slider">
       {
@@ -15,7 +15,8 @@ const DetailsSlider = (props) => {
               <div>Volumes:</div>
               <ul>
                 {props.data.map((entry) => {
-                  return <li key={entry.place} title={entry.description} onClick={(e)=> props.onStoryClick(e, entry.volume, props.title)}>
+                  console.log("entry", entry);
+                  return <li key={entry.place} title={entry.description} onClick={(e)=> props.onStoryClick(e, entry.id, props.series)}>
                     {entry.volume}
                     <span>
                       <IconButton className="edit-series-story" aria-label="edit story" sx={{padding:'0'}} component="label" title="Edit Series Volume" onClick={(event)=>{props.editFunc(event, entry.volume)}}>
