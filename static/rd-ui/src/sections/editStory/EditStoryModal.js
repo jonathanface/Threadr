@@ -18,6 +18,7 @@ const EditStory = () => {
     const [series, setSeries] = useState([]);
     const isEditingStory = useSelector((state) => state.stories.isEditing);
     const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
+    const belongsToSeries = useSelector((state) => state.stories.belongsToSeries);
     const dispatch = useDispatch();
 
     const initMap = new Map();
@@ -27,6 +28,7 @@ const EditStory = () => {
 
     const editables = useSelector((state) => state.stories.editables);
     const [isInASeries, setIsInASeries] = useState(editables.series);
+    const [currentSeries, setCurrentSeries] = useState(belongsToSeries);
     const seriesList = useSelector((state) => state.stories.seriesList);
     const standaloneList = useSelector((state) => state.stories.standaloneList);
 
@@ -101,10 +103,8 @@ const EditStory = () => {
       if (!isInASeries && formInput['series_id']) {
         formInput.delete('series_id');
       }
-      if (formInput['series_id'] && formInput['place'] < 1) {
-        setCurrentError('Place must be > 1 when assigning to a series');
-        setAreErrors(true);
-        return;
+      if (formInput['series_id']) {
+        formInput['place'] = series.stories.length;
       }
       const formData = formInput.image ? formInput.image : new FormData();
       for (const key in formInput) {
@@ -157,7 +157,6 @@ const EditStory = () => {
           handleClose();
         }, 1000);
       }).catch((error) => {
-        console.error("err", error)
         if (error.status === 401) {
           dispatch(setAlertMessage('inadequate subscription'));
           dispatch(setAlertSeverity('error'));

@@ -9,13 +9,13 @@ const DetailsSlider = (props) => {
   return (
     <div className="details-slider">
       {
-        props.data && props.data.length ?
+        props.volumes && props.volumes.length ?
             <div className="series-listing">
               <div>Volumes:</div>
               <ul>
-                {props.data.map((entry) => {
+                {props.volumes.map((entry) => {
                   return <li key={entry.place} title={entry.description} onClick={(e)=> props.onStoryClick(e, entry.id, props.title)}>
-                    {entry.volume}
+                    {entry.title}
                     <span>
                       <IconButton className="edit-series-story" aria-label="edit story" sx={{padding:'0'}} component="label" title="Edit Series Volume" onClick={(event)=>{props.editFunc(event, entry.id)}}>
                         <EditIcon sx={{

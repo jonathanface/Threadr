@@ -19,7 +19,6 @@ const CreateNewStory = () => {
   const [series, setSeries] = useState([]);
   const isCreatingNewStory = useSelector((state) => state.stories.isCreatingNew);
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
-  const isAssignedSeries = useSelector((state) => state.stories.seriesToAppend);
   
   const dispatch = useDispatch();
   const initMap = new Map();
@@ -47,30 +46,28 @@ const CreateNewStory = () => {
   };
 
   const getSeries = () => {
-    fetch('/api/series')
-        .then((response) => {
-          if (response.ok) {
+    fetch('/api/series').then((response) => {
+        if (response.ok) {
             return response.json();
-          }
-          throw new Error('Fetch problem series ' + response.status);
-        })
-        .then((data) => {
-          const reduced = data.reduce((accumulator, currentValue) => {
-            if (!accumulator.series[currentValue.series_id]) {
-              accumulator.series[currentValue.series_id] = 1;
+        }
+        throw new Error('Fetch problem series ' + response.status);
+    }).then((data) => {
+        const reduced = data.reduce((accumulator, currentValue) => {
+            if (!accumulator.series[currentValue.series_title]) {
+                accumulator.series[currentValue.series_title] = 1;
             } else {
-              accumulator.series[currentValue.series_id]++;
+                accumulator.series[currentValue.series_title]++;
             }
             return accumulator;
-          }, {series: {}});
-          const params = [];
-          for (const series in reduced.series) {
+        }, {series: {}});
+        const params = [];
+        for (const series in reduced.series) {
             params.push({'label': series, 'id': series, 'count': reduced[series]});
-          }
-          setSeries(params);
-        }).catch((error) => {
-          console.error('get series', error);
-        });
+        }
+        setSeries(params);
+    }).catch((error) => {
+        console.error('get series', error);
+    });
   };
 
   const getDefaultImage = () => { 
@@ -128,9 +125,9 @@ const CreateNewStory = () => {
     if (isLoggedIn && isCreatingNewStory) {
       getSeries();
       getDefaultImage();
-      setIsInASeries(isAssignedSeries.length ? true : false);
+      setIsInASeries(false);
     }
-  }, [isLoggedIn, isCreatingNewStory, isAssignedSeries]);
+  }, [isLoggedIn, isCreatingNewStory]);
 
   const handleSubmit = () => {
     if (!formInput['title'] || !formInput['title'].trim().length) {
@@ -143,10 +140,9 @@ const CreateNewStory = () => {
       setAreErrors(true);
       return;
     }
-    if (formInput['series'] && formInput['place'] < 1) {
-      setCurrentError('Place must be > 1 when assigning to a series');
-      setAreErrors(true);
-      return;
+
+    if (formInput['series_id']) {
+      formInput['place'] = series.stories.length;
     }
     setCurrentError('');
     setAreErrors(false);
@@ -259,13 +255,12 @@ const CreateNewStory = () => {
             isInASeries ?
               <div>
                 <Autocomplete
-                  value={isAssignedSeries}
                   onInputChange={(event) => {
                     if (event) {
 
                       setFormInput(prevFormInput => ({
                         ...prevFormInput,
-                        series: event.target.value
+                        series_id: event.target.value
                       }));
                     }
                   }}
@@ -273,7 +268,7 @@ const CreateNewStory = () => {
                     if (event) {
                       setFormInput(prevFormInput => ({
                         ...prevFormInput,
-                        series: actions.id
+                        series_id: actions.id
                       }));
                     }
                   }}

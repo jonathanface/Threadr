@@ -36,7 +36,7 @@ const StoryAndSeriesListing = () => {
               seriesObj.listings.push({
                 id: story.story_id,
                 series_id: series.series_id,
-                volume: story.title,
+                title: story.title,
                 place: story.place,
                 created_at: story.created_at,
                 description: story.description,
@@ -91,7 +91,7 @@ const StoryAndSeriesListing = () => {
   
   // If there are works, we prepare our series and stories components.
   const seriesComponents = seriesList.map((series) => {
-    return <Story key={series.id} id={series.id} title={series.title} data={series.listings} image={series.image} />;
+    return <Story key={series.id} id={series.id} title={series.title} volumes={series.listings} image={series.image} />;
   });
 
   const storyComponents = storiesList.map((story) => {

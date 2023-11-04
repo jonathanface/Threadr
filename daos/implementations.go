@@ -94,7 +94,6 @@ func (d *DAO) GetAllStandalone(email string) (stories []*models.Story, err error
 	if err = attributevalue.UnmarshalListOfMaps(out.Items, &stories); err != nil {
 		return nil, err
 	}
-	fmt.Println("standalone", stories)
 
 	for i := 0; i < len(stories); i++ {
 		stories[i].Chapters, err = d.GetChaptersByStoryID(stories[i].ID)
@@ -120,7 +119,6 @@ func (d *DAO) GetChaptersByStoryID(storyID string) (chapters []models.Chapter, e
 	if err = attributevalue.UnmarshalListOfMaps(out.Items, &chapters); err != nil {
 		return nil, err
 	}
-	//fmt.Println("chats", chapters[0].ChapterNum, chapters[0].ChapterTitle)
 	return chapters, nil
 }
 
@@ -171,7 +169,6 @@ func (d *DAO) GetStoryByID(email, storyID string) (story *models.Story, err erro
 		return story, fmt.Errorf("no story found")
 	}
 	storyFromMap[0].Chapters, err = d.GetChaptersByStoryID(storyID)
-	fmt.Println("got", storyFromMap[0].Chapters)
 	if err != nil {
 		return
 	}
@@ -206,7 +203,6 @@ func (d *DAO) GetSeriesByID(email, seriesID string) (series *models.Series, err 
 	if err != nil {
 		return series, err
 	}
-	fmt.Println("srs", seriesFromMap)
 	for _, story := range seriesFromMap[0].Stories {
 		story.Chapters, err = d.GetChaptersByStoryID(story.ID)
 		if err != nil {
@@ -365,7 +361,6 @@ func (d *DAO) GetAllSeriesWithStories(email string) (series []models.Series, err
 }
 
 func (d *DAO) GetSeriesVolumes(email, seriesID string) (volumes []*models.Story, err error) {
-	fmt.Println("getting series", seriesID)
 	queryInput := &dynamodb.QueryInput{
 		TableName:              aws.String("stories"),
 		IndexName:              aws.String("series_id-place-index"),
@@ -391,14 +386,13 @@ func (d *DAO) GetSeriesVolumes(email, seriesID string) (volumes []*models.Story,
 		return volumes, err
 	}
 
-	for _, story := range stories {
-		fmt.Println("got st", story.Title)
-		story.Chapters, err = d.GetChaptersByStoryID(story.ID)
+	for idx, story := range stories {
+		chapters, err := d.GetChaptersByStoryID(story.ID)
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("chaps", story.Chapters[0])
-		volumes = append(volumes, &story)
+		stories[idx].Chapters = chapters
+		volumes = append(volumes, &stories[idx])
 	}
 	return volumes, nil
 }
@@ -666,7 +660,6 @@ func (d *DAO) UpdateAssociationPortraitEntryInDB(email, story, associationName, 
 	}
 	_, err = d.dynamoClient.UpdateItem(context.Background(), updateInput)
 	if err != nil {
-		fmt.Println("error saving", err)
 		return err
 	}
 	return nil
@@ -721,7 +714,6 @@ func (d *DAO) copyTableContents(email, srcTableName, destTableName string) error
 	describeResp, err := d.dynamoClient.DescribeTable(context.TODO(), describeInput)
 	var resourceNotFoundErr *types.ResourceNotFoundException
 	if err != nil {
-		fmt.Println("can't access dest table")
 		return err
 	}
 	if err == nil {
@@ -744,7 +736,6 @@ func (d *DAO) copyTableContents(email, srcTableName, destTableName string) error
 	for paginator.HasMorePages() {
 		page, err := paginator.NextPage(context.TODO())
 		if err != nil {
-			fmt.Println("paginator", err)
 			return err
 		}
 
@@ -755,7 +746,6 @@ func (d *DAO) copyTableContents(email, srcTableName, destTableName string) error
 			})
 
 			if err != nil {
-				fmt.Println("rename table put", err)
 				return err
 			}
 		}
@@ -764,7 +754,6 @@ func (d *DAO) copyTableContents(email, srcTableName, destTableName string) error
 }
 
 func (d *DAO) EditStory(email string, story models.Story) (err error) {
-	fmt.Println("editing story", story)
 	modifiedAtStr := strconv.FormatInt(time.Now().Unix(), 10)
 	item := map[string]types.AttributeValue{
 		"story_id":    &types.AttributeValueMemberS{Value: story.ID},
@@ -1477,7 +1466,6 @@ func (d *DAO) IsUserSubscribed(email string) (subscriberID string, err error) {
 }
 
 func (d *DAO) AddCustomerID(email, customerID *string) error {
-	fmt.Println("billing", email, customerID)
 	key := map[string]types.AttributeValue{
 		"email": &types.AttributeValueMemberS{Value: *email},
 	}

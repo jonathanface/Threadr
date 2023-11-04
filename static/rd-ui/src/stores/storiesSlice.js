@@ -5,21 +5,22 @@ export const storiesSlice = createSlice({
   initialState: {
     isCreatingNew: false,
     isEditing: false,
-    seriesToAppend: "",
+    belongsToSeries: "",
     standaloneList: [],
     seriesList:[],
     editables: {},
     selectedStory: ""
   },
   reducers: {
-    flipCreatingNewStory: (state, action) => {
+    flipCreatingNewStory: (state) => {
       state.isCreatingNew = !state.isCreatingNew;
-      if (action.payload) {
-        state.seriesToAppend = action.payload;
-      }
+      
     },
-    flipEditingStory: (state) => {
+    flipEditingStory: (state, action) => {
       state.isEditing = !state.isEditing;
+      if (action.payload) {
+        state.belongsToSeries = action.payload;
+      }
     },
     setStandaloneList: (state, action) => {
       state.standaloneList = action.payload;

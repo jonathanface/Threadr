@@ -110,7 +110,6 @@ func staggeredStoryBlockRetrieval(dao daos.DaoInterface, email string, storyID s
 		}
 		return nil, fmt.Errorf("error getting story blocks: %s", err.Error())
 	}
-	fmt.Println("last evaluated", blocks.LastEvaluated)
 	if blocks.LastEvaluated == nil {
 		return blocks, nil
 	}

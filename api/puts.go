@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -68,9 +67,10 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// TODO removing from series ??
-	if len(strings.TrimSpace(r.FormValue("series"))) > 0 {
-		story.SeriesID = strings.TrimSpace(r.FormValue("series"))
+	if len(strings.TrimSpace(r.FormValue("series_id"))) > 0 {
+		story.SeriesID = strings.TrimSpace(r.FormValue("series_id"))
+	} else if story.SeriesID != "" {
+		story.SeriesID = ""
 	}
 
 	const maxFileSize = 1024 * 1024 // 1 MB
@@ -104,7 +104,6 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		fileType := http.DetectContentType(fileBytes)
-		fmt.Println("filetype", fileType)
 		allowed := false
 		for _, t := range allowedTypes {
 			if fileType == t {
@@ -142,7 +141,6 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		story.ImageURL = "https://" + S3_STORY_IMAGE_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
-		fmt.Println("img", story.ImageURL)
 	}
 
 	if err = dao.EditStory(email, *story); err != nil {

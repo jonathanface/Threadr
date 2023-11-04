@@ -273,7 +273,7 @@ const Document = () => {
       setEditorState(EditorState.createWithContent(newContentState, createDecorators()));
       setBlocksLoaded(true);
     }).catch((error) => {
-      if (parseInt(error.message) !== 404) {
+      if (parseInt(error.message) !== 404 && parseInt(error.message !== 501)) {
         console.error('get story blocks', error);
         dispatch(setAlertMessage('An error occurred trying to retrieve your content.\nPlease report this.'));
         dispatch(setAlertSeverity('error'));

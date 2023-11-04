@@ -58,7 +58,6 @@
 .doc-button .story-label .title {
     margin-right:15px;
     font-size:0.8rem;
-    word-break:break-all;
 }
 .doc-button .story-label .buttons {
     white-space: nowrap;

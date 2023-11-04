@@ -70,7 +70,6 @@ func (d *DAO) generateStoryChapterTransaction(storyID string, chapter int, chapt
 		return types.TransactWriteItem{}, fmt.Errorf("CHAPTER CREATION: storyID and chapterTitle params must not be blank")
 	}
 	chapterNumStr := strconv.Itoa(chapter)
-	fmt.Println("creating chap", storyID, chapter, chapterTitle)
 	attributes := map[string]types.AttributeValue{
 		"story_id":    &types.AttributeValueMemberS{Value: storyID},
 		"chapter_num": &types.AttributeValueMemberN{Value: chapterNumStr},
