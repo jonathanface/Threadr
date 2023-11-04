@@ -3,14 +3,14 @@ import { IconButton } from '@mui/material';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import '../../css/landing-page.css';
-import { flipCreatingNewStoryState } from '../../stores/creatingNewStorySlice';
 import { setLoaderVisible } from '../../stores/displayLoaderSlice';
+import { flipCreatingNewStory, setSeriesList, setStandaloneList } from '../../stores/storiesSlice';
 import Story from '../story/Story';
 
 const StoryAndSeriesListing = () => {
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
-  const [stories, setStories] = useState([]);
-  const [seriesGroup, setSeriesGroups] = useState([]);
+  const storiesList = useSelector((state) => state.stories.standaloneList);
+  const seriesList = useSelector((state) => state.stories.seriesList);
   const dispatch = useDispatch();
   const [seriesLoaded, setSeriesLoaded] = useState(false);
   const [storiesLoaded, setStoriesLoaded] = useState(false);
@@ -24,20 +24,29 @@ const StoryAndSeriesListing = () => {
         }
         throw new Error('Fetch problem series ' + response.status);
       }).then((data) => {
-        const seriesStoriesFromDB = new Map();
-        data.forEach((series) => {
-          seriesStoriesFromDB.set(series.series_title, []);
+        const seriesStoriesFromDB = data.map(series => {
+          const seriesObj = {
+            id: series.series_id,
+            title: series.series_title,
+            listings: [],
+            image: series.image_url.length ? series.image_url : '/img/icons/story_series_icon.jpg',
+          }
           if (series.stories) {
             series.stories.forEach((story) => {
-              seriesStoriesFromDB.get(series.series_title).push({
-                volume: story.title,
+              seriesObj.listings.push({
+                id: story.story_id,
+                series_id: series.series_id,
+                title: story.title,
                 place: story.place,
-                created_at: story.created_at
+                created_at: story.created_at,
+                description: story.description,
+                image: story.image_url.length ? story.image_url : '/img/icons/story_icon.jpg'
               });
             });
           }
+          return seriesObj;
         });
-        setSeriesGroups(seriesStoriesFromDB);
+        dispatch(setSeriesList(seriesStoriesFromDB));
         setSeriesLoaded(true);
       });
     };
@@ -50,14 +59,17 @@ const StoryAndSeriesListing = () => {
         throw new Error('Fetch problem stories ' + response.status);
       }).then((data) => {
         const storiesFromDB = data.map((story) => {
+          const img = story.image_url.length ? story.image_url : '/img/icons/story_standalone_icon.jpg';
           return {
+            id: story.story_id,
             title: story.title,
             description: story.description,
+            image: img,
             created_at: story.created_at,
             chapter: story.chapters
           };
         });
-        setStories(storiesFromDB);
+        dispatch(setStandaloneList(storiesFromDB));
         setStoriesLoaded(true);
       });
     };
@@ -73,22 +85,20 @@ const StoryAndSeriesListing = () => {
   }, [isLoggedIn, dispatch, seriesLoaded, storiesLoaded]);
 
   const createNewStory = () => {
-    dispatch(flipCreatingNewStoryState());
+    dispatch(flipCreatingNewStory());
   };
 
   
   // If there are works, we prepare our series and stories components.
-  const seriesComponents = [...seriesGroup.keys()].map((series) => {
-    const entries = seriesGroup.get(series);
-    return <Story key={series} series={true} title={series} data={entries} />;
+  const seriesComponents = seriesList.map((series) => {
+    return <Story key={series.id} id={series.id} title={series.title} volumes={series.listings} image={series.image} />;
   });
 
-  const storyComponents = stories.map((story) => {
-    return <Story key={story.title} series={false} title={story.title} description={story.description} />;
+  const storyComponents = storiesList.map((story) => {
+    return <Story key={story.id} id={story.id} title={story.title} description={story.description} image={story.image} />;
   });
-
   let content = <div/>;
-  if (seriesLoaded && storiesLoaded && (seriesGroup.length || stories.length)) {
+  if (seriesLoaded && storiesLoaded && (seriesList.length || storiesList.length)) {
     content = (
       <React.Fragment>
         {seriesComponents}

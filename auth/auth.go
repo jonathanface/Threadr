@@ -38,7 +38,6 @@ func determineName(info goth.User) string {
 
 func Callback(w http.ResponseWriter, r *http.Request) {
 	sess, err := sessions.Get(r, "login_referral")
-	fmt.Println("Refer", sess.Values["referrer"].(string))
 	if err != nil {
 		api.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return

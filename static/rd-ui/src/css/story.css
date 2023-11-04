@@ -9,6 +9,7 @@
     text-align: center;
     margin-right:20px;
     margin-bottom:20px;
+    overflow:hidden;
 }
 
 .doc-button:hover {
@@ -40,15 +41,26 @@
     margin-left:auto;
 }
 
-.doc-button .typeLabel {
-    position: absolute;
+.doc-button .story-label {
+    position: fixed;
     right: 10px;
     top: 10px;
-    border: 1px dashed white;
-    padding: 5px;
+    padding: 10px;
     border-radius: 10px;
-    background: #515050;
+    background: #282828;
     opacity:0.9;
+    display:flex;
+    justify-content: space-between;
+    align-items: baseline;
+    width:80%;
+    margin:0 auto;
+}
+.doc-button .story-label .title {
+    margin-right:15px;
+    font-size:0.8rem;
+}
+.doc-button .story-label .buttons {
+    white-space: nowrap;
 }
 
 .doc-button > div {
@@ -93,6 +105,18 @@
     padding-left:15px;
 }
 
+.doc-button .details-slider .series-listing ul {
+    line-height:1.25rem;
+}
+.doc-button .details-slider .delete-series-story {
+    
+}
+
+.doc-button .details-slider .series-listing li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 .doc-button .details-slider .series-listing li:hover {
     cursor:pointer;
     text-decoration:underline;

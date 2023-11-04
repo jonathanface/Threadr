@@ -8,19 +8,20 @@ import DefaultPage from './sections/DefaultPage/DefaultPage';
 import UserMenu from './sections/UserMenu/UserMenu';
 import CreateNewStory from './sections/createNewStory/CreateNewStoryModal';
 import Document from './sections/document/Document';
+import EditStory from "./sections/editStory/EditStoryModal";
 import StoryAndSeriesListing from './sections/storyAndSeriesListing/StoryAndSeriesListing';
 import Subscribe from './sections/subscribe/Subscribe';
 import { setLoaderVisible } from './stores/displayLoaderSlice';
 import { flipLoggedInState } from './stores/loggedInSlice';
 import { setSelectedSeries } from './stores/selectedSeriesSlice';
-import { setSelectedStoryTitle } from './stores/selectedStorySlice';
+import { setSelectedStory } from './stores/storiesSlice';
 import Toaster from './utils/Toaster';
 
 const Threadr = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [stripe, setStripe] = useState(() => loadStripe(process.env.REACT_APP_STRIPE_KEY))
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
-  const selectedStoryTitle = useSelector((state) => state.selectedStoryTitle.value);
+  const selectedStory = useSelector((state) => state.stories.selectedStory);
   const dispatch = useDispatch(); 
  
   const handleNavChange = () => {
@@ -28,12 +29,12 @@ const Threadr = () => {
     const splitDirectories = location.split('/');
     if (splitDirectories[1] === 'story' && splitDirectories[2].trim() !== '') {
       dispatch(setSelectedSeries(null));
-      dispatch(setSelectedStoryTitle(decodeURIComponent(splitDirectories[2])));
+      dispatch(setSelectedStory(decodeURIComponent(splitDirectories[2])));
     } else if (splitDirectories[1] === 'series' && splitDirectories[2].trim() !== '') {
-      dispatch(setSelectedStoryTitle(null));
+      dispatch(setSelectedStory(null));
       dispatch(setSelectedSeries(decodeURIComponent(splitDirectories[2])));
     } else {
-      dispatch(setSelectedStoryTitle(null));
+      dispatch(setSelectedStory(null));
       dispatch(setSelectedSeries(null));
     }
   };
@@ -62,12 +63,12 @@ const Threadr = () => {
     handleNavChange();
     return () => window.removeEventListener('popstate', handleNavChange);
   }, [dispatch]);
-  console.log("isLaoding", isLoading)
+
   const displayComponent =
     !isLoading
-      ? isLoggedIn && selectedStoryTitle
-        ? <Document story={selectedStoryTitle} />
-        : isLoggedIn && !selectedStoryTitle
+      ? isLoggedIn && selectedStory
+        ? <Document story={selectedStory} />
+        : isLoggedIn && !selectedStory
           ? <StoryAndSeriesListing />
           : <DefaultPage />
       : <div/>
@@ -85,6 +86,7 @@ const Threadr = () => {
         </header>
           {displayComponent}
           <CreateNewStory />
+          <EditStory />
       </main>
       <Toaster/>
       <Elements stripe={stripe}><Subscribe/></Elements>

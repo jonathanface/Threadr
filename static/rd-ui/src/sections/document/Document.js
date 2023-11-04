@@ -1,61 +1,61 @@
-import React, {useRef, useEffect, useState} from 'react';
 import Immutable from 'immutable';
+import React, { useEffect, useRef, useState } from 'react';
 
 import {
-  convertFromRaw,
+  faAlignCenter,
+  faAlignJustify,
+  faAlignLeft,
+  faAlignRight
+} from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import AddIcon from '@mui/icons-material/Add';
+import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
+import CloseIcon from '@mui/icons-material/Close';
+import DeleteIcon from '@mui/icons-material/Delete';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import {
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+  MenuItem as MaterialMenuItem,
+  TextField
+} from '@mui/material';
+import Button from '@mui/material/Button';
+import {
+  CompositeDecorator,
+  ContentBlock,
+  ContentState,
   Editor,
   EditorState,
-  ContentBlock,
-  RichUtils,
-  getDefaultKeyBinding,
   Modifier,
+  RichUtils,
   SelectionState,
-  ContentState,
-  CompositeDecorator
+  convertFromRaw,
+  getDefaultKeyBinding
 } from 'draft-js';
+import 'draft-js/dist/Draft.css';
+import { Item, Menu, Submenu, useContextMenu } from 'react-contexify';
+import 'react-contexify/ReactContexify.css';
+import { MenuItem, Menu as SideMenu, Sidebar, useProSidebar } from 'react-pro-sidebar';
+import { useDispatch, useSelector } from 'react-redux';
+import '../../css/document.css';
+import '../../css/sidebar.css';
+import { setAlertLink, setAlertMessage, setAlertOpen, setAlertSeverity, setAlertTimeout } from '../../stores/alertSlice.js';
+import { setLoaderVisible } from '../../stores/displayLoaderSlice.js';
+import { setSelectedSeries } from '../../stores/selectedSeriesSlice.js';
+import { setSelectedStory } from '../../stores/storiesSlice.js';
+import AssociationUI from './AssociationUI.js';
+import Exporter from './Exporter.js';
+import { FindHighlightable, FindTabs, HighlightSpan, TabSpan } from './decorators';
 import {
-  GetSelectedText,
-  InsertTab,
   FilterAndReduceDBOperations,
+  GenerateTabCharacter,
   GetBlockStyleDataByType,
   GetEntityData,
   GetSelectedBlockKeys,
-  GenerateTabCharacter
+  GetSelectedText,
+  InsertTab
 } from './utilities.js';
-import AssociationUI from './AssociationUI.js';
-import 'draft-js/dist/Draft.css';
-import '../../css/document.css';
-import {Menu, Item, Submenu, useContextMenu} from 'react-contexify';
-import 'react-contexify/ReactContexify.css';
-import {useSelector, useDispatch} from 'react-redux';
-import {FindHighlightable, HighlightSpan, FindTabs, TabSpan} from './decorators';
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {
-  faAlignLeft,
-  faAlignCenter,
-  faAlignRight,
-  faAlignJustify
-} from '@fortawesome/free-solid-svg-icons';
-import CloseIcon from '@mui/icons-material/Close';
-import {setSelectedSeries} from '../../stores/selectedSeriesSlice.js';
-import {setSelectedStoryTitle} from '../../stores/selectedStorySlice.js';
-import {Sidebar, Menu as SideMenu, MenuItem, SubMenu, useProSidebar} from 'react-pro-sidebar';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
-import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
-import {
-  IconButton,
-  TextField,
-  ListItemIcon,
-  ListItemText,
-  MenuItem as MaterialMenuItem
-} from '@mui/material';
-import Button from '@mui/material/Button';
-import '../../css/sidebar.css';
-import Exporter from './Exporter.js';
-import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
-import {setLoaderVisible} from '../../stores/displayLoaderSlice.js';
-import {setAlertMessage, setAlertOpen, setAlertSeverity, setAlertTimeout, setAlertLink} from '../../stores/alertSlice.js';
 
 const ASSOCIATION_TYPE_CHARACTER = 'character';
 const ASSOCIATION_TYPE_EVENT = 'event';
@@ -96,7 +96,7 @@ const Document = () => {
 
   const urlParams = new URLSearchParams(window.location.search);
 
-  const selectedStoryTitle = useSelector((state) => state.selectedStoryTitle.value);
+  const selectedStory = useSelector((state) => state.stories.selectedStory);
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
   const [selectedChapterNumber, setSelectedChapterNumber] = useState(urlParams.get('chapter') !== '' ? parseInt(urlParams.get('chapter')) : 1);
   const [selectedChapterTitle, setSelectedChapterTitle] = useState('');
@@ -143,15 +143,15 @@ const Document = () => {
   );
 
   const exportDoc = async (type) => {
-    const exp = new Exporter(selectedStoryTitle);
+    const exp = new Exporter(selectedStory);
     const htmlData = await exp.DocToHTML();
-    fetch('/api/stories/' + selectedStoryTitle + '/export', {
+    fetch('/api/stories/' + selectedStory + '/export', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        story_title: selectedStoryTitle,
+        story_id: selectedStory,
         html_by_chapter: htmlData,
         type: type
       })
@@ -167,7 +167,7 @@ const Document = () => {
 
   const getAllAssociations = async () => {
     associations.splice(0);
-    return fetch('/api/stories/' + selectedStoryTitle + '/associations')
+    return fetch('/api/stories/' + selectedStory + '/associations')
         .then((response) => {
           if (response.ok) {
             return response.json();
@@ -236,7 +236,7 @@ const Document = () => {
   };
 
   const getBatchedStoryBlocks = async (startKey) => {
-    return fetch('/api/stories/' + selectedStoryTitle + '/content?key=' + startKey + '&chapter=' + selectedChapterNumber).then((response) => {
+    return fetch('/api/stories/' + selectedStory + '/content?key=' + startKey + '&chapter=' + selectedChapterNumber).then((response) => {
       if (response.ok) {
         return response.json();
       }
@@ -273,12 +273,15 @@ const Document = () => {
       setEditorState(EditorState.createWithContent(newContentState, createDecorators()));
       setBlocksLoaded(true);
     }).catch((error) => {
-      if (parseInt(error.message) !== 404) {
+      if (parseInt(error.message) !== 404 && parseInt(error.message !== 501)) {
         console.error('get story blocks', error);
-        setBlocksLoaded(true);
+        dispatch(setAlertMessage('An error occurred trying to retrieve your content.\nPlease report this.'));
+        dispatch(setAlertSeverity('error'));
+        dispatch(setAlertOpen(true));
       } else {
         setEditorState(EditorState.createEmpty(createDecorators()));
       }
+      setBlocksLoaded(true);
     });
   };
 
@@ -359,7 +362,7 @@ const Document = () => {
   };
 
   const getStoryDetails = async () => {
-    return fetch('/api/stories/' + selectedStoryTitle).then((response) => {
+    return fetch('/api/stories/' + selectedStory).then((response) => {
       if (response.ok) {
         return response.json();
       }
@@ -383,7 +386,7 @@ const Document = () => {
     window.addEventListener('unload', processDBQueue);
 
     if (isLoggedIn) {
-      if (selectedStoryTitle) {
+      if (selectedStory) {
         if (!storyDetailsLoaded) {
           getStoryDetails();
         } else if (!associationsLoaded) {
@@ -401,13 +404,13 @@ const Document = () => {
       clearInterval(processInterval);
       window.removeEventListener('unload', processDBQueue);
     };
-  }, [isLoggedIn, selectedStoryTitle, selectedChapterNumber, lastRetrievedBlockKey, storyDetailsLoaded, associationsLoaded, blocksLoaded]);
+  }, [isLoggedIn, selectedStory, selectedChapterNumber, lastRetrievedBlockKey, storyDetailsLoaded, associationsLoaded, blocksLoaded]);
 
   const syncBlockOrderMap = (blockList) => {
     return new Promise(async (resolve, reject) => {
       try {
         const params = {};
-        params.title = selectedStoryTitle;
+        params.title = selectedStory;
         params.chapter = selectedChapterNumber;
         params.blocks = [];
         let index = 0;
@@ -415,7 +418,7 @@ const Document = () => {
           params.blocks.push({key_id: block.getKey(), place: index.toString()});
           index++;
         });
-        const response = await fetch('/api/stories/' + selectedStoryTitle + '/orderMap', {
+        const response = await fetch('/api/stories/' + selectedStory + '/orderMap', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
@@ -443,7 +446,7 @@ const Document = () => {
         params.chapter = parseInt(chapter);
         params.blocks = blocks;
         console.log('del', blocks);
-        const response = await fetch('/api/stories/' + selectedStoryTitle + '/block', {
+        const response = await fetch('/api/stories/' + selectedStory + '/block', {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json'
@@ -467,7 +470,7 @@ const Document = () => {
     return new Promise(async (resolve, reject) => {
       try {
         const params = {};
-        params.title = story;
+        params.story_id = story;
         params.chapter = parseInt(chapter);
         params.blocks = blocks;
         console.log('saving', blocks);
@@ -502,7 +505,7 @@ const Document = () => {
     return new Promise(async (resolve, reject) => {
       try {
         console.log('saving associations', associations);
-        const response = await fetch('/api/stories/' + selectedStoryTitle + '/associations', {
+        const response = await fetch('/api/stories/' + selectedStory + '/associations', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
@@ -522,7 +525,7 @@ const Document = () => {
   const deleteAssociationsFromServer = (associations) => {
     return new Promise(async (resolve, reject) => {
       try {
-        const response = await fetch('/api/stories/' + selectedStoryTitle + '/associations', {
+        const response = await fetch('/api/stories/' + selectedStory + '/associations', {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json'
@@ -567,7 +570,7 @@ const Document = () => {
         blocksToPrep.push(content.getBlockForKey(key));
       });
       setEditorState(newEditorState);
-      prepBlocksForSave(content, blocksToPrep, selectedStoryTitle, selectedChapterNumber);
+      prepBlocksForSave(content, blocksToPrep, selectedStory, selectedChapterNumber);
     }
     return getDefaultKeyBinding(event);
   };
@@ -703,7 +706,7 @@ const Document = () => {
     const updatedEditorState = EditorState.push(newEditorState, newContent, 'change-block-data');
     const updatedEditorStateWithSelection = EditorState.forceSelection(updatedEditorState, originalSelectionState);
     setEditorState(updatedEditorStateWithSelection);
-    prepBlocksForSave(newContent, updatedBlocks, selectedStoryTitle, selectedChapterNumber);
+    prepBlocksForSave(newContent, updatedBlocks, selectedStory, selectedChapterNumber);
     setNavButtonState(style);
   };
 
@@ -881,7 +884,7 @@ const Document = () => {
       const deleteOp = {};
       deleteOp.type = 'delete';
       deleteOp.time = Date.now();
-      deleteOp.story=selectedStoryTitle;
+      deleteOp.story=selectedStory;
       deleteOp.chapter=selectedChapterNumber;
       deleteOp.ops = [];
       blocksToDelete.forEach((blockKey) => {
@@ -896,7 +899,7 @@ const Document = () => {
       blocksToSave.forEach((key) => {
         blocksToPrep.push(updatedContent.getBlockForKey(key));
       });
-      prepBlocksForSave(updatedContent, blocksToPrep, selectedStoryTitle, selectedChapterNumber);
+      prepBlocksForSave(updatedContent, blocksToPrep, selectedStory, selectedChapterNumber);
     }
 
     if (resyncRequired) {
@@ -940,14 +943,14 @@ const Document = () => {
       blocksToPrep.push(newContentState.getBlockForKey(key));
     });
     setEditorState(EditorState.push(editorState, newContentState, 'change-block-data'));
-    prepBlocksForSave(newContentState, blocksToPrep, selectedStoryTitle, selectedChapterNumber);
+    prepBlocksForSave(newContentState, blocksToPrep, selectedStory, selectedChapterNumber);
     setNavButtonState(alignment);
   };
 
   const onExitDocument = () => {
     processDBQueue();
     dispatch(setSelectedSeries(null));
-    dispatch(setSelectedStoryTitle(null));
+    dispatch(setSelectedStory(null));
     const history = window.history;
     history.pushState('root', 'exited story', '/');
   };
@@ -961,14 +964,14 @@ const Document = () => {
     setSelectedChapterNumber(num);
     setSelectedChapterTitle(title);
     const history = window.history;
-    history.pushState({selectedStoryTitle}, 'changed chapter', '/story/' + encodeURIComponent(selectedStoryTitle) + '?chapter=' + num);
+    history.pushState({selectedStory}, 'changed chapter', '/story/' + encodeURIComponent(selectedStory) + '?chapter=' + num);
   };
 
   const onNewChapterClick = () => {
     console.log('gen chap');
     const newChapterNum = chapters.length+1;
     const newChapterTitle = 'Chapter ' + newChapterNum;
-    fetch('/api/stories/' + selectedStoryTitle + '/chapter', {
+    fetch('/api/stories/' + selectedStory + '/chapter', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -982,7 +985,7 @@ const Document = () => {
         setSelectedChapterNumber(newChapterNum);
         setSelectedChapterTitle(newChapterTitle);
         const history = window.history;
-        history.pushState({selectedStoryTitle}, 'created chapter', '/story/' + encodeURIComponent(selectedStoryTitle) + '?chapter=' + newChapterNum);
+        history.pushState({selectedStory}, 'created chapter', '/story/' + encodeURIComponent(selectedStory) + '?chapter=' + newChapterNum);
       }
       throw new Error('Fetch problem creating chapter ' + response.status, response.statusText);
     }).catch((error) => {
@@ -995,7 +998,7 @@ const Document = () => {
     const deleteChapter = chapters[chapterIndex];
     const params = [];
     params[0] = {'chapter_title': chapterTitle, 'chapter_num': deleteChapter.chapter_num};
-    fetch('/api/stories/' + selectedStoryTitle + '/chapter', {
+    fetch('/api/stories/' + selectedStory + '/chapter', {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json'
@@ -1011,7 +1014,7 @@ const Document = () => {
           setSelectedChapterNumber(prevChapter.chapter_num);
           setSelectedChapterTitle(prevChapter.chapter_title);
           const history = window.history;
-          history.pushState({selectedStoryTitle}, 'deleted chapter', '/story/' + encodeURIComponent(selectedStoryTitle) + '?chapter=' + prevChapter.chapter_num);
+          history.pushState({selectedStory}, 'deleted chapter', '/story/' + encodeURIComponent(selectedStory) + '?chapter=' + prevChapter.chapter_num);
         }
         return;
       }
@@ -1027,9 +1030,9 @@ const Document = () => {
 
   return (
     <div>
-      <AssociationUI open={associationWindowOpen} association={viewingAssociation} story={selectedStoryTitle} onEditCallback={onAssociationEdit} onClose={()=>{setAssociationWindowOpen(false); setFocusAndRestoreCursor();}} />
+      <AssociationUI open={associationWindowOpen} association={viewingAssociation} story={selectedStory} onEditCallback={onAssociationEdit} onClose={()=>{setAssociationWindowOpen(false); setFocusAndRestoreCursor();}} />
       <div className="title_info">
-        <h2>{decodeURIComponent(selectedStoryTitle)}</h2>
+        <h2>{decodeURIComponent(selectedStory)}</h2>
         <h3>{selectedChapterTitle}</h3>
       </div>
       <nav className="rich-controls">

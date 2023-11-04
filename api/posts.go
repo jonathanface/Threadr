@@ -4,39 +4,37 @@ import (
 	"RichDocter/converters"
 	"RichDocter/daos"
 	"RichDocter/models"
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/smithy-go"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
 
 func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	// this should be transactified
 	var (
-		email      string
-		err        error
-		storyTitle string
-		dao        daos.DaoInterface
-		ok         bool
+		err     error
+		storyID string
+		dao     daos.DaoInterface
+		ok      bool
 	)
-	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing story ID")
 		return
 	}
-	if storyTitle, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
-		return
-	}
-	if storyTitle == "" {
+	if storyID == "" {
 		RespondWithError(w, http.StatusBadRequest, "Missing story ID")
 		return
 	}
@@ -52,7 +50,7 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = dao.CreateChapter(email, storyTitle, chapter); err != nil {
+	if err = dao.CreateChapter(storyID, chapter); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
@@ -69,7 +67,6 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
-	// this should be transactified
 	var (
 		email string
 		err   error
@@ -80,28 +77,91 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	const maxFileSize = 1024 * 1024 // 1 MB
+	// image upload
+	err = r.ParseMultipartForm(10 << 20)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, "Unable to parse file")
+		return
+	}
 
-	decoder := json.NewDecoder(r.Body)
-	story := models.Story{}
-	if err := decoder.Decode(&story); err != nil {
-		RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
+	file, handler, err := r.FormFile("file")
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	story.Title = strings.TrimSpace(story.Title)
-	if story.Title == "" {
-		RespondWithError(w, http.StatusBadRequest, "Missing story name")
+	defer file.Close()
+
+	if handler.Size > maxFileSize {
+		RespondWithError(w, http.StatusBadRequest, "Filesize must be < 1MB")
 		return
 	}
-	story.Description = strings.TrimSpace(story.Description)
-	if story.Description == "" {
-		RespondWithError(w, http.StatusBadRequest, "Missing story description")
+	allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
+	fileBytes := make([]byte, handler.Size)
+	if _, err := file.Read(fileBytes); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	fileType := http.DetectContentType(fileBytes)
+	allowed := false
+	for _, t := range allowedTypes {
+		if fileType == t {
+			allowed = true
+			break
+		}
+	}
+	if !allowed {
+		RespondWithError(w, http.StatusBadRequest, "Invalid file type")
+		return
+	}
+
 	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	if err = dao.CreateStory(email, story); err != nil {
+
+	story := models.Story{}
+	story.ID = uuid.New().String()
+	story.Title = strings.TrimSpace(r.FormValue("title"))
+	if story.Title == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing story name")
+		return
+	}
+	story.Description = strings.TrimSpace(r.FormValue("description"))
+	if story.Description == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing story description")
+		return
+	}
+	story.SeriesID = strings.TrimSpace(r.FormValue("series"))
+	if story.SeriesID == "new" {
+		story.SeriesID = uuid.New().String()
+	}
+
+	reader := bytes.NewReader(fileBytes)
+	ext := filepath.Ext(handler.Filename)
+
+	filename := story.ID + "_portrait" + ext
+
+	var awsCfg aws.Config
+	if awsCfg, err = config.LoadDefaultConfig(context.TODO(), func(opts *config.LoadOptions) error {
+		opts.Region = os.Getenv("AWS_REGION")
+		return nil
+	}); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	s3Client := s3.NewFromConfig(awsCfg)
+	if _, err = s3Client.PutObject(context.Background(), &s3.PutObjectInput{
+		Bucket:      aws.String(S3_STORY_IMAGE_BUCKET),
+		Key:         aws.String(filename),
+		Body:        reader,
+		ContentType: aws.String(fileType),
+	}); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	story.ImageURL = "https://" + S3_STORY_IMAGE_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
+	if story.ID, err = dao.CreateStory(email, story); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
@@ -114,7 +174,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJson(w, http.StatusOK, story)
 }
 
 func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -135,9 +195,9 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
-	storyTitle := strings.TrimSpace(export.StoryTitle)
-	if storyTitle == "" {
-		RespondWithError(w, http.StatusBadRequest, "Missing story name")
+	storyID := strings.TrimSpace(export.StoryID)
+	if export.StoryID == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing story id")
 		return
 	}
 	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
@@ -145,7 +205,7 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Make sure the user actually owns this story
-	_, err = dao.GetStoryByName(email, storyTitle)
+	_, err = dao.GetStoryByID(email, storyID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			RespondWithError(w, http.StatusForbidden, "story doesn't belong to you")

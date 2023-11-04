@@ -19,23 +19,164 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
+func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
+
 	var (
-		email string
-		err   error
-		story string
-		dao   daos.DaoInterface
-		ok    bool
+		storyID string
+		email   string
+		err     error
+		dao     daos.DaoInterface
+		ok      bool
 	)
 	if email, err = getUserEmail(r); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if story, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
+		return
+	}
+
+	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
 		return
 	}
-	if story == "" {
+	if storyID == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing story ID")
+		return
+	}
+
+	story, err := dao.GetStoryByID(email, storyID)
+	if err != nil {
+		RespondWithError(w, http.StatusNotFound, "Unable to locate story")
+		return
+	}
+	if len(strings.TrimSpace(r.FormValue("title"))) > 0 {
+		story.Title = strings.TrimSpace(r.FormValue("title"))
+		if story.Title == "" {
+			RespondWithError(w, http.StatusBadRequest, "Missing story name")
+			return
+		}
+	}
+
+	if len(strings.TrimSpace(r.FormValue("description"))) > 0 {
+		story.Description = strings.TrimSpace(r.FormValue("description"))
+		if story.Description == "" {
+			RespondWithError(w, http.StatusBadRequest, "Missing story description")
+			return
+		}
+	}
+
+	if len(strings.TrimSpace(r.FormValue("series_id"))) > 0 {
+		story.SeriesID = strings.TrimSpace(r.FormValue("series_id"))
+	} else if story.SeriesID != "" {
+		story.SeriesID = ""
+	}
+
+	const maxFileSize = 1024 * 1024 // 1 MB
+	// image upload
+	err = r.ParseMultipartForm(10 << 20)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, "Unable to parse file")
+		return
+	}
+
+	file, handler, err := r.FormFile("file")
+	if err != nil {
+		if err != http.ErrMissingFile {
+			RespondWithError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+	}
+	if file != nil {
+		// TODO delete previous image
+		// TODO resize image
+		defer file.Close()
+
+		if handler.Size > maxFileSize {
+			RespondWithError(w, http.StatusBadRequest, "Filesize must be < 1MB")
+			return
+		}
+		allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
+		fileBytes := make([]byte, handler.Size)
+		if _, err := file.Read(fileBytes); err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		fileType := http.DetectContentType(fileBytes)
+		allowed := false
+		for _, t := range allowedTypes {
+			if fileType == t {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			RespondWithError(w, http.StatusBadRequest, "Invalid file type")
+			return
+		}
+
+		reader := bytes.NewReader(fileBytes)
+		ext := filepath.Ext(handler.Filename)
+
+		safeEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
+		filename := safeEmail + "_" + storyID + ext
+
+		var awsCfg aws.Config
+		if awsCfg, err = config.LoadDefaultConfig(context.TODO(), func(opts *config.LoadOptions) error {
+			opts.Region = os.Getenv("AWS_REGION")
+			return nil
+		}); err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		s3Client := s3.NewFromConfig(awsCfg)
+		if _, err = s3Client.PutObject(context.Background(), &s3.PutObjectInput{
+			Bucket:      aws.String(S3_STORY_IMAGE_BUCKET),
+			Key:         aws.String(filename),
+			Body:        reader,
+			ContentType: aws.String(fileType),
+		}); err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		story.ImageURL = "https://" + S3_STORY_IMAGE_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
+	}
+
+	if err = dao.EditStory(email, *story); err != nil {
+		if opErr, ok := err.(*smithy.OperationError); ok {
+			awsResponse := processAWSError(opErr)
+			if awsResponse.Code == 0 {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			RespondWithError(w, awsResponse.Code, awsResponse.Message)
+			return
+		}
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	RespondWithJson(w, http.StatusOK, story)
+}
+
+func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
+	var (
+		email   string
+		err     error
+		storyID string
+		dao     daos.DaoInterface
+		ok      bool
+	)
+	if email, err = getUserEmail(r); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
+		return
+	}
+	if storyID == "" {
 		RespondWithError(w, http.StatusBadRequest, "Missing story ID")
 		return
 	}
@@ -52,7 +193,7 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = dao.ResetBlockOrder(email, story, &storyBlocks); err != nil {
+	if err = dao.ResetBlockOrder(email, storyID, &storyBlocks); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
@@ -294,7 +435,7 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	portraitURL := "https://" + S3_CUSTOM_PORTRAIT_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
-	if err = dao.UpdatePortraitEntryInDB(email, storyOrSeries, associationName, portraitURL); err != nil {
+	if err = dao.UpdateAssociationPortraitEntryInDB(email, storyOrSeries, associationName, portraitURL); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

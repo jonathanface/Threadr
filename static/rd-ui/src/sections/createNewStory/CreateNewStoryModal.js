@@ -11,23 +11,34 @@ import TextField from '@mui/material/TextField';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setAlertMessage, setAlertOpen, setAlertSeverity } from '../../stores/alertSlice';
-import { flipCreatingNewStoryState } from '../../stores/creatingNewStorySlice';
-import { setSelectedStoryTitle } from '../../stores/selectedStorySlice';
+import { flipCreatingNewStory, setSelectedStory } from '../../stores/storiesSlice';
+import PortraitDropper from '../portraitdropper/PortraitDropper';
 
 const CreateNewStory = () => {
   const [isInASeries, setIsInASeries] = useState(false);
   const [series, setSeries] = useState([]);
-  const isCreatingNewStory = useSelector((state) => state.isCreatingNewStory.value);
+  const isCreatingNewStory = useSelector((state) => state.stories.isCreatingNew);
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
+  
   const dispatch = useDispatch();
   const initMap = new Map();
   initMap['place'] = 1;
-  const [formInput, setFormInput] = React.useState(initMap);
-  const [areErrors, setAreErrors] = React.useState(false);
-  const [currentError, setCurrentError] = React.useState('');
+  const [formInput, setFormInput] = useState(initMap);
+  const [areErrors, setAreErrors] = useState(false);
+  const [currentError, setCurrentError] = useState('');
+  const [imageURL, setImageURL] = useState();
+  const defaultImageURL = 'img/icons/story_standalone_icon.jpg'
+
+  const resetForm = () => {
+    setFormInput(initMap);
+    setAreErrors(false);
+    setCurrentError("");
+    setIsInASeries(false);
+  }
 
   const handleClose = () => {
-    dispatch(flipCreatingNewStoryState());
+    resetForm();
+    dispatch(flipCreatingNewStory());
   };
 
   const toggleSeries = () => {
@@ -35,34 +46,86 @@ const CreateNewStory = () => {
   };
 
   const getSeries = () => {
-    fetch('/api/series')
-        .then((response) => {
-          if (response.ok) {
+    fetch('/api/series').then((response) => {
+        if (response.ok) {
             return response.json();
-          }
-          throw new Error('Fetch problem series ' + response.status);
-        })
-        .then((data) => {
-          const reduced = data.reduce((accumulator, currentValue) => {
+        }
+        throw new Error('Fetch problem series ' + response.status);
+    }).then((data) => {
+        const reduced = data.reduce((accumulator, currentValue) => {
             if (!accumulator.series[currentValue.series_title]) {
-              accumulator.series[currentValue.series_title] = 1;
+                accumulator.series[currentValue.series_title] = 1;
             } else {
-              accumulator.series[currentValue.series_title]++;
+                accumulator.series[currentValue.series_title]++;
             }
             return accumulator;
-          }, {series: {}});
-          const params = [];
-          for (const series in reduced.series) {
+        }, {series: {}});
+        const params = [];
+        for (const series in reduced.series) {
             params.push({'label': series, 'id': series, 'count': reduced[series]});
-          }
-          setSeries(params);
-        }).catch((error) => {
-          console.error('get series', error);
-        });
+        }
+        setSeries(params);
+    }).catch((error) => {
+        console.error('get series', error);
+    });
   };
+
+  const getDefaultImage = () => { 
+    const randomImageURL = "https://picsum.photos/300";
+    fetch(randomImageURL).then((response) => {
+      if (response.ok) {
+        setImageURL(response.url);
+      } else {
+        setImageURL(defaultImageURL);
+      }
+      updateFormImage();
+    }).catch((error) => {
+      console.error(error);
+    });
+  }
+
+  const getBlobExtension = (mimeType) => {
+    console.log("ext for", mimeType);
+    switch (mimeType) {
+        case 'image/jpeg':
+            return '.jpg';
+        case 'image/png':
+            return '.png';
+        case 'image/gif':
+            return '.gif';
+        default:
+            return '';
+    }
+  }
+
+  const updateFormImage = async() => {
+    fetch(imageURL, {
+      headers: {
+        'Accept': 'image/*'
+      },
+    }).then(response => response.blob()).then(blob => {
+      const fd = new FormData();
+      fd.append('file', blob, 'temp'+getBlobExtension(blob.type));
+      setFormInput((prevFormInput) => ({
+        ...prevFormInput, // spread previous form input
+        image: fd, // set new image data
+      }));
+    }).catch(error => {
+        console.error('Fetch operation failed: ', error);
+    });
+  }
+  
+  useEffect(() => {
+    if (imageURL) {
+      updateFormImage();
+    }
+  }, [imageURL]);
+
   useEffect(() => {
     if (isLoggedIn && isCreatingNewStory) {
       getSeries();
+      getDefaultImage();
+      setIsInASeries(false);
     }
   }, [isLoggedIn, isCreatingNewStory]);
 
@@ -77,31 +140,27 @@ const CreateNewStory = () => {
       setAreErrors(true);
       return;
     }
-    if (formInput['series'] && formInput['place'] < 1) {
-      setCurrentError('Place must be > 1 when assigning to a series');
-      setAreErrors(true);
-      return;
+
+    if (formInput['series_id']) {
+      formInput['place'] = series.stories.length;
     }
     setCurrentError('');
     setAreErrors(false);
+
+    const formData = formInput.image; 
+    for (const key in formInput) {
+      if (key !== 'image' && formInput.hasOwnProperty(key)) {
+        formData.append(key, formInput[key]);
+      }
+    }
+
     fetch('/api/stories', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(formInput)
+      body: formData
     }).then((response) => {
       if (response.ok) {
-        const newStoryTitle = formInput['title'];
-        dispatch(setSelectedStoryTitle(newStoryTitle));
-        const history = window.history;
-        history.pushState({newStoryTitle}, 'created new story', '/story/' + encodeURIComponent(newStoryTitle) + '?chapter=1');
-        setTimeout(() => {
-          setIsInASeries(false);
-          dispatch(flipCreatingNewStoryState());
-        }, 1000);
+        return response.json();
       } else {
-        console.log("resp", response);
         if (response.status === 401) {
           dispatch(setAlertMessage('inadequate subscription'));
           dispatch(setAlertSeverity('error'));
@@ -117,8 +176,33 @@ const CreateNewStory = () => {
         setCurrentError("Unable to create a story at this time. Please try again later.");
         setAreErrors(true);
       }
+    }).then((json) => {
+      const storyID = json.story_id;
+      dispatch(setSelectedStory(storyID));
+      const history = window.history;
+      history.pushState({storyID}, 'created new story', '/story/' + encodeURIComponent(storyID) + '?chapter=1');
+      setTimeout(() => {
+        handleClose();
+      }, 1000);
     });
   };
+
+  const processImage = (acceptedFiles) => {
+    acceptedFiles.forEach((file) => {
+        const reader = new FileReader();
+        reader.onabort = () => console.log('file reading was aborted');
+        reader.onerror = () => console.error('file reading has failed');
+        reader.onload = () => {
+            const newFormData = new FormData();
+            newFormData.append('file', file, 'temp'+getBlobExtension(file.type));
+            setFormInput((prevFormInput) => ({
+              ...prevFormInput, // spread previous form input
+              image: newFormData, // set new image data
+            }));
+       };
+       reader.readAsArrayBuffer(file);
+    });
+  }
 
   return (
     <div>
@@ -131,10 +215,14 @@ const CreateNewStory = () => {
               '& .MuiTextField-root': {m: 1, width: 300},
             }}>
             <div>
+            <h3>Image for Your Story</h3>
+                <PortraitDropper imageURL={imageURL} name="New Story" onComplete={processImage}/>
               <TextField
                 onChange={(event) => {
-                  formInput['title'] = event.target.value;
-                  setFormInput(formInput);
+                  setFormInput(prevFormInput => ({
+                    ...prevFormInput,
+                    title: event.target.value
+                  }));
                 }}
                 autoFocus
                 label="Title"
@@ -144,8 +232,10 @@ const CreateNewStory = () => {
             <div>
               <TextField
                 onChange={(event) => {
-                  formInput['description'] = event.target.value;
-                  setFormInput(formInput);
+                  setFormInput(prevFormInput => ({
+                    ...prevFormInput,
+                    description: event.target.value
+                  }));
                 }}
                 label="Description"
                 helperText="Cannot be blank"
@@ -155,7 +245,7 @@ const CreateNewStory = () => {
             </div>
             <div>
               <FormControlLabel label="This is part of a series" control={
-                <Checkbox id="isSeries" label="" onChange={toggleSeries} />
+                <Checkbox checked={isInASeries} id="isSeries" label="" onChange={toggleSeries} />
               } sx={{
                 '& .MuiFormControlLabel-label': {color: 'rgba(0, 0, 0, 0.6)'},
               }}
@@ -166,12 +256,21 @@ const CreateNewStory = () => {
               <div>
                 <Autocomplete
                   onInputChange={(event) => {
-                    formInput['series'] = event.target.value;
-                    setFormInput(formInput);
+                    if (event) {
+
+                      setFormInput(prevFormInput => ({
+                        ...prevFormInput,
+                        series_id: event.target.value
+                      }));
+                    }
                   }}
                   onChange={(event, actions) => {
-                    formInput['series'] = actions.id;
-                    setFormInput(formInput);
+                    if (event) {
+                      setFormInput(prevFormInput => ({
+                        ...prevFormInput,
+                        series_id: actions.id
+                      }));
+                    }
                   }}
                   freeSolo
                   options={series}
@@ -180,11 +279,7 @@ const CreateNewStory = () => {
               </div> :
             ''
             }
-            {
-            areErrors ?
-              <div id="error_report" className="form-error">{currentError}</div> :
-            ''
-            }
+            {areErrors && <div id="error_report" className="form-error">{currentError}</div>}
           </Box>
         </DialogContent>
         <DialogActions>

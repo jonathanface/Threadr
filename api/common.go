@@ -19,6 +19,8 @@ const (
 	associationTypeEvent         = "event"
 	S3_CUSTOM_PORTRAIT_BUCKET    = "richdocter-custom-portraits"
 	S3_EXPORTS_BUCKET            = "richdocter-document-exports"
+	S3_STORY_IMAGE_BUCKET        = "richdocter-story-portraits"
+	S3_SERIES_IMAGE_BUCKET       = "richdocter-series-portraits"
 	TMP_EXPORT_DIR               = "./tmp"
 	MAX_UNSUBSCRIBED_BLOCK_COUNT = 50
 )
@@ -96,8 +98,8 @@ func processAWSError(opErr *smithy.OperationError) (err models.AwsStatusResponse
 	return err
 }
 
-func staggeredStoryBlockRetrieval(dao daos.DaoInterface, email string, storyTitle string, chapter string, key string) (*models.BlocksData, error) {
-	blocks, err := dao.GetStoryParagraphs(email, storyTitle, chapter, key)
+func staggeredStoryBlockRetrieval(dao daos.DaoInterface, email string, storyID string, chapter string, key string) (*models.BlocksData, error) {
+	blocks, err := dao.GetStoryParagraphs(email, storyID, chapter, key)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
@@ -108,7 +110,6 @@ func staggeredStoryBlockRetrieval(dao daos.DaoInterface, email string, storyTitl
 		}
 		return nil, fmt.Errorf("error getting story blocks: %s", err.Error())
 	}
-	fmt.Println("last evaluated", blocks.LastEvaluated)
 	if blocks.LastEvaluated == nil {
 		return blocks, nil
 	}
@@ -120,5 +121,5 @@ func staggeredStoryBlockRetrieval(dao daos.DaoInterface, email string, storyTitl
 	if !ok {
 		return nil, fmt.Errorf("error getting story blocks: invalid key_id type")
 	}
-	return staggeredStoryBlockRetrieval(dao, email, storyTitle, chapter, keyID.Value)
+	return staggeredStoryBlockRetrieval(dao, email, storyID, chapter, keyID.Value)
 }
