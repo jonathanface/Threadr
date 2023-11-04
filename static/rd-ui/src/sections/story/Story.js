@@ -43,7 +43,7 @@ const Story = (props) => {
     const confirmText = (!props.volumes ? "Delete story " + title + "?" : "Delete " + title + " from your series " + props.title + "?") +
                         (props.series && props.volumes.length === 1 ? "\n\nThere are no other titles in this series, so deleting it will also remove the series.": "");
 
-    const conf = confirm(confirmText)
+    const conf = window.confirm(confirmText)
     const seriesID = props.volumes ? props.id : "";
     if (conf) {
       const url = '/api/stories/' + id + '?series=' + seriesID;
