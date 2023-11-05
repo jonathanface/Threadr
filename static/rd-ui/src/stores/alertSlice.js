@@ -12,7 +12,7 @@ export const alertSlice = createSlice({
   },
   reducers: {
     setAlertMessage: (state, action) => {
-      state.message = action.payload; 
+      state.message = action.payload;
     },
     setAlertTitle: (state, action) => {
       state.title = action.payload;

@@ -1,4 +1,4 @@
-import { configureStore } from '@reduxjs/toolkit';
+import {configureStore} from '@reduxjs/toolkit';
 import alertSlice from './alertSlice';
 import displayLoaderSlice from './displayLoaderSlice';
 import loggedInSlice from './loggedInSlice';

@@ -1,29 +1,29 @@
-import { Elements } from "@stripe/react-stripe-js";
-import { loadStripe } from "@stripe/stripe-js";
-import React, { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import {Elements} from '@stripe/react-stripe-js';
+import {loadStripe} from '@stripe/stripe-js';
+import React, {useEffect, useState} from 'react';
+import {useDispatch, useSelector} from 'react-redux';
 import './css/main.css';
 import './css/user-menu.css';
 import DefaultPage from './sections/DefaultPage/DefaultPage';
 import UserMenu from './sections/UserMenu/UserMenu';
 import CreateNewStory from './sections/createNewStory/CreateNewStoryModal';
 import Document from './sections/document/Document';
-import EditStory from "./sections/editStory/EditStoryModal";
+import EditStory from './sections/editStory/EditStoryModal';
 import StoryAndSeriesListing from './sections/storyAndSeriesListing/StoryAndSeriesListing';
 import Subscribe from './sections/subscribe/Subscribe';
-import { setLoaderVisible } from './stores/displayLoaderSlice';
-import { flipLoggedInState } from './stores/loggedInSlice';
-import { setSelectedSeries } from './stores/selectedSeriesSlice';
-import { setSelectedStory } from './stores/storiesSlice';
+import {setLoaderVisible} from './stores/displayLoaderSlice';
+import {flipLoggedInState} from './stores/loggedInSlice';
+import {setSelectedSeries} from './stores/selectedSeriesSlice';
+import {setSelectedStory} from './stores/storiesSlice';
 import Toaster from './utils/Toaster';
 
 const Threadr = () => {
-  const [isLoading, setIsLoading] = useState(true)
-  const [stripe, setStripe] = useState(() => loadStripe(process.env.REACT_APP_STRIPE_KEY))
+  const [isLoading, setIsLoading] = useState(true);
+  const [stripe, setStripe] = useState(() => loadStripe(process.env.REACT_APP_STRIPE_KEY));
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
   const selectedStory = useSelector((state) => state.stories.selectedStory);
-  const dispatch = useDispatch(); 
- 
+  const dispatch = useDispatch();
+
   const handleNavChange = () => {
     const location = window.location.pathname;
     const splitDirectories = location.split('/');
@@ -39,7 +39,6 @@ const Threadr = () => {
     }
   };
 
-  
 
   useEffect(() => {
     dispatch(setLoaderVisible(true));
@@ -65,28 +64,28 @@ const Threadr = () => {
   }, [dispatch]);
 
   const displayComponent =
-    !isLoading
-      ? isLoggedIn && selectedStory
-        ? <Document story={selectedStory} />
-        : isLoggedIn && !selectedStory
-          ? <StoryAndSeriesListing />
-          : <DefaultPage />
-      : <div/>
+    !isLoading ?
+      isLoggedIn && selectedStory ?
+        <Document story={selectedStory} /> :
+        isLoggedIn && !selectedStory ?
+          <StoryAndSeriesListing /> :
+          <DefaultPage /> :
+      <div/>;
 
   return (
     <div className="App">
       <main>
         <header>
-            <UserMenu isParentLoading={isLoading}/>
-            <h4>
-              <span>R</span>ich<span>D</span>octer
-              <img src="./img/logo_trans_scaled.png" alt="RichDocter"/>
-              <div className="version">beta</div>
-            </h4>
+          <UserMenu isParentLoading={isLoading}/>
+          <h4>
+            <span>R</span>ich<span>D</span>octer
+            <img src="./img/logo_trans_scaled.png" alt="RichDocter"/>
+            <div className="version">beta</div>
+          </h4>
         </header>
-          {displayComponent}
-          <CreateNewStory />
-          <EditStory />
+        {displayComponent}
+        <CreateNewStory />
+        <EditStory />
       </main>
       <Toaster/>
       <Elements stripe={stripe}><Subscribe/></Elements>

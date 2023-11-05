@@ -314,11 +314,9 @@ func (d *DAO) GetStoryOrSeriesAssociations(email, storyID string) ([]*models.Ass
 	for i, v := range associations {
 		outDetails, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
 			TableName:        aws.String("association_details"),
-			FilterExpression: aws.String("author=:eml AND story_or_series_id=:s AND association_name=:n"),
+			FilterExpression: aws.String("association_id=:aid"),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
-				":eml": &types.AttributeValueMemberS{Value: email},
-				":s":   &types.AttributeValueMemberS{Value: storyOrSeries},
-				":n":   &types.AttributeValueMemberS{Value: v.Name},
+				":aid": &types.AttributeValueMemberS{Value: v.ID},
 			},
 		})
 		if err != nil {
@@ -532,7 +530,7 @@ func (d *DAO) WriteBlocks(email, storyID string, storyBlocks *models.StoryBlocks
 	return
 }
 
-func (d *DAO) WriteAssociations(email, storyOrSeriesTitle string, associations []*models.Association) (err error) {
+func (d *DAO) WriteAssociations(email, storyOrSeriesID string, associations []*models.Association) (err error) {
 	batches := make([][]*models.Association, 0, (len(associations)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(associations); i += d.writeBatchSize {
 		end := i + d.writeBatchSize
@@ -579,15 +577,16 @@ func (d *DAO) WriteAssociations(email, storyOrSeriesTitle string, associations [
 			associations[i].Portrait = imgFile
 			// Create a key for the item.
 			key := map[string]types.AttributeValue{
-				"association_name":     &types.AttributeValueMemberS{Value: item.Name},
-				"story_or_series_name": &types.AttributeValueMemberS{Value: storyOrSeriesTitle},
+				"association_id":     &types.AttributeValueMemberS{Value: item.ID},
+				"story_or_series_id": &types.AttributeValueMemberS{Value: storyOrSeriesID},
 			}
 			// Create an update input for the item.
 			updateInput := &types.Update{
 				TableName:        aws.String("associations"),
 				Key:              key,
-				UpdateExpression: aws.String("set author=:eml, created_at=if_not_exists(created_at,:t), last_updated=:t, association_type=:at, portrait=:p, short_description=:sd"),
+				UpdateExpression: aws.String("set association_name=:nm, author=:eml, created_at=if_not_exists(created_at,:t), last_updated=:t, association_type=:at, portrait=:p, short_description=:sd"),
 				ExpressionAttributeValues: map[string]types.AttributeValue{
+					":nm":  &types.AttributeValueMemberS{Value: item.Name},
 					":eml": &types.AttributeValueMemberS{Value: email},
 					":t":   &types.AttributeValueMemberN{Value: now},
 					":at":  &types.AttributeValueMemberS{Value: item.Type},
@@ -640,10 +639,10 @@ func (d *DAO) WriteAssociations(email, storyOrSeriesTitle string, associations [
 	return
 }
 
-func (d *DAO) UpdateAssociationPortraitEntryInDB(email, story, associationName, url string) (err error) {
+func (d *DAO) UpdateAssociationPortraitEntryInDB(email, storyOrSeriesID, associationID, url string) (err error) {
 	key := map[string]types.AttributeValue{
-		"association_name":     &types.AttributeValueMemberS{Value: associationName},
-		"story_or_series_name": &types.AttributeValueMemberS{Value: story},
+		"association_id":     &types.AttributeValueMemberS{Value: associationID},
+		"story_or_series_id": &types.AttributeValueMemberS{Value: storyOrSeriesID},
 	}
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	updateInput := &dynamodb.UpdateItemInput{

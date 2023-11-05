@@ -55,7 +55,7 @@ div.DraftEditor-root {
     overflow-y: scroll;
     color:#000;
     filter: drop-shadow(2px 2px 2px #1a1a1a);
-    height:calc(100vh - 250px);
+    max-height:calc(100vh - 250px);
 }
 
 div.DraftEditor-editorContainer, div.public-DraftEditor-content {

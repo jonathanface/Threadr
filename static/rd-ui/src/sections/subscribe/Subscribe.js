@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {useSelector, useDispatch} from 'react-redux';
 
-import { CardElement, useElements, useStripe} from '@stripe/react-stripe-js';
+import {CardElement, useElements, useStripe} from '@stripe/react-stripe-js';
 
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -9,7 +9,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
-import { setSubscriptionFormOpen } from '../../stores/subscriptionSlice';
+import {setSubscriptionFormOpen} from '../../stores/subscriptionSlice';
 
 const Subscribe = () => {
   const [customerID, setCustomerID] = useState('');
@@ -28,52 +28,52 @@ const Subscribe = () => {
     dispatch(setSubscriptionFormOpen(false));
   };
 
-  const confirmCard = async() => {
-    setSubscribeError("");
+  const confirmCard = async () => {
+    setSubscribeError('');
     fetch('/billing/card', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({id:customerID})
+      body: JSON.stringify({id: customerID})
     }).then((response) => {
       if (response.ok) {
         return response.json();
       }
       throw new Error('Fetch problem create customer ' + response.status);
-    }).then(async(data) => {
+    }).then(async (data) => {
       const cardElement = elements.getElement(CardElement);
       // Create a payment method and handle the result
-      const { paymentMethod, error } = await stripe.createPaymentMethod({
-          customerID: data.customerID,
-          type: 'card',
-          card: cardElement,
+      const {paymentMethod, error} = await stripe.createPaymentMethod({
+        customerID: data.customerID,
+        type: 'card',
+        card: cardElement,
       });
       if (error) {
         setSubscribeError(error);
         return;
       }
-  
-      console.log("confirm", paymentMethod);
-      setPaymentMethod({"id":paymentMethod.id, "brand":paymentMethod.card.brand, "last_four":paymentMethod.card.last4});
+
+      console.log('confirm', paymentMethod);
+      setPaymentMethod({'id': paymentMethod.id, 'brand': paymentMethod.card.brand, 'last_four': paymentMethod.card.last4});
 
       fetch('/billing/customer', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({customer_id:customerID, payment_method_id:paymentMethod.id})
+        body: JSON.stringify({customer_id: customerID, payment_method_id: paymentMethod.id})
       }).then((response) => {
         if (response.ok) {
           return response.json();
         }
         throw new Error('Fetch problem update customer ' + response.status);
-      }).then(async(data) => {
-        console.log("customer", data)
+      }).then(async (data) => {
+        console.log('customer', data);
         cardElement.clear();
       });
     });
-  }
+  };
 
   const getOrCreateStripeCustomer = () => {
     fetch('/billing/customer', {
@@ -87,7 +87,7 @@ const Subscribe = () => {
       }
       throw new Error('Fetch problem create customer ' + response.status);
     }).then((data) => {
-      console.log("data", data);
+      console.log('data', data);
       setCustomerID(data.id);
       if (data.payment_methods && data.payment_methods.length) {
         const defaultPayment = data.payment_methods.filter((method) => method.is_default === true);
@@ -97,16 +97,16 @@ const Subscribe = () => {
       handleClose();
       console.error('ERROR', e);
     });
-  }
+  };
 
   const subscribe = () => {
-    console.log("subscribe")
+    console.log('subscribe');
     fetch('/billing/subscribe', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({payment_method_id:paymentMethod.id, customer_id:customerID, price_id: product.price_id})
+      body: JSON.stringify({payment_method_id: paymentMethod.id, customer_id: customerID, price_id: product.price_id})
     }).then((response) => {
       if (response.ok) {
         return response.json();
@@ -115,7 +115,7 @@ const Subscribe = () => {
     }).then((data) => {
       handleClose();
     });
-  }
+  };
 
   const getProducts = () => {
     fetch('/billing/products').then((response) => {
@@ -124,10 +124,10 @@ const Subscribe = () => {
       }
       throw new Error('Fetch problem getting products ' + response.status);
     }).then((data) => {
-      console.log("products", data);
+      console.log('products', data);
       setProduct(data[0]);
     });
-  }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -142,36 +142,36 @@ const Subscribe = () => {
     if (e.error) {
       console.log(e.error.message);
     }
-  }
+  };
 
   return (
-      <Dialog open={isOpen} maxWidth={'md'} fullWidth={true} onClose={handleClose} className="subscribe">
-        <DialogTitle>{product.name}</DialogTitle>
-        <DialogContent>
-          
-          {!paymentMethod ? (
+    <Dialog open={isOpen} maxWidth={'md'} fullWidth={true} onClose={handleClose} className="subscribe">
+      <DialogTitle>{product.name}</DialogTitle>
+      <DialogContent>
+
+        {!paymentMethod ? (
             <CardElement onChange={(e) => handleCardElementChange(e)}/>
           ) : (
             <DialogContentText>
-              <span>{product.description + " for only $" + product.billing_amount + " a " + product.billing_frequency}</span><br/>
-              <span>Pay with {paymentMethod.brand.toUpperCase() + " ending in " + paymentMethod.last_four}</span>
+              <span>{product.description + ' for only $' + product.billing_amount + ' a ' + product.billing_frequency}</span><br/>
+              <span>Pay with {paymentMethod.brand.toUpperCase() + ' ending in ' + paymentMethod.last_four}</span>
             </DialogContentText>
           )}
-          {subscribeError &&
+        {subscribeError &&
             <div>{subscribeError}</div>
-          }
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-          {!paymentMethod ? (
+        }
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose}>Cancel</Button>
+        {!paymentMethod ? (
             <Button onClick={confirmCard}>Submit</Button>
           ) : (
             <Button onClick={subscribe}>Subscribe</Button>
           )}
-        </DialogActions>
-      </Dialog>
+      </DialogActions>
+    </Dialog>
 
   );
-}
+};
 
 export default Subscribe;

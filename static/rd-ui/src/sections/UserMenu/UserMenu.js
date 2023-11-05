@@ -1,11 +1,11 @@
 import Person4Icon from '@mui/icons-material/Person4';
-import { IconButton } from '@mui/material';
-import React, { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { setLoaderVisible } from '../../stores/displayLoaderSlice';
-import { flipLoggedInState } from '../../stores/loggedInSlice';
-import { setSelectedSeries } from '../../stores/selectedSeriesSlice';
-import { setSelectedStory } from '../../stores/storiesSlice';
+import {IconButton} from '@mui/material';
+import React, {useState} from 'react';
+import {useDispatch, useSelector} from 'react-redux';
+import {setLoaderVisible} from '../../stores/displayLoaderSlice';
+import {flipLoggedInState} from '../../stores/loggedInSlice';
+import {setSelectedSeries} from '../../stores/selectedSeriesSlice';
+import {setSelectedStory} from '../../stores/storiesSlice';
 
 const UserMenu = (props) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -36,23 +36,23 @@ const UserMenu = (props) => {
   };
 
   const displayComponent =
-    !props.isParentLoading
-      ? isLoggedIn
-        ? <span className="menu-container" onClick={()=>setIsOpen(!isOpen)} onMouseEnter={()=>setIsOpen(true)} onMouseLeave={()=>setIsOpen(false)}>
-            <span className="icon">
-              <IconButton size="small" sx={{zIndex: 99}} aria-label="user menu" >
-                <Person4Icon fontSize="small" className={'menu-icon'}/>
-              </IconButton>
-            </span>
-            {isOpen && (
-              <ul>
-                <li>Settings</li>
-                <li onClick={signout}>Signout</li>
-              </ul>
-            )}
+    !props.isParentLoading ?
+      isLoggedIn ?
+        <span className="menu-container" onClick={()=>setIsOpen(!isOpen)} onMouseEnter={()=>setIsOpen(true)} onMouseLeave={()=>setIsOpen(false)}>
+          <span className="icon">
+            <IconButton size="small" sx={{zIndex: 99}} aria-label="user menu" >
+              <Person4Icon fontSize="small" className={'menu-icon'}/>
+            </IconButton>
           </span>
-        : <a onClick={signin}>SignIn</a>
-      : <div/>
+          {isOpen && (
+            <ul>
+              <li>Settings</li>
+              <li onClick={signout}>Signout</li>
+            </ul>
+          )}
+        </span> :
+        <a onClick={signin}>SignIn</a> :
+      <div/>;
 
   return (
     <span className="user-menu">

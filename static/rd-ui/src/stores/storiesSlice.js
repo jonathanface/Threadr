@@ -1,20 +1,19 @@
-import { createSlice } from '@reduxjs/toolkit';
+import {createSlice} from '@reduxjs/toolkit';
 
 export const storiesSlice = createSlice({
   name: 'stories',
   initialState: {
     isCreatingNew: false,
     isEditing: false,
-    belongsToSeries: "",
+    belongsToSeries: '',
     standaloneList: [],
-    seriesList:[],
+    seriesList: [],
     editables: {},
-    selectedStory: ""
+    selectedStory: ''
   },
   reducers: {
     flipCreatingNewStory: (state) => {
       state.isCreatingNew = !state.isCreatingNew;
-      
     },
     flipEditingStory: (state, action) => {
       state.isEditing = !state.isEditing;

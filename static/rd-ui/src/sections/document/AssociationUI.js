@@ -1,7 +1,7 @@
 import Backdrop from '@mui/material/Backdrop';
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 
-import { FormGroup, TextField } from '@mui/material';
+import {FormGroup, TextField} from '@mui/material';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
 import '../../css/association-ui.css';
@@ -72,28 +72,28 @@ const AssociationUI = (props) => {
   };
 
   const processImage = (acceptedFiles) => {
-      acceptedFiles.forEach((file) => {
-          const reader = new FileReader();
-          reader.onabort = () => console.log('file reading was aborted');
-          reader.onerror = () => console.log('file reading has failed');
-          reader.onload = () => {
-              const formData = new FormData();
-              formData.append('file', file);
-              fetch('/api/stories/' + props.story + '/associations/' + props.association.association_name + '/upload?type=' + props.association.association_type,
-                  {method: 'PUT', body: formData}
-              ).then((response) => {
-                  if (response.ok) {
-                      return response.json();
-                  }
-                  throw new Error('Fetch problem image upload ' + response.status);
-              }).then((data) => {
-                  setImageURL(data.url + '?date='+Date.now());
-                  onAssociationEdit(data.url, 'portrait');
-              }).catch((error) => console.error(error));
-          };
-          reader.readAsArrayBuffer(file);
-      });
-  }
+    acceptedFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onabort = () => console.log('file reading was aborted');
+      reader.onerror = () => console.log('file reading has failed');
+      reader.onload = () => {
+        const formData = new FormData();
+        formData.append('file', file);
+        fetch('/api/stories/' + props.story + '/associations/' + props.association.association_id + '/upload?type=' + props.association.association_type,
+            {method: 'PUT', body: formData}
+        ).then((response) => {
+          if (response.ok) {
+            return response.json();
+          }
+          throw new Error('Fetch problem image upload ' + response.status);
+        }).then((data) => {
+          setImageURL(data.url + '?date='+Date.now());
+          onAssociationEdit(data.url, 'portrait');
+        }).catch((error) => console.error(error));
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  };
 
   return (
     <Backdrop onClick={handleClose} open={props.open} className="association-ui-bg">
