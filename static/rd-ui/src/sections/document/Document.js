@@ -1,5 +1,5 @@
 import Immutable from 'immutable';
-import React, { useEffect, useRef, useState } from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 
 import {
   faAlignCenter,
@@ -7,7 +7,7 @@ import {
   faAlignLeft,
   faAlignRight
 } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import AddIcon from '@mui/icons-material/Add';
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined';
 import CloseIcon from '@mui/icons-material/Close';
@@ -34,19 +34,19 @@ import {
   getDefaultKeyBinding
 } from 'draft-js';
 import 'draft-js/dist/Draft.css';
-import { Item, Menu, Submenu, useContextMenu } from 'react-contexify';
+import {Item, Menu, Submenu, useContextMenu} from 'react-contexify';
 import 'react-contexify/ReactContexify.css';
-import { MenuItem, Menu as SideMenu, Sidebar, useProSidebar } from 'react-pro-sidebar';
-import { useDispatch, useSelector } from 'react-redux';
+import {MenuItem, Menu as SideMenu, Sidebar, useProSidebar} from 'react-pro-sidebar';
+import {useDispatch, useSelector} from 'react-redux';
 import '../../css/document.css';
 import '../../css/sidebar.css';
-import { setAlertLink, setAlertMessage, setAlertOpen, setAlertSeverity, setAlertTimeout } from '../../stores/alertSlice.js';
-import { setLoaderVisible } from '../../stores/displayLoaderSlice.js';
-import { setSelectedSeries } from '../../stores/selectedSeriesSlice.js';
-import { setSelectedStory } from '../../stores/storiesSlice.js';
+import {setAlertLink, setAlertMessage, setAlertOpen, setAlertSeverity, setAlertTimeout} from '../../stores/alertSlice.js';
+import {setLoaderVisible} from '../../stores/displayLoaderSlice.js';
+import {setSelectedSeries} from '../../stores/selectedSeriesSlice.js';
+import {setSelectedStory} from '../../stores/storiesSlice.js';
 import AssociationUI from './AssociationUI.js';
 import Exporter from './Exporter.js';
-import { FindHighlightable, FindTabs, HighlightSpan, TabSpan } from './decorators';
+import {FindHighlightable, FindTabs, HighlightSpan, TabSpan} from './decorators';
 import {
   FilterAndReduceDBOperations,
   GenerateTabCharacter,
@@ -179,6 +179,7 @@ const Document = () => {
             if (assoc.association_name.trim().length) {
               associations.push(
                   {
+                    association_id: assoc.association_id,
                     association_name: assoc.association_name,
                     association_type: assoc.association_type,
                     portrait: assoc.portrait,
@@ -487,7 +488,7 @@ const Document = () => {
           }
           if (response.status === 401) {
             dispatch(setAlertMessage('Your story has exceeded the limit for unpaid subscribers.'));
-            dispatch(setAlertLink({location:'subscribe'}));
+            dispatch(setAlertLink({location: 'subscribe'}));
             dispatch(setAlertSeverity('error'));
             dispatch(setAlertTimeout(null));
             dispatch(setAlertOpen(true));
@@ -515,6 +516,7 @@ const Document = () => {
         if (!response.ok) {
           reject('SERVER ERROR SAVING BLOCK: ', response);
         }
+        console.log('resp', response.json());
         resolve(response.json());
       } catch (e) {
         reject('ERROR SAVING BLOCK: ', e);

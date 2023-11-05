@@ -4,7 +4,7 @@ import {useSelector, useDispatch} from 'react-redux';
 import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
 import {setAlertMessage, setAlertOpen, setAlertTitle, setAlertSeverity, setAlertTimeout, setAlertLink} from '../stores/alertSlice';
-import { setSubscriptionFormOpen } from '../stores/subscriptionSlice';
+import {setSubscriptionFormOpen} from '../stores/subscriptionSlice';
 
 const Toaster = () => {
   const dispatch = useDispatch();
@@ -17,12 +17,12 @@ const Toaster = () => {
 
   const openSubscribe = () => {
     dispatch(setSubscriptionFormOpen(true));
-  }
+  };
 
   const handleClose = () => {
     dispatch(setAlertMessage(''));
     dispatch(setAlertSeverity('info'));
-    dispatch(setAlertTitle("Announcement"));
+    dispatch(setAlertTitle('Announcement'));
     dispatch(setAlertOpen(false));
     dispatch(setAlertTimeout(6000));
     dispatch(setAlertLink({}));

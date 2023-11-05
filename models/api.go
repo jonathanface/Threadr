@@ -25,6 +25,7 @@ type AssociationDetails struct {
 }
 
 type Association struct {
+	ID               string             `json:"association_id" dynamodbav:"association_id"`
 	Name             string             `json:"association_name" dynamodbav:"association_name"`
 	Type             string             `json:"association_type" dynamodbav:"association_type"`
 	Portrait         string             `json:"portrait" dynamodbav:"portrait"`

@@ -1,10 +1,10 @@
 import AddIcon from '@mui/icons-material/Add';
-import { IconButton } from '@mui/material';
-import React, { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import {IconButton} from '@mui/material';
+import React, {useEffect, useState} from 'react';
+import {useDispatch, useSelector} from 'react-redux';
 import '../../css/landing-page.css';
-import { setLoaderVisible } from '../../stores/displayLoaderSlice';
-import { flipCreatingNewStory, setSeriesList, setStandaloneList } from '../../stores/storiesSlice';
+import {setLoaderVisible} from '../../stores/displayLoaderSlice';
+import {flipCreatingNewStory, setSeriesList, setStandaloneList} from '../../stores/storiesSlice';
 import Story from '../story/Story';
 
 const StoryAndSeriesListing = () => {
@@ -24,13 +24,13 @@ const StoryAndSeriesListing = () => {
         }
         throw new Error('Fetch problem series ' + response.status);
       }).then((data) => {
-        const seriesStoriesFromDB = data.map(series => {
+        const seriesStoriesFromDB = data.map((series) => {
           const seriesObj = {
             id: series.series_id,
             title: series.series_title,
             listings: [],
             image: series.image_url.length ? series.image_url : '/img/icons/story_series_icon.jpg',
-          }
+          };
           if (series.stories) {
             series.stories.forEach((story) => {
               seriesObj.listings.push({
@@ -88,7 +88,7 @@ const StoryAndSeriesListing = () => {
     dispatch(flipCreatingNewStory());
   };
 
-  
+
   // If there are works, we prepare our series and stories components.
   const seriesComponents = seriesList.map((series) => {
     return <Story key={series.id} id={series.id} title={series.title} volumes={series.listings} image={series.image} />;
@@ -106,9 +106,9 @@ const StoryAndSeriesListing = () => {
       </React.Fragment>
     );
   } else if (seriesLoaded && storiesLoaded) {
-    content = <h3>You haven't created any stories yet.<br/>← Click the ridiculously oversized plus button over there to get started.</h3>
+    content = <h3>You haven't created any stories yet.<br/>← Click the ridiculously oversized plus button over there to get started.</h3>;
   }
-  
+
 
   return (
     <div className="landing-page">

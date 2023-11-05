@@ -7,7 +7,7 @@ export const subscriptionSlice = createSlice({
   },
   reducers: {
     setSubscriptionFormOpen: (state, action) => {
-      console.log("set form to ", action.payload);
+      console.log('set form to ', action.payload);
       state.formOpen = action.payload;
     }
   }

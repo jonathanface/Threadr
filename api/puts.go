@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/smithy-go"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
 
@@ -275,21 +276,21 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 
 func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
-		email string
-		err   error
-		story string
-		dao   daos.DaoInterface
-		ok    bool
+		email   string
+		err     error
+		storyID string
+		dao     daos.DaoInterface
+		ok      bool
 	)
 	if email, err = getUserEmail(r); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if story, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
 		return
 	}
-	if story == "" {
+	if storyID == "" {
 		RespondWithError(w, http.StatusBadRequest, "Missing story ID")
 		return
 	}
@@ -299,18 +300,23 @@ func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	for idx, assoc := range associations {
+		if assoc.ID == "" {
+			associations[idx].ID = uuid.New().String()
+		}
+	}
 	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
 
-	storyOrSeries := story
-	if storyOrSeries, err = dao.IsStoryInASeries(email, story); err != nil {
+	storyOrSeriesID := storyID
+	if storyOrSeriesID, err = dao.IsStoryInASeries(email, storyID); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "unable to check series membership of story")
 		return
 	}
 
-	if err = dao.WriteAssociations(email, storyOrSeries, associations); err != nil {
+	if err = dao.WriteAssociations(email, storyOrSeriesID, associations); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
@@ -330,8 +336,8 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		email           string
 		err             error
-		story           string
-		associationName string
+		storyID         string
+		associationID   string
 		associationType string
 		dao             daos.DaoInterface
 		ok              bool
@@ -342,19 +348,19 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if story, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
 		return
 	}
-	if story == "" {
+	if storyID == "" {
 		RespondWithError(w, http.StatusBadRequest, "Missing story ID")
 		return
 	}
-	if associationName, err = url.PathUnescape(mux.Vars(r)["association"]); err != nil {
+	if associationID, err = url.PathUnescape(mux.Vars(r)["association"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing association name")
 		return
 	}
-	if associationName == "" {
+	if associationID == "" {
 		RespondWithError(w, http.StatusBadRequest, "Missing association name")
 		return
 	}
@@ -404,18 +410,16 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	storyOrSeries := story
-	if storyOrSeries, err = dao.IsStoryInASeries(email, story); err != nil {
+	storyOrSeriesID := storyID
+	if storyOrSeriesID, err = dao.IsStoryInASeries(email, storyID); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	reader := bytes.NewReader(fileBytes)
 	ext := filepath.Ext(handler.Filename)
-	safeStory := strings.ToLower(strings.ReplaceAll(storyOrSeries, " ", "-"))
-	safeAssoc := strings.ToLower(strings.ReplaceAll(associationName, " ", "-"))
 	safeEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	filename := safeEmail + "_" + safeStory + "_" + safeAssoc + "_" + associationType + ext
+	filename := safeEmail + "_" + storyOrSeriesID + "_" + associationID + "_" + associationType + ext
 
 	if awsCfg, err = config.LoadDefaultConfig(context.TODO(), func(opts *config.LoadOptions) error {
 		opts.Region = os.Getenv("AWS_REGION")
@@ -435,7 +439,7 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	portraitURL := "https://" + S3_CUSTOM_PORTRAIT_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
-	if err = dao.UpdateAssociationPortraitEntryInDB(email, storyOrSeries, associationName, portraitURL); err != nil {
+	if err = dao.UpdateAssociationPortraitEntryInDB(email, storyOrSeriesID, associationID, portraitURL); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
