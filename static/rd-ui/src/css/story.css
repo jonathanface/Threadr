@@ -42,7 +42,7 @@
 }
 
 .doc-button .story-label {
-    position: fixed;
+    position: absolute;
     right: 10px;
     top: 10px;
     padding: 10px;
