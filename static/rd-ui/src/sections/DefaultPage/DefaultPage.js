@@ -8,6 +8,7 @@ const DefaultPage = () => {
         <span className="column leftText">
           <h2>Organized Imagination</h2>
           <p>Dive into the world of storytelling with RichDocter's revolutionary online writing application, tailored specifically for novelists like you. Say goodbye to scattered notes, endless tabs, and the frustration of losing track of your characters, places, and events. Say hello to seamless storytelling with our unique Highlight and Reference tool.</p>
+          <p><strong>We are opening soon.</strong> Once that happens, you may try RichDocter on a limited basis at no charge. Full access will cost $5/month.</p>
         </span>
         <span className="column">
           <figure>
