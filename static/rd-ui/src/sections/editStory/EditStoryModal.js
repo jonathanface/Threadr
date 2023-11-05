@@ -8,10 +8,10 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import TextField from '@mui/material/TextField';
-import React, {useEffect, useState} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
-import {setAlertMessage, setAlertOpen, setAlertSeverity} from '../../stores/alertSlice';
-import {flipEditingStory, setSeriesList, setStandaloneList} from '../../stores/storiesSlice';
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { setAlertMessage, setAlertOpen, setAlertSeverity } from '../../stores/alertSlice';
+import { flipEditingStory, setSeriesList, setStandaloneList } from '../../stores/storiesSlice';
 import PortraitDropper from '../portraitdropper/PortraitDropper';
 
 const EditStory = () => {
@@ -21,19 +21,18 @@ const EditStory = () => {
   const belongsToSeries = useSelector((state) => state.stories.belongsToSeries);
   const dispatch = useDispatch();
 
-  const initMap = new Map();
-  const [formInput, setFormInput] = React.useState(initMap);
+  const [formInput, setFormInput] = React.useState({});
   const [areErrors, setAreErrors] = React.useState(false);
   const [currentError, setCurrentError] = React.useState('');
 
   const editables = useSelector((state) => state.stories.editables);
-  const [isInASeries, setIsInASeries] = useState(editables.series);
+  const [isInASeries, setIsInASeries] = useState(editables.series_id);
   const [currentSeries, setCurrentSeries] = useState(belongsToSeries);
   const seriesList = useSelector((state) => state.stories.seriesList);
   const standaloneList = useSelector((state) => state.stories.standaloneList);
 
   const resetForm = () => {
-    setFormInput(initMap);
+    setFormInput({});
     setAreErrors(false);
     setCurrentError('');
     setIsInASeries(false);
@@ -58,6 +57,7 @@ const EditStory = () => {
       for (const series in reduced.series) {
         params.push({'label': series, 'id': series, 'count': reduced[series]});
       }
+      console.log("params", params);
       setSeries(params);
     }).catch((error) => {
       console.error('get series', error);
@@ -77,17 +77,22 @@ const EditStory = () => {
     if (isLoggedIn && isEditingStory) {
       getSeries();
     }
-    setIsInASeries(editables.series);
-  }, [isLoggedIn, isEditingStory, editables.series, editables]);
+    setIsInASeries(editables.series_id);
+  }, [isLoggedIn, isEditingStory, editables.series_id, editables]);
 
   useEffect(() => {
     setFormInput((prevFormInput) => ({
       ...prevFormInput,
       description: editables.description,
       title: editables.title,
-      series_id: editables.series_id
     }));
-  }, [editables.description, editables.title, editables.series]);
+    if (editables.series_id) {
+      setFormInput((prevFormInput) => ({
+        ...prevFormInput,
+        series_id: editables.series_id
+      }));
+    }
+  }, [editables.description, editables.title, editables.series_id]);
 
   const handleSubmit = () => {
     if (!formInput['title'] || !formInput['title'].trim().length) {
@@ -100,11 +105,8 @@ const EditStory = () => {
       setAreErrors(true);
       return;
     }
-    if (!isInASeries && formInput['series_id']) {
-      formInput.delete('series_id');
-    }
-    if (formInput['series_id']) {
-      formInput['place'] = series.stories.length;
+    if (!isInASeries && formInput.series_id) {
+      delete formInput.series_id;
     }
     const formData = formInput.image ? formInput.image : new FormData();
     for (const key in formInput) {

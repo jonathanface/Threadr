@@ -1,13 +1,13 @@
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import {IconButton} from '@mui/material';
-import React, {useState} from 'react';
-import {useDispatch} from 'react-redux';
+import { IconButton } from '@mui/material';
+import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
 import '../../css/story.css';
-import {setLoaderVisible} from '../../stores/displayLoaderSlice';
-import {setSelectedSeries} from '../../stores/selectedSeriesSlice';
-import {flipCreatingNewStory, flipEditingStory, setSelectedStory, setStoryEditables} from '../../stores/storiesSlice';
+import { setLoaderVisible } from '../../stores/displayLoaderSlice';
+import { setSelectedSeries } from '../../stores/selectedSeriesSlice';
+import { flipCreatingNewStory, flipEditingStory, setSelectedStory, setStoryEditables } from '../../stores/storiesSlice';
 import DetailsSlider from './DetailsSlider';
 
 const Story = (props) => {
@@ -32,7 +32,9 @@ const Story = (props) => {
     const seriesToAppend = props.volumes ? selected.series_id : null;
     newProps.title = selected.title;
     newProps.description = selected.description;
-    newProps.series_id = props.volumes ? selected.series_id : null;
+    if (props.volumes) {
+      newProps.series_id = props.volumes;
+    }
     newProps.image = selected.image;
     dispatch(setStoryEditables(newProps));
     dispatch(flipEditingStory(seriesToAppend));
