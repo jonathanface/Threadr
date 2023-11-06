@@ -15,27 +15,28 @@ import { flipEditingStory, setSeriesList, setStandaloneList } from '../../stores
 import PortraitDropper from '../portraitdropper/PortraitDropper';
 
 const EditStory = () => {
-  const [series, setSeries] = useState([]);
+  
   const isEditingStory = useSelector((state) => state.stories.isEditing);
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
-  const belongsToSeries = useSelector((state) => state.stories.belongsToSeries);
   const dispatch = useDispatch();
 
-  const [formInput, setFormInput] = React.useState({});
-  const [areErrors, setAreErrors] = React.useState(false);
-  const [currentError, setCurrentError] = React.useState('');
-
   const editables = useSelector((state) => state.stories.editables);
-  const [isInASeries, setIsInASeries] = useState(editables.series_id);
-  const [currentSeries, setCurrentSeries] = useState(belongsToSeries);
   const seriesList = useSelector((state) => state.stories.seriesList);
   const standaloneList = useSelector((state) => state.stories.standaloneList);
+  
+  const [belongsToSeries, setBelongsToSeries] = useState("");
+  const [series, setSeries] = useState([]);
+  const [isInASeries, setIsInASeries] = useState(false);
+  const [formInput, setFormInput] = useState({});
+  const [areErrors, setAreErrors] = useState(false);
+  const [currentError, setCurrentError] = useState('');
 
   const resetForm = () => {
     setFormInput({});
     setAreErrors(false);
     setCurrentError('');
     setIsInASeries(false);
+    setBelongsToSeries("");
   };
 
   const getSeries = () => {
@@ -46,18 +47,35 @@ const EditStory = () => {
       throw new Error('Fetch problem series ' + response.status);
     }).then((data) => {
       const reduced = data.reduce((accumulator, currentValue) => {
-        if (!accumulator.series[currentValue.series_title]) {
-          accumulator.series[currentValue.series_title] = 1;
-        } else {
-          accumulator.series[currentValue.series_title]++;
+        if (!accumulator[currentValue.series_id]) {
+          accumulator[currentValue.series_id] = {
+            id: currentValue.series_id,
+            title: currentValue.series_title,
+            count: 0,
+            selected: false
+          };
+          const found = currentValue.stories.some(story => story.story_id === editables.id);
+          if (found) {
+            accumulator[currentValue.series_id].selected = true;
+          }
         }
+        accumulator[currentValue.series_id].count += 1;
         return accumulator;
-      }, {series: {}});
+      }, {});
+      
       const params = [];
-      for (const series in reduced.series) {
-        params.push({'label': series, 'id': series, 'count': reduced[series]});
+      for (const series_id in reduced) {
+        const series = reduced[series_id];
+        const entry = {
+          'label': series.title,
+          'id': series.id,
+          'count': series.count
+        }
+        if (series.selected) {
+          setBelongsToSeries(entry)
+        }
+        params.push(entry);
       }
-      console.log("params", params);
       setSeries(params);
     }).catch((error) => {
       console.error('get series', error);
@@ -76,25 +94,21 @@ const EditStory = () => {
   useEffect(() => {
     if (isLoggedIn && isEditingStory) {
       getSeries();
+      setIsInASeries(!!editables.series_id);
     }
-    setIsInASeries(editables.series_id);
-  }, [isLoggedIn, isEditingStory, editables.series_id, editables]);
+  }, [isLoggedIn, isEditingStory, editables.series_id]);
 
   useEffect(() => {
     setFormInput((prevFormInput) => ({
       ...prevFormInput,
-      description: editables.description,
       title: editables.title,
+      description: editables.description,
+      ...(editables.series_id && { series_id: editables.series_id }),
     }));
-    if (editables.series_id) {
-      setFormInput((prevFormInput) => ({
-        ...prevFormInput,
-        series_id: editables.series_id
-      }));
-    }
   }, [editables.description, editables.title, editables.series_id]);
 
   const handleSubmit = () => {
+    console.log("in series", isInASeries, editables.series_id);
     if (!formInput['title'] || !formInput['title'].trim().length) {
       setCurrentError('Title cannot be blank');
       setAreErrors(true);
@@ -127,22 +141,46 @@ const EditStory = () => {
       }
     }).then((json) => {
       // todo switching story from series to standalone
-      if (formInput.series_id) {
-        const newList = seriesList.map((story) => {
-          if (story.id === editables.id) {
-            return {
-              ...story,
-              title: formInput.title ? formInput.title : story.title,
-              description: formInput.description ? formInput.description : story.description,
-              image: formInput.image ? json.image_url : story.image
-            };
+      if (json.series_id.length) {
+        const newSeriesList = seriesList.map((seriesEntry) => {
+          let matched = false;
+          const newSeriesListings = seriesEntry.listings.map(story => {
+            if (story.id === json.story_id) {
+              matched = true;
+              return {
+                ...story,
+                title: json.title,
+                description: json.description,
+                image: json.image_url
+              };
+            }
+            return story;
+          });
+          if (!matched) {
+            newSeriesListings.push({
+              id: json.story_id,
+              created_at: json.created_at,
+              description: json.description,
+              image: json.image_url,
+              title: json.title,
+              place: json.place,
+              series_id: json.series_id
+            });
           }
-          return story;
+          return {
+            ...seriesEntry,
+            listings: newSeriesListings
+          };
         });
-        dispatch(setSeriesList(newList));
+        
+        const newStandaloneList = standaloneList.filter(item => item.id !== editables.id);
+        dispatch(setSeriesList(newSeriesList));
+        dispatch(setStandaloneList(newStandaloneList));
       } else {
-        const newList = standaloneList.map((story) => {
+        let matched = false;
+        const newStandaloneList = standaloneList.map((story) => {
           if (story.id === editables.id) {
+            matched = true;
             return {
               ...story,
               ...(formInput.title && {title: formInput.title}),
@@ -153,22 +191,39 @@ const EditStory = () => {
           }
           return story;
         });
-        dispatch(setStandaloneList(newList));
+        if (!matched) {
+          newStandaloneList.push({
+            id: json.story_id,
+            chapter: json.chapters,
+            created_at: json.created_at,
+            description: json.description,
+            image: json.image_url,
+            title: json.title
+          });
+        }
+        dispatch(setStandaloneList(newStandaloneList));
+        const updatedSeriesList = seriesList.map(currentSeries => {
+          // Filter out the item with the matching editables.id
+          const newSeriesListings = currentSeries.listings.filter(item =>  item.id !== editables.id);
+        
+          // Return a new object for the current series with the updated listings
+          return {
+            ...currentSeries,
+            listings: newSeriesListings
+          };
+        });
+        dispatch(setSeriesList(updatedSeriesList));
       }
       setTimeout(()=> {
         handleClose();
       }, 1000);
     }).catch((error) => {
+      console.error("err", error);
       if (error.status === 401) {
         dispatch(setAlertMessage('inadequate subscription'));
         dispatch(setAlertSeverity('error'));
         dispatch(setAlertOpen(true));
         handleClose();
-        return;
-      }
-      if (error.status === 409) {
-        setCurrentError('A story by that name already exists. All stories must be uniquely titled.');
-        setAreErrors(true);
         return;
       }
       setCurrentError('Unable to create a story at this time. Please try again later.');
@@ -208,7 +263,7 @@ const EditStory = () => {
       reader.readAsArrayBuffer(file);
     });
   };
-
+  
   return (
     <div>
       <Dialog open={isEditingStory} onClose={handleClose}>
@@ -248,7 +303,7 @@ const EditStory = () => {
             </div>
             <div>
               <FormControlLabel label="This is part of a series" control={
-                <Checkbox defaultChecked={editables.series_id} id="isSeries" label="" onChange={toggleSeries} />
+                <Checkbox checked={isInASeries} id="isSeries" label="" onChange={toggleSeries} />
               } sx={{
                 '& .MuiFormControlLabel-label': {color: 'rgba(0, 0, 0, 0.6)'},
               }}
@@ -260,10 +315,14 @@ const EditStory = () => {
                     <Autocomplete
                       onInputChange={(event) => {
                         if (event) {
-                          setFormInput((prevFormInput) => ({
-                            ...prevFormInput,
-                            series_id: event.target.value
-                          }));
+                          const entered = event.target.value.toString();
+                          const foundSeries = series.find(srs => srs.label.toLowerCase() === entered.toLowerCase());
+                          if (foundSeries && foundSeries.id) {
+                            setFormInput((prevFormInput) => ({
+                              ...prevFormInput,
+                              series_id: foundSeries.id
+                            }));
+                          }
                         }
                       }}
                       onChange={(event, actions) => {
@@ -276,7 +335,7 @@ const EditStory = () => {
                       }}
                       freeSolo
                       options={series}
-                      value={editables.seriesTitle}
+                      value={belongsToSeries}
                       renderInput={(params) => <TextField {...params} label="Series" />}
                     />
                   </div> :

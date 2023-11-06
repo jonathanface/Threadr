@@ -33,7 +33,7 @@ const Story = (props) => {
     newProps.title = selected.title;
     newProps.description = selected.description;
     if (props.volumes) {
-      newProps.series_id = props.volumes;
+      newProps.series_id = props.volumes[0].series_id;
     }
     newProps.image = selected.image;
     dispatch(setStoryEditables(newProps));
