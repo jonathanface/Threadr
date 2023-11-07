@@ -21,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/smithy-go"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 )
 
@@ -752,7 +753,7 @@ func (d *DAO) copyTableContents(email, srcTableName, destTableName string) error
 	return nil
 }
 
-func (d *DAO) EditStory(email string, story models.Story) (err error) {
+func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.Story, err error) {
 	modifiedAtStr := strconv.FormatInt(time.Now().Unix(), 10)
 	item := map[string]types.AttributeValue{
 		"story_id":    &types.AttributeValueMemberS{Value: story.ID},
@@ -763,18 +764,78 @@ func (d *DAO) EditStory(email string, story models.Story) (err error) {
 		"modified_at": &types.AttributeValueMemberN{Value: modifiedAtStr},
 		"place":       &types.AttributeValueMemberN{Value: strconv.Itoa(story.Place)},
 	}
-	if story.SeriesID != "" {
-		item["series_id"] = &types.AttributeValueMemberS{Value: story.SeriesID}
+	updatedStory = story
+	storedStory, err := d.GetStoryByID(email, story.ID)
+	if err != nil {
+		return updatedStory, err
 	}
+
+	if story.SeriesID != storedStory.SeriesID {
+		// a change in series
+		if story.SeriesID != "" {
+			// check if this is a new or existing series
+			series, err := d.GetSeriesByID(email, story.SeriesID)
+			var seriesID string
+			if err != nil {
+				// TODO this is hack
+				if err.Error() != "no series found" {
+					return updatedStory, err
+				} else {
+					seriesID = uuid.New().String()
+					seriesItem := map[string]types.AttributeValue{
+						"series_id": &types.AttributeValueMemberS{Value: seriesID},
+						"title":     &types.AttributeValueMemberS{Value: story.SeriesID},
+						"author":    &types.AttributeValueMemberS{Value: email},
+					}
+					seriesUpdateInput := &dynamodb.PutItemInput{
+						TableName: aws.String("series"),
+						Item:      seriesItem,
+					}
+					_, err = d.dynamoClient.PutItem(context.Background(), seriesUpdateInput)
+					if err != nil {
+						return updatedStory, err
+					}
+				}
+			} else {
+				seriesID = series.ID
+			}
+			item["series_id"] = &types.AttributeValueMemberS{Value: seriesID}
+			updatedStory.SeriesID = seriesID
+		} else {
+			// story was removed from series
+			series, err := d.GetSeriesByID(email, storedStory.SeriesID)
+			if err != nil {
+				fmt.Println("this??")
+				return updatedStory, err
+			}
+			if len(series.Stories) == 1 {
+				itemKey := map[string]types.AttributeValue{
+					"series_id": &types.AttributeValueMemberS{Value: storedStory.SeriesID},
+					"author":    &types.AttributeValueMemberS{Value: email},
+				}
+				input := &dynamodb.DeleteItemInput{
+					Key:       itemKey,
+					TableName: aws.String("series"),
+				}
+
+				// Delete the item
+				_, err = d.dynamoClient.DeleteItem(context.TODO(), input)
+				if err != nil {
+					return updatedStory, err
+				}
+			}
+		}
+	}
+
 	storyUpdateInput := &dynamodb.PutItemInput{
 		TableName: aws.String("stories"),
 		Item:      item,
 	}
 	_, err = d.dynamoClient.PutItem(context.Background(), storyUpdateInput)
 	if err != nil {
-		return err
+		return updatedStory, err
 	}
-	return
+	return updatedStory, nil
 }
 
 func (d *DAO) CreateStory(email string, story models.Story) (storyID string, err error) {

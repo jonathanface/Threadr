@@ -25,7 +25,7 @@ type DaoInterface interface {
 	UpdateAssociationPortraitEntryInDB(email, storyOrSeriesID, associationName, url string) error
 	AddCustomerID(email, customerID *string) error
 	AddSubscriptionID(email, subscriptionID *string) error
-	EditStory(email string, story models.Story) error
+	EditStory(email string, story models.Story) (models.Story, error)
 
 	// POSTs
 	CreateChapter(storyID string, chapter models.Chapter) error

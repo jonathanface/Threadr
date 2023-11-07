@@ -144,7 +144,8 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		story.ImageURL = "https://" + S3_STORY_IMAGE_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
 	}
 
-	if err = dao.EditStory(email, *story); err != nil {
+	var updatedStory models.Story
+	if updatedStory, err = dao.EditStory(email, *story); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
@@ -158,7 +159,7 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RespondWithJson(w, http.StatusOK, story)
+	RespondWithJson(w, http.StatusOK, updatedStory)
 }
 
 func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {

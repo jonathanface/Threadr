@@ -11,7 +11,7 @@ import TextField from '@mui/material/TextField';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setAlertMessage, setAlertOpen, setAlertSeverity } from '../../stores/alertSlice';
-import { flipEditingStory, setSeriesList, setStandaloneList } from '../../stores/storiesSlice';
+import { flipEditingStory, setSeriesList, setStandaloneList, setStoryEditables } from '../../stores/storiesSlice';
 import PortraitDropper from '../portraitdropper/PortraitDropper';
 
 const EditStory = () => {
@@ -23,7 +23,7 @@ const EditStory = () => {
   const editables = useSelector((state) => state.stories.editables);
   const seriesList = useSelector((state) => state.stories.seriesList);
   const standaloneList = useSelector((state) => state.stories.standaloneList);
-  
+
   const [belongsToSeries, setBelongsToSeries] = useState("");
   const [series, setSeries] = useState([]);
   const [isInASeries, setIsInASeries] = useState(false);
@@ -46,6 +46,32 @@ const EditStory = () => {
       }
       throw new Error('Fetch problem series ' + response.status);
     }).then((data) => {
+      console.log("srsstor", seriesList);
+
+      const seriesStoriesFromDB = data.map((series) => {
+        const seriesObj = {
+          id: series.series_id,
+          title: series.series_title,
+          listings: [],
+          image: series.image_url.length ? series.image_url : '/img/icons/story_series_icon.jpg',
+        };
+        if (series.stories) {
+          series.stories.forEach((story) => {
+            seriesObj.listings.push({
+              id: story.story_id,
+              series_id: series.series_id,
+              title: story.title,
+              place: story.place,
+              created_at: story.created_at,
+              description: story.description,
+              image: story.image_url.length ? story.image_url : '/img/icons/story_icon.jpg'
+            });
+          });
+        }
+        return seriesObj;
+      });
+      dispatch(setSeriesList(seriesStoriesFromDB));
+
       const reduced = data.reduce((accumulator, currentValue) => {
         if (!accumulator[currentValue.series_id]) {
           accumulator[currentValue.series_id] = {
@@ -122,6 +148,7 @@ const EditStory = () => {
     if (!isInASeries && formInput.series_id) {
       delete formInput.series_id;
     }
+    console.log("wtf", formInput)
     const formData = formInput.image ? formInput.image : new FormData();
     for (const key in formInput) {
       if (key !== 'image' && formInput.hasOwnProperty(key)) {
@@ -167,6 +194,12 @@ const EditStory = () => {
               series_id: json.series_id
             });
           }
+          const newEditables = {
+            ...editables,
+            series_id: json.series_id
+          }
+          setStoryEditables(newEditables);
+          
           return {
             ...seriesEntry,
             listings: newSeriesListings
@@ -175,6 +208,7 @@ const EditStory = () => {
         
         const newStandaloneList = standaloneList.filter(item => item.id !== editables.id);
         dispatch(setSeriesList(newSeriesList));
+        getSeries();
         dispatch(setStandaloneList(newStandaloneList));
       } else {
         let matched = false;
@@ -202,6 +236,8 @@ const EditStory = () => {
           });
         }
         dispatch(setStandaloneList(newStandaloneList));
+        const { ['series_id']: _, ...rest } = editables;
+        setStoryEditables(rest);
         const updatedSeriesList = seriesList.map(currentSeries => {
           // Filter out the item with the matching editables.id
           const newSeriesListings = currentSeries.listings.filter(item =>  item.id !== editables.id);
@@ -213,6 +249,7 @@ const EditStory = () => {
           };
         });
         dispatch(setSeriesList(updatedSeriesList));
+        getSeries();
       }
       setTimeout(()=> {
         handleClose();
@@ -315,14 +352,14 @@ const EditStory = () => {
                     <Autocomplete
                       onInputChange={(event) => {
                         if (event) {
+                          console.log("input change");
                           const entered = event.target.value.toString();
                           const foundSeries = series.find(srs => srs.label.toLowerCase() === entered.toLowerCase());
-                          if (foundSeries && foundSeries.id) {
-                            setFormInput((prevFormInput) => ({
-                              ...prevFormInput,
-                              series_id: foundSeries.id
-                            }));
-                          }
+                          const settingSeries = foundSeries && foundSeries.id? foundSeries.id : entered;
+                          setFormInput((prevFormInput) => ({
+                            ...prevFormInput,
+                            series_id: settingSeries
+                          }));
                         }
                       }}
                       onChange={(event, actions) => {
