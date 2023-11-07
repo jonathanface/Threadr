@@ -134,7 +134,7 @@ const EditStory = () => {
   }, [editables.description, editables.title, editables.series_id]);
 
   const handleSubmit = () => {
-    console.log("in series", isInASeries, editables.series_id);
+
     if (!formInput['title'] || !formInput['title'].trim().length) {
       setCurrentError('Title cannot be blank');
       setAreErrors(true);
@@ -148,7 +148,7 @@ const EditStory = () => {
     if (!isInASeries && formInput.series_id) {
       delete formInput.series_id;
     }
-    console.log("wtf", formInput)
+
     const formData = formInput.image ? formInput.image : new FormData();
     for (const key in formInput) {
       if (key !== 'image' && formInput.hasOwnProperty(key)) {
@@ -157,6 +157,7 @@ const EditStory = () => {
     }
     setCurrentError('');
     setAreErrors(false);
+
     fetch('/api/stories/' + editables.id + '/details', {
       method: 'PUT',
       body: formData
@@ -167,47 +168,8 @@ const EditStory = () => {
         throw new Error(response);
       }
     }).then((json) => {
-      // todo switching story from series to standalone
       if (json.series_id.length) {
-        const newSeriesList = seriesList.map((seriesEntry) => {
-          let matched = false;
-          const newSeriesListings = seriesEntry.listings.map(story => {
-            if (story.id === json.story_id) {
-              matched = true;
-              return {
-                ...story,
-                title: json.title,
-                description: json.description,
-                image: json.image_url
-              };
-            }
-            return story;
-          });
-          if (!matched) {
-            newSeriesListings.push({
-              id: json.story_id,
-              created_at: json.created_at,
-              description: json.description,
-              image: json.image_url,
-              title: json.title,
-              place: json.place,
-              series_id: json.series_id
-            });
-          }
-          const newEditables = {
-            ...editables,
-            series_id: json.series_id
-          }
-          setStoryEditables(newEditables);
-          
-          return {
-            ...seriesEntry,
-            listings: newSeriesListings
-          };
-        });
-        
         const newStandaloneList = standaloneList.filter(item => item.id !== editables.id);
-        dispatch(setSeriesList(newSeriesList));
         getSeries();
         dispatch(setStandaloneList(newStandaloneList));
       } else {
@@ -238,17 +200,6 @@ const EditStory = () => {
         dispatch(setStandaloneList(newStandaloneList));
         const { ['series_id']: _, ...rest } = editables;
         setStoryEditables(rest);
-        const updatedSeriesList = seriesList.map(currentSeries => {
-          // Filter out the item with the matching editables.id
-          const newSeriesListings = currentSeries.listings.filter(item =>  item.id !== editables.id);
-        
-          // Return a new object for the current series with the updated listings
-          return {
-            ...currentSeries,
-            listings: newSeriesListings
-          };
-        });
-        dispatch(setSeriesList(updatedSeriesList));
         getSeries();
       }
       setTimeout(()=> {

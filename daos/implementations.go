@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -781,6 +782,7 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 				if err.Error() != "no series found" {
 					return updatedStory, err
 				} else {
+					updatedStory.Place = 1
 					seriesID = uuid.New().String()
 					seriesItem := map[string]types.AttributeValue{
 						"series_id": &types.AttributeValueMemberS{Value: seriesID},
@@ -798,14 +800,22 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 				}
 			} else {
 				seriesID = series.ID
+
+				if len(series.Stories) > 1 {
+					sort.Slice(series.Stories, func(i, j int) bool {
+						return series.Stories[i].Place > series.Stories[j].Place
+					})
+				} else if len(series.Stories) == 1 {
+					updatedStory.Place = series.Stories[0].Place + 1
+				}
 			}
 			item["series_id"] = &types.AttributeValueMemberS{Value: seriesID}
+			item["place"] = &types.AttributeValueMemberN{Value: strconv.Itoa(updatedStory.Place)}
 			updatedStory.SeriesID = seriesID
 		} else {
 			// story was removed from series
 			series, err := d.GetSeriesByID(email, storedStory.SeriesID)
 			if err != nil {
-				fmt.Println("this??")
 				return updatedStory, err
 			}
 			if len(series.Stories) == 1 {
@@ -824,6 +834,7 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 					return updatedStory, err
 				}
 			}
+			updatedStory.Place = 0
 		}
 	}
 
