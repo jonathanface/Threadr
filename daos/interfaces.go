@@ -28,7 +28,7 @@ type DaoInterface interface {
 	EditStory(email string, story models.Story) (models.Story, error)
 
 	// POSTs
-	CreateChapter(storyID string, chapter models.Chapter) error
+	CreateChapter(storyID string, email string, chapter models.Chapter) error
 	CreateStory(email string, story models.Story) (storyID string, err error)
 
 	// DELETEs

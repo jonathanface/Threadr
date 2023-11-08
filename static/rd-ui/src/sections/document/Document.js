@@ -987,8 +987,10 @@ const Document = () => {
         setSelectedChapterTitle(newChapterTitle);
         const history = window.history;
         history.pushState({selectedStory}, 'created chapter', '/story/' + encodeURIComponent(selectedStory) + '?chapter=' + newChapterNum);
+        setEditorState(EditorState.createEmpty(createDecorators()));
+      } else {
+        throw new Error('Fetch problem creating chapter ' + response.status, response.statusText);
       }
-      throw new Error('Fetch problem creating chapter ' + response.status, response.statusText);
     }).catch((error) => {
       console.error(error);
     });
@@ -1006,7 +1008,8 @@ const Document = () => {
       },
       body: JSON.stringify(params)
     }).then((response) => {
-      if (response.ok) {
+      console.log("del response", response)
+      if (response.ok || response.status === 501) {
         const newChapters = [...chapters];
         newChapters.splice(chapterIndex);
         setChapters(newChapters);
@@ -1018,8 +1021,9 @@ const Document = () => {
           history.pushState({selectedStory}, 'deleted chapter', '/story/' + encodeURIComponent(selectedStory) + '?chapter=' + prevChapter.chapter_num);
         }
         return;
+      } else {
+        throw new Error('Fetch problem deleting chapter ' + response.status);
       }
-      throw new Error('Fetch problem deleting chapter ' + response.status);
     }).catch((error) => {
       console.error(error);
     });

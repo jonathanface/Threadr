@@ -21,7 +21,6 @@ import (
 )
 
 func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
-
 	var (
 		storyID string
 		email   string

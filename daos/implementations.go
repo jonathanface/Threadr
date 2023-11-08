@@ -666,7 +666,7 @@ func (d *DAO) UpdateAssociationPortraitEntryInDB(email, storyOrSeriesID, associa
 	return nil
 }
 
-func (d *DAO) CreateChapter(storyID string, chapter models.Chapter) (err error) {
+func (d *DAO) CreateChapter(storyID string, email string, chapter models.Chapter) (err error) {
 
 	var chapTwi types.TransactWriteItem
 	if chapTwi, err = d.generateStoryChapterTransaction(storyID, chapter.Place, chapter.Title); err != nil {
@@ -684,7 +684,8 @@ func (d *DAO) CreateChapter(storyID string, chapter models.Chapter) (err error) 
 	}
 	chapterNum := strconv.Itoa(chapter.Place)
 
-	tableName := storyID + "_" + chapterNum + "_blocks"
+	safeEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
+	tableName := storyID + "_" + safeEmail + "_" + chapterNum + "_blocks"
 	if err = d.createBlockTable(tableName); err != nil {
 		return
 	}
@@ -1091,9 +1092,8 @@ func (d *DAO) DeleteAssociations(email, storyTitle string, associations []*model
 	return
 }
 
-func (d *DAO) DeleteChapters(email, storyTitle string, chapters []models.Chapter) (err error) {
+func (d *DAO) DeleteChapters(email, storyID string, chapters []models.Chapter) (err error) {
 	tblEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	tblStory := d.sanitizeTableName(storyTitle)
 
 	batches := make([][]models.Chapter, 0, (len(chapters)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(chapters); i += d.writeBatchSize {
@@ -1111,19 +1111,16 @@ func (d *DAO) DeleteChapters(email, storyTitle string, chapters []models.Chapter
 		}
 		for i, item := range batch {
 			// Create a key for the item.
+			chapNum := strconv.Itoa(item.Place)
 			key := map[string]types.AttributeValue{
-				"chapter_title": &types.AttributeValueMemberS{Value: item.Title},
-				"story_title":   &types.AttributeValueMemberS{Value: storyTitle},
+				"chapter_num": &types.AttributeValueMemberN{Value: chapNum},
+				"story_id":    &types.AttributeValueMemberS{Value: storyID},
 			}
 
 			// Create a delete input for the item.
 			deleteInput := &types.Delete{
-				Key:                 key,
-				TableName:           aws.String("chapters"),
-				ConditionExpression: aws.String("author=:eml"),
-				ExpressionAttributeValues: map[string]types.AttributeValue{
-					":eml": &types.AttributeValueMemberS{Value: email},
-				},
+				Key:       key,
+				TableName: aws.String("chapters"),
 			}
 
 			// Create a transaction write item for the update operation.
@@ -1135,7 +1132,7 @@ func (d *DAO) DeleteChapters(email, storyTitle string, chapters []models.Chapter
 			writeItemsInput.TransactItems[i] = writeItem
 
 			chapter := strconv.Itoa(item.Place)
-			tableName := tblEmail + "_" + tblStory + "_" + chapter + "_blocks"
+			tableName := storyID + "_" + tblEmail + "_" + chapter + "_blocks"
 
 			deleteTableInput := &dynamodb.DeleteTableInput{
 				TableName: aws.String(tableName),
@@ -1260,78 +1257,89 @@ func (d *DAO) SoftDeleteStory(email, storyID, seriesID string) error {
 	}
 
 	storyOrSeriesID := storyID
+	deletedSeries := false
 	// Delete series
 	if len(seriesID) > 0 {
-		storyOrSeriesID = seriesID
-		seriesKey := map[string]types.AttributeValue{
-			"series_id": &types.AttributeValueMemberS{Value: seriesID},
-			"author":    &types.AttributeValueMemberS{Value: email},
-		}
-		seriesUpdateInput := &dynamodb.UpdateItemInput{
-			TableName:        aws.String("series"),
-			Key:              seriesKey,
-			UpdateExpression: aws.String("set deleted_at = :n"),
-			ExpressionAttributeValues: map[string]types.AttributeValue{
-				":n": &types.AttributeValueMemberN{Value: now},
-			},
-		}
-		_, err = d.dynamoClient.UpdateItem(context.Background(), seriesUpdateInput)
+		series, err := d.GetSeriesByID(email, seriesID)
 		if err != nil {
 			return err
 		}
-	}
-
-	// Delete associations
-	associationScanInput := &dynamodb.ScanInput{
-		TableName:        aws.String("associations"),
-		FilterExpression: aws.String("author = :eml AND attribute_not_exists(deleted_at) AND story_or_series_id = :sid"),
-		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":eml": &types.AttributeValueMemberS{Value: email},
-			":sid": &types.AttributeValueMemberS{Value: storyOrSeriesID},
-		},
-		Select: types.SelectAllAttributes,
-	}
-	associationOut, err := d.dynamoClient.Scan(context.TODO(), associationScanInput)
-	if err != nil {
-		return err
-	}
-
-	for _, item := range associationOut.Items {
-		assocID := item["association_id"].(*types.AttributeValueMemberS).Value
-		associationKey := map[string]types.AttributeValue{
-			"association_id":     &types.AttributeValueMemberS{Value: assocID},
-			"story_or_series_id": &types.AttributeValueMemberS{Value: storyOrSeriesID},
+		if len(series.Stories)-1 <= 0 {
+			storyOrSeriesID = seriesID
+			seriesKey := map[string]types.AttributeValue{
+				"series_id": &types.AttributeValueMemberS{Value: seriesID},
+				"author":    &types.AttributeValueMemberS{Value: email},
+			}
+			seriesUpdateInput := &dynamodb.UpdateItemInput{
+				TableName:        aws.String("series"),
+				Key:              seriesKey,
+				UpdateExpression: aws.String("set deleted_at = :n"),
+				ExpressionAttributeValues: map[string]types.AttributeValue{
+					":n": &types.AttributeValueMemberN{Value: now},
+				},
+			}
+			_, err = d.dynamoClient.UpdateItem(context.Background(), seriesUpdateInput)
+			if err != nil {
+				return err
+			}
+			deletedSeries = true
 		}
-		associationUpdateInput := &dynamodb.UpdateItemInput{
+
+	}
+
+	if len(seriesID) == 0 || deletedSeries {
+		// Delete associations
+		associationScanInput := &dynamodb.ScanInput{
 			TableName:        aws.String("associations"),
-			Key:              associationKey,
-			UpdateExpression: aws.String("set deleted_at = :n"),
+			FilterExpression: aws.String("author = :eml AND attribute_not_exists(deleted_at) AND story_or_series_id = :sid"),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
-				":n": &types.AttributeValueMemberN{Value: now},
+				":eml": &types.AttributeValueMemberS{Value: email},
+				":sid": &types.AttributeValueMemberS{Value: storyOrSeriesID},
 			},
+			Select: types.SelectAllAttributes,
 		}
-		_, err = d.dynamoClient.UpdateItem(context.Background(), associationUpdateInput)
+		associationOut, err := d.dynamoClient.Scan(context.TODO(), associationScanInput)
 		if err != nil {
 			return err
 		}
 
-		associationDetailsUpdateInput := &dynamodb.UpdateItemInput{
-			TableName:        aws.String("association_details"),
-			Key:              associationKey,
-			UpdateExpression: aws.String("set deleted_at = :n"),
-			ExpressionAttributeValues: map[string]types.AttributeValue{
-				":n": &types.AttributeValueMemberN{Value: now},
-			},
-		}
-		_, err = d.dynamoClient.UpdateItem(context.Background(), associationDetailsUpdateInput)
-		if err != nil {
-			return err
+		for _, item := range associationOut.Items {
+			assocID := item["association_id"].(*types.AttributeValueMemberS).Value
+			associationKey := map[string]types.AttributeValue{
+				"association_id":     &types.AttributeValueMemberS{Value: assocID},
+				"story_or_series_id": &types.AttributeValueMemberS{Value: storyOrSeriesID},
+			}
+			associationUpdateInput := &dynamodb.UpdateItemInput{
+				TableName:        aws.String("associations"),
+				Key:              associationKey,
+				UpdateExpression: aws.String("set deleted_at = :n"),
+				ExpressionAttributeValues: map[string]types.AttributeValue{
+					":n": &types.AttributeValueMemberN{Value: now},
+				},
+			}
+			_, err = d.dynamoClient.UpdateItem(context.Background(), associationUpdateInput)
+			if err != nil {
+				return err
+			}
+
+			associationDetailsUpdateInput := &dynamodb.UpdateItemInput{
+				TableName:        aws.String("association_details"),
+				Key:              associationKey,
+				UpdateExpression: aws.String("set deleted_at = :n"),
+				ExpressionAttributeValues: map[string]types.AttributeValue{
+					":n": &types.AttributeValueMemberN{Value: now},
+				},
+			}
+			_, err = d.dynamoClient.UpdateItem(context.Background(), associationDetailsUpdateInput)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
-func (d *DAO) hardDeleteStory(email, storyID, seriesTitle string) error {
+func (d *DAO) hardDeleteStory(email, storyID, seriesID string) error {
 	originalStory, err := d.GetStoryByID(email, storyID)
 	if err != nil {
 		return err
@@ -1381,24 +1389,113 @@ func (d *DAO) hardDeleteStory(email, storyID, seriesTitle string) error {
 		return err
 	}
 
-	storyOrSeriesTitle := storyID
 	// Delete series
-	if len(seriesTitle) > 0 {
-		storyOrSeriesTitle = seriesTitle
-		seriesKey := map[string]types.AttributeValue{
-			"series_title": &types.AttributeValueMemberS{Value: seriesTitle},
-			"author":       &types.AttributeValueMemberS{Value: email},
-		}
-		seriesDeleteInput := &dynamodb.DeleteItemInput{
-			TableName: aws.String("series"),
-			Key:       seriesKey,
-		}
-		_, err = d.dynamoClient.DeleteItem(context.Background(), seriesDeleteInput)
+	deletedSeries := false
+	storyOrSeriesID := storyID
+	if len(seriesID) > 0 {
+		series, err := d.GetSeriesByID(email, seriesID)
 		if err != nil {
 			return err
 		}
-		// delete series portrait image from s3
-		bucketName := "richdocter-series-portraits"
+		if len(series.Stories)-1 <= 0 {
+			storyOrSeriesID = series.ID
+			seriesKey := map[string]types.AttributeValue{
+				"series_id": &types.AttributeValueMemberS{Value: seriesID},
+				"author":    &types.AttributeValueMemberS{Value: email},
+			}
+			seriesDeleteInput := &dynamodb.DeleteItemInput{
+				TableName: aws.String("series"),
+				Key:       seriesKey,
+			}
+			_, err = d.dynamoClient.DeleteItem(context.Background(), seriesDeleteInput)
+			if err != nil {
+				return err
+			}
+			// delete series portrait image from s3
+			bucketName := "richdocter-series-portraits"
+			parsedPath, err := url.Parse(originalStory.ImageURL)
+			if err != nil {
+				return err
+			}
+			objectKey := path.Base(parsedPath.Path)
+
+			_, err = d.s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
+				Bucket: &bucketName,
+				Key:    &objectKey,
+			})
+			if err != nil {
+				fmt.Println("DELETE IMAGE ERROR:", err)
+			}
+			deletedSeries = true
+		}
+	}
+
+	if len(seriesID) == 0 || deletedSeries {
+
+		// Delete associations
+		associationScanInput := &dynamodb.ScanInput{
+			TableName:        aws.String("associations"),
+			FilterExpression: aws.String("author = :eml AND story_or_series_id = :sid"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":eml": &types.AttributeValueMemberS{Value: email},
+				":sid": &types.AttributeValueMemberS{Value: storyOrSeriesID},
+			},
+			Select: types.SelectAllAttributes,
+		}
+		associationOut, err := d.dynamoClient.Scan(context.TODO(), associationScanInput)
+		if err != nil {
+			return err
+		}
+
+		for _, item := range associationOut.Items {
+			assocID := item["association_id"].(*types.AttributeValueMemberS).Value
+			associationKey := map[string]types.AttributeValue{
+				"association_id":     &types.AttributeValueMemberS{Value: assocID},
+				"story_or_series_id": &types.AttributeValueMemberS{Value: storyOrSeriesID},
+			}
+			associationDeleteInput := &dynamodb.DeleteItemInput{
+				TableName: aws.String("associations"),
+				Key:       associationKey,
+			}
+			_, err = d.dynamoClient.DeleteItem(context.Background(), associationDeleteInput)
+			if err != nil {
+				return err
+			}
+
+			associationDetailsDeleteInput := &dynamodb.DeleteItemInput{
+				TableName: aws.String("association_details"),
+				Key:       associationKey,
+			}
+			_, err = d.dynamoClient.DeleteItem(context.Background(), associationDetailsDeleteInput)
+			if err != nil {
+				return err
+			}
+			// delete association images
+			var bucketName string
+			switch item["association_type"].(*types.AttributeValueMemberS).Value {
+			case "character":
+				bucketName = "richdocterportraits"
+			case "event":
+				bucketName = "richdocterevents"
+			case "location":
+				bucketName = "richdocterlocations"
+			}
+			parsedPath, err := url.Parse(item["portrait"].(*types.AttributeValueMemberS).Value)
+			if err != nil {
+				return err
+			}
+			objectKey := path.Base(parsedPath.Path)
+
+			_, err = d.s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
+				Bucket: &bucketName,
+				Key:    &objectKey,
+			})
+			if err != nil {
+				fmt.Println("DELETE IMAGE ERROR:", err)
+			}
+		}
+		// delete story portrait image from s3
+		bucketName := "richdocter-story-portraits"
 		parsedPath, err := url.Parse(originalStory.ImageURL)
 		if err != nil {
 			return err
@@ -1412,84 +1509,6 @@ func (d *DAO) hardDeleteStory(email, storyID, seriesTitle string) error {
 		if err != nil {
 			fmt.Println("DELETE IMAGE ERROR:", err)
 		}
-	}
-
-	// Delete associations
-	associationScanInput := &dynamodb.ScanInput{
-		TableName:        aws.String("associations"),
-		FilterExpression: aws.String("author = :eml AND story_id = :sid"),
-		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":eml": &types.AttributeValueMemberS{Value: email},
-			":sid": &types.AttributeValueMemberS{Value: storyID},
-		},
-		Select: types.SelectAllAttributes,
-	}
-	associationOut, err := d.dynamoClient.Scan(context.TODO(), associationScanInput)
-	if err != nil {
-		return err
-	}
-
-	for _, item := range associationOut.Items {
-		assocTitle := item["association_name"].(*types.AttributeValueMemberS).Value
-		associationKey := map[string]types.AttributeValue{
-			"association_name":     &types.AttributeValueMemberS{Value: assocTitle},
-			"story_or_series_name": &types.AttributeValueMemberS{Value: storyOrSeriesTitle},
-		}
-		associationDeleteInput := &dynamodb.DeleteItemInput{
-			TableName: aws.String("associations"),
-			Key:       associationKey,
-		}
-		_, err = d.dynamoClient.DeleteItem(context.Background(), associationDeleteInput)
-		if err != nil {
-			return err
-		}
-
-		associationDetailsDeleteInput := &dynamodb.DeleteItemInput{
-			TableName: aws.String("association_details"),
-			Key:       associationKey,
-		}
-		_, err = d.dynamoClient.DeleteItem(context.Background(), associationDetailsDeleteInput)
-		if err != nil {
-			return err
-		}
-		// delete association images
-		var bucketName string
-		switch item["association_type"].(*types.AttributeValueMemberS).Value {
-		case "character":
-			bucketName = "richdocterportraits"
-		case "event":
-			bucketName = "richdocterevents"
-		case "location":
-			bucketName = "richdocterlocations"
-		}
-		parsedPath, err := url.Parse(item["portrait"].(*types.AttributeValueMemberS).Value)
-		if err != nil {
-			return err
-		}
-		objectKey := path.Base(parsedPath.Path)
-
-		_, err = d.s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
-			Bucket: &bucketName,
-			Key:    &objectKey,
-		})
-		if err != nil {
-			fmt.Println("DELETE IMAGE ERROR:", err)
-		}
-	}
-	// delete story portrait image from s3
-	bucketName := "richdocter-story-portraits"
-	parsedPath, err := url.Parse(originalStory.ImageURL)
-	if err != nil {
-		return err
-	}
-	objectKey := path.Base(parsedPath.Path)
-
-	_, err = d.s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
-		Bucket: &bucketName,
-		Key:    &objectKey,
-	})
-	if err != nil {
-		fmt.Println("DELETE IMAGE ERROR:", err)
 	}
 	return nil
 }

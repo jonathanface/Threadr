@@ -8,10 +8,10 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import TextField from '@mui/material/TextField';
-import React, {useEffect, useState} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
-import {setAlertMessage, setAlertOpen, setAlertSeverity} from '../../stores/alertSlice';
-import {flipCreatingNewStory, setSelectedStory} from '../../stores/storiesSlice';
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { setAlertMessage, setAlertOpen, setAlertSeverity } from '../../stores/alertSlice';
+import { flipCreatingNewStory, setSelectedStory } from '../../stores/storiesSlice';
 import PortraitDropper from '../portraitdropper/PortraitDropper';
 
 const CreateNewStory = () => {
@@ -142,7 +142,7 @@ const CreateNewStory = () => {
     }
 
     if (formInput['series_id']) {
-      formInput['place'] = series.stories.length;
+      formInput['place'] = series.length;
     }
     setCurrentError('');
     setAreErrors(false);

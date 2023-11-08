@@ -63,7 +63,7 @@
     white-space: nowrap;
 }
 
-.doc-button > div {
+.doc-button .storyBubble {
     position:relative;
 }
 .doc-button .details-slider {
