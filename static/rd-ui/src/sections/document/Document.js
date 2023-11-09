@@ -609,6 +609,7 @@ const Document = () => {
       try {
         const storedAssociation = await saveAssociationsToServer([newAssociation]);
         newAssociation.portrait = storedAssociation[0].portrait;
+        newAssociation.association_id = storedAssociation[0].association_id;
         associations.push(newAssociation);
         const newEditorState = EditorState.set(withSelection, {decorator: createDecorators()});
         setEditorState(newEditorState);
