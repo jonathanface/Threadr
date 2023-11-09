@@ -620,11 +620,19 @@ const Document = () => {
   };
 
   const handleDeleteAssociationClick = ({event}) => {
-    associations.splice(associations.findIndex((assoc) => assoc === currentRightClickedAssoc));
+    console.log("curr", associations, currentRightClickedAssoc);
+    const ind = associations.findIndex((assoc) => {
+      return assoc.association_type === currentRightClickedAssoc.association_type &&
+             assoc.association_name === currentRightClickedAssoc.association_name;
+    });
+    console.log("ind", ind);
+    const deleteMe = associations[ind];
+    associations.splice(ind, 1);
     const withSelection = setFocusAndRestoreCursor();
     const newEditorState = EditorState.set(withSelection, {decorator: createDecorators()});
     try {
-      deleteAssociationsFromServer([currentRightClickedAssoc]);
+      deleteAssociationsFromServer([deleteMe]);
+      
     } catch (e) {
       console.error(e);
     }

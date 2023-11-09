@@ -1008,7 +1008,7 @@ func (d *DAO) DeleteStoryParagraphs(email, storyTitle string, storyBlocks *model
 	return
 }
 
-func (d *DAO) DeleteAssociations(email, storyTitle string, associations []*models.Association) (err error) {
+func (d *DAO) DeleteAssociations(email, storyID string, associations []*models.Association) (err error) {
 	batches := make([][]*models.Association, 0, (len(associations)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(associations); i += d.writeBatchSize {
 		end := i + d.writeBatchSize
@@ -1018,8 +1018,8 @@ func (d *DAO) DeleteAssociations(email, storyTitle string, associations []*model
 		batches = append(batches, associations[i:end])
 	}
 
-	storyOrSeries := storyTitle
-	if storyOrSeries, err = d.IsStoryInASeries(email, storyTitle); err != nil {
+	storyOrSeriesID := storyID
+	if storyOrSeriesID, err = d.IsStoryInASeries(email, storyID); err != nil {
 		return err
 	}
 
@@ -1036,15 +1036,14 @@ func (d *DAO) DeleteAssociations(email, storyTitle string, associations []*model
 		for i, item := range batch {
 			// Create a key for the item.
 			key := map[string]types.AttributeValue{
-				"association_name":     &types.AttributeValueMemberS{Value: item.Name},
-				"story_or_series_name": &types.AttributeValueMemberS{Value: storyOrSeries},
+				"association_id":     &types.AttributeValueMemberS{Value: item.ID},
+				"story_or_series_id": &types.AttributeValueMemberS{Value: storyOrSeriesID},
 			}
 
 			// Create a delete input for the item.
 			deleteInput := &types.Delete{
-				Key:                 key,
-				TableName:           aws.String("associations"),
-				ConditionExpression: aws.String("author=:eml AND association_type=:t"),
+				Key:       key,
+				TableName: aws.String("associations"),
 				ExpressionAttributeValues: map[string]types.AttributeValue{
 					":eml": &types.AttributeValueMemberS{Value: email},
 					":t":   &types.AttributeValueMemberS{Value: item.Type},
