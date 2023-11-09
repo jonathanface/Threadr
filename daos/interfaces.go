@@ -29,7 +29,7 @@ type DaoInterface interface {
 
 	// POSTs
 	CreateChapter(storyID string, email string, chapter models.Chapter) error
-	CreateStory(email string, story models.Story) (storyID string, err error)
+	CreateStory(email string, story models.Story, newSeriesTitle string) (storyID string, err error)
 
 	// DELETEs
 	DeleteStoryParagraphs(email, storyID string, storyBlocks *models.StoryBlocks) error

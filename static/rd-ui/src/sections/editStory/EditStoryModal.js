@@ -46,8 +46,6 @@ const EditStory = () => {
       }
       throw new Error('Fetch problem series ' + response.status);
     }).then((data) => {
-      console.log("srsstor", seriesList);
-
       const seriesStoriesFromDB = data.map((series) => {
         const seriesObj = {
           id: series.series_id,
@@ -133,7 +131,7 @@ const EditStory = () => {
     }));
   }, [editables.description, editables.title, editables.series_id]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async() => {
 
     if (!formInput['title'] || !formInput['title'].trim().length) {
       setCurrentError('Title cannot be blank');
@@ -151,23 +149,27 @@ const EditStory = () => {
 
     const formData = formInput.image ? formInput.image : new FormData();
     for (const key in formInput) {
-      if (key !== 'image' && formInput.hasOwnProperty(key)) {
+      if (key !== 'image' && formInput.hasOwnProperty(key) && formInput[key] !== null) {
+        formData.delete(key);
         formData.append(key, formInput[key]);
       }
     }
     setCurrentError('');
     setAreErrors(false);
 
-    fetch('/api/stories/' + editables.id + '/details', {
-      method: 'PUT',
-      body: formData
-    }).then((response) => {
-      if (response.ok) {
-        return response.json();
-      } else {
-        throw new Error(response);
+    try {
+      const response = await fetch('/api/stories/' + editables.id + '/details', {
+        method: 'PUT',
+        body: formData
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        const error = new Error(JSON.stringify(errorData));
+        error.response = response; // Attach the response to the error object
+        throw error;
       }
-    }).then((json) => {
+      const json = await response.json();
+
       if (json.series_id.length) {
         const newStandaloneList = standaloneList.filter(item => item.id !== editables.id);
         getSeries();
@@ -205,8 +207,8 @@ const EditStory = () => {
       setTimeout(()=> {
         handleClose();
       }, 1000);
-    }).catch((error) => {
-      console.error("err", error);
+    } catch(error) {
+      console.error('Error fetching data: ', error.message);
       if (error.status === 401) {
         dispatch(setAlertMessage('inadequate subscription'));
         dispatch(setAlertSeverity('error'));
@@ -214,9 +216,14 @@ const EditStory = () => {
         handleClose();
         return;
       }
-      setCurrentError('Unable to create a story at this time. Please try again later.');
+      const errorData = error.response ? JSON.parse(error.message) : {};
+      if (errorData.error) {
+        setCurrentError(errorData.error);
+      } else {
+        setCurrentError('Unable to edit your story at this time. Please try again later.');
+      }
       setAreErrors(true);
-    });
+    }
   };
 
 
@@ -303,13 +310,13 @@ const EditStory = () => {
                     <Autocomplete
                       onInputChange={(event) => {
                         if (event) {
-                          console.log("input change");
                           const entered = event.target.value.toString();
                           const foundSeries = series.find(srs => srs.label.toLowerCase() === entered.toLowerCase());
-                          const settingSeries = foundSeries && foundSeries.id? foundSeries.id : entered;
+                          const settingSeriesID = foundSeries && foundSeries.id ? foundSeries.id : null;
                           setFormInput((prevFormInput) => ({
                             ...prevFormInput,
-                            series_id: settingSeries
+                            series_id: settingSeriesID,
+                            series_title: entered
                           }));
                         }
                       }}

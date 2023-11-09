@@ -91,6 +91,7 @@ func (d *DAO) sanitizeTableName(name string) string {
 }
 
 func (d *DAO) checkBackupStatus(arn string) error {
+	fmt.Println("checking backup")
 	for {
 		describeInput := &dynamodb.DescribeBackupInput{
 			BackupArn: aws.String(arn),
