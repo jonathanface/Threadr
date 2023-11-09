@@ -4,13 +4,20 @@ import (
 	"RichDocter/daos"
 	"RichDocter/models"
 	"RichDocter/sessions"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image"
+	"image/gif"
+	"image/jpeg"
+	"image/png"
+	"io"
 	"net/http"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/smithy-go"
+	"github.com/nfnt/resize"
 )
 
 const (
@@ -122,4 +129,31 @@ func staggeredStoryBlockRetrieval(dao daos.DaoInterface, email string, storyID s
 		return nil, fmt.Errorf("error getting story blocks: invalid key_id type")
 	}
 	return staggeredStoryBlockRetrieval(dao, email, storyID, chapter, keyID.Value)
+}
+
+func scaleDownImage(file io.Reader, maxWidth uint) (*bytes.Buffer, string, error) {
+	// Decode the image
+	img, format, err := image.Decode(file)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// Resize if necessary
+	if img.Bounds().Dx() > int(maxWidth) {
+		img = resize.Resize(maxWidth, 0, img, resize.Lanczos3)
+	}
+
+	// Encode the image to a buffer
+	buf := new(bytes.Buffer)
+	switch format {
+	case "jpeg":
+		err = jpeg.Encode(buf, img, nil)
+	case "png":
+		err = png.Encode(buf, img)
+	case "gif":
+		err = gif.Encode(buf, img, &gif.Options{NumColors: 256})
+	default:
+		err = fmt.Errorf("unsupported image format: %s", format)
+	}
+	return buf, format, err
 }

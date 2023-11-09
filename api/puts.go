@@ -3,9 +3,9 @@ package api
 import (
 	"RichDocter/daos"
 	"RichDocter/models"
-	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -90,13 +90,8 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	if file != nil {
 		// TODO delete previous image
-		// TODO resize image
 		defer file.Close()
 
-		if handler.Size > maxFileSize {
-			RespondWithError(w, http.StatusBadRequest, "Filesize must be < 1MB")
-			return
-		}
 		allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
 		fileBytes := make([]byte, handler.Size)
 		if _, err := file.Read(fileBytes); err != nil {
@@ -116,7 +111,22 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		reader := bytes.NewReader(fileBytes)
+		if _, err := file.Seek(0, io.SeekStart); err != nil {
+			RespondWithError(w, http.StatusInternalServerError, "Failed to read the image file")
+			return
+		}
+		// Scale down the image if it exceeds the maximum width
+		scaledImageBuf, _, err := scaleDownImage(file, uint(400))
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		// Check the size of the scaled image
+		if scaledImageBuf.Len() > maxFileSize {
+			RespondWithError(w, http.StatusBadRequest, "Filesize must be < 1MB")
+			return
+		}
+
 		ext := filepath.Ext(handler.Filename)
 
 		safeEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
@@ -134,7 +144,7 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		if _, err = s3Client.PutObject(context.Background(), &s3.PutObjectInput{
 			Bucket:      aws.String(S3_STORY_IMAGE_BUCKET),
 			Key:         aws.String(filename),
-			Body:        reader,
+			Body:        scaledImageBuf,
 			ContentType: aws.String(fileType),
 		}); err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -383,10 +393,6 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	if handler.Size > maxFileSize {
-		RespondWithError(w, http.StatusBadRequest, "Filesize must be < 1MB")
-		return
-	}
 	allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
 	fileBytes := make([]byte, handler.Size)
 	if _, err := file.Read(fileBytes); err != nil {
@@ -405,6 +411,23 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Invalid file type")
 		return
 	}
+
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Failed to read the image file")
+		return
+	}
+	// Scale down the image if it exceeds the maximum width
+	scaledImageBuf, _, err := scaleDownImage(file, uint(400))
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	// Check the size of the scaled image
+	if scaledImageBuf.Len() > maxFileSize {
+		RespondWithError(w, http.StatusBadRequest, "Filesize must be < 1MB")
+		return
+	}
+
 	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
@@ -416,7 +439,6 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reader := bytes.NewReader(fileBytes)
 	ext := filepath.Ext(handler.Filename)
 	safeEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
 	filename := safeEmail + "_" + storyOrSeriesID + "_" + associationID + "_" + associationType + ext
@@ -432,7 +454,7 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 	if _, err = s3Client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket:      aws.String(S3_CUSTOM_PORTRAIT_BUCKET),
 		Key:         aws.String(filename),
-		Body:        reader,
+		Body:        scaledImageBuf,
 		ContentType: aws.String(fileType),
 	}); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())

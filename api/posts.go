@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -84,6 +85,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	const maxFileSize = 1024 * 1024 // 1 MB
+	const maxImageWidth = uint(400)
 	// image upload
 	err = r.ParseMultipartForm(10 << 20)
 	if err != nil {
@@ -98,10 +100,6 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	if handler.Size > maxFileSize {
-		RespondWithError(w, http.StatusBadRequest, "Filesize must be < 1MB")
-		return
-	}
 	allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
 	fileBytes := make([]byte, handler.Size)
 	if _, err := file.Read(fileBytes); err != nil {
@@ -118,6 +116,23 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	if !allowed {
 		RespondWithError(w, http.StatusBadRequest, "Invalid file type")
+		return
+	}
+
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Failed to read the image file")
+		return
+	}
+
+	// Scale down the image if it exceeds the maximum width
+	scaledImageBuf, _, err := scaleDownImage(file, uint(400))
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	// Check the size of the scaled image
+	if scaledImageBuf.Len() > maxFileSize {
+		RespondWithError(w, http.StatusBadRequest, "Filesize must be < 1MB")
 		return
 	}
 
@@ -145,7 +160,6 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		story.SeriesID = uuid.New().String()
 	}
 
-	reader := bytes.NewReader(fileBytes)
 	ext := filepath.Ext(handler.Filename)
 
 	filename := story.ID + "_portrait" + ext
@@ -162,7 +176,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	if _, err = s3Client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket:      aws.String(S3_STORY_IMAGE_BUCKET),
 		Key:         aws.String(filename),
-		Body:        reader,
+		Body:        bytes.NewReader(scaledImageBuf.Bytes()),
 		ContentType: aws.String(fileType),
 	}); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
