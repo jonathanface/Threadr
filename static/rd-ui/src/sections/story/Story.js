@@ -2,6 +2,8 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import { IconButton } from '@mui/material';
+import Box from '@mui/material/Box';
+import CircularProgress from '@mui/material/CircularProgress';
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import '../../css/story.css';
@@ -13,6 +15,7 @@ import DetailsSlider from './DetailsSlider';
 const Story = (props) => {
   const dispatch = useDispatch();
   const [wasDeleted, setWasDeleted] = useState(false);
+  const [isStoryLoaderVisible, setIsStoryLoaderVisible] = useState(true);
 
   const handleClick = (event, storyID, series) => {
     const history = window.history;
@@ -32,7 +35,9 @@ const Story = (props) => {
     const seriesToAppend = props.volumes ? selected.series_id : null;
     newProps.title = selected.title;
     newProps.description = selected.description;
-    newProps.series_id = props.volumes ? selected.series_id : null;
+    if (props.volumes) {
+      newProps.series_id = props.volumes[0].series_id;
+    }
     newProps.image = selected.image;
     dispatch(setStoryEditables(newProps));
     dispatch(flipEditingStory(seriesToAppend));
@@ -69,10 +74,17 @@ const Story = (props) => {
   };
 
   return (
+
         !wasDeleted ?
             <button className="doc-button" onClick={ !props.volumes ? (e)=>handleClick(e, props.id) : ()=>{}}>
-              <div>
-                <img src={props.image} alt={props.title}/>
+              <div style={{visibility: isStoryLoaderVisible ? 'visible' : 'hidden'}}>
+                <Box className="progress-box"/>
+                <Box className="prog-anim-holder">
+                  <CircularProgress />
+                </Box>
+              </div>
+              <div className="storyBubble">
+                <img src={props.image} alt={props.title} onLoad={() => {setIsStoryLoaderVisible(false)}}/>
                 <div className="story-label">
                   <span className="title">{props.title}</span>
                   <span className="buttons">

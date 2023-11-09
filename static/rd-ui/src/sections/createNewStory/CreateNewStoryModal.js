@@ -8,10 +8,10 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import TextField from '@mui/material/TextField';
-import React, {useEffect, useState} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
-import {setAlertMessage, setAlertOpen, setAlertSeverity} from '../../stores/alertSlice';
-import {flipCreatingNewStory, setSelectedStory} from '../../stores/storiesSlice';
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { setAlertMessage, setAlertOpen, setAlertSeverity } from '../../stores/alertSlice';
+import { flipCreatingNewStory, setSelectedStory } from '../../stores/storiesSlice';
 import PortraitDropper from '../portraitdropper/PortraitDropper';
 
 const CreateNewStory = () => {
@@ -53,17 +53,33 @@ const CreateNewStory = () => {
       throw new Error('Fetch problem series ' + response.status);
     }).then((data) => {
       const reduced = data.reduce((accumulator, currentValue) => {
-        if (!accumulator.series[currentValue.series_title]) {
-          accumulator.series[currentValue.series_title] = 1;
-        } else {
-          accumulator.series[currentValue.series_title]++;
+        if (!accumulator[currentValue.series_id]) {
+          accumulator[currentValue.series_id] = {
+            id: currentValue.series_id,
+            title: currentValue.series_title,
+            count: 0,
+            selected: false
+          };
+          // todo for adding to series button
+          // const found = currentValue.stories.some(story => story.story_id === editables.id);
+          // if (found) {
+          //   accumulator[currentValue.series_id].selected = true;
+          // }
         }
+        accumulator[currentValue.series_id].count += 1;
         return accumulator;
-      }, {series: {}});
+      }, {});
       const params = [];
-      for (const series in reduced.series) {
-        params.push({'label': series, 'id': series, 'count': reduced[series]});
+      for (const series_id in reduced) {
+        const series = reduced[series_id];
+        const entry = {
+          'label': series.title,
+          'id': series.id,
+          'count': series.count
+        }
+        params.push(entry);
       }
+      setSeries(params);
       setSeries(params);
     }).catch((error) => {
       console.error('get series', error);
@@ -129,7 +145,7 @@ const CreateNewStory = () => {
     }
   }, [isLoggedIn, isCreatingNewStory]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async() => {
     if (!formInput['title'] || !formInput['title'].trim().length) {
       setCurrentError('Title cannot be blank');
       setAreErrors(true);
@@ -142,41 +158,32 @@ const CreateNewStory = () => {
     }
 
     if (formInput['series_id']) {
-      formInput['place'] = series.stories.length;
+      formInput['place'] = series.length;
     }
     setCurrentError('');
     setAreErrors(false);
 
-    const formData = formInput.image;
+    const formData = formInput.image ? formInput.image : new FormData();
     for (const key in formInput) {
-      if (key !== 'image' && formInput.hasOwnProperty(key)) {
+      if (key !== 'image' && formInput.hasOwnProperty(key) && formInput[key] !== null) {
+        formData.delete(key);
         formData.append(key, formInput[key]);
       }
     }
 
-    fetch('/api/stories', {
-      method: 'POST',
-      body: formData
-    }).then((response) => {
-      if (response.ok) {
-        return response.json();
-      } else {
-        if (response.status === 401) {
-          dispatch(setAlertMessage('inadequate subscription'));
-          dispatch(setAlertSeverity('error'));
-          dispatch(setAlertOpen(true));
-          handleClose();
-          return;
-        }
-        if (response.status === 409) {
-          setCurrentError('A story by that name already exists. All stories must be uniquely titled.');
-          setAreErrors(true);
-          return;
-        }
-        setCurrentError('Unable to create a story at this time. Please try again later.');
-        setAreErrors(true);
+    try {
+      const response = fetch('/api/stories', {
+        method: 'POST',
+        body: formData
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        const error = new Error(JSON.stringify(errorData));
+        error.response = response;
+        throw error;
       }
-    }).then((json) => {
+      const json = await response.json();
+
       const storyID = json.story_id;
       dispatch(setSelectedStory(storyID));
       const history = window.history;
@@ -184,7 +191,22 @@ const CreateNewStory = () => {
       setTimeout(() => {
         handleClose();
       }, 1000);
-    });
+    } catch (error) {
+      if (error.status === 401) {
+        dispatch(setAlertMessage('inadequate subscription'));
+        dispatch(setAlertSeverity('error'));
+        dispatch(setAlertOpen(true));
+        handleClose();
+        return;
+      }
+      const errorData = error.response ? JSON.parse(error.message) : {};
+      if (errorData.error) {
+        setCurrentError(errorData.error);
+      } else {
+        setCurrentError('Unable to create your story at this time. Please try again later.');
+      }
+      setAreErrors(true);
+    }
   };
 
   const processImage = (acceptedFiles) => {
@@ -253,9 +275,13 @@ const CreateNewStory = () => {
                 <Autocomplete
                   onInputChange={(event) => {
                     if (event) {
+                      const entered = event.target.value.toString();
+                      const foundSeries = series.find(srs => srs.label.toLowerCase() === entered.toLowerCase());
+                      const settingSeriesID = foundSeries && foundSeries.id ? foundSeries.id : null;
                       setFormInput((prevFormInput) => ({
                         ...prevFormInput,
-                        series_id: event.target.value
+                        series_id: settingSeriesID,
+                        series_title: entered
                       }));
                     }
                   }}
@@ -263,7 +289,8 @@ const CreateNewStory = () => {
                     if (event) {
                       setFormInput((prevFormInput) => ({
                         ...prevFormInput,
-                        series_id: actions.id
+                        series_id: actions.id,
+                        series_title: actions.label
                       }));
                     }
                   }}

@@ -11,33 +11,32 @@ import TextField from '@mui/material/TextField';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setAlertMessage, setAlertOpen, setAlertSeverity } from '../../stores/alertSlice';
-import { flipEditingStory, setSeriesList, setStandaloneList } from '../../stores/storiesSlice';
-
+import { flipEditingStory, setSeriesList, setStandaloneList, setStoryEditables } from '../../stores/storiesSlice';
 import PortraitDropper from '../portraitdropper/PortraitDropper';
 
 const EditStory = () => {
-  const [series, setSeries] = useState([]);
+  
   const isEditingStory = useSelector((state) => state.stories.isEditing);
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
-  const belongsToSeries = useSelector((state) => state.stories.belongsToSeries);
   const dispatch = useDispatch();
 
-  const initMap = new Map();
-  const [formInput, setFormInput] = React.useState(initMap);
-  const [areErrors, setAreErrors] = React.useState(false);
-  const [currentError, setCurrentError] = React.useState('');
-
   const editables = useSelector((state) => state.stories.editables);
-  const [isInASeries, setIsInASeries] = useState(editables.series);
-  const [currentSeries, setCurrentSeries] = useState(belongsToSeries);
   const seriesList = useSelector((state) => state.stories.seriesList);
   const standaloneList = useSelector((state) => state.stories.standaloneList);
 
+  const [belongsToSeries, setBelongsToSeries] = useState("");
+  const [series, setSeries] = useState([]);
+  const [isInASeries, setIsInASeries] = useState(false);
+  const [formInput, setFormInput] = useState({});
+  const [areErrors, setAreErrors] = useState(false);
+  const [currentError, setCurrentError] = useState('');
+
   const resetForm = () => {
-    setFormInput(initMap);
+    setFormInput({});
     setAreErrors(false);
     setCurrentError('');
     setIsInASeries(false);
+    setBelongsToSeries("");
   };
 
   const getSeries = () => {
@@ -47,17 +46,59 @@ const EditStory = () => {
       }
       throw new Error('Fetch problem series ' + response.status);
     }).then((data) => {
-      const reduced = data.reduce((accumulator, currentValue) => {
-        if (!accumulator.series[currentValue.series_title]) {
-          accumulator.series[currentValue.series_title] = 1;
-        } else {
-          accumulator.series[currentValue.series_title]++;
+      const seriesStoriesFromDB = data.map((series) => {
+        const seriesObj = {
+          id: series.series_id,
+          title: series.series_title,
+          listings: [],
+          image: series.image_url.length ? series.image_url : '/img/icons/story_series_icon.jpg',
+        };
+        if (series.stories) {
+          series.stories.forEach((story) => {
+            seriesObj.listings.push({
+              id: story.story_id,
+              series_id: series.series_id,
+              title: story.title,
+              place: story.place,
+              created_at: story.created_at,
+              description: story.description,
+              image: story.image_url.length ? story.image_url : '/img/icons/story_icon.jpg'
+            });
+          });
         }
+        return seriesObj;
+      });
+      dispatch(setSeriesList(seriesStoriesFromDB));
+
+      const reduced = data.reduce((accumulator, currentValue) => {
+        if (!accumulator[currentValue.series_id]) {
+          accumulator[currentValue.series_id] = {
+            id: currentValue.series_id,
+            title: currentValue.series_title,
+            count: 0,
+            selected: false
+          };
+          const found = currentValue.stories.some(story => story.story_id === editables.id);
+          if (found) {
+            accumulator[currentValue.series_id].selected = true;
+          }
+        }
+        accumulator[currentValue.series_id].count += 1;
         return accumulator;
-      }, {series: {}});
+      }, {});
+      
       const params = [];
-      for (const series in reduced.series) {
-        params.push({'label': series, 'id': series, 'count': reduced[series]});
+      for (const series_id in reduced) {
+        const series = reduced[series_id];
+        const entry = {
+          'label': series.title,
+          'id': series.id,
+          'count': series.count
+        }
+        if (series.selected) {
+          setBelongsToSeries(entry)
+        }
+        params.push(entry);
       }
       setSeries(params);
     }).catch((error) => {
@@ -77,20 +118,21 @@ const EditStory = () => {
   useEffect(() => {
     if (isLoggedIn && isEditingStory) {
       getSeries();
+      setIsInASeries(!!editables.series_id);
     }
-    setIsInASeries(editables.series);
-  }, [isLoggedIn, isEditingStory, editables.series, editables]);
+  }, [isLoggedIn, isEditingStory, editables.series_id]);
 
   useEffect(() => {
     setFormInput((prevFormInput) => ({
       ...prevFormInput,
-      description: editables.description,
       title: editables.title,
-      series_id: editables.series_id
+      description: editables.description,
+      ...(editables.series_id && { series_id: editables.series_id }),
     }));
-  }, [editables.description, editables.title, editables.series]);
+  }, [editables.description, editables.title, editables.series_id]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async() => {
+
     if (!formInput['title'] || !formInput['title'].trim().length) {
       setCurrentError('Title cannot be blank');
       setAreErrors(true);
@@ -101,47 +143,42 @@ const EditStory = () => {
       setAreErrors(true);
       return;
     }
-    if (!isInASeries && formInput['series_id']) {
-      formInput.delete('series_id');
+    if (!isInASeries && formInput.series_id) {
+      delete formInput.series_id;
     }
-    if (formInput['series_id']) {
-      formInput['place'] = series.stories.length;
-    }
+
     const formData = formInput.image ? formInput.image : new FormData();
     for (const key in formInput) {
-      if (key !== 'image' && formInput.hasOwnProperty(key)) {
+      if (key !== 'image' && formInput.hasOwnProperty(key) && formInput[key] !== null) {
+        formData.delete(key);
         formData.append(key, formInput[key]);
       }
     }
     setCurrentError('');
     setAreErrors(false);
-    fetch('/api/stories/' + editables.id + '/details', {
-      method: 'PUT',
-      body: formData
-    }).then((response) => {
-      if (response.ok) {
-        return response.json();
-      } else {
-        throw new Error(response);
+
+    try {
+      const response = await fetch('/api/stories/' + editables.id + '/details', {
+        method: 'PUT',
+        body: formData
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        const error = new Error(JSON.stringify(errorData));
+        error.response = response; // Attach the response to the error object
+        throw error;
       }
-    }).then((json) => {
-      // todo switching story from series to standalone
-      if (formInput.series_id) {
-        const newList = seriesList.map((story) => {
-          if (story.id === editables.id) {
-            return {
-              ...story,
-              title: formInput.title ? formInput.title : story.title,
-              description: formInput.description ? formInput.description : story.description,
-              image: formInput.image ? json.image_url : story.image
-            };
-          }
-          return story;
-        });
-        dispatch(setSeriesList(newList));
+      const json = await response.json();
+
+      if (json.series_id.length) {
+        const newStandaloneList = standaloneList.filter(item => item.id !== editables.id);
+        getSeries();
+        dispatch(setStandaloneList(newStandaloneList));
       } else {
-        const newList = standaloneList.map((story) => {
+        let matched = false;
+        const newStandaloneList = standaloneList.map((story) => {
           if (story.id === editables.id) {
+            matched = true;
             return {
               ...story,
               ...(formInput.title && {title: formInput.title}),
@@ -152,12 +189,26 @@ const EditStory = () => {
           }
           return story;
         });
-        dispatch(setStandaloneList(newList));
+        if (!matched) {
+          newStandaloneList.push({
+            id: json.story_id,
+            chapter: json.chapters,
+            created_at: json.created_at,
+            description: json.description,
+            image: json.image_url,
+            title: json.title
+          });
+        }
+        dispatch(setStandaloneList(newStandaloneList));
+        const { ['series_id']: _, ...rest } = editables;
+        setStoryEditables(rest);
+        getSeries();
       }
       setTimeout(()=> {
         handleClose();
       }, 1000);
-    }).catch((error) => {
+    } catch(error) {
+      console.error('Error fetching data: ', error.message);
       if (error.status === 401) {
         dispatch(setAlertMessage('inadequate subscription'));
         dispatch(setAlertSeverity('error'));
@@ -165,14 +216,14 @@ const EditStory = () => {
         handleClose();
         return;
       }
-      if (error.status === 409) {
-        setCurrentError('A story by that name already exists. All stories must be uniquely titled.');
-        setAreErrors(true);
-        return;
+      const errorData = error.response ? JSON.parse(error.message) : {};
+      if (errorData.error) {
+        setCurrentError(errorData.error);
+      } else {
+        setCurrentError('Unable to edit your story at this time. Please try again later.');
       }
-      setCurrentError('Unable to create a story at this time. Please try again later.');
       setAreErrors(true);
-    });
+    }
   };
 
 
@@ -207,7 +258,7 @@ const EditStory = () => {
       reader.readAsArrayBuffer(file);
     });
   };
-
+  
   return (
     <div>
       <Dialog open={isEditingStory} onClose={handleClose}>
@@ -247,7 +298,7 @@ const EditStory = () => {
             </div>
             <div>
               <FormControlLabel label="This is part of a series" control={
-                <Checkbox defaultChecked={editables.series_id} id="isSeries" label="" onChange={toggleSeries} />
+                <Checkbox checked={isInASeries} id="isSeries" label="" onChange={toggleSeries} />
               } sx={{
                 '& .MuiFormControlLabel-label': {color: 'rgba(0, 0, 0, 0.6)'},
               }}
@@ -259,9 +310,13 @@ const EditStory = () => {
                     <Autocomplete
                       onInputChange={(event) => {
                         if (event) {
+                          const entered = event.target.value.toString();
+                          const foundSeries = series.find(srs => srs.label.toLowerCase() === entered.toLowerCase());
+                          const settingSeriesID = foundSeries && foundSeries.id ? foundSeries.id : null;
                           setFormInput((prevFormInput) => ({
                             ...prevFormInput,
-                            series_id: event.target.value
+                            series_id: settingSeriesID,
+                            series_title: entered
                           }));
                         }
                       }}
@@ -275,7 +330,7 @@ const EditStory = () => {
                       }}
                       freeSolo
                       options={series}
-                      value={editables.seriesTitle}
+                      value={belongsToSeries}
                       renderInput={(params) => <TextField {...params} label="Series" />}
                     />
                   </div> :

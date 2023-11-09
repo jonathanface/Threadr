@@ -25,11 +25,11 @@ type DaoInterface interface {
 	UpdateAssociationPortraitEntryInDB(email, storyOrSeriesID, associationName, url string) error
 	AddCustomerID(email, customerID *string) error
 	AddSubscriptionID(email, subscriptionID *string) error
-	EditStory(email string, story models.Story) error
+	EditStory(email string, story models.Story) (models.Story, error)
 
 	// POSTs
-	CreateChapter(storyID string, chapter models.Chapter) error
-	CreateStory(email string, story models.Story) (storyID string, err error)
+	CreateChapter(storyID string, email string, chapter models.Chapter) error
+	CreateStory(email string, story models.Story, newSeriesTitle string) (storyID string, err error)
 
 	// DELETEs
 	DeleteStoryParagraphs(email, storyID string, storyBlocks *models.StoryBlocks) error

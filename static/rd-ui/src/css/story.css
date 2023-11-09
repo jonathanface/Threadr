@@ -42,7 +42,7 @@
 }
 
 .doc-button .story-label {
-    position: fixed;
+    position: absolute;
     right: 10px;
     top: 10px;
     padding: 10px;
@@ -63,7 +63,7 @@
     white-space: nowrap;
 }
 
-.doc-button > div {
+.doc-button .storyBubble {
     position:relative;
 }
 .doc-button .details-slider {

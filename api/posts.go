@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -29,7 +30,12 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		storyID string
 		dao     daos.DaoInterface
 		ok      bool
+		email   string
 	)
+	if email, err = getUserEmail(r); err != nil {
+		RespondWithError(w, http.StatusNotFound, "Error retrieving user email")
+		return
+	}
 	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story ID")
 		return
@@ -50,7 +56,7 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = dao.CreateChapter(storyID, chapter); err != nil {
+	if err = dao.CreateChapter(storyID, email, chapter); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
@@ -132,8 +138,10 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing story description")
 		return
 	}
-	story.SeriesID = strings.TrimSpace(r.FormValue("series"))
-	if story.SeriesID == "new" {
+	story.SeriesID = strings.TrimSpace(r.FormValue("series_id"))
+	seriesTitle := strings.TrimSpace(r.FormValue("series_title"))
+	if story.SeriesID == "" && len(seriesTitle) > 0 {
+		fmt.Println("genreate new seriesID")
 		story.SeriesID = uuid.New().String()
 	}
 
@@ -161,7 +169,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	story.ImageURL = "https://" + S3_STORY_IMAGE_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
-	if story.ID, err = dao.CreateStory(email, story); err != nil {
+	if story.ID, err = dao.CreateStory(email, story, seriesTitle); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
