@@ -175,7 +175,7 @@ const CreateNewStory = () => {
     }
 
     try {
-      const response = fetch('/api/stories', {
+      const response = await fetch('/api/stories', {
         method: 'POST',
         body: formData
       });
@@ -185,6 +185,7 @@ const CreateNewStory = () => {
         error.response = response;
         throw error;
       }
+      
       const json = await response.json();
 
       const storyID = json.story_id;
