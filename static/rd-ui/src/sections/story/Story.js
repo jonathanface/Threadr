@@ -7,6 +7,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import '../../css/story.css';
+import { flipEditingSeries, setSeriesEditables } from '../../stores/seriesSlice';
 import { flipCreatingNewStory, flipEditingStory, setSelectedStory, setStoryEditables } from '../../stores/storiesSlice';
 import { setIsLoaderVisible } from '../../stores/uiSlice';
 import DetailsSlider from './DetailsSlider';
@@ -37,6 +38,18 @@ const Story = (props) => {
     newProps.image = selected.image;
     dispatch(setStoryEditables(newProps));
     dispatch(flipEditingStory(seriesToAppend));
+  };
+
+  const editSeries = (event, seriesID) => {
+    event.stopPropagation();
+    const newProps = {};
+    console.log("new", newProps);
+    newProps.id = seriesID;
+    newProps.volumes = props.volumes;
+    newProps.title = props.title;
+    newProps.image = props.image;
+    dispatch(setSeriesEditables(newProps));
+    dispatch(flipEditingSeries());
   };
 
   const deleteStory = (event, id, title) => {
@@ -87,7 +100,7 @@ const Story = (props) => {
                   <span className="buttons">
                     <IconButton aria-label="edit story" sx={{padding: '0'}} component="label" title={editHoverText} onClick={(event)=>{
                       if (props.volumes) {
-
+                        editSeries(event, props.id);
                       } else {
                         editStory(event, props.id);
                       }

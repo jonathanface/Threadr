@@ -1,0 +1,24 @@
+.edit-series-volumes {
+    list-style:none;
+    padding-left: 10px;
+    font-size: 0.9rem;
+}
+.edit-series-volumes li {
+    margin:10px;
+}
+.edit-series-volumes li:hover {
+    cursor:grab;
+    background-color:#cecece;
+    color:#151515;
+}
+
+.edit-series-volumes li img {
+    max-height: 50px;
+    vertical-align: middle;
+    border-radius: 5px;
+    border: 1px solid #333;
+}
+
+.edit-series-volumes li span {
+    margin-left:10px;
+}

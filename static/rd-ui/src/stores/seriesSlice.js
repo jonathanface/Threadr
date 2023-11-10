@@ -4,7 +4,8 @@ export const seriesSlice = createSlice({
     name: 'series',
     initialState: {
         isEditingSeries: false,
-        selectedSeries: null
+        selectedSeries: null,
+        editables: {},
     },
     reducers: {
         flipEditingSeries: (state) => {
@@ -12,10 +13,13 @@ export const seriesSlice = createSlice({
         },
         setSelectedSeries: (state, action) => {
             state.selectedSeries = action.payload;
+        },
+        setSeriesEditables: (state, action) => {
+            state.editables = action.payload;
         }
     }
 });
 
-export const {flipEditingSeries, setSelectedSeries} = seriesSlice.actions;
+export const {flipEditingSeries, setSelectedSeries, setSeriesEditables} = seriesSlice.actions;
 
 export default seriesSlice.reducer;

@@ -3,18 +3,28 @@ import Dialog from '@mui/material/Dialog';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import TextField from '@mui/material/TextField';
-import React, { useState } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import '../../css/edit-series.css';
+import { flipEditingSeries } from '../../stores/seriesSlice';
 import PortraitDropper from '../portraitdropper/PortraitDropper';
 
 const EditSeriesModal = () => {
+    const dispatch = useDispatch();
     const isEditingSeries = useSelector((state) => state.series.isEditingSeries);
-    const [formInput, setFormInput] = useState(new Map());
-    const [imageURL, setImageURL] = useState();
+    const editables = useSelector((state) => state.series.editables);
+    const [volumes, setVolumes] = useState([])
 
     const handleClose = () => {
-
+        dispatch(flipEditingSeries());
     }
+    
+    useEffect(() => {
+        if (editables.volumes) {
+            const volumes = editables.volumes.slice();
+            setVolumes(volumes.sort((a, b) => a.place - b.place));
+        }
+    }, [editables.volumes]);
 
     const processImage = (acceptedFiles) => {
         acceptedFiles.forEach((file) => {
@@ -36,12 +46,12 @@ const EditSeriesModal = () => {
     return (
         <div>
             <Dialog open={isEditingSeries} onClose={handleClose}>
-                <DialogTitle>EditSeries</DialogTitle>
+                <DialogTitle>Edit Series</DialogTitle>
                 <DialogContent>
                     <Box component="form">
                         <div>
                             <h3>Image for Your Series</h3>
-                            <PortraitDropper imageURL={imageURL} name="Series Image" onComplete={processImage}/>
+                            <PortraitDropper imageURL={editables.image} name="Series Image" onComplete={processImage}/>
                             <TextField
                                 onChange={(event) => {
                                     setFormInput((prevFormInput) => ({
@@ -51,22 +61,20 @@ const EditSeriesModal = () => {
                                 }}
                                 autoFocus
                                 label="Title"
+                                value={editables.title}
                                 helperText="Cannot be blank"
                             />
                         </div>
                         <div>
-                            <TextField
-                                onChange={(event) => {
-                                    setFormInput((prevFormInput) => ({
-                                    ...prevFormInput,
-                                    description: event.target.value
-                                    }));
-                                }}
-                                label="Description"
-                                helperText="Cannot be blank"
-                                multiline
-                                maxRows={4}
-                            />
+                            <h3>Volumes</h3>
+                            <ul className="edit-series-volumes">
+                            {editables.volumes ? editables.volumes.map((entry) => {
+                                return <li key={entry.id}>
+                                    <img src={entry.image} alt={entry.title} />
+                                    <span>{entry.title}</span>
+                                </li>
+                            }) : ""}
+                            </ul>
                         </div>
                     </Box>
                 </DialogContent>
