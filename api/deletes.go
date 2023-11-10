@@ -59,21 +59,21 @@ func DeleteBlocksFromStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 
 func DeleteAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
-		email      string
-		err        error
-		storyTitle string
-		dao        daos.DaoInterface
-		ok         bool
+		email   string
+		err     error
+		storyID string
+		dao     daos.DaoInterface
+		ok      bool
 	)
 	if email, err = getUserEmail(r); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if storyTitle, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
 		return
 	}
-	if storyTitle == "" {
+	if storyID == "" {
 		RespondWithError(w, http.StatusBadRequest, "Missing story ID")
 		return
 	}
@@ -89,7 +89,7 @@ func DeleteAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	if err = dao.DeleteAssociations(email, storyTitle, associations); err != nil {
+	if err = dao.DeleteAssociations(email, storyID, associations); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
