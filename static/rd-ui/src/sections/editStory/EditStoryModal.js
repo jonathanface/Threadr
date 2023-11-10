@@ -21,7 +21,6 @@ const EditStory = () => {
   const dispatch = useDispatch();
 
   const editables = useSelector((state) => state.stories.editables);
-  const seriesList = useSelector((state) => state.stories.seriesList);
   const standaloneList = useSelector((state) => state.stories.standaloneList);
 
   const [belongsToSeries, setBelongsToSeries] = useState("");
@@ -32,7 +31,6 @@ const EditStory = () => {
   const [currentError, setCurrentError] = useState('');
 
   const resetForm = () => {
-    setFormInput({});
     setAreErrors(false);
     setCurrentError('');
     setIsInASeries(false);
@@ -132,7 +130,6 @@ const EditStory = () => {
   }, [editables.description, editables.title, editables.series_id]);
 
   const handleSubmit = async() => {
-
     if (!formInput['title'] || !formInput['title'].trim().length) {
       setCurrentError('Title cannot be blank');
       setAreErrors(true);
