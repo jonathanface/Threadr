@@ -4,10 +4,12 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import TextField from '@mui/material/TextField';
 import React, { useEffect, useState } from 'react';
+import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
 import { useDispatch, useSelector } from 'react-redux';
 import '../../css/edit-series.css';
 import { flipEditingSeries } from '../../stores/seriesSlice';
 import PortraitDropper from '../portraitdropper/PortraitDropper';
+
 
 const EditSeriesModal = () => {
     const dispatch = useDispatch();
@@ -41,7 +43,21 @@ const EditSeriesModal = () => {
           };
           reader.readAsArrayBuffer(file);
         });
-      };
+    };
+
+    const onDragEnd = (result) => {
+        if (!result.destination) {
+          return;
+        }
+        const newVolumes = Array.from(volumes);
+        const [reorderedItem] = newVolumes.splice(result.source.index, 1);
+        newVolumes.splice(result.destination.index, 0, reorderedItem);
+        const updatedVolumes = newVolumes.map((vol, idx) => {
+            return { ...vol, place: idx+1 };
+        });
+        setVolumes(updatedVolumes);
+    };
+  
 
     return (
         <div>
@@ -67,14 +83,28 @@ const EditSeriesModal = () => {
                         </div>
                         <div>
                             <h3>Volumes</h3>
-                            <ul className="edit-series-volumes">
-                            {editables.volumes ? editables.volumes.map((entry) => {
-                                return <li key={entry.id}>
-                                    <img src={entry.image} alt={entry.title} />
-                                    <span>{entry.title}</span>
-                                </li>
-                            }) : ""}
-                            </ul>
+                            <DragDropContext onDragEnd={onDragEnd}>
+                                <Droppable droppableId="droppable">
+                                    {(provided) => (
+                                        <div {...provided.droppableProps} ref={provided.innerRef}>
+                                            {volumes.map((entry, index) => (
+                                                <Draggable key={entry.id} draggableId={entry.id} index={index}>
+                                                    {(provided) => (
+                                                        <div className="edit-series-volumes"
+                                                            ref={provided.innerRef}
+                                                            {...provided.draggableProps}
+                                                            {...provided.dragHandleProps}
+                                                        >
+                                                            {<div><img src={entry.image} alt={entry.title}/><span>{entry.title}</span></div>}
+                                                        </div>
+                                                    )}
+                                                </Draggable>
+                                            ))}
+                                            {provided.placeholder}
+                                        </div>
+                                    )}
+                                </Droppable>
+                            </DragDropContext>
                         </div>
                     </Box>
                 </DialogContent>
