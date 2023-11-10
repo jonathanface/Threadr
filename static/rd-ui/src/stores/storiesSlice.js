@@ -1,4 +1,4 @@
-import {createSlice} from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
 
 export const storiesSlice = createSlice({
   name: 'stories',
@@ -12,8 +12,10 @@ export const storiesSlice = createSlice({
     selectedStory: ''
   },
   reducers: {
-    flipCreatingNewStory: (state) => {
+    flipCreatingNewStory: (state, action) => {
       state.isCreatingNew = !state.isCreatingNew;
+      state.belongsToSeries = action.payload;
+      
     },
     flipEditingStory: (state, action) => {
       state.isEditing = !state.isEditing;

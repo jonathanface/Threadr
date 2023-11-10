@@ -8,7 +8,6 @@ import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import '../../css/story.css';
 import { setLoaderVisible } from '../../stores/displayLoaderSlice';
-import { setSelectedSeries } from '../../stores/selectedSeriesSlice';
 import { flipCreatingNewStory, flipEditingStory, setSelectedStory, setStoryEditables } from '../../stores/storiesSlice';
 import DetailsSlider from './DetailsSlider';
 
@@ -17,12 +16,9 @@ const Story = (props) => {
   const [wasDeleted, setWasDeleted] = useState(false);
   const [isStoryLoaderVisible, setIsStoryLoaderVisible] = useState(true);
 
-  const handleClick = (event, storyID, series) => {
+  const handleClick = (event, storyID) => {
     const history = window.history;
     dispatch(setSelectedStory(encodeURIComponent(storyID)));
-    if (series) {
-      dispatch(setSelectedSeries(encodeURIComponent(series)));
-    }
     history.pushState({storyID}, 'clicked story', '/story/' + encodeURIComponent(storyID) + '?chapter=1');
     dispatch(setLoaderVisible(true));
   };
@@ -65,12 +61,13 @@ const Story = (props) => {
     }
   };
 
-  const editHoverText = props.volumes ? 'Edit Series' : 'Edit Story';
-  const deleteHoverText = props.volumes ? 'Delete Series Volume' : 'Delete Story';
+  const editHoverText = 'Edit ' + props.title;
+  const deleteHoverText = 'Delete ' + props.title;
+  const addHoverText = 'Add volume to ' + props.title;
 
-  const addToSeries = (event) => {
+  const addToSeries = (event, id) => {
     event.preventDefault();
-    dispatch(flipCreatingNewStory(props.title));
+    dispatch(flipCreatingNewStory(id));
   };
 
   return (
@@ -118,7 +115,7 @@ const Story = (props) => {
                         </IconButton> :
                         '' }
                     { props.volumes ?
-                      <IconButton onClick={addToSeries} aria-label="add story to series" sx={{padding: '0', paddingLeft: '5px'}} component="label" title="Add Series Volume">
+                      <IconButton onClick={(event) => {addToSeries(event, props.id)}} aria-label="add story to series" sx={{padding: '0', paddingLeft: '5px'}} component="label" title={addHoverText}>
                         <AddIcon sx={{
                           'padding': '0',
                           'color': '#F0F0F0',

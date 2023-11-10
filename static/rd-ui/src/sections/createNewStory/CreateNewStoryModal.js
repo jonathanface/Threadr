@@ -19,6 +19,7 @@ const CreateNewStory = () => {
   const [series, setSeries] = useState([]);
   const isCreatingNewStory = useSelector((state) => state.stories.isCreatingNew);
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
+  const belongsToSeries = useSelector((state) => state.stories.belongsToSeries);
 
   const dispatch = useDispatch();
   const initMap = new Map();
@@ -27,6 +28,7 @@ const CreateNewStory = () => {
   const [areErrors, setAreErrors] = useState(false);
   const [currentError, setCurrentError] = useState('');
   const [imageURL, setImageURL] = useState();
+  const [seriesMember, setSeriesMember] = useState({});
   const defaultImageURL = 'img/icons/story_standalone_icon.jpg';
 
   const resetForm = () => {
@@ -34,11 +36,12 @@ const CreateNewStory = () => {
     setAreErrors(false);
     setCurrentError('');
     setIsInASeries(false);
+    setSeriesMember(null);
   };
 
   const handleClose = () => {
     resetForm();
-    dispatch(flipCreatingNewStory());
+    dispatch(flipCreatingNewStory(null));
   };
 
   const toggleSeries = () => {
@@ -60,11 +63,10 @@ const CreateNewStory = () => {
             count: 0,
             selected: false
           };
-          // todo for adding to series button
-          // const found = currentValue.stories.some(story => story.story_id === editables.id);
-          // if (found) {
-          //   accumulator[currentValue.series_id].selected = true;
-          // }
+          const found = currentValue.stories.some(story => story.series_id === belongsToSeries);
+          if (found) {
+            accumulator[currentValue.series_id].selected = true;
+          }
         }
         accumulator[currentValue.series_id].count += 1;
         return accumulator;
@@ -78,7 +80,8 @@ const CreateNewStory = () => {
           'count': series.count
         }
         if (series.selected) {
-          setBelongsToSeries(entry)
+          setSeriesMember(entry);
+          setIsInASeries(true);
         }
         params.push(entry);
       }
@@ -104,7 +107,6 @@ const CreateNewStory = () => {
   };
 
   const getBlobExtension = (mimeType) => {
-    console.log('ext for', mimeType);
     switch (mimeType) {
       case 'image/jpeg':
         return '.jpg';
@@ -300,6 +302,7 @@ const CreateNewStory = () => {
                   }}
                   freeSolo
                   options={series}
+                  value={seriesMember}
                   renderInput={(params) => <TextField {...params} label="Series" />}
                 />
               </div> :
