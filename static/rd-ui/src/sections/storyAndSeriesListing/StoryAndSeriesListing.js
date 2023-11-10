@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import '../../css/landing-page.css';
 import { flipCreatingNewStory, setSeriesList, setStandaloneList } from '../../stores/storiesSlice';
-import { setLoaderVisible } from '../../stores/uiSlice';
+import { setIsLoaderVisible } from '../../stores/uiSlice';
 import Story from '../story/Story';
 
 const StoryAndSeriesListing = () => {
@@ -16,7 +16,7 @@ const StoryAndSeriesListing = () => {
   const [storiesLoaded, setStoriesLoaded] = useState(false);
 
   useEffect(() => {
-    dispatch(setLoaderVisible(true));
+    dispatch(setIsLoaderVisible(true));
     const getSeries = () => {
       fetch('/api/series').then((response) => {
         if (response.ok) {
@@ -79,7 +79,7 @@ const StoryAndSeriesListing = () => {
       } else if (!storiesLoaded) {
         getStories();
       } else {
-        dispatch(setLoaderVisible(false));
+        dispatch(setIsLoaderVisible(false));
       }
     }
   }, [isLoggedIn, dispatch, seriesLoaded, storiesLoaded]);

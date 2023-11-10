@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setSelectedSeries } from '../../stores/seriesSlice';
 import { setSelectedStory } from '../../stores/storiesSlice';
-import { setLoaderVisible } from '../../stores/uiSlice';
+import { setIsLoaderVisible } from '../../stores/uiSlice';
 import { flipLoggedInState } from '../../stores/userSlice';
 
 const UserMenu = (props) => {
@@ -17,7 +17,7 @@ const UserMenu = (props) => {
   };
 
   const signout = () => {
-    dispatch(setLoaderVisible(false));
+    dispatch(setIsLoaderVisible(false));
     fetch('/logout/google', {
       method: 'DELETE'
     }).then((response) => {

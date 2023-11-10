@@ -14,7 +14,7 @@ import StoryAndSeriesListing from './sections/storyAndSeriesListing/StoryAndSeri
 import Subscribe from './sections/subscribe/Subscribe';
 import { setSelectedSeries } from './stores/seriesSlice';
 import { setSelectedStory } from './stores/storiesSlice';
-import { setLoaderVisible } from './stores/uiSlice';
+import { setIsLoaderVisible } from './stores/uiSlice';
 import { flipLoggedInState } from './stores/userSlice';
 import Toaster from './utils/Toaster';
 
@@ -42,7 +42,7 @@ const Threadr = () => {
 
 
   useEffect(() => {
-    dispatch(setLoaderVisible(true));
+    dispatch(setIsLoaderVisible(true));
     window.addEventListener('popstate', () => {
       handleNavChange();
     });
@@ -57,7 +57,7 @@ const Threadr = () => {
       dispatch(flipLoggedInState());
     }).catch((e) => {
       setIsLoading(false);
-      dispatch(setLoaderVisible(false));
+      dispatch(setIsLoaderVisible(false));
       console.error('ERROR', e);
     });
     handleNavChange();

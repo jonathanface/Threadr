@@ -6,7 +6,7 @@ export const uiSlice = createSlice({
         isChapterMenuOpen: false,
         subscriptionFormOpen: false,
         refreshStoryList: false,
-        loaderVisible: false
+        isLoaderVisible: false
     },
     reducers: {
       flipChapterMenuOpen: (state) => {
@@ -18,12 +18,12 @@ export const uiSlice = createSlice({
       flipRefreshStoryList: (state) => {
         state.refreshStoryList = !state.refreshStoryList;
       },
-      setLoaderVisible: (state, action) => {
-        state.value = action.payload;
+      setIsLoaderVisible: (state, action) => {
+        state.isLoaderVisible = action.payload;
       }
     }
   });
   
-  export const {flipChapterMenuOpen, setSubscriptionFormOpen, flipRefreshStoryList, setLoaderVisible} = uiSlice.actions;
+  export const {flipChapterMenuOpen, setSubscriptionFormOpen, flipRefreshStoryList, setIsLoaderVisible} = uiSlice.actions;
   
   export default uiSlice.reducer;

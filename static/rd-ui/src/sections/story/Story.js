@@ -8,7 +8,7 @@ import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import '../../css/story.css';
 import { flipCreatingNewStory, flipEditingStory, setSelectedStory, setStoryEditables } from '../../stores/storiesSlice';
-import { setLoaderVisible } from '../../stores/uiSlice';
+import { setIsLoaderVisible } from '../../stores/uiSlice';
 import DetailsSlider from './DetailsSlider';
 
 const Story = (props) => {
@@ -20,7 +20,7 @@ const Story = (props) => {
     const history = window.history;
     dispatch(setSelectedStory(encodeURIComponent(storyID)));
     history.pushState({storyID}, 'clicked story', '/story/' + encodeURIComponent(storyID) + '?chapter=1');
-    dispatch(setLoaderVisible(true));
+    dispatch(setIsLoaderVisible(true));
   };
 
   const editStory = (event, storyID) => {

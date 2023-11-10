@@ -43,7 +43,7 @@ import '../../css/sidebar.css';
 import { setAlertLink, setAlertMessage, setAlertOpen, setAlertSeverity, setAlertTimeout } from '../../stores/alertSlice.js';
 import { setSelectedSeries } from '../../stores/seriesSlice.js';
 import { setSelectedStory } from '../../stores/storiesSlice.js';
-import { setLoaderVisible } from '../../stores/uiSlice.js';
+import { setIsLoaderVisible } from '../../stores/uiSlice.js';
 import AssociationUI from './AssociationUI.js';
 import Exporter from './Exporter.js';
 import { FindHighlightable, FindTabs, HighlightSpan, TabSpan } from './decorators';
@@ -376,7 +376,7 @@ const Document = () => {
   };
 
   useEffect(() => {
-    dispatch(setLoaderVisible(true));
+    dispatch(setIsLoaderVisible(true));
     const processInterval = setInterval(() => {
       try {
         processDBQueue();
@@ -396,7 +396,7 @@ const Document = () => {
           getBatchedStoryBlocks('');
         }
         if (storyDetailsLoaded && associationsLoaded && blocksLoaded) {
-          dispatch(setLoaderVisible(false));
+          dispatch(setIsLoaderVisible(false));
         }
       }
     }
