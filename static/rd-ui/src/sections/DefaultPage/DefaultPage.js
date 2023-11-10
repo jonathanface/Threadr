@@ -70,8 +70,23 @@ const DefaultPage = () => {
           </div>
         </span>
       </div>
+      <div className="blurb">
+      <span className="column leftText">
+          <h2>Begin with Brilliance, End with Excellence.</h2>
+          <div>
+          In the digital age, adaptability is not just an advantage—it's a necessity. Craft your content with precision and flair, and when you're ready, export it with ease into the formats that professionals love: PDF, DOCX, and, coming soon, EPUB. Create documents compatible with Word and other popular document editors with just two clicks.
+          </div>
+        </span>
+        <span className="column">
+          <figure>
+            <img src="./img/exporting.jpg" alt="easy document conversion"/>
+          </figure>
+        </span>
+      </div>
     </div>
   );
 };
 
 export default DefaultPage;
+
+
