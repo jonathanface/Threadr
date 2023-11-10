@@ -18,7 +18,7 @@ const CreateNewStory = () => {
   const [isInASeries, setIsInASeries] = useState(false);
   const [series, setSeries] = useState([]);
   const isCreatingNewStory = useSelector((state) => state.stories.isCreatingNew);
-  const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
+  const isLoggedIn = useSelector((state) => state.user.isLoggedIn);
   const belongsToSeries = useSelector((state) => state.stories.belongsToSeries);
 
   const dispatch = useDispatch();

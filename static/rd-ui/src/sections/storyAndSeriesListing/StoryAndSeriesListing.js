@@ -1,14 +1,14 @@
 import AddIcon from '@mui/icons-material/Add';
-import {IconButton} from '@mui/material';
-import React, {useEffect, useState} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
+import { IconButton } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import '../../css/landing-page.css';
-import {setLoaderVisible} from '../../stores/displayLoaderSlice';
-import {flipCreatingNewStory, setSeriesList, setStandaloneList} from '../../stores/storiesSlice';
+import { flipCreatingNewStory, setSeriesList, setStandaloneList } from '../../stores/storiesSlice';
+import { setLoaderVisible } from '../../stores/uiSlice';
 import Story from '../story/Story';
 
 const StoryAndSeriesListing = () => {
-  const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
+  const isLoggedIn = useSelector((state) => state.user.isLoggedIn);
   const storiesList = useSelector((state) => state.stories.standaloneList);
   const seriesList = useSelector((state) => state.stories.seriesList);
   const dispatch = useDispatch();

@@ -1,26 +1,27 @@
-import {Elements} from '@stripe/react-stripe-js';
-import {loadStripe} from '@stripe/stripe-js';
-import React, {useEffect, useState} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import './css/main.css';
 import './css/user-menu.css';
 import DefaultPage from './sections/DefaultPage/DefaultPage';
 import UserMenu from './sections/UserMenu/UserMenu';
 import CreateNewStory from './sections/createNewStory/CreateNewStoryModal';
 import Document from './sections/document/Document';
+import EditSeriesModal from './sections/editSeries/EditSeriesModal';
 import EditStory from './sections/editStory/EditStoryModal';
 import StoryAndSeriesListing from './sections/storyAndSeriesListing/StoryAndSeriesListing';
 import Subscribe from './sections/subscribe/Subscribe';
-import {setLoaderVisible} from './stores/displayLoaderSlice';
-import {flipLoggedInState} from './stores/loggedInSlice';
-import {setSelectedSeries} from './stores/selectedSeriesSlice';
-import {setSelectedStory} from './stores/storiesSlice';
+import { setSelectedSeries } from './stores/seriesSlice';
+import { setSelectedStory } from './stores/storiesSlice';
+import { setLoaderVisible } from './stores/uiSlice';
+import { flipLoggedInState } from './stores/userSlice';
 import Toaster from './utils/Toaster';
 
 const Threadr = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [stripe, setStripe] = useState(() => loadStripe(process.env.REACT_APP_STRIPE_KEY));
-  const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
+  const isLoggedIn = useSelector((state) => state.user.isLoggedIn);
   const selectedStory = useSelector((state) => state.stories.selectedStory);
   const dispatch = useDispatch();
 
@@ -62,7 +63,7 @@ const Threadr = () => {
     handleNavChange();
     return () => window.removeEventListener('popstate', handleNavChange);
   }, [dispatch]);
-
+  console.log("logged", isLoggedIn)
   const displayComponent =
     !isLoading ?
       isLoggedIn && selectedStory ?
@@ -86,6 +87,7 @@ const Threadr = () => {
         {displayComponent}
         <CreateNewStory />
         <EditStory />
+        <EditSeriesModal />
       </main>
       <Toaster/>
       <Elements stripe={stripe}><Subscribe/></Elements>

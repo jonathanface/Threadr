@@ -1,15 +1,15 @@
 import Person4Icon from '@mui/icons-material/Person4';
-import {IconButton} from '@mui/material';
-import React, {useState} from 'react';
-import {useDispatch, useSelector} from 'react-redux';
-import {setLoaderVisible} from '../../stores/displayLoaderSlice';
-import {flipLoggedInState} from '../../stores/loggedInSlice';
-import {setSelectedSeries} from '../../stores/selectedSeriesSlice';
-import {setSelectedStory} from '../../stores/storiesSlice';
+import { IconButton } from '@mui/material';
+import React, { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { setSelectedSeries } from '../../stores/seriesSlice';
+import { setSelectedStory } from '../../stores/storiesSlice';
+import { setLoaderVisible } from '../../stores/uiSlice';
+import { flipLoggedInState } from '../../stores/userSlice';
 
 const UserMenu = (props) => {
   const [isOpen, setIsOpen] = useState(false);
-  const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
+  const isLoggedIn = useSelector((state) => state.user.isLoggedIn);
   const dispatch = useDispatch();
 
   const signin = () => {

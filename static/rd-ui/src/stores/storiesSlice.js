@@ -4,7 +4,7 @@ export const storiesSlice = createSlice({
   name: 'stories',
   initialState: {
     isCreatingNew: false,
-    isEditing: false,
+    isEditingStory: false,
     belongsToSeries: '',
     standaloneList: [],
     seriesList: [],
@@ -18,7 +18,7 @@ export const storiesSlice = createSlice({
       
     },
     flipEditingStory: (state, action) => {
-      state.isEditing = !state.isEditing;
+      state.isEditingStory = !state.isEditingStory;
       if (action.payload) {
         state.belongsToSeries = action.payload;
       }

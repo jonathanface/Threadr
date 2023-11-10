@@ -1,7 +1,7 @@
-import React, {useEffect, useState} from 'react';
-import {useSelector, useDispatch} from 'react-redux';
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 
-import {CardElement, useElements, useStripe} from '@stripe/react-stripe-js';
+import { CardElement, useElements, useStripe } from '@stripe/react-stripe-js';
 
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -9,7 +9,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
-import {setSubscriptionFormOpen} from '../../stores/subscriptionSlice';
+import { setSubscriptionFormOpen } from '../../stores/uiSlice';
 
 const Subscribe = () => {
   const [customerID, setCustomerID] = useState('');
@@ -17,7 +17,7 @@ const Subscribe = () => {
   const [paymentMethod, setPaymentMethod] = useState(null);
   const [product, setProduct] = useState({});
 
-  const isOpen = useSelector((state) => state.subscription.formOpen);
+  const isOpen = useSelector((state) => state.ui.subscriptionFormOpen);
   const dispatch = useDispatch();
 
   const stripe = useStripe();

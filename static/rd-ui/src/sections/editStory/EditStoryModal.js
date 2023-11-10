@@ -16,8 +16,8 @@ import PortraitDropper from '../portraitdropper/PortraitDropper';
 
 const EditStory = () => {
   
-  const isEditingStory = useSelector((state) => state.stories.isEditing);
-  const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
+  const isEditingStory = useSelector((state) => state.stories.isEditingStory);
+  const isLoggedIn = useSelector((state) => state.user.isLoggedIn);
   const dispatch = useDispatch();
 
   const editables = useSelector((state) => state.stories.editables);

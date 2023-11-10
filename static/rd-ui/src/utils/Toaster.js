@@ -1,10 +1,10 @@
-import React from 'react';
-import Snackbar from '@mui/material/Snackbar';
-import {useSelector, useDispatch} from 'react-redux';
 import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
-import {setAlertMessage, setAlertOpen, setAlertTitle, setAlertSeverity, setAlertTimeout, setAlertLink} from '../stores/alertSlice';
-import {setSubscriptionFormOpen} from '../stores/subscriptionSlice';
+import Snackbar from '@mui/material/Snackbar';
+import React from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { setAlertLink, setAlertMessage, setAlertOpen, setAlertSeverity, setAlertTimeout, setAlertTitle } from '../stores/alertSlice';
+import { setSubscriptionFormOpen } from '../stores/uiSlice';
 
 const Toaster = () => {
   const dispatch = useDispatch();

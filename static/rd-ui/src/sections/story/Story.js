@@ -7,8 +7,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import '../../css/story.css';
-import { setLoaderVisible } from '../../stores/displayLoaderSlice';
 import { flipCreatingNewStory, flipEditingStory, setSelectedStory, setStoryEditables } from '../../stores/storiesSlice';
+import { setLoaderVisible } from '../../stores/uiSlice';
 import DetailsSlider from './DetailsSlider';
 
 const Story = (props) => {
