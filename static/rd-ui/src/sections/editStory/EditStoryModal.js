@@ -10,8 +10,9 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import TextField from '@mui/material/TextField';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { setAlertMessage, setAlertOpen, setAlertSeverity } from '../../stores/alertSlice';
-import { flipEditingStory, setSeriesList, setStandaloneList, setStoryEditables } from '../../stores/storiesSlice';
+import { setSeriesList } from '../../stores/seriesSlice';
+import { flipEditingStory, setStandaloneList, setStoryEditables } from '../../stores/storiesSlice';
+import { setIsLoaderVisible } from '../../stores/uiSlice';
 import PortraitDropper from '../portraitdropper/PortraitDropper';
 
 const EditStory = () => {
@@ -46,21 +47,22 @@ const EditStory = () => {
     }).then((data) => {
       const seriesStoriesFromDB = data.map((series) => {
         const seriesObj = {
-          id: series.series_id,
-          title: series.series_title,
-          listings: [],
-          image: series.image_url.length ? series.image_url : '/img/icons/story_series_icon.jpg',
+          series_id: series.series_id,
+          series_title: series.series_title,
+          series_description: series.series_description,
+          stories: [],
+          image_url: series.image_url.length ? series.image_url : '/img/icons/story_series_icon.jpg',
         };
         if (series.stories) {
           series.stories.forEach((story) => {
-            seriesObj.listings.push({
-              id: story.story_id,
+            seriesObj.stories.push({
+              story_id: story.story_id,
               series_id: series.series_id,
               title: story.title,
               place: story.place,
               created_at: story.created_at,
               description: story.description,
-              image: story.image_url.length ? story.image_url : '/img/icons/story_icon.jpg'
+              image_url: story.image_url.length ? story.image_url : '/img/icons/story_standalone_icon.jpg'
             });
           });
         }
@@ -76,7 +78,7 @@ const EditStory = () => {
             count: 0,
             selected: false
           };
-          const found = currentValue.stories.some(story => story.story_id === editables.id);
+          const found = currentValue.stories.some(story => story.story_id === editables.story_id);
           if (found) {
             accumulator[currentValue.series_id].selected = true;
           }
@@ -153,9 +155,10 @@ const EditStory = () => {
     }
     setCurrentError('');
     setAreErrors(false);
+    dispatch(setIsLoaderVisible(true));
 
     try {
-      const response = await fetch('/api/stories/' + editables.id + '/details', {
+      const response = await fetch('/api/stories/' + editables.story_id + '/details', {
         method: 'PUT',
         body: formData
       });
@@ -201,24 +204,17 @@ const EditStory = () => {
         setStoryEditables(rest);
         getSeries();
       }
-      setTimeout(()=> {
-        handleClose();
-      }, 1000);
+      dispatch(setIsLoaderVisible(false));
+      handleClose();
     } catch(error) {
       console.error('Error fetching data: ', error.message);
-      if (error.status === 401) {
-        dispatch(setAlertMessage('inadequate subscription'));
-        dispatch(setAlertSeverity('error'));
-        dispatch(setAlertOpen(true));
-        handleClose();
-        return;
-      }
       const errorData = error.response ? JSON.parse(error.message) : {};
       if (errorData.error) {
         setCurrentError(errorData.error);
       } else {
         setCurrentError('Unable to edit your story at this time. Please try again later.');
       }
+      dispatch(setIsLoaderVisible(false));
       setAreErrors(true);
     }
   };
@@ -263,7 +259,7 @@ const EditStory = () => {
         <DialogContent>
           <Box className="form-box" component="form">
             <h3>Image for {storyTitle}</h3>
-            <PortraitDropper imageURL={editables.image} name={storyTitle} onComplete={processImage}/>
+            <PortraitDropper imageURL={editables.image_url} name={storyTitle} onComplete={processImage}/>
             <div>
               <TextField
                 onChange={(event) => {

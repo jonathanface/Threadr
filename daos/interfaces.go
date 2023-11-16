@@ -26,6 +26,7 @@ type DaoInterface interface {
 	AddCustomerID(email, customerID *string) error
 	AddSubscriptionID(email, subscriptionID *string) error
 	EditStory(email string, story models.Story) (models.Story, error)
+	EditSeries(email string, series models.Series) (models.Series, error)
 
 	// POSTs
 	CreateChapter(storyID string, email string, chapter models.Chapter) error

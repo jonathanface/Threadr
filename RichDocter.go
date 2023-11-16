@@ -180,6 +180,7 @@ func main() {
 	apiRtr.HandleFunc("/stories/{story}/associations", api.WriteAssocationsEndpoint).Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{story}/associations/{association}/upload", api.UploadPortraitEndpoint).Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{story}/export", api.ExportStoryEndpoint).Methods("PUT", "OPTIONS")
+	apiRtr.HandleFunc("/series/{seriesID}", api.EditSeriesEndpoint).Methods("PUT", "OPTIONS")
 
 	// DELETEs
 	apiRtr.HandleFunc("/stories/{story}/block", api.DeleteBlocksFromStoryEndpoint).Methods("DELETE", "OPTIONS")

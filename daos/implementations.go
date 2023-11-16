@@ -755,6 +755,54 @@ func (d *DAO) copyTableContents(email, srcTableName, destTableName string) error
 	return nil
 }
 
+func (d *DAO) EditSeries(email string, series models.Series) (updatedSeries models.Series, err error) {
+	modifiedAtStr := strconv.FormatInt(time.Now().Unix(), 10)
+	item := map[string]types.AttributeValue{
+		"series_id":   &types.AttributeValueMemberS{Value: series.ID},
+		"title":       &types.AttributeValueMemberS{Value: series.Title},
+		"author":      &types.AttributeValueMemberS{Value: email},
+		"description": &types.AttributeValueMemberS{Value: series.Description},
+		"image_url":   &types.AttributeValueMemberS{Value: series.ImageURL},
+		"modified_at": &types.AttributeValueMemberN{Value: modifiedAtStr},
+	}
+	updatedSeries = series
+
+	for _, story := range series.Stories {
+		// all we can change is the placement of stories
+		_, err := d.GetStoryByID(email, story.ID)
+		if err != nil {
+			return updatedSeries, err
+		}
+		key := map[string]types.AttributeValue{
+			"story_id": &types.AttributeValueMemberS{Value: story.ID},
+			"author":   &types.AttributeValueMemberS{Value: email},
+		}
+		fmt.Println("set to", story.Place)
+		storyUpdateInput := &dynamodb.UpdateItemInput{
+			TableName:        aws.String("stories"),
+			Key:              key,
+			UpdateExpression: aws.String("set place = :p"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":p": &types.AttributeValueMemberN{Value: strconv.Itoa(story.Place)},
+			},
+		}
+		_, err = d.dynamoClient.UpdateItem(context.Background(), storyUpdateInput)
+		if err != nil {
+			return updatedSeries, err
+		}
+	}
+
+	seriesUpdateInput := &dynamodb.PutItemInput{
+		TableName: aws.String("series"),
+		Item:      item,
+	}
+	_, err = d.dynamoClient.PutItem(context.Background(), seriesUpdateInput)
+	if err != nil {
+		return updatedSeries, err
+	}
+	return updatedSeries, nil
+}
+
 func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.Story, err error) {
 	modifiedAtStr := strconv.FormatInt(time.Now().Unix(), 10)
 	item := map[string]types.AttributeValue{

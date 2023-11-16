@@ -5,6 +5,7 @@ export const seriesSlice = createSlice({
     initialState: {
         isEditingSeries: false,
         selectedSeries: null,
+        seriesList: [],
         editables: {},
     },
     reducers: {
@@ -16,10 +17,13 @@ export const seriesSlice = createSlice({
         },
         setSeriesEditables: (state, action) => {
             state.editables = action.payload;
-        }
+        },
+        setSeriesList: (state, action) => {
+            state.seriesList = action.payload;
+        },
     }
 });
 
-export const {flipEditingSeries, setSelectedSeries, setSeriesEditables} = seriesSlice.actions;
+export const {flipEditingSeries, setSelectedSeries, setSeriesEditables, setSeriesList} = seriesSlice.actions;
 
 export default seriesSlice.reducer;

@@ -6,7 +6,7 @@ import { useSelector } from 'react-redux';
 const Loader = () => {
   const isLoaderVisible = useSelector((state) => state.ui.isLoaderVisible);
   return (
-    <div style={{visibility: isLoaderVisible ? 'visible' : 'hidden'}}>
+    <div className="loading-screen" style={{visibility: isLoaderVisible ? 'visible' : 'hidden'}}>
       <Box className="progress-box"/>
       <Box className="prog-anim-holder">
         <CircularProgress />

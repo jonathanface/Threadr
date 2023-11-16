@@ -1,5 +1,5 @@
-import React, {useCallback, useEffect, useState} from 'react';
-import {useDropzone} from 'react-dropzone';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useDropzone } from 'react-dropzone';
 import '../../css/portrait-dropper.css';
 
 const PortraitDropper = (props) => {

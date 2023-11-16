@@ -5,10 +5,17 @@
 }
 .edit-series-volumes > div {
     margin:10px;
+    display:flex;
+    align-items:center;
+    position:relative;
 }
 .edit-series-volumes > div:hover {
     cursor:grab;
     color:#151515;
+}
+.edit-series-volumes .story-buttons {
+    position:absolute;
+    right:0px;
 }
 
 .edit-series-volumes img {

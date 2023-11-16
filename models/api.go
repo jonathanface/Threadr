@@ -66,12 +66,12 @@ type FullStoryContent struct {
 }
 
 type Series struct {
-	ID        string    `json:"series_id" dynamodbav:"series_id"`
-	Title     string    `json:"series_title" dynamodbav:"title"`
-	Stories   []*Story  `json:"stories"`
-	CreatedAt time.Time `json:"created_at" dynamodbav:"created_at"`
-	Place     int       `json:"place" dynamodbav:"place"`
-	ImageURL  string    `json:"image_url" dynamodbav:"image_url"`
+	ID          string    `json:"series_id" dynamodbav:"series_id"`
+	Title       string    `json:"series_title" dynamodbav:"title"`
+	Description string    `json:"series_description" dynamodbav:"description"`
+	Stories     []*Story  `json:"stories"`
+	CreatedAt   time.Time `json:"created_at" dynamodbav:"created_at"`
+	ImageURL    string    `json:"image_url" dynamodbav:"image_url"`
 }
 
 type UserInfo struct {
