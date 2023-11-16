@@ -233,7 +233,9 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	if len(strings.TrimSpace(r.FormValue("series_id"))) > 0 {
 		story.SeriesID = strings.TrimSpace(r.FormValue("series_id"))
-	} else if story.SeriesID != "" {
+	} else if len(strings.TrimSpace(r.FormValue("series_title"))) > 0 {
+		story.SeriesID = strings.TrimSpace(r.FormValue("series_title"))
+	} else {
 		story.SeriesID = ""
 	}
 

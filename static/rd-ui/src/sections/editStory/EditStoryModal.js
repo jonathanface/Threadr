@@ -10,7 +10,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import TextField from '@mui/material/TextField';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { setSeriesList } from '../../stores/seriesSlice';
+import { setSeriesEditables, setSeriesList } from '../../stores/seriesSlice';
 import { flipEditingStory, setStandaloneList, setStoryEditables } from '../../stores/storiesSlice';
 import { setIsLoaderVisible } from '../../stores/uiSlice';
 import PortraitDropper from '../portraitdropper/PortraitDropper';
@@ -22,7 +22,9 @@ const EditStory = () => {
   const dispatch = useDispatch();
 
   const editables = useSelector((state) => state.stories.editables);
+  const seriesEditables = useSelector((state) => state.series.editables);
   const standaloneList = useSelector((state) => state.stories.standaloneList);
+  const seriesList = useSelector((state) => state.series.seriesList);
 
   const [belongsToSeries, setBelongsToSeries] = useState("");
   const [series, setSeries] = useState([]);
@@ -32,6 +34,7 @@ const EditStory = () => {
   const [currentError, setCurrentError] = useState('');
 
   const resetForm = () => {
+    setFormInput({});
     setAreErrors(false);
     setCurrentError('');
     setIsInASeries(false);
@@ -78,9 +81,11 @@ const EditStory = () => {
             count: 0,
             selected: false
           };
-          const found = currentValue.stories.some(story => story.story_id === editables.story_id);
-          if (found) {
-            accumulator[currentValue.series_id].selected = true;
+          if (currentValue.stories) {
+            const found = currentValue.stories.some(story => story.story_id === editables.story_id);
+            if (found) {
+              accumulator[currentValue.series_id].selected = true;
+            }
           }
         }
         accumulator[currentValue.series_id].count += 1;
@@ -113,6 +118,13 @@ const EditStory = () => {
 
   const toggleSeries = () => {
     setIsInASeries(!isInASeries);
+    if (!isInASeries) {
+      setFormInput((prevFormInput) => ({
+        ...prevFormInput,
+        series_id:null,
+        series_title:null
+      }));
+    }
   };
 
   useEffect(() => {
@@ -142,6 +154,7 @@ const EditStory = () => {
       setAreErrors(true);
       return;
     }
+
     if (!isInASeries && formInput.series_id) {
       delete formInput.series_id;
     }
@@ -176,23 +189,53 @@ const EditStory = () => {
       const json = await response.json();
 
       if (json.series_id.length) {
-        const newStandaloneList = standaloneList.filter(item => item.id !== editables.id);
+        // added to a series
+        const newStandaloneList = standaloneList.filter(item => item.series_id !== json.series_id && item.story_id !== json.story_id);
         getSeries();
         dispatch(setStandaloneList(newStandaloneList));
       } else {
+        // removed from a series or never was in one
         const foundStoryIndex = standaloneList.findIndex(stry => stry.story_id === json.story_id);
         if (foundStoryIndex !== -1) {
-            console.log("found", foundStoryIndex, )
             const updatedStory = {
                 ...standaloneList[foundStoryIndex],
                 description: json.description,
                 title: json.title,
                 image_url: json.image_url + "?cache=" + new Date().getMilliseconds(),
             };
+            delete updatedStory.series_id;
             const newList = [...standaloneList];
             newList[foundStoryIndex] = updatedStory;
-            console.log("updated story", updatedStory);
             dispatch(setStandaloneList(newList));
+        } else if (editables.series_id) {
+          // removed from series
+          const formerSeriesIndex = seriesList.findIndex(srs => srs.series_id === editables.series_id);
+          const updatedStoryList = seriesList[formerSeriesIndex].stories.filter(item => item.story_id !== json.story_id);
+          const newList = seriesList.map((item, index) => {
+              if (index === formerSeriesIndex) {
+                  return {
+                      ...item, // spread to copy properties
+                      stories: updatedStoryList // new stories array
+                  };
+              }
+              return item;
+          });
+          const newSeriesEditables = {
+            ...seriesEditables,
+            stories: updatedStoryList
+          }
+          dispatch(setSeriesEditables(newSeriesEditables));
+          dispatch(setSeriesList(newList));
+
+          const updatedStory = {
+            story_id: json.story_id,
+            description: json.description,
+            title: json.title,
+            image_url: json.image_url + "?cache=" + new Date().getMilliseconds(),
+          };
+          const newStandaloneList = [...standaloneList];
+          newStandaloneList.push(updatedStory);
+          dispatch(setStandaloneList(newStandaloneList));
         }
         const { ['series_id']: _, ...rest } = editables;
         setStoryEditables(rest);

@@ -105,7 +105,9 @@
     padding-left:15px;
     margin-top:10px;
 }
-
+.doc-button .details-slider .series-listing {
+    margin-top:10px;
+}
 .doc-button .details-slider .series-listing ul {
     line-height:1.25rem;
     margin:0;

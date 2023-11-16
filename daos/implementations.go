@@ -777,7 +777,6 @@ func (d *DAO) EditSeries(email string, series models.Series) (updatedSeries mode
 			"story_id": &types.AttributeValueMemberS{Value: story.ID},
 			"author":   &types.AttributeValueMemberS{Value: email},
 		}
-		fmt.Println("set to", story.Place)
 		storyUpdateInput := &dynamodb.UpdateItemInput{
 			TableName:        aws.String("stories"),
 			Key:              key,
@@ -862,28 +861,49 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 			item["place"] = &types.AttributeValueMemberN{Value: strconv.Itoa(updatedStory.Place)}
 			updatedStory.SeriesID = seriesID
 		} else {
-			// story was removed from series
-			series, err := d.GetSeriesByID(email, storedStory.SeriesID)
+			// story was removed from series OR new series
+			_, err := d.GetSeriesByID(email, story.SeriesID)
 			if err != nil {
-				return updatedStory, err
-			}
-			if len(series.Stories) == 1 {
-				itemKey := map[string]types.AttributeValue{
-					"series_id": &types.AttributeValueMemberS{Value: storedStory.SeriesID},
-					"author":    &types.AttributeValueMemberS{Value: email},
-				}
-				input := &dynamodb.DeleteItemInput{
-					Key:       itemKey,
-					TableName: aws.String("series"),
-				}
-
-				// Delete the item
-				_, err = d.dynamoClient.DeleteItem(context.TODO(), input)
-				if err != nil {
+				// TODO this is hack
+				if err.Error() != "no series found" {
 					return updatedStory, err
+				} else if story.SeriesID != "" {
+					// new series
+					updatedStory.Place = 1
+					seriesID := uuid.New().String()
+					seriesItem := map[string]types.AttributeValue{
+						"series_id": &types.AttributeValueMemberS{Value: seriesID},
+						"title":     &types.AttributeValueMemberS{Value: story.SeriesID},
+						"author":    &types.AttributeValueMemberS{Value: email},
+					}
+					seriesUpdateInput := &dynamodb.PutItemInput{
+						TableName: aws.String("series"),
+						Item:      seriesItem,
+					}
+					_, err = d.dynamoClient.PutItem(context.Background(), seriesUpdateInput)
+					if err != nil {
+						return updatedStory, err
+					}
+				} else {
+					// remove from series
+					storedSeries, err := d.GetSeriesByID(email, storedStory.SeriesID)
+					if err != nil {
+						return updatedStory, err
+					}
+					var newStories []*models.Story
+					for _, seriesStory := range storedSeries.Stories {
+						if seriesStory.ID != updatedStory.ID {
+							newStories = append(newStories, seriesStory)
+						}
+					}
+					storedSeries.Stories = newStories
+					_, err = d.EditSeries(email, *storedSeries)
+					if err != nil {
+						return updatedStory, err
+					}
 				}
+				updatedStory.Place = 0
 			}
-			updatedStory.Place = 0
 		}
 	}
 

@@ -4,7 +4,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import { IconButton } from '@mui/material';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import '../../css/story.css';
 import { flipEditingSeries, setSeriesEditables } from '../../stores/seriesSlice';
@@ -16,6 +16,7 @@ const Story = (props) => {
   const dispatch = useDispatch();
   const [wasDeleted, setWasDeleted] = useState(false);
   const [isStoryLoaderVisible, setIsStoryLoaderVisible] = useState(true);
+  const [isSeries, setIsSeries] = useState(false);
 
   const handleClick = (event, storyID) => {
     const history = window.history;
@@ -60,6 +61,7 @@ const Story = (props) => {
     const conf = window.confirm(confirmText);
     const seriesID = props.stories ? props.id : '';
     if (conf) {
+      dispatch(setIsLoaderVisible(true));
       const url = '/api/stories/' + id + '?series=' + seriesID;
       fetch(url, {
         method: 'DELETE',
@@ -70,6 +72,7 @@ const Story = (props) => {
         if (response.ok) {
           setWasDeleted(true);
         }
+        dispatch(setIsLoaderVisible(false));
       });
     }
   };
@@ -82,6 +85,14 @@ const Story = (props) => {
     event.preventDefault();
     dispatch(flipCreatingNewStory(id));
   };
+
+  useEffect(() => {
+    if (props.stories) {
+      setIsSeries(true);
+    } else {
+      setIsSeries(false);
+    }
+  }, [props.stories]); 
 
   return (
         !wasDeleted ?
@@ -118,6 +129,7 @@ const Story = (props) => {
                         <IconButton aria-label="delete story" component="label" title={deleteHoverText} onClick={(event)=>{deleteStory(event, props.id, props.title);}}>
                           <DeleteIcon sx={{
                             'fontSize': '18px',
+                            'padding': '0',
                             'color': '#F0F0F0',
                             '&:hover': {
                               fontWeight: 'bold',
@@ -141,7 +153,7 @@ const Story = (props) => {
                     }
                   </span>
                 </div>
-                <DetailsSlider deleteFunc={deleteStory} editFunc={editStory} key={props.id} stories={props.stories} onStoryClick={handleClick} setDeleted={setWasDeleted} series_id={props.id} title={props.title} description={props.description} />
+                <DetailsSlider deleteFunc={deleteStory} editFunc={editStory} key={props.id} stories={props.stories} onStoryClick={handleClick} setDeleted={setWasDeleted} isSeries={isSeries} title={props.title} description={props.description} />
               </div>
             </button> : ''
   );
