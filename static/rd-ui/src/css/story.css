@@ -9,8 +9,7 @@
     text-align: center;
     margin-right:20px;
     margin-bottom:20px;
-    overflow:hidden;
-    position:relative;
+    
 }
 
 .doc-button:hover {
@@ -104,29 +103,29 @@
 .doc-button .details-slider .series-listing > div {
     padding:5px;
     padding-left:15px;
+    margin-top:10px;
 }
 
 .doc-button .details-slider .series-listing ul {
     line-height:1.25rem;
-    padding:0px;
+    margin:0;
+    padding-left:20px;
 }
-
 
 .doc-button .details-slider .series-listing li {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    text-overflow: ellipsis;
 }
 .doc-button .details-slider .series-listing li:hover {
     cursor:pointer;
     text-decoration:underline;
 }
+
 .doc-button .details-slider .series-listing li .series-story-thumbnail {
     width: 25px;
     height: auto;
     border-radius: 5px;
+    padding:5px;
     vertical-align: middle;
-    margin-right:5px;
 }
-

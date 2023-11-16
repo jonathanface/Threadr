@@ -146,13 +146,18 @@ const EditStory = () => {
       delete formInput.series_id;
     }
 
-    const formData = formInput.image ? formInput.image : new FormData();
+    const formData = new FormData();
     for (const key in formInput) {
-      if (key !== 'image' && formInput.hasOwnProperty(key) && formInput[key] !== null) {
-        formData.delete(key);
-        formData.append(key, formInput[key]);
-      }
+        if (formInput.hasOwnProperty(key) && formInput[key] != null && formInput[key] != undefined) {
+            if (Array.isArray(formInput[key]) && formInput[key].every(item => typeof item === 'object')) {
+                // Stringify the entire array and append under the current key
+                formData.append(key, JSON.stringify(formInput[key]));
+            } else {
+                formData.append(key, formInput[key]);
+            }
+        }
     }
+
     setCurrentError('');
     setAreErrors(false);
     dispatch(setIsLoaderVisible(true));
@@ -175,31 +180,20 @@ const EditStory = () => {
         getSeries();
         dispatch(setStandaloneList(newStandaloneList));
       } else {
-        let matched = false;
-        const newStandaloneList = standaloneList.map((story) => {
-          if (story.id === editables.id) {
-            matched = true;
-            return {
-              ...story,
-              ...(formInput.title && {title: formInput.title}),
-              ...(formInput.description && {description: formInput.description}),
-              ...(formInput.image && {image: json.image_url}),
-              ...(formInput.series_id && {series_id: formInput.series_id}),
+        const foundStoryIndex = standaloneList.findIndex(stry => stry.story_id === json.story_id);
+        if (foundStoryIndex !== -1) {
+            console.log("found", foundStoryIndex, )
+            const updatedStory = {
+                ...standaloneList[foundStoryIndex],
+                description: json.description,
+                title: json.title,
+                image_url: json.image_url + "?cache=" + new Date().getMilliseconds(),
             };
-          }
-          return story;
-        });
-        if (!matched) {
-          newStandaloneList.push({
-            id: json.story_id,
-            chapter: json.chapters,
-            created_at: json.created_at,
-            description: json.description,
-            image: json.image_url,
-            title: json.title
-          });
+            const newList = [...standaloneList];
+            newList[foundStoryIndex] = updatedStory;
+            console.log("updated story", updatedStory);
+            dispatch(setStandaloneList(newList));
         }
-        dispatch(setStandaloneList(newStandaloneList));
         const { ['series_id']: _, ...rest } = editables;
         setStoryEditables(rest);
         getSeries();
@@ -222,30 +216,15 @@ const EditStory = () => {
 
   const storyTitle = editables.title ? editables.title : 'Unknown Story';
 
-  const getBlobExtension = (mimeType) => {
-    switch (mimeType) {
-      case 'image/jpeg':
-        return '.jpg';
-      case 'image/png':
-        return '.png';
-      case 'image/gif':
-        return '.gif';
-      default:
-        return '';
-    }
-  };
-
   const processImage = (acceptedFiles) => {
     acceptedFiles.forEach((file) => {
       const reader = new FileReader();
       reader.onabort = () => console.log('file reading was aborted');
       reader.onerror = () => console.error('file reading has failed');
       reader.onload = () => {
-        const newFormData = new FormData();
-        newFormData.append('file', file, 'temp'+getBlobExtension(file.type));
         setFormInput((prevFormInput) => ({
           ...prevFormInput, // spread previous form input
-          image: newFormData, // set new image data
+          file: file, // set new image data
         }));
       };
       reader.readAsArrayBuffer(file);

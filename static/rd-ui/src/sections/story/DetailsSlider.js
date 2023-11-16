@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import '../../css/story.css';
 
 const DetailsSlider = (props) => {
-  console.log("got p", props);
   const [stories, setStories] = useState(props.stories);
   const [title, setTitle] = useState(props.title);
   const [description, setDescription] = useState(props.description);
@@ -19,13 +18,14 @@ const DetailsSlider = (props) => {
 
   return (
     <div className="details-slider">
+      <div className="details-description">{description}</div>
       {
         stories && stories.length ?
             <div className="series-listing">
               <div>Volumes:</div>
               <ul>
                 {stories.map((entry) => {
-                  return <li key={entry.place} title={entry.description} onClick={(e)=> props.onStoryClick(e, entry.id, title)}>
+                  return <li key={entry.place} title={entry.description} onClick={(e)=> props.onStoryClick(e, entry.story_id, title)}>
                     <span>
                       <img className="series-story-thumbnail" src={entry.image_url} alt={entry.title} />
                       {entry.title}
@@ -36,7 +36,6 @@ const DetailsSlider = (props) => {
             </div> :
             ''
       }
-      <div className="details-description">{description}</div>
     </div>
   );
 };

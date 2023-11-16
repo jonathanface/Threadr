@@ -54,30 +54,15 @@ const EditSeriesModal = () => {
         }));
     }, [editables.series_description, editables.series_title, editables.series_id]);
 
-    const getBlobExtension = (mimeType) => {
-        switch (mimeType) {
-          case 'image/jpeg':
-            return '.jpg';
-          case 'image/png':
-            return '.png';
-          case 'image/gif':
-            return '.gif';
-          default:
-            return '';
-        }
-    };
-
     const processImage = (acceptedFiles) => {
         acceptedFiles.forEach((file) => {
           const reader = new FileReader();
           reader.onabort = () => console.log('file reading was aborted');
           reader.onerror = () => console.error('file reading has failed');
           reader.onload = () => {
-            const newFormData = new FormData();
-            newFormData.append('file', file, 'temp'+getBlobExtension(file.type));
             setFormInput((prevFormInput) => ({
               ...prevFormInput, // spread previous form input
-              image_url: newFormData, // set new image data
+              file: file, // set new image data
             }));
           };
           reader.readAsArrayBuffer(file);
@@ -109,13 +94,13 @@ const EditSeriesModal = () => {
             return;
         }
 
-        const formData = formInput.image_url ? formInput.image_url : new FormData();
+        const formData = new FormData();
         for (const key in formInput) {
             if (formInput.hasOwnProperty(key) && formInput[key] != null && formInput[key] != undefined) {
                 if (Array.isArray(formInput[key]) && formInput[key].every(item => typeof item === 'object')) {
                     // Stringify the entire array and append under the current key
                     formData.append(key, JSON.stringify(formInput[key]));
-                } else if (key !== 'image_url') {
+                } else {
                     formData.append(key, formInput[key]);
                 }
             }
@@ -139,22 +124,21 @@ const EditSeriesModal = () => {
             
             const json = await response.json();
             const foundSeriesIndex = seriesList.findIndex(srs => srs.series_id === json.series_id);
-            console.log("found edited series", foundSeriesIndex, seriesList);
             if (foundSeriesIndex !== -1) {
+                console.log("found", foundSeriesIndex, )
                 const updatedSeries = {
                     ...seriesList[foundSeriesIndex],
                     series_description: json.series_description,
                     series_title: json.series_title,
-                    image_url: json.image_url,
+                    image_url: json.image_url + "?cache=" + new Date().getMilliseconds(),
                     stories: seriesList[foundSeriesIndex].stories.map(volume => {
                         const matchingDbVolume = json.stories.find(dbVolume => dbVolume.story_id === volume.story_id);
-                        console.log("new story value", matchingDbVolume);
                         return matchingDbVolume ? { ...volume, place: matchingDbVolume.place } : volume;
                     })
                 };
-
                 const newList = [...seriesList];
                 newList[foundSeriesIndex] = updatedSeries;
+                console.log("updated series", updatedSeries);
                 dispatch(setSeriesList(newList));
             }
             dispatch(setIsLoaderVisible(false));
