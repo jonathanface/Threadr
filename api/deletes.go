@@ -194,3 +194,51 @@ func DeleteStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	RespondWithJson(w, http.StatusOK, nil)
 }
+
+func DeleteSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
+	var (
+		email    string
+		err      error
+		seriesID string
+		dao      daos.DaoInterface
+		ok       bool
+		series   *models.Series
+	)
+	if email, err = getUserEmail(r); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if seriesID, err = url.PathUnescape(mux.Vars(r)["seriesID"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing series ID")
+		return
+	}
+	if seriesID == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing seriesID")
+		return
+	}
+
+	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
+		return
+	}
+
+	if series, err = dao.GetSeriesByID(email, seriesID); !ok {
+		RespondWithError(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	if err = dao.DeleteSeries(email, *series); err != nil {
+		if opErr, ok := err.(*smithy.OperationError); ok {
+			awsResponse := processAWSError(opErr)
+			if awsResponse.Code == 0 {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			RespondWithError(w, awsResponse.Code, awsResponse.Message)
+			return
+		}
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	RespondWithJson(w, http.StatusOK, nil)
+}

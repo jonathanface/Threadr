@@ -188,6 +188,7 @@ func main() {
 	apiRtr.HandleFunc("/stories/{story}/associations", api.DeleteAssociationsEndpoint).Methods("DELETE", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{story}/chapter", api.DeleteChaptersEndpoint).Methods("DELETE", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{story}", api.DeleteStoryEndpoint).Methods("DELETE", "OPTIONS")
+	apiRtr.HandleFunc("/series/{seriesID}", api.DeleteSeriesEndpoint).Methods("DELETE", "OPTIONS")
 
 	rtr.PathPrefix("/").HandlerFunc(serveRootDirectory)
 	http.Handle("/", rtr)

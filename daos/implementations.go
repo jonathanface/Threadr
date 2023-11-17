@@ -574,7 +574,7 @@ func (d *DAO) WriteAssociations(email, storyOrSeriesID string, associations []*m
 			}
 			extendedDescription := item.Details.ExtendedDescription
 			if extendedDescription == "" {
-				extendedDescription = "Here you can put some extended details.\nShift+Enter for new lines."
+				extendedDescription = "Here you can put some extended details."
 			}
 			associations[i].Portrait = imgFile
 			// Create a key for the item.
@@ -1690,5 +1690,47 @@ func (d *DAO) AddSubscriptionID(email, subscriptionID *string) error {
 		fmt.Println("error saving", err)
 		return err
 	}
+	return nil
+}
+
+func (d *DAO) DeleteSeries(email string, series models.Series) error {
+
+	for _, story := range series.Stories {
+		storyKey := map[string]types.AttributeValue{
+			"story_id": &types.AttributeValueMemberS{Value: story.ID},
+			"author":   &types.AttributeValueMemberS{Value: email},
+		}
+		now := strconv.FormatInt(time.Now().Unix(), 10)
+		storyUpdateInput := &dynamodb.UpdateItemInput{
+			TableName:        aws.String("stories"),
+			Key:              storyKey,
+			UpdateExpression: aws.String("set modified_at = :n REMOVE series_id"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":n": &types.AttributeValueMemberN{Value: now},
+			},
+		}
+		_, err := d.dynamoClient.UpdateItem(context.Background(), storyUpdateInput)
+		if err != nil {
+			return err
+		}
+	}
+	seriesKey := map[string]types.AttributeValue{
+		"series_id": &types.AttributeValueMemberS{Value: series.ID},
+		"author":    &types.AttributeValueMemberS{Value: email},
+	}
+	now := strconv.FormatInt(time.Now().Unix(), 10)
+	seriesUpdateInput := &dynamodb.UpdateItemInput{
+		TableName:        aws.String("series"),
+		Key:              seriesKey,
+		UpdateExpression: aws.String("set deleted_at = :n"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":n": &types.AttributeValueMemberN{Value: now},
+		},
+	}
+	_, err := d.dynamoClient.UpdateItem(context.Background(), seriesUpdateInput)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
