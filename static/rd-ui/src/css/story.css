@@ -8,6 +8,8 @@
   text-align: center;
   margin-right: 20px;
   margin-bottom: 20px;
+  min-width: 300px;
+  min-height: 300px;
 }
 
 .doc-button:hover {
@@ -63,6 +65,7 @@
 
 .doc-button .storyBubble {
   position: relative;
+  overflow: hidden;
 }
 .doc-button .details-slider {
   filter: none;
