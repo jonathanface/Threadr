@@ -802,6 +802,36 @@ func (d *DAO) EditSeries(email string, series models.Series) (updatedSeries mode
 	return updatedSeries, nil
 }
 
+func (d *DAO) RemoveStoryFromSeries(email, storyID string, series models.Series) (updatedSeries models.Series, err error) {
+
+	storyKey := map[string]types.AttributeValue{
+		"story_id": &types.AttributeValueMemberS{Value: storyID},
+		"author":   &types.AttributeValueMemberS{Value: email},
+	}
+	now := strconv.FormatInt(time.Now().Unix(), 10)
+	storyUpdateInput := &dynamodb.UpdateItemInput{
+		TableName:        aws.String("stories"),
+		Key:              storyKey,
+		UpdateExpression: aws.String("set modified_at = :n REMOVE series_id"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":n": &types.AttributeValueMemberN{Value: now},
+		},
+	}
+	_, err = d.dynamoClient.UpdateItem(context.Background(), storyUpdateInput)
+	if err != nil {
+		return updatedSeries, err
+	}
+	updatedSeries = series
+	var newStories []*models.Story
+	for _, seriesStory := range series.Stories {
+		if seriesStory.ID != storyID {
+			newStories = append(newStories, seriesStory)
+		}
+	}
+	updatedSeries.Stories = newStories
+	return
+}
+
 func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.Story, err error) {
 	modifiedAtStr := strconv.FormatInt(time.Now().Unix(), 10)
 	item := map[string]types.AttributeValue{

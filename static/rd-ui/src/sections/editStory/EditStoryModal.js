@@ -112,6 +112,7 @@ const EditStory = () => {
   };
 
   const handleClose = () => {
+    console.log("set close")
     resetForm();
     dispatch(flipEditingStory());
   };
@@ -128,20 +129,18 @@ const EditStory = () => {
   };
 
   useEffect(() => {
+    console.log("editables title set to", editables.title);
     if (isLoggedIn && isEditingStory) {
       getSeries();
       setIsInASeries(!!editables.series_id);
     }
-  }, [isLoggedIn, isEditingStory, editables.series_id]);
-
-  useEffect(() => {
     setFormInput((prevFormInput) => ({
       ...prevFormInput,
       title: editables.title,
       description: editables.description,
       ...(editables.series_id && { series_id: editables.series_id }),
     }));
-  }, [editables.description, editables.title, editables.series_id]);
+  }, [editables, isLoggedIn, isEditingStory]);
 
   const handleSubmit = async() => {
     if (!formInput['title'] || !formInput['title'].trim().length) {

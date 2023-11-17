@@ -1,5 +1,6 @@
-import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
+import RemoveIcon from '@mui/icons-material/Remove';
 import { IconButton } from '@mui/material';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -13,7 +14,7 @@ import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
 import { useDispatch, useSelector } from 'react-redux';
 import '../../css/edit-series.css';
 import { flipEditingSeries, setSeriesEditables, setSeriesList } from '../../stores/seriesSlice';
-import { flipEditingStory, setStoryEditables } from '../../stores/storiesSlice';
+import { flipEditingStory, setStandaloneList, setStoryEditables } from '../../stores/storiesSlice';
 import { setIsLoaderVisible } from '../../stores/uiSlice';
 import PortraitDropper from '../portraitdropper/PortraitDropper';
 
@@ -23,6 +24,7 @@ const EditSeriesModal = () => {
     const isEditingSeries = useSelector((state) => state.series.isEditingSeries);
     const editables = useSelector((state) => state.series.editables);
     const seriesList = useSelector((state) => state.series.seriesList);
+    const standaloneList = useSelector((state) => state.stories.standaloneList);
     const [volumes, setVolumes] = useState([]);
     const [formInput, setFormInput] = useState({});
     const [areErrors, setAreErrors] = useState(false);
@@ -37,22 +39,20 @@ const EditSeriesModal = () => {
         resetForm();
         dispatch(flipEditingSeries());
     }
-    
+
     useEffect(() => {
+        console.log("updated editables", editables);
         if (editables.stories) {
             const volumes = editables.stories.slice();
             setVolumes(volumes.sort((a, b) => a.place - b.place));
         }
-    }, [editables.stories]);
-
-    useEffect(() => {
         setFormInput((prevFormInput) => ({
           ...prevFormInput,
           title: editables.series_title,
           description: editables.series_description ? editables.series_description : "",
           ...(editables.series_id && { series_id: editables.series_id }),
         }));
-    }, [editables.series_description, editables.series_title, editables.series_id]);
+    }, [editables]);
 
     const processImage = (acceptedFiles) => {
         acceptedFiles.forEach((file) => {
@@ -125,12 +125,12 @@ const EditSeriesModal = () => {
             const json = await response.json();
             const foundSeriesIndex = seriesList.findIndex(srs => srs.series_id === json.series_id);
             if (foundSeriesIndex !== -1) {
-                console.log("found", foundSeriesIndex, )
+                const newImgURL = json.image_url.length ? json.image_url + "?cache="  + new Date().getMilliseconds() : seriesList[foundSeriesIndex].image_url;
                 const updatedSeries = {
                     ...seriesList[foundSeriesIndex],
                     series_description: json.series_description,
                     series_title: json.series_title,
-                    image_url: json.image_url + "?cache=" + new Date().getMilliseconds(),
+                    image_url: newImgURL,
                     stories: seriesList[foundSeriesIndex].stories.map(volume => {
                         const matchingDbVolume = json.stories.find(dbVolume => dbVolume.story_id === volume.story_id);
                         return matchingDbVolume ? { ...volume, place: matchingDbVolume.place } : volume;
@@ -138,7 +138,6 @@ const EditSeriesModal = () => {
                 };
                 const newList = [...seriesList];
                 newList[foundSeriesIndex] = updatedSeries;
-                console.log("updated series", updatedSeries);
                 dispatch(setSeriesList(newList));
             }
             dispatch(setIsLoaderVisible(false));
@@ -156,26 +155,61 @@ const EditSeriesModal = () => {
         }
     }
 
-    const deleteStory = (event, id, selectedTitle) => {
+    const removeStory = async(event, id, selectedTitle) => {
         event.stopPropagation();
-        const confirmText = ('Delete ' + selectedTitle + ' from ' + editables.series_title + '?') +
-                            (volumes.length === 1 ? '\n\nThere are no other titles in this series, so deleting it will also remove the series.': '');
-    
+        const confirmText = 'Remove ' + selectedTitle + ' from ' + editables.series_title + '?';
         const conf = window.confirm(confirmText);
         if (conf) {
-          const url = '/api/stories/' + id + '?series=' + editables.series_id;
-          fetch(url, {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json'
+            setCurrentError('');
+            setAreErrors(false);
+            dispatch(setIsLoaderVisible(true));
+            const url = '/api/series/' + editables.series_id + '/story/' + id;
+            try {
+                const response = await fetch(url, {
+                    method: 'PUT'
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    const error = new Error(JSON.stringify(errorData));
+                    error.response = response;
+                    throw error;
+                }
+
+                const json = await response.json();
+                const foundSeriesIndex = seriesList.findIndex(srs => srs.series_id === json.series_id);
+                if (foundSeriesIndex !== -1) {
+                    const editedStory = seriesList[foundSeriesIndex].stories.find(volume => volume.story_id === id);
+                    const newStandaloneList = [...standaloneList];
+                    newStandaloneList.push(editedStory);
+                    dispatch(setStandaloneList(newStandaloneList));
+                    const newSeriesStories = seriesList[foundSeriesIndex].stories.filter(volume => volume.story_id !== id);
+                    const updatedSeries = {
+                        ...seriesList[foundSeriesIndex],
+                        stories: newSeriesStories
+                    };
+                    const newList = [...seriesList];
+                    newList[foundSeriesIndex] = updatedSeries;
+                    dispatch(setSeriesList(newList));
+
+                    const newEditables = {...editables};
+                    newEditables.stories = newSeriesStories;
+                    dispatch(setSeriesEditables(newEditables));
+                }
+                dispatch(setIsLoaderVisible(false));
+
+            } catch (error) {
+                console.error('Error fetching data: ', error.message);
+                const errorData = error.response ? JSON.parse(error.message) : {};
+                if (errorData.error) {
+                    setCurrentError(errorData.error);
+                } else {
+                    setCurrentError('Unable to edit your series at this time. Please try again later.');
+                }
+                setAreErrors(true);
+                dispatch(setIsLoaderVisible(false));
             }
-          }).then((response) => {
-            if (response.ok) {
-              setWasDeleted(true);
-            }
-          });
         }
-    };
+    }
 
     const editStory = (event, storyID) => {
         event.stopPropagation();
@@ -228,7 +262,18 @@ const EditSeriesModal = () => {
                             />
                         </div>
                         <div>
-                            <h3>Volumes</h3>
+                            <h3>Volumes
+                                <IconButton className="add-story" aria-label="add story" sx={{padding: '0'}} component="label" title="Add" onClick={(event)=>{addStory(event, entry.story_id);}}>
+                                    <AddIcon sx={{
+                                        'fontSize': '24px',
+                                        'color': '#000',
+                                        'padding': '8px',
+                                        '&:hover': {
+                                            fontWeight: 'bold',
+                                        }
+                                    }}/>
+                                </IconButton>
+                                </h3>
                             <DragDropContext onDragEnd={onDragEnd}>
                                 <Droppable droppableId="droppable">
                                     {(provided) => (
@@ -253,8 +298,8 @@ const EditSeriesModal = () => {
                                                                             }
                                                                         }}/>
                                                                     </IconButton>
-                                                                    <IconButton className="delete-series-story" aria-label="delete story" component="label" title="Delete" onClick={(event)=>{deleteStory(event, entry.story_id, entry.title);}}>
-                                                                        <DeleteIcon sx={{
+                                                                    <IconButton className="remove-series-story" aria-label="remove story" component="label" title="Remove" onClick={(event)=>{removeStory(event, entry.story_id, entry.title);}}>
+                                                                        <RemoveIcon sx={{
                                                                             'fontSize': '18px',
                                                                             'color': '#000',
                                                                             '&:hover': {

@@ -25,6 +25,10 @@ const CreateNewStory = () => {
   const initMap = new Map();
   initMap['place'] = 1;
   const [formInput, setFormInput] = useState(initMap);
+  if (belongsToSeries) {
+    formInput['series_id'] = belongsToSeries;
+  }
+  
   const [areErrors, setAreErrors] = useState(false);
   const [currentError, setCurrentError] = useState('');
   const [imageURL, setImageURL] = useState();
@@ -41,7 +45,7 @@ const CreateNewStory = () => {
 
   const handleClose = () => {
     resetForm();
-    dispatch(flipCreatingNewStory(null));
+    dispatch(flipCreatingNewStory(''));
   };
 
   const toggleSeries = () => {
