@@ -574,7 +574,7 @@ func (d *DAO) WriteAssociations(email, storyOrSeriesID string, associations []*m
 			}
 			extendedDescription := item.Details.ExtendedDescription
 			if extendedDescription == "" {
-				extendedDescription = "Here you can put some extended details.\nShift+Enter for new lines."
+				extendedDescription = "Here you can put some extended details."
 			}
 			associations[i].Portrait = imgFile
 			// Create a key for the item.
@@ -755,6 +755,83 @@ func (d *DAO) copyTableContents(email, srcTableName, destTableName string) error
 	return nil
 }
 
+func (d *DAO) EditSeries(email string, series models.Series) (updatedSeries models.Series, err error) {
+	modifiedAtStr := strconv.FormatInt(time.Now().Unix(), 10)
+	item := map[string]types.AttributeValue{
+		"series_id":   &types.AttributeValueMemberS{Value: series.ID},
+		"title":       &types.AttributeValueMemberS{Value: series.Title},
+		"author":      &types.AttributeValueMemberS{Value: email},
+		"description": &types.AttributeValueMemberS{Value: series.Description},
+		"image_url":   &types.AttributeValueMemberS{Value: series.ImageURL},
+		"modified_at": &types.AttributeValueMemberN{Value: modifiedAtStr},
+	}
+	updatedSeries = series
+
+	for _, story := range series.Stories {
+		// all we can change is the placement of stories
+		_, err := d.GetStoryByID(email, story.ID)
+		if err != nil {
+			return updatedSeries, err
+		}
+		key := map[string]types.AttributeValue{
+			"story_id": &types.AttributeValueMemberS{Value: story.ID},
+			"author":   &types.AttributeValueMemberS{Value: email},
+		}
+		storyUpdateInput := &dynamodb.UpdateItemInput{
+			TableName:        aws.String("stories"),
+			Key:              key,
+			UpdateExpression: aws.String("set place = :p"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":p": &types.AttributeValueMemberN{Value: strconv.Itoa(story.Place)},
+			},
+		}
+		_, err = d.dynamoClient.UpdateItem(context.Background(), storyUpdateInput)
+		if err != nil {
+			return updatedSeries, err
+		}
+	}
+
+	seriesUpdateInput := &dynamodb.PutItemInput{
+		TableName: aws.String("series"),
+		Item:      item,
+	}
+	_, err = d.dynamoClient.PutItem(context.Background(), seriesUpdateInput)
+	if err != nil {
+		return updatedSeries, err
+	}
+	return updatedSeries, nil
+}
+
+func (d *DAO) RemoveStoryFromSeries(email, storyID string, series models.Series) (updatedSeries models.Series, err error) {
+
+	storyKey := map[string]types.AttributeValue{
+		"story_id": &types.AttributeValueMemberS{Value: storyID},
+		"author":   &types.AttributeValueMemberS{Value: email},
+	}
+	now := strconv.FormatInt(time.Now().Unix(), 10)
+	storyUpdateInput := &dynamodb.UpdateItemInput{
+		TableName:        aws.String("stories"),
+		Key:              storyKey,
+		UpdateExpression: aws.String("set modified_at = :n REMOVE series_id"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":n": &types.AttributeValueMemberN{Value: now},
+		},
+	}
+	_, err = d.dynamoClient.UpdateItem(context.Background(), storyUpdateInput)
+	if err != nil {
+		return updatedSeries, err
+	}
+	updatedSeries = series
+	var newStories []*models.Story
+	for _, seriesStory := range series.Stories {
+		if seriesStory.ID != storyID {
+			newStories = append(newStories, seriesStory)
+		}
+	}
+	updatedSeries.Stories = newStories
+	return
+}
+
 func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.Story, err error) {
 	modifiedAtStr := strconv.FormatInt(time.Now().Unix(), 10)
 	item := map[string]types.AttributeValue{
@@ -814,28 +891,49 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 			item["place"] = &types.AttributeValueMemberN{Value: strconv.Itoa(updatedStory.Place)}
 			updatedStory.SeriesID = seriesID
 		} else {
-			// story was removed from series
-			series, err := d.GetSeriesByID(email, storedStory.SeriesID)
+			// story was removed from series OR new series
+			_, err := d.GetSeriesByID(email, story.SeriesID)
 			if err != nil {
-				return updatedStory, err
-			}
-			if len(series.Stories) == 1 {
-				itemKey := map[string]types.AttributeValue{
-					"series_id": &types.AttributeValueMemberS{Value: storedStory.SeriesID},
-					"author":    &types.AttributeValueMemberS{Value: email},
-				}
-				input := &dynamodb.DeleteItemInput{
-					Key:       itemKey,
-					TableName: aws.String("series"),
-				}
-
-				// Delete the item
-				_, err = d.dynamoClient.DeleteItem(context.TODO(), input)
-				if err != nil {
+				// TODO this is hack
+				if err.Error() != "no series found" {
 					return updatedStory, err
+				} else if story.SeriesID != "" {
+					// new series
+					updatedStory.Place = 1
+					seriesID := uuid.New().String()
+					seriesItem := map[string]types.AttributeValue{
+						"series_id": &types.AttributeValueMemberS{Value: seriesID},
+						"title":     &types.AttributeValueMemberS{Value: story.SeriesID},
+						"author":    &types.AttributeValueMemberS{Value: email},
+					}
+					seriesUpdateInput := &dynamodb.PutItemInput{
+						TableName: aws.String("series"),
+						Item:      seriesItem,
+					}
+					_, err = d.dynamoClient.PutItem(context.Background(), seriesUpdateInput)
+					if err != nil {
+						return updatedStory, err
+					}
+				} else {
+					// remove from series
+					storedSeries, err := d.GetSeriesByID(email, storedStory.SeriesID)
+					if err != nil {
+						return updatedStory, err
+					}
+					var newStories []*models.Story
+					for _, seriesStory := range storedSeries.Stories {
+						if seriesStory.ID != updatedStory.ID {
+							newStories = append(newStories, seriesStory)
+						}
+					}
+					storedSeries.Stories = newStories
+					_, err = d.EditSeries(email, *storedSeries)
+					if err != nil {
+						return updatedStory, err
+					}
 				}
+				updatedStory.Place = 0
 			}
-			updatedStory.Place = 0
 		}
 	}
 
@@ -1592,5 +1690,47 @@ func (d *DAO) AddSubscriptionID(email, subscriptionID *string) error {
 		fmt.Println("error saving", err)
 		return err
 	}
+	return nil
+}
+
+func (d *DAO) DeleteSeries(email string, series models.Series) error {
+
+	for _, story := range series.Stories {
+		storyKey := map[string]types.AttributeValue{
+			"story_id": &types.AttributeValueMemberS{Value: story.ID},
+			"author":   &types.AttributeValueMemberS{Value: email},
+		}
+		now := strconv.FormatInt(time.Now().Unix(), 10)
+		storyUpdateInput := &dynamodb.UpdateItemInput{
+			TableName:        aws.String("stories"),
+			Key:              storyKey,
+			UpdateExpression: aws.String("set modified_at = :n REMOVE series_id"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":n": &types.AttributeValueMemberN{Value: now},
+			},
+		}
+		_, err := d.dynamoClient.UpdateItem(context.Background(), storyUpdateInput)
+		if err != nil {
+			return err
+		}
+	}
+	seriesKey := map[string]types.AttributeValue{
+		"series_id": &types.AttributeValueMemberS{Value: series.ID},
+		"author":    &types.AttributeValueMemberS{Value: email},
+	}
+	now := strconv.FormatInt(time.Now().Unix(), 10)
+	seriesUpdateInput := &dynamodb.UpdateItemInput{
+		TableName:        aws.String("series"),
+		Key:              seriesKey,
+		UpdateExpression: aws.String("set deleted_at = :n"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":n": &types.AttributeValueMemberN{Value: now},
+		},
+	}
+	_, err := d.dynamoClient.UpdateItem(context.Background(), seriesUpdateInput)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

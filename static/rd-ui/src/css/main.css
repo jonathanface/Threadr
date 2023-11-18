@@ -85,17 +85,22 @@ main header .version {
   padding-left:0.5em;
 }
 
-.progress-box {
+
+.loading-screen {
+  position: absolute;
+  z-index: 5000;
+  top: 0px;
+  height: 100%;
+  width: 100%;
+}
+
+.loading-screen .progress-box {
   background-color:#000;
   height:100%;
   width:100%;
   opacity:0.3;
-  z-index: 998;
-  position:absolute;
-  top:0px;
-  
 }
-.prog-anim-holder {
+.loading-screen .prog-anim-holder {
   display:flex;
   justify-content: center;
   height:100%;
@@ -103,7 +108,6 @@ main header .version {
   align-items: center;
   position:absolute;
   top:0px;
-  z-index:999;
 }
 
 .alert-toast {

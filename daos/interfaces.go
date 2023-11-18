@@ -26,6 +26,8 @@ type DaoInterface interface {
 	AddCustomerID(email, customerID *string) error
 	AddSubscriptionID(email, subscriptionID *string) error
 	EditStory(email string, story models.Story) (models.Story, error)
+	EditSeries(email string, series models.Series) (models.Series, error)
+	RemoveStoryFromSeries(email, storyID string, series models.Series) (models.Series, error)
 
 	// POSTs
 	CreateChapter(storyID string, email string, chapter models.Chapter) error
@@ -37,6 +39,7 @@ type DaoInterface interface {
 	DeleteChapters(email, storyID string, chapters []models.Chapter) error
 	SoftDeleteStory(email, storyID, seriesID string) error
 	hardDeleteStory(email, storyID, seriesID string) error
+	DeleteSeries(email string, series models.Series) error
 
 	// HELPERS
 	WasStoryDeleted(email string, storyID string) (bool, error)

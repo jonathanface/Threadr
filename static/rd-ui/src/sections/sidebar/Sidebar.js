@@ -1,21 +1,21 @@
-import React, {useState, useEffect} from 'react';
-import '../../css/sidebar.css';
-import TreeView from '@mui/lab/TreeView';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import LoginIcon from '@mui/icons-material/Login';
 import LogoutIcon from '@mui/icons-material/Logout';
 import TreeItem from '@mui/lab/TreeItem';
-import {useSelector, useDispatch} from 'react-redux';
-import {flipLoggedInState} from '../../stores/loggedInSlice';
-import {flipCreatingNewStoryState} from '../../stores/creatingNewStorySlice';
-import {flipMenuOpen} from '../../stores/toggleMenuOpenSlice';
+import TreeView from '@mui/lab/TreeView';
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import '../../css/sidebar.css';
+import { flipCreatingNewStoryState } from '../../stores/creatingNewStorySlice';
+import { flipChapterMenuOpen } from '../../stores/uiSlice';
+import { flipLoggedInState } from '../../stores/userSlice';
 
 const Sidebar = (props) => {
   const [stories, setStories] = useState([]);
   const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
   const [isCreatingNewChapter, setIsCreatingNewChapter] = useState(false);
-  const isOpen = useSelector((state) => state.isMenuOpen.value);
+  const isOpen = useSelector((state) => state.ui.isChapterMenuOpen);
   const [expanded, setExpanded] = useState(['story_label']);
 
   const dispatch = useDispatch();
@@ -178,7 +178,7 @@ const Sidebar = (props) => {
   return (
     <nav className="menu-container">
       <span className="checkbox-container">
-        <input className="checkbox-trigger" type="checkbox" onChange={() => {dispatch(flipMenuOpen());}} checked={isOpen} />
+        <input className="checkbox-trigger" type="checkbox" onChange={() => {dispatch(flipChapterMenuOpen());}} checked={isOpen} />
         <span className="menu-content">
           <TreeView aria-label="documents navigator" onNodeSelect={(event, nodeId) => {updateMenuExpandedNodes(nodeId);}} defaultCollapseIcon={<ExpandMoreIcon />} defaultExpandIcon={<ChevronRightIcon />} expanded={expanded} defaultExpanded={['story_label']}>
             {!isLoggedIn ?

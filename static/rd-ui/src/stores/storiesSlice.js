@@ -1,31 +1,29 @@
-import {createSlice} from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
 
 export const storiesSlice = createSlice({
   name: 'stories',
   initialState: {
     isCreatingNew: false,
-    isEditing: false,
+    isEditingStory: false,
     belongsToSeries: '',
     standaloneList: [],
-    seriesList: [],
     editables: {},
     selectedStory: ''
   },
   reducers: {
-    flipCreatingNewStory: (state) => {
+    flipCreatingNewStory: (state, action) => {
       state.isCreatingNew = !state.isCreatingNew;
+      state.belongsToSeries = action.payload;
+      
     },
     flipEditingStory: (state, action) => {
-      state.isEditing = !state.isEditing;
+      state.isEditingStory = !state.isEditingStory;
       if (action.payload) {
         state.belongsToSeries = action.payload;
       }
     },
     setStandaloneList: (state, action) => {
       state.standaloneList = action.payload;
-    },
-    setSeriesList: (state, action) => {
-      state.seriesList = action.payload;
     },
     setStoryEditables: (state, action) => {
       state.editables = action.payload;
@@ -36,6 +34,6 @@ export const storiesSlice = createSlice({
   }
 });
 
-export const {flipCreatingNewStory, flipEditingStory, setStandaloneList, setSeriesList, setStoryEditables, setSelectedStory} = storiesSlice.actions;
+export const {flipCreatingNewStory, flipEditingStory, setStandaloneList, setStoryEditables, setSelectedStory} = storiesSlice.actions;
 
 export default storiesSlice.reducer;

@@ -1,22 +1,16 @@
-import {configureStore} from '@reduxjs/toolkit';
+import { configureStore } from '@reduxjs/toolkit';
 import alertSlice from './alertSlice';
-import displayLoaderSlice from './displayLoaderSlice';
-import loggedInSlice from './loggedInSlice';
-import refreshStoryListSlice from './refreshStoryListSlice';
-import selectedSeriesSlice from './selectedSeriesSlice';
+import seriesSlice from './seriesSlice';
 import storiesSlice from './storiesSlice';
-import subscriptionSlice from './subscriptionSlice';
-import menuOpenSlice from './toggleMenuOpenSlice';
+import uiSlice from './uiSlice';
+import userSlice from './userSlice';
 
 export default configureStore({
   reducer: {
-    isLoggedIn: loggedInSlice,
-    selectedSeries: selectedSeriesSlice,
     stories: storiesSlice,
-    refreshStoryList: refreshStoryListSlice,
-    isMenuOpen: menuOpenSlice,
-    isLoaderVisible: displayLoaderSlice,
+    ui: uiSlice,
     alerts: alertSlice,
-    subscription: subscriptionSlice
+    user: userSlice,
+    series: seriesSlice
   },
 });

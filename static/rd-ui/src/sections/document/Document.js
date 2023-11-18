@@ -41,9 +41,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import '../../css/document.css';
 import '../../css/sidebar.css';
 import { setAlertLink, setAlertMessage, setAlertOpen, setAlertSeverity, setAlertTimeout } from '../../stores/alertSlice.js';
-import { setLoaderVisible } from '../../stores/displayLoaderSlice.js';
-import { setSelectedSeries } from '../../stores/selectedSeriesSlice.js';
+import { setSelectedSeries } from '../../stores/seriesSlice.js';
 import { setSelectedStory } from '../../stores/storiesSlice.js';
+import { setIsLoaderVisible } from '../../stores/uiSlice.js';
 import AssociationUI from './AssociationUI.js';
 import Exporter from './Exporter.js';
 import { FindHighlightable, FindTabs, HighlightSpan, TabSpan } from './decorators';
@@ -97,7 +97,7 @@ const Document = () => {
   const urlParams = new URLSearchParams(window.location.search);
 
   const selectedStory = useSelector((state) => state.stories.selectedStory);
-  const isLoggedIn = useSelector((state) => state.isLoggedIn.value);
+  const isLoggedIn = useSelector((state) => state.user.isLoggedIn);
   const [selectedChapterNumber, setSelectedChapterNumber] = useState(urlParams.get('chapter') !== '' ? parseInt(urlParams.get('chapter')) : 1);
   const [selectedChapterTitle, setSelectedChapterTitle] = useState('');
   const [chapters, setChapters] = useState([]);
@@ -376,7 +376,7 @@ const Document = () => {
   };
 
   useEffect(() => {
-    dispatch(setLoaderVisible(true));
+    dispatch(setIsLoaderVisible(true));
     const processInterval = setInterval(() => {
       try {
         processDBQueue();
@@ -396,7 +396,7 @@ const Document = () => {
           getBatchedStoryBlocks('');
         }
         if (storyDetailsLoaded && associationsLoaded && blocksLoaded) {
-          dispatch(setLoaderVisible(false));
+          dispatch(setIsLoaderVisible(false));
         }
       }
     }
