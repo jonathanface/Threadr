@@ -1,5 +1,5 @@
-import Immutable from 'immutable';
-import {EditorState, Modifier, SelectionState} from 'draft-js';
+import { EditorState, Modifier, SelectionState } from "draft-js";
+import Immutable from "immutable";
 
 export const GetSelectedBlockKeys = (editorState) => {
   const lastSelection = editorState.getSelection();
@@ -14,31 +14,34 @@ export const GetSelectedBlockKeys = (editorState) => {
 };
 
 export const GetEntityData = (block, type, list) => {
-  block.findEntityRanges((character) => {
-    return character.getEntity();
-  }, (start, end) => {
-    list.push({
-      start: start,
-      end: end,
-      type: type
-    });
-  });
+  block.findEntityRanges(
+    (character) => {
+      return character.getEntity();
+    },
+    (start, end) => {
+      list.push({
+        start: start,
+        end: end,
+        type: type,
+      });
+    }
+  );
   return list;
 };
 
 export const GetBlockStyleDataByType = (block, type) => {
   const list = [];
   block.findStyleRanges(
-      (character) => {
-        return character.hasStyle(type);
-      },
-      (start, end) => {
-        list.push({
-          start: start,
-          end: end,
-          style: type
-        });
-      }
+    (character) => {
+      return character.hasStyle(type);
+    },
+    (start, end) => {
+      list.push({
+        start: start,
+        end: end,
+        style: type,
+      });
+    }
   );
   return list;
 };
@@ -82,9 +85,9 @@ const TAB_LENGTH = 5;
 
 export const GenerateTabCharacter = (tabLength) => {
   tabLength = tabLength ? tabLength : TAB_LENGTH;
-  let tab = '';
-  for (let i=0; i < tabLength; i++) {
-    tab += ' ';
+  let tab = "";
+  for (let i = 0; i < tabLength; i++) {
+    tab += " ";
   }
   return tab;
 };
@@ -97,24 +100,21 @@ export const InsertTab = (editorState, selection) => {
     let content = newEditorState.getCurrentContent();
     selectedKeys.forEach((key) => {
       const block = content.getBlockForKey(selection.getFocusKey());
-      const tabData = block.getData().getIn(['ENTITY_TABS']) ? block.getData().getIn(['ENTITY_TABS']) : [];
-      tabData.push({start: 0, end: TAB_LENGTH, type: 'TAB'});
+      const tabData = block.getData().getIn(["ENTITY_TABS"]) ? block.getData().getIn(["ENTITY_TABS"]) : [];
+      tabData.push({ start: 0, end: TAB_LENGTH, type: "TAB" });
       const contentStateWithEntityData = Modifier.mergeBlockData(
-          content,
-          selection,
-          Immutable.Map([['ENTITY_TABS', tabData]])
+        content,
+        selection,
+        Immutable.Map([["ENTITY_TABS", tabData]])
       );
-      const contentStateWithEntity = content.createEntity(
-          'TAB',
-          'IMMUTABLE'
-      );
+      const contentStateWithEntity = content.createEntity("TAB", "IMMUTABLE");
       const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
       const contentStateWithEntityText = Modifier.insertText(
-          contentStateWithEntityData,
-          SelectionState.createEmpty(key),
-          GenerateTabCharacter(),
-          null,
-          entityKey
+        contentStateWithEntityData,
+        SelectionState.createEmpty(key),
+        GenerateTabCharacter(),
+        null,
+        entityKey
       );
       newEditorState = EditorState.push(newEditorState, contentStateWithEntityText);
       content = newEditorState.getCurrentContent();
@@ -126,30 +126,33 @@ export const InsertTab = (editorState, selection) => {
     }
     const content = newEditorState.getCurrentContent();
     const block = content.getBlockForKey(selection.getFocusKey());
-    const tabData = block.getData().getIn(['ENTITY_TABS']) ? block.getData().getIn(['ENTITY_TABS']) : [];
-    tabData.push({start: selection.getFocusOffset(), end: selection.getFocusOffset() + TAB_LENGTH, type: 'TAB'});
+    const tabData = block.getData().getIn(["ENTITY_TABS"]) ? block.getData().getIn(["ENTITY_TABS"]) : [];
+    tabData.push({ start: selection.getFocusOffset(), end: selection.getFocusOffset() + TAB_LENGTH, type: "TAB" });
     const contentStateWithEntityData = Modifier.mergeBlockData(
-        content,
-        selection,
-        Immutable.Map([['ENTITY_TABS', tabData]])
+      content,
+      selection,
+      Immutable.Map([["ENTITY_TABS", tabData]])
     );
-    const contentStateWithEntity = content.createEntity(
-        'TAB',
-        'IMMUTABLE'
-    );
+    const contentStateWithEntity = content.createEntity("TAB", "IMMUTABLE");
     const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
     const contentStateWithEntityText = Modifier.insertText(
-        contentStateWithEntityData,
-        selection,
-        GenerateTabCharacter(),
-        null,
-        entityKey
+      contentStateWithEntityData,
+      selection,
+      GenerateTabCharacter(),
+      null,
+      entityKey
     );
     const editorStateWithData = EditorState.push(newEditorState, contentStateWithEntityText);
     newEditorState = EditorState.forceSelection(editorStateWithData, contentStateWithEntityText.getSelectionAfter());
   } else {
-    console.error('no blocks selected');
+    console.error("no blocks selected");
   }
   return newEditorState;
 };
 
+export const UCWords = (str) => {
+  return str
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};

@@ -569,13 +569,7 @@ func (d *DAO) WriteAssociations(email, storyOrSeriesID string, associations []*m
 				}
 			}
 			shortDescription := item.ShortDescription
-			if shortDescription == "" {
-				shortDescription = "You may edit this descriptive text by clicking on the association."
-			}
 			extendedDescription := item.Details.ExtendedDescription
-			if extendedDescription == "" {
-				extendedDescription = "Here you can put some extended details."
-			}
 			associations[i].Portrait = imgFile
 			// Create a key for the item.
 			key := map[string]types.AttributeValue{
