@@ -1013,6 +1013,10 @@ const Document = () => {
       "changed chapter",
       "/story/" + encodeURIComponent(selectedStory) + "?chapter=" + num
     );
+    if (domEditor.current) {
+      const editorBox = domEditor.current.editorContainer.parentElement;
+      editorBox.scrollTop = 0;
+    }
   };
 
   const onNewChapterClick = () => {

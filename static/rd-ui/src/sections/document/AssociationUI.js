@@ -6,37 +6,39 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import "../../css/association-ui.css";
 import PortraitDropper from "../portraitdropper/PortraitDropper";
+import { UCWords } from "./utilities";
 
 const AssociationUI = (props) => {
   const [caseSensitive, setCaseSensitive] = useState(
     !props.association ? false : props.association.details.case_sensitive
   );
-  const [headerLabel, setHeaderLabel] = useState("");
   const [name, setName] = useState("");
-  const [description, setDescription] = useState("Here you can put a basic description.");
-  const [details, setDetails] = useState("Here you can put some extended details.");
+  const [description, setDescription] = useState("");
+  const [details, setDetails] = useState("");
   const [aliases, setAliases] = useState("");
   const [imageURL, setImageURL] = useState(
     !props.association ? "./img/default_association_portrait.jpg" : props.association.portrait
   );
 
   const handleClose = () => {
+    setName("");
+    setDescription("");
+    setDetails("");
+    setAliases("");
+    setImageURL("./img/default_association_portrait.jpg");
     props.onClose();
   };
 
   useEffect(() => {
     if (props.association) {
-      setHeaderLabel(
-        props.association.association_type[0].toUpperCase() + props.association.association_type.slice(1) + ":"
-      );
       setCaseSensitive(props.association.details.case_sensitive);
-      setName(props.association.association_name);
+      setName(UCWords(props.association.association_name));
       setImageURL(props.association.portrait + "?t=" + new Date().getDate());
       setDescription(props.association.short_description);
       setDetails(props.association.details.extended_description);
       setAliases(props.association.details.aliases);
     }
-  }, [props.association]);
+  }, [props]);
 
   const onAssociationEdit = (newValue, id) => {
     const newAssociation = props.association;
@@ -127,7 +129,8 @@ const AssociationUI = (props) => {
             </div>
             <div className="detail-bubble">
               <TextField
-                label="Description"
+                label="Overview"
+                helperText="hahahah dumbass"
                 multiline
                 rows="6"
                 onBlur={(event) => {
@@ -151,7 +154,7 @@ const AssociationUI = (props) => {
             </div>
             <div className="detail-bubble">
               <TextField
-                label="Details"
+                label="Background & Extended Details"
                 multiline
                 rows="6"
                 onBlur={(event) => {
