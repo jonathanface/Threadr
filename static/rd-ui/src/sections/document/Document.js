@@ -655,10 +655,10 @@ const Document = () => {
   const { show } = useContextMenu();
 
   const handleTextualContextMenu = (event) => {
-    event.preventDefault();
     const text = GetSelectedText(editorState);
     // regex check for separated word?
     if (text.length) {
+      event.preventDefault();
       show({
         id: "plaintext_context",
         event,

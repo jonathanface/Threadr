@@ -1,26 +1,24 @@
-
-
 .association-tooltip-body {
-    width:300px;
-    display: inline-block;
+  width: 300px;
+  display: inline-block;
 }
 
 .association-tooltip-body .column {
-    width:50%;
-    vertical-align: top;
-    padding:5px;
-    text-align: center;
-    min-height:0;
-    box-sizing: border-box;
-    float:left;
+  width: 50%;
+  vertical-align: top;
+  padding: 5px;
+  text-align: center;
+  min-height: 0;
+  box-sizing: border-box;
+  float: left;
 }
 .association-tooltip-body .column:last-child {
-    text-align:left;
-    text-overflow: ellipsis;
-    height:100%;
-    overflow:hidden;
-    max-height:150px;
+  text-align: left;
+  text-overflow: ellipsis;
+  height: 90%;
+  overflow: hidden;
+  max-height: 120px;
 }
 .association-tooltip-body .column img {
-    filter:drop-shadow(1px 1px 1px #1a1a1a);
+  filter: drop-shadow(1px 1px 1px #1a1a1a);
 }
