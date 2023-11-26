@@ -162,10 +162,10 @@ func main() {
 	// GETs
 	apiRtr.HandleFunc("/user", api.GetUserData).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/stories", api.AllStandaloneStoriesEndPoint).Methods("GET", "OPTIONS")
-	apiRtr.HandleFunc("/stories/{story}", api.StoryEndPoint).Methods("GET", "OPTIONS")
-	apiRtr.HandleFunc("/stories/{story}/full", api.FullStoryEndPoint).Methods("GET", "OPTIONS")
-	apiRtr.HandleFunc("/stories/{story}/content", api.StoryBlocksEndPoint).Methods("GET", "OPTIONS")
-	apiRtr.HandleFunc("/stories/{story}/associations", api.AllAssociationsByStoryEndPoint).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}", api.StoryEndPoint).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/full", api.FullStoryEndPoint).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/content", api.StoryBlocksEndPoint).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/associations", api.AllAssociationsByStoryEndPoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/series", api.AllSeriesEndPoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/series/{series}/volumes", api.AllSeriesVolumesEndPoint).Methods("GET", "OPTIONS")
 
@@ -184,9 +184,9 @@ func main() {
 	apiRtr.HandleFunc("/series/{seriesID}/story/{storyID}", api.RemoveStoryFromSeriesEndpoint).Methods("PUT", "OPTIONS")
 
 	// DELETEs
-	apiRtr.HandleFunc("/stories/{story}/block", api.DeleteBlocksFromStoryEndpoint).Methods("DELETE", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/block", api.DeleteBlocksFromStoryEndpoint).Methods("DELETE", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{story}/associations", api.DeleteAssociationsEndpoint).Methods("DELETE", "OPTIONS")
-	apiRtr.HandleFunc("/stories/{story}/chapter", api.DeleteChaptersEndpoint).Methods("DELETE", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/chapter/{chapterID}", api.DeleteChaptersEndpoint).Methods("DELETE", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{story}", api.DeleteStoryEndpoint).Methods("DELETE", "OPTIONS")
 	apiRtr.HandleFunc("/series/{seriesID}", api.DeleteSeriesEndpoint).Methods("DELETE", "OPTIONS")
 

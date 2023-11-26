@@ -19,10 +19,14 @@ const Story = (props) => {
   const seriesList = useSelector((state) => state.series.seriesList);
   const standaloneList = useSelector((state) => state.stories.standaloneList);
 
-  const handleClick = (event, storyID) => {
+  const handleClick = (event, storyID, title) => {
     const history = window.history;
-    dispatch(setSelectedStory(encodeURIComponent(storyID)));
-    history.pushState({ storyID }, "clicked story", "/story/" + encodeURIComponent(storyID) + "?chapter=1");
+    const newStory = {
+      id: storyID,
+      title: title,
+    };
+    dispatch(setSelectedStory(newStory));
+    history.pushState({ storyID }, "clicked story", "/story/" + storyID + "?chapter=1");
     dispatch(setIsLoaderVisible(true));
   };
 
@@ -141,7 +145,7 @@ const Story = (props) => {
   }, [props.stories]);
 
   return !wasDeleted ? (
-    <button className="doc-button" onClick={!props.stories ? (e) => handleClick(e, props.id) : () => {}}>
+    <button className="doc-button" onClick={!props.stories ? (e) => handleClick(e, props.id, props.title) : () => {}}>
       <div className="loading-screen" style={{ visibility: isStoryLoaderVisible ? "visible" : "hidden" }}>
         <Box className="progress-box" />
         <Box className="prog-anim-holder">

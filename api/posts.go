@@ -27,16 +27,12 @@ import (
 func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	// this should be transactified
 	var (
-		err     error
-		storyID string
-		dao     daos.DaoInterface
-		ok      bool
-		email   string
+		err        error
+		storyID    string
+		dao        daos.DaoInterface
+		ok         bool
+		newChapter models.Chapter
 	)
-	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusNotFound, "Error retrieving user email")
-		return
-	}
 	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story ID")
 		return
@@ -56,8 +52,12 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
+	chapter.ID = uuid.New().String()
+	if chapter.Place == 0 {
+		chapter.Place = 1
+	}
 
-	if err = dao.CreateChapter(storyID, email, chapter); err != nil {
+	if newChapter, err = dao.CreateChapter(storyID, chapter); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
@@ -70,7 +70,7 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJson(w, http.StatusOK, newChapter)
 }
 
 func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {

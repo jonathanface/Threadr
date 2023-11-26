@@ -93,6 +93,7 @@ div.public-DraftEditor-content .content-block:last-child {
 
 .title_info {
   color: #fff;
+  margin-top: 65px;
 }
 .title_info h2 {
   filter: drop-shadow(2px 2px 2px #1a1a1a);

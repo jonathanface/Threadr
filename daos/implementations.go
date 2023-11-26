@@ -12,7 +12,6 @@ import (
 	"path"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -215,10 +214,10 @@ func (d *DAO) GetSeriesByID(email, seriesID string) (series *models.Series, err 
 	return &seriesFromMap[0], nil
 }
 
-func (d *DAO) GetStoryParagraphs(email, storyID, chapter, startKey string) (*models.BlocksData, error) {
+func (d *DAO) GetStoryParagraphs(storyID, chapterID, startKey string) (*models.BlocksData, error) {
 	var blocks models.BlocksData
-	email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	tableName := storyID + "_" + email + "_" + chapter + "_blocks"
+	tableName := storyID + "_" + chapterID + "_blocks"
+	fmt.Println("retrieving blocks on", tableName)
 
 	queryInput := &dynamodb.QueryInput{
 		TableName:              aws.String(tableName),
@@ -423,11 +422,9 @@ func (d *DAO) UpsertUser(email string) (err error) {
 	return
 }
 
-func (d *DAO) ResetBlockOrder(email, storyID string, storyBlocks *models.StoryBlocks) (err error) {
-	email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	chapter := strconv.Itoa(storyBlocks.Chapter)
-	tableName := storyID + "_" + email + "_" + chapter + "_blocks"
-
+func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (err error) {
+	tableName := storyID + "_" + storyBlocks.ChapterID + "_blocks"
+	fmt.Println("blocking", tableName)
 	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(storyBlocks.Blocks); i += d.writeBatchSize {
 		end := i + d.writeBatchSize
@@ -477,10 +474,8 @@ func (d *DAO) ResetBlockOrder(email, storyID string, storyBlocks *models.StoryBl
 	return
 }
 
-func (d *DAO) WriteBlocks(email, storyID string, storyBlocks *models.StoryBlocks) (err error) {
-	emailSafe := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	chapter := strconv.Itoa(storyBlocks.Chapter)
-	tableName := storyID + "_" + emailSafe + "_" + chapter + "_blocks"
+func (d *DAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) (err error) {
+	tableName := storyID + "_" + storyBlocks.ChapterID + "_blocks"
 
 	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(storyBlocks.Blocks); i += d.writeBatchSize {
@@ -660,30 +655,29 @@ func (d *DAO) UpdateAssociationPortraitEntryInDB(email, storyOrSeriesID, associa
 	return nil
 }
 
-func (d *DAO) CreateChapter(storyID string, email string, chapter models.Chapter) (err error) {
-
+func (d *DAO) CreateChapter(storyID string, chapter models.Chapter) (newChapter models.Chapter, err error) {
+	newChapter = chapter
 	var chapTwi types.TransactWriteItem
-	if chapTwi, err = d.generateStoryChapterTransaction(storyID, chapter.Place, chapter.Title); err != nil {
+	if chapTwi, err = d.generateStoryChapterTransaction(storyID, chapter.ID, chapter.Title, chapter.Place); err != nil {
 		return
 	}
 
 	twii := &dynamodb.TransactWriteItemsInput{}
 	twii.TransactItems = append(twii.TransactItems, chapTwi)
 	err, awsErr := d.awsWriteTransaction(twii)
+	fmt.Println("trans err", err, awsErr)
 	if err != nil {
-		return err
+		return models.Chapter{}, err
 	}
 	if !awsErr.IsNil() {
-		return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
+		return models.Chapter{}, fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 	}
-	chapterNum := strconv.Itoa(chapter.Place)
 
-	safeEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	tableName := storyID + "_" + safeEmail + "_" + chapterNum + "_blocks"
+	tableName := storyID + "_" + chapter.ID + "_blocks"
 	if err = d.createBlockTable(tableName); err != nil {
-		return
+		return models.Chapter{}, err
 	}
-	return
+	return newChapter, nil
 }
 
 func (d *DAO) waitForTableToGoActive(tableName string, maxRetries int, delayBetweenRetries time.Duration) error {
@@ -977,7 +971,8 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 	}
 	twii = &dynamodb.TransactWriteItemsInput{}
 	var chapTwi types.TransactWriteItem
-	if chapTwi, err = d.generateStoryChapterTransaction(story.ID, 1, "Chapter 1"); err != nil {
+	firstChapterID := uuid.New().String()
+	if chapTwi, err = d.generateStoryChapterTransaction(story.ID, firstChapterID, "Chapter 1", 1); err != nil {
 		return
 	}
 	twii.TransactItems = append(twii.TransactItems, chapTwi)
@@ -1040,19 +1035,15 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 	if !awsErr.IsNil() {
 		return "", fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 	}
-	safeEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	tableName := story.ID + "_" + safeEmail + "_1_blocks"
+	tableName := story.ID + "_" + firstChapterID + "_blocks"
 	if err = d.createBlockTable(tableName); err != nil {
 		return "", err
 	}
 	return story.ID, nil
 }
 
-func (d *DAO) DeleteStoryParagraphs(email, storyTitle string, storyBlocks *models.StoryBlocks) (err error) {
-	email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	safeStory := d.sanitizeTableName(storyTitle)
-	chapter := strconv.Itoa(storyBlocks.Chapter)
-	tableName := email + "_" + safeStory + "_" + chapter + "_blocks"
+func (d *DAO) DeleteStoryParagraphs(storyID string, storyBlocks *models.StoryBlocks) (err error) {
+	tableName := storyID + "_" + storyBlocks.ChapterID + "_blocks"
 
 	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(storyBlocks.Blocks); i += d.writeBatchSize {
@@ -1181,9 +1172,7 @@ func (d *DAO) DeleteAssociations(email, storyID string, associations []*models.A
 	return
 }
 
-func (d *DAO) DeleteChapters(email, storyID string, chapters []models.Chapter) (err error) {
-	tblEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-
+func (d *DAO) DeleteChapters(storyID string, chapters []models.Chapter) (err error) {
 	batches := make([][]models.Chapter, 0, (len(chapters)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(chapters); i += d.writeBatchSize {
 		end := i + d.writeBatchSize
@@ -1200,10 +1189,9 @@ func (d *DAO) DeleteChapters(email, storyID string, chapters []models.Chapter) (
 		}
 		for i, item := range batch {
 			// Create a key for the item.
-			chapter := strconv.Itoa(item.Place)
 			key := map[string]types.AttributeValue{
-				"chapter_num": &types.AttributeValueMemberN{Value: chapter},
-				"story_id":    &types.AttributeValueMemberS{Value: storyID},
+				"chapter_id": &types.AttributeValueMemberS{Value: item.ID},
+				"story_id":   &types.AttributeValueMemberS{Value: storyID},
 			}
 
 			// Create a delete input for the item.
@@ -1220,7 +1208,7 @@ func (d *DAO) DeleteChapters(email, storyID string, chapters []models.Chapter) (
 			// Add the transaction write item to the list of transaction write items.
 			writeItemsInput.TransactItems[i] = writeItem
 
-			tableName := storyID + "_" + tblEmail + "_" + chapter + "_blocks"
+			tableName := storyID + "_" + item.ID + "_blocks"
 
 			deleteTableInput := &dynamodb.DeleteTableInput{
 				TableName: aws.String(tableName),
@@ -1262,31 +1250,31 @@ func (d *DAO) SoftDeleteStory(email, storyID, seriesID string) error {
 	chapterCount := 0
 	for _, item := range chapterOut.Items {
 		// Delete associated tables
-		safeEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-		chapNum := strconv.Itoa(chapterCount + 1)
-		oldTableName := storyID + "_" + safeEmail + "_" + chapNum + "_blocks"
+		chapterID := item["chapter_id"].(*types.AttributeValueMemberS).Value
+		oldTableName := storyID + "_" + chapterID + "_blocks"
 		deleteTableInput := &dynamodb.DeleteTableInput{
 			TableName: aws.String(oldTableName),
 		}
-		fmt.Println("backing up", oldTableName+"-backup-"+time.Now().Format("2006-01-02-15-04-05"))
 		/*
-			// Create the BackupTableInput
-			input := &dynamodb.CreateBackupInput{
-				TableName:  aws.String(oldTableName),
-				BackupName: aws.String(oldTableName + "-backup-" + time.Now().Format("2006-01-02-15-04-05")),
-			}
+			fmt.Println("backing up", oldTableName+"-backup-"+time.Now().Format("2006-01-02-15-04-05"))
 
-			// Create the backup
-			buResponse, err := d.dynamoClient.CreateBackup(context.TODO(), input)
-			if err != nil {
-				fmt.Printf("Failed to create backup for table %s, %v", oldTableName, err)
-				return err
-			}
+				// Create the BackupTableInput
+				input := &dynamodb.CreateBackupInput{
+					TableName:  aws.String(oldTableName),
+					BackupName: aws.String(oldTableName + "-backup-" + time.Now().Format("2006-01-02-15-04-05")),
+				}
 
-			err = d.checkBackupStatus(*buResponse.BackupDetails.BackupArn)
-			if err != nil {
-				return err
-			}*/
+				// Create the backup
+				buResponse, err := d.dynamoClient.CreateBackup(context.TODO(), input)
+				if err != nil {
+					fmt.Printf("Failed to create backup for table %s, %v", oldTableName, err)
+					return err
+				}
+
+				err = d.checkBackupStatus(*buResponse.BackupDetails.BackupArn)
+				if err != nil {
+					return err
+				}*/
 
 		for numRetries := 0; numRetries < d.maxRetries; numRetries++ {
 			if _, err = d.dynamoClient.DeleteTable(context.Background(), deleteTableInput); err != nil {
@@ -1308,10 +1296,9 @@ func (d *DAO) SoftDeleteStory(email, storyID, seriesID string) error {
 		}
 		chapterCount++
 
-		chapterNum := item["chapter_num"].(*types.AttributeValueMemberN).Value
 		chapterKey := map[string]types.AttributeValue{
-			"chapter_num": &types.AttributeValueMemberN{Value: chapterNum},
-			"story_id":    &types.AttributeValueMemberS{Value: storyID},
+			"chapter_id": &types.AttributeValueMemberS{Value: chapterID},
+			"story_id":   &types.AttributeValueMemberS{Value: storyID},
 		}
 		chapterUpdateInput := &dynamodb.UpdateItemInput{
 			TableName:        aws.String("chapters"),
@@ -1449,10 +1436,11 @@ func (d *DAO) hardDeleteStory(email, storyID, seriesID string) error {
 	}
 
 	for _, item := range chapterOut.Items {
+		chapterID := item["id"].(*types.AttributeValueMemberS)
 		// Delete associated tables
 		chapterKey := map[string]types.AttributeValue{
-			"story_id":    &types.AttributeValueMemberS{Value: storyID},
-			"chapter_num": &types.AttributeValueMemberN{Value: item["chapter_title"].(*types.AttributeValueMemberN).Value},
+			"story_id":   &types.AttributeValueMemberS{Value: storyID},
+			"chapter_id": chapterID,
 		}
 		chapterDeleteInput := &dynamodb.DeleteItemInput{
 			TableName: aws.String("chapters"),
@@ -1617,10 +1605,9 @@ func (d *DAO) GetStoryCountByUser(email string) (count int, err error) {
 	return len(storyOut.Items), nil
 }
 
-func (d *DAO) GetBlockCountByChapter(email, storyTitle, chapter string) (count int, err error) {
-	email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	safeStory := d.sanitizeTableName(storyTitle)
-	tableName := email + "_" + safeStory + "_" + chapter + "_blocks"
+func (d *DAO) GetBlockCountByChapter(email, storyID, chapterID string) (count int, err error) {
+
+	tableName := storyID + "_" + chapterID + "_blocks"
 
 	blockScanInput := &dynamodb.ScanInput{
 		TableName:        aws.String(tableName),

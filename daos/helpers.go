@@ -65,13 +65,15 @@ func (d *DAO) awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsIn
 	return fmt.Errorf("transaction cancelled after %d retries", d.maxRetries), models.AwsError{}
 }
 
-func (d *DAO) generateStoryChapterTransaction(storyID string, chapter int, chapterTitle string) (types.TransactWriteItem, error) {
-	if chapterTitle == "" {
-		return types.TransactWriteItem{}, fmt.Errorf("CHAPTER CREATION: storyID and chapterTitle params must not be blank")
+func (d *DAO) generateStoryChapterTransaction(storyID, chapterID, chapterTitle string, chapter int) (types.TransactWriteItem, error) {
+	if chapterTitle == "" || storyID == "" || chapterID == "" {
+		return types.TransactWriteItem{}, fmt.Errorf("CHAPTER CREATION: storyID, chapterID, and chapterTitle params must not be blank")
 	}
+	fmt.Println("trans", chapterTitle, storyID, chapterID)
 	chapterNumStr := strconv.Itoa(chapter)
 	attributes := map[string]types.AttributeValue{
 		"story_id":    &types.AttributeValueMemberS{Value: storyID},
+		"chapter_id":  &types.AttributeValueMemberS{Value: chapterID},
 		"chapter_num": &types.AttributeValueMemberN{Value: chapterNumStr},
 		"title":       &types.AttributeValueMemberS{Value: chapterTitle},
 	}

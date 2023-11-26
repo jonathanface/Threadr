@@ -202,9 +202,9 @@ const CreateNewStory = () => {
       const json = await response.json();
 
       const storyID = json.story_id;
-      dispatch(setSelectedStory(storyID));
+      dispatch(setSelectedStory({ id: storyID, title: json.title }));
       const history = window.history;
-      history.pushState({ storyID }, "created new story", "/story/" + encodeURIComponent(storyID) + "?chapter=1");
+      history.pushState({ storyID }, "created new story", "/story/" + storyID + "?chapter=1");
       setTimeout(() => {
         handleClose();
       }, 1000);

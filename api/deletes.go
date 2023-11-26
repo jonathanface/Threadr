@@ -13,21 +13,17 @@ import (
 
 func DeleteBlocksFromStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
-		email      string
-		err        error
-		storyTitle string
-		dao        daos.DaoInterface
-		ok         bool
+		err     error
+		storyID string
+		dao     daos.DaoInterface
+		ok      bool
 	)
-	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	if storyTitle, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+
+	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
 		return
 	}
-	if storyTitle == "" {
+	if storyID == "" {
 		RespondWithError(w, http.StatusBadRequest, "Missing story ID")
 		return
 	}
@@ -41,7 +37,7 @@ func DeleteBlocksFromStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	if err = dao.DeleteStoryParagraphs(email, storyTitle, &storyBlocks); err != nil {
+	if err = dao.DeleteStoryParagraphs(storyID, &storyBlocks); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
@@ -107,29 +103,26 @@ func DeleteAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 func DeleteChaptersEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
-		email      string
-		err        error
-		storyTitle string
-		dao        daos.DaoInterface
-		ok         bool
+		err       error
+		storyID   string
+		chapterID string
+		dao       daos.DaoInterface
+		ok        bool
 	)
-	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing story ID")
 		return
 	}
-	if storyTitle, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
-		return
-	}
-	if storyTitle == "" {
+	if storyID == "" {
 		RespondWithError(w, http.StatusBadRequest, "Missing story ID")
 		return
 	}
-	decoder := json.NewDecoder(r.Body)
-	chapters := []models.Chapter{}
-
-	if err := decoder.Decode(&chapters); err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error())
+	if chapterID, err = url.PathUnescape(mux.Vars(r)["chapterID"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing chapter ID")
+		return
+	}
+	if chapterID == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing chapter ID")
 		return
 	}
 
@@ -137,7 +130,11 @@ func DeleteChaptersEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	if err = dao.DeleteChapters(email, storyTitle, chapters); err != nil {
+	var chapters []models.Chapter
+	chapter := models.Chapter{}
+	chapter.ID = chapterID
+	chapters = append(chapters, chapter)
+	if err = dao.DeleteChapters(storyID, chapters); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
