@@ -123,6 +123,35 @@ func (d *DAO) GetChaptersByStoryID(storyID string) (chapters []models.Chapter, e
 	return chapters, nil
 }
 
+func (d *DAO) CreateUser(email string) error {
+	fmt.Println("creating user", email)
+	twii := &dynamodb.TransactWriteItemsInput{}
+	now := strconv.FormatInt(time.Now().Unix(), 10)
+	attributes := map[string]types.AttributeValue{
+		"email":      &types.AttributeValueMemberS{Value: email},
+		"admin":      &types.AttributeValueMemberBOOL{Value: false},
+		"subscriber": &types.AttributeValueMemberBOOL{Value: false},
+		"created_at": &types.AttributeValueMemberN{Value: now},
+	}
+	twi := types.TransactWriteItem{
+		Put: &types.Put{
+			TableName:           aws.String("users"),
+			Item:                attributes,
+			ConditionExpression: aws.String("attribute_not_exists(email)"),
+		},
+	}
+
+	twii.TransactItems = append(twii.TransactItems, twi)
+	err, awsErr := d.awsWriteTransaction(twii)
+	if err != nil {
+		return err
+	}
+	if !awsErr.IsNil() {
+		return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
+	}
+	return nil
+}
+
 func (d *DAO) GetUserDetails(email string) (user *models.UserInfo, err error) {
 	out, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("users"),

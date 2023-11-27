@@ -32,6 +32,7 @@ type DaoInterface interface {
 	// POSTs
 	CreateChapter(storyID string, chapter models.Chapter) (models.Chapter, error)
 	CreateStory(email string, story models.Story, newSeriesTitle string) (storyID string, err error)
+	CreateUser(email string) error
 
 	// DELETEs
 	DeleteStoryParagraphs(storyID string, storyBlocks *models.StoryBlocks) error
@@ -45,5 +46,5 @@ type DaoInterface interface {
 	WasStoryDeleted(email string, storyID string) (bool, error)
 	IsStoryInASeries(email string, storyID string) (string, error)
 	IsUserSubscribed(email string) (string, error)
-	GetTotalCreatedStoriesAndChapters(email string) (int, int, error)
+	GetTotalCreatedStories(email string) (int, error)
 }

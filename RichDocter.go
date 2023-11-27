@@ -106,13 +106,13 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		if user.SubscriptionID == "" {
-			if r.Method == "POST" {
-				stories, chapters, err := dao.GetTotalCreatedStoriesAndChapters(user.Email)
+			if r.Method == "POST" && strings.HasSuffix(r.URL.Path, "/stories") || r.Method == "PUT" && strings.HasSuffix(r.URL.Path, "/export") {
+				stories, err := dao.GetTotalCreatedStories(user.Email)
 				if err != nil {
 					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 					return
 				}
-				if stories == 1 || chapters == 1 {
+				if stories == 1 {
 					api.RespondWithError(w, http.StatusUnauthorized, "insufficient subscription")
 					return
 				}

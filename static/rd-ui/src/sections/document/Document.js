@@ -35,6 +35,7 @@ import {
   setAlertOpen,
   setAlertSeverity,
   setAlertTimeout,
+  setAlertTitle,
 } from "../../stores/alertSlice.js";
 import { setSelectedStory } from "../../stores/storiesSlice.js";
 import { setIsLoaderVisible } from "../../stores/uiSlice.js";
@@ -138,27 +139,46 @@ const Document = () => {
   const exportDoc = async (type) => {
     const exp = new Exporter(selectedStory.id);
     const htmlData = await exp.DocToHTML();
-    fetch("/api/stories/" + selectedStory.id + "/export", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        story_id: selectedStory.id,
-        html_by_chapter: htmlData,
-        type: type,
-        title: selectedStory.title,
-      }),
-    })
-      .then((response) => {
-        if (response.ok) {
-          return response.json();
-        }
-        throw new Error("Fetch problem export " + response.status);
-      })
-      .then((results) => {
-        window.open(results.url, "_blank");
+    try {
+      const response = await fetch("/api/stories/" + selectedStory.id + "/export", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          story_id: selectedStory.id,
+          html_by_chapter: htmlData,
+          type: type,
+          title: selectedStory.title,
+        }),
       });
+      if (!response.ok) {
+        if (response.status === 401) {
+          dispatch(setAlertTitle("Insufficient subscription"));
+          dispatch(setAlertMessage("Non-subscribers are unable to export their stories."));
+          dispatch(setAlertLink({ location: "subscribe" }));
+          dispatch(setAlertSeverity("error"));
+          dispatch(setAlertTimeout(null));
+          dispatch(setAlertOpen(true));
+          return;
+        } else {
+          throw new Error("Fetch problem export " + response.status);
+        }
+      }
+      const json = await response.json();
+
+      window.open(json.url, "_blank");
+    } catch (error) {
+      console.error(error);
+      dispatch(
+        setAlertMessage(
+          "Unable to export your document at this time. Please try again later, or contact support@richdocter.io."
+        )
+      );
+      dispatch(setAlertSeverity("error"));
+      dispatch(setAlertTimeout(null));
+      dispatch(setAlertOpen(true));
+    }
   };
 
   const getAllAssociations = async () => {
@@ -499,13 +519,13 @@ const Document = () => {
           if (response.status === 501) {
             reject(true);
           }
-          if (response.status === 401) {
-            dispatch(setAlertMessage("Your story has exceeded the limit for unpaid subscribers."));
-            dispatch(setAlertLink({ location: "subscribe" }));
-            dispatch(setAlertSeverity("error"));
-            dispatch(setAlertTimeout(null));
-            dispatch(setAlertOpen(true));
-          }
+          //   if (response.status === 401) {
+          //     dispatch(setAlertMessage("Your story has exceeded the limit for unpaid subscribers."));
+          //     dispatch(setAlertLink({ location: "subscribe" }));
+          //     dispatch(setAlertSeverity("error"));
+          //     dispatch(setAlertTimeout(null));
+          //     dispatch(setAlertOpen(true));
+          //   }
           reject("SERVER ERROR SAVING BLOCK: ", response);
         }
         resolve(response.json());
