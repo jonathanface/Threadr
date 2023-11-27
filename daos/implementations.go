@@ -299,7 +299,7 @@ func (d *DAO) GetStoryParagraphs(storyID, chapterID, startKey string) (*models.B
 	return &blocks, nil
 }
 
-func (d *DAO) GetStoryOrSeriesAssociations(email, storyID string) ([]*models.Association, error) {
+func (d *DAO) GetStoryOrSeriesAssociations(email, storyID string, needDetails bool) ([]*models.Association, error) {
 	var (
 		associations []*models.Association
 		err          error
@@ -341,25 +341,28 @@ func (d *DAO) GetStoryOrSeriesAssociations(email, storyID string) ([]*models.Ass
 		return associations, err
 	}
 
-	for i, v := range associations {
-		outDetails, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
-			TableName:        aws.String("association_details"),
-			FilterExpression: aws.String("association_id=:aid"),
-			ExpressionAttributeValues: map[string]types.AttributeValue{
-				":aid": &types.AttributeValueMemberS{Value: v.ID},
-			},
-		})
-		if err != nil {
-			return associations, err
-		}
-		deets := []models.AssociationDetails{}
-		if err = attributevalue.UnmarshalListOfMaps(outDetails.Items, &deets); err != nil {
-			return associations, err
-		}
-		if len(deets) > 0 {
-			associations[i].Details = deets[0]
+	if needDetails {
+		for i, v := range associations {
+			outDetails, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+				TableName:        aws.String("association_details"),
+				FilterExpression: aws.String("association_id=:aid"),
+				ExpressionAttributeValues: map[string]types.AttributeValue{
+					":aid": &types.AttributeValueMemberS{Value: v.ID},
+				},
+			})
+			if err != nil {
+				return associations, err
+			}
+			deets := []models.AssociationDetails{}
+			if err = attributevalue.UnmarshalListOfMaps(outDetails.Items, &deets); err != nil {
+				return associations, err
+			}
+			if len(deets) > 0 {
+				associations[i].Details = deets[0]
+			}
 		}
 	}
+
 	return associations, nil
 }
 
@@ -977,8 +980,9 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 		"created_at":  &types.AttributeValueMemberN{Value: now},
 		"image_url":   &types.AttributeValueMemberS{Value: story.ImageURL},
 	}
-	intPlace := strconv.Itoa(story.Place)
+
 	if story.SeriesID != "" {
+		intPlace := strconv.Itoa(story.Place)
 		attributes["series_id"] = &types.AttributeValueMemberS{Value: story.SeriesID}
 		attributes["place"] = &types.AttributeValueMemberN{Value: intPlace}
 	}

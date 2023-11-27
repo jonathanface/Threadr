@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -106,13 +107,34 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		if user.SubscriptionID == "" {
-			if r.Method == "POST" && strings.HasSuffix(r.URL.Path, "/stories") || r.Method == "PUT" && strings.HasSuffix(r.URL.Path, "/export") {
+			if r.Method == "POST" && (strings.HasSuffix(r.URL.Path, "/stories") || r.Method == "PUT" && strings.HasSuffix(r.URL.Path, "/export")) {
 				stories, err := dao.GetTotalCreatedStories(user.Email)
 				if err != nil {
 					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 					return
 				}
-				if stories == 1 {
+				if stories >= 1 {
+					api.RespondWithError(w, http.StatusUnauthorized, "insufficient subscription")
+					return
+				}
+			}
+			if r.Method == "POST" && strings.HasSuffix(r.URL.Path, "/associations") {
+				var storyID string
+				if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+					return
+				}
+				storyOrSeriesID := storyID
+				if storyOrSeriesID, err = dao.IsStoryInASeries(user.Email, storyID); err != nil {
+					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+					return
+				}
+				associations, err := dao.GetStoryOrSeriesAssociations(user.Email, storyOrSeriesID, false)
+				if err != nil {
+					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+					return
+				}
+				if len(associations) >= api.MAX_UNSUBSCRIBED_ASSOCIATION_LIMIT {
 					api.RespondWithError(w, http.StatusUnauthorized, "insufficient subscription")
 					return
 				}
@@ -172,6 +194,7 @@ func main() {
 	// POSTs
 	apiRtr.HandleFunc("/stories", api.CreateStoryEndpoint).Methods("POST", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{story}/chapter", api.CreateStoryChapterEndpoint).Methods("POST", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{story}/associations", api.CreateAssociationsEndpoint).Methods("POST", "OPTIONS")
 
 	// PUTs
 	apiRtr.HandleFunc("/stories/{story}", api.WriteBlocksToStoryEndpoint).Methods("PUT", "OPTIONS")

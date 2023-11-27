@@ -13,7 +13,7 @@ type DaoInterface interface {
 	GetSeriesByID(email string, seriesID string) (*models.Series, error)
 	GetStoryCountByUser(email string) (int, error)
 	GetStoryParagraphs(storyID string, chapterID string, startKey string) (*models.BlocksData, error)
-	GetStoryOrSeriesAssociations(email string, storyID string) ([]*models.Association, error)
+	GetStoryOrSeriesAssociations(email, storyID string, needDetails bool) ([]*models.Association, error)
 	GetSeriesVolumes(email string, seriesID string) ([]*models.Story, error)
 	GetUserDetails(email string) (*models.UserInfo, error)
 

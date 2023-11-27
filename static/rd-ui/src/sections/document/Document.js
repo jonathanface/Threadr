@@ -155,7 +155,7 @@ const Document = () => {
       if (!response.ok) {
         if (response.status === 401) {
           dispatch(setAlertTitle("Insufficient subscription"));
-          dispatch(setAlertMessage("Non-subscribers are unable to export their stories."));
+          dispatch(setAlertMessage("Free accounts are unable to export their stories."));
           dispatch(setAlertLink({ location: "subscribe" }));
           dispatch(setAlertSeverity("error"));
           dispatch(setAlertTimeout(null));
@@ -535,7 +535,7 @@ const Document = () => {
     });
   };
 
-  const saveAssociationsToServer = (associations) => {
+  const updateAssociationsOnServer = (associations) => {
     return new Promise(async (resolve, reject) => {
       try {
         console.log("saving associations", associations);
@@ -547,6 +547,35 @@ const Document = () => {
           body: JSON.stringify(associations),
         });
         if (!response.ok) {
+          reject("SERVER ERROR SAVING BLOCK: ", response);
+        }
+        resolve(response.json());
+      } catch (e) {
+        reject("ERROR SAVING BLOCK: ", e);
+      }
+    });
+  };
+
+  const saveAssociationsToServer = (associations) => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        console.log("creating associations", associations);
+        const response = await fetch("/api/stories/" + selectedStory.id + "/associations", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(associations),
+        });
+        if (!response.ok) {
+          if (response.status === 401) {
+            dispatch(setAlertTitle("Insufficient account"));
+            dispatch(setAlertMessage("Free accounts are limited to 10 associations."));
+            dispatch(setAlertLink({ location: "subscribe" }));
+            dispatch(setAlertSeverity("error"));
+            dispatch(setAlertTimeout(null));
+            dispatch(setAlertOpen(true));
+          }
           reject("SERVER ERROR SAVING BLOCK: ", response);
         }
         resolve(response.json());
@@ -633,7 +662,7 @@ const Document = () => {
 
   const onAssociationEdit = async (association) => {
     console.log("editing", association);
-    const storedAssociation = await saveAssociationsToServer([association]);
+    const storedAssociation = await updateAssociationsOnServer([association]);
     const existingAssoc = associations.find(
       (assoc) => assoc.association_name === association.association_name && assoc.type === association.association_type
     );
