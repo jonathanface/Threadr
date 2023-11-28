@@ -6,7 +6,6 @@ import (
 	"RichDocter/sessions"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -388,7 +387,6 @@ func GetUserData(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve suspension notifier from context")
 		return
 	}
-	fmt.Println("found", wasSuspended)
 	user.Suspended = wasSuspended
 	RespondWithJson(w, http.StatusOK, user)
 }

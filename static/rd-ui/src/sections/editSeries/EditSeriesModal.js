@@ -269,7 +269,7 @@ const EditSeriesModal = () => {
                   component="label"
                   title="Add"
                   onClick={(event) => {
-                    addStory(event, entry.story_id);
+                    //addStory(event, entry.story_id);
                   }}>
                   <AddIcon
                     sx={{
