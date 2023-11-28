@@ -12,6 +12,7 @@ import (
 	"time"
 
 	stripe "github.com/stripe/stripe-go/v72"
+	"github.com/stripe/stripe-go/v72/customer"
 	"github.com/stripe/stripe-go/v72/sub"
 	"github.com/stripe/stripe-go/v72/subitem"
 )
@@ -140,4 +141,30 @@ func CancelSubscription(subscriptionID string) error {
 	}
 
 	return nil
+}
+
+func CheckSubscriptionIsActive(user models.UserInfo) (bool, error) {
+	stripe.Key = os.Getenv("STRIPE_SECRET")
+	if stripe.Key == "" {
+		return false, fmt.Errorf("missing stripe key")
+	}
+	var c *stripe.Customer
+	params := &stripe.CustomerParams{}
+	params.AddExpand("subscriptions")
+	c, err := customer.Get(user.CustomerID, params)
+	if err != nil {
+		return false, err
+	}
+	activeSubscription := false
+	if c.Subscriptions != nil {
+		for _, item := range c.Subscriptions.Data {
+			if item.Status == stripe.SubscriptionStatusActive {
+				activeSubscription = true
+				break
+			}
+		}
+	} else {
+		return false, fmt.Errorf("no subscription found")
+	}
+	return activeSubscription, nil
 }

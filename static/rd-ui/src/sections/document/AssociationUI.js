@@ -17,7 +17,7 @@ const AssociationUI = (props) => {
   const [details, setDetails] = useState("");
   const [aliases, setAliases] = useState("");
   const [imageURL, setImageURL] = useState(
-    !props.association ? "./img/default_association_portrait.jpg" : props.association.portrait
+    !props.association ? "/img/default_association_portrait.jpg" : props.association.portrait
   );
 
   const handleClose = () => {
@@ -25,7 +25,7 @@ const AssociationUI = (props) => {
     setDescription("");
     setDetails("");
     setAliases("");
-    setImageURL("./img/default_association_portrait.jpg");
+    setImageURL("/img/default_association_portrait.jpg");
     props.onClose();
   };
 

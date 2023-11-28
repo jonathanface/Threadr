@@ -10,7 +10,14 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import TextField from "@mui/material/TextField";
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { setAlertMessage, setAlertOpen, setAlertSeverity } from "../../stores/alertSlice";
+import {
+  setAlertLink,
+  setAlertMessage,
+  setAlertOpen,
+  setAlertSeverity,
+  setAlertTimeout,
+  setAlertTitle,
+} from "../../stores/alertSlice";
 import { flipCreatingNewStory, setSelectedStory } from "../../stores/storiesSlice";
 import PortraitDropper from "../portraitdropper/PortraitDropper";
 
@@ -193,6 +200,17 @@ const CreateNewStory = () => {
         body: formData,
       });
       if (!response.ok) {
+        console.log("wtf respo", response);
+        if (response.status === 401) {
+          dispatch(setAlertTitle("Insufficient Subscription"));
+          dispatch(setAlertMessage("Non-subscribers are limited to a single story."));
+          dispatch(setAlertLink({ location: "subscribe" }));
+          dispatch(setAlertSeverity("error"));
+          dispatch(setAlertTimeout(null));
+          dispatch(setAlertOpen(true));
+          handleClose();
+          return;
+        }
         const errorData = await response.json();
         const error = new Error(JSON.stringify(errorData));
         error.response = response;
@@ -202,20 +220,14 @@ const CreateNewStory = () => {
       const json = await response.json();
 
       const storyID = json.story_id;
-      dispatch(setSelectedStory(storyID));
+      dispatch(setSelectedStory({ id: storyID, title: json.title }));
       const history = window.history;
-      history.pushState({ storyID }, "created new story", "/story/" + encodeURIComponent(storyID) + "?chapter=1");
+      history.pushState({ storyID }, "created new story", "/story/" + storyID + "?chapter=1");
       setTimeout(() => {
         handleClose();
       }, 1000);
     } catch (error) {
-      if (error.status === 401) {
-        dispatch(setAlertMessage("inadequate subscription"));
-        dispatch(setAlertSeverity("error"));
-        dispatch(setAlertOpen(true));
-        handleClose();
-        return;
-      }
+      console.error("creatione error", error);
       const errorData = error.response ? JSON.parse(error.message) : {};
       if (errorData.error) {
         setCurrentError(errorData.error);

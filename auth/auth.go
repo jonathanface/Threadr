@@ -62,11 +62,21 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	}
 	fullDetails, err = dao.GetUserDetails(info.Email)
 	if err != nil {
-		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
+		// hacky
+		if err.Error() == "no user found" {
+			err = dao.CreateUser(info.Email)
+			if err != nil {
+				api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+			}
+		} else {
+			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+	} else {
+		info.CustomerID = fullDetails.CustomerID
+		info.SubscriptionID = fullDetails.SubscriptionID
 	}
-	info.CustomerID = fullDetails.CustomerID
-	info.SubscriptionID = fullDetails.SubscriptionID
 
 	toJSON, err := json.Marshal(info)
 	if err != nil {

@@ -16,7 +16,7 @@ import (
 
 func StoryBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 	startKey := r.URL.Query().Get("key")
-	chapter := r.URL.Query().Get("chapter")
+	chapterID := r.URL.Query().Get("chapter")
 	var (
 		email   string
 		err     error
@@ -28,16 +28,16 @@ func StoryBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
+	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing story ID")
 		return
 	}
 	if storyID == "" {
-		RespondWithError(w, http.StatusBadRequest, "Missing story name")
+		RespondWithError(w, http.StatusBadRequest, "Missing story ID")
 		return
 	}
-	if chapter == "" {
-		RespondWithError(w, http.StatusBadRequest, "Missing chapter number")
+	if chapterID == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing chapter ID")
 		return
 	}
 	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
@@ -52,7 +52,7 @@ func StoryBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusNotFound, "story not found")
 		return
 	}
-	blocks, err := dao.GetStoryParagraphs(email, storyID, chapter, startKey)
+	blocks, err := dao.GetStoryParagraphs(storyID, chapterID, startKey)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
@@ -84,12 +84,12 @@ func FullStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
 		return
 	}
 	if storyID == "" {
-		RespondWithError(w, http.StatusBadRequest, "Missing story name")
+		RespondWithError(w, http.StatusBadRequest, "Missing story id")
 		return
 	}
 	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
@@ -147,12 +147,12 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
 		return
 	}
 	if storyID == "" {
-		RespondWithError(w, http.StatusBadRequest, "Missing story name")
+		RespondWithError(w, http.StatusBadRequest, "Missing story id")
 		return
 	}
 
@@ -218,34 +218,53 @@ func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	RespondWithJson(w, http.StatusOK, stories)
+
+	var readyStories []*models.Story
+	for _, story := range stories {
+		allTablesReady := true
+		for _, chapter := range story.Chapters {
+			status, err := dao.CheckTableStatus(story.ID + "_" + chapter.ID + "_blocks")
+			if err != nil {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+			}
+			if status != "ACTIVE" {
+				// only return stories with all its tables in active status
+				allTablesReady = false
+			}
+		}
+		if allTablesReady {
+			readyStories = append(readyStories, story)
+		}
+
+	}
+	RespondWithJson(w, http.StatusOK, readyStories)
 }
 
 func AllAssociationsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	var (
-		email      string
-		err        error
-		storyTitle string
-		dao        daos.DaoInterface
-		ok         bool
+		email   string
+		err     error
+		storyID string
+		dao     daos.DaoInterface
+		ok      bool
 	)
 	if email, err = getUserEmail(r); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if storyTitle, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
+	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing story id")
 		return
 	}
-	if storyTitle == "" {
-		RespondWithError(w, http.StatusBadRequest, "Missing story name")
+	if storyID == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing story id")
 		return
 	}
 	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	associations, err := dao.GetStoryOrSeriesAssociations(email, storyTitle)
+	associations, err := dao.GetStoryOrSeriesAssociations(email, storyID, true)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
@@ -332,7 +351,24 @@ func AllSeriesVolumesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	RespondWithJson(w, http.StatusOK, volumes)
+	var readyStories []*models.Story
+	for _, story := range volumes {
+		allTablesReady := true
+		for _, chapter := range story.Chapters {
+			status, err := dao.CheckTableStatus(story.ID + "_" + chapter.ID + "_blocks")
+			if err != nil {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+			}
+			if status != "ACTIVE" {
+				// only return stories with all its tables in active status
+				allTablesReady = false
+			}
+		}
+		if allTablesReady {
+			readyStories = append(readyStories, story)
+		}
+	}
+	RespondWithJson(w, http.StatusOK, readyStories)
 }
 
 func GetUserData(w http.ResponseWriter, r *http.Request) {
@@ -346,5 +382,11 @@ func GetUserData(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	var wasSuspended, ok bool
+	if wasSuspended, ok = r.Context().Value("isSuspended").(bool); !ok {
+		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve suspension notifier from context")
+		return
+	}
+	user.Suspended = wasSuspended
 	RespondWithJson(w, http.StatusOK, user)
 }

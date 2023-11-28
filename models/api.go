@@ -13,9 +13,9 @@ type StoryBlock struct {
 	Place string          `json:"place" dynamodbav:"place"`
 }
 type StoryBlocks struct {
-	Title   string       `json:"title" dynamodbav:"title"`
-	Chapter int          `json:"chapter"`
-	Blocks  []StoryBlock `json:"blocks" dynamodbav:"blocks"`
+	StoryID   string       `json:"story_id" dynamodbav:"story_id"`
+	ChapterID string       `json:"chapter_id"`
+	Blocks    []StoryBlock `json:"blocks" dynamodbav:"blocks"`
 }
 
 type AssociationDetails struct {
@@ -34,9 +34,11 @@ type Association struct {
 }
 
 type Chapter struct {
-	ID    string `json:"id" dynamodbav:"story_id"`
-	Place int    `json:"chapter_num" dynamodbav:"chapter_num"`
-	Title string `json:"chapter_title" dynamodbav:"title"`
+	ID        string `json:"id" dynamodbav:"chapter_id"`
+	StoryID   string `json:"story_id" dynamodbav:"story_id"`
+	Place     int    `json:"chapter_num" dynamodbav:"chapter_num"`
+	Title     string `json:"chapter_title" dynamodbav:"title"`
+	BackupARN string `dynamodbav:"bup_arn"`
 }
 
 type ChapterWithContents struct {
@@ -80,6 +82,7 @@ type UserInfo struct {
 	Admin          bool   `json:"admin" dynamodbav:"admin"`
 	SubscriptionID string `json:"subscription_id" dynamodbav:"subscription_id"`
 	CustomerID     string `json:"customer_id" dynamodbav:"customer_id"`
+	Suspended      bool   `json:"suspended"`
 }
 
 type Answer struct {

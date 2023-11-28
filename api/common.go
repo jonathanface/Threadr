@@ -21,15 +21,15 @@ import (
 )
 
 const (
-	associationTypeCharacter     = "character"
-	associationTypePlace         = "place"
-	associationTypeEvent         = "event"
-	S3_CUSTOM_PORTRAIT_BUCKET    = "richdocter-custom-portraits"
-	S3_EXPORTS_BUCKET            = "richdocter-document-exports"
-	S3_STORY_IMAGE_BUCKET        = "richdocter-story-portraits"
-	S3_SERIES_IMAGE_BUCKET       = "richdocter-series-portraits"
-	TMP_EXPORT_DIR               = "./tmp"
-	MAX_UNSUBSCRIBED_BLOCK_COUNT = 50
+	associationTypeCharacter           = "character"
+	associationTypePlace               = "place"
+	associationTypeEvent               = "event"
+	S3_CUSTOM_PORTRAIT_BUCKET          = "richdocter-custom-portraits"
+	S3_EXPORTS_BUCKET                  = "richdocter-document-exports"
+	S3_STORY_IMAGE_BUCKET              = "richdocter-story-portraits"
+	S3_SERIES_IMAGE_BUCKET             = "richdocter-series-portraits"
+	TMP_EXPORT_DIR                     = "./tmp"
+	MAX_UNSUBSCRIBED_ASSOCIATION_LIMIT = 10
 )
 
 func getUserEmail(r *http.Request) (string, error) {
@@ -105,8 +105,8 @@ func processAWSError(opErr *smithy.OperationError) (err models.AwsStatusResponse
 	return err
 }
 
-func staggeredStoryBlockRetrieval(dao daos.DaoInterface, email string, storyID string, chapter string, key string) (*models.BlocksData, error) {
-	blocks, err := dao.GetStoryParagraphs(email, storyID, chapter, key)
+func staggeredStoryBlockRetrieval(dao daos.DaoInterface, email string, storyID string, chapterID string, key string) (*models.BlocksData, error) {
+	blocks, err := dao.GetStoryParagraphs(storyID, chapterID, key)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
@@ -128,7 +128,7 @@ func staggeredStoryBlockRetrieval(dao daos.DaoInterface, email string, storyID s
 	if !ok {
 		return nil, fmt.Errorf("error getting story blocks: invalid key_id type")
 	}
-	return staggeredStoryBlockRetrieval(dao, email, storyID, chapter, keyID.Value)
+	return staggeredStoryBlockRetrieval(dao, email, storyID, chapterID, keyID.Value)
 }
 
 func scaleDownImage(file io.Reader, maxWidth uint) (*bytes.Buffer, string, error) {

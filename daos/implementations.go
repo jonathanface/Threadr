@@ -12,7 +12,6 @@ import (
 	"path"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -81,6 +80,37 @@ func NewDAO() *DAO {
 	}
 }
 
+func (d *DAO) GetAllStories(email string) (stories []*models.Story, err error) {
+	out, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName:        aws.String("stories"),
+		FilterExpression: aws.String("author=:eml AND attribute_not_exists(deleted_at)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":eml": &types.AttributeValueMemberS{Value: email},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &stories); err != nil {
+		return nil, err
+	}
+
+	// Sort stories by the created_at timestamp
+
+	sort.Slice(stories, func(i, j int) bool {
+		return stories[i].CreatedAt < stories[j].CreatedAt
+	})
+
+	for i := 0; i < len(stories); i++ {
+		stories[i].Chapters, err = d.GetChaptersByStoryID(stories[i].ID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return stories, nil
+}
+
 func (d *DAO) GetAllStandalone(email string) (stories []*models.Story, err error) {
 	out, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("stories"),
@@ -122,6 +152,35 @@ func (d *DAO) GetChaptersByStoryID(storyID string) (chapters []models.Chapter, e
 		return nil, err
 	}
 	return chapters, nil
+}
+
+func (d *DAO) CreateUser(email string) error {
+	fmt.Println("creating user", email)
+	twii := &dynamodb.TransactWriteItemsInput{}
+	now := strconv.FormatInt(time.Now().Unix(), 10)
+	attributes := map[string]types.AttributeValue{
+		"email":      &types.AttributeValueMemberS{Value: email},
+		"admin":      &types.AttributeValueMemberBOOL{Value: false},
+		"subscriber": &types.AttributeValueMemberBOOL{Value: false},
+		"created_at": &types.AttributeValueMemberN{Value: now},
+	}
+	twi := types.TransactWriteItem{
+		Put: &types.Put{
+			TableName:           aws.String("users"),
+			Item:                attributes,
+			ConditionExpression: aws.String("attribute_not_exists(email)"),
+		},
+	}
+
+	twii.TransactItems = append(twii.TransactItems, twi)
+	err, awsErr := d.awsWriteTransaction(twii)
+	if err != nil {
+		return err
+	}
+	if !awsErr.IsNil() {
+		return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
+	}
+	return nil
 }
 
 func (d *DAO) GetUserDetails(email string) (user *models.UserInfo, err error) {
@@ -215,10 +274,10 @@ func (d *DAO) GetSeriesByID(email, seriesID string) (series *models.Series, err 
 	return &seriesFromMap[0], nil
 }
 
-func (d *DAO) GetStoryParagraphs(email, storyID, chapter, startKey string) (*models.BlocksData, error) {
+func (d *DAO) GetStoryParagraphs(storyID, chapterID, startKey string) (*models.BlocksData, error) {
 	var blocks models.BlocksData
-	email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	tableName := storyID + "_" + email + "_" + chapter + "_blocks"
+	tableName := storyID + "_" + chapterID + "_blocks"
+	fmt.Println("retrieving blocks on", tableName)
 
 	queryInput := &dynamodb.QueryInput{
 		TableName:              aws.String(tableName),
@@ -271,7 +330,7 @@ func (d *DAO) GetStoryParagraphs(email, storyID, chapter, startKey string) (*mod
 	return &blocks, nil
 }
 
-func (d *DAO) GetStoryOrSeriesAssociations(email, storyID string) ([]*models.Association, error) {
+func (d *DAO) GetStoryOrSeriesAssociations(email, storyID string, needDetails bool) ([]*models.Association, error) {
 	var (
 		associations []*models.Association
 		err          error
@@ -313,25 +372,28 @@ func (d *DAO) GetStoryOrSeriesAssociations(email, storyID string) ([]*models.Ass
 		return associations, err
 	}
 
-	for i, v := range associations {
-		outDetails, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
-			TableName:        aws.String("association_details"),
-			FilterExpression: aws.String("association_id=:aid"),
-			ExpressionAttributeValues: map[string]types.AttributeValue{
-				":aid": &types.AttributeValueMemberS{Value: v.ID},
-			},
-		})
-		if err != nil {
-			return associations, err
-		}
-		deets := []models.AssociationDetails{}
-		if err = attributevalue.UnmarshalListOfMaps(outDetails.Items, &deets); err != nil {
-			return associations, err
-		}
-		if len(deets) > 0 {
-			associations[i].Details = deets[0]
+	if needDetails {
+		for i, v := range associations {
+			outDetails, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+				TableName:        aws.String("association_details"),
+				FilterExpression: aws.String("association_id=:aid"),
+				ExpressionAttributeValues: map[string]types.AttributeValue{
+					":aid": &types.AttributeValueMemberS{Value: v.ID},
+				},
+			})
+			if err != nil {
+				return associations, err
+			}
+			deets := []models.AssociationDetails{}
+			if err = attributevalue.UnmarshalListOfMaps(outDetails.Items, &deets); err != nil {
+				return associations, err
+			}
+			if len(deets) > 0 {
+				associations[i].Details = deets[0]
+			}
 		}
 	}
+
 	return associations, nil
 }
 
@@ -423,11 +485,36 @@ func (d *DAO) UpsertUser(email string) (err error) {
 	return
 }
 
-func (d *DAO) ResetBlockOrder(email, storyID string, storyBlocks *models.StoryBlocks) (err error) {
-	email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	chapter := strconv.Itoa(storyBlocks.Chapter)
-	tableName := storyID + "_" + email + "_" + chapter + "_blocks"
+func (d *DAO) UpdateUser(user models.UserInfo) (err error) {
+	now := strconv.FormatInt(time.Now().Unix(), 10)
+	input := &dynamodb.UpdateItemInput{
+		TableName: aws.String("users"),
+		Key: map[string]types.AttributeValue{
+			"email": &types.AttributeValueMemberS{Value: user.Email},
+		},
+		ReturnValues:     types.ReturnValueUpdatedNew,
+		UpdateExpression: aws.String("set last_accessed=:t, subscription_id=:sid"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":t":   &types.AttributeValueMemberN{Value: now},
+			":sid": &types.AttributeValueMemberS{Value: user.SubscriptionID},
+		},
+	}
+	var out *dynamodb.UpdateItemOutput
+	if out, err = d.dynamoClient.UpdateItem(context.TODO(), input); err != nil {
+		return err
+	}
+	var createdAt string
+	attributevalue.Unmarshal(out.Attributes["created_at"], &createdAt)
 
+	if createdAt == now {
+		fmt.Println("accountUpdated")
+	}
+	return
+}
+
+func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (err error) {
+	tableName := storyID + "_" + storyBlocks.ChapterID + "_blocks"
+	fmt.Println("blocking", tableName)
 	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(storyBlocks.Blocks); i += d.writeBatchSize {
 		end := i + d.writeBatchSize
@@ -477,10 +564,8 @@ func (d *DAO) ResetBlockOrder(email, storyID string, storyBlocks *models.StoryBl
 	return
 }
 
-func (d *DAO) WriteBlocks(email, storyID string, storyBlocks *models.StoryBlocks) (err error) {
-	emailSafe := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	chapter := strconv.Itoa(storyBlocks.Chapter)
-	tableName := storyID + "_" + emailSafe + "_" + chapter + "_blocks"
+func (d *DAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) (err error) {
+	tableName := storyID + "_" + storyBlocks.ChapterID + "_blocks"
 
 	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(storyBlocks.Blocks); i += d.writeBatchSize {
@@ -660,30 +745,29 @@ func (d *DAO) UpdateAssociationPortraitEntryInDB(email, storyOrSeriesID, associa
 	return nil
 }
 
-func (d *DAO) CreateChapter(storyID string, email string, chapter models.Chapter) (err error) {
-
+func (d *DAO) CreateChapter(storyID string, chapter models.Chapter) (newChapter models.Chapter, err error) {
+	newChapter = chapter
 	var chapTwi types.TransactWriteItem
-	if chapTwi, err = d.generateStoryChapterTransaction(storyID, chapter.Place, chapter.Title); err != nil {
+	if chapTwi, err = d.generateStoryChapterTransaction(storyID, chapter.ID, chapter.Title, chapter.Place); err != nil {
 		return
 	}
 
 	twii := &dynamodb.TransactWriteItemsInput{}
 	twii.TransactItems = append(twii.TransactItems, chapTwi)
 	err, awsErr := d.awsWriteTransaction(twii)
+	fmt.Println("trans err", err, awsErr)
 	if err != nil {
-		return err
+		return models.Chapter{}, err
 	}
 	if !awsErr.IsNil() {
-		return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
+		return models.Chapter{}, fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 	}
-	chapterNum := strconv.Itoa(chapter.Place)
 
-	safeEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	tableName := storyID + "_" + safeEmail + "_" + chapterNum + "_blocks"
+	tableName := storyID + "_" + chapter.ID + "_blocks"
 	if err = d.createBlockTable(tableName); err != nil {
-		return
+		return models.Chapter{}, err
 	}
-	return
+	return newChapter, nil
 }
 
 func (d *DAO) waitForTableToGoActive(tableName string, maxRetries int, delayBetweenRetries time.Duration) error {
@@ -954,8 +1038,9 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 		"created_at":  &types.AttributeValueMemberN{Value: now},
 		"image_url":   &types.AttributeValueMemberS{Value: story.ImageURL},
 	}
-	intPlace := strconv.Itoa(story.Place)
+
 	if story.SeriesID != "" {
+		intPlace := strconv.Itoa(story.Place)
 		attributes["series_id"] = &types.AttributeValueMemberS{Value: story.SeriesID}
 		attributes["place"] = &types.AttributeValueMemberN{Value: intPlace}
 	}
@@ -977,7 +1062,8 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 	}
 	twii = &dynamodb.TransactWriteItemsInput{}
 	var chapTwi types.TransactWriteItem
-	if chapTwi, err = d.generateStoryChapterTransaction(story.ID, 1, "Chapter 1"); err != nil {
+	firstChapterID := uuid.New().String()
+	if chapTwi, err = d.generateStoryChapterTransaction(story.ID, firstChapterID, "Chapter 1", 1); err != nil {
 		return
 	}
 	twii.TransactItems = append(twii.TransactItems, chapTwi)
@@ -1040,19 +1126,15 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 	if !awsErr.IsNil() {
 		return "", fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 	}
-	safeEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	tableName := story.ID + "_" + safeEmail + "_1_blocks"
+	tableName := story.ID + "_" + firstChapterID + "_blocks"
 	if err = d.createBlockTable(tableName); err != nil {
 		return "", err
 	}
 	return story.ID, nil
 }
 
-func (d *DAO) DeleteStoryParagraphs(email, storyTitle string, storyBlocks *models.StoryBlocks) (err error) {
-	email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	safeStory := d.sanitizeTableName(storyTitle)
-	chapter := strconv.Itoa(storyBlocks.Chapter)
-	tableName := email + "_" + safeStory + "_" + chapter + "_blocks"
+func (d *DAO) DeleteStoryParagraphs(storyID string, storyBlocks *models.StoryBlocks) (err error) {
+	tableName := storyID + "_" + storyBlocks.ChapterID + "_blocks"
 
 	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(storyBlocks.Blocks); i += d.writeBatchSize {
@@ -1181,9 +1263,7 @@ func (d *DAO) DeleteAssociations(email, storyID string, associations []*models.A
 	return
 }
 
-func (d *DAO) DeleteChapters(email, storyID string, chapters []models.Chapter) (err error) {
-	tblEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-
+func (d *DAO) DeleteChapters(storyID string, chapters []models.Chapter) (err error) {
 	batches := make([][]models.Chapter, 0, (len(chapters)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(chapters); i += d.writeBatchSize {
 		end := i + d.writeBatchSize
@@ -1200,10 +1280,9 @@ func (d *DAO) DeleteChapters(email, storyID string, chapters []models.Chapter) (
 		}
 		for i, item := range batch {
 			// Create a key for the item.
-			chapter := strconv.Itoa(item.Place)
 			key := map[string]types.AttributeValue{
-				"chapter_num": &types.AttributeValueMemberN{Value: chapter},
-				"story_id":    &types.AttributeValueMemberS{Value: storyID},
+				"chapter_id": &types.AttributeValueMemberS{Value: item.ID},
+				"story_id":   &types.AttributeValueMemberS{Value: storyID},
 			}
 
 			// Create a delete input for the item.
@@ -1220,7 +1299,7 @@ func (d *DAO) DeleteChapters(email, storyID string, chapters []models.Chapter) (
 			// Add the transaction write item to the list of transaction write items.
 			writeItemsInput.TransactItems[i] = writeItem
 
-			tableName := storyID + "_" + tblEmail + "_" + chapter + "_blocks"
+			tableName := storyID + "_" + item.ID + "_blocks"
 
 			deleteTableInput := &dynamodb.DeleteTableInput{
 				TableName: aws.String(tableName),
@@ -1242,7 +1321,142 @@ func (d *DAO) DeleteChapters(email, storyID string, chapters []models.Chapter) (
 	return
 }
 
-func (d *DAO) SoftDeleteStory(email, storyID, seriesID string) error {
+func (d *DAO) RestoreAutomaticallyDeletedStories(email string) error {
+	out, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName:        aws.String("stories"),
+		FilterExpression: aws.String("author=:eml AND attribute_exists(deleted_at) AND automated_deletion=:a"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":eml": &types.AttributeValueMemberS{Value: email},
+			":a":   &types.AttributeValueMemberBOOL{Value: true},
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	var stories []models.Story
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &stories); err != nil {
+		return err
+	}
+	for _, story := range stories {
+		chapterScanInput := &dynamodb.ScanInput{
+			TableName:        aws.String("chapters"),
+			FilterExpression: aws.String("attribute_exists(deleted_at) AND story_id = :sid AND attribute_exists(bup_arn)"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":sid": &types.AttributeValueMemberS{Value: story.ID},
+			},
+			Select: types.SelectAllAttributes,
+		}
+		chapterOut, err := d.dynamoClient.Scan(context.TODO(), chapterScanInput)
+		if err != nil {
+			return err
+		}
+		var chapters []models.Chapter
+		if err = attributevalue.UnmarshalListOfMaps(chapterOut.Items, &chapters); err != nil {
+			return err
+		}
+		for _, chapter := range chapters {
+			oldTableName := story.ID + "_" + chapter.ID + "_blocks"
+			_, err := d.dynamoClient.RestoreTableFromBackup(context.TODO(), &dynamodb.RestoreTableFromBackupInput{
+				BackupArn:       aws.String(chapter.BackupARN),
+				TargetTableName: aws.String(oldTableName),
+			})
+			if err != nil {
+				return err
+			}
+			chapterKey := map[string]types.AttributeValue{
+				"chapter_id": &types.AttributeValueMemberS{Value: chapter.ID},
+				"story_id":   &types.AttributeValueMemberS{Value: story.ID},
+			}
+			chapterUpdateInput := &dynamodb.UpdateItemInput{
+				TableName:        aws.String("chapters"),
+				Key:              chapterKey,
+				UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
+			}
+			_, err = d.dynamoClient.UpdateItem(context.Background(), chapterUpdateInput)
+			if err != nil {
+				return err
+			}
+		}
+		storyKey := map[string]types.AttributeValue{
+			"story_id": &types.AttributeValueMemberS{Value: story.ID},
+			"author":   &types.AttributeValueMemberS{Value: email},
+		}
+		storyUpdateInput := &dynamodb.UpdateItemInput{
+			TableName:        aws.String("stories"),
+			Key:              storyKey,
+			UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
+		}
+		_, err = d.dynamoClient.UpdateItem(context.Background(), storyUpdateInput)
+		if err != nil {
+			return err
+		}
+
+		storyOrSeriesID := story.ID
+		if story.SeriesID != "" {
+			storyOrSeriesID = story.SeriesID
+			seriesKey := map[string]types.AttributeValue{
+				"series_id": &types.AttributeValueMemberS{Value: story.SeriesID},
+				"author":    &types.AttributeValueMemberS{Value: email},
+			}
+			seriesUpdateInput := &dynamodb.UpdateItemInput{
+				TableName:        aws.String("series"),
+				Key:              seriesKey,
+				UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
+			}
+			_, err = d.dynamoClient.UpdateItem(context.Background(), seriesUpdateInput)
+			if err != nil {
+				return err
+			}
+		}
+
+		associationScanInput := &dynamodb.ScanInput{
+			TableName:        aws.String("associations"),
+			FilterExpression: aws.String("author = :eml AND attribute_exists(deleted_at) AND automated_deletion = :a AND story_or_series_id = :sid"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":eml": &types.AttributeValueMemberS{Value: email},
+				":a":   &types.AttributeValueMemberBOOL{Value: true},
+				":sid": &types.AttributeValueMemberS{Value: storyOrSeriesID},
+			},
+			Select: types.SelectAllAttributes,
+		}
+		associationOut, err := d.dynamoClient.Scan(context.TODO(), associationScanInput)
+		if err != nil {
+			return err
+		}
+
+		for _, item := range associationOut.Items {
+			assocID := item["association_id"].(*types.AttributeValueMemberS).Value
+			associationKey := map[string]types.AttributeValue{
+				"association_id":     &types.AttributeValueMemberS{Value: assocID},
+				"story_or_series_id": &types.AttributeValueMemberS{Value: storyOrSeriesID},
+			}
+			associationUpdateInput := &dynamodb.UpdateItemInput{
+				TableName:        aws.String("associations"),
+				Key:              associationKey,
+				UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
+			}
+			_, err = d.dynamoClient.UpdateItem(context.Background(), associationUpdateInput)
+			if err != nil {
+				return err
+			}
+
+			associationDetailsUpdateInput := &dynamodb.UpdateItemInput{
+				TableName:        aws.String("association_details"),
+				Key:              associationKey,
+				UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
+			}
+			_, err = d.dynamoClient.UpdateItem(context.Background(), associationDetailsUpdateInput)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 
 	// Delete chapters
@@ -1262,34 +1476,44 @@ func (d *DAO) SoftDeleteStory(email, storyID, seriesID string) error {
 	chapterCount := 0
 	for _, item := range chapterOut.Items {
 		// Delete associated tables
-		safeEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-		chapNum := strconv.Itoa(chapterCount + 1)
-		oldTableName := storyID + "_" + safeEmail + "_" + chapNum + "_blocks"
+		chapterID := item["chapter_id"].(*types.AttributeValueMemberS).Value
+		oldTableName := storyID + "_" + chapterID + "_blocks"
+		chapterStatus, err := d.CheckTableStatus(oldTableName)
+		if err != nil {
+			return err
+		}
+		if chapterStatus != "ACTIVE" {
+			// TODO this needs to go in some kind of queue for later attempts
+			return nil
+		}
 		deleteTableInput := &dynamodb.DeleteTableInput{
 			TableName: aws.String(oldTableName),
 		}
+
 		fmt.Println("backing up", oldTableName+"-backup-"+time.Now().Format("2006-01-02-15-04-05"))
-		/*
-			// Create the BackupTableInput
-			input := &dynamodb.CreateBackupInput{
-				TableName:  aws.String(oldTableName),
-				BackupName: aws.String(oldTableName + "-backup-" + time.Now().Format("2006-01-02-15-04-05")),
-			}
 
-			// Create the backup
-			buResponse, err := d.dynamoClient.CreateBackup(context.TODO(), input)
-			if err != nil {
-				fmt.Printf("Failed to create backup for table %s, %v", oldTableName, err)
-				return err
-			}
+		// Create the BackupTableInput
+		input := &dynamodb.CreateBackupInput{
+			TableName:  aws.String(oldTableName),
+			BackupName: aws.String(oldTableName + "-backup-" + time.Now().Format("2006-01-02-15-04-05")),
+		}
 
-			err = d.checkBackupStatus(*buResponse.BackupDetails.BackupArn)
-			if err != nil {
-				return err
-			}*/
+		// Create the backup
+		buResponse, err := d.dynamoClient.CreateBackup(context.TODO(), input)
+		if err != nil {
+			fmt.Printf("Failed to create backup for table %s, %v", oldTableName, err)
+			return err
+		}
+		fmt.Println("backup arn", *buResponse.BackupDetails.BackupArn)
+
+		err = d.checkBackupStatus(*buResponse.BackupDetails.BackupArn)
+		if err != nil {
+			return err
+		}
 
 		for numRetries := 0; numRetries < d.maxRetries; numRetries++ {
-			if _, err = d.dynamoClient.DeleteTable(context.Background(), deleteTableInput); err != nil {
+			var deletionOutput *dynamodb.DeleteTableOutput
+			if deletionOutput, err = d.dynamoClient.DeleteTable(context.Background(), deleteTableInput); err != nil {
 				if opErr, ok := err.(*smithy.OperationError); ok {
 					var useErr *types.ResourceInUseException
 					if errors.As(opErr.Unwrap(), &useErr) {
@@ -1304,21 +1528,23 @@ func (d *DAO) SoftDeleteStory(email, storyID, seriesID string) error {
 					}
 				}
 			}
+			fmt.Println("deletion output", deletionOutput)
 			break
 		}
 		chapterCount++
 
-		chapterNum := item["chapter_num"].(*types.AttributeValueMemberN).Value
 		chapterKey := map[string]types.AttributeValue{
-			"chapter_num": &types.AttributeValueMemberN{Value: chapterNum},
-			"story_id":    &types.AttributeValueMemberS{Value: storyID},
+			"chapter_id": &types.AttributeValueMemberS{Value: chapterID},
+			"story_id":   &types.AttributeValueMemberS{Value: storyID},
 		}
 		chapterUpdateInput := &dynamodb.UpdateItemInput{
 			TableName:        aws.String("chapters"),
 			Key:              chapterKey,
-			UpdateExpression: aws.String("set deleted_at = :n"),
+			UpdateExpression: aws.String("set deleted_at = :n, automated_deletion = :a, bup_arn = :barn"),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
-				":n": &types.AttributeValueMemberN{Value: now},
+				":n":    &types.AttributeValueMemberN{Value: now},
+				":a":    &types.AttributeValueMemberBOOL{Value: automated},
+				":barn": &types.AttributeValueMemberS{Value: *buResponse.BackupDetails.BackupArn},
 			},
 		}
 		_, err = d.dynamoClient.UpdateItem(context.Background(), chapterUpdateInput)
@@ -1326,6 +1552,12 @@ func (d *DAO) SoftDeleteStory(email, storyID, seriesID string) error {
 			return err
 		}
 	}
+
+	story, err := d.GetStoryByID(email, storyID)
+	if err != nil {
+		return err
+	}
+	seriesID := story.SeriesID
 
 	// Delete story
 	storyKey := map[string]types.AttributeValue{
@@ -1335,9 +1567,10 @@ func (d *DAO) SoftDeleteStory(email, storyID, seriesID string) error {
 	storyUpdateInput := &dynamodb.UpdateItemInput{
 		TableName:        aws.String("stories"),
 		Key:              storyKey,
-		UpdateExpression: aws.String("set deleted_at = :n"),
+		UpdateExpression: aws.String("set deleted_at = :n, automated_deletion=:a"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":n": &types.AttributeValueMemberN{Value: now},
+			":a": &types.AttributeValueMemberBOOL{Value: automated},
 		},
 	}
 	_, err = d.dynamoClient.UpdateItem(context.Background(), storyUpdateInput)
@@ -1348,7 +1581,7 @@ func (d *DAO) SoftDeleteStory(email, storyID, seriesID string) error {
 	storyOrSeriesID := storyID
 	deletedSeries := false
 	// Delete series
-	if len(seriesID) > 0 {
+	if seriesID != "" {
 		series, err := d.GetSeriesByID(email, seriesID)
 		if err != nil {
 			return err
@@ -1362,9 +1595,10 @@ func (d *DAO) SoftDeleteStory(email, storyID, seriesID string) error {
 			seriesUpdateInput := &dynamodb.UpdateItemInput{
 				TableName:        aws.String("series"),
 				Key:              seriesKey,
-				UpdateExpression: aws.String("set deleted_at = :n"),
+				UpdateExpression: aws.String("set deleted_at = :n, automated_deletion = :a"),
 				ExpressionAttributeValues: map[string]types.AttributeValue{
 					":n": &types.AttributeValueMemberN{Value: now},
+					":a": &types.AttributeValueMemberBOOL{Value: automated},
 				},
 			}
 			_, err = d.dynamoClient.UpdateItem(context.Background(), seriesUpdateInput)
@@ -1373,10 +1607,9 @@ func (d *DAO) SoftDeleteStory(email, storyID, seriesID string) error {
 			}
 			deletedSeries = true
 		}
-
 	}
 
-	if len(seriesID) == 0 || deletedSeries {
+	if seriesID == "" || deletedSeries {
 		// Delete associations
 		associationScanInput := &dynamodb.ScanInput{
 			TableName:        aws.String("associations"),
@@ -1401,9 +1634,10 @@ func (d *DAO) SoftDeleteStory(email, storyID, seriesID string) error {
 			associationUpdateInput := &dynamodb.UpdateItemInput{
 				TableName:        aws.String("associations"),
 				Key:              associationKey,
-				UpdateExpression: aws.String("set deleted_at = :n"),
+				UpdateExpression: aws.String("set deleted_at = :n, automated_deletion = :a"),
 				ExpressionAttributeValues: map[string]types.AttributeValue{
 					":n": &types.AttributeValueMemberN{Value: now},
+					":a": &types.AttributeValueMemberBOOL{Value: automated},
 				},
 			}
 			_, err = d.dynamoClient.UpdateItem(context.Background(), associationUpdateInput)
@@ -1414,9 +1648,10 @@ func (d *DAO) SoftDeleteStory(email, storyID, seriesID string) error {
 			associationDetailsUpdateInput := &dynamodb.UpdateItemInput{
 				TableName:        aws.String("association_details"),
 				Key:              associationKey,
-				UpdateExpression: aws.String("set deleted_at = :n"),
+				UpdateExpression: aws.String("set deleted_at = :n, automated_deletion = :a"),
 				ExpressionAttributeValues: map[string]types.AttributeValue{
 					":n": &types.AttributeValueMemberN{Value: now},
+					":a": &types.AttributeValueMemberBOOL{Value: automated},
 				},
 			}
 			_, err = d.dynamoClient.UpdateItem(context.Background(), associationDetailsUpdateInput)
@@ -1428,7 +1663,7 @@ func (d *DAO) SoftDeleteStory(email, storyID, seriesID string) error {
 	return nil
 }
 
-func (d *DAO) hardDeleteStory(email, storyID, seriesID string) error {
+func (d *DAO) hardDeleteStory(email, storyID string) error {
 	originalStory, err := d.GetStoryByID(email, storyID)
 	if err != nil {
 		return err
@@ -1449,10 +1684,11 @@ func (d *DAO) hardDeleteStory(email, storyID, seriesID string) error {
 	}
 
 	for _, item := range chapterOut.Items {
+		chapterID := item["id"].(*types.AttributeValueMemberS)
 		// Delete associated tables
 		chapterKey := map[string]types.AttributeValue{
-			"story_id":    &types.AttributeValueMemberS{Value: storyID},
-			"chapter_num": &types.AttributeValueMemberN{Value: item["chapter_title"].(*types.AttributeValueMemberN).Value},
+			"story_id":   &types.AttributeValueMemberS{Value: storyID},
+			"chapter_id": chapterID,
 		}
 		chapterDeleteInput := &dynamodb.DeleteItemInput{
 			TableName: aws.String("chapters"),
@@ -1481,15 +1717,15 @@ func (d *DAO) hardDeleteStory(email, storyID, seriesID string) error {
 	// Delete series
 	deletedSeries := false
 	storyOrSeriesID := storyID
-	if len(seriesID) > 0 {
-		series, err := d.GetSeriesByID(email, seriesID)
+	if originalStory.SeriesID != "" {
+		series, err := d.GetSeriesByID(email, originalStory.SeriesID)
 		if err != nil {
 			return err
 		}
 		if len(series.Stories)-1 <= 0 {
 			storyOrSeriesID = series.ID
 			seriesKey := map[string]types.AttributeValue{
-				"series_id": &types.AttributeValueMemberS{Value: seriesID},
+				"series_id": &types.AttributeValueMemberS{Value: originalStory.SeriesID},
 				"author":    &types.AttributeValueMemberS{Value: email},
 			}
 			seriesDeleteInput := &dynamodb.DeleteItemInput{
@@ -1519,7 +1755,7 @@ func (d *DAO) hardDeleteStory(email, storyID, seriesID string) error {
 		}
 	}
 
-	if len(seriesID) == 0 || deletedSeries {
+	if originalStory.SeriesID == "" || deletedSeries {
 
 		// Delete associations
 		associationScanInput := &dynamodb.ScanInput{
@@ -1617,10 +1853,9 @@ func (d *DAO) GetStoryCountByUser(email string) (count int, err error) {
 	return len(storyOut.Items), nil
 }
 
-func (d *DAO) GetBlockCountByChapter(email, storyTitle, chapter string) (count int, err error) {
-	email = strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-	safeStory := d.sanitizeTableName(storyTitle)
-	tableName := email + "_" + safeStory + "_" + chapter + "_blocks"
+func (d *DAO) GetBlockCountByChapter(email, storyID, chapterID string) (count int, err error) {
+
+	tableName := storyID + "_" + chapterID + "_blocks"
 
 	blockScanInput := &dynamodb.ScanInput{
 		TableName:        aws.String(tableName),
