@@ -1483,7 +1483,8 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 			return err
 		}
 		if chapterStatus != "ACTIVE" {
-			// TODO this needs to go in some kind of queue for later attempts
+			time.Sleep(1 * time.Second)
+			go d.SoftDeleteStory(email, storyID, automated)
 			return nil
 		}
 		deleteTableInput := &dynamodb.DeleteTableInput{
