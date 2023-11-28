@@ -6,6 +6,7 @@ import (
 	"RichDocter/sessions"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -218,7 +219,26 @@ func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	RespondWithJson(w, http.StatusOK, stories)
+
+	var readyStories []*models.Story
+	for _, story := range stories {
+		allTablesReady := true
+		for _, chapter := range story.Chapters {
+			status, err := dao.CheckTableStatus(story.ID + "_" + chapter.ID + "_blocks")
+			if err != nil {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+			}
+			if status != "ACTIVE" {
+				// only return stories with all its tables in active status
+				allTablesReady = false
+			}
+		}
+		if allTablesReady {
+			readyStories = append(readyStories, story)
+		}
+
+	}
+	RespondWithJson(w, http.StatusOK, readyStories)
 }
 
 func AllAssociationsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {
@@ -332,7 +352,24 @@ func AllSeriesVolumesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	RespondWithJson(w, http.StatusOK, volumes)
+	var readyStories []*models.Story
+	for _, story := range volumes {
+		allTablesReady := true
+		for _, chapter := range story.Chapters {
+			status, err := dao.CheckTableStatus(story.ID + "_" + chapter.ID + "_blocks")
+			if err != nil {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+			}
+			if status != "ACTIVE" {
+				// only return stories with all its tables in active status
+				allTablesReady = false
+			}
+		}
+		if allTablesReady {
+			readyStories = append(readyStories, story)
+		}
+	}
+	RespondWithJson(w, http.StatusOK, readyStories)
 }
 
 func GetUserData(w http.ResponseWriter, r *http.Request) {
@@ -346,5 +383,12 @@ func GetUserData(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	var wasSuspended, ok bool
+	if wasSuspended, ok = r.Context().Value("isSuspended").(bool); !ok {
+		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve suspension notifier from context")
+		return
+	}
+	fmt.Println("found", wasSuspended)
+	user.Suspended = wasSuspended
 	RespondWithJson(w, http.StatusOK, user)
 }

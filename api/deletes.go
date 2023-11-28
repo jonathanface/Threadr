@@ -158,7 +158,6 @@ func DeleteStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		dao     daos.DaoInterface
 		ok      bool
 	)
-	seriesID := r.URL.Query().Get("series")
 	if email, err = getUserEmail(r); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -176,7 +175,7 @@ func DeleteStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	if err = dao.SoftDeleteStory(email, storyID, seriesID); err != nil {
+	if err = dao.SoftDeleteStory(email, storyID, false); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {

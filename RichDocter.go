@@ -106,7 +106,73 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 			api.RespondWithError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		if user.SubscriptionID == "" {
+		userDetails, err := dao.GetUserDetails(user.Email)
+		if err != nil {
+			api.RespondWithError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		suspendedAccount := false
+		if userDetails.SubscriptionID != "" {
+			isActive, err := billing.CheckSubscriptionIsActive(user)
+			if err != nil {
+				// hack
+				if err.Error() != "no subscription found" {
+					api.RespondWithError(w, http.StatusBadGateway, err.Error())
+					return
+				}
+
+			}
+			if !isActive {
+				suspendedAccount = true
+				// account is no longer active
+				user.SubscriptionID = ""
+				err = dao.UpdateUser(user)
+				if err != nil {
+					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+					return
+				}
+
+				storiesCount, err := dao.GetTotalCreatedStories(user.Email)
+				if err != nil {
+					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+					return
+				}
+				if storiesCount > 1 {
+					// soft delete all but the earliest created story
+					stories, err := dao.GetAllStories(user.Email)
+					if err != nil {
+						api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+						return
+					}
+					for idx, story := range stories {
+						if idx > 0 {
+							err = dao.SoftDeleteStory(user.Email, story.ID, true)
+							if err != nil {
+								api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+								return
+							}
+						}
+
+					}
+				}
+				// I need to somehow notify the client here
+			} else {
+				suspended, err := dao.CheckForSuspendedStories(user.Email)
+				if err != nil {
+					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+					return
+				}
+				if suspended {
+					err = dao.RestoreAutomaticallyDeletedStories(user.Email)
+					if err != nil {
+						api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+						return
+					}
+				}
+			}
+		}
+
+		if userDetails.SubscriptionID == "" {
 			if r.Method == "POST" && (strings.HasSuffix(r.URL.Path, "/stories") || r.Method == "PUT" && strings.HasSuffix(r.URL.Path, "/export")) {
 				stories, err := dao.GetTotalCreatedStories(user.Email)
 				if err != nil {
@@ -148,6 +214,7 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(time.Second*5))
 		defer cancel()
 		ctx = context.WithValue(ctx, "dao", dao)
+		ctx = context.WithValue(ctx, "isSuspended", suspendedAccount)
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})

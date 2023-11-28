@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/smithy-go"
@@ -115,6 +114,25 @@ func (d *DAO) checkBackupStatus(arn string) error {
 		}
 	}
 	return nil
+}
+
+// Check if a story was "suspended" by an account's subscription not renewing
+func (d *DAO) CheckForSuspendedStories(email string) (bool, error) {
+	out, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName:        aws.String("stories"),
+		FilterExpression: aws.String("author=:eml AND attribute_exists(deleted_at) AND automated_deletion=:a"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":eml": &types.AttributeValueMemberS{Value: email},
+			":a":   &types.AttributeValueMemberBOOL{Value: true},
+		},
+	})
+	if err != nil {
+		return false, err
+	}
+	if len(out.Items) > 0 {
+		return true, nil
+	}
+	return false, nil
 }
 
 func (d *DAO) createBlockTable(tableName string) error {
@@ -233,37 +251,17 @@ func (d *DAO) WasStoryDeleted(email string, storyTitle string) (bool, error) {
 }
 
 // check if passed story is a member of a series
-// return series name if yes, story title if no
+// return series ID if yes, blank if no
 func (d *DAO) IsStoryInASeries(email string, storyID string) (string, error) {
 	var (
-		err error
+		err   error
+		story *models.Story
 	)
-	out, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
-		TableName:        aws.String("stories"),
-		FilterExpression: aws.String("author=:eml AND story_id=:s AND attribute_not_exists(deleted_at)"),
-		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":eml": &types.AttributeValueMemberS{Value: email},
-			":s":   &types.AttributeValueMemberS{Value: storyID},
-		},
-	})
+	story, err = d.GetStoryByID(email, storyID)
 	if err != nil {
 		return "", err
 	}
-	storyFromMap := []models.Story{}
-	if err = attributevalue.UnmarshalListOfMaps(out.Items, &storyFromMap); err != nil {
-		return "", err
-	}
-	if len(storyFromMap) > 0 {
-		if storyFromMap[0].SeriesID != "" {
-			series, err := d.GetSeriesByID(email, storyFromMap[0].SeriesID)
-			if err != nil {
-				return "", err
-			}
-			return series.ID, nil
-		}
-		return storyFromMap[0].ID, nil
-	}
-	return "", fmt.Errorf("unable to find story")
+	return story.SeriesID, nil
 }
 
 func (d *DAO) wasErrorOfTypeConditionalFailure(err error) bool {
@@ -298,4 +296,14 @@ func (d *DAO) GetTotalCreatedStories(email string) (storiesCount int, err error)
 	}
 	storiesCount = int(out.Count)
 	return
+}
+
+func (d *DAO) CheckTableStatus(tableName string) (string, error) {
+	resp, err := d.dynamoClient.DescribeTable(context.TODO(), &dynamodb.DescribeTableInput{
+		TableName: aws.String(tableName),
+	})
+	if err != nil {
+		return "", err
+	}
+	return string(resp.Table.TableStatus), nil
 }

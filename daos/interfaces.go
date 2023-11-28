@@ -6,6 +6,7 @@ import (
 
 type DaoInterface interface {
 	// GETs
+	GetAllStories(email string) ([]*models.Story, error)
 	GetAllStandalone(email string) ([]*models.Story, error)
 	GetAllSeriesWithStories(email string) ([]models.Series, error)
 	GetChaptersByStoryID(storyID string) ([]models.Chapter, error)
@@ -19,6 +20,8 @@ type DaoInterface interface {
 
 	// PUTs
 	UpsertUser(email string) error
+	UpdateUser(user models.UserInfo) error
+	RestoreAutomaticallyDeletedStories(email string) error
 	ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) error
 	WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) error
 	WriteAssociations(email, storyOrSeriesID string, associations []*models.Association) error
@@ -38,8 +41,8 @@ type DaoInterface interface {
 	DeleteStoryParagraphs(storyID string, storyBlocks *models.StoryBlocks) error
 	DeleteAssociations(email, storyID string, associations []*models.Association) error
 	DeleteChapters(storyID string, chapters []models.Chapter) error
-	SoftDeleteStory(email, storyID, seriesID string) error
-	hardDeleteStory(email, storyID, seriesID string) error
+	SoftDeleteStory(email, storyID string, isAutomated bool) error
+	hardDeleteStory(email, storyID string) error
 	DeleteSeries(email string, series models.Series) error
 
 	// HELPERS
@@ -47,4 +50,6 @@ type DaoInterface interface {
 	IsStoryInASeries(email string, storyID string) (string, error)
 	IsUserSubscribed(email string) (string, error)
 	GetTotalCreatedStories(email string) (int, error)
+	CheckForSuspendedStories(email string) (bool, error)
+	CheckTableStatus(tableName string) (string, error)
 }

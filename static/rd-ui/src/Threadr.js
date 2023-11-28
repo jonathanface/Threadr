@@ -12,6 +12,14 @@ import EditSeriesModal from "./sections/editSeries/EditSeriesModal";
 import EditStory from "./sections/editStory/EditStoryModal";
 import StoryAndSeriesListing from "./sections/storyAndSeriesListing/StoryAndSeriesListing";
 import Subscribe from "./sections/subscribe/Subscribe";
+import {
+  setAlertLink,
+  setAlertMessage,
+  setAlertOpen,
+  setAlertSeverity,
+  setAlertTimeout,
+  setAlertTitle,
+} from "./stores/alertSlice";
 import { setSelectedStory } from "./stores/storiesSlice";
 import { setIsLoaderVisible } from "./stores/uiSlice";
 import { flipLoggedInState } from "./stores/userSlice";
@@ -65,9 +73,21 @@ const Threadr = () => {
         }
         throw new Error("Fetch problem userData " + response.status);
       })
-      .then((data) => {
+      .then((json) => {
         setIsLoading(false);
         dispatch(flipLoggedInState());
+        if (json.suspended) {
+          dispatch(setAlertTitle("Subscription expired"));
+          dispatch(
+            setAlertMessage(
+              "Your subscription expired, and you didn't have auto-renewal enabled. Any additional stories you had created have been removed from your account, but may be recovered by re-subscribing."
+            )
+          );
+          dispatch(setAlertLink({ location: "subscribe" }));
+          dispatch(setAlertSeverity("error"));
+          dispatch(setAlertTimeout(null));
+          dispatch(setAlertOpen(true));
+        }
       })
       .catch((e) => {
         setIsLoading(false);
