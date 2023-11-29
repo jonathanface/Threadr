@@ -83,6 +83,14 @@ const styleMap = {
   },
 };
 
+const prompts = [
+  "Don't think, just type.",
+  "Once Upon A Time...",
+  "It was the best of times, it was the blurst of times.",
+  "Failure is made of should-haves.",
+  "Type faster!",
+];
+
 const dbOperationQueue = [];
 
 const Document = () => {
@@ -1174,6 +1182,11 @@ const Document = () => {
     console.log("edit chap");
   };
 
+  const getWritingPrompt = () => {
+    return prompts[Math.floor(Math.random() * prompts.length)];
+  };
+  const defaultText = getWritingPrompt();
+
   return (
     <div>
       <AssociationUI
@@ -1313,6 +1326,7 @@ const Document = () => {
         onClick={setFocus}
         onScroll={handleScroll}>
         <Editor
+          placeholder={defaultText}
           spellCheck={true}
           blockStyleFn={getBlockStyles}
           customStyleMap={styleMap}

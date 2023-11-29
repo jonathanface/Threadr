@@ -25,6 +25,7 @@ const CreateNewStory = () => {
   const [isInASeries, setIsInASeries] = useState(false);
   const [series, setSeries] = useState([]);
   const isCreatingNewStory = useSelector((state) => state.stories.isCreatingNew);
+  const userDetails = useSelector((state) => state.user.userDetails);
   const isLoggedIn = useSelector((state) => state.user.isLoggedIn);
   const belongsToSeries = useSelector((state) => state.stories.belongsToSeries);
 
@@ -68,7 +69,7 @@ const CreateNewStory = () => {
         throw new Error("Fetch problem series " + response.status);
       })
       .then((data) => {
-        const reduced = data.reduce((accumulator, currentValue) => {
+        const reduced = data[userDetails.email].reduce((accumulator, currentValue) => {
           if (!accumulator[currentValue.series_id]) {
             accumulator[currentValue.series_id] = {
               id: currentValue.series_id,

@@ -68,6 +68,7 @@ func StoryBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	if blocks == nil || len(blocks.Items) == 0 {
 		RespondWithError(w, http.StatusNotFound, "no content")
+		return
 	}
 	RespondWithJson(w, http.StatusOK, blocks)
 }
@@ -204,7 +205,13 @@ func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	stories, err := dao.GetAllStandalone(email)
+	userDetails, err := dao.GetUserDetails(email)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	stories, err := dao.GetAllStandalone(email, userDetails.Admin)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
@@ -219,25 +226,29 @@ func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var readyStories []*models.Story
-	for _, story := range stories {
-		allTablesReady := true
-		for _, chapter := range story.Chapters {
-			status, err := dao.CheckTableStatus(story.ID + "_" + chapter.ID + "_blocks")
-			if err != nil {
-				RespondWithError(w, http.StatusInternalServerError, err.Error())
+	var readyMap = make(map[string][]models.Story)
+	for author, authorStories := range stories {
+		var readyStories []models.Story
+		for _, story := range authorStories {
+			allTablesReady := true
+			for _, chapter := range story.Chapters {
+				status, err := dao.CheckTableStatus(story.ID + "_" + chapter.ID + "_blocks")
+				if err != nil {
+					RespondWithError(w, http.StatusInternalServerError, err.Error())
+				}
+				if status != "ACTIVE" {
+					// only return stories with all its tables in active status
+					allTablesReady = false
+				}
 			}
-			if status != "ACTIVE" {
-				// only return stories with all its tables in active status
-				allTablesReady = false
+			if allTablesReady {
+				readyStories = append(readyStories, story)
 			}
 		}
-		if allTablesReady {
-			readyStories = append(readyStories, story)
-		}
-
+		readyMap[author] = readyStories
 	}
-	RespondWithJson(w, http.StatusOK, readyStories)
+
+	RespondWithJson(w, http.StatusOK, readyMap)
 }
 
 func AllAssociationsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {
@@ -296,7 +307,12 @@ func AllSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	series, err := dao.GetAllSeriesWithStories(email)
+	userDetails, err := dao.GetUserDetails(email)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	series, err := dao.GetAllSeriesWithStories(email, userDetails.Admin)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
@@ -388,5 +404,16 @@ func GetUserData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user.Suspended = wasSuspended
+	var dao daos.DaoInterface
+	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
+		return
+	}
+	details, err := dao.GetUserDetails(user.Email)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	user.Admin = details.Admin
 	RespondWithJson(w, http.StatusOK, user)
 }

@@ -22,7 +22,7 @@ import {
 } from "./stores/alertSlice";
 import { setSelectedStory } from "./stores/storiesSlice";
 import { setIsLoaderVisible } from "./stores/uiSlice";
-import { flipLoggedInState } from "./stores/userSlice";
+import { flipLoggedInState, setUserDetails } from "./stores/userSlice";
 import Toaster from "./utils/Toaster";
 
 const Threadr = () => {
@@ -74,6 +74,7 @@ const Threadr = () => {
         throw new Error("Fetch problem userData " + response.status);
       })
       .then((json) => {
+        dispatch(setUserDetails(json));
         setIsLoading(false);
         dispatch(flipLoggedInState());
         if (json.suspended) {

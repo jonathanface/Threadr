@@ -1,17 +1,22 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 export const userSlice = createSlice({
-    name: 'user',
-    initialState: {
-        isLoggedIn: false,
+  name: "user",
+  initialState: {
+    isLoggedIn: false,
+    userDetails: {},
+  },
+  reducers: {
+    flipLoggedInState: (state) => {
+      state.isLoggedIn = !state.isLoggedIn;
     },
-    reducers: {
-        flipLoggedInState: (state) => {
-            state.isLoggedIn = !state.isLoggedIn;
-        }
-    }
-  });
-  
-  export const {flipLoggedInState} = userSlice.actions;
-  
-  export default userSlice.reducer;
+    setUserDetails: (state, action) => {
+      console.log("set to", action.payload);
+      state.userDetails = action.payload;
+    },
+  },
+});
+
+export const { flipLoggedInState, setUserDetails } = userSlice.actions;
+
+export default userSlice.reducer;

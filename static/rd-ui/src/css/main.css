@@ -1,74 +1,73 @@
-
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
-  font-family: "Roboto","Helvetica","Arial",sans-serif;
+  font-family: "Roboto", "Helvetica", "Arial", sans-serif;
   font-weight: 400;
   font-size: 18px;
   line-height: 1.5;
   letter-spacing: 0.00938em;
   height: 100%;
-  box-sizing:border-box;
-  overflow-y:auto;
-  height:100vh;
-  max-height:100vh;
+  box-sizing: border-box;
+  overflow-y: auto;
+  height: 100vh;
+  max-height: 100vh;
 }
 html {
-  padding-bottom:100px;
+  padding-bottom: 100px;
 }
 
 .form-error {
-  color:rgba(255,0,0, 0.6);
-  margin:1.1em;
+  color: rgba(255, 0, 0, 0.6);
+  margin: 1.1em;
 }
 
 body {
-  min-height:100%;
+  min-height: 100%;
   background-color: #495960;
-  display:flex;
-  flex-direction:column;
+  display: flex;
+  flex-direction: column;
 }
 
 #root {
-  
   flex: 1 0 auto;
 }
 .App {
-  text-align:center;
+  text-align: center;
 }
 
 main {
-  display:inline-block;
-  width:100%;
+  display: inline-block;
+  width: 100%;
 }
 main header {
   position: fixed;
   top: 0px;
   margin: 0;
-  height:65px;
+  height: 65px;
   z-index: 5;
-  width:100%;
-  background-color:#495960;
+  width: 100%;
+  background-color: #495960;
 }
 main header h4 {
-  font-size:1.4em;
-  color:#78a4a4;
+  font-size: 1.4em;
+  color: #78a4a4;
   filter: drop-shadow(2px 2px 2px #1a1a1a);
   letter-spacing: 2px;
-  margin:0px;
-  font-family:courier;
-  position:absolute;
-  right:58px;
+  margin: 0px;
+  font-family: courier;
+  position: absolute;
+  right: 58px;
 }
 main header h4 span {
-  font-size:1.2em;
+  font-size: 1.2em;
 }
 main header h4 img {
-  max-height:40px;
+  max-height: 40px;
   vertical-align: middle;
-  position:relative;
-  top:-4px;
+  position: relative;
+  top: -4px;
 }
 main header .version {
   color: azure;
@@ -81,10 +80,9 @@ main header .version {
 }
 
 .MultiTreeItem-root {
-  padding-top:0px;
-  padding-left:0.5em;
+  padding-top: 0px;
+  padding-left: 0.5em;
 }
-
 
 .loading-screen {
   position: absolute;
@@ -95,51 +93,51 @@ main header .version {
 }
 
 .loading-screen .progress-box {
-  background-color:#000;
-  height:100%;
-  width:100%;
-  opacity:0.3;
+  background-color: #000;
+  height: 100%;
+  width: 100%;
+  opacity: 0.3;
 }
 .loading-screen .prog-anim-holder {
-  display:flex;
+  display: flex;
   justify-content: center;
-  height:100%;
-  width:100%;
+  height: 100%;
+  width: 100%;
   align-items: center;
-  position:absolute;
-  top:0px;
+  position: absolute;
+  top: 0px;
 }
 
 .alert-toast {
-  text-align:left;
-  filter:drop-shadow(1px 1px 1px #1a1a1a);
+  text-align: left;
+  filter: drop-shadow(1px 1px 1px #1a1a1a);
 }
 
 .MuiPaper-root {
-  width:500px;
+  width: 100%;
 }
 .MuiFormControl-root {
-  width:100%;
+  width: 100%;
 }
 
 footer {
   text-align: center;
-  width:100%;
+  width: 100%;
   font-size: 0.7em;
-  color:azure;
-  padding:25px;
+  color: azure;
+  padding: 25px;
   flex-shrink: 0;
 }
 
 @media only screen and (max-width: 600px) {
   footer {
-    padding-left:0px;
-    padding-right:0px;
+    padding-left: 0px;
+    padding-right: 0px;
   }
   main header h4 {
-    right:18px;
+    right: 18px;
   }
   body {
-    font-size:16px;
+    font-size: 16px;
   }
 }
