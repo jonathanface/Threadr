@@ -18,6 +18,7 @@ import PortraitDropper from "../portraitdropper/PortraitDropper";
 const EditStory = () => {
   const isEditingStory = useSelector((state) => state.stories.isEditingStory);
   const isLoggedIn = useSelector((state) => state.user.isLoggedIn);
+  const userDetails = useSelector((state) => state.user.userDetails);
   const dispatch = useDispatch();
 
   const editables = useSelector((state) => state.stories.editables);
@@ -49,7 +50,7 @@ const EditStory = () => {
         throw new Error("Fetch problem series " + response.status);
       })
       .then((data) => {
-        const seriesStoriesFromDB = data.map((series) => {
+        const seriesStoriesFromDB = data[userDetails.email].map((series) => {
           const seriesObj = {
             series_id: series.series_id,
             series_title: series.series_title,
@@ -74,7 +75,7 @@ const EditStory = () => {
         });
         dispatch(setSeriesList(seriesStoriesFromDB));
 
-        const reduced = data.reduce((accumulator, currentValue) => {
+        const reduced = data[userDetails.email].reduce((accumulator, currentValue) => {
           if (!accumulator[currentValue.series_id]) {
             accumulator[currentValue.series_id] = {
               id: currentValue.series_id,

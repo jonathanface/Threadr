@@ -82,7 +82,8 @@ type UserInfo struct {
 	Admin          bool   `json:"admin" dynamodbav:"admin"`
 	SubscriptionID string `json:"subscription_id" dynamodbav:"subscription_id"`
 	CustomerID     string `json:"customer_id" dynamodbav:"customer_id"`
-	Suspended      bool   `json:"suspended"`
+	Expired        bool   `json:"expired" dynamodbav:"expired"`
+	Renewing       bool   `json:"renewing" dynamodbav:"renewing"`
 }
 
 type Answer struct {

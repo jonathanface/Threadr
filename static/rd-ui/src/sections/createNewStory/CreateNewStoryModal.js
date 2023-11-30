@@ -19,12 +19,14 @@ import {
   setAlertTitle,
 } from "../../stores/alertSlice";
 import { flipCreatingNewStory, setSelectedStory } from "../../stores/storiesSlice";
+import { setIsLoaderVisible } from "../../stores/uiSlice";
 import PortraitDropper from "../portraitdropper/PortraitDropper";
 
 const CreateNewStory = () => {
   const [isInASeries, setIsInASeries] = useState(false);
   const [series, setSeries] = useState([]);
   const isCreatingNewStory = useSelector((state) => state.stories.isCreatingNew);
+  const userDetails = useSelector((state) => state.user.userDetails);
   const isLoggedIn = useSelector((state) => state.user.isLoggedIn);
   const belongsToSeries = useSelector((state) => state.stories.belongsToSeries);
 
@@ -68,7 +70,7 @@ const CreateNewStory = () => {
         throw new Error("Fetch problem series " + response.status);
       })
       .then((data) => {
-        const reduced = data.reduce((accumulator, currentValue) => {
+        const reduced = data[userDetails.email].reduce((accumulator, currentValue) => {
           if (!accumulator[currentValue.series_id]) {
             accumulator[currentValue.series_id] = {
               id: currentValue.series_id,
@@ -193,14 +195,13 @@ const CreateNewStory = () => {
         formData.append(key, formInput[key]);
       }
     }
-
+    dispatch(setIsLoaderVisible(true));
     try {
       const response = await fetch("/api/stories", {
         method: "POST",
         body: formData,
       });
       if (!response.ok) {
-        console.log("wtf respo", response);
         if (response.status === 401) {
           dispatch(setAlertTitle("Insufficient Subscription"));
           dispatch(setAlertMessage("Non-subscribers are limited to a single story."));
@@ -236,6 +237,7 @@ const CreateNewStory = () => {
       }
       setAreErrors(true);
     }
+    dispatch(setIsLoaderVisible(false));
   };
 
   const processImage = (acceptedFiles) => {

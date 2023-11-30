@@ -14,10 +14,15 @@ import (
 	"image/png"
 	"io"
 	"net/http"
+	"os"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/smithy-go"
 	"github.com/nfnt/resize"
+	stripe "github.com/stripe/stripe-go/v72"
+	"github.com/stripe/stripe-go/v72/customer"
+	"github.com/stripe/stripe-go/v72/paymentmethod"
+	"github.com/stripe/stripe-go/v72/sub"
 )
 
 const (
@@ -33,6 +38,18 @@ const (
 )
 
 func getUserEmail(r *http.Request) (string, error) {
+	token, err := sessions.Get(r, "token")
+	if err != nil || token.IsNew {
+		return "", errors.New("unable to retrieve token")
+	}
+	user := models.UserInfo{}
+	if err = json.Unmarshal(token.Values["token_data"].([]byte), &user); err != nil {
+		return "", err
+	}
+	return user.Email, nil
+}
+
+func checkUserAdminStatus(r *http.Request) (string, error) {
 	token, err := sessions.Get(r, "token")
 	if err != nil || token.IsNew {
 		return "", errors.New("unable to retrieve token")
@@ -105,6 +122,62 @@ func processAWSError(opErr *smithy.OperationError) (err models.AwsStatusResponse
 	return err
 }
 
+func createSubscription(customerID string, priceID string, paymentMethodID string) (*stripe.Subscription, error) {
+	stripe.Key = os.Getenv("STRIPE_SECRET")
+	if stripe.Key == "" {
+		return &stripe.Subscription{}, fmt.Errorf("missing stripe secret")
+	}
+	subscriptionParams := &stripe.SubscriptionParams{
+		Customer: &customerID,
+		Items: []*stripe.SubscriptionItemsParams{
+			{
+				Plan: &priceID,
+			},
+		},
+		DefaultPaymentMethod: &paymentMethodID,
+	}
+	return sub.New(subscriptionParams)
+}
+
+func getPaymentMethodsForCustomer(customerID string) ([]models.PaymentMethod, error) {
+	stripe.Key = os.Getenv("STRIPE_SECRET")
+	if stripe.Key == "" {
+		return nil, fmt.Errorf("missing stripe secret")
+	}
+
+	c, err := customer.Get(customerID, nil)
+	if err != nil {
+		return nil, err
+	}
+	var defaultPaymentMethodID *string
+	if c.InvoiceSettings.DefaultPaymentMethod != nil {
+		defaultPaymentMethodID = &c.InvoiceSettings.DefaultPaymentMethod.ID
+	}
+	listParams := &stripe.PaymentMethodListParams{
+		Customer: stripe.String(customerID),
+		Type:     stripe.String("card"), // Filter to retrieve only card payment methods
+	}
+
+	// List payment methods associated with the customer
+	iter := paymentmethod.List(listParams)
+
+	var methods []models.PaymentMethod
+	for iter.Next() {
+		pm := iter.PaymentMethod()
+		localPM := models.PaymentMethod{}
+		localPM.Id = pm.ID
+		localPM.Brand = pm.Card.Brand
+		localPM.LastFour = pm.Card.Last4
+		localPM.ExpirationMonth = pm.Card.ExpMonth
+		localPM.ExpirationYear = pm.Card.ExpYear
+		if defaultPaymentMethodID != nil && *defaultPaymentMethodID == pm.ID {
+			localPM.IsDefault = true
+		}
+		methods = append(methods, localPM)
+	}
+	return methods, nil
+}
+
 func staggeredStoryBlockRetrieval(dao daos.DaoInterface, email string, storyID string, chapterID string, key string) (*models.BlocksData, error) {
 	blocks, err := dao.GetStoryParagraphs(storyID, chapterID, key)
 	if err != nil {
@@ -156,4 +229,21 @@ func scaleDownImage(file io.Reader, maxWidth uint) (*bytes.Buffer, string, error
 		err = fmt.Errorf("unsupported image format: %s", format)
 	}
 	return buf, format, err
+}
+
+func cancelSubscription(subscriptionID string) error {
+	stripe.Key = os.Getenv("STRIPE_SECRET")
+	if stripe.Key == "" {
+		return fmt.Errorf("missing stripe secret")
+	}
+	cancel := true
+	subscriptionParams := &stripe.SubscriptionParams{
+		CancelAtPeriodEnd: &cancel,
+	}
+
+	_, err := sub.Update(subscriptionID, subscriptionParams)
+	if err != nil {
+		return err
+	}
+	return nil
 }

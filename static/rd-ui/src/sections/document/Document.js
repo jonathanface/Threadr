@@ -83,6 +83,14 @@ const styleMap = {
   },
 };
 
+const prompts = [
+  "Don't think, just type.",
+  "Once Upon A Time...",
+  "It was the best of times, it was the blurst of times.",
+  "Failure is made of should-haves.",
+  "Type faster!",
+];
+
 const dbOperationQueue = [];
 
 const Document = () => {
@@ -214,6 +222,18 @@ const Document = () => {
       });
   };
 
+  const showGreeting = () => {
+    dispatch(setAlertTitle("INFO"));
+    dispatch(
+      setAlertMessage(
+        "This is a new document.\nYou can create an association by typing some text, selecting any of it, and right-clicking on your highlighted text.\nYou can manage chapters by opening the menu on the right."
+      )
+    );
+    dispatch(setAlertSeverity("info"));
+    dispatch(setAlertTimeout(20000));
+    dispatch(setAlertOpen(true));
+  };
+
   const processDBBlock = (content, block) => {
     if (block.getData().STYLES) {
       block.getData().STYLES.forEach((style) => {
@@ -270,7 +290,11 @@ const Document = () => {
               newBlocks.push(block);
             }
           });
+          if (newBlocks.length === 1 && !newBlocks[0].getText().length) {
+            showGreeting();
+          }
         }
+
         const contentState = {
           entityMap: {},
           blocks: newBlocks,
@@ -1174,6 +1198,11 @@ const Document = () => {
     console.log("edit chap");
   };
 
+  const getWritingPrompt = () => {
+    return prompts[Math.floor(Math.random() * prompts.length)];
+  };
+  const defaultText = getWritingPrompt();
+
   return (
     <div>
       <AssociationUI
@@ -1313,6 +1342,7 @@ const Document = () => {
         onClick={setFocus}
         onScroll={handleScroll}>
         <Editor
+          placeholder={defaultText}
           spellCheck={true}
           blockStyleFn={getBlockStyles}
           customStyleMap={styleMap}

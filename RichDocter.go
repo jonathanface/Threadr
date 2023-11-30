@@ -111,8 +111,7 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 			api.RespondWithError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		suspendedAccount := false
-		if userDetails.SubscriptionID != "" {
+		if userDetails.SubscriptionID != "" || userDetails.Expired {
 			isActive, err := billing.CheckSubscriptionIsActive(user)
 			if err != nil {
 				// hack
@@ -120,10 +119,9 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 					api.RespondWithError(w, http.StatusBadGateway, err.Error())
 					return
 				}
-
 			}
 			if !isActive {
-				suspendedAccount = true
+				user.Expired = true
 				// account is no longer active
 				user.SubscriptionID = ""
 				err = dao.UpdateUser(user)
@@ -157,12 +155,14 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 				}
 				// I need to somehow notify the client here
 			} else {
+
 				suspended, err := dao.CheckForSuspendedStories(user.Email)
 				if err != nil {
 					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 					return
 				}
 				if suspended {
+					userDetails.Expired = false
 					err = dao.RestoreAutomaticallyDeletedStories(user.Email)
 					if err != nil {
 						api.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -214,7 +214,7 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(time.Second*5))
 		defer cancel()
 		ctx = context.WithValue(ctx, "dao", dao)
-		ctx = context.WithValue(ctx, "isSuspended", suspendedAccount)
+		ctx = context.WithValue(ctx, "isSuspended", user.Expired)
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})
@@ -272,6 +272,7 @@ func main() {
 	apiRtr.HandleFunc("/stories/{story}/export", api.ExportStoryEndpoint).Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/series/{seriesID}", api.EditSeriesEndpoint).Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/series/{seriesID}/story/{storyID}", api.RemoveStoryFromSeriesEndpoint).Methods("PUT", "OPTIONS")
+	apiRtr.HandleFunc("/user", api.UpdateUserEndpoint).Methods("PUT", "OPTIONS")
 
 	// DELETEs
 	apiRtr.HandleFunc("/stories/{storyID}/block", api.DeleteBlocksFromStoryEndpoint).Methods("DELETE", "OPTIONS")

@@ -7,8 +7,8 @@ import (
 type DaoInterface interface {
 	// GETs
 	GetAllStories(email string) ([]*models.Story, error)
-	GetAllStandalone(email string) ([]*models.Story, error)
-	GetAllSeriesWithStories(email string) ([]models.Series, error)
+	GetAllStandalone(email string, adminRequest bool) (map[string][]models.Story, error)
+	GetAllSeriesWithStories(email string, adminRequest bool) (map[string][]models.Series, error)
 	GetChaptersByStoryID(storyID string) ([]models.Chapter, error)
 	GetStoryByID(email string, storyID string) (*models.Story, error)
 	GetSeriesByID(email string, seriesID string) (*models.Series, error)
