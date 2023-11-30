@@ -114,7 +114,7 @@ const Subscribe = () => {
   };
 
   const subscribe = async () => {
-    if (!paymentMethod.id || !price_id) {
+    if (!paymentMethod.id) {
       return;
     }
     try {

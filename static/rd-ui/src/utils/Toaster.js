@@ -46,7 +46,7 @@ const Toaster = () => {
       key="bottom_right">
       <Alert severity={severity} className="alert-popup">
         <AlertTitle>{title}</AlertTitle>
-        {splitByNewline.map((idx, line) => {
+        {splitByNewline.map((line, idx) => {
           return (
             <div key={idx} className="line">
               {line}

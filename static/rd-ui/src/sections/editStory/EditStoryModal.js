@@ -195,6 +195,15 @@ const EditStory = () => {
         const newStandaloneList = standaloneList.filter(
           (item) => item.series_id !== json.series_id && item.story_id !== json.story_id
         );
+        //TODO fix stories edited from series editor
+        //const foundStoryIndex = seriesList.forEach(findIndex((stry) => stry.story_id === json.story_id);
+        //console.log("found story ind", foundStoryIndex);
+        /*
+        const newSeriesEditables = {
+          ...seriesEditables,
+          stories: updatedStoryList,
+        };
+        dispatch(setSeriesEditables(newSeriesEditables));*/
         getSeries();
         dispatch(setStandaloneList(newStandaloneList));
       } else {
