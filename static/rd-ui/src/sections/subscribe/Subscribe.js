@@ -36,6 +36,7 @@ const Subscribe = () => {
   };
 
   const confirmCard = async () => {
+    console.log("confirm card");
     setSubscribeError("");
     fetch("/billing/card", {
       method: "POST",
@@ -114,7 +115,7 @@ const Subscribe = () => {
   };
 
   const subscribe = async () => {
-    if (!paymentMethod.id) {
+    if (!paymentMethod) {
       return;
     }
     try {
@@ -178,6 +179,9 @@ const Subscribe = () => {
     if (e.error) {
       console.log(e.error.message);
     }
+    if (e.complete) {
+      confirmCard();
+    }
   };
 
   const updatePaymentMethod = (e) => {
@@ -193,9 +197,7 @@ const Subscribe = () => {
           <CardElement onChange={(e) => handleCardElementChange(e)} />
         ) : (
           <DialogContentText>
-            <span>
-              {product.description + " for only $" + product.billing_amount + " a " + product.billing_frequency}
-            </span>
+            <span>{product.description}</span>
             <br />
             <span>Subscribe with {paymentMethod.brand.toUpperCase() + " ending in " + paymentMethod.last_four}</span>
             <span className="change-payment-button">
