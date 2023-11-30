@@ -5,7 +5,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
 import { flipConfigPanelVisible, setUserDetails } from "../../stores/userSlice";
@@ -16,10 +16,15 @@ const ConfigPanelModal = (props) => {
   const dispatch = useDispatch();
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    console.log("new deets", userDetails);
+  }, [userDetails]);
+
   const handleClose = () => {
     setError("");
     dispatch(flipConfigPanelVisible());
   };
+  console.log("user", userDetails);
 
   const toggleSubscriptionRenewal = async () => {
     setError("");
@@ -59,12 +64,16 @@ const ConfigPanelModal = (props) => {
       <DialogTitle>Account Settings</DialogTitle>
       <DialogContent>
         <Box component="form">
-          <FormGroup>
-            <FormControlLabel
-              control={<Switch onChange={toggleSubscriptionRenewal} checked={userDetails.renewing || false} />}
-              label="Auto-Renew Subscription"
-            />
-          </FormGroup>
+          {userDetails && userDetails.subscription_id && userDetails.subscription_id.length ? (
+            <FormGroup>
+              <FormControlLabel
+                control={<Switch onChange={toggleSubscriptionRenewal} checked={userDetails.renewing || false} />}
+                label="Auto-Renew Subscription"
+              />
+            </FormGroup>
+          ) : (
+            <div>nothing here yet</div>
+          )}
           <div>{error}</div>
         </Box>
       </DialogContent>

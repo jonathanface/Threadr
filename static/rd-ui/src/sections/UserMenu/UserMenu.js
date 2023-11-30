@@ -1,14 +1,15 @@
 import Person4Icon from "@mui/icons-material/Person4";
 import { IconButton } from "@mui/material";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setSelectedStory } from "../../stores/storiesSlice";
-import { setIsLoaderVisible } from "../../stores/uiSlice";
+import { setIsLoaderVisible, setSubscriptionFormOpen } from "../../stores/uiSlice";
 import { flipConfigPanelVisible, flipLoggedInState } from "../../stores/userSlice";
 
 const UserMenu = (props) => {
   const [isOpen, setIsOpen] = useState(false);
   const isLoggedIn = useSelector((state) => state.user.isLoggedIn);
+  const userDetails = useSelector((state) => state.user.userDetails);
   const dispatch = useDispatch();
 
   const signin = () => {
@@ -18,6 +19,12 @@ const UserMenu = (props) => {
   const showUserSettings = () => {
     dispatch(flipConfigPanelVisible());
   };
+
+  useEffect(() => {
+    if (userDetails.subscription_id) {
+      console.log("wtf", userDetails, userDetails.subscription_id, userDetails.subscription_id.length);
+    }
+  }, [userDetails.subscription_id]);
 
   const signout = () => {
     dispatch(setIsLoaderVisible(false));
@@ -39,6 +46,10 @@ const UserMenu = (props) => {
       });
   };
 
+  const subscribe = () => {
+    dispatch(setSubscriptionFormOpen(true));
+  };
+  //
   const displayComponent = !props.isParentLoading ? (
     isLoggedIn ? (
       <span
@@ -53,6 +64,7 @@ const UserMenu = (props) => {
         </span>
         {isOpen && (
           <ul>
+            {userDetails && userDetails.subscription_id === "" && <li onClick={subscribe}>Subscribe</li>}
             <li onClick={showUserSettings}>Settings</li>
             <li onClick={signout}>Signout</li>
           </ul>
