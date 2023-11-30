@@ -1001,6 +1001,7 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 		"image_url":   &types.AttributeValueMemberS{Value: story.ImageURL},
 		"modified_at": &types.AttributeValueMemberN{Value: modifiedAtStr},
 		"place":       &types.AttributeValueMemberN{Value: strconv.Itoa(story.Place)},
+		"series_id":   &types.AttributeValueMemberS{Value: story.SeriesID},
 	}
 	updatedStory = story
 	storedStory, err := d.GetStoryByID(email, story.ID)
@@ -1008,6 +1009,7 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 		return updatedStory, err
 	}
 
+	fmt.Println("compare", story.SeriesID, storedStory.SeriesID)
 	if story.SeriesID != storedStory.SeriesID {
 		// a change in series
 		if story.SeriesID != "" {

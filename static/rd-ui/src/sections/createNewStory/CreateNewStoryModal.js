@@ -70,37 +70,39 @@ const CreateNewStory = () => {
         throw new Error("Fetch problem series " + response.status);
       })
       .then((data) => {
-        const reduced = data[userDetails.email].reduce((accumulator, currentValue) => {
-          if (!accumulator[currentValue.series_id]) {
-            accumulator[currentValue.series_id] = {
-              id: currentValue.series_id,
-              title: currentValue.series_title,
-              count: 0,
-              selected: false,
-            };
-            const found = currentValue.stories.some((story) => story.series_id === belongsToSeries);
-            if (found) {
-              accumulator[currentValue.series_id].selected = true;
+        if (data && data[userDetails.email]) {
+          const reduced = data[userDetails.email].reduce((accumulator, currentValue) => {
+            if (!accumulator[currentValue.series_id]) {
+              accumulator[currentValue.series_id] = {
+                id: currentValue.series_id,
+                title: currentValue.series_title,
+                count: 0,
+                selected: false,
+              };
+              const found = currentValue.stories.some((story) => story.series_id === belongsToSeries);
+              if (found) {
+                accumulator[currentValue.series_id].selected = true;
+              }
             }
+            accumulator[currentValue.series_id].count += 1;
+            return accumulator;
+          }, {});
+          const params = [];
+          for (const series_id in reduced) {
+            const series = reduced[series_id];
+            const entry = {
+              label: series.title,
+              id: series.id,
+              count: series.count,
+            };
+            if (series.selected) {
+              setSeriesMember(entry);
+              setIsInASeries(true);
+            }
+            params.push(entry);
           }
-          accumulator[currentValue.series_id].count += 1;
-          return accumulator;
-        }, {});
-        const params = [];
-        for (const series_id in reduced) {
-          const series = reduced[series_id];
-          const entry = {
-            label: series.title,
-            id: series.id,
-            count: series.count,
-          };
-          if (series.selected) {
-            setSeriesMember(entry);
-            setIsInASeries(true);
-          }
-          params.push(entry);
+          setSeries(params);
         }
-        setSeries(params);
       })
       .catch((error) => {
         console.error("get series", error);
@@ -210,6 +212,7 @@ const CreateNewStory = () => {
           dispatch(setAlertTimeout(null));
           dispatch(setAlertOpen(true));
           handleClose();
+          dispatch(setIsLoaderVisible(false));
           return;
         }
         const errorData = await response.json();

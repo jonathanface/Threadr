@@ -315,6 +315,7 @@ const Document = () => {
           dispatch(setAlertSeverity("error"));
           dispatch(setAlertOpen(true));
         } else {
+          showGreeting();
           setEditorState(EditorState.createEmpty(createDecorators()));
         }
         setBlocksLoaded(true);
