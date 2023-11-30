@@ -1,5 +1,5 @@
-import React from 'react';
-import '../../css/default-page.css';
+import React from "react";
+import "../../css/default-page.css";
 
 const DefaultPage = () => {
   return (
@@ -7,14 +7,22 @@ const DefaultPage = () => {
       <div className="blurb">
         <span className="column leftText">
           <h2>Organized Imagination</h2>
-          <p>Dive into the world of storytelling with RichDocter's revolutionary online writing application, tailored specifically for novelists like you. Say goodbye to scattered notes, endless tabs, and the frustration of losing track of your characters, places, and events. Say hello to seamless storytelling with our unique Highlight and Reference tool.</p>
-          <p><strong>We are opening soon.</strong> Once that happens, you may try RichDocter on a limited basis at no charge. Full access will cost $5/month.</p>
+          <p>
+            Dive into the world of storytelling with RichDocter's revolutionary online writing application, tailored
+            specifically for novelists like you. Say goodbye to scattered notes, endless tabs, and the frustration of
+            losing track of your characters, places, and events. Say hello to seamless storytelling with our unique
+            Highlight and Reference tool.
+          </p>
+          <p>
+            <strong>We are officially in beta release and account creation is open.</strong> RichDocter is free to use
+            on a limited basis. Full-feature access costs $5/month.
+          </p>
         </span>
         <span className="column">
           <figure>
             <video width="500" autoPlay muted loop playsInline>
-              <source src="https://richdocter-demo-videos.s3.amazonaws.com/rd-demo-yt-2.mp4" type="video/mp4"/>
-                            Unable to play demo video on this browser.
+              <source src="https://richdocter-demo-videos.s3.amazonaws.com/rd-demo-yt-2.mp4" type="video/mp4" />
+              Unable to play demo video on this browser.
             </video>
           </figure>
         </span>
@@ -22,7 +30,7 @@ const DefaultPage = () => {
       <div className="blurb">
         <span className="column">
           <figure>
-            <img src="./img/crafting.jpg" alt="crafting worlds"/>
+            <img src="./img/crafting.jpg" alt="crafting worlds" />
           </figure>
         </span>
         <span className="column leftText">
@@ -49,14 +57,14 @@ const DefaultPage = () => {
         </span>
         <span className="column">
           <figure>
-            <img src="./img/characters.jpg" alt="character backstories"/>
+            <img src="./img/characters.jpg" alt="character backstories" />
           </figure>
         </span>
       </div>
       <div className="blurb">
         <span className="column">
           <figure>
-            <img src="./img/lore.jpg" alt="diving deep into lore"/>
+            <img src="./img/lore.jpg" alt="diving deep into lore" />
           </figure>
         </span>
         <span className="column leftText">
@@ -71,15 +79,18 @@ const DefaultPage = () => {
         </span>
       </div>
       <div className="blurb">
-      <span className="column leftText">
+        <span className="column leftText">
           <h2>Begin with Brilliance, End with Excellence.</h2>
           <div>
-          In the digital age, adaptability is not just an advantage—it's a necessity. Craft your content with precision and flair, and when you're ready, export it with ease into the formats that professionals love: PDF, DOCX, and, coming soon, EPUB. Create documents compatible with Word and other popular document editors with just two clicks.
+            In the digital age, adaptability is not just an advantage—it's a necessity. Craft your content with
+            precision and flair, and when you're ready, export it with ease into the formats that professionals love:
+            PDF, DOCX, and, coming soon, EPUB. Create documents compatible with Word and other popular document editors
+            with just two clicks.
           </div>
         </span>
         <span className="column">
           <figure>
-            <img src="./img/exporting.jpg" alt="easy document conversion"/>
+            <img src="./img/exporting.jpg" alt="easy document conversion" />
           </figure>
         </span>
       </div>
@@ -88,5 +99,3 @@ const DefaultPage = () => {
 };
 
 export default DefaultPage;
-
-

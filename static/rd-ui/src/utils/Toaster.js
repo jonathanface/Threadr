@@ -46,8 +46,12 @@ const Toaster = () => {
       key="bottom_right">
       <Alert severity={severity} className="alert-popup">
         <AlertTitle>{title}</AlertTitle>
-        {splitByNewline.map((line) => {
-          return <div className="line">{line}</div>;
+        {splitByNewline.map((idx, line) => {
+          return (
+            <div key={idx} className="line">
+              {line}
+            </div>
+          );
         })}
         {link && link.location && link.location === "subscribe" ? (
           <p>
