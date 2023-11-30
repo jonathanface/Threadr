@@ -43,28 +43,19 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 	customerID := requestBody["customer_id"]
 	priceID := requestBody["price_id"]
 
+	sb, err := CreateSubscription(customerID, priceID, paymentMethodID)
+	if err != nil {
+		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	fmt.Println("got back", sb)
+
 	var (
 		dao daos.DaoInterface
 		ok  bool
 	)
 	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
 		api.RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
-		return
-	}
-
-	subscriptionParams := &stripe.SubscriptionParams{
-		Customer: &customerID,
-		Items: []*stripe.SubscriptionItemsParams{
-			{
-				Plan: &priceID,
-			},
-		},
-		DefaultPaymentMethod: &paymentMethodID,
-	}
-
-	sb, err := sub.New(subscriptionParams)
-	if err != nil {
-		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -81,18 +72,17 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 	api.RespondWithJson(w, http.StatusOK, results)
 }
 
-func cancelSubscription(subscriptionID string) error {
-	cancel := true
+func CreateSubscription(customerID string, priceID string, paymentMethodID string) (*stripe.Subscription, error) {
 	subscriptionParams := &stripe.SubscriptionParams{
-		CancelAtPeriodEnd: &cancel,
+		Customer: &customerID,
+		Items: []*stripe.SubscriptionItemsParams{
+			{
+				Plan: &priceID,
+			},
+		},
+		DefaultPaymentMethod: &paymentMethodID,
 	}
-
-	_, err := sub.Update(subscriptionID, subscriptionParams)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return sub.New(subscriptionParams)
 }
 
 func UpdateSubscription(subscriptionID, paymentMethodID, priceID string) (*string, error) {
@@ -127,20 +117,6 @@ func UpdateSubscription(subscriptionID, paymentMethodID, priceID string) (*strin
 	}
 
 	return &stripeSubscription.ID, nil
-}
-
-func CancelSubscription(subscriptionID string) error {
-	cancel := true
-	subscriptionParams := &stripe.SubscriptionParams{
-		CancelAtPeriodEnd: &cancel,
-	}
-
-	_, err := sub.Update(subscriptionID, subscriptionParams)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func CheckSubscriptionIsActive(user models.UserInfo) (bool, error) {

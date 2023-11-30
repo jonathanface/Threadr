@@ -34,7 +34,8 @@ const Toaster = () => {
     dispatch(setAlertTimeout(6000));
     dispatch(setAlertLink({}));
   };
-
+  const splitByNewline = alertMessage.split("\n");
+  console.log("split", splitByNewline);
   return (
     <Snackbar
       className="alert-toast"
@@ -43,9 +44,11 @@ const Toaster = () => {
       open={open}
       onClose={handleClose}
       key="bottom_right">
-      <Alert severity={severity}>
+      <Alert severity={severity} className="alert-popup">
         <AlertTitle>{title}</AlertTitle>
-        {alertMessage}
+        {splitByNewline.map((line) => {
+          return <div className="line">{line}</div>;
+        })}
         {link && link.location && link.location === "subscribe" ? (
           <p>
             <a href="#" onClick={openSubscribe}>

@@ -117,7 +117,9 @@ func CreateCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		err = dao.AddCustomerID(&user.Email, &customerID)
+		userWithDetails.CustomerID = customerID
+		userWithDetails.Renewing = true
+		err = dao.UpdateUser(*userWithDetails)
 		if err != nil {
 			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -159,7 +161,6 @@ func getPaymentMethodsForCustomer(customerID string) ([]models.PaymentMethod, er
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("getting payments for", customerID)
 	var defaultPaymentMethodID *string
 	if c.InvoiceSettings.DefaultPaymentMethod != nil {
 		defaultPaymentMethodID = &c.InvoiceSettings.DefaultPaymentMethod.ID

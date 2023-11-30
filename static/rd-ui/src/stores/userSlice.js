@@ -5,18 +5,21 @@ export const userSlice = createSlice({
   initialState: {
     isLoggedIn: false,
     userDetails: {},
+    configPanelVisible: false,
   },
   reducers: {
     flipLoggedInState: (state) => {
       state.isLoggedIn = !state.isLoggedIn;
     },
     setUserDetails: (state, action) => {
-      console.log("set to", action.payload);
       state.userDetails = action.payload;
+    },
+    flipConfigPanelVisible: (state) => {
+      state.configPanelVisible = !state.configPanelVisible;
     },
   },
 });
 
-export const { flipLoggedInState, setUserDetails } = userSlice.actions;
+export const { flipLoggedInState, setUserDetails, flipConfigPanelVisible } = userSlice.actions;
 
 export default userSlice.reducer;

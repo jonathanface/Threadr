@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import "../../css/subscribe.css";
 
 import { CardElement, useElements, useStripe } from "@stripe/react-stripe-js";
 
@@ -82,9 +83,7 @@ const Subscribe = () => {
             }
             throw new Error("Fetch problem update customer " + response.status);
           })
-          .then(async (data) => {
-            cardElement.clear();
-          });
+          .then(async (data) => {});
       });
   };
 
@@ -104,7 +103,9 @@ const Subscribe = () => {
       setCustomerID(json.id);
       if (json.payment_methods && json.payment_methods.length) {
         const defaultPayment = json.payment_methods.filter((method) => method.is_default === true);
-        setPaymentMethod(defaultPayment[0]);
+        if (defaultPayment.length) {
+          setPaymentMethod(defaultPayment[0]);
+        }
       }
     } catch (error) {
       handleClose();
@@ -113,6 +114,9 @@ const Subscribe = () => {
   };
 
   const subscribe = async () => {
+    if (!paymentMethod.id || !price_id) {
+      return;
+    }
     try {
       const response = await fetch("/billing/subscribe", {
         method: "POST",
@@ -157,7 +161,6 @@ const Subscribe = () => {
         throw new Error("Fetch problem getting products " + response.status);
       })
       .then((data) => {
-        console.log("products", data);
         setProduct(data[0]);
       });
   };
@@ -177,6 +180,11 @@ const Subscribe = () => {
     }
   };
 
+  const updatePaymentMethod = (e) => {
+    setPaymentMethod(null);
+    confirmCard();
+  };
+
   return (
     <Dialog open={isOpen} maxWidth={"md"} fullWidth={true} onClose={handleClose} className="subscribe">
       <DialogTitle>{product.name}</DialogTitle>
@@ -189,18 +197,17 @@ const Subscribe = () => {
               {product.description + " for only $" + product.billing_amount + " a " + product.billing_frequency}
             </span>
             <br />
-            <span>Pay with {paymentMethod.brand.toUpperCase() + " ending in " + paymentMethod.last_four}</span>
+            <span>Subscribe with {paymentMethod.brand.toUpperCase() + " ending in " + paymentMethod.last_four}</span>
+            <span className="change-payment-button">
+              <Button onClick={updatePaymentMethod}>change</Button>
+            </span>
           </DialogContentText>
         )}
         {subscribeError && <div>{subscribeError}</div>}
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose}>Cancel</Button>
-        {!paymentMethod ? (
-          <Button onClick={confirmCard}>Submit</Button>
-        ) : (
-          <Button onClick={subscribe}>Subscribe</Button>
-        )}
+        <Button onClick={subscribe}>Subscribe</Button>
       </DialogActions>
     </Dialog>
   );

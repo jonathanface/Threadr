@@ -120,6 +120,13 @@ main header .version {
   width: 100%;
 }
 
+.alert-popup {
+  width: 300px;
+}
+.alert-popup .line {
+  margin-bottom: 20px;
+}
+
 footer {
   text-align: center;
   width: 100%;

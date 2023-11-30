@@ -222,6 +222,18 @@ const Document = () => {
       });
   };
 
+  const showGreeting = () => {
+    dispatch(setAlertTitle("INFO"));
+    dispatch(
+      setAlertMessage(
+        "This is a new document.\nYou can create an association by typing some text, selecting any of it, and right-clicking on your highlighted text.\nYou can manage chapters by opening the menu on the right."
+      )
+    );
+    dispatch(setAlertSeverity("info"));
+    dispatch(setAlertTimeout(20000));
+    dispatch(setAlertOpen(true));
+  };
+
   const processDBBlock = (content, block) => {
     if (block.getData().STYLES) {
       block.getData().STYLES.forEach((style) => {
@@ -278,7 +290,11 @@ const Document = () => {
               newBlocks.push(block);
             }
           });
+          if (newBlocks.length === 1 && !newBlocks[0].getText().length) {
+            showGreeting();
+          }
         }
+
         const contentState = {
           entityMap: {},
           blocks: newBlocks,

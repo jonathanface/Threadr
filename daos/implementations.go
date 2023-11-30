@@ -498,16 +498,6 @@ func (d *DAO) GetAllSeriesWithStories(email string, adminRequest bool) (series m
 			}
 		}
 	}
-	/*
-		if err = attributevalue.UnmarshalListOfMaps(scanOutput.Items, &series); err != nil {
-			return series, err
-		}
-		for i, srs := range series {
-			if srs.Stories, err = d.GetSeriesVolumes(email, srs.ID); err != nil {
-				return series, err
-			}
-			series[i] = srs
-		}*/
 	return seriesMap, err
 }
 
@@ -582,10 +572,12 @@ func (d *DAO) UpdateUser(user models.UserInfo) (err error) {
 			"email": &types.AttributeValueMemberS{Value: user.Email},
 		},
 		ReturnValues:     types.ReturnValueUpdatedNew,
-		UpdateExpression: aws.String("set last_accessed=:t, subscription_id=:sid"),
+		UpdateExpression: aws.String("set last_accessed=:t, subscription_id=:sid, expired=:e, renewing=:r"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":t":   &types.AttributeValueMemberN{Value: now},
 			":sid": &types.AttributeValueMemberS{Value: user.SubscriptionID},
+			":r":   &types.AttributeValueMemberBOOL{Value: user.Renewing},
+			":e":   &types.AttributeValueMemberBOOL{Value: user.Expired},
 		},
 	}
 	var out *dynamodb.UpdateItemOutput

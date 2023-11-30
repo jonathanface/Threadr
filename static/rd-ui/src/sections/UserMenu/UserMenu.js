@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setSelectedStory } from "../../stores/storiesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
-import { flipLoggedInState } from "../../stores/userSlice";
+import { flipConfigPanelVisible, flipLoggedInState } from "../../stores/userSlice";
 
 const UserMenu = (props) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,6 +13,10 @@ const UserMenu = (props) => {
 
   const signin = () => {
     window.location.href = "/auth/google";
+  };
+
+  const showUserSettings = () => {
+    dispatch(flipConfigPanelVisible());
   };
 
   const signout = () => {
@@ -49,7 +53,7 @@ const UserMenu = (props) => {
         </span>
         {isOpen && (
           <ul>
-            <li>Settings</li>
+            <li onClick={showUserSettings}>Settings</li>
             <li onClick={signout}>Signout</li>
           </ul>
         )}

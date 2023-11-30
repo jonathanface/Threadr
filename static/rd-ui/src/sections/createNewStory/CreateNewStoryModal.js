@@ -19,6 +19,7 @@ import {
   setAlertTitle,
 } from "../../stores/alertSlice";
 import { flipCreatingNewStory, setSelectedStory } from "../../stores/storiesSlice";
+import { setIsLoaderVisible } from "../../stores/uiSlice";
 import PortraitDropper from "../portraitdropper/PortraitDropper";
 
 const CreateNewStory = () => {
@@ -194,14 +195,13 @@ const CreateNewStory = () => {
         formData.append(key, formInput[key]);
       }
     }
-
+    dispatch(setIsLoaderVisible(true));
     try {
       const response = await fetch("/api/stories", {
         method: "POST",
         body: formData,
       });
       if (!response.ok) {
-        console.log("wtf respo", response);
         if (response.status === 401) {
           dispatch(setAlertTitle("Insufficient Subscription"));
           dispatch(setAlertMessage("Non-subscribers are limited to a single story."));
@@ -237,6 +237,7 @@ const CreateNewStory = () => {
       }
       setAreErrors(true);
     }
+    dispatch(setIsLoaderVisible(false));
   };
 
   const processImage = (acceptedFiles) => {

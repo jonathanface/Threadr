@@ -403,7 +403,7 @@ func GetUserData(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve suspension notifier from context")
 		return
 	}
-	user.Suspended = wasSuspended
+	user.Expired = wasSuspended
 	var dao daos.DaoInterface
 	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
@@ -415,5 +415,6 @@ func GetUserData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user.Admin = details.Admin
+	user.Renewing = details.Renewing
 	RespondWithJson(w, http.StatusOK, user)
 }

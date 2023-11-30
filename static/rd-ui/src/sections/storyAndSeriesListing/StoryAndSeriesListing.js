@@ -34,7 +34,7 @@ const StoryAndSeriesListing = () => {
           const otherSeries = [];
           for (let key in data) {
             if (data.hasOwnProperty(key)) {
-              if (key === userDetails.email) {
+              if (key === userDetails.email && data[key]) {
                 const seriesStoriesFromDB = data[key].map((series) => {
                   const seriesObj = {
                     series_id: series.series_id,
@@ -110,7 +110,7 @@ const StoryAndSeriesListing = () => {
               // Check to avoid inherited properties
               console.log(key, userDetails);
 
-              if (key === userDetails.email) {
+              if (key === userDetails.email && data[key]) {
                 const storiesFromDB = data[key].map((story) => {
                   const img = story.image_url.length ? story.image_url : "/img/icons/story_standalone_icon.jpg";
                   return {

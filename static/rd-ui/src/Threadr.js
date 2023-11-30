@@ -6,6 +6,7 @@ import "./css/main.css";
 import "./css/user-menu.css";
 import DefaultPage from "./sections/DefaultPage/DefaultPage";
 import UserMenu from "./sections/UserMenu/UserMenu";
+import ConfigPanelModal from "./sections/configPanel/ConfigPanelModal";
 import CreateNewStory from "./sections/createNewStory/CreateNewStoryModal";
 import Document from "./sections/document/Document";
 import EditSeriesModal from "./sections/editSeries/EditSeriesModal";
@@ -77,7 +78,7 @@ const Threadr = () => {
         dispatch(setUserDetails(json));
         setIsLoading(false);
         dispatch(flipLoggedInState());
-        if (json.suspended) {
+        if (json.expired) {
           dispatch(setAlertTitle("Subscription expired"));
           dispatch(
             setAlertMessage(
@@ -126,6 +127,7 @@ const Threadr = () => {
         <CreateNewStory />
         <EditStory />
         <EditSeriesModal />
+        <ConfigPanelModal />
       </main>
       <Toaster />
       <Elements stripe={stripe}>

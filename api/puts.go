@@ -19,7 +19,92 @@ import (
 	"github.com/aws/smithy-go"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/stripe/stripe-go/v72/sub"
 )
+
+func UpdateUserEndpoint(w http.ResponseWriter, r *http.Request) {
+	//var userID string
+	var dao daos.DaoInterface
+	var err error
+	var ok bool
+
+	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
+		return
+	}
+	email, err := getUserEmail(r)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	user, err := dao.GetUserDetails(email)
+	if err != nil {
+		RespondWithError(w, http.StatusNotFound, "Unable to locate user")
+		return
+	}
+	fmt.Println("retreived", user)
+	decoder := json.NewDecoder(r.Body)
+	passedUser := models.UserInfo{}
+	if err := decoder.Decode(&passedUser); err != nil {
+		fmt.Println("here")
+		RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	fmt.Println("received", passedUser.Renewing)
+	if !user.Renewing && passedUser.Renewing {
+		subscription, err := sub.Get(user.SubscriptionID, nil)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		if len(subscription.Items.Data) == 0 {
+			RespondWithError(w, http.StatusInternalServerError, "error retrieving subscription details")
+			return
+		}
+		priceID := subscription.Items.Data[0].Price.ID
+		methods, err := getPaymentMethodsForCustomer(user.CustomerID)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		// TODO provide a way to update payment method
+		var defaultPaymentID string
+		for _, method := range methods {
+			if method.IsDefault {
+				defaultPaymentID = method.Id
+				break
+			}
+		}
+		sub, err := createSubscription(user.CustomerID, priceID, defaultPaymentID)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		user.SubscriptionID = sub.ID
+	} else if user.Renewing && !passedUser.Renewing {
+		err = cancelSubscription(user.SubscriptionID)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+	user.Renewing = passedUser.Renewing
+	if err = dao.UpdateUser(*user); err != nil {
+		if opErr, ok := err.(*smithy.OperationError); ok {
+			awsResponse := processAWSError(opErr)
+			if awsResponse.Code == 0 {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			RespondWithError(w, awsResponse.Code, awsResponse.Message)
+			return
+		}
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	RespondWithJson(w, http.StatusOK, user)
+}
 
 func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
@@ -39,7 +124,7 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if seriesID, err = url.PathUnescape(mux.Vars(r)["seriesID"]); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing series ID")
 		return
 	}
 	if seriesID == "" {
@@ -63,7 +148,6 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 	if len(strings.TrimSpace(r.FormValue("description"))) > 0 {
 		series.Description = strings.TrimSpace(r.FormValue("description"))
 	}
-	fmt.Println("got", series.Description)
 
 	storiesJSON := r.FormValue("stories")
 	if storiesJSON != "" {
