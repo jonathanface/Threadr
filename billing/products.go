@@ -24,21 +24,24 @@ func GetProductsEndpoint(w http.ResponseWriter, r *http.Request) {
 	prodIterator := product.List(productListParams)
 	var product models.Product
 	for prodIterator.Next() {
-		prod := prodIterator.Product()
-		product.ProductID = prod.ID
-		product.Name = prod.Name
-		product.Description = prod.Description
-		// Retrieve the price details
-		p, err := price.Get(prod.DefaultPrice.ID, nil)
-		if err != nil {
-			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		product.BillingAmount = fmt.Sprintf("%.2f", float64(p.UnitAmount)/100)
-		product.BillingFrequency = string(p.Recurring.Interval)
-		product.PriceID = p.ID
 
-		products = append(products, product)
+		prod := prodIterator.Product()
+		if prod.DefaultPrice != nil {
+			product.ProductID = prod.ID
+			product.Name = prod.Name
+			product.Description = prod.Description
+			p, err := price.Get(prod.DefaultPrice.ID, nil)
+			if err != nil {
+				api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			product.BillingAmount = fmt.Sprintf("%.2f", float64(p.UnitAmount)/100)
+			product.BillingFrequency = string(p.Recurring.Interval)
+			product.PriceID = p.ID
+
+			products = append(products, product)
+		}
+
 	}
 	api.RespondWithJson(w, http.StatusOK, products)
 }

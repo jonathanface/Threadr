@@ -158,6 +158,7 @@ const Subscribe = () => {
         throw new Error("Fetch problem getting products " + response.status);
       })
       .then((data) => {
+        console.log("prod", data);
         setProduct(data[0]);
       });
   };
