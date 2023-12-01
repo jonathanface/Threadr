@@ -101,11 +101,13 @@ const Subscribe = () => {
         throw new Error("Fetch problem create customer " + response.status);
       }
       const json = await response.json();
-      setCustomerID(json.id);
-      if (json.payment_methods && json.payment_methods.length) {
-        const defaultPayment = json.payment_methods.filter((method) => method.is_default === true);
-        if (defaultPayment.length) {
-          setPaymentMethod(defaultPayment[0]);
+      if (json) {
+        setCustomerID(json.id);
+        if (json.payment_methods && json.payment_methods.length) {
+          const defaultPayment = json.payment_methods.filter((method) => method.is_default === true);
+          if (defaultPayment.length) {
+            setPaymentMethod(defaultPayment[0]);
+          }
         }
       }
     } catch (error) {
