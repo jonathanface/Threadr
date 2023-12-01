@@ -28,6 +28,7 @@ import Toaster from "./utils/Toaster";
 
 const Threadr = () => {
   const [isLoading, setIsLoading] = useState(true);
+  console.log("initiating with key", process.env.REACT_APP_STRIPE_KEY);
   const [stripe, setStripe] = useState(() => loadStripe(process.env.REACT_APP_STRIPE_KEY));
   const isLoggedIn = useSelector((state) => state.user.isLoggedIn);
   const selectedStory = useSelector((state) => state.stories.selectedStory);
