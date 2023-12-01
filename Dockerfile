@@ -1,6 +1,6 @@
 FROM node:19-bullseye AS frontend-builder
 ARG REACT_APP_STRIPE_KEY
-WORKDIR /app/static/rd-ui
+WORKDIR /app
 COPY ./static/rd-ui/package*.json ./
 RUN npm install
 COPY ./static/rd-ui/src ./src
@@ -56,6 +56,8 @@ ENV VERSION = $VERSION
 ARG STRIPE_KEY
 ENV STRIPE_KEY=$STRIPE_KEY
 
+COPY --from=frontend-builder /app/build /app/static/rd-ui/build
+
 COPY ./go.mod ./go.mod
 COPY ./go.sum ./go.sum
 COPY ./api ./api
@@ -72,5 +74,5 @@ RUN go mod tidy
 
 RUN mkdir -p ./tmp
 RUN go build -o /RichDocter
-
+#CMD ["sleep", "infinity"]
 CMD ["/RichDocter"]
