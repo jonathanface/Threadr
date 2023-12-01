@@ -72,7 +72,7 @@ const Subscribe = () => {
       last_four: paymentMethod.card.last4,
     });
     try {
-      const setPaymentResults = await fetch("/billing/customer/edit", {
+      const setPaymentResults = await fetch("/billing/customer", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -89,7 +89,7 @@ const Subscribe = () => {
 
   const getOrCreateStripeCustomer = async () => {
     try {
-      const response = await fetch("/billing/customer/new", {
+      const response = await fetch("/billing/customer", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
