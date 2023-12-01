@@ -61,17 +61,12 @@ const Subscribe = () => {
       if (error) {
         throw new Error(error);
       }
-    } catch (error) {
-      setSubscribeError(error);
-    }
-
-    console.log("confirm", paymentMethod);
-    setPaymentMethod({
-      id: paymentMethod.id,
-      brand: paymentMethod.card.brand,
-      last_four: paymentMethod.card.last4,
-    });
-    try {
+      console.log("confirm", paymentMethod);
+      setPaymentMethod({
+        id: paymentMethod.id,
+        brand: paymentMethod.card.brand,
+        last_four: paymentMethod.card.last4,
+      });
       const setPaymentResults = await fetch("/billing/customer", {
         method: "PUT",
         headers: {

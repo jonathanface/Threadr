@@ -18,15 +18,12 @@ import (
 )
 
 func GetCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
-	log.Println("stripe", os.Getenv("STRIPE_SECRET"))
 	stripe.Key = os.Getenv("STRIPE_SECRET")
 	if stripe.Key == "" {
 		api.RespondWithError(w, http.StatusNoContent, "missing stripe secret")
 		return
 	}
-	log.Println("stripe", stripe.Key)
 	token, err := sessions.Get(r, "token")
-	log.Println("tok2", token)
 	if err != nil || token.IsNew {
 		api.RespondWithError(w, http.StatusNotFound, "cannot find token")
 		return
@@ -36,8 +33,6 @@ func GetCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		api.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	log.Println("user2", user.CustomerID)
-
 	c, err := customer.Get(user.CustomerID, nil)
 	log.Println("c", c)
 	if err != nil {
@@ -49,7 +44,6 @@ func GetCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateCardIntentEndpoint(w http.ResponseWriter, r *http.Request) {
-	log.Println("in createcardintent")
 	stripe.Key = os.Getenv("STRIPE_SECRET")
 	if stripe.Key == "" {
 		api.RespondWithError(w, http.StatusNoContent, "missing stripe secret")
@@ -78,7 +72,6 @@ func createCardIntent(customerID string) (secret *string, err error) {
 		},
 		Customer: &customerID,
 	}
-	log.Println("params", params)
 	si, err := setupintent.New(params)
 	if err != nil {
 		return nil, err

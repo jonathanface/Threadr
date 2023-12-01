@@ -595,7 +595,6 @@ func (d *DAO) UpdateUser(user models.UserInfo) (err error) {
 
 func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (err error) {
 	tableName := storyID + "_" + storyBlocks.ChapterID + "_blocks"
-	fmt.Println("blocking", tableName)
 	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(storyBlocks.Blocks); i += d.writeBatchSize {
 		end := i + d.writeBatchSize
@@ -836,7 +835,6 @@ func (d *DAO) CreateChapter(storyID string, chapter models.Chapter) (newChapter 
 	twii := &dynamodb.TransactWriteItemsInput{}
 	twii.TransactItems = append(twii.TransactItems, chapTwi)
 	err, awsErr := d.awsWriteTransaction(twii)
-	fmt.Println("trans err", err, awsErr)
 	if err != nil {
 		return models.Chapter{}, err
 	}
@@ -1009,7 +1007,6 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 		return updatedStory, err
 	}
 
-	fmt.Println("compare", story.SeriesID, storedStory.SeriesID)
 	if story.SeriesID != storedStory.SeriesID {
 		// a change in series
 		if story.SeriesID != "" {

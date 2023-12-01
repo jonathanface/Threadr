@@ -69,13 +69,11 @@ func looseMiddleware(next http.Handler) http.Handler {
 }
 
 func billingMiddleware(next http.Handler) http.Handler {
-	log.Println("in billing middleware")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "OPTIONS" {
 			return
 		}
 		token, err := sessions.Get(r, "token")
-		log.Println("tok", token)
 		if err != nil || token.IsNew {
 			api.RespondWithError(w, http.StatusNotFound, "cannot find token")
 			return
@@ -85,7 +83,6 @@ func billingMiddleware(next http.Handler) http.Handler {
 			api.RespondWithError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		log.Println("user", user)
 		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(time.Second*5))
 		defer cancel()
 		ctx = context.WithValue(ctx, "dao", dao)
