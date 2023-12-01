@@ -72,7 +72,7 @@ const Subscribe = () => {
       last_four: paymentMethod.card.last4,
     });
     try {
-      const setPaymentResults = await fetch("/billing/customer", {
+      const setPaymentResults = await fetch("/billing/customer/edit", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
