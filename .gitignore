@@ -24,6 +24,7 @@ richdocter
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 static/rd-ui/node_modules/
+static/rd-ui/build/
 node_modules
 /.pnp
 .pnp.js

@@ -1,6 +1,17 @@
-# Base image with Go and wkhtmltox dependencies
-FROM golang:1.21.2
+FROM node:19-bullseye AS frontend-builder
+ARG REACT_APP_STRIPE_KEY
 
+ENV APP_MODE="PRODUCTION"
+
+WORKDIR /app
+COPY ./static/rd-ui/package*.json ./
+RUN npm install
+COPY ./static/rd-ui/src ./src
+COPY ./static/rd-ui/public ./public
+RUN npm run build
+
+
+FROM golang:1.21.2 AS backend-builder
 # Install wkhtmltox dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -47,10 +58,6 @@ ENV VERSION = $VERSION
 ARG STRIPE_KEY
 ENV STRIPE_KEY=$STRIPE_KEY
 
-ARG REACT_APP_STRIPE_KEY
-
-ENV APP_MODE="PRODUCTION"
-
 COPY ./go.mod ./go.mod
 COPY ./go.sum ./go.sum
 COPY ./api ./api
@@ -62,8 +69,8 @@ COPY ./bins /usr/local/bin/
 COPY ./daos ./daos
 COPY ./sessions ./sessions
 COPY ./RichDocter.go ./RichDocter.go
-COPY ./static/rd-ui/build/ ./static/rd-ui/build/
 
+RUN go mod tidy
 
 RUN mkdir -p ./tmp
 RUN go build -o /RichDocter
