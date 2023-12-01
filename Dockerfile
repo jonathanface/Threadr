@@ -1,8 +1,5 @@
 FROM node:19-bullseye AS frontend-builder
 ARG REACT_APP_STRIPE_KEY
-
-ENV APP_MODE="PRODUCTION"
-
 WORKDIR /app
 COPY ./static/rd-ui/package*.json ./
 RUN npm install
@@ -33,6 +30,7 @@ ENV GO111MODULE=auto \
     GOPATH=/go \
     PATH=$GOPATH/bin:/usr/local/go/bin:/usr/local/bin:/usr/local/:$PATH
 
+ENV APP_MODE="PRODUCTION"
 ARG AWS_ACCESS_KEY_ID
 ENV AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
 ARG AWS_SECRET_ACCESS_KEY
