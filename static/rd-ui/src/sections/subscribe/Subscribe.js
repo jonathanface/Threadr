@@ -38,59 +38,58 @@ const Subscribe = () => {
   const confirmCard = async () => {
     console.log("confirm card");
     setSubscribeError("");
-    fetch("/billing/card", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ id: customerID }),
-    })
-      .then((response) => {
-        if (response.ok) {
-          return response.json();
-        }
-        throw new Error("Fetch problem create customer " + response.status);
-      })
-      .then(async (data) => {
-        const cardElement = elements.getElement(CardElement);
-        // Create a payment method and handle the result
-        const { paymentMethod, error } = await stripe.createPaymentMethod({
-          customerID: data.customerID,
-          type: "card",
-          card: cardElement,
-        });
-        if (error) {
-          setSubscribeError(error);
-          return;
-        }
-
-        console.log("confirm", paymentMethod);
-        setPaymentMethod({
-          id: paymentMethod.id,
-          brand: paymentMethod.card.brand,
-          last_four: paymentMethod.card.last4,
-        });
-
-        fetch("/billing/customer", {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ customer_id: customerID, payment_method_id: paymentMethod.id }),
-        })
-          .then((response) => {
-            if (response.ok) {
-              return response.json();
-            }
-            throw new Error("Fetch problem update customer " + response.status);
-          })
-          .then(async (data) => {});
+    try {
+      const response = await fetch("/billing/card", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: customerID }),
       });
+      if (!response.ok) {
+        throw new Error("Fetch problem create customer " + response.status);
+      }
+      const json = await response.json();
+
+      const cardElement = elements.getElement(CardElement);
+      // Create a payment method and handle the result
+      const { paymentMethod, error } = await stripe.createPaymentMethod({
+        customerID: json.customerID,
+        type: "card",
+        card: cardElement,
+      });
+      if (error) {
+        throw new Error(error);
+      }
+    } catch (error) {
+      setSubscribeError(error);
+    }
+
+    console.log("confirm", paymentMethod);
+    setPaymentMethod({
+      id: paymentMethod.id,
+      brand: paymentMethod.card.brand,
+      last_four: paymentMethod.card.last4,
+    });
+    try {
+      const setPaymentResults = await fetch("/billing/customer", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ customer_id: customerID, payment_method_id: paymentMethod.id }),
+      });
+      if (!setPaymentResults.ok) {
+        throw new Error("Fetch problem update customer " + setPaymentResults.status);
+      }
+    } catch (error) {
+      setSubscribeError(error);
+    }
   };
 
   const getOrCreateStripeCustomer = async () => {
     try {
-      const response = await fetch("/billing/customer", {
+      const response = await fetch("/billing/customer/new", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

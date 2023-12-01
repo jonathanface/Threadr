@@ -244,8 +244,8 @@ func main() {
 	billingRtr.Use(billingMiddleware)
 	billingRtr.HandleFunc("/products", billing.GetProductsEndpoint).Methods("GET", "OPTIONS")
 	billingRtr.HandleFunc("/customer", billing.GetCustomerEndpoint).Methods("GET", "OPTIONS")
-	billingRtr.HandleFunc("/customer", billing.CreateCustomerEndpoint).Methods("POST", "OPTIONS")
-	billingRtr.HandleFunc("/customer", billing.UpdateCustomerPaymentMethodEndpoint).Methods("PUT", "OPTIONS")
+	billingRtr.HandleFunc("/customer/new", billing.CreateCustomerEndpoint).Methods("POST", "OPTIONS")
+	billingRtr.HandleFunc("/customer/edit", billing.UpdateCustomerPaymentMethodEndpoint).Methods("PUT", "OPTIONS")
 	billingRtr.HandleFunc("/card", billing.CreateCardIntentEndpoint).Methods("POST", "OPTIONS")
 	billingRtr.HandleFunc("/subscribe", billing.SubscribeCustomerEndpoint).Methods("POST", "OPTIONS")
 
