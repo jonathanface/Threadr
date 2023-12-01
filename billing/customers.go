@@ -275,6 +275,6 @@ func createCustomer(email string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
+	log.Println("created new customer", c)
 	return c.ID, nil
 }
