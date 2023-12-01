@@ -23,7 +23,9 @@ func GetCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		api.RespondWithError(w, http.StatusNoContent, "missing stripe secret")
 		return
 	}
+	log.Println("stripe", stripe.Key)
 	token, err := sessions.Get(r, "token")
+	log.Println("tok2", token)
 	if err != nil || token.IsNew {
 		api.RespondWithError(w, http.StatusNotFound, "cannot find token")
 		return
@@ -33,9 +35,12 @@ func GetCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		api.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	log.Println("user2", user.CustomerID)
 
 	c, err := customer.Get(user.CustomerID, nil)
+	log.Println("c", c)
 	if err != nil {
+		log.Println("err getting customer")
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
