@@ -7,6 +7,7 @@ import (
 	"RichDocter/sessions"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 
@@ -42,7 +43,7 @@ func GetCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateCardIntentEndpoint(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("in createcardintent")
+	log.Println("in createcardintent")
 	stripe.Key = os.Getenv("STRIPE_SECRET")
 	if stripe.Key == "" {
 		api.RespondWithError(w, http.StatusNoContent, "missing stripe secret")
@@ -54,7 +55,7 @@ func CreateCardIntentEndpoint(w http.ResponseWriter, r *http.Request) {
 		api.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
-	fmt.Println("creating customer", customer)
+	log.Println("creating customer", customer)
 	secret, err := createCardIntent(customer.Id)
 	if err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -71,6 +72,7 @@ func createCardIntent(customerID string) (secret *string, err error) {
 		},
 		Customer: &customerID,
 	}
+	log.Println("params", params)
 	si, err := setupintent.New(params)
 	if err != nil {
 		return nil, err
