@@ -46,10 +46,8 @@ ARG VERSION
 ENV VERSION = $VERSION
 ARG STRIPE_KEY
 ENV STRIPE_KEY=$STRIPE_KEY
-ARG STRIPE_SECRET
-ENV STRIPE_SECRET=$STRIPE_SECRET
-ENV REACT_APP_STRIPE_KEY=$STRIPE_KEY
 
+ARG REACT_APP_STRIPE_KEY
 
 ENV APP_MODE="PRODUCTION"
 
@@ -65,6 +63,7 @@ COPY ./daos ./daos
 COPY ./sessions ./sessions
 COPY ./RichDocter.go ./RichDocter.go
 COPY ./static/rd-ui/build/ ./static/rd-ui/build/
+
 
 RUN mkdir -p ./tmp
 RUN go build -o /RichDocter
