@@ -228,6 +228,10 @@ func main() {
 	auth.New()
 
 	rtr := mux.NewRouter()
+	rtr.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}).Methods("GET", "OPTIONS")
+
 	authRtr := rtr.PathPrefix(authPath).Subrouter()
 	authRtr.Use(looseMiddleware)
 	// DEV ONLY!!
