@@ -6,7 +6,7 @@ RUN npm install
 COPY ./static/rd-ui/src ./src
 COPY ./static/rd-ui/public ./public
 RUN npm run build
-COPY ./static/rd-ui/build ./build
+COPY ./static/rd-ui/build ./static/rd-ui/build
 
 FROM golang:1.21.2 AS backend-builder
 # Install wkhtmltox dependencies
