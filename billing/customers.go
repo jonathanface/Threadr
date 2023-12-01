@@ -18,6 +18,7 @@ import (
 )
 
 func GetCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
+	log.Println("stripe", os.Getenv("STRIPE_SECRET"))
 	stripe.Key = os.Getenv("STRIPE_SECRET")
 	if stripe.Key == "" {
 		api.RespondWithError(w, http.StatusNoContent, "missing stripe secret")
