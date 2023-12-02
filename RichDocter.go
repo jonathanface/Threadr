@@ -111,8 +111,9 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 			api.RespondWithError(w, http.StatusBadRequest, err.Error())
 			return
 		}
+		log.Println("userdata", userDetails)
 		if userDetails.SubscriptionID != "" || userDetails.Expired {
-			isActive, err := billing.CheckSubscriptionIsActive(user)
+			isActive, err := billing.CheckSubscriptionIsActive(*userDetails)
 			if err != nil {
 				// hack
 				if err.Error() != "no subscription found" {

@@ -36,7 +36,6 @@ func GetCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 	c, err := customer.Get(user.CustomerID, nil)
 	log.Println("c", c)
 	if err != nil {
-		log.Println("err getting customer")
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -55,7 +54,6 @@ func CreateCardIntentEndpoint(w http.ResponseWriter, r *http.Request) {
 		api.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
-	log.Println("creating customer", customer)
 	secret, err := createCardIntent(customer.Id)
 	if err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())

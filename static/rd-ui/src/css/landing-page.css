@@ -16,30 +16,13 @@
   min-height: 300px;
 }
 
-.landing-page .greeting {
-  display: flex;
-  align-items: center;
-  margin: 60px auto;
-  max-width: 1024px;
-  flex-direction: column;
-  color: #ffd80b;
-  filter: drop-shadow(1px 1px 1px #1a1a1a);
-  letter-spacing: 1.5px;
-}
-.landing-page .greeting a {
-  color: aliceblue;
-}
-.landing-page .greeting a:hover {
-  color: #fff;
-}
-
 .landing-page h2 {
   display: flex;
   align-items: center;
   text-align: left;
   max-width: 1024px;
   filter: drop-shadow(2px 2px 2px #1a1a1a);
-  margin: 0px auto;
+  margin: 60px auto;
   margin-bottom: 10px;
   padding-left: 20px;
   padding-right: 20px;

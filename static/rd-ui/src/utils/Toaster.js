@@ -60,6 +60,11 @@ const Toaster = () => {
             </a>
           </p>
         ) : null}
+        {link && link.location && link.location === "contact" ? (
+          <a href="#" onClick="mailto:support@docter.io">
+            support@docter.io
+          </a>
+        ) : null}
       </Alert>
     </Snackbar>
   );

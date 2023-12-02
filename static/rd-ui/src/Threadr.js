@@ -90,6 +90,17 @@ const Threadr = () => {
           dispatch(setAlertSeverity("error"));
           dispatch(setAlertTimeout(null));
           dispatch(setAlertOpen(true));
+        } else {
+          dispatch(setAlertTitle("Welcome to the RichDocter prerelease!"));
+          dispatch(setAlertSeverity("info"));
+          dispatch(setAlertTimeout(20000));
+          dispatch(
+            setAlertMessage(
+              "As this application is still under development, making regular offline backup of your work is highly recommended.\nPlease send any bugs, feedback, or glowing praise to:"
+            )
+          );
+          dispatch(setAlertLink({ location: "contact" }));
+          dispatch(setAlertOpen(true));
         }
       })
       .catch((e) => {
@@ -100,7 +111,7 @@ const Threadr = () => {
     handleNavChange();
     return () => window.removeEventListener("popstate", handleNavChange);
   }, [dispatch]);
-  console.log("logged", isLoggedIn);
+
   const displayComponent = !isLoading ? (
     isLoggedIn && selectedStory ? (
       <Document story={selectedStory} />

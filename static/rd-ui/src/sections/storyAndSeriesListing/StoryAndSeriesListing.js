@@ -256,23 +256,6 @@ const StoryAndSeriesListing = () => {
       <div className="btn-container"></div>
       {isLoggedIn ? (
         <div>
-          <div className="greeting">
-            <div>
-              <h3>Welcome to the RichDocter beta release.</h3>
-            </div>
-            <div>
-              <h4>
-                As this application is still under development, making regular offline backup of your work is highly
-                recommended.
-              </h4>
-            </div>
-            <div>
-              <h4>
-                Please send any bugs, feedback, or glowing praise to{" "}
-                <a href="mailto:support@docter.io">support@docter.io</a>
-              </h4>
-            </div>
-          </div>
           <h2>Stories</h2>
           <div className="icon-box">
             <span className="create-story-button">
