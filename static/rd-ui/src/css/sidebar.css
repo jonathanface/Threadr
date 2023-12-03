@@ -1,79 +1,79 @@
 .sidebar-container {
-    position:fixed;
-    right:-3px;
-    top:0px;
-    display:flex;
-    flex-direction: row;
-    flex-wrap:wrap;
-    color:#EFEFEF;
-    z-index:20;
+  position: fixed;
+  right: -3px;
+  top: 0px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  color: #efefef;
+  z-index: 20;
 }
 
 .sidebar-container .ps-sidebar-root {
-    height:100vh;
-    flex-direction: column;
-    flex-basis: 100%;
-    flex: 1;
-    border-left:none !important;
+  height: 100vh;
+  flex-direction: column;
+  flex-basis: 100%;
+  flex: 1;
+  border-left: none !important;
 }
 .sidebar-container .ps-sidebar-container {
-    background-color: #515d57;
+  background-color: #515d57;
 }
 .sidebar-container .ps-menuitem-root {
-    border-radius:15px;
-    margin:10px;
-    box-sizing: border-box;
-    width:200px;
-    background-clip: padding-box;
+  border-radius: 15px;
+  margin: 10px;
+  box-sizing: border-box;
+  width: 200px;
+  background-clip: padding-box;
 }
 .sidebar-container .ps-menuitem-root:last-child a {
-    cursor:default;
+  cursor: default;
 }
 .sidebar-container .ps-menuitem-root a:hover {
-    background-color:#40554b;
-    border-radius:15px;
-    border:1px dashed #333;
+  background-color: #40554b;
+  border-radius: 15px;
+  border: 1px dashed #333;
 }
 .sidebar-container .ps-menuitem-root:last-child {
-    margin-top:10px;
+  margin-top: 10px;
 }
 .sidebar-container .ps-menuitem-root:last-child a:hover {
-    background-color:initial;
-    border:none;
+  background-color: initial;
+  border: none;
 }
 .sidebar-container .ps-menuitem-root.active {
-    background-color:#40554b;
-    font-weight: bold;
-    border:1px dashed #FFF;
+  background-color: #40554b;
+  font-weight: bold;
+  border: 1px dashed #fff;
 }
 .sidebar-container .ps-menuitem-root .menu-icon {
-    float:right;
-    color:#FFF;
-    margin-top:-1px;
+  float: right;
+  color: #fff;
+  margin-top: -1px;
 }
 .sidebar-container .ps-menuitem-root .menu-icon:hover {
-    opacity:0.8;
+  opacity: 0.8;
 }
 .sidebar-container .ps-menuitem-root:last-child button {
-    border:1px solid #FFF;
+  border: 1px solid #fff;
 }
 .sidebar-container .ps-menuitem-root:last-child button:hover {
-    background-color:#40554b;
+  background-color: #40554b;
 }
 .sidebar-container .ps-rtl {
-    border-left:none;
+  border-left: none;
 }
 .sidebar-container .handle {
-    flex-direction: column;
-    flex-basis: 100%;
-    flex: 1;
-    font-size: 0.8rem;
-    background-color: #515d57;
-    border-left: 1px solid #EFEFEF;
-    padding: 10px;
-    border-top-left-radius: 15px;
-    border-bottom-left-radius: 15px;
-    writing-mode: vertical-lr;
-    width:20px;
-    cursor:pointer;
+  flex-direction: column;
+  flex-basis: 100%;
+  flex: 1;
+  font-size: 0.8rem;
+  background-color: #515d57;
+  border-left: 1px solid #efefef;
+  padding: 10px;
+  border-top-left-radius: 15px;
+  border-bottom-left-radius: 15px;
+  writing-mode: vertical-lr;
+  width: 20px;
+  cursor: pointer;
 }

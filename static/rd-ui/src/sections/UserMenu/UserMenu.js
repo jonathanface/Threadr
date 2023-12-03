@@ -20,11 +20,7 @@ const UserMenu = (props) => {
     dispatch(flipConfigPanelVisible());
   };
 
-  useEffect(() => {
-    if (userDetails.subscription_id) {
-      console.log("wtf", userDetails, userDetails.subscription_id, userDetails.subscription_id.length);
-    }
-  }, [userDetails.subscription_id]);
+  useEffect(() => {}, [userDetails.subscription_id]);
 
   const signout = () => {
     dispatch(setIsLoaderVisible(false));

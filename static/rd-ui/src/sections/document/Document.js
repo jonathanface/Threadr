@@ -411,6 +411,8 @@ const Document = () => {
       })
       .then((data) => {
         if (data.chapters.length) {
+          console.log("chaps", data.chapters);
+          data.chapters.sort((a, b) => a.chapter_num - b.chapter_num);
           setChapters(data.chapters);
           const foundSelectedChapter = data.chapters.find((chapter) => chapter.id === selectedChapter.id);
           if (foundSelectedChapter) {

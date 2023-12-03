@@ -320,8 +320,6 @@ func (d *DAO) GetSeriesByID(email, seriesID string) (series *models.Series, err 
 func (d *DAO) GetStoryParagraphs(storyID, chapterID, startKey string) (*models.BlocksData, error) {
 	var blocks models.BlocksData
 	tableName := storyID + "_" + chapterID + "_blocks"
-	fmt.Println("retrieving blocks on", tableName)
-
 	queryInput := &dynamodb.QueryInput{
 		TableName:              aws.String(tableName),
 		IndexName:              aws.String("story_id-place-index"),

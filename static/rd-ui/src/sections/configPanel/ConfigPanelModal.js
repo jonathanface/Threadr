@@ -16,15 +16,12 @@ const ConfigPanelModal = (props) => {
   const dispatch = useDispatch();
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    console.log("new deets", userDetails);
-  }, [userDetails]);
+  useEffect(() => {}, [userDetails]);
 
   const handleClose = () => {
     setError("");
     dispatch(flipConfigPanelVisible());
   };
-  console.log("user", userDetails);
 
   const toggleSubscriptionRenewal = async () => {
     setError("");

@@ -129,17 +129,27 @@ div.public-DraftEditor-content .content-block:last-child {
   div.DraftEditor-editorContainer {
     padding: 0;
     width: calc(95% - 20px);
+    user-select: text;
   }
   nav.rich-controls {
     height: initial;
     width: 80%;
     opacity: 1;
     margin-left: -40px;
+    min-height: 140px;
   }
   nav.rich-controls .right-controls {
     float: none;
+    display: block;
+    position: absolute;
+    top: 20px;
   }
   nav.rich-controls .controls-row {
-    display: inline-block;
+    display: block;
+    position: relative;
+    top: 60px;
+  }
+  .editor_container {
+    width: inherit;
   }
 }
