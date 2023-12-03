@@ -18,7 +18,8 @@ import {
   setAlertTimeout,
   setAlertTitle,
 } from "../../stores/alertSlice";
-import { flipCreatingNewStory, setSelectedStory } from "../../stores/storiesSlice";
+import { setSeriesList } from "../../stores/seriesSlice";
+import { flipCreatingNewStory, setStandaloneList } from "../../stores/storiesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
 import PortraitDropper from "../portraitdropper/PortraitDropper";
 
@@ -29,6 +30,8 @@ const CreateNewStory = () => {
   const userDetails = useSelector((state) => state.user.userDetails);
   const isLoggedIn = useSelector((state) => state.user.isLoggedIn);
   const belongsToSeries = useSelector((state) => state.stories.belongsToSeries);
+  const standaloneList = useSelector((state) => state.stories.standaloneList);
+  const seriesList = useSelector((state) => state.series.seriesList);
 
   const dispatch = useDispatch();
   const initMap = new Map();
@@ -41,6 +44,7 @@ const CreateNewStory = () => {
   const [areErrors, setAreErrors] = useState(false);
   const [currentError, setCurrentError] = useState("");
   const [imageURL, setImageURL] = useState();
+  const [imageName, setImageName] = useState("Loading...");
   const [seriesMember, setSeriesMember] = useState({ label: "" });
   const defaultImageURL = "img/icons/story_standalone_icon.jpg";
 
@@ -49,12 +53,13 @@ const CreateNewStory = () => {
     setAreErrors(false);
     setCurrentError("");
     setIsInASeries(false);
+
     setSeriesMember({ label: "" });
   };
 
   const handleClose = () => {
     resetForm();
-    dispatch(flipCreatingNewStory(""));
+    dispatch(flipCreatingNewStory(null));
   };
 
   const toggleSeries = () => {
@@ -222,16 +227,49 @@ const CreateNewStory = () => {
       }
 
       const json = await response.json();
+      if (json.series_id.length) {
+        // added to a series
+        const seriesIndex = seriesList.findIndex((srs) => srs.series_id === json.series_id);
 
-      const storyID = json.story_id;
-      dispatch(setSelectedStory({ id: storyID, title: json.title }));
-      const history = window.history;
-      history.pushState({ storyID }, "created new story", "/story/" + storyID + "?chapter=1");
+        if (seriesIndex >= 0) {
+          const updatedSeries = JSON.parse(JSON.stringify(seriesList[seriesIndex]));
+
+          updatedSeries.stories.push({
+            story_id: json.story_id,
+            series_id: json.series_id,
+            title: json.title,
+            place: json.place,
+            created_at: json.created_at,
+            description: json.description,
+            image_url: json.image_url.length ? json.image_url : "/img/icons/story_standalone_icon.jpg",
+          });
+          const newSeriesList = [...seriesList];
+          newSeriesList[seriesIndex] = updatedSeries;
+          dispatch(setSeriesList(newSeriesList));
+        } else {
+          throw new Error("Series not found");
+        }
+      } else {
+        // added as a standalone
+        const newStory = {
+          story_id: json.story_id,
+          description: json.description,
+          title: json.title,
+          image_url: json.image_url + "?cache=" + new Date().getMilliseconds(),
+        };
+        const newStandaloneList = [...standaloneList];
+        newStandaloneList.push(newStory);
+        dispatch(setStandaloneList(newStandaloneList));
+      }
+      //const storyID = json.story_id;
+      //dispatch(setSelectedStory({ id: storyID, title: json.title }));
+      //const history = window.history;
+      //history.pushState({ storyID }, "created new story", "/story/" + storyID + "?chapter=1");
       setTimeout(() => {
         handleClose();
-      }, 1000);
+      }, 500);
     } catch (error) {
-      console.error("creatione error", error);
+      console.error("creation error", error);
       const errorData = error.response ? JSON.parse(error.message) : {};
       if (errorData.error) {
         setCurrentError(errorData.error);
@@ -260,6 +298,10 @@ const CreateNewStory = () => {
     });
   };
 
+  const onImageLoaded = () => {
+    setImageName("New Image");
+  };
+
   return (
     <div>
       <Dialog open={isCreatingNewStory} onClose={handleClose}>
@@ -268,7 +310,12 @@ const CreateNewStory = () => {
           <Box component="form">
             <div>
               <h3>Image for Your Story</h3>
-              <PortraitDropper imageURL={imageURL} name="New Story" onComplete={processImage} />
+              <PortraitDropper
+                imageURL={imageURL}
+                name={imageName}
+                onImageLoaded={onImageLoaded}
+                onComplete={processImage}
+              />
               <TextField
                 onChange={(event) => {
                   setFormInput((prevFormInput) => ({

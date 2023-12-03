@@ -26,6 +26,7 @@ const EditStory = () => {
   const standaloneList = useSelector((state) => state.stories.standaloneList);
   const seriesList = useSelector((state) => state.series.seriesList);
 
+  const [imageName, setImageName] = useState("Loading...");
   const [belongsToSeries, setBelongsToSeries] = useState("");
   const [series, setSeries] = useState([]);
   const [isInASeries, setIsInASeries] = useState(false);
@@ -195,15 +196,6 @@ const EditStory = () => {
         const newStandaloneList = standaloneList.filter(
           (item) => item.series_id !== json.series_id && item.story_id !== json.story_id
         );
-        //TODO fix stories edited from series editor
-        //const foundStoryIndex = seriesList.forEach(findIndex((stry) => stry.story_id === json.story_id);
-        //console.log("found story ind", foundStoryIndex);
-        /*
-        const newSeriesEditables = {
-          ...seriesEditables,
-          stories: updatedStoryList,
-        };
-        dispatch(setSeriesEditables(newSeriesEditables));*/
         getSeries();
         dispatch(setStandaloneList(newStandaloneList));
       } else {
@@ -288,6 +280,10 @@ const EditStory = () => {
     });
   };
 
+  const onImageLoaded = () => {
+    setImageName(storyTitle);
+  };
+
   return (
     <div>
       <Dialog open={isEditingStory} onClose={handleClose}>
@@ -295,7 +291,12 @@ const EditStory = () => {
         <DialogContent>
           <Box className="form-box" component="form">
             <h3>Image for {storyTitle}</h3>
-            <PortraitDropper imageURL={editables.image_url} name={storyTitle} onComplete={processImage} />
+            <PortraitDropper
+              imageURL={editables.image_url}
+              name={imageName}
+              onImageLoaded={onImageLoaded}
+              onComplete={processImage}
+            />
             <div>
               <TextField
                 onChange={(event) => {

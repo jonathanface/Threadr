@@ -14,7 +14,12 @@ import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import { useDispatch, useSelector } from "react-redux";
 import "../../css/edit-series.css";
 import { flipEditingSeries, setSeriesEditables, setSeriesList } from "../../stores/seriesSlice";
-import { flipEditingStory, setStandaloneList, setStoryEditables } from "../../stores/storiesSlice";
+import {
+  flipCreatingNewStory,
+  flipEditingStory,
+  setStandaloneList,
+  setStoryEditables,
+} from "../../stores/storiesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
 import PortraitDropper from "../portraitdropper/PortraitDropper";
 
@@ -28,6 +33,7 @@ const EditSeriesModal = () => {
   const [formInput, setFormInput] = useState({});
   const [areErrors, setAreErrors] = useState(false);
   const [currentError, setCurrentError] = useState("");
+  const [imageName, setImageName] = useState("Loading...");
 
   const resetForm = () => {
     setAreErrors(false);
@@ -223,6 +229,16 @@ const EditSeriesModal = () => {
     dispatch(flipEditingStory(editables.series_id));
   };
 
+  const addStory = (event) => {
+    event.stopPropagation();
+    dispatch(flipCreatingNewStory(editables.series_id));
+    handleClose();
+  };
+
+  const onImageLoaded = () => {
+    setImageName(editables.series_title);
+  };
+
   return (
     <div>
       <Dialog open={isEditingSeries} onClose={handleClose}>
@@ -231,7 +247,12 @@ const EditSeriesModal = () => {
           <Box component="form">
             <div>
               <h3>Image for Your Series</h3>
-              <PortraitDropper imageURL={editables.image_url} name="Series Image" onComplete={processImage} />
+              <PortraitDropper
+                imageURL={editables.image_url}
+                name={imageName}
+                onImageLoaded={onImageLoaded}
+                onComplete={processImage}
+              />
               <TextField
                 onChange={(event) => {
                   setFormInput((prevFormInput) => ({
@@ -270,7 +291,7 @@ const EditSeriesModal = () => {
                   component="label"
                   title="Add"
                   onClick={(event) => {
-                    //addStory(event, entry.story_id);
+                    addStory(event);
                   }}>
                   <AddIcon
                     sx={{

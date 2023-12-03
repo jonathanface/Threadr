@@ -8,7 +8,11 @@ export const seriesSlice = createSlice({
     editables: {},
   },
   reducers: {
-    flipEditingSeries: (state) => {
+    flipEditingSeries: (state, action) => {
+      if (action.payload) {
+        state.isEditingSeries = action.payload;
+        return;
+      }
       state.isEditingSeries = !state.isEditingSeries;
     },
     setSeriesEditables: (state, action) => {

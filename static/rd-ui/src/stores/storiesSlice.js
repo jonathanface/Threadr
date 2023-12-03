@@ -15,8 +15,12 @@ export const storiesSlice = createSlice({
   },
   reducers: {
     flipCreatingNewStory: (state, action) => {
-      state.isCreatingNew = !state.isCreatingNew;
       state.belongsToSeries = action.payload;
+      if (action.payload) {
+        state.isCreatingNew = true;
+        return;
+      }
+      state.isCreatingNew = !state.isCreatingNew;
     },
     flipEditingStory: (state, action) => {
       state.isEditingStory = !state.isEditingStory;
