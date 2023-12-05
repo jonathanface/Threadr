@@ -21,24 +21,26 @@ const AssociationUI = (props) => {
   );
 
   const handleClose = () => {
-    setName("");
-    setDescription("");
-    setDetails("");
-    setAliases("");
-    setImageURL("/img/default_association_portrait.jpg");
     props.onClose();
+    setTimeout(() => {
+      setName("");
+      setDescription("");
+      setDetails("");
+      setAliases("");
+      setImageURL("/img/default_association_portrait.jpg");
+    }, 500);
   };
 
   useEffect(() => {
     if (props.association) {
       setCaseSensitive(props.association.details.case_sensitive);
       setName(UCWords(props.association.association_name));
-      setImageURL(props.association.portrait + "?t=" + new Date().getDate());
+      setImageURL(props.association.portrait);
       setDescription(props.association.short_description);
       setDetails(props.association.details.extended_description);
       setAliases(props.association.details.aliases);
     }
-  }, [props]);
+  }, [props.association]);
 
   const onAssociationEdit = (newValue, id) => {
     const newAssociation = props.association;
