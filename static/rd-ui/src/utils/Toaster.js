@@ -3,6 +3,8 @@ import AlertTitle from "@mui/material/AlertTitle";
 import Snackbar from "@mui/material/Snackbar";
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { setSubscriptionFormOpen } from "../stores/uiSlice";
+
 import {
   setAlertLink,
   setAlertMessage,
@@ -11,7 +13,6 @@ import {
   setAlertTimeout,
   setAlertTitle,
 } from "../stores/alertSlice";
-import { setSubscriptionFormOpen } from "../stores/uiSlice";
 
 const Toaster = () => {
   const dispatch = useDispatch();
@@ -27,14 +28,18 @@ const Toaster = () => {
   };
 
   const handleClose = () => {
-    dispatch(setAlertMessage(""));
-    dispatch(setAlertSeverity("info"));
-    dispatch(setAlertTitle("Announcement"));
     dispatch(setAlertOpen(false));
-    dispatch(setAlertTimeout(6000));
-    dispatch(setAlertLink({}));
+    setTimeout(() => {
+      dispatch(setAlertMessage(""));
+      dispatch(setAlertSeverity("info"));
+      dispatch(setAlertTitle("Announcement"));
+      dispatch(setAlertTimeout(6000));
+      dispatch(setAlertLink({}));
+    }, 500);
   };
+
   const splitByNewline = alertMessage.split("\n");
+
   return (
     <Snackbar
       className="alert-toast"
@@ -60,9 +65,7 @@ const Toaster = () => {
           </p>
         ) : null}
         {link && link.location && link.location === "contact" ? (
-          <a href="#" onClick="mailto:support@docter.io">
-            support@docter.io
-          </a>
+          <a href="mailto:support@docter.io">support@docter.io</a>
         ) : null}
       </Alert>
     </Snackbar>
