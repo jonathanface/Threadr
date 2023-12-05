@@ -130,7 +130,7 @@ const AssociationUI = (props) => {
             <div className="detail-bubble">
               <TextField
                 label="Overview"
-                helperText="hahahah dumbass"
+                helperText=""
                 multiline
                 rows="6"
                 onBlur={(event) => {

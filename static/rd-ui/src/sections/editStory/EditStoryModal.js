@@ -133,7 +133,6 @@ const EditStory = () => {
   };
 
   useEffect(() => {
-    console.log("editables title set to", editables.title);
     if (isLoggedIn && isEditingStory) {
       getSeries();
       setIsInASeries(!!editables.series_id);

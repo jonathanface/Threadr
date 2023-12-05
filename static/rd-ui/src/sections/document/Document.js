@@ -243,7 +243,11 @@ const Document = () => {
           focusOffset: style.end,
           anchorOffset: style.start,
         });
-        content = Modifier.applyInlineStyle(content, styleSelection, style.style);
+        try {
+          content = Modifier.applyInlineStyle(content, styleSelection, style.style);
+        } catch (error) {
+          console.error(error);
+        }
       });
     }
     if (block.getData().ENTITY_TABS) {
@@ -309,6 +313,7 @@ const Document = () => {
         setBlocksLoaded(true);
       })
       .catch((error) => {
+        console.log("fetch error", error);
         if (parseInt(error.message) !== 404 && parseInt(error.message !== 501)) {
           console.error("get story blocks", error);
           dispatch(setAlertMessage("An error occurred trying to retrieve your content.\nPlease report this."));
@@ -411,7 +416,6 @@ const Document = () => {
       })
       .then((data) => {
         if (data.chapters.length) {
-          console.log("chaps", data.chapters);
           data.chapters.sort((a, b) => a.chapter_num - b.chapter_num);
           setChapters(data.chapters);
           const foundSelectedChapter = data.chapters.find((chapter) => chapter.id === selectedChapter.id);
@@ -718,7 +722,6 @@ const Document = () => {
   };
 
   const handleDeleteAssociationClick = ({ event }) => {
-    console.log("curr", associations, currentRightClickedAssoc);
     const ind = associations.findIndex((assoc) => {
       return (
         assoc.association_type === currentRightClickedAssoc.association_type &&
@@ -820,7 +823,6 @@ const Document = () => {
   };
 
   const handleKeyCommand = (command) => {
-    console.log("cmd", command);
     let newEditorState = editorState;
     if (command === "backspace" || command === "delete") {
       const selection = editorState.getSelection();

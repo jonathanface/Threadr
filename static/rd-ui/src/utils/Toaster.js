@@ -35,7 +35,6 @@ const Toaster = () => {
     dispatch(setAlertLink({}));
   };
   const splitByNewline = alertMessage.split("\n");
-  console.log("split", splitByNewline);
   return (
     <Snackbar
       className="alert-toast"
