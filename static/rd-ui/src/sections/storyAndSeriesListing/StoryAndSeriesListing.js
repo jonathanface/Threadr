@@ -45,8 +45,10 @@ const StoryAndSeriesListing = () => {
                   };
                   if (series.stories) {
                     series.stories.forEach((story) => {
+                      console.log("story", story);
                       seriesObj.stories.push({
                         story_id: story.story_id,
+                        chapters: story.chapters,
                         series_id: series.series_id,
                         title: story.title,
                         place: story.place,
@@ -73,6 +75,7 @@ const StoryAndSeriesListing = () => {
                     series.stories.forEach((story) => {
                       seriesObj.stories.push({
                         story_id: story.story_id,
+                        chapters: story.chapters,
                         series_id: series.series_id,
                         title: story.title,
                         place: story.place,
@@ -107,9 +110,6 @@ const StoryAndSeriesListing = () => {
           const otherStories = [];
           for (let key in data) {
             if (data.hasOwnProperty(key)) {
-              // Check to avoid inherited properties
-              console.log(key, userDetails);
-
               if (key === userDetails.email && data[key]) {
                 const storiesFromDB = data[key].map((story) => {
                   const img = story.image_url.length ? story.image_url : "/img/icons/story_standalone_icon.jpg";
@@ -119,7 +119,7 @@ const StoryAndSeriesListing = () => {
                     description: story.description,
                     image_url: img,
                     created_at: story.created_at,
-                    chapter: story.chapters,
+                    chapters: story.chapters,
                   };
                 });
                 userStories.push(...storiesFromDB);
@@ -133,7 +133,7 @@ const StoryAndSeriesListing = () => {
                     description: story.description,
                     image_url: img,
                     created_at: story.created_at,
-                    chapter: story.chapters,
+                    chapters: story.chapters,
                   };
                 });
                 otherStories.push(...storiesFromDB);
@@ -179,6 +179,7 @@ const StoryAndSeriesListing = () => {
       <Story
         key={story.story_id}
         id={story.story_id}
+        chapters={story.chapters}
         title={story.title}
         description={story.description}
         image_url={story.image_url}
@@ -212,6 +213,7 @@ const StoryAndSeriesListing = () => {
         <Story
           key={story.story_id}
           id={story.story_id}
+          chapters={story.chapters}
           title={story.title}
           description={story.description}
           image_url={story.image_url}

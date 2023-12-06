@@ -1100,7 +1100,7 @@ const Document = () => {
     });
     const history = window.history;
     const storyID = selectedStory.id;
-    history.pushState({ storyID }, "changed chapter", "/story/" + selectedStory.id + "?chapter=" + num);
+    history.pushState({ storyID }, "changed chapter", "/story/" + selectedStory.id + "?chapter=" + id);
     if (domEditor.current) {
       const editorBox = domEditor.current.editorContainer.parentElement;
       editorBox.scrollTop = 0;

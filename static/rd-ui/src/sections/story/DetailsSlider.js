@@ -30,11 +30,12 @@ const DetailsSlider = (props) => {
               <div>Volumes:</div>
               <ul>
                 {stories.map((entry) => {
+                  const firstChapter = entry.chapters[0].id;
                   return (
                     <li
                       key={entry.place}
                       title={entry.description}
-                      onClick={(e) => props.onStoryClick(e, entry.story_id, entry.title)}>
+                      onClick={(e) => props.onStoryClick(e, entry.story_id, entry.title, firstChapter)}>
                       <span>
                         <img className="series-story-thumbnail" src={entry.image_url} alt={entry.title} />
                         {entry.title}
