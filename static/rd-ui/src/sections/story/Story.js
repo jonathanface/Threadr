@@ -19,13 +19,22 @@ const Story = (props) => {
   const seriesList = useSelector((state) => state.series.seriesList);
   const standaloneList = useSelector((state) => state.stories.standaloneList);
 
-  const handleClick = (event, storyID, title, chapterID) => {
+  const getStoryDetails = async (storyID) => {
+    const url = "/api/stories/" + storyID;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(response);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleClick = async (event, storyID, chapterID) => {
     const history = window.history;
-    const newStory = {
-      id: storyID,
-      title: title,
-    };
-    console.log("chap", chapterID);
+    const newStory = await getStoryDetails(storyID);
     dispatch(setSelectedStory(newStory));
     history.pushState({ storyID }, "clicked story", "/story/" + storyID + "?chapter=" + chapterID);
     dispatch(setIsLoaderVisible(true));
@@ -138,6 +147,7 @@ const Story = (props) => {
   const deleteHoverText = "Delete " + props.title;
 
   useEffect(() => {
+    console.log("prop stories", props.stories);
     if (props.stories) {
       setIsSeries(true);
     } else {
@@ -148,7 +158,7 @@ const Story = (props) => {
   return !wasDeleted ? (
     <button
       className="doc-button"
-      onClick={!props.stories ? (e) => handleClick(e, props.id, props.title, props.chapters[0].id) : () => {}}>
+      onClick={!props.stories ? (e) => handleClick(e, props.id, props.chapters[0].id) : () => {}}>
       <div className="loading-screen" style={{ visibility: isStoryLoaderVisible ? "visible" : "hidden" }}>
         <Box className="progress-box" />
         <Box className="prog-anim-holder">

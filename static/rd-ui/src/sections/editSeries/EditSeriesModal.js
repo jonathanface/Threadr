@@ -308,7 +308,7 @@ const EditSeriesModal = () => {
               <DragDropContext onDragEnd={onDragEnd}>
                 <Droppable droppableId="droppable">
                   {(provided) => (
-                    <div {...provided.droppableProps} ref={provided.innerRef}>
+                    <span {...provided.droppableProps} ref={provided.innerRef}>
                       {volumes.map((entry, index) => (
                         <Draggable key={entry.story_id} draggableId={entry.story_id} index={index}>
                           {(provided) => (
@@ -368,7 +368,7 @@ const EditSeriesModal = () => {
                         </Draggable>
                       ))}
                       {provided.placeholder}
-                    </div>
+                    </span>
                   )}
                 </Droppable>
               </DragDropContext>

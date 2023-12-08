@@ -45,7 +45,6 @@ const StoryAndSeriesListing = () => {
                   };
                   if (series.stories) {
                     series.stories.forEach((story) => {
-                      console.log("story", story);
                       seriesObj.stories.push({
                         story_id: story.story_id,
                         chapters: story.chapters,

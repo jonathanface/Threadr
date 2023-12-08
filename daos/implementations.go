@@ -176,10 +176,15 @@ func (d *DAO) GetChaptersByStoryID(storyID string) (chapters []models.Chapter, e
 	if err != nil {
 		return nil, err
 	}
+
 	chapters = []models.Chapter{}
 	if err = attributevalue.UnmarshalListOfMaps(out.Items, &chapters); err != nil {
 		return nil, err
 	}
+	sort.Slice(chapters, func(i, j int) bool {
+		return chapters[i].Place < chapters[j].Place
+	})
+
 	return chapters, nil
 }
 
@@ -985,6 +990,27 @@ func (d *DAO) RemoveStoryFromSeries(email, storyID string, series models.Series)
 	}
 	updatedSeries.Stories = newStories
 	return
+}
+
+func (d *DAO) EditChapter(storyID string, chapter models.Chapter) (updatedChapter models.Chapter, err error) {
+	modifiedAtStr := strconv.FormatInt(time.Now().Unix(), 10)
+	item := map[string]types.AttributeValue{
+		"story_id":    &types.AttributeValueMemberS{Value: storyID},
+		"chapter_id":  &types.AttributeValueMemberS{Value: chapter.ID},
+		"chapter_num": &types.AttributeValueMemberN{Value: strconv.Itoa(chapter.Place)},
+		"title":       &types.AttributeValueMemberS{Value: chapter.Title},
+		"modified_at": &types.AttributeValueMemberN{Value: modifiedAtStr},
+	}
+	updatedChapter = chapter
+	chapterUpdateInput := &dynamodb.PutItemInput{
+		TableName: aws.String("chapters"),
+		Item:      item,
+	}
+	_, err = d.dynamoClient.PutItem(context.Background(), chapterUpdateInput)
+	if err != nil {
+		return updatedChapter, err
+	}
+	return updatedChapter, nil
 }
 
 func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.Story, err error) {

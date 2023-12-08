@@ -23,6 +23,7 @@ import {
   getDefaultKeyBinding,
 } from "draft-js";
 import "draft-js/dist/Draft.css";
+import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import { Item, Menu, Submenu, useContextMenu } from "react-contexify";
 import "react-contexify/ReactContexify.css";
 import { MenuItem, Menu as SideMenu, Sidebar, useProSidebar } from "react-pro-sidebar";
@@ -40,6 +41,7 @@ import {
 import { setSelectedStory } from "../../stores/storiesSlice.js";
 import { setIsLoaderVisible } from "../../stores/uiSlice.js";
 import AssociationUI from "./AssociationUI.js";
+import EditableText from "./EditableText.js";
 import Exporter from "./Exporter.js";
 import { FindHighlightable, FindTabs, HighlightSpan, TabSpan } from "./decorators";
 import {
@@ -106,7 +108,6 @@ const Document = () => {
     chapter_title: "",
     chapter_num: 1,
   });
-  const [chapters, setChapters] = useState([]);
   const [currentRightClickedAssoc, setCurrentRightClickedAssoc] = useState(null);
   const [currentBlockAlignment, setCurrentBlockAlignment] = useState("LEFT");
   const [currentItalicsState, setCurrentItalicsState] = useState(false);
@@ -117,7 +118,6 @@ const Document = () => {
   const [viewingAssociation, setViewingAssociation] = useState(null);
   const [exportMenuValue, setExportMenuValue] = React.useState(false);
   const [associationsLoaded, setAssociationsLoaded] = React.useState(false);
-  const [storyDetailsLoaded, setStoryDetailsLoaded] = React.useState(false);
   const [blocksLoaded, setBlocksLoaded] = React.useState(false);
   const { collapseSidebar, collapsed } = useProSidebar();
 
@@ -145,16 +145,16 @@ const Document = () => {
   const [editorState, setEditorState] = React.useState(() => EditorState.createEmpty(createDecorators()));
 
   const exportDoc = async (type) => {
-    const exp = new Exporter(selectedStory.id);
+    const exp = new Exporter(selectedStory.story_id);
     const htmlData = await exp.DocToHTML();
     try {
-      const response = await fetch("/api/stories/" + selectedStory.id + "/export", {
+      const response = await fetch("/api/stories/" + selectedStory.story_id + "/export", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          story_id: selectedStory.id,
+          story_id: selectedStory.story_id,
           html_by_chapter: htmlData,
           type: type,
           title: selectedStory.title,
@@ -191,7 +191,7 @@ const Document = () => {
 
   const getAllAssociations = async () => {
     associations.splice(0);
-    return fetch("/api/stories/" + selectedStory.id + "/associations")
+    return fetch("/api/stories/" + selectedStory.story_id + "/associations")
       .then((response) => {
         if (response.ok) {
           return response.json();
@@ -267,7 +267,9 @@ const Document = () => {
   };
 
   const getBatchedStoryBlocks = async (startKey) => {
-    return fetch("/api/stories/" + selectedStory.id + "/content?key=" + startKey + "&chapter=" + selectedChapter.id)
+    return fetch(
+      "/api/stories/" + selectedStory.story_id + "/content?key=" + startKey + "&chapter=" + selectedChapter.id
+    )
       .then((response) => {
         if (response.ok) {
           return response.json();
@@ -403,36 +405,6 @@ const Document = () => {
     }
   };
 
-  const getStoryDetails = async () => {
-    if (!selectedStory.id.length) {
-      return;
-    }
-    return fetch("/api/stories/" + selectedStory.id)
-      .then((response) => {
-        if (response.ok) {
-          return response.json();
-        }
-        throw new Error(response.status);
-      })
-      .then((data) => {
-        if (data.chapters.length) {
-          data.chapters.sort((a, b) => a.chapter_num - b.chapter_num);
-          setChapters(data.chapters);
-          const foundSelectedChapter = data.chapters.find((chapter) => chapter.id === selectedChapter.id);
-          if (foundSelectedChapter) {
-            setSelectedChapter(foundSelectedChapter);
-          } else {
-            setSelectedChapter({
-              id: data.chapters[0].id,
-              chapter_title: data.chapters[0].chapter_title,
-              chapter_num: data.chapters[0].chapter_num,
-            });
-          }
-        }
-        setStoryDetailsLoaded(true);
-      });
-  };
-
   useEffect(() => {
     dispatch(setIsLoaderVisible(true));
     const processInterval = setInterval(() => {
@@ -446,15 +418,19 @@ const Document = () => {
 
     if (isLoggedIn) {
       if (selectedStory) {
-        if (!storyDetailsLoaded) {
-          getStoryDetails();
-        } else if (!associationsLoaded) {
+        if (!associationsLoaded) {
           getAllAssociations();
         } else if (!blocksLoaded) {
           getBatchedStoryBlocks("");
         }
-        if (storyDetailsLoaded && associationsLoaded && blocksLoaded) {
+        if (associationsLoaded && blocksLoaded) {
           dispatch(setIsLoaderVisible(false));
+          selectedStory.chapters.forEach((chapter) => {
+            if (chapter.id === selectedChapter.id) {
+              setSelectedChapter(chapter);
+              return;
+            }
+          });
         }
       }
     }
@@ -463,15 +439,7 @@ const Document = () => {
       clearInterval(processInterval);
       window.removeEventListener("unload", processDBQueue);
     };
-  }, [
-    isLoggedIn,
-    selectedStory,
-    selectedChapter.id,
-    lastRetrievedBlockKey,
-    storyDetailsLoaded,
-    associationsLoaded,
-    blocksLoaded,
-  ]);
+  }, [isLoggedIn, selectedStory, selectedChapter.id, lastRetrievedBlockKey, associationsLoaded, blocksLoaded]);
 
   const syncBlockOrderMap = (blockList) => {
     return new Promise(async (resolve, reject) => {
@@ -484,7 +452,7 @@ const Document = () => {
           params.blocks.push({ key_id: block.getKey(), place: index.toString() });
           index++;
         });
-        const response = await fetch("/api/stories/" + selectedStory.id + "/orderMap", {
+        const response = await fetch("/api/stories/" + selectedStory.story_id + "/orderMap", {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -570,7 +538,7 @@ const Document = () => {
     return new Promise(async (resolve, reject) => {
       try {
         console.log("saving associations", associations);
-        const response = await fetch("/api/stories/" + selectedStory.id + "/associations", {
+        const response = await fetch("/api/stories/" + selectedStory.story_id + "/associations", {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -591,7 +559,7 @@ const Document = () => {
     return new Promise(async (resolve, reject) => {
       try {
         console.log("creating associations", associations);
-        const response = await fetch("/api/stories/" + selectedStory.id + "/associations", {
+        const response = await fetch("/api/stories/" + selectedStory.story_id + "/associations", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -619,7 +587,7 @@ const Document = () => {
   const deleteAssociationsFromServer = (associations) => {
     return new Promise(async (resolve, reject) => {
       try {
-        const response = await fetch("/api/stories/" + selectedStory.id + "/associations", {
+        const response = await fetch("/api/stories/" + selectedStory.story_id + "/associations", {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
@@ -672,7 +640,7 @@ const Document = () => {
         blocksToPrep.push(content.getBlockForKey(key));
       });
       setEditorState(newEditorState);
-      prepBlocksForSave(content, blocksToPrep, selectedStory.id, selectedChapter.id);
+      prepBlocksForSave(content, blocksToPrep, selectedStory.story_id, selectedChapter.id);
     }
     return getDefaultKeyBinding(event);
   };
@@ -818,7 +786,7 @@ const Document = () => {
     const updatedEditorState = EditorState.push(newEditorState, newContent, "change-block-data");
     const updatedEditorStateWithSelection = EditorState.forceSelection(updatedEditorState, originalSelectionState);
     setEditorState(updatedEditorStateWithSelection);
-    prepBlocksForSave(newContent, updatedBlocks, selectedStory.id, selectedChapter.id);
+    prepBlocksForSave(newContent, updatedBlocks, selectedStory.story_id, selectedChapter.id);
     setNavButtonState(style);
   };
 
@@ -1009,7 +977,7 @@ const Document = () => {
       const deleteOp = {};
       deleteOp.type = "delete";
       deleteOp.time = Date.now();
-      deleteOp.storyID = selectedStory.id;
+      deleteOp.storyID = selectedStory.story_id;
       deleteOp.chapterID = selectedChapter.id;
       deleteOp.ops = [];
       blocksToDelete.forEach((blockKey) => {
@@ -1024,7 +992,7 @@ const Document = () => {
       blocksToSave.forEach((key) => {
         blocksToPrep.push(updatedContent.getBlockForKey(key));
       });
-      prepBlocksForSave(updatedContent, blocksToPrep, selectedStory.id, selectedChapter.id);
+      prepBlocksForSave(updatedContent, blocksToPrep, selectedStory.story_id, selectedChapter.id);
     }
 
     if (resyncRequired) {
@@ -1076,7 +1044,7 @@ const Document = () => {
       blocksToPrep.push(newContentState.getBlockForKey(key));
     });
     setEditorState(EditorState.push(editorState, newContentState, "change-block-data"));
-    prepBlocksForSave(newContentState, blocksToPrep, selectedStory.id, selectedChapter.id);
+    prepBlocksForSave(newContentState, blocksToPrep, selectedStory.story_id, selectedChapter.id);
     setNavButtonState(alignment);
   };
 
@@ -1092,26 +1060,29 @@ const Document = () => {
   };
 
   const onChapterClick = (id, title, num) => {
-    setBlocksLoaded(false);
-    setSelectedChapter({
-      id: id,
-      chapter_title: title,
-      chapter_num: num,
-    });
-    const history = window.history;
-    const storyID = selectedStory.id;
-    history.pushState({ storyID }, "changed chapter", "/story/" + selectedStory.id + "?chapter=" + id);
-    if (domEditor.current) {
-      const editorBox = domEditor.current.editorContainer.parentElement;
-      editorBox.scrollTop = 0;
+    if (id !== selectedChapter.id) {
+      setBlocksLoaded(false);
+      setSelectedChapter({
+        id: id,
+        chapter_title: title,
+        chapter_num: num,
+      });
+      const history = window.history;
+      const storyID = selectedStory.story_id;
+      history.pushState({ storyID }, "changed chapter", "/story/" + selectedStory.story_id + "?chapter=" + id);
+      if (domEditor.current) {
+        const editorBox = domEditor.current.editorContainer.parentElement;
+        editorBox.scrollTop = 0;
+      }
+      onExpandChapterMenu();
     }
-    onExpandChapterMenu();
+    s;
   };
 
   const onNewChapterClick = () => {
-    const newChapterNum = chapters.length + 1;
+    const newChapterNum = selectedStory.chapters.length + 1;
     const newChapterTitle = "Chapter " + newChapterNum;
-    fetch("/api/stories/" + selectedStory.id + "/chapter", {
+    fetch("/api/stories/" + selectedStory.story_id + "/chapter", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1121,17 +1092,23 @@ const Document = () => {
       .then(async (response) => {
         if (response.ok) {
           const json = await response.json();
-          const newChapters = [...chapters];
+          const newChapters = [...selectedStory.chapters];
           newChapters.push({ id: json.id, chapter_title: newChapterTitle, chapter_num: newChapterNum });
-          setChapters(newChapters);
+          const updatedSelectedStory = { ...selectedStory };
+          updatedSelectedStory.chapters = newChapters;
           setSelectedChapter({
             id: json.id,
             chapter_title: newChapterTitle,
             chapter_num: newChapterNum,
           });
+          dispatch(setSelectedStory(updatedSelectedStory));
           const history = window.history;
-          const storyID = selectedStory.id;
-          history.pushState({ storyID }, "created chapter", "/story/" + selectedStory.id + "?chapter=" + newChapterNum);
+          const storyID = selectedStory.story_id;
+          history.pushState(
+            { storyID },
+            "created chapter",
+            "/story/" + selectedStory.story_id + "?chapter=" + newChapterNum
+          );
           setEditorState(EditorState.createEmpty(createDecorators()));
         } else {
           throw new Error("Fetch problem creating chapter " + response.status, response.statusText);
@@ -1144,7 +1121,7 @@ const Document = () => {
 
   const onDeleteChapterClick = (event, chapterID, chapterTitle) => {
     event.stopPropagation();
-    if (chapters.length === 1) {
+    if (selectedStory.chapters.length === 1) {
       dispatch(setAlertMessage("You cannot delete a story's only chapter."));
       dispatch(setAlertSeverity("info"));
       dispatch(setAlertOpen(true));
@@ -1153,7 +1130,7 @@ const Document = () => {
 
     const confirm = window.confirm("Delete " + chapterTitle + " from " + selectedStory.title + "?");
     if (confirm) {
-      fetch("/api/stories/" + selectedStory.id + "/chapter/" + chapterID, {
+      fetch("/api/stories/" + selectedStory.story_id + "/chapter/" + chapterID, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -1161,13 +1138,15 @@ const Document = () => {
       })
         .then((response) => {
           console.log("del response", response);
-          const chapterIndex = chapters.findIndex((c) => c.id === chapterID);
+          const chapterIndex = selectedStory.chapters.findIndex((c) => c.id === chapterID);
           if ((response.ok || response.status === 501) && chapterIndex > -1) {
-            const newChapters = [...chapters];
+            const newChapters = [...selectedStory.chapters];
             newChapters.splice(chapterIndex);
-            setChapters(newChapters);
+            const newSelectedStory = { ...selectedStory };
+            newSelectedStory.chapters = newChapters;
+            dispatch(setSelectedStory(newSelectedStory));
             if (selectedChapter.id === chapterID) {
-              const prevChapter = chapters[chapterIndex - 1];
+              const prevChapter = selectedStory.chapters[chapterIndex - 1];
               let newChapterID = "";
               if (prevChapter) {
                 newChapterID = prevChapter.id;
@@ -1185,7 +1164,7 @@ const Document = () => {
                 });
               }
               const history = window.history;
-              const storyID = selectedStory.id;
+              const storyID = selectedStory.story_id;
               history.pushState({ storyID }, "deleted chapter", "/story/" + storyID + "?chapter=" + newChapterID);
             }
             return;
@@ -1199,21 +1178,105 @@ const Document = () => {
     }
   };
 
-  const onChapterTitleDClick = () => {
-    console.log("edit chap");
+  const onStoryTitleEdit = async (event) => {
+    if (event.target.value !== selectedStory.title && event.target.value.trim() !== "") {
+      const updatedStory = { ...selectedStory };
+      updatedStory.title = event.target.value;
+      dispatch(setSelectedStory(updatedStory));
+      const formData = new FormData();
+      for (const key in updatedStory) {
+        if (updatedStory.hasOwnProperty(key)) {
+          formData.append(key, updatedStory[key]);
+        }
+      }
+      const response = await fetch("/api/stories/" + updatedStory.story_id + "/details", {
+        method: "PUT",
+        body: formData,
+      });
+      if (!response.ok) {
+        console.error(response.body);
+        dispatch(setAlertMessage("There was an error updating your title."));
+        dispatch(setAlertSeverity("error"));
+        dispatch(setAlertOpen(true));
+        return;
+      }
+    }
+  };
+
+  const onChapterTitleEdit = async (event) => {
+    if (event.target.value !== selectedChapter.chapter_title) {
+      if (event.target.value !== selectedChapter.chapter_title && event.target.value.trim() !== "") {
+        const updatedChapter = { ...selectedChapter };
+        updatedChapter.chapter_title = event.target.value;
+        setSelectedChapter(updatedChapter);
+        selectedStory.chapters.forEach((chapter, idx) => {
+          if (chapter.id === selectedChapter.id) {
+            const newStory = { ...selectedStory };
+            const newChapters = [...newStory.chapters];
+            newChapters[idx] = updatedChapter;
+            newStory.chapters = newChapters;
+            dispatch(setSelectedStory(newStory));
+            return;
+          }
+        });
+        const response = await fetch("/api/stories/" + selectedStory.story_id + "/chapters/" + selectedChapter.id, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updatedChapter),
+        });
+        if (!response.ok) {
+          console.error(response.body);
+          dispatch(setAlertMessage("There was an error updating your chapter."));
+          dispatch(setAlertSeverity("error"));
+          dispatch(setAlertOpen(true));
+          return;
+        }
+      }
+    }
+  };
+
+  const onChapterDragEnd = async (result) => {
+    if (!result.destination) {
+      return;
+    }
+    const newChapters = Array.from(selectedStory.chapters);
+    const [reorderedItem] = newChapters.splice(result.source.index, 1);
+    newChapters.splice(result.destination.index, 0, reorderedItem);
+    const updatedChapters = newChapters.map((vol, idx) => {
+      return { ...vol, chapter_num: idx + 1 };
+    });
+    const newStory = { ...selectedStory };
+    newStory.chapters = updatedChapters;
+    dispatch(setSelectedStory(newStory));
+
+    const response = await fetch("/api/stories/" + selectedStory.story_id + "/chapters", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updatedChapters),
+    });
+    if (!response.ok) {
+      console.error(response.body);
+      dispatch(setAlertMessage("There was an error updating your chapters."));
+      dispatch(setAlertSeverity("error"));
+      dispatch(setAlertOpen(true));
+      return;
+    }
   };
 
   const getWritingPrompt = () => {
     return prompts[Math.floor(Math.random() * prompts.length)];
   };
   const defaultText = getWritingPrompt();
-
   return (
     <div>
       <AssociationUI
         open={associationWindowOpen}
         association={viewingAssociation}
-        story={selectedStory.id}
+        story={selectedStory.story_id}
         onEditCallback={onAssociationEdit}
         onClose={() => {
           setAssociationWindowOpen(false);
@@ -1221,8 +1284,12 @@ const Document = () => {
         }}
       />
       <div className="title_info">
-        <h2>{selectedStory.title}</h2>
-        <h3>{selectedChapter.chapter_title}</h3>
+        <h2>
+          <EditableText textValue={selectedStory.title} onTextChange={onStoryTitleEdit} />
+        </h2>
+        <h3>
+          <EditableText textValue={selectedChapter.chapter_title} onTextChange={onChapterTitleEdit} />
+        </h3>
       </div>
       <nav className="rich-controls">
         <div>
@@ -1382,32 +1449,50 @@ const Document = () => {
         </div>
         <Sidebar rtl={true} collapsedWidth={0} defaultCollapsed={true}>
           <SideMenu>
-            {chapters.map((chapter, idx) => {
-              return (
-                <MenuItem
-                  onDoubleClick={onChapterTitleDClick}
-                  key={idx}
-                  className={chapter.id === selectedChapter.id ? "active" : ""}
-                  onClick={() => onChapterClick(chapter.id, chapter.chapter_title, chapter.chapter_num)}>
-                  {chapter.chapter_title}
-                  {chapters.length > 1 ? (
-                    <IconButton
-                      className="menu-icon"
-                      edge="end"
-                      size="small"
-                      aria-label="delete chapter"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onDeleteChapterClick(event, chapter.id, chapter.chapter_title);
-                      }}>
-                      <DeleteIcon fontSize="small" className={"menu-icon"} />
-                    </IconButton>
-                  ) : (
-                    ""
-                  )}
-                </MenuItem>
-              );
-            })}
+            <DragDropContext onDragEnd={onChapterDragEnd}>
+              <Droppable droppableId="droppable">
+                {(provided) => (
+                  <div {...provided.droppableProps} ref={provided.innerRef}>
+                    {selectedStory.chapters.map((chapter, idx) => {
+                      return (
+                        <Draggable key={chapter.id} draggableId={chapter.id} index={idx}>
+                          {(provided) => (
+                            <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
+                              {
+                                <MenuItem
+                                  key={idx}
+                                  className={chapter.id === selectedChapter.id ? "active" : ""}
+                                  onClick={() =>
+                                    onChapterClick(chapter.id, chapter.chapter_title, chapter.chapter_num)
+                                  }>
+                                  {chapter.chapter_title}
+                                  {selectedStory.chapters.length > 1 ? (
+                                    <IconButton
+                                      className="menu-icon"
+                                      edge="end"
+                                      size="small"
+                                      aria-label="delete chapter"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        onDeleteChapterClick(event, chapter.id, chapter.chapter_title);
+                                      }}>
+                                      <DeleteIcon fontSize="small" className={"menu-icon"} />
+                                    </IconButton>
+                                  ) : (
+                                    ""
+                                  )}
+                                </MenuItem>
+                              }
+                            </div>
+                          )}
+                        </Draggable>
+                      );
+                    })}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </DragDropContext>
             <MenuItem key="add_chapter_btn">
               <Button
                 onClick={onNewChapterClick}

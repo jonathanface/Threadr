@@ -27,7 +27,7 @@
   background-clip: padding-box;
 }
 .sidebar-container .ps-menuitem-root:last-child a {
-  cursor: default;
+  cursor: grab;
 }
 .sidebar-container .ps-menuitem-root a:hover {
   background-color: #40554b;
@@ -47,9 +47,9 @@
   border: 1px dashed #fff;
 }
 .sidebar-container .ps-menuitem-root .menu-icon {
-  float: right;
   color: #fff;
   margin-top: -1px;
+  float: right;
 }
 .sidebar-container .ps-menuitem-root .menu-icon:hover {
   opacity: 0.8;
@@ -59,6 +59,12 @@
 }
 .sidebar-container .ps-menuitem-root:last-child button:hover {
   background-color: #40554b;
+}
+.sidebar-container .ps-menuitem-root .ps-menu-label {
+  padding: 5px;
+}
+.sidebar-container .ps-menuitem-root .ps-menu-label:hover {
+  color: #2b2929;
 }
 .sidebar-container .ps-rtl {
   border-left: none;

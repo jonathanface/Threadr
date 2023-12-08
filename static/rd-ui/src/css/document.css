@@ -95,6 +95,15 @@ div.public-DraftEditor-content .content-block:last-child {
   color: #fff;
   margin-top: 65px;
 }
+.title_info span {
+  display: inline-block;
+  padding: 10px;
+}
+.title_info span:hover {
+  border: 1px solid #333;
+  border-radius: 10px;
+}
+
 .title_info h2 {
   filter: drop-shadow(2px 2px 2px #1a1a1a);
   margin-bottom: 0;

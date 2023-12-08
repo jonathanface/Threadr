@@ -51,11 +51,7 @@ const Threadr = () => {
     const splitDirectories = location.split("/");
     if (splitDirectories[1] === "story" && splitDirectories[2].trim() !== "") {
       const story = await getStoryDetails(splitDirectories[2].trim());
-      const newStory = {
-        id: story.story_id,
-        title: story.title,
-      };
-      dispatch(setSelectedStory(newStory));
+      dispatch(setSelectedStory(story));
     } else {
       dispatch(setSelectedStory(null));
     }

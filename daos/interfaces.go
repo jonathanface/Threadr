@@ -30,6 +30,7 @@ type DaoInterface interface {
 	AddSubscriptionID(email, subscriptionID *string) error
 	EditStory(email string, story models.Story) (models.Story, error)
 	EditSeries(email string, series models.Series) (models.Series, error)
+	EditChapter(storyID string, chapter models.Chapter) (models.Chapter, error)
 	RemoveStoryFromSeries(email, storyID string, series models.Series) (models.Series, error)
 
 	// POSTs

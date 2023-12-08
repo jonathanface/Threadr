@@ -68,6 +68,7 @@ const EditStory = () => {
                 place: story.place,
                 created_at: story.created_at,
                 description: story.description,
+                chapters: story.chapters,
                 image_url: story.image_url.length ? story.image_url : "/img/icons/story_standalone_icon.jpg",
               });
             });

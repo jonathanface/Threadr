@@ -8,10 +8,7 @@ export const storiesSlice = createSlice({
     belongsToSeries: "",
     standaloneList: [],
     editables: {},
-    selectedStory: {
-      title: "",
-      id: "",
-    },
+    selectedStory: null,
   },
   reducers: {
     flipCreatingNewStory: (state, action) => {

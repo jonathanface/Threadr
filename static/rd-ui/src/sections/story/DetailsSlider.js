@@ -35,7 +35,7 @@ const DetailsSlider = (props) => {
                     <li
                       key={entry.place}
                       title={entry.description}
-                      onClick={(e) => props.onStoryClick(e, entry.story_id, entry.title, firstChapter)}>
+                      onClick={(e) => props.onStoryClick(e, entry.story_id, firstChapter)}>
                       <span>
                         <img className="series-story-thumbnail" src={entry.image_url} alt={entry.title} />
                         {entry.title}
