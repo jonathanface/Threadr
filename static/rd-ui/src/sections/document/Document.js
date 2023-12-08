@@ -1076,7 +1076,6 @@ const Document = () => {
       }
       onExpandChapterMenu();
     }
-    s;
   };
 
   const onNewChapterClick = () => {
