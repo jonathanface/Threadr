@@ -23,6 +23,13 @@ html {
   margin: 1.1em;
 }
 
+a {
+  color: #fff;
+}
+a:hover {
+  color: #8b8b8b;
+}
+
 body {
   min-height: 100%;
   background-color: #495960;

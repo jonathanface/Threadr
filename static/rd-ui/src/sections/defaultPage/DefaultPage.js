@@ -14,8 +14,7 @@ const DefaultPage = () => {
             Highlight and Reference tool.
           </p>
           <p>
-            <strong>We are officially in beta release and account creation is open.</strong> RichDocter is free to use
-            on a limited basis. Full-feature access costs $5/month.
+            <strong>We are officially in beta release and account creation is open.</strong>
           </p>
         </span>
         <span className="column">

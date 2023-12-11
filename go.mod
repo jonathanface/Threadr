@@ -43,6 +43,7 @@ require (
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/markbates/going v1.0.0 // indirect
 	github.com/stretchr/testify v1.8.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43 // indirect

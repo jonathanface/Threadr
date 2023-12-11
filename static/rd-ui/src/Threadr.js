@@ -4,15 +4,16 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import "./css/main.css";
 import "./css/user-menu.css";
-import DefaultPage from "./sections/DefaultPage/DefaultPage";
-import UserMenu from "./sections/UserMenu/UserMenu";
 import ConfigPanelModal from "./sections/configPanel/ConfigPanelModal";
 import CreateNewStory from "./sections/createNewStory/CreateNewStoryModal";
+import DefaultPage from "./sections/defaultPage/DefaultPage";
 import Document from "./sections/document/Document";
 import EditSeriesModal from "./sections/editSeries/EditSeriesModal";
 import EditStory from "./sections/editStory/EditStoryModal";
+import LoginPanelModal from "./sections/loginPanel/LoginPanelModal";
 import StoryAndSeriesListing from "./sections/storyAndSeriesListing/StoryAndSeriesListing";
 import Subscribe from "./sections/subscribe/Subscribe";
+import UserMenu from "./sections/userMenu/UserMenu";
 import {
   setAlertLink,
   setAlertMessage,
@@ -135,6 +136,7 @@ const Threadr = () => {
         <EditStory />
         <EditSeriesModal />
         <ConfigPanelModal />
+        <LoginPanelModal />
       </main>
       <Toaster />
       <Elements stripe={stripe}>

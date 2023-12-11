@@ -6,6 +6,7 @@ export const userSlice = createSlice({
     isLoggedIn: false,
     userDetails: {},
     configPanelVisible: false,
+    loginPanelVisible: false,
   },
   reducers: {
     flipLoggedInState: (state) => {
@@ -17,9 +18,12 @@ export const userSlice = createSlice({
     flipConfigPanelVisible: (state) => {
       state.configPanelVisible = !state.configPanelVisible;
     },
+    flipLoginPanelVisible: (state) => {
+      state.loginPanelVisible = !state.loginPanelVisible;
+    },
   },
 });
 
-export const { flipLoggedInState, setUserDetails, flipConfigPanelVisible } = userSlice.actions;
+export const { flipLoggedInState, setUserDetails, flipConfigPanelVisible, flipLoginPanelVisible } = userSlice.actions;
 
 export default userSlice.reducer;

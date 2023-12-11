@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setSelectedStory } from "../../stores/storiesSlice";
 import { setIsLoaderVisible, setSubscriptionFormOpen } from "../../stores/uiSlice";
-import { flipConfigPanelVisible, flipLoggedInState } from "../../stores/userSlice";
+import { flipConfigPanelVisible, flipLoggedInState, flipLoginPanelVisible } from "../../stores/userSlice";
 
 const UserMenu = (props) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,8 +12,8 @@ const UserMenu = (props) => {
   const userDetails = useSelector((state) => state.user.userDetails);
   const dispatch = useDispatch();
 
-  const signin = () => {
-    window.location.href = "/auth/google";
+  const showLoginPanel = () => {
+    dispatch(flipLoginPanelVisible());
   };
 
   const showUserSettings = () => {
@@ -67,7 +67,7 @@ const UserMenu = (props) => {
         )}
       </span>
     ) : (
-      <a onClick={signin}>SignIn</a>
+      <a onClick={showLoginPanel}>Register / SignIn</a>
     )
   ) : (
     <div />

@@ -8,21 +8,28 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
+	"github.com/markbates/goth/providers/amazon"
 	"github.com/markbates/goth/providers/google"
+	"github.com/markbates/goth/providers/microsoftonline"
 )
 
 func New() {
 	goth.UseProviders(
 		google.New(os.Getenv("GOOGLE_OAUTH_CLIENT_ID"), os.Getenv("GOOGLE_OAUTH_CLIENT_SECRET"), os.Getenv("GOOGLE_OAUTH_REDIRECT_URL")),
+		amazon.New(os.Getenv("AMAZON_OAUTH_CLIENT_ID"), os.Getenv("AMAZON_OAUTH_CLIENT_SECRET"), os.Getenv("AMAZON_OAUTH_REDIRECT_URL")),
+		microsoftonline.New(os.Getenv("MSN_OAUTH_CLIENT_ID"), os.Getenv("MSN_OAUTH_CLIENT_SECRET"), os.Getenv("MSN_OAUTH_REDIRECT_URL")),
 	)
 }
 
 func determineName(info goth.User) string {
+	fmt.Println("info", info)
 	name := info.FirstName
 	if name == "" {
 		name = info.Name
@@ -37,6 +44,19 @@ func determineName(info goth.User) string {
 }
 
 func Callback(w http.ResponseWriter, r *http.Request) {
+	var (
+		provider string
+		err      error
+	)
+	if provider, err = url.PathUnescape(mux.Vars(r)["provider"]); err != nil {
+		api.RespondWithError(w, http.StatusInternalServerError, "Error parsing provider")
+		return
+	}
+	if provider == "" {
+		api.RespondWithError(w, http.StatusBadRequest, "Missing provider")
+		return
+	}
+
 	sess, err := sessions.Get(r, "login_referral")
 	if err != nil {
 		api.RespondWithError(w, http.StatusBadRequest, err.Error())
@@ -50,7 +70,6 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	info := models.UserInfo{}
 	info.Email = user.Email
 	info.FirstName = determineName(user)
-
 	var (
 		dao         daos.DaoInterface
 		ok          bool
@@ -95,6 +114,24 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, sess.Values["referrer"].(string), http.StatusTemporaryRedirect)
+
+}
+
+func Login(w http.ResponseWriter, r *http.Request) {
+	session, err := sessions.Get(r, "login_referral")
+	if err != nil {
+		fmt.Printf("Session Error: %s\n", err.Error())
+	}
+	session.Options.Path = "/auth"
+	session.Options.MaxAge = int(5 * time.Minute)
+	session.Values["referrer"] = r.Header.Get("Referer")
+	if err = session.Save(r, w); err != nil {
+		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if _, err := gothic.CompleteUserAuth(w, r); err != nil {
+		gothic.BeginAuthHandler(w, r)
+	}
 }
 
 func Logout(w http.ResponseWriter, r *http.Request) {
@@ -115,21 +152,4 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Location", "/")
 	api.RespondWithJson(w, http.StatusTemporaryRedirect, nil)
-}
-
-func Login(w http.ResponseWriter, r *http.Request) {
-	session, err := sessions.Get(r, "login_referral")
-	if err != nil {
-		fmt.Printf("Session Error: %s\n", err.Error())
-	}
-	session.Options.Path = "/auth"
-	session.Options.MaxAge = int(5 * time.Minute)
-	session.Values["referrer"] = r.Header.Get("Referer")
-	if err = session.Save(r, w); err != nil {
-		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	if _, err := gothic.CompleteUserAuth(w, r); err != nil {
-		gothic.BeginAuthHandler(w, r)
-	}
 }
