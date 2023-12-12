@@ -29,7 +29,6 @@ func New() {
 }
 
 func determineName(info goth.User) string {
-	fmt.Println("info", info)
 	name := info.FirstName
 	if name == "" {
 		name = info.Name

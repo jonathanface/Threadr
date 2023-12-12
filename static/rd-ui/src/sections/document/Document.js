@@ -712,11 +712,24 @@ const Document = () => {
 
   const { show } = useContextMenu();
 
+  const handleTextCopy = (event) => {
+    const text = GetSelectedText(editorState);
+    navigator.clipboard.writeText(text).then(
+      () => {
+        /* Resolved - text copied to clipboard successfully */
+      },
+      () => {
+        console.error("Failed to copy");
+        /* Rejected - text failed to copy to the clipboard */
+      }
+    );
+  };
+
   const handleTextualContextMenu = (event) => {
+    event.preventDefault();
     const text = GetSelectedText(editorState);
     // regex check for separated word?
     if (text.length) {
-      event.preventDefault();
       show({
         id: "plaintext_context",
         event,
@@ -1427,6 +1440,7 @@ const Document = () => {
         />
       </section>
       <Menu id="plaintext_context">
+        <Item onClick={handleTextCopy}>Copy</Item>
         <Submenu label="Create Association">
           <Item id={ASSOCIATION_TYPE_CHARACTER} onClick={handleMenuItemClick}>
             Character
