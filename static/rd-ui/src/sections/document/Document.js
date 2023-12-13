@@ -23,9 +23,11 @@ import {
   getDefaultKeyBinding,
 } from "draft-js";
 import "draft-js/dist/Draft.css";
+import { ContextMenu } from "primereact/contextmenu";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
-import { Item, Menu, Submenu, useContextMenu } from "react-contexify";
-import "react-contexify/ReactContexify.css";
+
+import { PrimeReactProvider } from "primereact/api";
+import "primereact/resources/themes/lara-light-cyan/theme.css";
 import { MenuItem, Menu as SideMenu, Sidebar, useProSidebar } from "react-pro-sidebar";
 import { useDispatch, useSelector } from "react-redux";
 import "../../css/document.css";
@@ -97,6 +99,8 @@ const dbOperationQueue = [];
 
 const Document = () => {
   const domEditor = useRef(null);
+  const selectedTextCMRef = useRef(null);
+  const associationClickCMRef = useRef(null);
   const dispatch = useDispatch();
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -669,12 +673,13 @@ const Document = () => {
     setEditorState(EditorState.set(editorState, { decorator: createDecorators() }));
   };
 
-  const handleMenuItemClick = async ({ id, event }) => {
+  const handleMenuItemClick = async (event, type) => {
+    console.log("click", event, type);
     const text = GetSelectedText(editorState);
     if (text.length) {
-      event.preventDefault();
+      event.originalEvent.preventDefault();
       // check if !contains
-      const newAssociation = formatBlankAssociation(id, text);
+      const newAssociation = formatBlankAssociation(type, text);
       const withSelection = setFocusAndRestoreCursor();
       try {
         const storedAssociation = await saveAssociationsToServer([newAssociation]);
@@ -710,8 +715,6 @@ const Document = () => {
     setEditorState(newEditorState);
   };
 
-  const { show } = useContextMenu();
-
   const handleTextCopy = (event) => {
     const text = GetSelectedText(editorState);
     navigator.clipboard.writeText(text).then(
@@ -725,18 +728,10 @@ const Document = () => {
     );
   };
 
-  const handleTextualContextMenu = (event) => {
-    event.preventDefault();
+  const handleContextMenu = (event) => {
     const text = GetSelectedText(editorState);
-    // regex check for separated word?
     if (text.length) {
-      show({
-        id: "plaintext_context",
-        event,
-        props: {
-          editorState: editorState,
-        },
-      });
+      selectedTextCMRef.current.show(event);
     }
   };
 
@@ -747,15 +742,7 @@ const Document = () => {
 
   const handleAssociationContextMenu = (name, type, event) => {
     setCurrentRightClickedAssoc(formatBlankAssociation(type, name));
-    show({
-      id: "association_context",
-      event: event,
-      props: {
-        editorState: editorState,
-        name: name,
-        type: type,
-      },
-    });
+    associationClickCMRef.current.show(event);
   };
 
   const handleStyleClick = (event, style) => {
@@ -1282,6 +1269,44 @@ const Document = () => {
   const getWritingPrompt = () => {
     return prompts[Math.floor(Math.random() * prompts.length)];
   };
+
+  const textSelectedContextItems = [
+    {
+      label: "Copy",
+      command: handleTextCopy,
+    },
+    {
+      label: "Create Association",
+      items: [
+        {
+          label: "Character",
+          command: (event) => {
+            handleMenuItemClick(event, ASSOCIATION_TYPE_CHARACTER);
+          },
+        },
+        {
+          label: "Place",
+          command: (event) => {
+            handleMenuItemClick(event, ASSOCIATION_TYPE_PLACE);
+          },
+        },
+        {
+          label: "Event",
+          command: (event) => {
+            handleMenuItemClick(event, ASSOCIATION_TYPE_EVENT);
+          },
+        },
+      ],
+    },
+  ];
+
+  const associationHoveredContextItems = [
+    {
+      label: "Delete Association",
+      command: handleDeleteAssociationClick,
+    },
+  ];
+
   const defaultText = getWritingPrompt();
   return (
     <div>
@@ -1421,10 +1446,26 @@ const Document = () => {
         </div>
       </nav>
       <section
+        onContextMenu={(e) => {
+          handleContextMenu(e);
+        }}
         className="editor_container"
-        onContextMenu={handleTextualContextMenu}
         onClick={setFocus}
         onScroll={handleScroll}>
+        <PrimeReactProvider>
+          <ContextMenu
+            className="custom-context"
+            children="true"
+            ref={selectedTextCMRef}
+            model={textSelectedContextItems}
+          />
+          <ContextMenu
+            className="custom-context"
+            children="true"
+            ref={associationClickCMRef}
+            model={associationHoveredContextItems}
+          />
+        </PrimeReactProvider>
         <Editor
           placeholder={defaultText}
           spellCheck={true}
@@ -1439,23 +1480,6 @@ const Document = () => {
           ref={domEditor}
         />
       </section>
-      <Menu id="plaintext_context">
-        <Item onClick={handleTextCopy}>Copy</Item>
-        <Submenu label="Create Association">
-          <Item id={ASSOCIATION_TYPE_CHARACTER} onClick={handleMenuItemClick}>
-            Character
-          </Item>
-          <Item id={ASSOCIATION_TYPE_PLACE} onClick={handleMenuItemClick}>
-            Place
-          </Item>
-          <Item id={ASSOCIATION_TYPE_EVENT} onClick={handleMenuItemClick}>
-            Event
-          </Item>
-        </Submenu>
-      </Menu>
-      <Menu id="association_context">
-        <Item onClick={handleDeleteAssociationClick}>Delete Association</Item>
-      </Menu>
       <div className="sidebar-container">
         <div className="handle" onClick={onExpandChapterMenu}>
           chapters

@@ -9,7 +9,7 @@ nav.rich-controls {
   z-index: 10;
   position: relative;
   margin-top: 10px;
-  height: 40px;
+  height: 60px;
   line-height: 40px;
 }
 
@@ -127,12 +127,13 @@ div.public-DraftEditor-content .content-block:last-child {
   white-space: normal;
 }
 
+/*padding: 0.75rem 1.25rem;*/
 @media only screen and (max-width: 600px) {
   .title_info h3 {
     margin: 5px;
   }
   div.DraftEditor-root {
-    width: 80%;
+    width: calc(100% - 60px);
     margin-left: 5px;
   }
   div.DraftEditor-editorContainer {
@@ -142,16 +143,16 @@ div.public-DraftEditor-content .content-block:last-child {
   }
   nav.rich-controls {
     height: initial;
-    width: 80%;
+    width: calc(100% - 60px);
     opacity: 1;
-    margin-left: -40px;
-    min-height: 140px;
+    margin-left: -50px;
+    min-height: 160px;
   }
   nav.rich-controls .right-controls {
     float: none;
     display: block;
     position: absolute;
-    top: 20px;
+    top: 10px;
   }
   nav.rich-controls .controls-row {
     display: block;
