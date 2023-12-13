@@ -677,6 +677,8 @@ const Document = () => {
     const text = GetSelectedText(editorState);
     if (text.length) {
       event.originalEvent.preventDefault();
+      event.originalEvent.stopPropagation();
+      event.originalEvent.stopImmediatePropagation();
       // check if !contains
       const newAssociation = formatBlankAssociation(type, text);
       const withSelection = setFocusAndRestoreCursor();
