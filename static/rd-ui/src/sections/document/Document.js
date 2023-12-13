@@ -1276,27 +1276,22 @@ const Document = () => {
       command: handleTextCopy,
     },
     {
-      label: "Create Association",
-      items: [
-        {
-          label: "Character",
-          command: (event) => {
-            handleMenuItemClick(event, ASSOCIATION_TYPE_CHARACTER);
-          },
-        },
-        {
-          label: "Place",
-          command: (event) => {
-            handleMenuItemClick(event, ASSOCIATION_TYPE_PLACE);
-          },
-        },
-        {
-          label: "Event",
-          command: (event) => {
-            handleMenuItemClick(event, ASSOCIATION_TYPE_EVENT);
-          },
-        },
-      ],
+      label: "Create Character",
+      command: (event) => {
+        handleMenuItemClick(event, ASSOCIATION_TYPE_CHARACTER);
+      },
+    },
+    {
+      label: "Create Place",
+      command: (event) => {
+        handleMenuItemClick(event, ASSOCIATION_TYPE_PLACE);
+      },
+    },
+    {
+      label: "Create Event",
+      command: (event) => {
+        handleMenuItemClick(event, ASSOCIATION_TYPE_EVENT);
+      },
     },
   ];
 
