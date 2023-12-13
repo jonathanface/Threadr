@@ -18,6 +18,7 @@
   height: 90%;
   overflow: hidden;
   max-height: 120px;
+  padding-right: 15px;
 }
 .association-tooltip-body .column img {
   filter: drop-shadow(1px 1px 1px #1a1a1a);
