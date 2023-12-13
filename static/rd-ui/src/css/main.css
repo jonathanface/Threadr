@@ -119,6 +119,12 @@ main header .version {
   text-align: left;
   filter: drop-shadow(1px 1px 1px #1a1a1a);
 }
+.alert-toast a {
+  color: #495960;
+}
+.alert-toast a:hover {
+  color: #333;
+}
 
 .MuiPaper-root {
   width: 100%;
