@@ -674,7 +674,6 @@ const Document = () => {
   };
 
   const handleMenuItemClick = async (event, type) => {
-    console.log("click", event, type);
     const text = GetSelectedText(editorState);
     if (text.length) {
       event.originalEvent.preventDefault();
@@ -736,7 +735,8 @@ const Document = () => {
   };
 
   const handleAssociationClick = (association, event) => {
-    setViewingAssociation(association);
+    const newAssociation = { ...association };
+    setViewingAssociation(newAssociation);
     setAssociationWindowOpen(true);
   };
 

@@ -32,7 +32,7 @@ const AssociationUI = (props) => {
   };
 
   useEffect(() => {
-    if (props.association) {
+    if (props.association && props.association.association_id) {
       setCaseSensitive(props.association.details.case_sensitive);
       setName(UCWords(props.association.association_name));
       setImageURL(props.association.portrait);
