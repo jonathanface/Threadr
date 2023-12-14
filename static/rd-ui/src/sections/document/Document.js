@@ -95,7 +95,39 @@ const prompts = [
   "Type faster!",
 ];
 
+const getWritingPrompt = () => {
+  return prompts[Math.floor(Math.random() * prompts.length)];
+};
+
 const dbOperationQueue = [];
+
+const defaultText = getWritingPrompt();
+
+const isUserUsingMobile = () => {
+  // User agent string method
+  let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+  // Screen resolution method
+  if (!isMobile) {
+    const screenWidth = window.screen.width;
+    const screenHeight = window.screen.height;
+    isMobile = screenWidth < 768 || screenHeight < 768;
+  }
+
+  // Touch events method
+  if (!isMobile) {
+    isMobile = "ontouchstart" in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
+  }
+
+  // CSS media queries method
+  if (!isMobile) {
+    const bodyElement = document.getElementsByTagName("body")[0];
+    isMobile = window.getComputedStyle(bodyElement).getPropertyValue("content").indexOf("mobile") !== -1;
+  }
+  return isMobile;
+};
+
+const isMobile = isUserUsingMobile();
 
 const Document = () => {
   const domEditor = useRef(null);
@@ -1269,10 +1301,6 @@ const Document = () => {
     }
   };
 
-  const getWritingPrompt = () => {
-    return prompts[Math.floor(Math.random() * prompts.length)];
-  };
-
   const textSelectedContextItems = [
     {
       label: "Copy",
@@ -1304,32 +1332,6 @@ const Document = () => {
       command: handleDeleteAssociationClick,
     },
   ];
-
-  const defaultText = getWritingPrompt();
-
-  const isUserUsingMobile = () => {
-    // User agent string method
-    let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-    // Screen resolution method
-    if (!isMobile) {
-      const screenWidth = window.screen.width;
-      const screenHeight = window.screen.height;
-      isMobile = screenWidth < 768 || screenHeight < 768;
-    }
-
-    // Touch events method
-    if (!isMobile) {
-      isMobile = "ontouchstart" in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
-    }
-
-    // CSS media queries method
-    if (!isMobile) {
-      const bodyElement = document.getElementsByTagName("body")[0];
-      isMobile = window.getComputedStyle(bodyElement).getPropertyValue("content").indexOf("mobile") !== -1;
-    }
-    return isMobile;
-  };
 
   return (
     <div>
@@ -1472,13 +1474,8 @@ const Document = () => {
         onContextMenu={(e) => {
           handleContextMenu(e);
         }}
-        onSelect={(e) => {
-          if (isUserUsingMobile()) {
-            handleContextMenu(e);
-          }
-        }}
         onDoubleClick={(e) => {
-          if (isUserUsingMobile()) {
+          if (isMobile) {
             handleContextMenu(e);
           }
         }}
