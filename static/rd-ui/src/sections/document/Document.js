@@ -1448,6 +1448,9 @@ const Document = () => {
         onContextMenu={(e) => {
           handleContextMenu(e);
         }}
+        onSelect={(e) => {
+          handleContextMenu(e);
+        }}
         onDoubleClick={(e) => {
           handleContextMenu(e);
         }}
