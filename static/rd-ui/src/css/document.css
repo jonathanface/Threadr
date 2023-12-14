@@ -139,7 +139,7 @@ div.public-DraftEditor-content .content-block:last-child {
   div.DraftEditor-editorContainer {
     padding: 0;
     width: calc(95% - 20px);
-    user-select: text;
+    user-select: none;
   }
   nav.rich-controls {
     height: initial;
