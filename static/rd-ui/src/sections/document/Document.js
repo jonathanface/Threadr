@@ -730,6 +730,7 @@ const Document = () => {
   };
 
   const handleContextMenu = (event) => {
+    event.preventDefault();
     const text = GetSelectedText(editorState);
     if (text.length) {
       selectedTextCMRef.current.show(event);
@@ -1305,6 +1306,7 @@ const Document = () => {
   ];
 
   const defaultText = getWritingPrompt();
+
   return (
     <div>
       <AssociationUI
@@ -1464,6 +1466,7 @@ const Document = () => {
           />
         </PrimeReactProvider>
         <Editor
+          id="main-editor"
           placeholder={defaultText}
           spellCheck={true}
           blockStyleFn={getBlockStyles}
