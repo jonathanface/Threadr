@@ -1448,6 +1448,9 @@ const Document = () => {
         onContextMenu={(e) => {
           handleContextMenu(e);
         }}
+        onDoubleClick={(e) => {
+          handleContextMenu(e);
+        }}
         className="editor_container"
         onClick={setFocus}
         onScroll={handleScroll}>
@@ -1466,7 +1469,6 @@ const Document = () => {
           />
         </PrimeReactProvider>
         <Editor
-          id="main-editor"
           placeholder={defaultText}
           spellCheck={true}
           blockStyleFn={getBlockStyles}
