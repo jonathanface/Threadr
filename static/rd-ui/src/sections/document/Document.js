@@ -1449,10 +1449,14 @@ const Document = () => {
           handleContextMenu(e);
         }}
         onSelect={(e) => {
-          handleContextMenu(e);
+          if ("maxTouchPoints" in navigator) {
+            handleContextMenu(e);
+          }
         }}
         onDoubleClick={(e) => {
-          handleContextMenu(e);
+          if ("maxTouchPoints" in navigator) {
+            handleContextMenu(e);
+          }
         }}
         className="editor_container"
         onClick={setFocus}
