@@ -52,6 +52,11 @@
   font-size: 1.1em;
 }
 
+.landing-page .logo-container {
+  margin-top: 100px;
+  text-align: center;
+}
+
 @media only screen and (max-width: 600px) {
   .landing-page .icon-box {
     flex-direction: column;

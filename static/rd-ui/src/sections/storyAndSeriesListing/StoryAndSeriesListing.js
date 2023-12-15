@@ -284,6 +284,9 @@ const StoryAndSeriesListing = () => {
       ) : (
         ""
       )}
+      <div className="logo-container">
+        <img alt="RichDocter logo" title="RichDocter - Organized Imagination" src="img/logo_trans_scaled.png" />
+      </div>
     </div>
   );
 };
