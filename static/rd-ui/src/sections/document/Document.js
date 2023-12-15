@@ -158,6 +158,18 @@ const Document = () => {
   const { collapseSidebar, collapsed } = useProSidebar();
 
   let lastRetrievedBlockKey = "";
+
+  const handleAssociationClick = (association, event) => {
+    const newAssociation = { ...association };
+    setViewingAssociation(newAssociation);
+    setAssociationWindowOpen(true);
+  };
+
+  const handleAssociationContextMenu = (name, type, event) => {
+    setCurrentRightClickedAssoc(formatBlankAssociation(type, name));
+    associationClickCMRef.current.show(event);
+  };
+
   const createDecorators = () => {
     const decorators = new Array(associations.length);
     associations.forEach((association) => {
@@ -767,17 +779,6 @@ const Document = () => {
     if (text.length) {
       selectedTextCMRef.current.show(event);
     }
-  };
-
-  const handleAssociationClick = (association, event) => {
-    const newAssociation = { ...association };
-    setViewingAssociation(newAssociation);
-    setAssociationWindowOpen(true);
-  };
-
-  const handleAssociationContextMenu = (name, type, event) => {
-    setCurrentRightClickedAssoc(formatBlankAssociation(type, name));
-    associationClickCMRef.current.show(event);
   };
 
   const handleStyleClick = (event, style) => {
