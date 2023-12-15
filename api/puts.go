@@ -722,10 +722,13 @@ func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	storyOrSeriesID := storyID
+	var storyOrSeriesID string
 	if storyOrSeriesID, err = dao.IsStoryInASeries(email, storyID); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "unable to check series membership of story")
 		return
+	}
+	if storyOrSeriesID == "" {
+		storyOrSeriesID = storyID
 	}
 
 	if err = dao.WriteAssociations(email, storyOrSeriesID, associations); err != nil {
@@ -835,10 +838,13 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	storyOrSeriesID := storyID
+	var storyOrSeriesID string
 	if storyOrSeriesID, err = dao.IsStoryInASeries(email, storyID); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
+	}
+	if storyOrSeriesID == "" {
+		storyOrSeriesID = storyID
 	}
 
 	ext := filepath.Ext(handler.Filename)

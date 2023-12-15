@@ -264,8 +264,8 @@ func main() {
 
 	// POSTs
 	apiRtr.HandleFunc("/stories", api.CreateStoryEndpoint).Methods("POST", "OPTIONS")
-	apiRtr.HandleFunc("/stories/{story}/chapter", api.CreateStoryChapterEndpoint).Methods("POST", "OPTIONS")
-	apiRtr.HandleFunc("/stories/{story}/associations", api.CreateAssociationsEndpoint).Methods("POST", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/chapter", api.CreateStoryChapterEndpoint).Methods("POST", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/associations", api.CreateAssociationsEndpoint).Methods("POST", "OPTIONS")
 
 	// PUTs
 	apiRtr.HandleFunc("/stories/{story}", api.WriteBlocksToStoryEndpoint).Methods("PUT", "OPTIONS")

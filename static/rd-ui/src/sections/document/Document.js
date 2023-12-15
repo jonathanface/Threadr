@@ -708,12 +708,13 @@ const Document = () => {
   };
 
   const onAssociationEdit = async (association) => {
-    console.log("editing", association);
     const storedAssociation = await updateAssociationsOnServer([association]);
-    const existingAssoc = associations.find(
-      (assoc) => assoc.association_name === association.association_name && assoc.type === association.association_type
-    );
-    associations[associations.indexOf(existingAssoc)] = storedAssociation;
+    console.log("local", association);
+    const existingIndex = associations.findIndex((assoc) => assoc.association_id === association.association_id);
+    console.log("existing", existingIndex);
+    console.log("stored", storedAssociation);
+    storedAssociation[0].portrait = storedAssociation[0].portrait + "?date=" + Date.now();
+    associations[existingIndex] = storedAssociation[0];
     setEditorState(EditorState.set(editorState, { decorator: createDecorators() }));
   };
 

@@ -396,9 +396,12 @@ func (d *DAO) GetStoryOrSeriesAssociations(email, storyID string, needDetails bo
 	if err = attributevalue.UnmarshalListOfMaps(outStory.Items, &storyObj); err != nil {
 		return associations, err
 	}
-	storyOrSeries := storyID
+	var storyOrSeries string
 	if storyOrSeries, err = d.IsStoryInASeries(email, storyID); err != nil {
 		return associations, err
+	}
+	if storyOrSeries == "" {
+		storyOrSeries = storyID
 	}
 	filterString := "author=:eml AND story_or_series_id=:s"
 	expressionValues := map[string]types.AttributeValue{
@@ -1296,9 +1299,12 @@ func (d *DAO) DeleteAssociations(email, storyID string, associations []*models.A
 		batches = append(batches, associations[i:end])
 	}
 
-	storyOrSeriesID := storyID
+	var storyOrSeriesID string
 	if storyOrSeriesID, err = d.IsStoryInASeries(email, storyID); err != nil {
 		return err
+	}
+	if storyOrSeriesID == "" {
+		storyOrSeriesID = storyID
 	}
 
 	// Loop through the items and create the transaction write items.

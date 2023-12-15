@@ -33,7 +33,7 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok         bool
 		newChapter models.Chapter
 	)
-	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story ID")
 		return
 	}
@@ -85,7 +85,7 @@ func CreateAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story ID")
 		return
 	}
@@ -93,6 +93,7 @@ func CreateAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing story ID")
 		return
 	}
+
 	decoder := json.NewDecoder(r.Body)
 	associations := []*models.Association{}
 	if err = decoder.Decode(&associations); err != nil {
@@ -109,10 +110,13 @@ func CreateAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	storyOrSeriesID := storyID
+	var storyOrSeriesID string
 	if storyOrSeriesID, err = dao.IsStoryInASeries(email, storyID); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "unable to check series membership of story")
 		return
+	}
+	if storyOrSeriesID == "" {
+		storyOrSeriesID = storyID
 	}
 	if err = dao.WriteAssociations(email, storyOrSeriesID, associations); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
