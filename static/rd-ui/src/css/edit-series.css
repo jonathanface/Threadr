@@ -1,30 +1,33 @@
 .edit-series-volumes {
-    list-style:none;
-    padding-left: 10px;
-    font-size: 0.9rem;
+  list-style: none;
+  padding-left: 10px;
+  font-size: 0.9rem;
+  box-sizing: initial;
 }
 .edit-series-volumes > div {
-    margin:10px;
-    display:flex;
-    align-items:center;
-    position:relative;
+  margin: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 .edit-series-volumes > div:hover {
-    cursor:grab;
-    color:#151515;
+  cursor: grab;
+  color: #151515;
 }
 .edit-series-volumes .story-buttons {
-    position:absolute;
-    right:0px;
+  margin-left: auto;
+}
+.edit-series-volumes .story-buttons svg {
+  box-sizing: initial;
 }
 
 .edit-series-volumes img {
-    max-height: 50px;
-    vertical-align: middle;
-    border-radius: 5px;
-    border: 1px solid #333;
+  max-height: 50px;
+  vertical-align: middle;
+  border-radius: 5px;
+  border: 1px solid #333;
 }
 
 .edit-series-volumes span {
-    margin-left:10px;
+  margin-left: 10px;
 }
