@@ -126,6 +126,16 @@ div.public-DraftEditor-content .content-block:last-child {
   text-justify: auto;
   white-space: normal;
 }
+.custom-context li {
+  white-space: nowrap;
+}
+.custom-context a {
+  display: block;
+}
+.custom-context a > span {
+  display: inline;
+  width: 100%;
+}
 
 /*padding: 0.75rem 1.25rem;*/
 @media only screen and (max-width: 600px) {

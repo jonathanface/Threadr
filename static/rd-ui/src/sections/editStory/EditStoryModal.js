@@ -75,6 +75,7 @@ const EditStory = () => {
           }
           return seriesObj;
         });
+        // UPDATE SERIES EDITABLES
         dispatch(setSeriesList(seriesStoriesFromDB));
 
         const reduced = data[userDetails.email].reduce((accumulator, currentValue) => {

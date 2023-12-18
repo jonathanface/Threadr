@@ -24,10 +24,13 @@ import {
 } from "draft-js";
 import "draft-js/dist/Draft.css";
 import { ContextMenu } from "primereact/contextmenu";
+import "primereact/resources/primereact.min.css";
+import "primereact/resources/themes/lara-light-indigo/theme.css";
+
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 
 import { PrimeReactProvider } from "primereact/api";
-import "primereact/resources/themes/lara-light-cyan/theme.css";
+
 import { MenuItem, Menu as SideMenu, Sidebar, useProSidebar } from "react-pro-sidebar";
 import { useDispatch, useSelector } from "react-redux";
 import "../../css/document.css";
@@ -709,20 +712,16 @@ const Document = () => {
 
   const onAssociationEdit = async (association) => {
     const storedAssociation = await updateAssociationsOnServer([association]);
-    console.log("local", association);
     const existingIndex = associations.findIndex((assoc) => assoc.association_id === association.association_id);
-    console.log("existing", existingIndex);
-    console.log("stored", storedAssociation);
     storedAssociation[0].portrait = storedAssociation[0].portrait + "?date=" + Date.now();
     associations[existingIndex] = storedAssociation[0];
     setEditorState(EditorState.set(editorState, { decorator: createDecorators() }));
   };
 
   const handleMenuItemClick = async (event, type) => {
+    event.originalEvent.preventDefault();
     const text = GetSelectedText(editorState);
     if (text.length) {
-      event.originalEvent.preventDefault();
-      event.originalEvent.stopPropagation();
       // check if !contains
       const newAssociation = formatBlankAssociation(type, text);
       const withSelection = setFocusAndRestoreCursor();
@@ -1308,22 +1307,27 @@ const Document = () => {
       command: handleTextCopy,
     },
     {
-      label: "Create Character",
-      command: (event) => {
-        handleMenuItemClick(event, ASSOCIATION_TYPE_CHARACTER);
-      },
-    },
-    {
-      label: "Create Place",
-      command: (event) => {
-        handleMenuItemClick(event, ASSOCIATION_TYPE_PLACE);
-      },
-    },
-    {
-      label: "Create Event",
-      command: (event) => {
-        handleMenuItemClick(event, ASSOCIATION_TYPE_EVENT);
-      },
+      label: "Create Association",
+      items: [
+        {
+          label: "Character",
+          command: (event) => {
+            handleMenuItemClick(event, ASSOCIATION_TYPE_CHARACTER);
+          },
+        },
+        {
+          label: "Place",
+          command: (event) => {
+            handleMenuItemClick(event, ASSOCIATION_TYPE_PLACE);
+          },
+        },
+        {
+          label: "Event",
+          command: (event) => {
+            handleMenuItemClick(event, ASSOCIATION_TYPE_EVENT);
+          },
+        },
+      ],
     },
   ];
 
@@ -1483,20 +1487,6 @@ const Document = () => {
         className="editor_container"
         onClick={setFocus}
         onScroll={handleScroll}>
-        <PrimeReactProvider>
-          <ContextMenu
-            className="custom-context"
-            children="true"
-            ref={selectedTextCMRef}
-            model={textSelectedContextItems}
-          />
-          <ContextMenu
-            className="custom-context"
-            children="true"
-            ref={associationClickCMRef}
-            model={associationHoveredContextItems}
-          />
-        </PrimeReactProvider>
         <Editor
           placeholder={defaultText}
           spellCheck={true}
@@ -1511,6 +1501,20 @@ const Document = () => {
           ref={domEditor}
         />
       </section>
+      <PrimeReactProvider>
+        <ContextMenu
+          className="custom-context"
+          children="true"
+          ref={selectedTextCMRef}
+          model={textSelectedContextItems}
+        />
+        <ContextMenu
+          className="custom-context"
+          children="true"
+          ref={associationClickCMRef}
+          model={associationHoveredContextItems}
+        />
+      </PrimeReactProvider>
       <div className="sidebar-container">
         <div className="handle" onClick={onExpandChapterMenu}>
           chapters

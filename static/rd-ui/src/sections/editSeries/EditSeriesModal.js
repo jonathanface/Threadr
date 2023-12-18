@@ -47,7 +47,6 @@ const EditSeriesModal = () => {
 
   useEffect(() => {
     if (editables.stories) {
-      console.log(editables.stories[0]);
       const volumes = editables.stories.slice();
       setVolumes(volumes.sort((a, b) => a.place - b.place));
     }
