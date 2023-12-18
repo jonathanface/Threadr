@@ -75,7 +75,29 @@ const EditStory = () => {
           }
           return seriesObj;
         });
-        // UPDATE SERIES EDITABLES
+        const foundEditableStoryIdx = seriesEditables.stories.findIndex(
+          (story) => story.story_id === editables.story_id
+        );
+
+        console.log("Updated Story Index:", foundEditableStoryIdx, "Series Stories from DB:", seriesStoriesFromDB);
+
+        if (foundEditableStoryIdx > -1) {
+          const updatedStory = seriesStoriesFromDB[0].stories[foundEditableStoryIdx];
+          const newSeriesEditables = {
+            ...seriesEditables,
+            stories: seriesEditables.stories.map((story, index) =>
+              index === foundEditableStoryIdx
+                ? {
+                    ...story,
+                    title: updatedStory.title,
+                    image_url: `${updatedStory.image_url}?cache=${new Date().getTime()}`,
+                  }
+                : story
+            ),
+          };
+
+          dispatch(setSeriesEditables(newSeriesEditables));
+        }
         dispatch(setSeriesList(seriesStoriesFromDB));
 
         const reduced = data[userDetails.email].reduce((accumulator, currentValue) => {
