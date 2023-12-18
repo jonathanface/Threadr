@@ -78,9 +78,6 @@ const EditStory = () => {
         const foundEditableStoryIdx = seriesEditables.stories.findIndex(
           (story) => story.story_id === editables.story_id
         );
-
-        console.log("Updated Story Index:", foundEditableStoryIdx, "Series Stories from DB:", seriesStoriesFromDB);
-
         if (foundEditableStoryIdx > -1) {
           const updatedStory = seriesStoriesFromDB[0].stories[foundEditableStoryIdx];
           const newSeriesEditables = {
