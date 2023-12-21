@@ -63,7 +63,7 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 	results.SubscriptionID = sb.ID
 	results.PeriodStart = time.Unix(sb.CurrentPeriodStart, 0)
 	results.PeriodEnd = time.Unix(sb.CurrentPeriodEnd, 0)
-	err = dao.AddSubscriptionID(&user.Email, &sb.ID)
+	err = dao.AddStripeData(&user.Email, &sb.ID, &sb.Customer.ID)
 	if err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return

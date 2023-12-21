@@ -2011,7 +2011,7 @@ func (d *DAO) AddCustomerID(email, customerID *string) error {
 	return nil
 }
 
-func (d *DAO) AddSubscriptionID(email, subscriptionID *string) error {
+func (d *DAO) AddStripeData(email, subscriptionID, customerID *string) error {
 	fmt.Println("billing", *email, *subscriptionID)
 	key := map[string]types.AttributeValue{
 		"email": &types.AttributeValueMemberS{Value: *email},
@@ -2019,9 +2019,10 @@ func (d *DAO) AddSubscriptionID(email, subscriptionID *string) error {
 	updateInput := &dynamodb.UpdateItemInput{
 		TableName:        aws.String("users"),
 		Key:              key,
-		UpdateExpression: aws.String("set subscription_id=:s"),
+		UpdateExpression: aws.String("set subscription_id=:s, customer_id=:c"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":s": &types.AttributeValueMemberS{Value: *subscriptionID},
+			":c": &types.AttributeValueMemberS{Value: *customerID},
 		},
 		ReturnValues: types.ReturnValueAllNew,
 	}

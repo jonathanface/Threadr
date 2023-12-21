@@ -27,7 +27,7 @@ type DaoInterface interface {
 	WriteAssociations(email, storyOrSeriesID string, associations []*models.Association) error
 	UpdateAssociationPortraitEntryInDB(email, storyOrSeriesID, associationName, url string) error
 	AddCustomerID(email, customerID *string) error
-	AddSubscriptionID(email, subscriptionID *string) error
+	AddStripeData(email, subscriptionID, customerID *string) error
 	EditStory(email string, story models.Story) (models.Story, error)
 	EditSeries(email string, series models.Series) (models.Series, error)
 	EditChapter(storyID string, chapter models.Chapter) (models.Chapter, error)
