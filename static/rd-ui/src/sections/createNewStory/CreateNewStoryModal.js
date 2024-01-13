@@ -232,6 +232,7 @@ const CreateNewStory = () => {
         const seriesIndex = seriesList.findIndex((srs) => srs.series_id === json.series_id);
 
         if (seriesIndex >= 0) {
+          // series is already known
           const updatedSeries = JSON.parse(JSON.stringify(seriesList[seriesIndex]));
 
           updatedSeries.stories.push({
@@ -247,7 +248,8 @@ const CreateNewStory = () => {
           newSeriesList[seriesIndex] = updatedSeries;
           dispatch(setSeriesList(newSeriesList));
         } else {
-          throw new Error("Series not found");
+          // unknown series - probably new
+          console.log("Series not found");
         }
       } else {
         // added as a standalone
