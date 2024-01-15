@@ -17,8 +17,14 @@ const EditableText = (props) => {
 
   const onKeyDown = (event) => {
     if (event.key === "Enter") {
-      setIsEditing(false);
+      onBlur(event);
     }
+  };
+
+  const onBlur = (event) => {
+    setIsEditing(false);
+    props.onTextChange(event);
+    setTextValue(event.currentTarget.textContent);
   };
 
   return (
@@ -41,13 +47,8 @@ const EditableText = (props) => {
           sx={{
             "& fieldset": { border: "none" },
           }}
-          onBlur={() => {
-            setIsEditing(false);
-          }}
+          onBlur={onBlur}
           onKeyDown={onKeyDown}
-          onChange={(event) => {
-            props.onTextChange(event);
-          }}
           defaultValue={textValue}
         />
       )}

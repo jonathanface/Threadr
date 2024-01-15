@@ -366,7 +366,7 @@ const Document = () => {
         setBlocksLoaded(true);
       })
       .catch((error) => {
-        console.log("fetch error", error);
+        console.log("fetch story blocks error", error);
         if (parseInt(error.message) !== 404 && parseInt(error.message !== 501)) {
           console.error("get story blocks", error);
           dispatch(setAlertMessage("An error occurred trying to retrieve your content.\nPlease report this."));
@@ -1037,17 +1037,18 @@ const Document = () => {
 
   const handlePasteAction = (text) => {
     const blockMap = ContentState.createFromText(text).getBlockMap();
-    /*
+
     if (blockMap.size > 100) {
-      console.error('Pasting more than 100 paragraphs at a time is not allowed.');
-      return true;
-    }*/
+      console.log("Large paste operation detected. Total paragraphs: ", blockMap.size);
+      dispatch(setIsLoaderVisible(true));
+    }
     const newState = Modifier.replaceWithFragment(
       editorState.getCurrentContent(),
       editorState.getSelection(),
       blockMap
     );
     updateEditorState(EditorState.push(editorState, newState, "insert-fragment"), true);
+    dispatch(setIsLoaderVisible(false));
     return true;
   };
 
@@ -1094,7 +1095,7 @@ const Document = () => {
     collapseSidebar(!collapsed);
   };
 
-  const onChapterClick = (id, title, num) => {
+  const onChapterClick = (id, title, num, newChapters) => {
     if (id !== selectedChapter.id) {
       setBlocksLoaded(false);
       setSelectedChapter({
@@ -1130,20 +1131,8 @@ const Document = () => {
           newChapters.push({ id: json.id, chapter_title: newChapterTitle, chapter_num: newChapterNum });
           const updatedSelectedStory = { ...selectedStory };
           updatedSelectedStory.chapters = newChapters;
-          setSelectedChapter({
-            id: json.id,
-            chapter_title: newChapterTitle,
-            chapter_num: newChapterNum,
-          });
           dispatch(setSelectedStory(updatedSelectedStory));
-          const history = window.history;
-          const storyID = selectedStory.story_id;
-          history.pushState(
-            { storyID },
-            "created chapter",
-            "/story/" + selectedStory.story_id + "?chapter=" + newChapterNum
-          );
-          setEditorState(EditorState.createEmpty(createDecorators()));
+          onChapterClick(json.id, newChapterTitle, newChapterNum, newChapters);
         } else {
           throw new Error("Fetch problem creating chapter " + response.status, response.statusText);
         }
@@ -1534,10 +1523,10 @@ const Document = () => {
                                 <MenuItem
                                   key={idx}
                                   className={chapter.id === selectedChapter.id ? "active" : ""}
-                                  onClick={() =>
-                                    onChapterClick(chapter.id, chapter.chapter_title, chapter.chapter_num)
-                                  }>
-                                  {chapter.chapter_title}
+                                  onClick={() => {
+                                    onChapterClick(chapter.id, chapter.chapter_title, chapter.chapter_num);
+                                  }}>
+                                  <span className="chapter-text">{chapter.chapter_title}</span>
                                   {selectedStory.chapters.length > 1 ? (
                                     <IconButton
                                       className="menu-icon"

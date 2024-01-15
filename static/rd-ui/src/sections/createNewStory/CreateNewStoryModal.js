@@ -263,10 +263,6 @@ const CreateNewStory = () => {
         newStandaloneList.push(newStory);
         dispatch(setStandaloneList(newStandaloneList));
       }
-      //const storyID = json.story_id;
-      //dispatch(setSelectedStory({ id: storyID, title: json.title }));
-      //const history = window.history;
-      //history.pushState({ storyID }, "created new story", "/story/" + storyID + "?chapter=1");
       setTimeout(() => {
         handleClose();
       }, 500);

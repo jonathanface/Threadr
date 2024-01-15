@@ -33,6 +33,7 @@
   background-color: #40554b;
   border-radius: 15px;
   border: 1px dashed #333;
+  cursor: pointer;
 }
 .sidebar-container .ps-menuitem-root:last-child {
   margin-top: 10px;
@@ -45,23 +46,40 @@
   background-color: #40554b;
   font-weight: bold;
   border: 1px dashed #fff;
+  margin-left: 0px;
 }
 .sidebar-container .ps-menuitem-root .menu-icon {
   color: #fff;
   margin-top: -1px;
-  float: right;
 }
 .sidebar-container .ps-menuitem-root .menu-icon:hover {
   opacity: 0.8;
 }
 .sidebar-container .ps-menuitem-root:last-child button {
   border: 1px solid #fff;
+  width: 25px;
+  height: 25px;
+  padding: 15px;
 }
 .sidebar-container .ps-menuitem-root:last-child button:hover {
   background-color: #40554b;
 }
 .sidebar-container .ps-menuitem-root .ps-menu-label {
-  padding: 5px;
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  overflow: revert;
+  padding-left: 10px;
+}
+.sidebar-container .ps-menuitem-root .ps-menu-label .chapter-text {
+  font-size: 0.8em;
+  width: 150px;
+  display: inline-block;
+  text-overflow: ellipsis;
+  padding-right: 10px;
+  text-align: left;
+  overflow: hidden;
+  padding-left: 10px;
 }
 .sidebar-container .ps-menuitem-root .ps-menu-label:hover {
   color: #2b2929;
