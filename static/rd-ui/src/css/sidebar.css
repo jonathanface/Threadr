@@ -34,7 +34,7 @@
   padding-bottom: 20px;
 }
 .sidebar-container .ps-menuitem-root a button:hover {
-  background: #40554b;
+  background: #0f1e1e;
   border: 1px dashed;
 }
 .sidebar-container .ps-menuitem-root.active a {
@@ -103,5 +103,5 @@
   margin: 30px;
 }
 .sidebar-container .sidebar-add-new:hover {
-  background-color: #40554b;
+  background-color: #0f1e1e;
 }
