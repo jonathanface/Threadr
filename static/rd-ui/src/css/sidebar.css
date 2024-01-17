@@ -38,13 +38,14 @@
   border: 1px dashed;
 }
 .sidebar-container .ps-menuitem-root.active a {
-  background-color: #0f1e1e;
+  color: #fff;
   font-weight: bold;
   border: 1px dashed #fff;
+  border-radius: 15px;
+  background-color: #393131;
 }
 .sidebar-container .ps-menuitem-root.active a:hover {
   color: #fff;
-  background-color: #0f1e1e;
   font-weight: bold;
   border: 1px dashed #fff;
 }
