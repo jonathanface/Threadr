@@ -1508,9 +1508,9 @@ const Document = () => {
         <div className="handle" onClick={onExpandChapterMenu}>
           chapters
         </div>
-        <Sidebar rtl={true} collapsedWidth={0} defaultCollapsed={true}>
+        <Sidebar rtl={false} collapsedWidth={0} defaultCollapsed={true}>
           <SideMenu>
-            <DragDropContext onDragEnd={onChapterDragEnd}>
+            <DragDropContext onDragEnd={onChapterDragEnd} id="droppable">
               <Droppable droppableId="droppable">
                 {(provided) => (
                   <div {...provided.droppableProps} ref={provided.innerRef}>
@@ -1554,15 +1554,14 @@ const Document = () => {
                 )}
               </Droppable>
             </DragDropContext>
-            <MenuItem key="add_chapter_btn">
-              <Button
-                onClick={onNewChapterClick}
-                variant="outlined"
-                sx={{ color: "#FFF" }}
-                startIcon={<AddIcon sx={{ marginLeft: "5px" }} />}>
-                New
-              </Button>
-            </MenuItem>
+            <Button
+              className="sidebar-add-new"
+              onClick={onNewChapterClick}
+              variant="outlined"
+              sx={{ color: "#FFF" }}
+              startIcon={<AddIcon sx={{ marginLeft: "5px" }} />}>
+              New
+            </Button>
           </SideMenu>
         </Sidebar>
         ;

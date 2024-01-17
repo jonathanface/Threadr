@@ -21,55 +21,53 @@
 }
 .sidebar-container .ps-menuitem-root {
   border-radius: 15px;
-  margin: 10px;
   box-sizing: border-box;
-  width: 200px;
-  background-clip: padding-box;
+  width: 90%;
 }
-.sidebar-container .ps-menuitem-root:last-child a {
+.sidebar-container .ps-menuitem-root a {
   cursor: grab;
 }
-.sidebar-container .ps-menuitem-root a:hover {
+
+.sidebar-container [data-rbd-droppable-id="droppable"] {
+  text-align: left;
+  border-bottom: 1px dashed;
+  padding-bottom: 20px;
+}
+.sidebar-container .ps-menuitem-root a button:hover {
+  background: #40554b;
+  border: 1px dashed;
+}
+.sidebar-container .ps-menuitem-root.active a {
+  background-color: #0f1e1e;
+  font-weight: bold;
+  border: 1px dashed #fff;
+}
+.sidebar-container .ps-menuitem-root.active a:hover {
+  color: #fff;
+  background-color: #0f1e1e;
+  font-weight: bold;
+  border: 1px dashed #fff;
+}
+.sidebar-container .ps-menuitem-root:not(.active) a:hover {
   background-color: #40554b;
   border-radius: 15px;
   border: 1px dashed #333;
   cursor: pointer;
 }
-.sidebar-container .ps-menuitem-root:last-child {
-  margin-top: 10px;
-}
-.sidebar-container .ps-menuitem-root:last-child a:hover {
-  background-color: initial;
-  border: none;
-}
-.sidebar-container .ps-menuitem-root.active {
-  background-color: #40554b;
-  font-weight: bold;
-  border: 1px dashed #fff;
-  margin-left: 0px;
-}
 .sidebar-container .ps-menuitem-root .menu-icon {
   color: #fff;
   margin-top: -1px;
 }
-.sidebar-container .ps-menuitem-root .menu-icon:hover {
-  opacity: 0.8;
-}
+
 .sidebar-container .ps-menuitem-root:last-child button {
   border: 1px solid #fff;
-  width: 25px;
-  height: 25px;
-  padding: 15px;
 }
-.sidebar-container .ps-menuitem-root:last-child button:hover {
-  background-color: #40554b;
-}
+
 .sidebar-container .ps-menuitem-root .ps-menu-label {
   display: flex;
-  flex-direction: row-reverse;
   align-items: center;
   overflow: revert;
-  padding-left: 10px;
+  justify-content: space-around;
 }
 .sidebar-container .ps-menuitem-root .ps-menu-label .chapter-text {
   font-size: 0.8em;
@@ -81,9 +79,7 @@
   overflow: hidden;
   padding-left: 10px;
 }
-.sidebar-container .ps-menuitem-root .ps-menu-label:hover {
-  color: #2b2929;
-}
+
 .sidebar-container .ps-rtl {
   border-left: none;
 }
@@ -100,4 +96,12 @@
   writing-mode: vertical-lr;
   width: 40px;
   cursor: pointer;
+}
+
+.sidebar-container .sidebar-add-new {
+  border: 1px solid #efefef;
+  margin: 30px;
+}
+.sidebar-container .sidebar-add-new:hover {
+  background-color: #40554b;
 }
