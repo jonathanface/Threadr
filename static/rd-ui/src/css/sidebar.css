@@ -23,6 +23,9 @@
   border-radius: 15px;
   box-sizing: border-box;
   width: 90%;
+  margin: 5px 0px 5px 0px;
+  border-radius: 15px;
+  border: 1px solid #333;
 }
 .sidebar-container .ps-menuitem-root a {
   cursor: grab;
@@ -30,8 +33,6 @@
 
 .sidebar-container [data-rbd-droppable-id="droppable"] {
   text-align: left;
-  border-bottom: 1px dashed;
-  padding-bottom: 20px;
 }
 .sidebar-container .ps-menuitem-root a button:hover {
   background: #0f1e1e;
@@ -48,6 +49,9 @@
   color: #fff;
   font-weight: bold;
   border: 1px dashed #fff;
+  border-radius: 15px;
+  background-color: #393131;
+  opacity: 0.8;
 }
 .sidebar-container .ps-menuitem-root:not(.active) a:hover {
   background-color: #40554b;

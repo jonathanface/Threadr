@@ -1554,14 +1554,16 @@ const Document = () => {
                 )}
               </Droppable>
             </DragDropContext>
-            <Button
-              className="sidebar-add-new"
-              onClick={onNewChapterClick}
-              variant="outlined"
-              sx={{ color: "#FFF" }}
-              startIcon={<AddIcon sx={{ marginLeft: "5px" }} />}>
-              New
-            </Button>
+            <div className="buttonContainer">
+              <Button
+                className="sidebar-add-new"
+                onClick={onNewChapterClick}
+                variant="outlined"
+                sx={{ color: "#FFF" }}
+                startIcon={<AddIcon sx={{ marginLeft: "5px" }} />}>
+                New
+              </Button>
+            </div>
           </SideMenu>
         </Sidebar>
         ;
