@@ -62,7 +62,7 @@
     flex-direction: column;
   }
 
-  .landing-page .icon-box button {
+  .landing-page .icon-box button:not(.doc-button) {
     max-width: none;
     margin: 0 auto;
     margin-bottom: 10px;

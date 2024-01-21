@@ -23,13 +23,10 @@ import {
   getDefaultKeyBinding,
 } from "draft-js";
 import "draft-js/dist/Draft.css";
-import { ContextMenu } from "primereact/contextmenu";
 import "primereact/resources/primereact.min.css";
 import "primereact/resources/themes/lara-light-indigo/theme.css";
 
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
-
-import { PrimeReactProvider } from "primereact/api";
 
 import { MenuItem, Menu as SideMenu, Sidebar, useProSidebar } from "react-pro-sidebar";
 import { useDispatch, useSelector } from "react-redux";
@@ -45,6 +42,7 @@ import {
 } from "../../stores/alertSlice.js";
 import { setSelectedStory } from "../../stores/storiesSlice.js";
 import { setIsLoaderVisible } from "../../stores/uiSlice.js";
+import ContextMenu from "../ContextMenu";
 import AssociationUI from "./AssociationUI.js";
 import EditableText from "./EditableText.js";
 import Exporter from "./Exporter.js";
@@ -155,6 +153,9 @@ const Document = () => {
   const [currentStrikethroughState, setCurrentStrikethroughState] = useState(false);
   const [associationWindowOpen, setAssociationWindowOpen] = useState(false);
   const [viewingAssociation, setViewingAssociation] = useState(null);
+  const [contextMenuVisible, setContextMenuVisible] = useState(false);
+  const [contextMenuX, setContextMenuX] = useState(0);
+  const [contextMenuY, setContextMenuY] = useState(0);
   const [exportMenuValue, setExportMenuValue] = React.useState(false);
   const [associationsLoaded, setAssociationsLoaded] = React.useState(false);
   const [blocksLoaded, setBlocksLoaded] = React.useState(false);
@@ -774,9 +775,15 @@ const Document = () => {
 
   const handleContextMenu = (event) => {
     event.preventDefault();
+    if (contextMenuVisible) {
+      setContextMenuVisible(false);
+    }
     const text = GetSelectedText(editorState);
     if (text.length) {
-      selectedTextCMRef.current.show(event);
+      setContextMenuX(event.clientX);
+      setContextMenuY(event.clientY);
+      setContextMenuVisible(true);
+      //selectedTextCMRef.current.show(event);
     }
   };
 
@@ -1453,13 +1460,15 @@ const Document = () => {
                   <ListItemText primary="PDF" />
                 </MaterialMenuItem>
               </TextField>
-              <IconButton aria-label="exit" component="label" onClick={onExitDocument}>
-                <CloseIcon
-                  sx={{
-                    color: "#F0F0F0",
-                  }}
-                />
-              </IconButton>
+              <span className="close-doc-btn">
+                <IconButton aria-label="exit" component="label" onClick={onExitDocument}>
+                  <CloseIcon
+                    sx={{
+                      color: "#F0F0F0",
+                    }}
+                  />
+                </IconButton>
+              </span>
             </span>
           </span>
         </div>
@@ -1490,20 +1499,6 @@ const Document = () => {
           ref={domEditor}
         />
       </section>
-      <PrimeReactProvider>
-        <ContextMenu
-          className="custom-context"
-          children="true"
-          ref={selectedTextCMRef}
-          model={textSelectedContextItems}
-        />
-        <ContextMenu
-          className="custom-context"
-          children="true"
-          ref={associationClickCMRef}
-          model={associationHoveredContextItems}
-        />
-      </PrimeReactProvider>
       <div className="sidebar-container">
         <div className="handle" onClick={onExpandChapterMenu}>
           chapters
@@ -1566,8 +1561,8 @@ const Document = () => {
             </div>
           </SideMenu>
         </Sidebar>
-        ;
       </div>
+      <ContextMenu visible={contextMenuVisible} x={contextMenuX} y={contextMenuY} />
     </div>
   );
 };

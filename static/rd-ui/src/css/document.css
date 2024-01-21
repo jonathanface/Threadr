@@ -163,6 +163,11 @@ div.public-DraftEditor-content .content-block:last-child {
     display: block;
     position: absolute;
     top: 10px;
+    width: calc(100% - 20px);
+  }
+  nav.rich-controls .right-controls .close-doc-btn {
+    position: absolute;
+    right: 0px;
   }
   nav.rich-controls .controls-row {
     display: block;

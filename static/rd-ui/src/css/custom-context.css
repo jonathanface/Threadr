@@ -1,0 +1,14 @@
+.custom-context {
+  display: none;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  z-index: 500;
+}
+.custom-context.visible {
+  display: block;
+}
+
+.custom-context ul {
+  list-style-type: none;
+}

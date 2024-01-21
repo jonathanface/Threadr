@@ -8,7 +8,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import TextField from "@mui/material/TextField";
-import React, { useEffect, useState } from "react";
+import React, { createRef, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   setAlertLink,
@@ -26,6 +26,7 @@ import PortraitDropper from "../portraitdropper/PortraitDropper";
 const CreateNewStory = () => {
   const [isInASeries, setIsInASeries] = useState(false);
   const [series, setSeries] = useState([]);
+  const [submitButtonDisabled, setSubmitButtonDisabled] = useState(true);
   const isCreatingNewStory = useSelector((state) => state.stories.isCreatingNew);
   const userDetails = useSelector((state) => state.user.userDetails);
   const isLoggedIn = useSelector((state) => state.user.isLoggedIn);
@@ -43,17 +44,21 @@ const CreateNewStory = () => {
 
   const [areErrors, setAreErrors] = useState(false);
   const [currentError, setCurrentError] = useState("");
-  const [imageURL, setImageURL] = useState();
+  const [imageURL, setImageURL] = useState("");
   const [imageName, setImageName] = useState("Loading...");
   const [seriesMember, setSeriesMember] = useState({ label: "" });
   const defaultImageURL = "img/icons/story_standalone_icon.jpg";
 
+  const parentDiv = createRef(null);
+
   const resetForm = () => {
+    setSubmitButtonDisabled(true);
     setFormInput(initMap);
     setAreErrors(false);
     setCurrentError("");
     setIsInASeries(false);
-
+    setImageURL("");
+    setImageName("Loading...");
     setSeriesMember({ label: "" });
   };
 
@@ -162,6 +167,22 @@ const CreateNewStory = () => {
         console.error("Fetch operation failed: ", error);
       });
   };
+
+  useEffect(() => {
+    const handleScrollEnd = () => {
+      setSubmitButtonDisabled(false);
+    };
+
+    const div = parentDiv.current;
+    if (div) {
+      div.addEventListener("scrollend", handleScrollEnd);
+    }
+    return () => {
+      if (div) {
+        div.removeEventListener("scrollend", handleScrollEnd);
+      }
+    };
+  }, [parentDiv]);
 
   useEffect(() => {
     if (imageURL) {
@@ -304,7 +325,7 @@ const CreateNewStory = () => {
     <div>
       <Dialog open={isCreatingNewStory} onClose={handleClose}>
         <DialogTitle>Create a Story</DialogTitle>
-        <DialogContent>
+        <DialogContent ref={parentDiv}>
           <Box component="form">
             <div>
               <h3>Image for Your Story</h3>
@@ -391,7 +412,9 @@ const CreateNewStory = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
-          <Button onClick={handleSubmit}>Create</Button>
+          <Button disabled={submitButtonDisabled} onClick={handleSubmit}>
+            Create
+          </Button>
         </DialogActions>
       </Dialog>
     </div>
