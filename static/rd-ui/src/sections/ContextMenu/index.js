@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "../../css/custom-context.css";
+import MenuItem from "./MenuItem";
 
 const ContextMenu = (props) => {
   const [visible, setVisible] = useState(false);
@@ -29,20 +30,10 @@ const ContextMenu = (props) => {
 
   return (
     <div className="custom-context" style={inlineStyle}>
-      <ul>
-        <li>Copy</li>
-        <li>
-          <ul>
-            <li>
-              Create Association
-              <ul>
-                <li>Character</li>
-                <li>Location</li>
-                <li>Event</li>
-              </ul>
-            </li>
-          </ul>
-        </li>
+      <ul className="menu">
+        {props.items.map((item, index) => (
+          <MenuItem key={index} item={item} />
+        ))}
       </ul>
     </div>
   );

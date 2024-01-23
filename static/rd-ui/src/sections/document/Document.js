@@ -132,8 +132,6 @@ const isMobile = isUserUsingMobile();
 
 const Document = () => {
   const domEditor = useRef(null);
-  const selectedTextCMRef = useRef(null);
-  const associationClickCMRef = useRef(null);
   const dispatch = useDispatch();
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -153,9 +151,12 @@ const Document = () => {
   const [currentStrikethroughState, setCurrentStrikethroughState] = useState(false);
   const [associationWindowOpen, setAssociationWindowOpen] = useState(false);
   const [viewingAssociation, setViewingAssociation] = useState(null);
-  const [contextMenuVisible, setContextMenuVisible] = useState(false);
-  const [contextMenuX, setContextMenuX] = useState(0);
-  const [contextMenuY, setContextMenuY] = useState(0);
+  const [selectedContextMenuVisible, setSelectedContextMenuVisible] = useState(false);
+  const [associationContextMenuVisible, setAssociationContextMenuVisible] = useState(false);
+  const [selectedContextMenuX, setSelectedContextMenuX] = useState(0);
+  const [selectedContextMenuY, setSelectedContextMenuY] = useState(0);
+  const [associationContextMenuX, setAssociationContextMenuX] = useState(0);
+  const [associationContextMenuY, setAssociationContextMenuY] = useState(0);
   const [exportMenuValue, setExportMenuValue] = React.useState(false);
   const [associationsLoaded, setAssociationsLoaded] = React.useState(false);
   const [blocksLoaded, setBlocksLoaded] = React.useState(false);
@@ -171,7 +172,9 @@ const Document = () => {
 
   const handleAssociationContextMenu = (name, type, event) => {
     setCurrentRightClickedAssoc(formatBlankAssociation(type, name));
-    associationClickCMRef.current.show(event);
+    setAssociationContextMenuX(event.clientX);
+    setAssociationContextMenuY(event.clientY);
+    setAssociationContextMenuVisible(true);
   };
 
   const createDecorators = () => {
@@ -720,7 +723,7 @@ const Document = () => {
   };
 
   const handleMenuItemClick = async (event, type) => {
-    event.originalEvent.preventDefault();
+    setSelectedContextMenuVisible(false);
     const text = GetSelectedText(editorState);
     if (text.length) {
       // check if !contains
@@ -746,7 +749,6 @@ const Document = () => {
         assoc.association_name === currentRightClickedAssoc.association_name
       );
     });
-    console.log("ind", ind);
     const deleteMe = associations[ind];
     associations.splice(ind, 1);
     const withSelection = setFocusAndRestoreCursor();
@@ -758,6 +760,7 @@ const Document = () => {
     }
     setCurrentRightClickedAssoc(null);
     setEditorState(newEditorState);
+    setAssociationContextMenuVisible(false);
   };
 
   const handleTextCopy = (event) => {
@@ -771,19 +774,19 @@ const Document = () => {
         /* Rejected - text failed to copy to the clipboard */
       }
     );
+    setSelectedContextMenuVisible(false);
   };
 
   const handleContextMenu = (event) => {
     event.preventDefault();
-    if (contextMenuVisible) {
-      setContextMenuVisible(false);
+    if (selectedContextMenuVisible) {
+      setSelectedContextMenuVisible(false);
     }
     const text = GetSelectedText(editorState);
     if (text.length) {
-      setContextMenuX(event.clientX);
-      setContextMenuY(event.clientY);
-      setContextMenuVisible(true);
-      //selectedTextCMRef.current.show(event);
+      setSelectedContextMenuX(event.clientX);
+      setSelectedContextMenuY(event.clientY);
+      setSelectedContextMenuVisible(true);
     }
   };
 
@@ -931,8 +934,18 @@ const Document = () => {
     return EditorState.push(newEditorState, content, "change-block-data");
   };
 
+  const hideContextMenus = () => {
+    if (selectedContextMenuVisible) {
+      //setSelectedContextMenuVisible(false);
+    }
+    if (associationContextMenuVisible) {
+      //setAssociationContextMenuVisible(false);
+    }
+  };
+
   const updateEditorState = (newEditorState, isPasteAction) => {
     resetNavButtonStates();
+    hideContextMenus();
     const selection = newEditorState.getSelection();
     const block = newEditorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
     for (const entry in styleMap) {
@@ -1297,40 +1310,37 @@ const Document = () => {
     }
   };
 
-  const textSelectedContextItems = [
+  const associationContextMenuItems = [
     {
-      label: "Copy",
-      command: handleTextCopy,
+      name: "Delete Association",
+      command: handleDeleteAssociationClick,
     },
+  ];
+
+  const selectedContextMenuItems = [
+    { name: "Copy", command: handleTextCopy },
     {
-      label: "Create Association",
-      items: [
+      name: "Create Association",
+      subItems: [
         {
-          label: "Character",
+          name: "Character",
           command: (event) => {
             handleMenuItemClick(event, ASSOCIATION_TYPE_CHARACTER);
           },
         },
         {
-          label: "Place",
+          name: "Place",
           command: (event) => {
             handleMenuItemClick(event, ASSOCIATION_TYPE_PLACE);
           },
         },
         {
-          label: "Event",
+          name: "Event",
           command: (event) => {
             handleMenuItemClick(event, ASSOCIATION_TYPE_EVENT);
           },
         },
       ],
-    },
-  ];
-
-  const associationHoveredContextItems = [
-    {
-      label: "Delete Association",
-      command: handleDeleteAssociationClick,
     },
   ];
 
@@ -1562,7 +1572,18 @@ const Document = () => {
           </SideMenu>
         </Sidebar>
       </div>
-      <ContextMenu visible={contextMenuVisible} x={contextMenuX} y={contextMenuY} />
+      <ContextMenu
+        items={selectedContextMenuItems}
+        visible={selectedContextMenuVisible}
+        x={selectedContextMenuX}
+        y={selectedContextMenuY}
+      />
+      <ContextMenu
+        items={associationContextMenuItems}
+        visible={associationContextMenuVisible}
+        x={associationContextMenuX}
+        y={associationContextMenuY}
+      />
     </div>
   );
 };
