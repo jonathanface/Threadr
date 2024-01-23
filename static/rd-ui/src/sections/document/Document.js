@@ -936,10 +936,10 @@ const Document = () => {
 
   const hideContextMenus = () => {
     if (selectedContextMenuVisible) {
-      //setSelectedContextMenuVisible(false);
+      setSelectedContextMenuVisible(false);
     }
     if (associationContextMenuVisible) {
-      //setAssociationContextMenuVisible(false);
+      setAssociationContextMenuVisible(false);
     }
   };
 
