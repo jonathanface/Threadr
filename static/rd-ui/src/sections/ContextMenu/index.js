@@ -12,12 +12,13 @@ const ContextMenu = (props) => {
 
   useEffect(() => {
     if (props.visible !== visible) {
-      setInlineStyle({
-        display: "block",
-        top: props.y.toString() + "px",
-        left: props.x.toString() + "px",
-      });
-      if (!props.visible) {
+      if (props.visible) {
+        setInlineStyle({
+          display: "block",
+          top: props.y.toString() + "px",
+          left: props.x.toString() + "px",
+        });
+      } else {
         setInlineStyle({
           display: "none",
           top: "0px",

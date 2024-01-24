@@ -2,19 +2,17 @@ import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import React from "react";
 import "../../css/custom-context.css";
 
-const handleClickAction = (item, event) => {
-  event.preventDefault();
-  event.stopPropagation();
-  if (item.command) {
-    item.command(event);
-  }
-};
-
 const MenuItem = (props) => {
+  const handleClickAction = (item, event) => {
+    event.stopPropagation();
+    event.preventDefault();
+    if (item.command) {
+      item.command(event);
+    }
+  };
   const hasSubItems = props.item.subItems && props.item.subItems.length > 0;
-
   return (
-    <li className={hasSubItems ? "menu-item has-submenu" : "menu-item"}>
+    <li onMouseDown={(event) => event.preventDefault()} className={hasSubItems ? "menu-item has-submenu" : "menu-item"}>
       <a href="#" onClick={(event) => handleClickAction(props.item, event)}>
         <span className="label">
           {props.item.name}

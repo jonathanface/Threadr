@@ -3,6 +3,7 @@
   position: absolute;
   top: 0px;
   left: 0px;
+  z-index: 50;
 }
 .custom-context a {
   color: #333;

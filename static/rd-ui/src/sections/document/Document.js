@@ -171,6 +171,9 @@ const Document = () => {
   };
 
   const handleAssociationContextMenu = (name, type, event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setSelectedContextMenuVisible(false);
     setCurrentRightClickedAssoc(formatBlankAssociation(type, name));
     setAssociationContextMenuX(event.clientX);
     setAssociationContextMenuY(event.clientY);
@@ -779,9 +782,8 @@ const Document = () => {
 
   const handleContextMenu = (event) => {
     event.preventDefault();
-    if (selectedContextMenuVisible) {
-      setSelectedContextMenuVisible(false);
-    }
+    event.stopPropagation();
+    setAssociationContextMenuVisible(false);
     const text = GetSelectedText(editorState);
     if (text.length) {
       setSelectedContextMenuX(event.clientX);
@@ -934,18 +936,11 @@ const Document = () => {
     return EditorState.push(newEditorState, content, "change-block-data");
   };
 
-  const hideContextMenus = () => {
-    if (selectedContextMenuVisible) {
-      setSelectedContextMenuVisible(false);
-    }
-    if (associationContextMenuVisible) {
-      setAssociationContextMenuVisible(false);
-    }
-  };
-
   const updateEditorState = (newEditorState, isPasteAction) => {
     resetNavButtonStates();
-    hideContextMenus();
+    console.log("change");
+    setSelectedContextMenuVisible(false);
+    setAssociationContextMenuVisible(false);
     const selection = newEditorState.getSelection();
     const block = newEditorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
     for (const entry in styleMap) {
@@ -964,7 +959,6 @@ const Document = () => {
 
     // Cursor has moved but no text changes detected
     if (editorState.getCurrentContent() === newEditorState.getCurrentContent()) {
-      console.log("cursor action");
       setEditorState(newEditorState);
       return;
     }
@@ -1573,12 +1567,14 @@ const Document = () => {
         </Sidebar>
       </div>
       <ContextMenu
+        name="selection"
         items={selectedContextMenuItems}
         visible={selectedContextMenuVisible}
         x={selectedContextMenuX}
         y={selectedContextMenuY}
       />
       <ContextMenu
+        name="association"
         items={associationContextMenuItems}
         visible={associationContextMenuVisible}
         x={associationContextMenuX}
