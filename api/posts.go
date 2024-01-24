@@ -257,6 +257,18 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	firstChapterID := uuid.New().String()
+	chap := models.Chapter{}
+	chap.ID = firstChapterID
+	chap.Title = "Chapter 1"
+	chap.Place = 1
+	newChapter, err := dao.CreateChapter(story.ID, chap)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	story.Chapters = append(story.Chapters, newChapter)
 	RespondWithJson(w, http.StatusOK, story)
 }
 

@@ -147,7 +147,6 @@ const Story = (props) => {
   const deleteHoverText = "Delete " + props.title;
 
   useEffect(() => {
-    console.log("prop stories", props.stories);
     if (props.stories) {
       setIsSeries(true);
     } else {

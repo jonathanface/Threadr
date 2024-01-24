@@ -4,6 +4,9 @@
   font-size: 0.9rem;
   box-sizing: initial;
 }
+.edit-series-modal .add-story > svg {
+  font-size: 1.2em !important;
+}
 .edit-series-volumes > div {
   margin: 10px;
   display: flex;

@@ -240,7 +240,7 @@ const EditSeriesModal = () => {
 
   return (
     <div>
-      <Dialog open={isEditingSeries} onClose={handleClose}>
+      <Dialog className="edit-series-modal" open={isEditingSeries} onClose={handleClose}>
         <DialogTitle>Edit Series</DialogTitle>
         <DialogContent>
           <Box component="form">

@@ -1025,15 +1025,17 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 		"description": &types.AttributeValueMemberS{Value: story.Description},
 		"image_url":   &types.AttributeValueMemberS{Value: story.ImageURL},
 		"modified_at": &types.AttributeValueMemberN{Value: modifiedAtStr},
-		"place":       &types.AttributeValueMemberN{Value: strconv.Itoa(story.Place)},
-		"series_id":   &types.AttributeValueMemberS{Value: story.SeriesID},
+	}
+	if story.SeriesID != "" {
+		intPlace := strconv.Itoa(story.Place)
+		item["series_id"] = &types.AttributeValueMemberS{Value: story.SeriesID}
+		item["place"] = &types.AttributeValueMemberN{Value: intPlace}
 	}
 	updatedStory = story
 	storedStory, err := d.GetStoryByID(email, story.ID)
 	if err != nil {
 		return updatedStory, err
 	}
-
 	if story.SeriesID != storedStory.SeriesID {
 		// a change in series
 		if story.SeriesID != "" {
@@ -1168,12 +1170,6 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 		return "", fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 	}
 	twii = &dynamodb.TransactWriteItemsInput{}
-	var chapTwi types.TransactWriteItem
-	firstChapterID := uuid.New().String()
-	if chapTwi, err = d.generateStoryChapterTransaction(story.ID, firstChapterID, "Chapter 1", 1); err != nil {
-		return
-	}
-	twii.TransactItems = append(twii.TransactItems, chapTwi)
 
 	if story.SeriesID != "" {
 		params := &dynamodb.ScanInput{
@@ -1223,7 +1219,6 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 			},
 		}
 		twii.TransactItems = append(twii.TransactItems, updateStoryTwi)
-
 	}
 
 	err, awsErr = d.awsWriteTransaction(twii)
@@ -1232,10 +1227,6 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 	}
 	if !awsErr.IsNil() {
 		return "", fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
-	}
-	tableName := story.ID + "_" + firstChapterID + "_blocks"
-	if err = d.createBlockTable(tableName); err != nil {
-		return "", err
 	}
 	return story.ID, nil
 }

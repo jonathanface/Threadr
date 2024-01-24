@@ -22,7 +22,6 @@ const DetailsSlider = (props) => {
   return (
     <div className="details-slider">
       <div className="details-description">{description}</div>
-
       <div className="series-listing">
         {isSeries ? (
           stories && stories.length ? (
@@ -33,7 +32,7 @@ const DetailsSlider = (props) => {
                   const firstChapter = entry.chapters[0].id;
                   return (
                     <li
-                      key={entry.place}
+                      key={entry.story_id}
                       title={entry.description}
                       onClick={(e) => props.onStoryClick(e, entry.story_id, firstChapter)}>
                       <span>

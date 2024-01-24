@@ -263,6 +263,7 @@ const CreateNewStory = () => {
             place: json.place,
             created_at: json.created_at,
             description: json.description,
+            chapters: json.chapters,
             image_url: json.image_url.length ? json.image_url : "/img/icons/story_standalone_icon.jpg",
           });
           const newSeriesList = [...seriesList];
@@ -278,6 +279,7 @@ const CreateNewStory = () => {
           story_id: json.story_id,
           description: json.description,
           title: json.title,
+          chapters: json.chapters,
           image_url: json.image_url + "?cache=" + new Date().getMilliseconds(),
         };
         const newStandaloneList = [...standaloneList];
