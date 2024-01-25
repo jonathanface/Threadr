@@ -1124,7 +1124,7 @@ const Document = () => {
         const editorBox = domEditor.current.editorContainer.parentElement;
         editorBox.scrollTop = 0;
       }
-      onExpandChapterMenu();
+      // onExpandChapterMenu();
     }
   };
 
@@ -1444,6 +1444,7 @@ const Document = () => {
                   width: "120px",
                 }}>
                 <MaterialMenuItem
+                  className="export-option"
                   value="docx"
                   onClick={(e) => {
                     exportDoc("docx");
@@ -1553,7 +1554,7 @@ const Document = () => {
                 )}
               </Droppable>
             </DragDropContext>
-            <div className="buttonContainer">
+            <div className="button-container">
               <Button
                 className="sidebar-add-new"
                 onClick={onNewChapterClick}

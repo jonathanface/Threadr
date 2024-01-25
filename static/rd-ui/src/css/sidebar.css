@@ -5,7 +5,7 @@
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  color: #efefef;
+  color: #999;
   z-index: 20;
 }
 
@@ -58,14 +58,16 @@
   border-radius: 15px;
   border: 1px dashed #333;
   cursor: pointer;
+  color: #fff;
+}
+.sidebar-container .ps-menuitem-root:not(.active):hover .menu-icon {
+  color: #fff;
 }
 .sidebar-container .ps-menuitem-root .menu-icon {
-  color: #fff;
-  margin-top: -1px;
+  color: #999;
 }
-
-.sidebar-container .ps-menuitem-root:last-child button {
-  border: 1px solid #fff;
+.sidebar-container .ps-menuitem-root.active .menu-icon {
+  color: #fff;
 }
 
 .sidebar-container .ps-menuitem-root .ps-menu-label {
@@ -101,12 +103,24 @@
   writing-mode: vertical-lr;
   width: 40px;
   cursor: pointer;
+  color: #efefef;
+}
+.sidebar-container .handle:hover {
+  color: #fff;
 }
 
-.sidebar-container .sidebar-add-new {
-  border: 1px solid #efefef;
-  margin: 30px;
+.sidebar-container .button-container {
+  position: sticky;
+  bottom: 0px;
+  background-color: #515d57;
+  border-top: 1px solid #999;
+  padding-top: 20px;
 }
-.sidebar-container .sidebar-add-new:hover {
+
+.sidebar-container .button-container .sidebar-add-new {
+  border: 1px solid #efefef;
+  margin: 15px;
+}
+.sidebar-container .button-container .sidebar-add-new:hover {
   background-color: #0f1e1e;
 }

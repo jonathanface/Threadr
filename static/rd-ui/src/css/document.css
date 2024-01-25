@@ -42,6 +42,9 @@ nav.rich-controls button.active {
 nav.rich-controls .right-controls {
   float: right;
 }
+.export-option {
+  width: auto;
+}
 
 div.DraftEditor-root {
   border: 1px solid #000;
