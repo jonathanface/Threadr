@@ -1606,7 +1606,6 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 			fmt.Printf("Failed to create backup for table %s, %v", oldTableName, err)
 			return err
 		}
-		fmt.Println("backup arn", *buResponse.BackupDetails.BackupArn)
 
 		err = d.checkBackupStatus(*buResponse.BackupDetails.BackupArn)
 		if err != nil {
