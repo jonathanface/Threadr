@@ -9,6 +9,11 @@
   z-index: 20;
 }
 
+.sidebar-container .ps-menu-root,
+.sidebar-container .ps-menu-root ul {
+  height: 100%;
+}
+
 .sidebar-container .ps-sidebar-root {
   height: 100vh;
   flex-direction: column;
