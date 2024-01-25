@@ -68,6 +68,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	}
 	info := models.UserInfo{}
 	info.Email = user.Email
+	info.AuthType = mux.Vars(r)["provider"]
 	info.FirstName = determineName(user)
 	var (
 		dao         daos.DaoInterface

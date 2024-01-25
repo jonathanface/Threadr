@@ -24,7 +24,7 @@ const UserMenu = (props) => {
 
   const signout = () => {
     dispatch(setIsLoaderVisible(false));
-    fetch(BASE_URL + "/logout/google", {
+    fetch(BASE_URL + "/logout", {
       method: "DELETE",
     })
       .then((response) => {
