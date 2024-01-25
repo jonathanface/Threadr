@@ -370,6 +370,10 @@ const Document = () => {
           }
         });
         setEditorState(EditorState.createWithContent(newContentState, createDecorators()));
+        if (domEditor.current) {
+          const editorBox = domEditor.current.editorContainer.parentElement;
+          editorBox.scrollTop = 0;
+        }
         setBlocksLoaded(true);
       })
       .catch((error) => {
@@ -382,6 +386,10 @@ const Document = () => {
         } else {
           showGreeting();
           setEditorState(EditorState.createEmpty(createDecorators()));
+        }
+        if (domEditor.current) {
+          const editorBox = domEditor.current.editorContainer.parentElement;
+          editorBox.scrollTop = 0;
         }
         setBlocksLoaded(true);
       });
@@ -483,12 +491,6 @@ const Document = () => {
         }
         if (associationsLoaded && blocksLoaded) {
           dispatch(setIsLoaderVisible(false));
-          selectedStory.chapters.forEach((chapter) => {
-            if (chapter.id === selectedChapter.id) {
-              setSelectedChapter(chapter);
-              return;
-            }
-          });
         }
       }
     }
@@ -497,7 +499,11 @@ const Document = () => {
       clearInterval(processInterval);
       window.removeEventListener("unload", processDBQueue);
     };
-  }, [isLoggedIn, selectedStory, selectedChapter.id, lastRetrievedBlockKey, associationsLoaded, blocksLoaded]);
+  }, [isLoggedIn, selectedStory, lastRetrievedBlockKey, associationsLoaded, blocksLoaded]);
+
+  useEffect(() => {
+    setBlocksLoaded(false);
+  }, [selectedChapter]);
 
   const syncBlockOrderMap = (blockList) => {
     return new Promise(async (resolve, reject) => {
@@ -576,13 +582,6 @@ const Document = () => {
           if (response.status === 501) {
             reject(true);
           }
-          //   if (response.status === 401) {
-          //     dispatch(setAlertMessage("Your story has exceeded the limit for unpaid subscribers."));
-          //     dispatch(setAlertLink({ location: "subscribe" }));
-          //     dispatch(setAlertSeverity("error"));
-          //     dispatch(setAlertTimeout(null));
-          //     dispatch(setAlertOpen(true));
-          //   }
           reject("SERVER ERROR SAVING BLOCK: ", response);
         }
         resolve(response.json());
@@ -1109,22 +1108,16 @@ const Document = () => {
     collapseSidebar(!collapsed);
   };
 
-  const onChapterClick = (id, title, num, newChapters) => {
+  const onChapterClick = (id, title, num) => {
     if (id !== selectedChapter.id) {
-      setBlocksLoaded(false);
+      const history = window.history;
+      const storyID = selectedStory.story_id;
+      history.pushState({ storyID }, "changed chapter", "/story/" + selectedStory.story_id + "?chapter=" + id);
       setSelectedChapter({
         id: id,
         chapter_title: title,
         chapter_num: num,
       });
-      const history = window.history;
-      const storyID = selectedStory.story_id;
-      history.pushState({ storyID }, "changed chapter", "/story/" + selectedStory.story_id + "?chapter=" + id);
-      if (domEditor.current) {
-        const editorBox = domEditor.current.editorContainer.parentElement;
-        editorBox.scrollTop = 0;
-      }
-      // onExpandChapterMenu();
     }
   };
 
@@ -1146,7 +1139,7 @@ const Document = () => {
           const updatedSelectedStory = { ...selectedStory };
           updatedSelectedStory.chapters = newChapters;
           dispatch(setSelectedStory(updatedSelectedStory));
-          onChapterClick(json.id, newChapterTitle, newChapterNum, newChapters);
+          onChapterClick(json.id, newChapterTitle, newChapterNum);
         } else {
           throw new Error("Fetch problem creating chapter " + response.status, response.statusText);
         }
@@ -1444,7 +1437,6 @@ const Document = () => {
                   width: "120px",
                 }}>
                 <MaterialMenuItem
-                  className="export-option"
                   value="docx"
                   onClick={(e) => {
                     exportDoc("docx");
