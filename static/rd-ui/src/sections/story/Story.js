@@ -22,7 +22,9 @@ const Story = (props) => {
   const getStoryDetails = async (storyID) => {
     const url = "/api/stories/" + storyID;
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        credentials: "include",
+      });
       if (!response.ok) {
         throw new Error(response);
       }
@@ -80,6 +82,7 @@ const Story = (props) => {
         dispatch(setIsLoaderVisible(true));
         const url = "/api/series/" + id;
         const response = await fetch(url, {
+          credentials: "include",
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
@@ -130,6 +133,7 @@ const Story = (props) => {
       dispatch(setIsLoaderVisible(true));
       const url = "/api/stories/" + id + "?series=" + seriesID;
       fetch(url, {
+        credentials: "include",
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

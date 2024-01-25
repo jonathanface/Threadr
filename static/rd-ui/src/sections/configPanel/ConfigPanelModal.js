@@ -31,6 +31,7 @@ const ConfigPanelModal = (props) => {
     dispatch(setIsLoaderVisible(true));
     try {
       const response = await fetch("/api/user", {
+        credentials: "include",
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

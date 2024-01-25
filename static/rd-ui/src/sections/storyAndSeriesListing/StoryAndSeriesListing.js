@@ -22,7 +22,9 @@ const StoryAndSeriesListing = () => {
   useEffect(() => {
     dispatch(setIsLoaderVisible(true));
     const getSeries = () => {
-      fetch("/api/series")
+      fetch("/api/series", {
+        credentials: "include",
+      })
         .then((response) => {
           if (response.ok) {
             return response.json();
@@ -97,7 +99,9 @@ const StoryAndSeriesListing = () => {
     };
 
     const getStories = () => {
-      fetch("/api/stories")
+      fetch("/api/stories", {
+        credentials: "include",
+      })
         .then((response) => {
           if (response.ok) {
             return response.json();

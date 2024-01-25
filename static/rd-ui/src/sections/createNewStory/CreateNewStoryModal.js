@@ -72,7 +72,9 @@ const CreateNewStory = () => {
   };
 
   const getSeries = () => {
-    fetch("/api/series")
+    fetch("/api/series", {
+      credentials: "include",
+    })
       .then((response) => {
         if (response.ok) {
           return response.json();
@@ -150,6 +152,7 @@ const CreateNewStory = () => {
 
   const updateFormImage = async () => {
     fetch(imageURL, {
+      credentials: "include",
       headers: {
         Accept: "image/*",
       },
@@ -226,6 +229,7 @@ const CreateNewStory = () => {
     dispatch(setIsLoaderVisible(true));
     try {
       const response = await fetch("/api/stories", {
+        credentials: "include",
         method: "POST",
         body: formData,
       });

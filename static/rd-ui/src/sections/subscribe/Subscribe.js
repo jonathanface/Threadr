@@ -40,6 +40,7 @@ const Subscribe = () => {
     setSubscribeError("");
     try {
       const response = await fetch("/billing/card", {
+        credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -68,6 +69,7 @@ const Subscribe = () => {
         last_four: paymentMethod.card.last4,
       });
       const setPaymentResults = await fetch("/billing/customer", {
+        credentials: "include",
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -85,6 +87,7 @@ const Subscribe = () => {
   const getOrCreateStripeCustomer = async () => {
     try {
       const response = await fetch("/billing/customer", {
+        credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -116,6 +119,7 @@ const Subscribe = () => {
     }
     try {
       const response = await fetch("/billing/subscribe", {
+        credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -150,7 +154,9 @@ const Subscribe = () => {
   };
 
   const getProducts = () => {
-    fetch("/billing/products")
+    fetch("/billing/products", {
+      credentials: "include",
+    })
       .then((response) => {
         if (response.ok) {
           return response.json();

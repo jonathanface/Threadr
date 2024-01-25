@@ -207,6 +207,7 @@ const Document = () => {
     const htmlData = await exp.DocToHTML();
     try {
       const response = await fetch("/api/stories/" + selectedStory.story_id + "/export", {
+        credentials: "include",
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -249,7 +250,9 @@ const Document = () => {
 
   const getAllAssociations = async () => {
     associations.splice(0);
-    return fetch("/api/stories/" + selectedStory.story_id + "/associations")
+    return fetch("/api/stories/" + selectedStory.story_id + "/associations", {
+      credentials: "include",
+    })
       .then((response) => {
         if (response.ok) {
           return response.json();
@@ -326,7 +329,10 @@ const Document = () => {
 
   const getBatchedStoryBlocks = async (startKey) => {
     return fetch(
-      "/api/stories/" + selectedStory.story_id + "/content?key=" + startKey + "&chapter=" + selectedChapter.id
+      "/api/stories/" + selectedStory.story_id + "/content?key=" + startKey + "&chapter=" + selectedChapter.id,
+      {
+        credentials: "include",
+      }
     )
       .then((response) => {
         if (response.ok) {
@@ -517,6 +523,7 @@ const Document = () => {
           index++;
         });
         const response = await fetch("/api/stories/" + selectedStory.story_id + "/orderMap", {
+          credentials: "include",
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -544,6 +551,7 @@ const Document = () => {
         params.blocks = blocks;
         console.log("del", storyID, chapterID, blocks);
         const response = await fetch("/api/stories/" + storyID + "/block", {
+          credentials: "include",
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
@@ -572,6 +580,7 @@ const Document = () => {
         params.blocks = blocks;
         console.log("saving", blocks);
         const response = await fetch("/api/stories/" + story, {
+          credentials: "include",
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -596,6 +605,7 @@ const Document = () => {
       try {
         console.log("saving associations", associations);
         const response = await fetch("/api/stories/" + selectedStory.story_id + "/associations", {
+          credentials: "include",
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -617,6 +627,7 @@ const Document = () => {
       try {
         console.log("creating associations", associations);
         const response = await fetch("/api/stories/" + selectedStory.story_id + "/associations", {
+          credentials: "include",
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -645,6 +656,7 @@ const Document = () => {
     return new Promise(async (resolve, reject) => {
       try {
         const response = await fetch("/api/stories/" + selectedStory.story_id + "/associations", {
+          credentials: "include",
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
@@ -1125,6 +1137,7 @@ const Document = () => {
     const newChapterNum = selectedStory.chapters.length + 1;
     const newChapterTitle = "Chapter " + newChapterNum;
     fetch("/api/stories/" + selectedStory.story_id + "/chapter", {
+      credentials: "include",
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -1161,6 +1174,7 @@ const Document = () => {
     const confirm = window.confirm("Delete " + chapterTitle + " from " + selectedStory.title + "?");
     if (confirm) {
       fetch("/api/stories/" + selectedStory.story_id + "/chapter/" + chapterID, {
+        credentials: "include",
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -1220,6 +1234,7 @@ const Document = () => {
         }
       }
       const response = await fetch("/api/stories/" + updatedStory.story_id + "/details", {
+        credentials: "include",
         method: "PUT",
         body: formData,
       });
@@ -1250,6 +1265,7 @@ const Document = () => {
           }
         });
         const response = await fetch("/api/stories/" + selectedStory.story_id + "/chapters/" + selectedChapter.id, {
+          credentials: "include",
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -1282,6 +1298,7 @@ const Document = () => {
     dispatch(setSelectedStory(newStory));
 
     const response = await fetch("/api/stories/" + selectedStory.story_id + "/chapters", {
+      credentials: "include",
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

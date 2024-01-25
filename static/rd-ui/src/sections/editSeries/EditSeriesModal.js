@@ -113,6 +113,7 @@ const EditSeriesModal = () => {
     dispatch(setIsLoaderVisible(true));
     try {
       const response = await fetch("/api/series/" + editables.series_id, {
+        credentials: "include",
         method: "PUT",
         body: formData,
       });
@@ -171,6 +172,7 @@ const EditSeriesModal = () => {
       const url = "/api/series/" + editables.series_id + "/story/" + id;
       try {
         const response = await fetch(url, {
+          credentials: "include",
           method: "PUT",
         });
         if (!response.ok) {

@@ -9,6 +9,11 @@
   z-index: 20;
 }
 
+.sidebar-container .ps-menu-root,
+.sidebar-container .ps-menu-root ul {
+  height: 100%;
+}
+
 .sidebar-container .ps-sidebar-root {
   height: 100vh;
   flex-direction: column;
@@ -33,6 +38,7 @@
 
 .sidebar-container [data-rbd-droppable-id="droppable"] {
   text-align: left;
+  height: 100%;
 }
 .sidebar-container .ps-menuitem-root a button:hover {
   background: #0f1e1e;

@@ -43,7 +43,9 @@ const EditStory = () => {
   };
 
   const getSeries = () => {
-    fetch("/api/series")
+    fetch("/api/series", {
+      credentials: "include",
+    })
       .then((response) => {
         if (response.ok) {
           return response.json();
@@ -200,6 +202,7 @@ const EditStory = () => {
 
     try {
       const response = await fetch("/api/stories/" + editables.story_id + "/details", {
+        credentials: "include",
         method: "PUT",
         body: formData,
       });

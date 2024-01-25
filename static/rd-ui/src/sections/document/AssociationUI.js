@@ -96,7 +96,7 @@ const AssociationUI = (props) => {
             props.association.association_id +
             "/upload?type=" +
             props.association.association_type,
-          { method: "PUT", body: formData }
+          { credentials: "include", method: "PUT", body: formData }
         )
           .then((response) => {
             if (response.ok) {

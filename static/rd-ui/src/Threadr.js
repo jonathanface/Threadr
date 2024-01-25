@@ -37,7 +37,9 @@ const Threadr = () => {
   const getStoryDetails = async (storyID) => {
     const url = "/api/stories/" + storyID;
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        credentials: "include",
+      });
       if (!response.ok) {
         throw new Error(response);
       }
@@ -64,7 +66,9 @@ const Threadr = () => {
       handleNavChange();
     });
 
-    fetch("/api/user")
+    fetch("/api/user", {
+      credentials: "include",
+    })
       .then((response) => {
         if (response.ok) {
           return response.json();
@@ -128,7 +132,7 @@ const Threadr = () => {
           <h4>
             <span>R</span>ich<span>D</span>octer
             <img src="/img/logo_trans_scaled.png" alt="RichDocter" />
-            <div className="version">betazxcv</div>
+            <div className="version">beta</div>
           </h4>
         </header>
         {displayComponent}
