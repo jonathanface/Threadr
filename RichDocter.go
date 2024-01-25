@@ -236,7 +236,7 @@ func main() {
 	authRtr.Use(looseMiddleware)
 	// DEV ONLY!!
 	//rtr.HandleFunc("/auth/logout", auth.DeleteToken).Methods("GET", "OPTIONS")
-	rtr.HandleFunc("/logout/{provider}", auth.Logout).Methods("DELETE", "OPTIONS")
+	rtr.HandleFunc("/logout", auth.Logout).Methods("DELETE", "OPTIONS")
 	authRtr.HandleFunc("/{provider}", auth.Login).Methods("GET", "PUT", "OPTIONS")
 	authRtr.HandleFunc("/{provider}/callback", auth.Callback).Methods("POST", "GET", "OPTIONS")
 
