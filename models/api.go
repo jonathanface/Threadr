@@ -84,7 +84,7 @@ type UserInfo struct {
 	CustomerID     string `json:"customer_id" dynamodbav:"customer_id"`
 	Expired        bool   `json:"expired" dynamodbav:"expired"`
 	Renewing       bool   `json:"renewing" dynamodbav:"renewing"`
-	AuthType       string `json:"authType"`
+	AuthType       string `json:"auth_type"`
 }
 
 type Answer struct {
