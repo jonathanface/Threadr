@@ -9,7 +9,6 @@ import (
 	"RichDocter/sessions"
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -25,7 +24,7 @@ import (
 
 const (
 	port           = ":8443"
-	staticFilesDir = "static/rd-ui/build"
+	staticFilesDir = "static/rd-ui/dist"
 	servicePath    = "/api"
 	billingPath    = "/billing"
 	authPath       = "/auth"
@@ -34,12 +33,6 @@ const (
 var dao *daos.DAO
 
 func serveRootDirectory(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("load")
-	// w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8080")
-	// w.Header().Set("Access-Control-Allow-Credentials", "true")
-	// w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	// w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Origin, Accept, Authorization, X-Requested-With")
-	// w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' http://localhost:8080;")
 	var (
 		abs string
 		err error
@@ -64,13 +57,6 @@ func serveRootDirectory(w http.ResponseWriter, r *http.Request) {
 
 func looseMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// if os.Getenv("APP_MODE") == "development" {
-		// 	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8080")
-		// 	w.Header().Set("Access-Control-Allow-Credentials", "true")
-		// 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		// 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Origin, Accept, Authorization, X-Requested-With")
-		// 	w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' http://localhost:8080;")
-		// }
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
 			return
@@ -85,13 +71,6 @@ func looseMiddleware(next http.Handler) http.Handler {
 
 func billingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// if os.Getenv("APP_MODE") == "development" {
-		// 	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8080")
-		// 	w.Header().Set("Access-Control-Allow-Credentials", "true")
-		// 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		// 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Origin, Accept, Authorization, X-Requested-With")
-		// 	w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' http://localhost:8080;")
-		// }
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
 			return
@@ -116,13 +95,6 @@ func billingMiddleware(next http.Handler) http.Handler {
 
 func accessControlMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// if os.Getenv("APP_MODE") == "development" {
-		// 	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8080")
-		// 	w.Header().Set("Access-Control-Allow-Credentials", "true")
-		// 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		// 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Origin, Accept, Authorization, X-Requested-With")
-		// 	w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' http://localhost:8080;")
-		// }
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
 			return

@@ -6,7 +6,7 @@ const webpack = require("webpack");
 module.exports = {
   entry: path.join(__dirname, "src", "index.js"),
   output: {
-    path: path.resolve(__dirname, "build"),
+    path: path.resolve(__dirname, "dist"),
   },
   output: {
     // other output settings
@@ -24,7 +24,7 @@ module.exports = {
         use: ["style-loader", "css-loader"],
       },
       {
-        test: /\.?js$/,
+        test: /\.?js|jsx$/,
         exclude: /node_modules/,
         use: {
           loader: "babel-loader",

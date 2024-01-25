@@ -5,6 +5,7 @@ COPY ./static/rd-ui/package*.json ./
 RUN npm install
 COPY ./static/rd-ui/src ./src
 COPY ./static/rd-ui/public ./public
+COPY ./static/rd-ui/webpack.config.js ./
 RUN npm run build
 
 FROM golang:1.21.2 AS backend-builder
@@ -30,6 +31,7 @@ ENV GO111MODULE=auto \
     PATH=$GOPATH/bin:/usr/local/go/bin:/usr/local/bin:/usr/local/:$PATH
 
 ENV APP_MODE="PRODUCTION"
+
 ARG AWS_ACCESS_KEY_ID
 ENV AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
 ARG AWS_SECRET_ACCESS_KEY
@@ -69,7 +71,7 @@ ENV STRIPE_KEY=$STRIPE_KEY
 ARG STRIPE_SECRET
 ENV STRIPE_SECRET=$STRIPE_SECRET
 
-COPY --from=frontend-builder /app/build /app/static/rd-ui/build
+COPY --from=frontend-builder /app/dist /app/static/rd-ui/dist
 
 COPY ./go.mod ./go.mod
 COPY ./go.sum ./go.sum
@@ -89,3 +91,4 @@ RUN mkdir -p ./tmp
 RUN go build -o /RichDocter
 #CMD ["sleep", "infinity"]
 CMD ["/RichDocter"]
+
