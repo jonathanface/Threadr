@@ -4,12 +4,10 @@ const Dotenv = require("dotenv-webpack");
 const webpack = require("webpack");
 
 module.exports = {
-  entry: path.join(__dirname, "src", "index.js"),
+  entry: path.join(__dirname, "src", "index.tsx"),
+  devtool: "inline-source-map",
   output: {
     path: path.resolve(__dirname, "dist"),
-  },
-  output: {
-    // other output settings
     publicPath: "/",
   },
   devServer: {
@@ -19,6 +17,13 @@ module.exports = {
   },
   module: {
     rules: [
+      {
+        test: /\.tsx?$/,
+        use: {
+          loader: "ts-loader",
+        },
+        exclude: /node_modules/,
+      },
       {
         test: /\.css$/i,
         use: ["style-loader", "css-loader"],
@@ -34,6 +39,9 @@ module.exports = {
         },
       },
     ],
+  },
+  resolve: {
+    extensions: [".tsx", ".ts", ".js", ".jsx"],
   },
   plugins: [
     new webpack.HotModuleReplacementPlugin(),
