@@ -128,7 +128,7 @@ const Threadr = () => {
           <h4>
             <span>R</span>ich<span>D</span>octer
             <img src="/img/logo_trans_scaled.png" alt="RichDocter" />
-            <div className="version">beta</div>
+            <div className="version">betazxcv</div>
           </h4>
         </header>
         {displayComponent}
