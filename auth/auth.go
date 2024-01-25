@@ -67,6 +67,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	info := models.UserInfo{}
+	info.AuthType = mux.Vars(r)["provider"]
 	info.Email = user.Email
 	info.FirstName = determineName(user)
 	var (
