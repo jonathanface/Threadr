@@ -1,7 +1,8 @@
-import { EditorState, Modifier, SelectionState } from "draft-js";
+import { CharacterMetadata, ContentBlock, EditorState, Entity, Modifier, SelectionState } from "draft-js";
 import Immutable from "immutable";
+import { DBOperation, DBOperationTask, DocumentBlockStyle } from "../../types";
 
-export const GetSelectedBlockKeys = (editorState) => {
+export const GetSelectedBlockKeys = (editorState: EditorState): string[] => {
   const lastSelection = editorState.getSelection();
   const min = lastSelection.getIsBackward() ? lastSelection.getFocusKey() : lastSelection.getAnchorKey();
   const max = lastSelection.getIsBackward() ? lastSelection.getAnchorKey() : lastSelection.getFocusKey();
@@ -9,16 +10,22 @@ export const GetSelectedBlockKeys = (editorState) => {
   const firstSubselection = blockMap.skipUntil((v, k) => k === min);
   const toReverse = firstSubselection.reverse();
   const subselection = toReverse.skipUntil((v, k) => k === max);
-  const [...selectedKeys] = subselection.keys();
-  return selectedKeys;
+  const results: string[] = [];
+  const iterator: Immutable.Iterator<string> = subselection.keys();
+  let result = iterator.next();
+  while (!result.done) {
+    results.push(result.value);
+    result = iterator.next();
+  }
+  return results;
 };
 
-export const GetEntityData = (block, type, list) => {
+export const GetEntityData = (block: ContentBlock, type: string, list: Entity[]): Entity[] => {
   block.findEntityRanges(
-    (character) => {
-      return character.getEntity();
+    (value: CharacterMetadata) => {
+      return value.getEntity() !== null;
     },
-    (start, end) => {
+    (start: number, end: number) => {
       list.push({
         start: start,
         end: end,
@@ -29,8 +36,8 @@ export const GetEntityData = (block, type, list) => {
   return list;
 };
 
-export const GetBlockStyleDataByType = (block, type) => {
-  const list = [];
+export const GetBlockStyleDataByType = (block: ContentBlock, type: string): DocumentBlockStyle[] => {
+  const list: DocumentBlockStyle[] = [];
   block.findStyleRanges(
     (character) => {
       return character.hasStyle(type);
@@ -46,30 +53,43 @@ export const GetBlockStyleDataByType = (block, type) => {
   return list;
 };
 
-export const FilterAndReduceDBOperations = (dbOperations, op, i) => {
-  const keyIDMap = {};
-  let j = i;
-  while (j < dbOperations.length) {
-    const obj = dbOperations[j];
-    if (obj.type === op.type) {
-      obj.ops.forEach((op) => {
-        keyIDMap[op.key_id] = keyIDMap[op.key_id] === undefined ? [] : keyIDMap[op.key_id];
-        keyIDMap[op.key_id].push(op);
+export const FilterAndReduceDBOperations = (
+  operationList: DBOperation[],
+  currentOperation: DBOperation,
+  idx: number
+): ContentBlock[] => {
+  const keyIDMap: Map<string, ContentBlock[]> = new Map();
+  let j = idx;
+  while (j < operationList.length) {
+    const obj = operationList[j];
+    if (!obj.ops) {
+      return [];
+    }
+    if (obj.type === currentOperation.type) {
+      obj.ops.forEach((op: DBOperationTask) => {
+        if (!keyIDMap.has(op.key_id) && op.chunk) {
+          keyIDMap.set(op.key_id, [op.chunk]); // Initialize with an array containing 'op'
+        } else if (op.chunk) {
+          keyIDMap.get(op.key_id)?.push(op.chunk); // Use optional chaining for safety
+        }
       });
-      dbOperations.splice(j, 1);
+      operationList.splice(j, 1);
     } else {
       j++;
     }
   }
-  const toRun = [];
-  Object.keys(keyIDMap).forEach((keyID) => {
-    toRun.push(keyIDMap[keyID].pop());
-    delete keyIDMap[keyID];
+  const toRun: ContentBlock[] = [];
+  keyIDMap.forEach((value, key) => {
+    const task = value.pop();
+    if (task) {
+      toRun.push(task);
+      keyIDMap.delete(key);
+    }
   });
   return toRun;
 };
 
-export const GetSelectedText = (editorState) => {
+export const GetSelectedText = (editorState: EditorState): string => {
   const selection = editorState.getSelection();
   const anchorKey = selection.getAnchorKey();
   const currentContent = editorState.getCurrentContent();
@@ -83,7 +103,7 @@ export const GetSelectedText = (editorState) => {
 
 const TAB_LENGTH = 5;
 
-export const GenerateTabCharacter = (tabLength) => {
+export const GenerateTabCharacter = (tabLength?: number): string => {
   tabLength = tabLength ? tabLength : TAB_LENGTH;
   let tab = "";
   for (let i = 0; i < tabLength; i++) {
@@ -92,13 +112,13 @@ export const GenerateTabCharacter = (tabLength) => {
   return tab;
 };
 
-export const InsertTab = (editorState, selection) => {
+export const InsertTab = (editorState: EditorState, selection: SelectionState) => {
   const selectedKeys = GetSelectedBlockKeys(editorState);
   let newEditorState = editorState;
 
   if (selectedKeys.length > 1) {
     let content = newEditorState.getCurrentContent();
-    selectedKeys.forEach((key) => {
+    selectedKeys.forEach((key: string) => {
       const block = content.getBlockForKey(selection.getFocusKey());
       const tabData = block.getData().getIn(["ENTITY_TABS"]) ? block.getData().getIn(["ENTITY_TABS"]) : [];
       tabData.push({ start: 0, end: TAB_LENGTH, type: "TAB" });
@@ -113,10 +133,10 @@ export const InsertTab = (editorState, selection) => {
         contentStateWithEntityData,
         SelectionState.createEmpty(key),
         GenerateTabCharacter(),
-        null,
+        undefined,
         entityKey
       );
-      newEditorState = EditorState.push(newEditorState, contentStateWithEntityText);
+      newEditorState = EditorState.push(newEditorState, contentStateWithEntityText, "insert-characters");
       content = newEditorState.getCurrentContent();
     });
     newEditorState = EditorState.forceSelection(newEditorState, content.getSelectionAfter());
@@ -139,10 +159,10 @@ export const InsertTab = (editorState, selection) => {
       contentStateWithEntityData,
       selection,
       GenerateTabCharacter(),
-      null,
+      undefined,
       entityKey
     );
-    const editorStateWithData = EditorState.push(newEditorState, contentStateWithEntityText);
+    const editorStateWithData = EditorState.push(newEditorState, contentStateWithEntityText, "insert-characters");
     newEditorState = EditorState.forceSelection(editorStateWithData, contentStateWithEntityText.getSelectionAfter());
   } else {
     console.error("no blocks selected");
@@ -150,7 +170,7 @@ export const InsertTab = (editorState, selection) => {
   return newEditorState;
 };
 
-export const UCWords = (str) => {
+export const UCWords = (str: string): string => {
   return str
     .split(" ")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
