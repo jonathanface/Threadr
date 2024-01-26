@@ -5,7 +5,7 @@ import storiesSlice from "./storiesSlice";
 import uiSlice from "./uiSlice";
 import userSlice from "./userSlice";
 
-export default configureStore({
+export const store = configureStore({
   reducer: {
     stories: storiesSlice,
     ui: uiSlice,
@@ -14,3 +14,6 @@ export default configureStore({
     series: seriesSlice,
   },
 });
+
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;

@@ -1,6 +1,7 @@
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import React, { useEffect, useState } from "react";
+import type { TypedUseSelectorHook } from "react-redux";
 import { useDispatch, useSelector } from "react-redux";
 import "./css/main.css";
 import "./css/user-menu.css";
@@ -22,6 +23,7 @@ import {
   setAlertTimeout,
   setAlertTitle,
 } from "./stores/alertSlice";
+import type { AppDispatch, RootState } from "./stores/store";
 import { setSelectedStory } from "./stores/storiesSlice";
 import { setIsLoaderVisible } from "./stores/uiSlice";
 import { flipLoggedInState, setUserDetails } from "./stores/userSlice";
@@ -29,19 +31,23 @@ import Toaster from "./utils/Toaster";
 
 const Threadr = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const [stripe, setStripe] = useState(() => loadStripe(process.env.REACT_APP_STRIPE_KEY));
-  const isLoggedIn = useSelector((state) => state.user.isLoggedIn);
-  const selectedStory = useSelector((state) => state.stories.selectedStory);
-  const dispatch = useDispatch();
+  const stripeKey: string = process.env.REACT_APP_STRIPE_KEY ?? "";
+  const [stripe, setStripe] = useState(() => loadStripe(stripeKey));
 
-  const getStoryDetails = async (storyID) => {
+  const useAppDispatch: () => AppDispatch = useDispatch;
+  const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
+  const dispatch = useAppDispatch();
+  const isLoggedIn = useAppSelector((state) => state.user.isLoggedIn);
+  const selectedStory = useAppSelector((state) => state.stories.selectedStory);
+
+  const getStoryDetails = async (storyID: string) => {
     const url = "/api/stories/" + storyID;
     try {
       const response = await fetch(url, {
         credentials: "include",
       });
       if (!response.ok) {
-        throw new Error(response);
+        throw new Error(response.statusText);
       }
       return await response.json();
     } catch (error) {

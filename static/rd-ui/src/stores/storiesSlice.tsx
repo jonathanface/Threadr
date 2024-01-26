@@ -1,15 +1,27 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { Story } from "../types";
+
+interface StoriesState {
+  isCreatingNew: boolean;
+  isEditingStory: boolean;
+  belongsToSeries: string;
+  standaloneList: string[];
+  editables: Object;
+  selectedStory: Story | null;
+}
+
+const initialState: StoriesState = {
+  isCreatingNew: false,
+  isEditingStory: false,
+  belongsToSeries: "",
+  standaloneList: [],
+  editables: {},
+  selectedStory: null,
+};
 
 export const storiesSlice = createSlice({
   name: "stories",
-  initialState: {
-    isCreatingNew: false,
-    isEditingStory: false,
-    belongsToSeries: "",
-    standaloneList: [],
-    editables: {},
-    selectedStory: null,
-  },
+  initialState,
   reducers: {
     flipCreatingNewStory: (state, action) => {
       state.belongsToSeries = action.payload;
