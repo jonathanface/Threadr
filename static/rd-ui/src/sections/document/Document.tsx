@@ -201,6 +201,11 @@ const Document: React.FC<DocumentProps> = () => {
 
   const exportDoc = async (type: string) => {
     if (selectedStory) {
+      dispatch(setAlertTitle("Conversion in progress"));
+      dispatch(setAlertMessage("A download link will appear here when the process is complete."));
+      dispatch(setAlertSeverity("info"));
+      dispatch(setAlertTimeout(null));
+      dispatch(setAlertOpen(true));
       const exp = new Exporter(selectedStory.story_id);
       const htmlData = await exp.DocToHTML();
       try {
@@ -231,8 +236,20 @@ const Document: React.FC<DocumentProps> = () => {
           }
         }
         const json = await response.json();
-
-        window.open(json.url, "_blank");
+        dispatch(setAlertTitle("Conversion complete"));
+        dispatch(setAlertMessage("Click the link to download."));
+        dispatch(setAlertSeverity("success"));
+        dispatch(
+          setAlertLink({
+            custom: {
+              url: json.url,
+              text: "download",
+            },
+          })
+        );
+        dispatch(setAlertTimeout(null));
+        dispatch(setAlertOpen(true));
+        //window.open(json.url, "_blank");
       } catch (error) {
         console.error(error);
         dispatch(
@@ -355,8 +372,8 @@ const Document: React.FC<DocumentProps> = () => {
           throw new Error(response.status.toString());
         })
         .then((data) => {
-          data.last_evaluated_key && data.last_evaluated_key.get("key_id")
-            ? (lastRetrievedBlockKey = data.last_evaluated_key.get("key_id"))
+          data.last_evaluated_key && data.last_evaluated_key.key_id
+            ? (lastRetrievedBlockKey = data.last_evaluated_key.key_id)
             : (lastRetrievedBlockKey = "");
           const newBlocks: ContentBlock[] = [];
           if (data.items) {
@@ -947,7 +964,10 @@ const Document: React.FC<DocumentProps> = () => {
     setCurrentBlockAlignment("LEFT");
   };
 
-  const setNavButtonState = (style: string, value: boolean) => {
+  const setNavButtonState = (style: string, value?: boolean) => {
+    if (!value) {
+      value = false;
+    }
     switch (style) {
       case "BOLD": {
         setCurrentBoldState(value);
@@ -1017,8 +1037,10 @@ const Document: React.FC<DocumentProps> = () => {
         const styles = GetBlockStyleDataByType(block, entry);
         styles.forEach((style) => {
           if (selection.hasEdgeWithin(block.getKey(), style.start, style.end)) {
+            console.log("edge within");
             setNavButtonState(style.style, true);
           } else {
+            console.log("edge without");
             setNavButtonState(style.style, false);
           }
         });

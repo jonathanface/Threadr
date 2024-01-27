@@ -2,6 +2,8 @@ package daos
 
 import (
 	"RichDocter/models"
+
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
 type DaoInterface interface {
@@ -13,10 +15,11 @@ type DaoInterface interface {
 	GetStoryByID(email string, storyID string) (*models.Story, error)
 	GetSeriesByID(email string, seriesID string) (*models.Series, error)
 	GetStoryCountByUser(email string) (int, error)
-	GetStoryParagraphs(storyID string, chapterID string, startKey string) (*models.BlocksData, error)
+	GetStoryParagraphs(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error)
 	GetStoryOrSeriesAssociations(email, storyID string, needDetails bool) ([]*models.Association, error)
 	GetSeriesVolumes(email string, seriesID string) ([]*models.Story, error)
 	GetUserDetails(email string) (*models.UserInfo, error)
+	GetChapterByID(chapterID string) (*models.Chapter, error)
 
 	// PUTs
 	UpsertUser(email string) error

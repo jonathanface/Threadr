@@ -284,6 +284,29 @@ func (d *DAO) GetStoryByID(email, storyID string) (story *models.Story, err erro
 	return &storyFromMap[0], nil
 }
 
+func (d *DAO) GetChapterByID(chapterID string) (chapter *models.Chapter, err error) {
+	scanInput := &dynamodb.ScanInput{
+		TableName:        aws.String("chapters"),
+		FilterExpression: aws.String("chapter_id=:cid AND attribute_not_exists(deleted_at)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":cid": &types.AttributeValueMemberS{Value: chapterID},
+		},
+	}
+	out, err := d.dynamoClient.Scan(context.TODO(), scanInput)
+	if err != nil {
+		return nil, err
+	}
+
+	chapterFromMap := []models.Chapter{}
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &chapterFromMap); err != nil {
+		return nil, err
+	}
+	if len(chapterFromMap) == 0 {
+		return nil, fmt.Errorf("no chapter found")
+	}
+	return &chapterFromMap[0], nil
+}
+
 func (d *DAO) GetSeriesByID(email, seriesID string) (series *models.Series, err error) {
 	seriesID, err = url.QueryUnescape(seriesID)
 	if err != nil {
@@ -322,7 +345,7 @@ func (d *DAO) GetSeriesByID(email, seriesID string) (series *models.Series, err 
 	return &seriesFromMap[0], nil
 }
 
-func (d *DAO) GetStoryParagraphs(storyID, chapterID, startKey string) (*models.BlocksData, error) {
+func (d *DAO) GetStoryParagraphs(storyID, chapterID string, startKey *map[string]types.AttributeValue) (*models.BlocksData, error) {
 	var blocks models.BlocksData
 	tableName := storyID + "_" + chapterID + "_blocks"
 	queryInput := &dynamodb.QueryInput{
@@ -342,10 +365,8 @@ func (d *DAO) GetStoryParagraphs(storyID, chapterID, startKey string) (*models.B
 		},
 	}
 
-	if startKey != "" {
-		queryInput.ExclusiveStartKey = map[string]types.AttributeValue{
-			"keyID": &types.AttributeValueMemberS{Value: startKey},
-		}
+	if startKey != nil {
+		queryInput.ExclusiveStartKey = *startKey
 	}
 
 	var items []map[string]types.AttributeValue

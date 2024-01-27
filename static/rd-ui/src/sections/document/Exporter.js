@@ -48,110 +48,112 @@ export default class Exporter {
   DocToHTML = async () => {
     try {
       const data = await this.getFullStory(this.story);
-      const contentByChapter = [];
-      data.chapters_with_contents.forEach((chapter) => {
-        const paragraphs = {
-          chapterTitle: chapter.chapter.chapter_title,
-          blocks: [],
-        };
-        if (chapter.blocks && chapter.blocks.items) {
-          chapter.blocks.items.forEach((piece) => {
-            if (piece.chunk) {
-              const jsonBlock = JSON.parse(piece.chunk.Value);
-              const block = new ContentBlock({
-                characterList: jsonBlock.characterList,
-                depth: jsonBlock.depth,
-                key: piece.key_id.Value,
-                text: jsonBlock.text,
-                type: jsonBlock.type,
-                data: jsonBlock.data,
-              });
-              paragraphs.blocks.push(block);
+      return data.then(() => {
+        const contentByChapter = [];
+        data.chapters_with_contents.forEach((chapter) => {
+          const paragraphs = {
+            chapterTitle: chapter.chapter.chapter_title,
+            blocks: [],
+          };
+          if (chapter.blocks && chapter.blocks.items) {
+            chapter.blocks.items.forEach((piece) => {
+              if (piece.chunk) {
+                const jsonBlock = JSON.parse(piece.chunk.Value);
+                const block = new ContentBlock({
+                  characterList: jsonBlock.characterList,
+                  depth: jsonBlock.depth,
+                  key: piece.key_id.Value,
+                  text: jsonBlock.text,
+                  type: jsonBlock.type,
+                  data: jsonBlock.data,
+                });
+                paragraphs.blocks.push(block);
+              }
+            });
+          }
+          contentByChapter.push(paragraphs);
+        });
+
+        const htmlizedContent = [];
+        contentByChapter.forEach((chapterContents) => {
+          const contentState = {
+            entityMap: {},
+            blocks: chapterContents.blocks,
+          };
+          let newContentState = convertFromRaw(contentState);
+          chapterContents.blocks.forEach((block) => {
+            if (block.getText().length) {
+              newContentState = this.processDBBlock(newContentState, block);
             }
           });
-        }
-        contentByChapter.push(paragraphs);
-      });
-
-      const htmlizedContent = [];
-      contentByChapter.forEach((chapterContents) => {
-        const contentState = {
-          entityMap: {},
-          blocks: chapterContents.blocks,
-        };
-        let newContentState = convertFromRaw(contentState);
-        chapterContents.blocks.forEach((block) => {
-          if (block.getText().length) {
-            newContentState = this.processDBBlock(newContentState, block);
-          }
-        });
-        this.assembler.editorState = EditorState.createWithContent(newContentState, this.createDecorators());
-        htmlizedContent.push({
-          chapter: chapterContents.chapterTitle,
-          html: convertToHTML({
-            blockToHTML: (block) => {
-              const alignment = block.data.ALIGNMENT;
-              if (alignment && alignment != "LEFT") {
-                let text = block.text;
-                const styles = block.inlineStyleRanges;
-                if (styles) {
-                  let modifier = 0;
-                  styles.forEach((style) => {
-                    switch (style.style) {
-                      case "BOLD":
-                        text =
-                          text.slice(0, style.offset + modifier) +
-                          "<b>" +
-                          text.slice(style.offset + modifier, text.length + modifier);
-                        text =
-                          text.slice(0, style.offset + style.length + 3 + modifier) +
-                          "</b>" +
-                          text.slice(style.offset + style.length + 3 + modifier, text.length + modifier);
-                        modifier += 7;
-                        break;
-                      case "ITALIC":
-                        text =
-                          text.slice(0, style.offset + modifier) +
-                          "<i>" +
-                          text.slice(style.offset + modifier, text.length + modifier);
-                        text =
-                          text.slice(0, style.offset + style.length + 3 + modifier) +
-                          "</i>" +
-                          text.slice(style.offset + style.length + 3 + modifier, text.length + modifier);
-                        modifier += 7;
-                        break;
-                      case "UNDERLINE":
-                        text =
-                          text.slice(0, style.offset + modifier) +
-                          "<u>" +
-                          text.slice(style.offset + modifier, text.length + modifier);
-                        text =
-                          text.slice(0, style.offset + style.length + 3 + modifier) +
-                          "</u>" +
-                          text.slice(style.offset + style.length + 3 + modifier, text.length + modifier);
-                        modifier += 7;
-                        break;
-                      case "STRIKETHROUGH":
-                        text =
-                          text.slice(0, style.offset + modifier) +
-                          "<s>" +
-                          text.slice(style.offset + modifier, text.length + modifier);
-                        text =
-                          text.slice(0, style.offset + style.length + 3 + modifier) +
-                          "</s>" +
-                          text.slice(style.offset + style.length + 3 + modifier, text.length + modifier);
-                        modifier += 7;
-                        break;
-                    }
-                  });
+          this.assembler.editorState = EditorState.createWithContent(newContentState, this.createDecorators());
+          htmlizedContent.push({
+            chapter: chapterContents.chapterTitle,
+            html: convertToHTML({
+              blockToHTML: (block) => {
+                const alignment = block.data.ALIGNMENT;
+                if (alignment && alignment != "LEFT") {
+                  let text = block.text;
+                  const styles = block.inlineStyleRanges;
+                  if (styles) {
+                    let modifier = 0;
+                    styles.forEach((style) => {
+                      switch (style.style) {
+                        case "BOLD":
+                          text =
+                            text.slice(0, style.offset + modifier) +
+                            "<b>" +
+                            text.slice(style.offset + modifier, text.length + modifier);
+                          text =
+                            text.slice(0, style.offset + style.length + 3 + modifier) +
+                            "</b>" +
+                            text.slice(style.offset + style.length + 3 + modifier, text.length + modifier);
+                          modifier += 7;
+                          break;
+                        case "ITALIC":
+                          text =
+                            text.slice(0, style.offset + modifier) +
+                            "<i>" +
+                            text.slice(style.offset + modifier, text.length + modifier);
+                          text =
+                            text.slice(0, style.offset + style.length + 3 + modifier) +
+                            "</i>" +
+                            text.slice(style.offset + style.length + 3 + modifier, text.length + modifier);
+                          modifier += 7;
+                          break;
+                        case "UNDERLINE":
+                          text =
+                            text.slice(0, style.offset + modifier) +
+                            "<u>" +
+                            text.slice(style.offset + modifier, text.length + modifier);
+                          text =
+                            text.slice(0, style.offset + style.length + 3 + modifier) +
+                            "</u>" +
+                            text.slice(style.offset + style.length + 3 + modifier, text.length + modifier);
+                          modifier += 7;
+                          break;
+                        case "STRIKETHROUGH":
+                          text =
+                            text.slice(0, style.offset + modifier) +
+                            "<s>" +
+                            text.slice(style.offset + modifier, text.length + modifier);
+                          text =
+                            text.slice(0, style.offset + style.length + 3 + modifier) +
+                            "</s>" +
+                            text.slice(style.offset + style.length + 3 + modifier, text.length + modifier);
+                          modifier += 7;
+                          break;
+                      }
+                    });
+                  }
+                  return "<" + alignment + ">" + text + "</" + alignment + ">";
                 }
-                return "<" + alignment + ">" + text + "</" + alignment + ">";
-              }
-            },
-          })(this.assembler.editorState.getCurrentContent()),
+              },
+            })(this.assembler.editorState.getCurrentContent()),
+          });
         });
+        return htmlizedContent;
       });
-      return htmlizedContent;
     } catch (err) {
       console.error(err);
     }
@@ -173,7 +175,7 @@ export default class Exporter {
           credentials: "include",
         });
         if (!response.ok) {
-          reject("SERVER ERROR FETCHING FULL STORY: ", response.body);
+          reject("SERVER ERROR FETCHING FULL STORY: ", response.error);
         }
         resolve(response.json());
       } catch (e) {
