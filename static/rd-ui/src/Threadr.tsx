@@ -15,19 +15,12 @@ import LoginPanelModal from "./sections/loginPanel/LoginPanelModal";
 import StoryAndSeriesListing from "./sections/storyAndSeriesListing/StoryAndSeriesListing";
 import Subscribe from "./sections/subscribe/Subscribe";
 import UserMenu from "./sections/userMenu/UserMenu";
-import {
-  setAlertLink,
-  setAlertMessage,
-  setAlertOpen,
-  setAlertSeverity,
-  setAlertTimeout,
-  setAlertTitle,
-} from "./stores/alertSlice";
+import { setAlert } from "./stores/alertSlice";
 import type { AppDispatch, RootState } from "./stores/store";
 import { setSelectedStory } from "./stores/storiesSlice";
-import { setIsLoaderVisible } from "./stores/uiSlice";
+import { setIsLoaderVisible, setSubscriptionFormOpen } from "./stores/uiSlice";
 import { flipLoggedInState, setUserDetails } from "./stores/userSlice";
-import Toaster from "./utils/Toaster";
+import Toaster, { AlertFunctionCall, AlertLink, AlertToast, AlertToastType } from "./utils/Toaster";
 
 const Threadr = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -86,27 +79,37 @@ const Threadr = () => {
         setIsLoading(false);
         dispatch(flipLoggedInState());
         if (json.expired) {
-          dispatch(setAlertTitle("Subscription expired"));
-          dispatch(
-            setAlertMessage(
-              "Your subscription expired, and you didn't have auto-renewal enabled. Any additional stories you had created have been removed from your account, but may be recovered by re-subscribing."
-            )
-          );
-          dispatch(setAlertLink({ location: "subscribe" }));
-          dispatch(setAlertSeverity("error"));
-          dispatch(setAlertTimeout(null));
-          dispatch(setAlertOpen(true));
+          const alertFunction: AlertFunctionCall = {
+            func: () => {
+              setSubscriptionFormOpen(true);
+            },
+            text: "subscribe",
+          };
+          const newAlert: AlertToast = {
+            title: "Subscription expired",
+            message:
+              "Your subscription expired, and you didn't have auto-renewal enabled. Any additional stories you had created have been removed from your account, but may be recovered by re-subscribing.",
+            open: true,
+            func: alertFunction,
+            severity: AlertToastType.warning,
+            timeout: undefined,
+          };
+          dispatch(setAlert(newAlert));
         } else {
-          dispatch(setAlertTitle("Welcome to the RichDocter prerelease!"));
-          dispatch(setAlertSeverity("info"));
-          dispatch(setAlertTimeout(20000));
-          dispatch(
-            setAlertMessage(
-              "As this application is still under development, making regular offline backup of your work is highly recommended.\nPlease send any bugs, feedback, or glowing praise to:"
-            )
-          );
-          dispatch(setAlertLink({ location: "contact" }));
-          dispatch(setAlertOpen(true));
+          const alertLink: AlertLink = {
+            url: "mailto:support@docter.io",
+            text: "support@docter.io",
+          };
+          const newAlert: AlertToast = {
+            title: "Welcome to the RichDocter prerelease!",
+            message:
+              "As this application is still under development, making regular offline backup of your work is highly recommended.\nPlease send any bugs, feedback, or glowing praise to:",
+            open: true,
+            link: alertLink,
+            severity: AlertToastType.error,
+            timeout: 20000,
+          };
+          dispatch(setAlert(newAlert));
         }
       })
       .catch((e) => {

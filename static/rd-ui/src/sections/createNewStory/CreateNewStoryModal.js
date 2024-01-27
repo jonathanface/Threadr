@@ -10,14 +10,6 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import TextField from "@mui/material/TextField";
 import React, { createRef, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  setAlertLink,
-  setAlertMessage,
-  setAlertOpen,
-  setAlertSeverity,
-  setAlertTimeout,
-  setAlertTitle,
-} from "../../stores/alertSlice";
 import { setSeriesList } from "../../stores/seriesSlice";
 import { flipCreatingNewStory, setStandaloneList } from "../../stores/storiesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";

@@ -34,17 +34,10 @@ import { MenuItem, Menu as SideMenu, Sidebar, useProSidebar } from "react-pro-si
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import "../../css/document.css";
 import "../../css/sidebar.css";
-import {
-  setAlertLink,
-  setAlertMessage,
-  setAlertOpen,
-  setAlertSeverity,
-  setAlertTimeout,
-  setAlertTitle,
-} from "../../stores/alertSlice.js";
+import { setAlert } from "../../stores/alertSlice";
 import type { AppDispatch, RootState } from "../../stores/store";
 import { setSelectedStory } from "../../stores/storiesSlice";
-import { setIsLoaderVisible } from "../../stores/uiSlice";
+import { setIsLoaderVisible, setSubscriptionFormOpen } from "../../stores/uiSlice";
 import {
   Chapter,
   DBOperationType,
@@ -56,6 +49,7 @@ import {
   type DocumentBlockStyle,
   type DocumentTab,
 } from "../../types";
+import { AlertFunctionCall, AlertLink, AlertToast, AlertToastType } from "../../utils/Toaster";
 import ContextMenu from "../ContextMenu/index.js";
 import AssociationUI from "./AssociationUI.js";
 import EditableText from "./EditableText.js";
@@ -201,11 +195,13 @@ const Document: React.FC<DocumentProps> = () => {
 
   const exportDoc = async (type: string) => {
     if (selectedStory) {
-      dispatch(setAlertTitle("Conversion in progress"));
-      dispatch(setAlertMessage("A download link will appear here when the process is complete."));
-      dispatch(setAlertSeverity("info"));
-      dispatch(setAlertTimeout(null));
-      dispatch(setAlertOpen(true));
+      const newAlert: AlertToast = {
+        title: "Conversion in progress",
+        message: "A download link will be provided when the process is complete.",
+        open: true,
+        severity: AlertToastType.info,
+      };
+      dispatch(setAlert(newAlert));
       const exp = new Exporter(selectedStory.story_id);
       const htmlData = await exp.DocToHTML();
       try {
@@ -224,41 +220,49 @@ const Document: React.FC<DocumentProps> = () => {
         });
         if (!response.ok) {
           if (response.status === 401) {
-            dispatch(setAlertTitle("Insufficient subscription"));
-            dispatch(setAlertMessage("Free accounts are unable to export their stories."));
-            dispatch(setAlertLink({ location: "subscribe" }));
-            dispatch(setAlertSeverity("error"));
-            dispatch(setAlertTimeout(null));
-            dispatch(setAlertOpen(true));
+            const alertFunction: AlertFunctionCall = {
+              func: () => {
+                setSubscriptionFormOpen(true);
+              },
+              text: "subscribe",
+            };
+            const newAlert: AlertToast = {
+              title: "Insufficient subscription",
+              message: "Free accounts are unable to export their stories.",
+              open: true,
+              severity: AlertToastType.warning,
+              func: alertFunction,
+            };
+            dispatch(setAlert(newAlert));
             return;
           } else {
             throw new Error("Fetch problem export " + response.status);
           }
         }
         const json = await response.json();
-        dispatch(setAlertTitle("Conversion complete"));
-        dispatch(setAlertMessage("Click the link to access."));
-        dispatch(setAlertSeverity("success"));
-        dispatch(
-          setAlertLink({
-            custom: {
-              url: json.url,
-              text: "download/open",
-            },
-          })
-        );
-        dispatch(setAlertTimeout(null));
-        dispatch(setAlertOpen(true));
+        const alertLink: AlertLink = {
+          url: json.url,
+          text: "download/open",
+        };
+        const newAlert: AlertToast = {
+          title: "Conversion complete",
+          message: "Click the link to access.",
+          open: true,
+          severity: AlertToastType.success,
+          link: alertLink,
+          timeout: undefined,
+        };
+        dispatch(setAlert(newAlert));
       } catch (error) {
         console.error(error);
-        dispatch(
-          setAlertMessage(
-            "Unable to export your document at this time. Please try again later, or contact support@richdocter.io."
-          )
-        );
-        dispatch(setAlertSeverity("error"));
-        dispatch(setAlertTimeout(null));
-        dispatch(setAlertOpen(true));
+        const errorAlert: AlertToast = {
+          title: "Error",
+          message:
+            "Unable to export your document at this time. Please try again later, or contact support@richdocter.io.",
+          open: true,
+          severity: AlertToastType.error,
+        };
+        dispatch(setAlert(errorAlert));
       }
     }
   };
@@ -301,15 +305,15 @@ const Document: React.FC<DocumentProps> = () => {
   };
 
   const showGreeting = () => {
-    dispatch(setAlertTitle("INFO"));
-    dispatch(
-      setAlertMessage(
-        "This is a new document.\nYou can create an association by typing some text, selecting any of it, and right-clicking on your highlighted text.\nYou can manage chapters by opening the menu on the right."
-      )
-    );
-    dispatch(setAlertSeverity("info"));
-    dispatch(setAlertTimeout(20000));
-    dispatch(setAlertOpen(true));
+    const newAlert: AlertToast = {
+      title: "INFO",
+      message:
+        "This is a new document.\nYou can create an association by typing some text, selecting any of it, and right-clicking on your highlighted text.\nYou can manage chapters by opening the menu on the right.",
+      timeout: 20000,
+      severity: AlertToastType.info,
+      open: true,
+    };
+    dispatch(setAlert(newAlert));
   };
 
   const processDBBlock = (content: ContentState, block: ContentBlock): ContentState => {
@@ -416,9 +420,13 @@ const Document: React.FC<DocumentProps> = () => {
           console.log("fetch story blocks error", error);
           if (parseInt(error.message) !== 404 && parseInt(error.message) !== 501) {
             console.error("get story blocks", error);
-            dispatch(setAlertMessage("An error occurred trying to retrieve your content.\nPlease report this."));
-            dispatch(setAlertSeverity("error"));
-            dispatch(setAlertOpen(true));
+            const newAlert: AlertToast = {
+              title: "Error",
+              message: "An error occurred trying to retrieve your content.\nPlease report this.",
+              severity: AlertToastType.error,
+              open: true,
+            };
+            dispatch(setAlert(newAlert));
           } else {
             showGreeting();
             setEditorState(EditorState.createEmpty(createDecorators()));
@@ -692,12 +700,14 @@ const Document: React.FC<DocumentProps> = () => {
         });
         if (!response.ok) {
           if (response.status === 401) {
-            dispatch(setAlertTitle("Insufficient account"));
-            dispatch(setAlertMessage("Free accounts are limited to 10 associations."));
-            dispatch(setAlertLink({ location: "subscribe" }));
-            dispatch(setAlertSeverity("error"));
-            dispatch(setAlertTimeout(null));
-            dispatch(setAlertOpen(true));
+            const newAlert: AlertToast = {
+              title: "Insufficient subscription",
+              message: "Free accounts are limited to 10 associations.",
+              severity: AlertToastType.warning,
+              open: true,
+              timeout: 6000,
+            };
+            dispatch(setAlert(newAlert));
           }
           reject("SERVER ERROR SAVING BLOCK: " + response.statusText);
         }
@@ -1271,9 +1281,14 @@ const Document: React.FC<DocumentProps> = () => {
     event.stopPropagation();
     if (selectedStory) {
       if (selectedStory.chapters.length === 1) {
-        dispatch(setAlertMessage("You cannot delete a story's only chapter."));
-        dispatch(setAlertSeverity("info"));
-        dispatch(setAlertOpen(true));
+        const newAlert: AlertToast = {
+          title: "Nope",
+          message: "You cannot delete a story's only chapter.",
+          severity: AlertToastType.info,
+          open: true,
+          timeout: 6000,
+        };
+        dispatch(setAlert(newAlert));
         return;
       }
 
@@ -1351,9 +1366,14 @@ const Document: React.FC<DocumentProps> = () => {
         });
         if (!response.ok) {
           console.error(response.body);
-          dispatch(setAlertMessage("There was an error updating your title."));
-          dispatch(setAlertSeverity("error"));
-          dispatch(setAlertOpen(true));
+          const newAlert: AlertToast = {
+            title: "Error",
+            message: "There was an error updating your title. Please report this.",
+            severity: AlertToastType.error,
+            open: true,
+            timeout: 6000,
+          };
+          dispatch(setAlert(newAlert));
           return;
         }
       }
@@ -1388,9 +1408,14 @@ const Document: React.FC<DocumentProps> = () => {
           });
           if (!response.ok) {
             console.error(response.body);
-            dispatch(setAlertMessage("There was an error updating your chapter."));
-            dispatch(setAlertSeverity("error"));
-            dispatch(setAlertOpen(true));
+            const newAlert: AlertToast = {
+              title: "Error",
+              message: "There was an error updating your chapter. Please report this.",
+              severity: AlertToastType.error,
+              open: true,
+              timeout: 6000,
+            };
+            dispatch(setAlert(newAlert));
             return;
           }
         }
@@ -1422,9 +1447,14 @@ const Document: React.FC<DocumentProps> = () => {
     });
     if (!response.ok) {
       console.error(response.body);
-      dispatch(setAlertMessage("There was an error updating your chapters."));
-      dispatch(setAlertSeverity("error"));
-      dispatch(setAlertOpen(true));
+      const newAlert: AlertToast = {
+        title: "Error",
+        message: "There was an error updating your chapters. Please report this.",
+        severity: AlertToastType.error,
+        open: true,
+        timeout: 6000,
+      };
+      dispatch(setAlert(newAlert));
       return;
     }
   };
