@@ -237,19 +237,18 @@ const Document: React.FC<DocumentProps> = () => {
         }
         const json = await response.json();
         dispatch(setAlertTitle("Conversion complete"));
-        dispatch(setAlertMessage("Click the link to download."));
+        dispatch(setAlertMessage("Click the link to access."));
         dispatch(setAlertSeverity("success"));
         dispatch(
           setAlertLink({
             custom: {
               url: json.url,
-              text: "download",
+              text: "download/open",
             },
           })
         );
         dispatch(setAlertTimeout(null));
         dispatch(setAlertOpen(true));
-        //window.open(json.url, "_blank");
       } catch (error) {
         console.error(error);
         dispatch(

@@ -173,7 +173,7 @@ func (d *DAO) createBlockTable(tableName string) error {
 
 	gsiSettings := []types.GlobalSecondaryIndex{
 		{
-			IndexName: aws.String("chapter_id-place-index"),
+			IndexName: aws.String("story_id-place-index"),
 			KeySchema: gsiSchema,
 			Projection: &types.Projection{
 				ProjectionType: types.ProjectionTypeAll,

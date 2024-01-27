@@ -67,7 +67,7 @@ const Toaster = () => {
         {link && link.location && link.location === "contact" ? (
           <a href="mailto:support@docter.io">support@docter.io</a>
         ) : null}
-        {link && link.url ? (
+        {link && link.custom ? (
           <a href={link.custom.url} target="_blank">
             {link.custom.text}
           </a>
