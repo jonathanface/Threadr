@@ -322,7 +322,7 @@ func (d *DAO) GetSeriesByID(email, seriesID string) (series *models.Series, err 
 	return &seriesFromMap[0], nil
 }
 
-func (d *DAO) GetStoryParagraphs(storyID, chapterID, startKey string) (*models.BlocksData, error) {
+func (d *DAO) GetStoryParagraphs(storyID, chapterID string, startKey *map[string]types.AttributeValue) (*models.BlocksData, error) {
 	var blocks models.BlocksData
 	tableName := storyID + "_" + chapterID + "_blocks"
 	queryInput := &dynamodb.QueryInput{
@@ -342,10 +342,8 @@ func (d *DAO) GetStoryParagraphs(storyID, chapterID, startKey string) (*models.B
 		},
 	}
 
-	if startKey != "" {
-		queryInput.ExclusiveStartKey = map[string]types.AttributeValue{
-			"keyID": &types.AttributeValueMemberS{Value: startKey},
-		}
+	if startKey != nil {
+		queryInput.ExclusiveStartKey = *startKey
 	}
 
 	var items []map[string]types.AttributeValue

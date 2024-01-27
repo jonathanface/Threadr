@@ -203,6 +203,11 @@ const Document = () => {
   const [editorState, setEditorState] = React.useState(() => EditorState.createEmpty(createDecorators()));
 
   const exportDoc = async (type) => {
+    dispatch(setAlertTitle("Conversion in progress"));
+    dispatch(setAlertMessage("A download link will appear here when the process is complete."));
+    dispatch(setAlertSeverity("info"));
+    dispatch(setAlertTimeout(null));
+    dispatch(setAlertOpen(true));
     const exp = new Exporter(selectedStory.story_id);
     const htmlData = await exp.DocToHTML();
     try {
@@ -233,7 +238,19 @@ const Document = () => {
       }
       const json = await response.json();
 
-      window.open(json.url, "_blank");
+      dispatch(setAlertTitle("Conversion complete"));
+      dispatch(setAlertMessage("Click the link to access."));
+      dispatch(setAlertSeverity("success"));
+      dispatch(
+        setAlertLink({
+          custom: {
+            url: json.url,
+            text: "download/open",
+          },
+        })
+      );
+      dispatch(setAlertTimeout(null));
+      dispatch(setAlertOpen(true));
     } catch (error) {
       console.error(error);
       dispatch(

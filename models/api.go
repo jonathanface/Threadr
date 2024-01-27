@@ -108,5 +108,5 @@ type DocumentExportRequest struct {
 	StoryID       string     `json:"story_id"`
 	HtmlByChapter []HTMLData `json:"html_by_chapter"`
 	Type          string     `json:"type"`
-	StoryTitle    string     `json:"story_title"`
+	Title         string     `json:"title"`
 }

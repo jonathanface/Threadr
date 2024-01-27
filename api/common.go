@@ -178,30 +178,25 @@ func getPaymentMethodsForCustomer(customerID string) ([]models.PaymentMethod, er
 	return methods, nil
 }
 
-func staggeredStoryBlockRetrieval(dao daos.DaoInterface, email string, storyID string, chapterID string, key string) (*models.BlocksData, error) {
+func staggeredStoryBlockRetrieval(dao daos.DaoInterface, email string, storyID string, chapterID string, key *map[string]types.AttributeValue, accumulatedBlocks *models.BlocksData) (*models.BlocksData, error) {
+	// If this is the first call, initialize accumulatedBlocks
+	if accumulatedBlocks == nil {
+		accumulatedBlocks = &models.BlocksData{}
+	}
+
 	blocks, err := dao.GetStoryParagraphs(storyID, chapterID, key)
 	if err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
-			awsResponse := processAWSError(opErr)
-			if awsResponse.Code == 0 {
-				return nil, fmt.Errorf("error getting story blocks: %s", err.Error())
-			}
-			return nil, fmt.Errorf("error getting story blocks: %s", awsResponse.Message)
-		}
-		return nil, fmt.Errorf("error getting story blocks: %s", err.Error())
+		return nil, err
 	}
-	if blocks.LastEvaluated == nil {
-		return blocks, nil
+
+	// Append the retrieved blocks to accumulatedBlocks
+	accumulatedBlocks.Items = append(accumulatedBlocks.Items, blocks.Items...)
+
+	// If there are more blocks to retrieve, make a recursive call
+	if blocks.LastEvaluated != nil {
+		return staggeredStoryBlockRetrieval(dao, email, storyID, chapterID, &blocks.LastEvaluated, accumulatedBlocks)
 	}
-	lastEvaluatedKeyID, ok := blocks.LastEvaluated["key_id"]
-	if !ok {
-		return nil, fmt.Errorf("error getting story blocks: key_id not found in LastEvaluated")
-	}
-	keyID, ok := lastEvaluatedKeyID.(*types.AttributeValueMemberS)
-	if !ok {
-		return nil, fmt.Errorf("error getting story blocks: invalid key_id type")
-	}
-	return staggeredStoryBlockRetrieval(dao, email, storyID, chapterID, keyID.Value)
+	return accumulatedBlocks, nil
 }
 
 func scaleDownImage(file io.Reader, maxWidth uint) (*bytes.Buffer, string, error) {

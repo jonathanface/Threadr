@@ -8,14 +8,12 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
-	"strconv"
 
 	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
 )
 
 func StoryBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
-	startKey := r.URL.Query().Get("key")
 	chapterID := r.URL.Query().Get("chapter")
 	var (
 		email   string
@@ -52,7 +50,7 @@ func StoryBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusNotFound, "story not found")
 		return
 	}
-	blocks, err := dao.GetStoryParagraphs(storyID, chapterID, startKey)
+	blocks, err := dao.GetStoryParagraphs(storyID, chapterID, nil)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
@@ -120,17 +118,15 @@ func FullStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 
 	//var blocksList models.BlocksData
 	//blocksList.Items = []map[string]types.AttributeValue{}
-	var key string
+
 	for _, chap := range story.Chapters {
 		chapWithContents := models.ChapterWithContents{}
 		chapWithContents.Chapter = chap
-		chapterNumber := strconv.Itoa(chap.Place)
-		chapWithContents.Blocks, err = staggeredStoryBlockRetrieval(dao, email, storyID, chapterNumber, key)
+		chapWithContents.Blocks, err = staggeredStoryBlockRetrieval(dao, email, storyID, chap.ID, nil, nil)
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		//blocksList.Items = append(blocksList.Items, blocks.Items...)
 		fullStory.ChaptersWithContents = append(fullStory.ChaptersWithContents, chapWithContents)
 	}
 	RespondWithJson(w, http.StatusOK, fullStory)

@@ -67,6 +67,11 @@ const Toaster = () => {
         {link && link.location && link.location === "contact" ? (
           <a href="mailto:support@docter.io">support@docter.io</a>
         ) : null}
+        {link && link.custom ? (
+          <a download href={link.custom.url} target="_blank">
+            {link.custom.text}
+          </a>
+        ) : null}
       </Alert>
     </Snackbar>
   );

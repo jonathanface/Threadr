@@ -83,7 +83,7 @@ func HTMLToDOCX(export models.DocumentExportRequest) (filename string, err error
 
 	// Convert HTML to DOCX using Pandoc command-line tool
 	safeTitlePattern := regexp.MustCompile(`[^\w.-]+`)
-	safeTitle := strings.ToLower(safeTitlePattern.ReplaceAllString(export.StoryTitle, ""))
+	safeTitle := strings.ToLower(safeTitlePattern.ReplaceAllString(export.Title, ""))
 	filename = fmt.Sprintf("%s.docx", safeTitle)
 	cmd := exec.Command("pandoc", "-f", "html", "-t", "docx", "-o", "./tmp/"+filename, tmpFile.Name())
 
@@ -114,7 +114,7 @@ func HTMLToPDF(export models.DocumentExportRequest) (filename string, err error)
 	}
 	htmlContent += "</body></html>"
 	safeTitlePattern := regexp.MustCompile(`[^\w.-]+`)
-	safeTitle := strings.ToLower(safeTitlePattern.ReplaceAllString(export.StoryTitle, ""))
+	safeTitle := strings.ToLower(safeTitlePattern.ReplaceAllString(export.Title, ""))
 
 	filename = fmt.Sprintf("%s.pdf", safeTitle)
 	cmd := exec.Command("wkhtmltopdf",
