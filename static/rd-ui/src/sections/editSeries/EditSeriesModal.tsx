@@ -10,10 +10,11 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
 import React, { useEffect, useState } from "react";
-import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
-import { useDispatch, useSelector } from "react-redux";
+import { DragDropContext, Draggable, DropResult, Droppable } from "react-beautiful-dnd";
+import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import "../../css/edit-series.css";
 import { flipEditingSeries, setSeriesEditables, setSeriesList } from "../../stores/seriesSlice";
+import { AppDispatch, RootState } from "../../stores/store";
 import {
   flipCreatingNewStory,
   flipEditingStory,
@@ -21,16 +22,19 @@ import {
   setStoryEditables,
 } from "../../stores/storiesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
+import { Story } from "../../types";
 import PortraitDropper from "../portraitdropper/PortraitDropper";
 
 const EditSeriesModal = () => {
-  const dispatch = useDispatch();
-  const isEditingSeries = useSelector((state) => state.series.isEditingSeries);
-  const editables = useSelector((state) => state.series.editables);
-  const seriesList = useSelector((state) => state.series.seriesList);
-  const standaloneList = useSelector((state) => state.stories.standaloneList);
-  const [volumes, setVolumes] = useState([]);
-  const [formInput, setFormInput] = useState({});
+  const useAppDispatch: () => AppDispatch = useDispatch;
+  const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
+  const dispatch = useAppDispatch();
+  const isEditingSeries = useAppSelector((state) => state.series.isEditingSeries);
+  const editables = useAppSelector((state) => state.series.editables);
+  const seriesList = useAppSelector((state) => state.series.seriesList);
+  const standaloneList = useAppSelector((state) => state.stories.standaloneList);
+  const [volumes, setVolumes] = useState<Story[] | null>(null);
+  const [formInput, setFormInput] = useState<Map<string, any>>(new Map());
   const [areErrors, setAreErrors] = useState(false);
   const [currentError, setCurrentError] = useState("");
   const [imageName, setImageName] = useState("Loading...");
@@ -48,7 +52,14 @@ const EditSeriesModal = () => {
   useEffect(() => {
     if (editables.stories) {
       const volumes = editables.stories.slice();
-      setVolumes(volumes.sort((a, b) => a.place - b.place));
+      setVolumes(
+        volumes.sort((a, b) => {
+          if (a.place && b.place) {
+            return a.place - b.place;
+          }
+          return 0;
+        })
+      );
     }
     setFormInput((prevFormInput) => ({
       ...prevFormInput,
@@ -58,7 +69,7 @@ const EditSeriesModal = () => {
     }));
   }, [editables]);
 
-  const processImage = (acceptedFiles) => {
+  const processImage = (acceptedFiles: File[]) => {
     acceptedFiles.forEach((file) => {
       const reader = new FileReader();
       reader.onabort = () => console.log("file reading was aborted");
@@ -73,25 +84,27 @@ const EditSeriesModal = () => {
     });
   };
 
-  const onDragEnd = (result) => {
+  const onDragEnd = (result: DropResult) => {
     if (!result.destination) {
       return;
     }
-    const newVolumes = Array.from(volumes);
-    const [reorderedItem] = newVolumes.splice(result.source.index, 1);
-    newVolumes.splice(result.destination.index, 0, reorderedItem);
-    const updatedVolumes = newVolumes.map((vol, idx) => {
-      return { ...vol, place: idx + 1 };
-    });
-    setVolumes(updatedVolumes);
-    setFormInput((prevFormInput) => ({
-      ...prevFormInput,
-      stories: updatedVolumes,
-    }));
+    if (volumes) {
+      const newVolumes = Array.from(volumes);
+      const [reorderedItem] = newVolumes.splice(result.source.index, 1);
+      newVolumes.splice(result.destination.index, 0, reorderedItem);
+      const updatedVolumes = newVolumes.map((vol, idx) => {
+        return { ...vol, place: idx + 1 };
+      });
+      setVolumes(updatedVolumes);
+      setFormInput((prevFormInput) => ({
+        ...prevFormInput,
+        stories: updatedVolumes,
+      }));
+    }
   };
 
   const handleSubmit = async () => {
-    if (!formInput["title"] || !formInput["title"].trim().length) {
+    if (!formInput.has("title") || !formInput.get("title").trim().length) {
       setCurrentError("Title cannot be blank");
       setAreErrors(true);
       return;
@@ -99,12 +112,12 @@ const EditSeriesModal = () => {
 
     const formData = new FormData();
     for (const key in formInput) {
-      if (formInput.hasOwnProperty(key) && formInput[key] != null && formInput[key] != undefined) {
-        if (Array.isArray(formInput[key]) && formInput[key].every((item) => typeof item === "object")) {
+      if (formInput.hasOwnProperty(key) && formInput.get(key) != null && formInput.get(key) != undefined) {
+        if (Array.isArray(formInput.get(key)) && formInput.get(key).every((item: any) => typeof item === "object")) {
           // Stringify the entire array and append under the current key
-          formData.append(key, JSON.stringify(formInput[key]));
+          formData.append(key, JSON.stringify(formInput.get(key)));
         } else {
-          formData.append(key, formInput[key]);
+          formData.append(key, formInput.get(key));
         }
       }
     }
@@ -120,7 +133,7 @@ const EditSeriesModal = () => {
       if (!response.ok) {
         const errorData = await response.json();
         const error = new Error(JSON.stringify(errorData));
-        error.response = response; // Attach the response to the error object
+        error.message = response.statusText; // Attach the response to the error object
         throw error;
       }
       const { ["series_id"]: _, ...rest } = editables;
@@ -138,7 +151,7 @@ const EditSeriesModal = () => {
           series_title: json.series_title,
           image_url: newImgURL,
           stories: seriesList[foundSeriesIndex].stories.map((volume) => {
-            const matchingDbVolume = json.stories.find((dbVolume) => dbVolume.story_id === volume.story_id);
+            const matchingDbVolume = json.stories.find((dbVolume: any) => dbVolume.story_id === volume.story_id);
             return matchingDbVolume ? { ...volume, place: matchingDbVolume.place } : volume;
           }),
         };
@@ -148,8 +161,8 @@ const EditSeriesModal = () => {
       }
       dispatch(setIsLoaderVisible(false));
       handleClose();
-    } catch (error) {
-      console.error("Error fetching data: ", error.message);
+    } catch (error: any) {
+      console.error("Error fetching data: ", error);
       const errorData = error.response ? JSON.parse(error.message) : {};
       if (errorData.error) {
         setCurrentError(errorData.error);
@@ -161,7 +174,7 @@ const EditSeriesModal = () => {
     }
   };
 
-  const removeStory = async (event, id, selectedTitle) => {
+  const removeStory = async (event: React.MouseEvent, id: string, selectedTitle: string) => {
     event.stopPropagation();
     const confirmText = "Remove " + selectedTitle + " from " + editables.series_title + "?";
     const conf = window.confirm(confirmText);
@@ -178,7 +191,7 @@ const EditSeriesModal = () => {
         if (!response.ok) {
           const errorData = await response.json();
           const error = new Error(JSON.stringify(errorData));
-          error.response = response;
+          error.message = response.statusText;
           throw error;
         }
 
@@ -186,24 +199,26 @@ const EditSeriesModal = () => {
         const foundSeriesIndex = seriesList.findIndex((srs) => srs.series_id === json.series_id);
         if (foundSeriesIndex !== -1) {
           const editedStory = seriesList[foundSeriesIndex].stories.find((volume) => volume.story_id === id);
-          const newStandaloneList = [...standaloneList];
-          newStandaloneList.push(editedStory);
-          dispatch(setStandaloneList(newStandaloneList));
-          const newSeriesStories = seriesList[foundSeriesIndex].stories.filter((volume) => volume.story_id !== id);
-          const updatedSeries = {
-            ...seriesList[foundSeriesIndex],
-            stories: newSeriesStories,
-          };
-          const newList = [...seriesList];
-          newList[foundSeriesIndex] = updatedSeries;
-          dispatch(setSeriesList(newList));
+          if (editedStory) {
+            const newStandaloneList = [...standaloneList];
+            newStandaloneList.push(editedStory);
+            dispatch(setStandaloneList(newStandaloneList));
+            const newSeriesStories = seriesList[foundSeriesIndex].stories.filter((volume) => volume.story_id !== id);
+            const updatedSeries = {
+              ...seriesList[foundSeriesIndex],
+              stories: newSeriesStories,
+            };
+            const newList = [...seriesList];
+            newList[foundSeriesIndex] = updatedSeries;
+            dispatch(setSeriesList(newList));
 
-          const newEditables = { ...editables };
-          newEditables.stories = newSeriesStories;
-          dispatch(setSeriesEditables(newEditables));
+            const newEditables = { ...editables };
+            newEditables.stories = newSeriesStories;
+            dispatch(setSeriesEditables(newEditables));
+          }
         }
         dispatch(setIsLoaderVisible(false));
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching data: ", error.message);
         const errorData = error.response ? JSON.parse(error.message) : {};
         if (errorData.error) {
@@ -217,20 +232,26 @@ const EditSeriesModal = () => {
     }
   };
 
-  const editStory = (event, storyID) => {
+  const editStory = (event: React.MouseEvent, storyID: string) => {
     event.stopPropagation();
-    const newProps = {};
-    newProps.story_id = storyID;
-    const selected = volumes.find((volume) => volume.story_id === storyID);
-    newProps.title = selected.title;
-    newProps.description = selected.description;
-    newProps.series_id = editables.series_id;
-    newProps.image_url = selected.image_url;
-    dispatch(setStoryEditables(newProps));
-    dispatch(flipEditingStory(editables.series_id));
+    if (volumes) {
+      const selected = volumes.find((volume) => volume.story_id === storyID);
+      if (selected) {
+        const newProps: Story = {
+          story_id: storyID,
+          title: selected.title,
+          description: editables.series_description,
+          series_id: editables.series_id,
+          image_url: selected.image_url,
+          chapters: selected.chapters,
+        };
+        dispatch(setStoryEditables(newProps));
+        dispatch(flipEditingStory(editables.series_id));
+      }
+    }
   };
 
-  const addStory = (event) => {
+  const addStory = (event: React.MouseEvent) => {
     event.stopPropagation();
     dispatch(flipCreatingNewStory(editables.series_id));
     handleClose();
@@ -310,64 +331,65 @@ const EditSeriesModal = () => {
                 <Droppable droppableId="droppable">
                   {(provided) => (
                     <span {...provided.droppableProps} ref={provided.innerRef}>
-                      {volumes.map((entry, index) => (
-                        <Draggable key={entry.story_id} draggableId={entry.story_id} index={index}>
-                          {(provided) => (
-                            <div
-                              className="edit-series-volumes"
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}>
-                              {
-                                <div>
-                                  <img src={entry.image_url} alt={entry.title} />
-                                  <span>{entry.title}</span>
-                                  <span className="story-buttons">
-                                    <IconButton
-                                      className="edit-series-story"
-                                      aria-label="edit story"
-                                      sx={{ padding: "0" }}
-                                      component="label"
-                                      title="Edit"
-                                      onClick={(event) => {
-                                        editStory(event, entry.story_id);
-                                      }}>
-                                      <EditIcon
-                                        sx={{
-                                          fontSize: "18px",
-                                          color: "#000",
-                                          padding: "8px",
-                                          "&:hover": {
-                                            fontWeight: "bold",
-                                          },
-                                        }}
-                                      />
-                                    </IconButton>
-                                    <IconButton
-                                      className="remove-series-story"
-                                      aria-label="remove story"
-                                      component="label"
-                                      title="Remove"
-                                      onClick={(event) => {
-                                        removeStory(event, entry.story_id, entry.title);
-                                      }}>
-                                      <RemoveIcon
-                                        sx={{
-                                          fontSize: "18px",
-                                          color: "#000",
-                                          "&:hover": {
-                                            fontWeight: "bold",
-                                          },
-                                        }}
-                                      />
-                                    </IconButton>
-                                  </span>
-                                </div>
-                              }
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
+                      {volumes &&
+                        volumes.map((entry, index) => (
+                          <Draggable key={entry.story_id} draggableId={entry.story_id} index={index}>
+                            {(provided) => (
+                              <div
+                                className="edit-series-volumes"
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}>
+                                {
+                                  <div>
+                                    <img src={entry.image_url} alt={entry.title} />
+                                    <span>{entry.title}</span>
+                                    <span className="story-buttons">
+                                      <IconButton
+                                        className="edit-series-story"
+                                        aria-label="edit story"
+                                        sx={{ padding: "0" }}
+                                        component="label"
+                                        title="Edit"
+                                        onClick={(event) => {
+                                          editStory(event, entry.story_id);
+                                        }}>
+                                        <EditIcon
+                                          sx={{
+                                            fontSize: "18px",
+                                            color: "#000",
+                                            padding: "8px",
+                                            "&:hover": {
+                                              fontWeight: "bold",
+                                            },
+                                          }}
+                                        />
+                                      </IconButton>
+                                      <IconButton
+                                        className="remove-series-story"
+                                        aria-label="remove story"
+                                        component="label"
+                                        title="Remove"
+                                        onClick={(event) => {
+                                          removeStory(event, entry.story_id, entry.title);
+                                        }}>
+                                        <RemoveIcon
+                                          sx={{
+                                            fontSize: "18px",
+                                            color: "#000",
+                                            "&:hover": {
+                                              fontWeight: "bold",
+                                            },
+                                          }}
+                                        />
+                                      </IconButton>
+                                    </span>
+                                  </div>
+                                }
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
                       {provided.placeholder}
                     </span>
                   )}

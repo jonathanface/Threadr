@@ -1,4 +1,4 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { Action, createSlice } from "@reduxjs/toolkit";
 import { Story } from "../types";
 
 export interface Series {
@@ -10,24 +10,45 @@ export interface Series {
   image_url: string;
 }
 
+export interface SeriesEditables {
+  stories: Story[];
+  series_title: string;
+  series_description: string;
+  series_id: string;
+  image_url: string;
+}
+
 export interface SeriesPanel {
   isEditingSeries: boolean;
   seriesList: Series[];
-  editables: {};
+  editables: SeriesEditables;
 }
 
 const initialState: SeriesPanel = {
   isEditingSeries: false,
   seriesList: [],
-  editables: {},
+  editables: {
+    stories: [],
+    series_title: "",
+    series_description: "",
+    series_id: "",
+    image_url: "",
+  },
 };
+
+interface IAction<T> extends Action<string> {
+  type: string;
+  payload?: T;
+  error?: boolean;
+  meta?: any;
+}
 
 export const seriesSlice = createSlice({
   name: "series",
   initialState: initialState,
   reducers: {
-    flipEditingSeries: (state, action) => {
-      if (action.payload) {
+    flipEditingSeries: (state, action: IAction<boolean>) => {
+      if (action?.payload) {
         state.isEditingSeries = action.payload;
         return;
       }

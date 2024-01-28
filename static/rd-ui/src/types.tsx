@@ -34,7 +34,7 @@ export interface Chapter {
 export interface Story {
   [key: string]: any;
   story_id: string;
-  created_at: number;
+  created_at?: number;
   title: string;
   description: string;
   series_id?: string;

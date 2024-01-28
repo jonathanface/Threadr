@@ -283,6 +283,7 @@ const CreateNewStory = () => {
           chapters: json.chapters,
           image_url: json.image_url + "?cache=" + new Date().getMilliseconds(),
           created_at: json.created_at,
+          place: 1,
         };
         const newStandaloneList = [...standaloneList];
         newStandaloneList.push(newStory);
