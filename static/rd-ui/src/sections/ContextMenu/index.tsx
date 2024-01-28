@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from "react";
 import "../../css/custom-context.css";
-import MenuItem from "./MenuItem";
+import MenuItem, { MenuItemEntry } from "./MenuItem";
 
-const ContextMenu = (props) => {
+interface ContextMenuProps {
+  visible: boolean;
+  y: number;
+  x: number;
+  items: MenuItemEntry[];
+}
+
+const ContextMenu = (props: ContextMenuProps) => {
   const [visible, setVisible] = useState(false);
   const [inlineStyle, setInlineStyle] = useState({
     display: "none",

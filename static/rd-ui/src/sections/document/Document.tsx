@@ -50,6 +50,7 @@ import {
   type DocumentTab,
 } from "../../types";
 import { AlertFunctionCall, AlertLink, AlertToast, AlertToastType } from "../../utils/Toaster";
+import { MenuItemEntry } from "../ContextMenu/MenuItem";
 import ContextMenu from "../ContextMenu/index.js";
 import AssociationUI from "./AssociationUI.js";
 import EditableText from "./EditableText.js";
@@ -1459,14 +1460,14 @@ const Document: React.FC<DocumentProps> = () => {
     }
   };
 
-  const associationContextMenuItems = [
+  const associationContextMenuItems: MenuItemEntry[] = [
     {
       name: "Delete Association",
       command: handleDeleteAssociationClick,
     },
   ];
 
-  const selectedContextMenuItems = [
+  const selectedContextMenuItems: MenuItemEntry[] = [
     { name: "Copy", command: handleTextCopy },
     {
       name: "Create Association",
@@ -1723,14 +1724,12 @@ const Document: React.FC<DocumentProps> = () => {
             </Sidebar>
           </div>
           <ContextMenu
-            name="selection"
             items={selectedContextMenuItems}
             visible={selectedContextMenuVisible}
             x={selectedContextMenuX}
             y={selectedContextMenuY}
           />
           <ContextMenu
-            name="association"
             items={associationContextMenuItems}
             visible={associationContextMenuVisible}
             x={associationContextMenuX}
