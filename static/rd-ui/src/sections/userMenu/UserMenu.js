@@ -3,7 +3,7 @@ import { IconButton } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setSelectedStory } from "../../stores/storiesSlice";
-import { setIsLoaderVisible, setSubscriptionFormOpen } from "../../stores/uiSlice";
+import { setIsLoaderVisible, setIsSubscriptionFormOpen } from "../../stores/uiSlice";
 import { flipConfigPanelVisible, flipLoggedInState, flipLoginPanelVisible } from "../../stores/userSlice";
 
 const UserMenu = (props) => {
@@ -43,7 +43,7 @@ const UserMenu = (props) => {
   };
 
   const subscribe = () => {
-    dispatch(setSubscriptionFormOpen(true));
+    dispatch(setIsSubscriptionFormOpen(true));
   };
   //
   const displayComponent = !props.isParentLoading ? (

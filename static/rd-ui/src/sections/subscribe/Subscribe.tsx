@@ -13,7 +13,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import { StripeCardElementChangeEvent } from "@stripe/stripe-js/types/stripe-js";
 import { setAlert } from "../../stores/alertSlice";
 import { AppDispatch, RootState } from "../../stores/store";
-import { setSubscriptionFormOpen } from "../../stores/uiSlice";
+import { setIsSubscriptionFormOpen } from "../../stores/uiSlice";
 import { AlertToast, AlertToastType } from "../../utils/Toaster";
 
 interface PaymentMethod {
@@ -41,13 +41,13 @@ const Subscribe = () => {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   const [product, setProduct] = useState<Product | null>(null);
 
-  const isOpen = useAppSelector((state) => state.ui.subscriptionFormOpen);
+  const isOpen = useAppSelector((state) => state.ui.isSubscriptionFormOpen);
 
   const stripe = useStripe();
   const elements = useElements();
 
   const handleClose = () => {
-    dispatch(setSubscriptionFormOpen(false));
+    dispatch(setIsSubscriptionFormOpen(false));
   };
 
   const confirmCard = async () => {

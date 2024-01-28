@@ -37,7 +37,7 @@ import "../../css/sidebar.css";
 import { setAlert } from "../../stores/alertSlice";
 import type { AppDispatch, RootState } from "../../stores/store";
 import { setSelectedStory } from "../../stores/storiesSlice";
-import { setIsLoaderVisible, setSubscriptionFormOpen } from "../../stores/uiSlice";
+import { setIsLoaderVisible, setIsSubscriptionFormOpen } from "../../stores/uiSlice";
 import {
   Chapter,
   DBOperationType,
@@ -222,7 +222,7 @@ const Document: React.FC<DocumentProps> = () => {
           if (response.status === 401) {
             const alertFunction: AlertFunctionCall = {
               func: () => {
-                setSubscriptionFormOpen(true);
+                setIsSubscriptionFormOpen(true);
               },
               text: "subscribe",
             };

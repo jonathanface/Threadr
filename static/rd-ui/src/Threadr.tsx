@@ -18,7 +18,7 @@ import UserMenu from "./sections/userMenu/UserMenu";
 import { setAlert } from "./stores/alertSlice";
 import type { AppDispatch, RootState } from "./stores/store";
 import { setSelectedStory } from "./stores/storiesSlice";
-import { setIsLoaderVisible, setSubscriptionFormOpen } from "./stores/uiSlice";
+import { setIsLoaderVisible, setIsSubscriptionFormOpen } from "./stores/uiSlice";
 import { flipLoggedInState, setUserDetails } from "./stores/userSlice";
 import Toaster, { AlertFunctionCall, AlertLink, AlertToast, AlertToastType } from "./utils/Toaster";
 
@@ -81,7 +81,7 @@ const Threadr = () => {
         if (json.expired) {
           const alertFunction: AlertFunctionCall = {
             func: () => {
-              setSubscriptionFormOpen(true);
+              setIsSubscriptionFormOpen(true);
             },
             text: "subscribe",
           };
