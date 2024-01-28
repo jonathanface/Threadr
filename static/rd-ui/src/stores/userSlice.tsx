@@ -1,13 +1,30 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+export interface UserDetails {
+  user_id: string;
+  email: string;
+}
+
+export interface User {
+  isLoggedIn: boolean;
+  configPanelVisible: boolean;
+  loginPanelVisible: boolean;
+  userDetails: UserDetails;
+}
+
+const initialState: User = {
+  isLoggedIn: false,
+  configPanelVisible: false,
+  loginPanelVisible: false,
+  userDetails: {
+    user_id: "",
+    email: "",
+  },
+};
+
 export const userSlice = createSlice({
   name: "user",
-  initialState: {
-    isLoggedIn: false,
-    userDetails: {},
-    configPanelVisible: false,
-    loginPanelVisible: false,
-  },
+  initialState: initialState,
   reducers: {
     flipLoggedInState: (state) => {
       state.isLoggedIn = !state.isLoggedIn;

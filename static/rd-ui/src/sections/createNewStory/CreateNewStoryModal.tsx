@@ -8,30 +8,41 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import TextField from "@mui/material/TextField";
-import React, { createRef, useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import React, { useEffect, useRef, useState } from "react";
+import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import { setSeriesList } from "../../stores/seriesSlice";
+import { AppDispatch, RootState } from "../../stores/store";
 import { flipCreatingNewStory, setStandaloneList } from "../../stores/storiesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
+import { Series, Story } from "../../types";
 import PortraitDropper from "../portraitdropper/PortraitDropper";
 
-const CreateNewStory = () => {
-  const [isInASeries, setIsInASeries] = useState(false);
-  const [series, setSeries] = useState([]);
-  const [submitButtonDisabled, setSubmitButtonDisabled] = useState(true);
-  const isCreatingNewStory = useSelector((state) => state.stories.isCreatingNew);
-  const userDetails = useSelector((state) => state.user.userDetails);
-  const isLoggedIn = useSelector((state) => state.user.isLoggedIn);
-  const belongsToSeries = useSelector((state) => state.stories.belongsToSeries);
-  const standaloneList = useSelector((state) => state.stories.standaloneList);
-  const seriesList = useSelector((state) => state.series.seriesList);
+interface SeriesSelectionOptions {
+  label: string;
+  id: string;
+  count: number;
+}
 
-  const dispatch = useDispatch();
-  const initMap = new Map();
-  initMap["place"] = 1;
+const CreateNewStory = () => {
+  const useAppDispatch: () => AppDispatch = useDispatch;
+  const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
+  const isCreatingNewStory = useAppSelector((state) => state.stories.isCreatingNew);
+  const userDetails = useAppSelector((state) => state.user.userDetails);
+  const isLoggedIn = useAppSelector((state) => state.user.isLoggedIn);
+  const belongsToSeries = useAppSelector((state) => state.stories.belongsToSeries);
+  const standaloneList = useAppSelector((state) => state.stories.standaloneList);
+  const seriesList = useAppSelector((state) => state.series.seriesList);
+  const dispatch = useAppDispatch();
+  const [isInASeries, setIsInASeries] = useState(false);
+  const [series, setSeries] = useState<SeriesSelectionOptions[]>();
+  const [submitButtonDisabled, setSubmitButtonDisabled] = useState(true);
+
+  const initMap: Map<string, string> = new Map();
+  initMap.set("place", "1");
+
   const [formInput, setFormInput] = useState(initMap);
   if (belongsToSeries) {
-    formInput["series_id"] = belongsToSeries;
+    formInput.set("series_id", belongsToSeries);
   }
 
   const [areErrors, setAreErrors] = useState(false);
@@ -41,7 +52,7 @@ const CreateNewStory = () => {
   const [seriesMember, setSeriesMember] = useState({ label: "" });
   const defaultImageURL = "img/icons/story_standalone_icon.jpg";
 
-  const parentDiv = createRef(null);
+  const parentDiv = useRef<HTMLElement>(null);
 
   const resetForm = () => {
     setSubmitButtonDisabled(true);
@@ -73,9 +84,9 @@ const CreateNewStory = () => {
         }
         throw new Error("Fetch problem series " + response.status);
       })
-      .then((data) => {
-        if (data && data[userDetails.email]) {
-          const reduced = data[userDetails.email].reduce((accumulator, currentValue) => {
+      .then((data: Map<string, Series[]>) => {
+        if (data && data.has(userDetails.email)) {
+          const reduced = data.get(userDetails.email)?.reduce((accumulator: Series, currentValue: Series) => {
             if (!accumulator[currentValue.series_id]) {
               accumulator[currentValue.series_id] = {
                 id: currentValue.series_id,
@@ -90,11 +101,11 @@ const CreateNewStory = () => {
             }
             accumulator[currentValue.series_id].count += 1;
             return accumulator;
-          }, {});
-          const params = [];
+          });
+          const params: SeriesSelectionOptions[] = [];
           for (const series_id in reduced) {
             const series = reduced[series_id];
-            const entry = {
+            const entry: SeriesSelectionOptions = {
               label: series.title,
               id: series.id,
               count: series.count,
@@ -129,7 +140,7 @@ const CreateNewStory = () => {
       });
   };
 
-  const getBlobExtension = (mimeType) => {
+  const getBlobExtension = (mimeType: string) => {
     switch (mimeType) {
       case "image/jpeg":
         return ".jpg";
@@ -194,30 +205,35 @@ const CreateNewStory = () => {
   }, [isLoggedIn, isCreatingNewStory]);
 
   const handleSubmit = async () => {
-    if (!formInput["title"] || !formInput["title"].trim().length) {
+    if (!formInput.has("title") || !formInput.get("title")?.trim().length) {
       setCurrentError("Title cannot be blank");
       setAreErrors(true);
       return;
     }
-    if (!formInput["description"] || !formInput["description"].trim().length) {
+    if (!formInput.has("description") || !formInput.get("description")?.trim().length) {
       setCurrentError("Description cannot be blank");
       setAreErrors(true);
       return;
     }
 
-    if (formInput["series_id"]) {
-      formInput["place"] = series.length;
+    if (formInput.has("series_id") && series) {
+      formInput.set("place", series.length.toString());
     }
     setCurrentError("");
     setAreErrors(false);
 
-    const formData = formInput.image ? formInput.image : new FormData();
-    for (const key in formInput) {
-      if (key !== "image" && formInput.hasOwnProperty(key) && formInput[key] !== null) {
+    const formData = new FormData();
+    for (const [key, value] of formInput) {
+      if (key === "image") {
+        // Assuming the value is a string representing the file path or similar
+        // You may need to adjust this part depending on how the image is represented
+        formData.append(key, value);
+      } else {
         formData.delete(key);
-        formData.append(key, formInput[key]);
+        formData.append(key, value);
       }
     }
+
     dispatch(setIsLoaderVisible(true));
     try {
       const response = await fetch("/api/stories", {
@@ -226,20 +242,9 @@ const CreateNewStory = () => {
         body: formData,
       });
       if (!response.ok) {
-        if (response.status === 401) {
-          dispatch(setAlertTitle("Insufficient Subscription"));
-          dispatch(setAlertMessage("Non-subscribers are limited to a single story."));
-          dispatch(setAlertLink({ location: "subscribe" }));
-          dispatch(setAlertSeverity("error"));
-          dispatch(setAlertTimeout(null));
-          dispatch(setAlertOpen(true));
-          handleClose();
-          dispatch(setIsLoaderVisible(false));
-          return;
-        }
         const errorData = await response.json();
-        const error = new Error(JSON.stringify(errorData));
-        error.response = response;
+        const error: Error = new Error(JSON.stringify(errorData));
+        error.message = response.toString();
         throw error;
       }
 
@@ -271,12 +276,13 @@ const CreateNewStory = () => {
         }
       } else {
         // added as a standalone
-        const newStory = {
+        const newStory: Story = {
           story_id: json.story_id,
           description: json.description,
           title: json.title,
           chapters: json.chapters,
           image_url: json.image_url + "?cache=" + new Date().getMilliseconds(),
+          created_at: json.created_at,
         };
         const newStandaloneList = [...standaloneList];
         newStandaloneList.push(newStory);
@@ -285,7 +291,7 @@ const CreateNewStory = () => {
       setTimeout(() => {
         handleClose();
       }, 500);
-    } catch (error) {
+    } catch (error: any) {
       console.error("creation error", error);
       const errorData = error.response ? JSON.parse(error.message) : {};
       if (errorData.error) {
@@ -298,7 +304,7 @@ const CreateNewStory = () => {
     dispatch(setIsLoaderVisible(false));
   };
 
-  const processImage = (acceptedFiles) => {
+  const processImage = (acceptedFiles: File[]) => {
     acceptedFiles.forEach((file) => {
       const reader = new FileReader();
       reader.onabort = () => console.log("file reading was aborted");
@@ -362,7 +368,7 @@ const CreateNewStory = () => {
             <div>
               <FormControlLabel
                 label="This is part of a series"
-                control={<Checkbox checked={isInASeries} id="isSeries" label="" onChange={toggleSeries} />}
+                control={<Checkbox checked={isInASeries} id="isSeries" onChange={toggleSeries} />}
                 sx={{
                   "& .MuiFormControlLabel-label": { color: "rgba(0, 0, 0, 0.6)" },
                 }}
@@ -371,10 +377,11 @@ const CreateNewStory = () => {
             {isInASeries ? (
               <div>
                 <Autocomplete
-                  onInputChange={(event) => {
+                  onInputChange={(event: React.SyntheticEvent) => {
                     if (event) {
-                      const entered = event.target.value.toString();
-                      const foundSeries = series.find((srs) => srs.label.toLowerCase() === entered.toLowerCase());
+                      const target = event.target;
+                      const entered = (target as HTMLInputElement).toString();
+                      const foundSeries = series?.find((srs) => srs.label.toLowerCase() === entered.toLowerCase());
                       const settingSeriesID = foundSeries && foundSeries.id ? foundSeries.id : null;
                       setFormInput((prevFormInput) => ({
                         ...prevFormInput,
@@ -383,17 +390,19 @@ const CreateNewStory = () => {
                       }));
                     }
                   }}
-                  onChange={(event, actions) => {
-                    if (event) {
-                      setFormInput((prevFormInput) => ({
-                        ...prevFormInput,
-                        series_id: actions.id,
-                        series_title: actions.label,
-                      }));
+                  onChange={(event: React.SyntheticEvent, value: any) => {
+                    if (event && value) {
+                      if (value.hasOwnProperty("id") && value.hasOwnProperty("label")) {
+                        setFormInput((prevFormInput) => ({
+                          ...prevFormInput,
+                          series_id: value.id,
+                          series_title: value.label,
+                        }));
+                      }
                     }
                   }}
                   freeSolo
-                  options={series}
+                  options={seriesList}
                   value={seriesMember}
                   renderInput={(params) => <TextField {...params} label="Series" />}
                 />

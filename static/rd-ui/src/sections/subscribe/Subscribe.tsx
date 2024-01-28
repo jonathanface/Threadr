@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import "../../css/subscribe.css";
 
 import { CardElement, useElements, useStripe } from "@stripe/react-stripe-js";
@@ -10,23 +10,38 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
-import {
-  setAlertMessage,
-  setAlertOpen,
-  setAlertSeverity,
-  setAlertTimeout,
-  setAlertTitle,
-} from "../../stores/alertSlice";
+import { StripeCardElementChangeEvent } from "@stripe/stripe-js/types/stripe-js";
+import { setAlert } from "../../stores/alertSlice";
+import { AppDispatch, RootState } from "../../stores/store";
 import { setSubscriptionFormOpen } from "../../stores/uiSlice";
+import { AlertToast, AlertToastType } from "../../utils/Toaster";
+
+interface PaymentMethod {
+  id: string;
+  brand: string;
+  last_four: string;
+  is_default?: boolean;
+}
+
+interface Product {
+  product_id: string;
+  price_id: string;
+  name: string;
+  description: string;
+  billing_amount: string;
+  billing_frequency: string;
+}
 
 const Subscribe = () => {
+  const useAppDispatch: () => AppDispatch = useDispatch;
+  const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
+  const dispatch = useAppDispatch();
   const [customerID, setCustomerID] = useState("");
   const [subscribeError, setSubscribeError] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState(null);
-  const [product, setProduct] = useState({});
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [product, setProduct] = useState<Product | null>(null);
 
-  const isOpen = useSelector((state) => state.ui.subscriptionFormOpen);
-  const dispatch = useDispatch();
+  const isOpen = useAppSelector((state) => state.ui.subscriptionFormOpen);
 
   const stripe = useStripe();
   const elements = useElements();
@@ -36,9 +51,11 @@ const Subscribe = () => {
   };
 
   const confirmCard = async () => {
-    console.log("confirm card");
     setSubscribeError("");
     try {
+      if (!stripe || !elements) {
+        throw new Error("stripe is not available");
+      }
       const response = await fetch("/billing/card", {
         credentials: "include",
         method: "POST",
@@ -53,33 +70,38 @@ const Subscribe = () => {
       const json = await response.json();
 
       const cardElement = elements.getElement(CardElement);
+      if (!cardElement) {
+        throw new Error("card element not found");
+      }
       // Create a payment method and handle the result
       const { paymentMethod, error } = await stripe.createPaymentMethod({
-        customerID: json.customerID,
+        //customerID: json.customerID,
         type: "card",
         card: cardElement,
       });
       if (error) {
-        throw new Error(error);
+        throw new Error(error.message);
       }
-      console.log("confirm", paymentMethod);
-      setPaymentMethod({
-        id: paymentMethod.id,
-        brand: paymentMethod.card.brand,
-        last_four: paymentMethod.card.last4,
-      });
-      const setPaymentResults = await fetch("/billing/customer", {
-        credentials: "include",
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ customer_id: customerID, payment_method_id: paymentMethod.id }),
-      });
-      if (!setPaymentResults.ok) {
-        throw new Error("Fetch problem update customer " + setPaymentResults.status);
+
+      if (paymentMethod.id && paymentMethod.card?.brand && paymentMethod.card?.last4) {
+        setPaymentMethod({
+          id: paymentMethod.id,
+          brand: paymentMethod.card?.brand ? paymentMethod.card.brand : "Unknown",
+          last_four: paymentMethod.card?.last4,
+        });
+        const setPaymentResults = await fetch("/billing/customer", {
+          credentials: "include",
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ customer_id: customerID, payment_method_id: paymentMethod.id }),
+        });
+        if (!setPaymentResults.ok) {
+          throw new Error("Fetch problem update customer " + setPaymentResults.status);
+        }
       }
-    } catch (error) {
+    } catch (error: any) {
       setSubscribeError(error);
     }
   };
@@ -101,7 +123,7 @@ const Subscribe = () => {
       if (json && json.id) {
         setCustomerID(json.id);
         if (json.payment_methods && json.payment_methods.length) {
-          const defaultPayment = json.payment_methods.filter((method) => method.is_default === true);
+          const defaultPayment = json.payment_methods.filter((method: PaymentMethod) => method.is_default === true);
           if (defaultPayment.length) {
             setPaymentMethod(defaultPayment[0]);
           }
@@ -114,7 +136,7 @@ const Subscribe = () => {
   };
 
   const subscribe = async () => {
-    if (!paymentMethod) {
+    if (!paymentMethod || !product) {
       return;
     }
     try {
@@ -135,17 +157,17 @@ const Subscribe = () => {
       }
       const json = await response.json();
 
-      dispatch(setAlertTitle("Welcome"));
-      dispatch(
-        setAlertMessage(
+      const newAlert: AlertToast = {
+        title: "Welcome",
+        message:
           "Your subscription is active until " +
-            json.period_end +
-            " and will automatically renew. If you had previously subscribed, any suspended stories will be restored in the next 30 minutes."
-        )
-      );
-      dispatch(setAlertSeverity("success"));
-      dispatch(setAlertTimeout(10000));
-      dispatch(setAlertOpen(true));
+          json.period_end +
+          " and will automatically renew. If you had previously subscribed, any suspended stories will be restored in the next 30 minutes.",
+        severity: AlertToastType.success,
+        timeout: 10000,
+        open: true,
+      };
+      dispatch(setAlert(newAlert));
       handleClose();
     } catch (error) {
       console.error(error);
@@ -178,7 +200,7 @@ const Subscribe = () => {
     }
   }, [isOpen, customerID, paymentMethod]);
 
-  const handleCardElementChange = (e) => {
+  const handleCardElementChange = (e: StripeCardElementChangeEvent) => {
     if (e.error) {
       console.log(e.error.message);
     }
@@ -187,33 +209,43 @@ const Subscribe = () => {
     }
   };
 
-  const updatePaymentMethod = (e) => {
+  const updatePaymentMethod = () => {
     setPaymentMethod(null);
     confirmCard();
   };
 
   return (
     <Dialog open={isOpen} maxWidth={"md"} fullWidth={true} onClose={handleClose} className="subscribe">
-      <DialogTitle>{product.name}</DialogTitle>
-      <DialogContent>
-        {!paymentMethod ? (
-          <CardElement onChange={(e) => handleCardElementChange(e)} />
-        ) : (
-          <DialogContentText>
-            <span>{product.description}</span>
-            <br />
-            <span>Subscribe with {paymentMethod.brand.toUpperCase() + " ending in " + paymentMethod.last_four}</span>
-            <span className="change-payment-button">
-              <Button onClick={updatePaymentMethod}>change</Button>
-            </span>
-          </DialogContentText>
-        )}
-        {subscribeError && <div>{subscribeError}</div>}
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose}>Cancel</Button>
-        <Button onClick={subscribe}>Subscribe</Button>
-      </DialogActions>
+      {product ? (
+        <div>
+          <DialogTitle>{product.name}</DialogTitle>
+          <DialogContent>
+            {!paymentMethod ? (
+              <CardElement onChange={(e) => handleCardElementChange(e)} />
+            ) : (
+              <DialogContentText>
+                <span>{product.description}</span>
+                <br />
+                <span>
+                  Subscribe with {paymentMethod.brand.toUpperCase() + " ending in " + paymentMethod.last_four}
+                </span>
+                <span className="change-payment-button">
+                  <Button onClick={updatePaymentMethod}>change</Button>
+                </span>
+              </DialogContentText>
+            )}
+            {subscribeError && <div>{subscribeError}</div>}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleClose}>Cancel</Button>
+            <Button onClick={subscribe}>Subscribe</Button>
+          </DialogActions>
+        </div>
+      ) : (
+        <div>
+          <h2>Unable to process subscriptions at this time. Please try again later.</h2>
+        </div>
+      )}
     </Dialog>
   );
 };
