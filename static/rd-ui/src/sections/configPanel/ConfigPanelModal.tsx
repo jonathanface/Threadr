@@ -6,14 +6,17 @@ import DialogTitle from "@mui/material/DialogTitle";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import React, { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "../../stores/store";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
 import { flipConfigPanelVisible, setUserDetails } from "../../stores/userSlice";
 
-const ConfigPanelModal = (props) => {
-  const isConfiguring = useSelector((state) => state.user.configPanelVisible);
-  const userDetails = useSelector((state) => state.user.userDetails);
-  const dispatch = useDispatch();
+const ConfigPanelModal = () => {
+  const useAppDispatch: () => AppDispatch = useDispatch;
+  const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
+  const dispatch = useAppDispatch();
+  const isConfiguring = useAppSelector((state) => state.user.configPanelVisible);
+  const userDetails = useAppSelector((state) => state.user.userDetails);
   const [error, setError] = useState("");
 
   useEffect(() => {}, [userDetails]);
@@ -25,9 +28,6 @@ const ConfigPanelModal = (props) => {
 
   const toggleSubscriptionRenewal = async () => {
     setError("");
-    const params = {};
-    params.renewing = !userDetails.renewing;
-
     dispatch(setIsLoaderVisible(true));
     try {
       const response = await fetch("/api/user", {
@@ -36,18 +36,18 @@ const ConfigPanelModal = (props) => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(params),
+        body: JSON.stringify({ renewing: !userDetails.renewing }),
       });
       if (!response.ok) {
         const errorData = await response.json();
         const error = new Error(JSON.stringify(errorData));
-        error.response = response;
+        error.message = response.statusText;
         throw error;
       }
       const json = await response.json();
       dispatch(setUserDetails(json));
-    } catch (error) {
-      const errorData = error.response ? JSON.parse(error.message) : {};
+    } catch (error: any) {
+      const errorData = error.message ? JSON.parse(error.message) : {};
       if (errorData.error) {
         setError(errorData.error);
       } else {

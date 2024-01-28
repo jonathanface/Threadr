@@ -3,6 +3,8 @@ import { createSlice } from "@reduxjs/toolkit";
 export interface UserDetails {
   user_id: string;
   email: string;
+  renewing: boolean;
+  subscription_id: string;
 }
 
 export interface User {
@@ -19,6 +21,8 @@ const initialState: User = {
   userDetails: {
     user_id: "",
     email: "",
+    renewing: false,
+    subscription_id: "",
   },
 };
 
