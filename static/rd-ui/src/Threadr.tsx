@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import "./css/main.css";
 import "./css/user-menu.css";
 import ConfigPanelModal from "./sections/configPanel/ConfigPanelModal";
-import CreateNewStory from "./sections/createNewStory/CreateNewStoryModal";
+import CreateNewStory from "./sections/createNewStory";
 import DefaultPage from "./sections/defaultPage/DefaultPage";
 import Document from "./sections/document/Document";
 import EditSeriesModal from "./sections/editSeries/EditSeriesModal";

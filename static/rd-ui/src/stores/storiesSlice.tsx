@@ -1,12 +1,16 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { Story } from "../types";
 
+export interface StoriesEditables {
+  story_id: string;
+}
+
 interface StoriesPanel {
   isCreatingNew: boolean;
   isEditingStory: boolean;
   belongsToSeries: string;
   standaloneList: Story[];
-  editables: Object;
+  editables: StoriesEditables;
   selectedStory: Story | null;
 }
 
@@ -15,7 +19,9 @@ const initialState: StoriesPanel = {
   isEditingStory: false,
   belongsToSeries: "",
   standaloneList: [],
-  editables: {},
+  editables: {
+    story_id: "",
+  },
   selectedStory: null,
 };
 

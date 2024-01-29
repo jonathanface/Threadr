@@ -1,8 +1,15 @@
 import { Box, Tooltip } from "@mui/material";
-import React, { useEffect, useState } from "react";
+import React, { ReactElement, useEffect, useState } from "react";
 import "../../css/association-tooltip.css";
 
-export default function AssociationTooltip(props) {
+interface AssociationTooltipProps {
+  portrait: string;
+  name: string;
+  description: string;
+  children: ReactElement;
+}
+
+const AssociationTooltip: React.FC<AssociationTooltipProps> = (props) => {
   const [portrait, setPortrait] = useState("/img/default_association_portrait.jpg");
   const [name, setName] = useState("someone or something");
   const [description, setDescription] = useState("Descriptive text goes here.");
@@ -43,4 +50,6 @@ export default function AssociationTooltip(props) {
       {props.children}
     </Tooltip>
   );
-}
+};
+
+export default AssociationTooltip;

@@ -1,11 +1,25 @@
+import { ContentBlock, ContentState } from "draft-js";
 import React from "react";
+import { Association } from "../../types";
 import AssociationTooltip from "./AssociationTooltip";
 
-export const TabSpan = (props) => {
+interface TabSpanProps {
+  children: React.ReactElement;
+}
+
+interface HighlightSpanProps {
+  association: Association;
+  leftClickFunc: Function;
+  rightClickFunc: Function;
+  decoratedText: string;
+  children: React.ReactElement;
+}
+
+export const TabSpan: React.FC<TabSpanProps> = (props) => {
   return <span className="tabEntity">{props.children}</span>;
 };
 
-export const HighlightSpan = (props) => {
+export const HighlightSpan: React.FC<HighlightSpanProps> = (props) => {
   return (
     <AssociationTooltip
       name={props.association.association_name}
@@ -28,8 +42,8 @@ export const HighlightSpan = (props) => {
   );
 };
 
-const getRegexString = (string) => {
-  return "\\b" + string + "\\b";
+const getRegexString = (str: string): string => {
+  return "\\b" + str + "\\b";
 };
 
 /**
@@ -39,8 +53,8 @@ const getRegexString = (string) => {
  * @param {function} callback
  * @param {ContentState} contentState
  */
-export const FindHighlightable = (type, name, associations) => {
-  return (contentBlock, callback) => {
+export const FindHighlightable = (type: string, name: string, associations: Association[]) => {
+  return (contentBlock: ContentBlock, callback: Function) => {
     const text = contentBlock.getText();
     associations.forEach((association) => {
       if (association.association_type !== type) {
@@ -77,7 +91,7 @@ export const FindHighlightable = (type, name, associations) => {
   };
 };
 
-export const FindTabs = (contentBlock, callback, contentState) => {
+export const FindTabs = (contentBlock: ContentBlock, callback: any, contentState: ContentState) => {
   contentBlock.findEntityRanges((character) => {
     const entityKey = character.getEntity();
     return entityKey !== null && contentState.getEntity(entityKey).getType() === "TAB";

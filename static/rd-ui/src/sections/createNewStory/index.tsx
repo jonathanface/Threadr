@@ -1,21 +1,15 @@
-import Autocomplete from "@mui/material/Autocomplete";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Checkbox from "@mui/material/Checkbox";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import TextField from "@mui/material/TextField";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
-import { setSeriesList } from "../../stores/seriesSlice";
 import { AppDispatch, RootState } from "../../stores/store";
-import { flipCreatingNewStory, setStandaloneList } from "../../stores/storiesSlice";
-import { setIsLoaderVisible } from "../../stores/uiSlice";
-import { Series, Story } from "../../types";
+import { flipCreatingNewStory } from "../../stores/storiesSlice";
 import PortraitDropper from "../portraitdropper/PortraitDropper";
+
+import styles from "./createNewStory.module.css";
 
 interface SeriesSelectionOptions {
   label: string;
@@ -26,13 +20,106 @@ interface SeriesSelectionOptions {
 const CreateNewStory = () => {
   const useAppDispatch: () => AppDispatch = useDispatch;
   const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
+  const dispatch = useAppDispatch();
+
+  const seriesList = useAppSelector((state) => state.series.seriesList);
+  const isCreatingNewStory = useAppSelector((state) => state.stories.isCreatingNew);
+
+  const [imageURL, setImageURL] = useState("");
+  const [imageName, setImageName] = useState("Loading...");
+  const defaultImageURL = "img/icons/story_standalone_icon.jpg";
+
+  const [submitButtonDisabled, setSubmitButtonDisabled] = useState(true);
+
+  const getDefaultImage = () => {
+    const randomImageURL = "https://picsum.photos/300";
+    fetch(randomImageURL)
+      .then((response) => {
+        if (response.ok) {
+          setImageURL(response.url);
+        } else {
+          setImageURL(defaultImageURL);
+        }
+        //updateFormImage();
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  };
+
+  const handleClose = () => {
+    //resetForm();
+    dispatch(flipCreatingNewStory(null));
+  };
+
+  const onImageLoaded = () => {
+    setImageName("New Image");
+  };
+
+  const getBlobExtension = (mimeType: string) => {
+    switch (mimeType) {
+      case "image/jpeg":
+        return ".jpg";
+      case "image/png":
+        return ".png";
+      case "image/gif":
+        return ".gif";
+      default:
+        return "";
+    }
+  };
+
+  useEffect(() => {
+    if (isCreatingNewStory) {
+      getDefaultImage();
+    }
+  }, [isCreatingNewStory]);
+
+  const processImage = (acceptedFiles: File[]) => {
+    acceptedFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onabort = () => console.log("file reading was aborted");
+      reader.onerror = () => console.error("file reading has failed");
+      reader.onload = () => {
+        //const newFormData = new FormData();
+        //newFormData.append("file", file, "temp" + getBlobExtension(file.type));
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
+  const handleSubmit = () => {};
+
+  return (
+    <Dialog open={isCreatingNewStory} onClose={handleClose} className={styles.storyForm}>
+      <DialogTitle>Create a Story</DialogTitle>
+      <DialogContent>
+        <div className={styles.column}>
+          <PortraitDropper
+            imageURL={imageURL}
+            name={imageName}
+            onImageLoaded={onImageLoaded}
+            onComplete={processImage}
+          />
+        </div>
+        <div className={styles.column}></div>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose}>Cancel</Button>
+        <Button disabled={submitButtonDisabled} onClick={handleSubmit}>
+          Create
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+  /*
   const isCreatingNewStory = useAppSelector((state) => state.stories.isCreatingNew);
   const userDetails = useAppSelector((state) => state.user.userDetails);
   const isLoggedIn = useAppSelector((state) => state.user.isLoggedIn);
   const belongsToSeries = useAppSelector((state) => state.stories.belongsToSeries);
   const standaloneList = useAppSelector((state) => state.stories.standaloneList);
   const seriesList = useAppSelector((state) => state.series.seriesList);
-  const dispatch = useAppDispatch();
+  
   const [isInASeries, setIsInASeries] = useState(false);
   const [series, setSeries] = useState<SeriesSelectionOptions[]>();
   const [submitButtonDisabled, setSubmitButtonDisabled] = useState(true);
@@ -426,6 +513,6 @@ const CreateNewStory = () => {
         </DialogActions>
       </Dialog>
     </div>
-  );
+  );*/
 };
 export default CreateNewStory;

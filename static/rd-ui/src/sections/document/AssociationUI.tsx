@@ -5,10 +5,19 @@ import { FormGroup, TextField } from "@mui/material";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import "../../css/association-ui.css";
+import { Association } from "../../types";
 import PortraitDropper from "../portraitdropper/PortraitDropper";
 import { UCWords } from "./utilities";
 
-const AssociationUI = (props) => {
+interface AssociationProps {
+  association: Association;
+  onCloseCallback: Function;
+  onEditCallback: Function;
+  storyID: string;
+  open: boolean;
+}
+//const Document: React.FC<DocumentProps> = () => {
+const AssociationUI: React.FC<AssociationProps> = (props) => {
   const [caseSensitive, setCaseSensitive] = useState(
     !props.association ? false : props.association.details.case_sensitive
   );
@@ -21,14 +30,14 @@ const AssociationUI = (props) => {
   );
 
   const handleClose = () => {
-    props.onClose();
-    setTimeout(() => {
-      setName("");
-      setDescription("");
-      setDetails("");
-      setAliases("");
-      setImageURL("/img/default_association_portrait.jpg");
-    }, 500);
+    //setTimeout(() => {
+    setName("");
+    setDescription("");
+    setDetails("");
+    setAliases("");
+    setImageURL("/img/default_association_portrait.jpg");
+    //}, 500);
+    props.onCloseCallback();
   };
 
   useEffect(() => {
@@ -42,7 +51,7 @@ const AssociationUI = (props) => {
     }
   }, [props.association]);
 
-  const onAssociationEdit = (newValue, id) => {
+  const onAssociationEdit = (newValue: any, id: string) => {
     const newAssociation = props.association;
     let saveRequired = false;
     switch (id) {
@@ -81,7 +90,7 @@ const AssociationUI = (props) => {
     }
   };
 
-  const processImage = (acceptedFiles) => {
+  const processImage = (acceptedFiles: File[]) => {
     acceptedFiles.forEach((file) => {
       const reader = new FileReader();
       reader.onabort = () => console.log("file reading was aborted");
@@ -91,7 +100,7 @@ const AssociationUI = (props) => {
         formData.append("file", file);
         fetch(
           "/api/stories/" +
-            props.story +
+            props.storyID +
             "/associations/" +
             props.association.association_id +
             "/upload?type=" +

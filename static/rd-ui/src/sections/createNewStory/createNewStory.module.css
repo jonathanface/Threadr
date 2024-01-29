@@ -1,0 +1,9 @@
+.story-form {
+  display: flex;
+}
+.story-form .column {
+  flex: 1;
+}
+.story-form:first-of-type("div") {
+  width: 200px;
+}

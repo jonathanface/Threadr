@@ -51,7 +51,7 @@ import {
 } from "../../types";
 import { AlertFunctionCall, AlertLink, AlertToast, AlertToastType } from "../../utils/Toaster";
 import { MenuItemEntry } from "../ContextMenu/MenuItem";
-import ContextMenu from "../ContextMenu/index.js";
+import ContextMenu from "../ContextMenu/index";
 import AssociationUI from "./AssociationUI.js";
 import EditableText from "./EditableText.js";
 import Exporter from "./Exporter.js";
@@ -1496,14 +1496,14 @@ const Document: React.FC<DocumentProps> = () => {
 
   return (
     <div>
-      {selectedStory ? (
+      {selectedStory && viewingAssociation ? (
         <div>
           <AssociationUI
             open={associationWindowOpen}
             association={viewingAssociation}
-            story={selectedStory.story_id}
+            storyID={selectedStory.story_id}
             onEditCallback={onAssociationEdit}
-            onClose={() => {
+            onCloseCallback={() => {
               setAssociationWindowOpen(false);
               setFocusAndRestoreCursor();
             }}
