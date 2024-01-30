@@ -1157,7 +1157,6 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 }
 
 func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle string) (storyID string, err error) {
-	fmt.Println("creating story", story)
 	twii := &dynamodb.TransactWriteItemsInput{}
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	attributes := map[string]types.AttributeValue{
@@ -1168,6 +1167,8 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 		"created_at":  &types.AttributeValueMemberN{Value: now},
 		"image_url":   &types.AttributeValueMemberS{Value: story.ImageURL},
 	}
+
+	fmt.Println("series", story.SeriesID)
 
 	if story.SeriesID != "" {
 		intPlace := strconv.Itoa(story.Place)
@@ -1190,9 +1191,9 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 	if !awsErr.IsNil() {
 		return "", fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 	}
-	twii = &dynamodb.TransactWriteItemsInput{}
 
 	if story.SeriesID != "" {
+		twii = &dynamodb.TransactWriteItemsInput{}
 		params := &dynamodb.ScanInput{
 			TableName:        aws.String("series"),
 			FilterExpression: aws.String("series_id=:sid"),
@@ -1240,14 +1241,15 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 			},
 		}
 		twii.TransactItems = append(twii.TransactItems, updateStoryTwi)
-	}
-
-	err, awsErr = d.awsWriteTransaction(twii)
-	if err != nil {
-		return "", err
-	}
-	if !awsErr.IsNil() {
-		return "", fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
+		err, awsErr = d.awsWriteTransaction(twii)
+		if err != nil {
+			fmt.Println("Here?")
+			return "", err
+		}
+		if !awsErr.IsNil() {
+			fmt.Println("or here?")
+			return "", fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
+		}
 	}
 	return story.ID, nil
 }

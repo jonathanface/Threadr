@@ -60,9 +60,12 @@ export const seriesSlice = createSlice({
     setSeriesList: (state, action) => {
       state.seriesList = action.payload;
     },
+    pushToSeriesList: (state, action) => {
+      state.seriesList.push(action.payload);
+    },
   },
 });
 
-export const { flipEditingSeries, setSeriesEditables, setSeriesList } = seriesSlice.actions;
+export const { flipEditingSeries, setSeriesEditables, setSeriesList, pushToSeriesList } = seriesSlice.actions;
 
 export default seriesSlice.reducer;

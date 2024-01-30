@@ -18,7 +18,7 @@ export const alertSlice = createSlice({
   reducers: {
     setAlert: (state, action) => {
       clearAlert();
-      state = action.payload;
+      Object.assign(state, action.payload);
     },
     clearAlert: (state) => {
       state = initialState;

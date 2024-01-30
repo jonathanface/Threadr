@@ -1,7 +1,7 @@
 import Alert, { AlertColor } from "@mui/material/Alert";
 import AlertTitle from "@mui/material/AlertTitle";
 import Snackbar from "@mui/material/Snackbar";
-import React from "react";
+import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import type { TypedUseSelectorHook } from "react-redux";
@@ -10,10 +10,10 @@ import type { AppDispatch, RootState } from "../stores/store";
 import { clearAlert } from "../stores/alertSlice";
 
 export enum AlertToastType {
-  success,
-  info,
-  warning,
-  error,
+  success = "success",
+  info = "info",
+  warning = "warning",
+  error = "error",
 }
 
 export interface AlertLink {
@@ -50,11 +50,15 @@ const Toaster = () => {
   const link = useAppSelector((state) => state.alerts.link);
   const func = useAppSelector((state) => state.alerts.func);
 
+  const alertState = useAppSelector((state) => state.alerts);
+
   const handleClose = () => {
     dispatch(clearAlert());
   };
 
   const splitByNewline = alertMessage.split("\n");
+
+  useEffect(() => {}, [alertState]);
 
   return (
     <Snackbar

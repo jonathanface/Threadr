@@ -6,15 +6,29 @@ import DialogTitle from "@mui/material/DialogTitle";
 import React, { useEffect, useState } from "react";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../stores/store";
-import { flipCreatingNewStory } from "../../stores/storiesSlice";
+import { flipCreatingNewStory, pushToStandaloneList } from "../../stores/storiesSlice";
 import PortraitDropper from "../portraitdropper/PortraitDropper";
 
+import { Autocomplete, TextField } from "@mui/material";
+import { setAlert } from "../../stores/alertSlice";
+import { pushToSeriesList, setSeriesList } from "../../stores/seriesSlice";
+import { AlertToast, AlertToastType } from "../../utils/Toaster";
 import styles from "./createNewStory.module.css";
 
 interface SeriesSelectionOptions {
   label: string;
   id: string;
   count: number;
+}
+
+interface CreateStoryForm {
+  [key: string]: string | undefined | File | number;
+  title?: string;
+  description?: string;
+  series_id?: string;
+  series_title?: string;
+  image?: File;
+  series_place?: number;
 }
 
 const CreateNewStory = () => {
@@ -27,9 +41,30 @@ const CreateNewStory = () => {
 
   const [imageURL, setImageURL] = useState("");
   const [imageName, setImageName] = useState("Loading...");
+  const [isInASeries, setIsInASeries] = useState(false);
+  const [seriesDisplayList, setSeriesDisplayList] = useState<SeriesSelectionOptions[]>([]);
+  const [storyForm, setStoryForm] = useState<CreateStoryForm | null>(null);
+
   const defaultImageURL = "img/icons/story_standalone_icon.jpg";
 
-  const [submitButtonDisabled, setSubmitButtonDisabled] = useState(true);
+  const attachImageToForm = async () => {
+    fetch(imageURL, {
+      headers: {
+        Accept: "image/*",
+      },
+    })
+      .then((response) => response.blob())
+      .then((blob) => {
+        const file = new File([blob], "temp" + getBlobExtension(blob.type));
+        setStoryForm((prevFormInput) => ({
+          ...prevFormInput,
+          image: file,
+        }));
+      })
+      .catch((error) => {
+        console.error("Fetch operation failed: ", error);
+      });
+  };
 
   const getDefaultImage = () => {
     const randomImageURL = "https://picsum.photos/300";
@@ -40,16 +75,25 @@ const CreateNewStory = () => {
         } else {
           setImageURL(defaultImageURL);
         }
-        //updateFormImage();
       })
       .catch((error) => {
         console.error(error);
       });
   };
 
+  const resetForm = () => {
+    setImageURL("");
+    setImageName("Loading...");
+    setIsInASeries(false);
+    storyFormMessage.title = "Cannot create story";
+    storyFormMessage.message = "";
+    storyFormMessage.severity = AlertToastType.error;
+    setStoryForm(null);
+  };
+
   const handleClose = () => {
-    //resetForm();
     dispatch(flipCreatingNewStory(null));
+    resetForm();
   };
 
   const onImageLoaded = () => {
@@ -70,10 +114,26 @@ const CreateNewStory = () => {
   };
 
   useEffect(() => {
+    if (imageURL.length) {
+      attachImageToForm();
+    }
+  }, [imageURL]);
+
+  useEffect(() => {
     if (isCreatingNewStory) {
       getDefaultImage();
     }
-  }, [isCreatingNewStory]);
+
+    setSeriesDisplayList(
+      seriesList.map((entry) => {
+        return {
+          label: entry.series_title,
+          id: entry.series_id,
+          count: entry.stories.length,
+        };
+      })
+    );
+  }, [isCreatingNewStory, seriesList]);
 
   const processImage = (acceptedFiles: File[]) => {
     acceptedFiles.forEach((file) => {
@@ -81,247 +141,63 @@ const CreateNewStory = () => {
       reader.onabort = () => console.log("file reading was aborted");
       reader.onerror = () => console.error("file reading has failed");
       reader.onload = () => {
-        //const newFormData = new FormData();
-        //newFormData.append("file", file, "temp" + getBlobExtension(file.type));
+        setStoryForm((prevFormInput) => ({
+          ...prevFormInput, // spread previous form input
+          image: file, // set new image data
+        }));
       };
       reader.readAsArrayBuffer(file);
     });
   };
 
-  const handleSubmit = () => {};
-
-  return (
-    <Dialog open={isCreatingNewStory} onClose={handleClose} className={styles.storyForm}>
-      <DialogTitle>Create a Story</DialogTitle>
-      <DialogContent>
-        <div className={styles.column}>
-          <PortraitDropper
-            imageURL={imageURL}
-            name={imageName}
-            onImageLoaded={onImageLoaded}
-            onComplete={processImage}
-          />
-        </div>
-        <div className={styles.column}></div>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose}>Cancel</Button>
-        <Button disabled={submitButtonDisabled} onClick={handleSubmit}>
-          Create
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-  /*
-  const isCreatingNewStory = useAppSelector((state) => state.stories.isCreatingNew);
-  const userDetails = useAppSelector((state) => state.user.userDetails);
-  const isLoggedIn = useAppSelector((state) => state.user.isLoggedIn);
-  const belongsToSeries = useAppSelector((state) => state.stories.belongsToSeries);
-  const standaloneList = useAppSelector((state) => state.stories.standaloneList);
-  const seriesList = useAppSelector((state) => state.series.seriesList);
-  
-  const [isInASeries, setIsInASeries] = useState(false);
-  const [series, setSeries] = useState<SeriesSelectionOptions[]>();
-  const [submitButtonDisabled, setSubmitButtonDisabled] = useState(true);
-
-  const initMap: Map<string, string> = new Map();
-  initMap.set("place", "1");
-
-  const [formInput, setFormInput] = useState(initMap);
-  if (belongsToSeries) {
-    formInput.set("series_id", belongsToSeries);
-  }
-
-  const [areErrors, setAreErrors] = useState(false);
-  const [currentError, setCurrentError] = useState("");
-  const [imageURL, setImageURL] = useState("");
-  const [imageName, setImageName] = useState("Loading...");
-  const [seriesMember, setSeriesMember] = useState({ label: "" });
-  const defaultImageURL = "img/icons/story_standalone_icon.jpg";
-
-  const parentDiv = useRef<HTMLElement>(null);
-
-  const resetForm = () => {
-    setSubmitButtonDisabled(true);
-    setFormInput(initMap);
-    setAreErrors(false);
-    setCurrentError("");
-    setIsInASeries(false);
-    setImageURL("");
-    setImageName("Loading...");
-    setSeriesMember({ label: "" });
+  const storyFormMessage: AlertToast = {
+    title: "Cannot create story",
+    message: "",
+    timeout: 6000,
+    open: true,
+    severity: AlertToastType.error,
+    link: undefined,
   };
-
-  const handleClose = () => {
-    resetForm();
-    dispatch(flipCreatingNewStory(null));
-  };
-
-  const toggleSeries = () => {
-    setIsInASeries(!isInASeries);
-  };
-
-  const getSeries = () => {
-    fetch("/api/series", {
-      credentials: "include",
-    })
-      .then((response) => {
-        if (response.ok) {
-          return response.json();
-        }
-        throw new Error("Fetch problem series " + response.status);
-      })
-      .then((data: Map<string, Series[]>) => {
-        if (data && data.has(userDetails.email)) {
-          const reduced = data.get(userDetails.email)?.reduce((accumulator: Series, currentValue: Series) => {
-            if (!accumulator[currentValue.series_id]) {
-              accumulator[currentValue.series_id] = {
-                id: currentValue.series_id,
-                title: currentValue.series_title,
-                count: 0,
-                selected: false,
-              };
-              const found = currentValue.stories.some((story) => story.series_id === belongsToSeries);
-              if (found) {
-                accumulator[currentValue.series_id].selected = true;
-              }
-            }
-            accumulator[currentValue.series_id].count += 1;
-            return accumulator;
-          });
-          const params: SeriesSelectionOptions[] = [];
-          for (const series_id in reduced) {
-            const series = reduced[series_id];
-            const entry: SeriesSelectionOptions = {
-              label: series.title,
-              id: series.id,
-              count: series.count,
-            };
-            if (series.selected) {
-              setSeriesMember(entry);
-              setIsInASeries(true);
-            }
-            params.push(entry);
-          }
-          setSeries(params);
-        }
-      })
-      .catch((error) => {
-        console.error("get series", error);
-      });
-  };
-
-  const getDefaultImage = () => {
-    const randomImageURL = "https://picsum.photos/300";
-    fetch(randomImageURL)
-      .then((response) => {
-        if (response.ok) {
-          setImageURL(response.url);
-        } else {
-          setImageURL(defaultImageURL);
-        }
-        updateFormImage();
-      })
-      .catch((error) => {
-        console.error(error);
-      });
-  };
-
-  const getBlobExtension = (mimeType: string) => {
-    switch (mimeType) {
-      case "image/jpeg":
-        return ".jpg";
-      case "image/png":
-        return ".png";
-      case "image/gif":
-        return ".gif";
-      default:
-        return "";
-    }
-  };
-
-  const updateFormImage = async () => {
-    fetch(imageURL, {
-      credentials: "include",
-      headers: {
-        Accept: "image/*",
-      },
-    })
-      .then((response) => response.blob())
-      .then((blob) => {
-        const fd = new FormData();
-        fd.append("file", blob, "temp" + getBlobExtension(blob.type));
-        setFormInput((prevFormInput) => ({
-          ...prevFormInput, // spread previous form input
-          image: fd, // set new image data
-        }));
-      })
-      .catch((error) => {
-        console.error("Fetch operation failed: ", error);
-      });
-  };
-
-  useEffect(() => {
-    const handleScrollEnd = () => {
-      setSubmitButtonDisabled(false);
-    };
-
-    const div = parentDiv.current;
-    if (div) {
-      div.addEventListener("scrollend", handleScrollEnd);
-    }
-    return () => {
-      if (div) {
-        div.removeEventListener("scrollend", handleScrollEnd);
-      }
-    };
-  }, [parentDiv]);
-
-  useEffect(() => {
-    if (imageURL) {
-      updateFormImage();
-    }
-  }, [imageURL]);
-
-  useEffect(() => {
-    if (isLoggedIn && isCreatingNewStory) {
-      getSeries();
-      getDefaultImage();
-      setIsInASeries(false);
-    }
-  }, [isLoggedIn, isCreatingNewStory]);
 
   const handleSubmit = async () => {
-    if (!formInput.has("title") || !formInput.get("title")?.trim().length) {
-      setCurrentError("Title cannot be blank");
-      setAreErrors(true);
+    if (!storyForm) {
       return;
     }
-    if (!formInput.has("description") || !formInput.get("description")?.trim().length) {
-      setCurrentError("Description cannot be blank");
-      setAreErrors(true);
+    if (!storyForm.title || !storyForm.title.trim().length) {
+      storyFormMessage.message = "Title is required";
+      dispatch(setAlert(storyFormMessage));
+      return;
+    }
+    if (!storyForm.description || !storyForm.description.trim().length) {
+      storyFormMessage.message = "Description is required";
+      dispatch(setAlert(storyFormMessage));
       return;
     }
 
-    if (formInput.has("series_id") && series) {
-      formInput.set("place", series.length.toString());
+    if (storyForm.series_id) {
+      const foundSeries = seriesList?.find((srs) => srs.series_id === storyForm.series_id);
+      if (foundSeries) {
+        storyForm.series_place = foundSeries.stories.length ? foundSeries.stories.length : 1;
+      }
+    } else if (storyForm.series_title) {
+      storyForm.series_place = 1;
     }
-    setCurrentError("");
-    setAreErrors(false);
 
     const formData = new FormData();
-    for (const [key, value] of formInput) {
-      if (key === "image") {
-        // Assuming the value is a string representing the file path or similar
-        // You may need to adjust this part depending on how the image is represented
-        formData.append(key, value);
-      } else {
-        formData.delete(key);
-        formData.append(key, value);
+    for (const key in storyForm) {
+      if (storyForm.hasOwnProperty(key)) {
+        const value = storyForm[key];
+        if (value === undefined) continue;
+        if (typeof value === "string" || typeof value === "number") {
+          formData.append(key, value.toString());
+          continue;
+        }
+        if (value instanceof File) {
+          formData.append("file", value);
+        }
       }
     }
 
-    dispatch(setIsLoaderVisible(true));
     try {
       const response = await fetch("/api/stories", {
         credentials: "include",
@@ -331,188 +207,139 @@ const CreateNewStory = () => {
       if (!response.ok) {
         const errorData = await response.json();
         const error: Error = new Error(JSON.stringify(errorData));
-        error.message = response.toString();
+        error.message = response.statusText;
         throw error;
       }
-
       const json = await response.json();
-      if (json.series_id.length) {
-        // added to a series
-        const seriesIndex = seriesList.findIndex((srs) => srs.series_id === json.series_id);
-
-        if (seriesIndex >= 0) {
-          // series is already known
-          const updatedSeries = JSON.parse(JSON.stringify(seriesList[seriesIndex]));
-
-          updatedSeries.stories.push({
-            story_id: json.story_id,
-            series_id: json.series_id,
-            title: json.title,
-            place: json.place,
-            created_at: json.created_at,
-            description: json.description,
-            chapters: json.chapters,
-            image_url: json.image_url.length ? json.image_url : "/img/icons/story_standalone_icon.jpg",
-          });
-          const newSeriesList = [...seriesList];
-          newSeriesList[seriesIndex] = updatedSeries;
+      if (json.series_id) {
+        const newSeriesList = [...seriesList];
+        const foundSeriesIndex = seriesList?.findIndex((srs) => srs.series_id === json.series_id);
+        if (foundSeriesIndex !== undefined && foundSeriesIndex >= 0) {
+          const updatedSeries = { ...newSeriesList[foundSeriesIndex] };
+          updatedSeries.stories = [...updatedSeries.stories, json];
+          newSeriesList[foundSeriesIndex] = updatedSeries;
           dispatch(setSeriesList(newSeriesList));
         } else {
-          // unknown series - probably new
-          console.log("Series not found");
+          dispatch(
+            pushToSeriesList({
+              series_id: json.series_id,
+              series_title: json.series_title,
+              series_description: "",
+              stories: [json],
+            })
+          );
         }
       } else {
-        // added as a standalone
-        const newStory: Story = {
-          story_id: json.story_id,
-          description: json.description,
-          title: json.title,
-          chapters: json.chapters,
-          image_url: json.image_url + "?cache=" + new Date().getMilliseconds(),
-          created_at: json.created_at,
-          place: 1,
-        };
-        const newStandaloneList = [...standaloneList];
-        newStandaloneList.push(newStory);
-        dispatch(setStandaloneList(newStandaloneList));
+        dispatch(pushToStandaloneList(json));
       }
-      setTimeout(() => {
-        handleClose();
-      }, 500);
+      storyFormMessage.title = "Story creation success";
+      storyFormMessage.message = "";
+      storyFormMessage.severity = AlertToastType.success;
+      dispatch(setAlert(storyFormMessage));
+      handleClose();
     } catch (error: any) {
-      console.error("creation error", error);
-      const errorData = error.response ? JSON.parse(error.message) : {};
-      if (errorData.error) {
-        setCurrentError(errorData.error);
-      } else {
-        setCurrentError("Unable to create your story at this time. Please try again later.");
-      }
-      setAreErrors(true);
+      console.error(error);
+      storyFormMessage.message = "Please try again later or contact support at the link below:";
+      dispatch(setAlert(storyFormMessage));
     }
-    dispatch(setIsLoaderVisible(false));
-  };
-
-  const processImage = (acceptedFiles: File[]) => {
-    acceptedFiles.forEach((file) => {
-      const reader = new FileReader();
-      reader.onabort = () => console.log("file reading was aborted");
-      reader.onerror = () => console.error("file reading has failed");
-      reader.onload = () => {
-        const newFormData = new FormData();
-        newFormData.append("file", file, "temp" + getBlobExtension(file.type));
-        setFormInput((prevFormInput) => ({
-          ...prevFormInput, // spread previous form input
-          image: newFormData, // set new image data
-        }));
-      };
-      reader.readAsArrayBuffer(file);
-    });
-  };
-
-  const onImageLoaded = () => {
-    setImageName("New Image");
   };
 
   return (
-    <div>
-      <Dialog open={isCreatingNewStory} onClose={handleClose}>
-        <DialogTitle>Create a Story</DialogTitle>
-        <DialogContent ref={parentDiv}>
-          <Box component="form">
-            <div>
-              <h3>Image for Your Story</h3>
-              <PortraitDropper
-                imageURL={imageURL}
-                name={imageName}
-                onImageLoaded={onImageLoaded}
-                onComplete={processImage}
-              />
-              <TextField
+    <Dialog open={isCreatingNewStory} onClose={handleClose} className={styles.storyForm}>
+      <DialogTitle>Create a Story</DialogTitle>
+      <DialogContent>
+        <div className={styles.content}>
+          <div className={styles.column + " " + styles.left}>
+            <PortraitDropper
+              imageURL={imageURL}
+              name={imageName}
+              onImageLoaded={onImageLoaded}
+              onComplete={processImage}
+            />
+          </div>
+          <div className={styles.column + " " + styles.right}>
+            <p>
+              <label htmlFor="create-story-title">Title:</label>
+              <input
+                type="text"
+                id="create-story-title"
                 onChange={(event) => {
-                  setFormInput((prevFormInput) => ({
+                  setStoryForm((prevFormInput) => ({
                     ...prevFormInput,
                     title: event.target.value,
                   }));
                 }}
-                autoFocus
-                label="Title"
-                helperText="Cannot be blank"
               />
-            </div>
-            <div>
-              <TextField
+            </p>
+            <p>
+              <label htmlFor="create-story-description">Description</label>
+              <textarea
+                spellCheck="false"
+                id="create-story-description"
                 onChange={(event) => {
-                  setFormInput((prevFormInput) => ({
+                  setStoryForm((prevFormInput) => ({
                     ...prevFormInput,
                     description: event.target.value,
                   }));
                 }}
-                label="Description"
-                helperText="Cannot be blank"
-                multiline
-                maxRows={4}
               />
-            </div>
-            <div>
-              <FormControlLabel
-                label="This is part of a series"
-                control={<Checkbox checked={isInASeries} id="isSeries" onChange={toggleSeries} />}
-                sx={{
-                  "& .MuiFormControlLabel-label": { color: "rgba(0, 0, 0, 0.6)" },
-                }}
-              />
-            </div>
+            </p>
+          </div>
+        </div>
+        <div className={styles.seriesBox}>
+          <div>
+            <input type="checkbox" id="create-story-is-in-series" onChange={() => setIsInASeries(!isInASeries)} />
+            <label htmlFor="create-story-is-in-series">This is part of a series</label>
+          </div>
+          <div>
             {isInASeries ? (
               <div>
                 <Autocomplete
-                  onInputChange={(event: React.SyntheticEvent) => {
+                  onInputChange={(event: React.SyntheticEvent, value: string) => {
                     if (event) {
-                      const target = event.target;
-                      const entered = (target as HTMLInputElement).toString();
-                      const foundSeries = series?.find((srs) => srs.label.toLowerCase() === entered.toLowerCase());
-                      const settingSeriesID = foundSeries && foundSeries.id ? foundSeries.id : null;
-                      setFormInput((prevFormInput) => ({
-                        ...prevFormInput,
-                        series_id: settingSeriesID,
-                        series_title: entered,
-                      }));
-                    }
-                  }}
-                  onChange={(event: React.SyntheticEvent, value: any) => {
-                    if (event && value) {
-                      if (value.hasOwnProperty("id") && value.hasOwnProperty("label")) {
-                        setFormInput((prevFormInput) => ({
+                      const foundSeries = seriesList?.find(
+                        (srs) => srs.series_title.toLowerCase() === value.toLowerCase()
+                      );
+                      if (foundSeries) {
+                        setStoryForm((prevFormInput) => ({
                           ...prevFormInput,
-                          series_id: value.id,
-                          series_title: value.label,
+                          series_id: foundSeries.series_id,
+                          series_title: foundSeries.series_title,
+                        }));
+                      } else {
+                        setStoryForm((prevFormInput) => ({
+                          ...prevFormInput,
+                          series_id: undefined,
+                          series_title: value,
                         }));
                       }
                     }
                   }}
+                  onChange={(event: React.SyntheticEvent, value: any) => {
+                    if (value.hasOwnProperty("id") && value.hasOwnProperty("label")) {
+                      setStoryForm((prevFormInput) => ({
+                        ...prevFormInput,
+                        series_id: value.id,
+                        series_title: value.label,
+                      }));
+                    }
+                  }}
                   freeSolo
-                  options={seriesList}
-                  value={seriesMember}
+                  options={seriesDisplayList}
                   renderInput={(params) => <TextField {...params} label="Series" />}
                 />
               </div>
             ) : (
               ""
             )}
-            {areErrors && (
-              <div id="error_report" className="form-error">
-                {currentError}
-              </div>
-            )}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button disabled={submitButtonDisabled} onClick={handleSubmit}>
-            Create
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </div>
-  );*/
+          </div>
+        </div>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose}>Cancel</Button>
+        <Button onClick={handleSubmit}>Create</Button>
+      </DialogActions>
+    </Dialog>
+  );
 };
 export default CreateNewStory;

@@ -52,10 +52,19 @@ export const storiesSlice = createSlice({
     setSelectedStory: (state, action) => {
       state.selectedStory = action.payload;
     },
+    pushToStandaloneList: (state, action) => {
+      state.standaloneList.push(action.payload);
+    },
   },
 });
 
-export const { flipCreatingNewStory, flipEditingStory, setStandaloneList, setStoryEditables, setSelectedStory } =
-  storiesSlice.actions;
+export const {
+  flipCreatingNewStory,
+  flipEditingStory,
+  setStandaloneList,
+  setStoryEditables,
+  setSelectedStory,
+  pushToStandaloneList,
+} = storiesSlice.actions;
 
 export default storiesSlice.reducer;

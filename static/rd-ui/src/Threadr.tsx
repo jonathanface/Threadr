@@ -106,7 +106,7 @@ const Threadr = () => {
               "As this application is still under development, making regular offline backup of your work is highly recommended.\nPlease send any bugs, feedback, or glowing praise to:",
             open: true,
             link: alertLink,
-            severity: AlertToastType.error,
+            severity: AlertToastType.info,
             timeout: 20000,
           };
           dispatch(setAlert(newAlert));

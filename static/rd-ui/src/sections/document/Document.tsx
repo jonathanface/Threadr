@@ -52,10 +52,10 @@ import {
 import { AlertFunctionCall, AlertLink, AlertToast, AlertToastType } from "../../utils/Toaster";
 import { MenuItemEntry } from "../ContextMenu/MenuItem";
 import ContextMenu from "../ContextMenu/index";
-import AssociationUI from "./AssociationUI.js";
-import EditableText from "./EditableText.js";
-import Exporter from "./Exporter.js";
-import { FindHighlightable, FindTabs, HighlightSpan, TabSpan } from "./decorators.js";
+import AssociationUI from "./AssociationUI";
+import EditableText from "./EditableText";
+import Exporter from "./Exporter";
+import { FindHighlightable, FindTabs, HighlightSpan, TabSpan } from "./decorators";
 import {
   FilterAndReduceDBOperations,
   GenerateTabCharacter,
