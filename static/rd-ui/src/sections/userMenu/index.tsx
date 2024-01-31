@@ -1,16 +1,25 @@
 import Person4Icon from "@mui/icons-material/Person4";
 import { IconButton } from "@mui/material";
 import React, { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "../../stores/store";
 import { setSelectedStory } from "../../stores/storiesSlice";
 import { setIsLoaderVisible, setIsSubscriptionFormOpen } from "../../stores/uiSlice";
-import { flipConfigPanelVisible, flipLoggedInState, flipLoginPanelVisible } from "../../stores/userSlice";
+import { UserDetails, flipConfigPanelVisible, flipLoggedInState, flipLoginPanelVisible } from "../../stores/userSlice";
+import styles from "./user-menu.module.css";
 
-const UserMenu = (props) => {
+interface UserMenuProps {
+  isLoggedIn: boolean;
+  userDetails: UserDetails | null;
+  isParentLoading: boolean;
+}
+const UserMenu = (props: UserMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const isLoggedIn = useSelector((state) => state.user.isLoggedIn);
-  const userDetails = useSelector((state) => state.user.userDetails);
-  const dispatch = useDispatch();
+  const useAppDispatch: () => AppDispatch = useDispatch;
+  const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
+  const dispatch = useAppDispatch();
+  const isLoggedIn = useAppSelector((state) => state.user.isLoggedIn);
+  const userDetails = useAppSelector((state) => state.user.userDetails);
 
   const showLoginPanel = () => {
     dispatch(flipLoginPanelVisible());
@@ -49,13 +58,13 @@ const UserMenu = (props) => {
   const displayComponent = !props.isParentLoading ? (
     isLoggedIn ? (
       <span
-        className="menu-container"
+        className={styles.menuContainer}
         onClick={() => setIsOpen(!isOpen)}
         onMouseEnter={() => setIsOpen(true)}
         onMouseLeave={() => setIsOpen(false)}>
-        <span className="icon">
+        <span className={styles.icon}>
           <IconButton size="small" sx={{ zIndex: 99 }} aria-label="user menu">
-            <Person4Icon fontSize="small" className={"menu-icon"} />
+            <Person4Icon fontSize="small" />
           </IconButton>
         </span>
         {isOpen && (
@@ -73,7 +82,7 @@ const UserMenu = (props) => {
     <div />
   );
 
-  return <span className="user-menu">{displayComponent}</span>;
+  return <span className={styles.userMenu}>{displayComponent}</span>;
 };
 
 export default UserMenu;

@@ -1,10 +1,10 @@
-.user-menu {
+.userMenu {
   position: absolute;
   top: 10px;
   left: 10px;
 }
 
-.user-menu > a {
+.userMenu > a {
   font-size: 0.8rem;
   color: #f0f0f0;
   cursor: pointer;
@@ -16,18 +16,18 @@
   background-color: #1b2828;
   filter: drop-shadow(2px 2px 2px #1a1a1a);
 }
-.user-menu > a:hover {
+.userMenu > a:hover {
   color: #fff;
   background-color: #131c1c;
 }
 
-.menu-container {
+.menuContainer {
   position: absolute;
   text-align: left;
   z-index: 40;
 }
 
-.user-menu .menu-container .icon {
+.userMenu .menuContainer .icon {
   text-align: center;
   border: 1px solid #fff;
   border-radius: 50%;
@@ -35,10 +35,8 @@
   height: 32.5px;
   display: inline-block;
 }
-.user-menu .menu-container .label {
-}
 
-.user-menu .menu-container ul {
+.userMenu .menuContainer ul {
   text-align: center;
   list-style: none;
   color: #fff;
@@ -50,7 +48,7 @@
   margin: 0;
   margin-top: 5px;
 }
-.user-menu .menu-container ul li {
+.userMenu .menuContainer ul li {
   border-bottom: 1px solid #333;
   width: 100px;
   background-color: #515d57;
@@ -58,6 +56,6 @@
   position: relative;
   padding: 5px;
 }
-.user-menu .menu-container ul li:hover {
+.userMenu .menuContainer ul li:hover {
   background-color: #40554b;
 }

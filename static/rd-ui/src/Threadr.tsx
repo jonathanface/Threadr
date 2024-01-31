@@ -4,17 +4,16 @@ import React, { useEffect, useState } from "react";
 import type { TypedUseSelectorHook } from "react-redux";
 import { useDispatch, useSelector } from "react-redux";
 import "./css/main.css";
-import "./css/user-menu.css";
 import ConfigPanelModal from "./sections/configPanel";
 import CreateNewStoryModal from "./sections/createNewStoryModal";
 import Document from "./sections/document/Document";
 import EditSeriesModal from "./sections/editSeriesModal";
 import EditStoryModal from "./sections/editStoryModal";
-import LoginPanelModal from "./sections/loginPanel/LoginPanelModal";
+import LoginPanelModal from "./sections/loginPanelModal";
 import SplashPage from "./sections/splash";
 import StoryAndSeriesListing from "./sections/storyAndSeriesListing";
 import Subscribe from "./sections/subscribe";
-import UserMenu from "./sections/userMenu/UserMenu";
+import UserMenu from "./sections/userMenu";
 import { setAlert } from "./stores/alertSlice";
 import type { AppDispatch, RootState } from "./stores/store";
 import { setSelectedStory } from "./stores/storiesSlice";
@@ -139,7 +138,7 @@ const Threadr = () => {
     <div className="App">
       <main>
         <header>
-          <UserMenu isParentLoading={isLoading} />
+          <UserMenu isParentLoading={isLoading} isLoggedIn={isLoggedIn} userDetails={null} />
           <h4>
             <span>R</span>ich<span>D</span>octer
             <img src="/img/logo_trans_scaled.png" alt="RichDocter" />
