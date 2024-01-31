@@ -12,7 +12,7 @@ import Document from "./sections/document/Document";
 import EditSeriesModal from "./sections/editSeries/EditSeriesModal";
 import EditStoryModal from "./sections/editStoryModal";
 import LoginPanelModal from "./sections/loginPanel/LoginPanelModal";
-import StoryAndSeriesListing from "./sections/storyAndSeriesListing/StoryAndSeriesListing";
+import StoryAndSeriesListing from "./sections/storyAndSeriesListing";
 import Subscribe from "./sections/subscribe/Subscribe";
 import UserMenu from "./sections/userMenu/UserMenu";
 import { setAlert } from "./stores/alertSlice";

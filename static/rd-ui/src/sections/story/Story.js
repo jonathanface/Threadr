@@ -11,7 +11,7 @@ import { flipEditingStory, setSelectedStory, setStandaloneList, setStoryBeingEdi
 import { setIsLoaderVisible } from "../../stores/uiSlice";
 import DetailsSlider from "./DetailsSlider";
 
-const Story = (props) => {
+const StoryBox = (props) => {
   const dispatch = useDispatch();
   const [wasDeleted, setWasDeleted] = useState(false);
   const [isStoryLoaderVisible, setIsStoryLoaderVisible] = useState(true);
@@ -245,4 +245,4 @@ const Story = (props) => {
   );
 };
 
-export default Story;
+export default StoryBox;

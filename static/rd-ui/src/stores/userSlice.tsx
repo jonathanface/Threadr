@@ -5,6 +5,7 @@ export interface UserDetails {
   email: string;
   renewing: boolean;
   subscription_id: string;
+  admin?: boolean;
 }
 
 export interface User {
