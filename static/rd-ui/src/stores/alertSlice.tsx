@@ -21,7 +21,7 @@ export const alertSlice = createSlice({
       Object.assign(state, action.payload);
     },
     clearAlert: (state) => {
-      state = initialState;
+      Object.assign(state, initialState);
     },
   },
 });
