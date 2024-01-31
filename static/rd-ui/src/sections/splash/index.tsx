@@ -1,11 +1,11 @@
 import React from "react";
-import "../../css/default-page.css";
+import styles from "./splash.module.css";
 
-const DefaultPage = () => {
+const SplashPage = () => {
   return (
-    <div className="default-page">
-      <div className="blurb">
-        <span className="column leftText">
+    <div className={styles.splash}>
+      <div className={styles.blurb}>
+        <span className={styles.column + " " + styles.leftText}>
           <h2>Organized Imagination</h2>
           <p>
             Dive into the world of storytelling with RichDocter's revolutionary online writing application, tailored
@@ -17,7 +17,7 @@ const DefaultPage = () => {
             <strong>We are officially in beta release and account creation is open.</strong>
           </p>
         </span>
-        <span className="column">
+        <span className={styles.column}>
           <figure>
             <video width="500" autoPlay muted loop playsInline>
               <source src="https://richdocter-demo-videos.s3.amazonaws.com/rd-demo-yt-2.mp4" type="video/mp4" />
@@ -26,13 +26,13 @@ const DefaultPage = () => {
           </figure>
         </span>
       </div>
-      <div className="blurb">
-        <span className="column">
+      <div className={styles.blurb}>
+        <span className={styles.column}>
           <figure>
             <img src="./img/crafting.jpg" alt="crafting worlds" />
           </figure>
         </span>
-        <span className="column leftText">
+        <span className={styles.column + " " + styles.leftText}>
           <h2>Craft Characters, Build Worlds, Tell Stories</h2>
           <div>
             <ul>
@@ -43,8 +43,8 @@ const DefaultPage = () => {
           </div>
         </span>
       </div>
-      <div className="blurb">
-        <span className="column leftText">
+      <div className={styles.blurb}>
+        <span className={styles.column + " " + styles.leftText}>
           <h2>Character Backstories at Your Fingertips</h2>
           <div>
             <ul>
@@ -54,19 +54,19 @@ const DefaultPage = () => {
             </ul>
           </div>
         </span>
-        <span className="column">
+        <span className={styles.column}>
           <figure>
             <img src="./img/characters.jpg" alt="character backstories" />
           </figure>
         </span>
       </div>
-      <div className="blurb">
-        <span className="column">
+      <div className={styles.blurb}>
+        <span className={styles.column}>
           <figure>
             <img src="./img/lore.jpg" alt="diving deep into lore" />
           </figure>
         </span>
-        <span className="column leftText">
+        <span className={styles.column + " " + styles.leftText}>
           <h2>Explore Your Story's Universe</h2>
           <div>
             <ul>
@@ -77,8 +77,8 @@ const DefaultPage = () => {
           </div>
         </span>
       </div>
-      <div className="blurb">
-        <span className="column leftText">
+      <div className={styles.blurb}>
+        <span className={styles.column + " " + styles.leftText}>
           <h2>Begin with Brilliance, End with Excellence.</h2>
           <div>
             In the digital age, adaptability is not just an advantage—it's a necessity. Craft your content with
@@ -87,7 +87,7 @@ const DefaultPage = () => {
             with just two clicks.
           </div>
         </span>
-        <span className="column">
+        <span className={styles.column}>
           <figure>
             <img src="./img/exporting.jpg" alt="easy document conversion" />
           </figure>
@@ -97,4 +97,4 @@ const DefaultPage = () => {
   );
 };
 
-export default DefaultPage;
+export default SplashPage;

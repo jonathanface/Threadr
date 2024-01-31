@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import "../../css/custom-context.css";
 import MenuItem, { MenuItemEntry } from "./MenuItem";
+import styles from "./custom-context.module.css";
 
 interface ContextMenuProps {
   visible: boolean;
@@ -37,8 +37,8 @@ const ContextMenu = (props: ContextMenuProps) => {
   });
 
   return (
-    <div className="custom-context" style={inlineStyle}>
-      <ul className="menu">
+    <div className={styles.customContext} style={inlineStyle}>
+      <ul className={styles.menu}>
         {props.items.map((item, index) => (
           <MenuItem key={index} item={item} />
         ))}

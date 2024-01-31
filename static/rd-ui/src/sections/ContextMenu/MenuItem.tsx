@@ -1,6 +1,6 @@
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import React from "react";
-import "../../css/custom-context.css";
+import styles from "./custom-context.module.css";
 
 export interface MenuItemEntry {
   name: string;
@@ -24,17 +24,19 @@ const MenuItem = (props: MenuItemProps) => {
   const hasSubItems = props.item.subItems && props.item.subItems.length > 0;
 
   return (
-    <li onMouseDown={(event) => event.preventDefault()} className={hasSubItems ? "menu-item has-submenu" : "menu-item"}>
+    <li
+      onMouseDown={(event) => event.preventDefault()}
+      className={hasSubItems ? styles.menuItem + " " + styles.hasSubmenu : styles.menuItem}>
       <a
         href="#"
         onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => handleClickAction(props.item, event)}>
-        <span className="label">
+        <span className={styles.label}>
           {props.item.name}
           {hasSubItems && <KeyboardArrowRightIcon />}
         </span>
       </a>
       {hasSubItems && (
-        <ul className="submenu">
+        <ul className={styles.submenu}>
           {props.item.subItems?.map((subItem, index) => (
             <MenuItem key={index} item={subItem} />
           ))}

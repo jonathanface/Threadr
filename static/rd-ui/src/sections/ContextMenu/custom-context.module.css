@@ -1,27 +1,27 @@
-.custom-context {
+.customContext {
   display: none;
   position: absolute;
   top: 0px;
   left: 0px;
   z-index: 50;
 }
-.custom-context a {
+.customContext a {
   color: #333;
   text-decoration: none;
   cursor: pointer;
 }
-.custom-context a:hover {
+.customContext a:hover {
   color: #f0f0f0;
 }
 
-.custom-context .menu,
-.custom-context .submenu {
+.customContext .menu,
+.customContext .submenu {
   list-style-type: none;
   padding: 0;
   box-shadow: 0 2px 12px 0 #0000001a;
 }
 
-.custom-context .menu-item {
+.customContext .menuItem {
   padding: 8px;
   position: relative;
   border-left: 0.5px solid #333;
@@ -29,52 +29,52 @@
   background-color: #fff;
   color: #333;
 }
-.custom-context .menu-item .label {
+.customContext .menuItem .label {
   display: flex;
   align-items: center;
 }
-.custom-context .menu-item:first-child {
+.customContext .menuItem:first-child {
   border-top: 0.5px solid #333;
   border-top-left-radius: 5px;
   border-top-right-radius: 5px;
 }
-.custom-context .menu-item:last-child {
+.customContext .menuItem:last-child {
   border-bottom: 0.5px solid #333;
   border-bottom-left-radius: 5px;
   border-bottom-right-radius: 5px;
 }
-.custom-context .menu-item:hover {
+.customContext .menuItem:hover {
   color: #f0f0f0;
   background-color: #515d57;
 }
-.menu-item.has-submenu > .submenu .menu-item {
+.menuItem.has-submenu > .submenu .menuItem {
   color: #333; /* Reset background for sub-menu items */
   background-color: #fff;
 }
-.menu-item.has-submenu > .submenu .menu-item:hover {
+.menuItem.has-submenu > .submenu .menuItem:hover {
   background-color: #515d57;
   color: #f0f0f0;
 }
-.custom-context .menu-item.has-submenu:last-child:hover {
+.customContext .menuItem.has-submenu:last-child:hover {
   border-right: none;
   border-top-right-radius: 0px;
   border-bottom-right-radius: 0px;
 }
-.custom-context .submenu {
+.customContext .submenu {
   display: none;
   position: absolute; /* Adjust as needed for positioning */
   left: 100%; /* Position to the right of parent item */
   top: -1px;
   border-left: none;
 }
-.custom-context .submenu .menu-item:first-child {
+.customContext .submenu .menuItem:first-child {
   border-left: none;
   border-top-left-radius: 0px;
 }
-.custom-context .submenu .menu-item:only-child {
+.customContext .submenu .menuItem:only-child {
   border-bottom-left-radius: 0px;
 }
 
-.custom-context .menu-item.has-submenu:hover > .submenu {
+.customContext .menuItem.has-submenu:hover > .submenu {
   display: block; /* Show on hover */
 }

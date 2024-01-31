@@ -5,15 +5,15 @@ import type { TypedUseSelectorHook } from "react-redux";
 import { useDispatch, useSelector } from "react-redux";
 import "./css/main.css";
 import "./css/user-menu.css";
-import ConfigPanelModal from "./sections/configPanel/ConfigPanelModal";
+import ConfigPanelModal from "./sections/configPanel";
 import CreateNewStoryModal from "./sections/createNewStoryModal";
-import DefaultPage from "./sections/defaultPage/DefaultPage";
 import Document from "./sections/document/Document";
 import EditSeriesModal from "./sections/editSeriesModal";
 import EditStoryModal from "./sections/editStoryModal";
 import LoginPanelModal from "./sections/loginPanel/LoginPanelModal";
+import SplashPage from "./sections/splash";
 import StoryAndSeriesListing from "./sections/storyAndSeriesListing";
-import Subscribe from "./sections/subscribe/Subscribe";
+import Subscribe from "./sections/subscribe";
 import UserMenu from "./sections/userMenu/UserMenu";
 import { setAlert } from "./stores/alertSlice";
 import type { AppDispatch, RootState } from "./stores/store";
@@ -129,7 +129,7 @@ const Threadr = () => {
     ) : isLoggedIn && !selectedStory ? (
       <StoryAndSeriesListing />
     ) : (
-      <DefaultPage />
+      <SplashPage />
     )
   ) : (
     <div />

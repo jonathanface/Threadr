@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
-import "../../css/subscribe.css";
+import styles from "./subscribe.module.css";
 
 import { CardElement, useElements, useStripe } from "@stripe/react-stripe-js";
 
@@ -215,7 +215,7 @@ const Subscribe = () => {
   };
 
   return (
-    <Dialog open={isOpen} maxWidth={"md"} fullWidth={true} onClose={handleClose} className="subscribe">
+    <Dialog open={isOpen} maxWidth={"md"} fullWidth={true} onClose={handleClose} className={styles.subscribe}>
       {product ? (
         <div>
           <DialogTitle>{product.name}</DialogTitle>
@@ -229,7 +229,7 @@ const Subscribe = () => {
                 <span>
                   Subscribe with {paymentMethod.brand.toUpperCase() + " ending in " + paymentMethod.last_four}
                 </span>
-                <span className="change-payment-button">
+                <span className={styles.changePaymentButton}>
                   <Button onClick={updatePaymentMethod}>change</Button>
                 </span>
               </DialogContentText>
