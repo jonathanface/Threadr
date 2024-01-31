@@ -1,9 +1,9 @@
-.landing-page {
+.listingPage {
   color: #fff;
   text-align: center;
 }
 
-.create-story-button {
+.createStoryButton {
   display: flex;
   text-align: center;
   align-items: center;
@@ -16,7 +16,7 @@
   min-height: 300px;
 }
 
-.landing-page h2 {
+.listingPage h2 {
   display: flex;
   align-items: center;
   text-align: left;
@@ -28,7 +28,7 @@
   padding-right: 20px;
 }
 
-.landing-page .icon-box {
+.listingPage .iconBox {
   display: flex;
   margin: 0 auto;
   max-width: 1024px;
@@ -38,31 +38,17 @@
   align-items: flex-start;
 }
 
-.landing-page .other-stories {
-  width: 100%;
-  text-align: left;
-}
-.landing-page .other-stories hr {
-  margin-top: 50px;
-  border: none;
-  border-top: 1px solid #333;
-}
-.landing-page .other-stories p {
-  text-align: left;
-  font-size: 1.1em;
-}
-
-.landing-page .logo-container {
+.listingPage .logoContainer {
   margin-top: 100px;
   text-align: center;
 }
 
 @media only screen and (max-width: 600px) {
-  .landing-page .icon-box {
+  .listingPage .iconBox {
     flex-direction: column;
   }
 
-  .landing-page .icon-box button:not(.doc-button) {
+  .listingPage .iconBox button:not(.docButton) {
     max-width: none;
     margin: 0 auto;
     margin-bottom: 10px;

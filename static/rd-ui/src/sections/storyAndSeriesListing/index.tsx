@@ -2,13 +2,13 @@ import AddIcon from "@mui/icons-material/Add";
 import { IconButton } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
-import "../../css/landing-page.css";
 import { Series, setSeriesList } from "../../stores/seriesSlice";
 import { AppDispatch, RootState } from "../../stores/store";
 import { flipCreatingNewStory, setStandaloneList } from "../../stores/storiesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
 import { Story } from "../../types";
 import StoryBox from "../story/Story";
+import styles from "./storyAndSeries.module.css";
 
 const StoryAndSeriesListing = () => {
   const useAppDispatch: () => AppDispatch = useDispatch;
@@ -131,13 +131,13 @@ const StoryAndSeriesListing = () => {
   }
 
   return (
-    <div className="landing-page">
-      <div className="btn-container"></div>
+    <div className={styles.listingPage}>
+      <div className={styles.btnContainer}></div>
       {isLoggedIn ? (
         <div>
           <h2>Stories</h2>
-          <div className="icon-box">
-            <span className="create-story-button">
+          <div className={styles.iconBox}>
+            <span className={styles.createStoryButton}>
               <IconButton
                 aria-label="add new story"
                 sx={{ margin: "0 auto" }}
@@ -162,7 +162,7 @@ const StoryAndSeriesListing = () => {
       ) : (
         ""
       )}
-      <div className="logo-container">
+      <div className={styles.logoContainer}>
         <img alt="RichDocter logo" title="RichDocter - Organized Imagination" src="img/logo_trans_scaled.png" />
       </div>
     </div>
