@@ -12,6 +12,7 @@ import PortraitDropper from "../portraitdropper/PortraitDropper";
 import { Autocomplete, TextField } from "@mui/material";
 import { setAlert } from "../../stores/alertSlice";
 import { pushToSeriesList, setSeriesList } from "../../stores/seriesSlice";
+import { setIsLoaderVisible } from "../../stores/uiSlice";
 import { AlertToast, AlertToastType } from "../../utils/Toaster";
 import styles from "./createNewStory.module.css";
 
@@ -31,7 +32,7 @@ interface CreateStoryForm {
   series_place?: number;
 }
 
-const CreateNewStory = () => {
+const CreateNewStoryModal = () => {
   const useAppDispatch: () => AppDispatch = useDispatch;
   const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
   const dispatch = useAppDispatch();
@@ -197,7 +198,7 @@ const CreateNewStory = () => {
         }
       }
     }
-
+    dispatch(setIsLoaderVisible(true));
     try {
       const response = await fetch("/api/stories", {
         credentials: "include",
@@ -242,6 +243,7 @@ const CreateNewStory = () => {
       storyFormMessage.message = "Please try again later or contact support at the link below:";
       dispatch(setAlert(storyFormMessage));
     }
+    dispatch(setIsLoaderVisible(false));
   };
 
   return (
@@ -342,4 +344,4 @@ const CreateNewStory = () => {
     </Dialog>
   );
 };
-export default CreateNewStory;
+export default CreateNewStoryModal;

@@ -6,11 +6,11 @@ import { useDispatch, useSelector } from "react-redux";
 import "./css/main.css";
 import "./css/user-menu.css";
 import ConfigPanelModal from "./sections/configPanel/ConfigPanelModal";
-import CreateNewStory from "./sections/createNewStory";
+import CreateNewStoryModal from "./sections/createNewStoryModal";
 import DefaultPage from "./sections/defaultPage/DefaultPage";
 import Document from "./sections/document/Document";
 import EditSeriesModal from "./sections/editSeries/EditSeriesModal";
-import EditStory from "./sections/editStory/EditStoryModal";
+import EditStoryModal from "./sections/editStoryModal";
 import LoginPanelModal from "./sections/loginPanel/LoginPanelModal";
 import StoryAndSeriesListing from "./sections/storyAndSeriesListing/StoryAndSeriesListing";
 import Subscribe from "./sections/subscribe/Subscribe";
@@ -32,6 +32,7 @@ const Threadr = () => {
   const dispatch = useAppDispatch();
   const isLoggedIn = useAppSelector((state) => state.user.isLoggedIn);
   const selectedStory = useAppSelector((state) => state.stories.selectedStory);
+  const storyCurrentEditing = useAppSelector((state) => state.stories.storyBeingEdited);
 
   const getStoryDetails = async (storyID: string) => {
     const url = "/api/stories/" + storyID;
@@ -145,8 +146,8 @@ const Threadr = () => {
           </h4>
         </header>
         {displayComponent}
-        <CreateNewStory />
-        <EditStory />
+        <CreateNewStoryModal />
+        <EditStoryModal story={storyCurrentEditing} />
         <EditSeriesModal />
         <ConfigPanelModal />
         <LoginPanelModal />

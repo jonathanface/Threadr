@@ -19,7 +19,7 @@ import {
   flipCreatingNewStory,
   flipEditingStory,
   setStandaloneList,
-  setStoryEditables,
+  setStoryBeingEdited,
 } from "../../stores/storiesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
 import { Story } from "../../types";
@@ -245,7 +245,7 @@ const EditSeriesModal = () => {
           image_url: selected.image_url,
           chapters: selected.chapters,
         };
-        dispatch(setStoryEditables(newProps));
+        dispatch(setStoryBeingEdited(newProps));
         dispatch(flipEditingStory(editables.series_id));
       }
     }

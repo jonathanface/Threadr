@@ -7,7 +7,7 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import "../../css/story.css";
 import { flipEditingSeries, setSeriesEditables, setSeriesList } from "../../stores/seriesSlice";
-import { flipEditingStory, setSelectedStory, setStandaloneList, setStoryEditables } from "../../stores/storiesSlice";
+import { flipEditingStory, setSelectedStory, setStandaloneList, setStoryBeingEdited } from "../../stores/storiesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
 import DetailsSlider from "./DetailsSlider";
 
@@ -54,7 +54,7 @@ const Story = (props) => {
       newProps.series_id = props.stories[0].series_id;
     }
     newProps.image_url = selected.image_url;
-    dispatch(setStoryEditables(newProps));
+    dispatch(setStoryBeingEdited(newProps));
     dispatch(flipEditingStory(seriesToAppend));
   };
 

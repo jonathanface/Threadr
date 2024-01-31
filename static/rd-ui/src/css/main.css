@@ -93,7 +93,7 @@ main header .version {
 
 .loading-screen {
   position: absolute;
-  z-index: 999;
+  z-index: 2000;
   top: 0px;
   height: 100%;
   width: 100%;

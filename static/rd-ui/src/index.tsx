@@ -12,10 +12,10 @@ const root = ReactDOM.createRoot(rootElement);
 const render = (Component: React.ComponentType<any>) => {
   root.render(
     <Provider store={store}>
+      <Loader />
       <ProSidebarProvider>
         <Component />
       </ProSidebarProvider>
-      <Loader />
     </Provider>
   );
 };
