@@ -166,9 +166,6 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	for _, st := range series.Stories {
-		fmt.Println("storing", st.Title, st.Place)
-	}
 
 	const maxFileSize = 1024 * 1024 // 1 MB
 	// image upload

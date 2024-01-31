@@ -265,10 +265,10 @@ const CreateNewStoryModal = () => {
               <input
                 type="text"
                 id="create-story-title"
-                onChange={(event) => {
+                onKeyUp={(event: React.KeyboardEvent<HTMLInputElement>) => {
                   setStoryForm((prevFormInput) => ({
                     ...prevFormInput,
-                    title: event.target.value,
+                    title: (event.target as HTMLInputElement).value,
                   }));
                 }}
               />

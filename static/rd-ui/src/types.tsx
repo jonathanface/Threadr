@@ -47,7 +47,7 @@ export interface Series {
   [key: string]: any;
   series_id: string;
   series_title: string;
-  description: string;
+  series_description: string;
   stories: Story[];
   created_at: number;
   image_url: string;

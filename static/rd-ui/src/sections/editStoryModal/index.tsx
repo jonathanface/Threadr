@@ -57,25 +57,6 @@ const EditStoryModal = (props: EditStoryProps) => {
   const [seriesDisplayList, setSeriesDisplayList] = useState<SeriesSelectionOptions[]>([]);
   const [storyForm, setStoryForm] = useState<EditStoryForm | null>(null);
 
-  const attachImageToForm = async (url: string) => {
-    fetch(url, {
-      headers: {
-        Accept: "image/*",
-      },
-    })
-      .then((response) => response.blob())
-      .then((blob) => {
-        const file = new File([blob], "temp" + getBlobExtension(blob.type));
-        setStoryForm((prevFormInput) => ({
-          ...prevFormInput,
-          image: file,
-        }));
-      })
-      .catch((error) => {
-        console.error("Fetch operation failed: ", error);
-      });
-  };
-
   const resetForm = () => {
     setImageURL("");
     setImageName("Loading...");
@@ -305,10 +286,10 @@ const EditStoryModal = (props: EditStoryProps) => {
                 defaultValue={preselectedTitle}
                 type="text"
                 id="edit-story-title"
-                onChange={(event) => {
+                onKeyUp={(event: React.KeyboardEvent<HTMLInputElement>) => {
                   setStoryForm((prevFormInput) => ({
                     ...prevFormInput,
-                    title: event.target.value,
+                    title: (event.target as HTMLInputElement).value,
                   }));
                 }}
               />

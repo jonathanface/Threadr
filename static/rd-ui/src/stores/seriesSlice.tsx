@@ -1,37 +1,21 @@
 import { Action, createSlice } from "@reduxjs/toolkit";
-import { Story } from "../types";
-
-export interface Series {
-  series_id: string;
-  series_title: string;
-  series_description: string;
-  stories: Story[];
-  created_at: number;
-  image_url: string;
-}
-
-export interface SeriesEditables {
-  stories: Story[];
-  series_title: string;
-  series_description: string;
-  series_id: string;
-  image_url: string;
-}
+import { Series } from "../types";
 
 export interface SeriesPanel {
   isEditingSeries: boolean;
   seriesList: Series[];
-  editables: SeriesEditables;
+  seriesBeingEdited: Series | null;
 }
 
 const initialState: SeriesPanel = {
   isEditingSeries: false,
   seriesList: [],
-  editables: {
-    stories: [],
-    series_title: "",
-    series_description: "",
+  seriesBeingEdited: {
     series_id: "",
+    series_description: "",
+    series_title: "",
+    stories: [],
+    created_at: 0,
     image_url: "",
   },
 };
@@ -54,8 +38,8 @@ export const seriesSlice = createSlice({
       }
       state.isEditingSeries = !state.isEditingSeries;
     },
-    setSeriesEditables: (state, action) => {
-      state.editables = action.payload;
+    setSeriesBeingEdited: (state, action) => {
+      state.seriesBeingEdited = action.payload;
     },
     setSeriesList: (state, action) => {
       state.seriesList = action.payload;
@@ -66,6 +50,6 @@ export const seriesSlice = createSlice({
   },
 });
 
-export const { flipEditingSeries, setSeriesEditables, setSeriesList, pushToSeriesList } = seriesSlice.actions;
+export const { flipEditingSeries, setSeriesBeingEdited, setSeriesList, pushToSeriesList } = seriesSlice.actions;
 
 export default seriesSlice.reducer;

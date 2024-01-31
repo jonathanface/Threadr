@@ -2,11 +2,11 @@ import AddIcon from "@mui/icons-material/Add";
 import { IconButton } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
-import { Series, setSeriesList } from "../../stores/seriesSlice";
+import { setSeriesList } from "../../stores/seriesSlice";
 import { AppDispatch, RootState } from "../../stores/store";
 import { flipCreatingNewStory, setStandaloneList } from "../../stores/storiesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
-import { Story } from "../../types";
+import { Series, Story } from "../../types";
 import StoryBox from "../story/Story";
 import styles from "./storyAndSeries.module.css";
 

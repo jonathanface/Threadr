@@ -6,7 +6,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import "../../css/story.css";
-import { flipEditingSeries, setSeriesEditables, setSeriesList } from "../../stores/seriesSlice";
+import { flipEditingSeries, setSeriesBeingEdited, setSeriesList } from "../../stores/seriesSlice";
 import { flipEditingStory, setSelectedStory, setStandaloneList, setStoryBeingEdited } from "../../stores/storiesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
 import DetailsSlider from "./DetailsSlider";
@@ -66,7 +66,7 @@ const StoryBox = (props) => {
     newProps.series_title = props.title;
     newProps.series_description = props.description;
     newProps.image_url = props.image_url;
-    dispatch(setSeriesEditables(newProps));
+    dispatch(setSeriesBeingEdited(newProps));
     dispatch(flipEditingSeries());
   };
 

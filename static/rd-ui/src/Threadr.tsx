@@ -9,7 +9,7 @@ import ConfigPanelModal from "./sections/configPanel/ConfigPanelModal";
 import CreateNewStoryModal from "./sections/createNewStoryModal";
 import DefaultPage from "./sections/defaultPage/DefaultPage";
 import Document from "./sections/document/Document";
-import EditSeriesModal from "./sections/editSeries/EditSeriesModal";
+import EditSeriesModal from "./sections/editSeriesModal";
 import EditStoryModal from "./sections/editStoryModal";
 import LoginPanelModal from "./sections/loginPanel/LoginPanelModal";
 import StoryAndSeriesListing from "./sections/storyAndSeriesListing";
@@ -32,7 +32,8 @@ const Threadr = () => {
   const dispatch = useAppDispatch();
   const isLoggedIn = useAppSelector((state) => state.user.isLoggedIn);
   const selectedStory = useAppSelector((state) => state.stories.selectedStory);
-  const storyCurrentEditing = useAppSelector((state) => state.stories.storyBeingEdited);
+  const storyToEdit = useAppSelector((state) => state.stories.storyBeingEdited);
+  const seriesToEdit = useAppSelector((state) => state.series.seriesBeingEdited);
 
   const getStoryDetails = async (storyID: string) => {
     const url = "/api/stories/" + storyID;
@@ -147,8 +148,8 @@ const Threadr = () => {
         </header>
         {displayComponent}
         <CreateNewStoryModal />
-        <EditStoryModal story={storyCurrentEditing} />
-        <EditSeriesModal />
+        <EditStoryModal story={storyToEdit} />
+        <EditSeriesModal series={seriesToEdit} />
         <ConfigPanelModal />
         <LoginPanelModal />
       </main>
