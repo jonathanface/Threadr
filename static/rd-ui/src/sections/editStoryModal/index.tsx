@@ -7,7 +7,7 @@ import React, { useEffect, useState } from "react";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../stores/store";
 import { flipEditingStory, setStandaloneList, setStoryBeingEdited } from "../../stores/storiesSlice";
-import PortraitDropper from "../portraitdropper/PortraitDropper";
+import PortraitDropper from "../PortraitDropper";
 
 import { Autocomplete, TextField } from "@mui/material";
 import { setAlert } from "../../stores/alertSlice";

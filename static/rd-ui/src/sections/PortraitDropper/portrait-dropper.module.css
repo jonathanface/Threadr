@@ -1,0 +1,13 @@
+.portraitDropper {
+  margin: 8px;
+  margin-bottom: 40px;
+}
+.portraitDropper .portrait {
+  margin: 0;
+}
+.portraitDropper .portrait img {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 15px;
+  filter: drop-shadow(4px 4px 4px #1a1a1a);
+}

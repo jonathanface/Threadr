@@ -1,8 +1,14 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import "../../css/portrait-dropper.css";
+import styles from "./portrait-dropper.module.css";
 
-const PortraitDropper = (props) => {
+interface PortraitDropperProps {
+  imageURL: string;
+  name: string;
+  onComplete?: Function;
+  onImageLoaded?: Function;
+}
+const PortraitDropper = (props: PortraitDropperProps) => {
   const [imageURL, setImageURL] = useState(props.imageURL);
   const [name, setName] = useState(props.name);
   useEffect(() => {
@@ -11,9 +17,11 @@ const PortraitDropper = (props) => {
   }, [props.imageURL, props.name]);
 
   const onDrop = useCallback(
-    (acceptedFiles) => {
+    (acceptedFiles: File[]) => {
       setImageURL(URL.createObjectURL(acceptedFiles[0]));
-      props.onComplete(acceptedFiles);
+      if (props.onComplete) {
+        props.onComplete(acceptedFiles);
+      }
     },
     [props]
   );
@@ -27,8 +35,8 @@ const PortraitDropper = (props) => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
   return (
-    <div className="portrait-dropper">
-      <figure className="portrait">
+    <div className={styles.portraitDropper}>
+      <figure className={styles.portrait}>
         <span {...getRootProps()}>
           <img src={imageURL} onLoad={onImageLoaded} alt={name} title={name} />
           <figcaption>

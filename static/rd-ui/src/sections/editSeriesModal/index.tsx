@@ -22,7 +22,7 @@ import {
 import { setIsLoaderVisible } from "../../stores/uiSlice";
 import { Series, Story } from "../../types";
 import { AlertToast, AlertToastType } from "../../utils/Toaster";
-import PortraitDropper from "../portraitdropper/PortraitDropper";
+import PortraitDropper from "../PortraitDropper";
 import styles from "./edit-series.module.css";
 
 interface EditSeriesForm {
