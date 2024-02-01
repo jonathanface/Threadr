@@ -36,6 +36,10 @@
   line-height: 1.5em;
   font-family: inherit;
   resize: none;
+  border-radius: 10px;
+  box-shadow: 0.5px 0.5px 1px 0.5px #333;
+  border: none;
+  padding: 10px;
 }
 .editStoryForm .seriesBox {
   padding: 8px;

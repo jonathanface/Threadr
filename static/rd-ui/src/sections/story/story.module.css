@@ -1,4 +1,4 @@
-.doc-button {
+.docButton {
   max-width: 300px;
   background: none;
   border: none;
@@ -12,18 +12,18 @@
   min-height: 300px;
 }
 
-.doc-button:hover {
+.docButton:hover {
   cursor: pointer;
   color: #fff;
 }
 
-.doc-button:hover:not(.details-slider) .details-slider {
+.docButton:hover:not(.detailsSlider) .detailsSlider {
   margin-top: -150px;
   opacity: 1;
   visibility: visible;
 }
 
-.doc-button img {
+.docButton img {
   width: 100%;
   height: auto;
   filter: drop-shadow(2px 2px 2px #1a1a1a);
@@ -32,16 +32,16 @@
   border-radius: 20px;
 }
 
-.doc-button .story-text {
+.docButton .storyText {
   display: flex;
   align-content: center;
 }
 
-.doc-button .story-text .icon-delete-btn {
+.docButton .storyText .iconDeleteBtn {
   margin-left: auto;
 }
 
-.doc-button .story-label {
+.docButton .storyLabel {
   position: absolute;
   right: 10px;
   top: 10px;
@@ -55,19 +55,19 @@
   width: 80%;
   margin: 0 auto;
 }
-.doc-button .story-label .title {
+.docButton .storyLabel .title {
   margin-right: 15px;
   font-size: 0.8rem;
 }
-.doc-button .story-label .buttons {
+.docButton .storyLabel .buttons {
   white-space: nowrap;
 }
 
-.doc-button .storyBubble {
+.docButton .storyBubble {
   position: relative;
   overflow: hidden;
 }
-.doc-button .details-slider {
+.docButton .detailsSlider {
   filter: none;
   border-radius: 10px;
   border: 1px solid #000;
@@ -88,12 +88,12 @@
   opacity: 0;
 }
 
-.doc-button .details-slider .details-title {
+.docButton .detailsSlider .detailsTitle {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-.doc-button .details-slider .details-title h4 {
+.docButton .detailsSlider .detailsTitle h4 {
   overflow: hidden;
   word-wrap: break-word;
   white-space: nowrap;
@@ -101,31 +101,31 @@
   margin: 0px;
 }
 
-.doc-button .details-slider .series-listing > div {
+.docButton .detailsSlider .seriesListing > div {
   padding: 5px;
   padding-left: 15px;
   margin-top: 10px;
 }
-.doc-button .details-slider .series-listing {
+.docButton .detailsSlider .seriesListing {
   margin-top: 10px;
 }
-.doc-button .details-slider .series-listing ul {
+.docButton .detailsSlider .seriesListing ul {
   line-height: 1.25rem;
   margin: 0;
   padding-left: 20px;
 }
 
-.doc-button .details-slider .series-listing li {
+.docButton .detailsSlider .seriesListing li {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-.doc-button .details-slider .series-listing li:hover {
+.docButton .detailsSlider .seriesListing li:hover {
   cursor: pointer;
   text-decoration: underline;
 }
 
-.doc-button .details-slider .series-listing li .series-story-thumbnail {
+.docButton .detailsSlider .seriesListing li .seriesStoryThumbnail {
   width: 25px;
   height: auto;
   border-radius: 5px;

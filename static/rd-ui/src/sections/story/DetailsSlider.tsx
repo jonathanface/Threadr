@@ -1,7 +1,19 @@
 import React, { useEffect, useState } from "react";
-import "../../css/story.css";
+import { Chapter, Story } from "../../types";
+import styles from "./story.module.css";
 
-const DetailsSlider = (props) => {
+interface DetailsSliderProps {
+  id: string;
+  stories?: Story[];
+  chapters?: Chapter[];
+  isSeries: boolean;
+  title: string;
+  description: string;
+  onStoryClick: Function;
+  setDeleted: Function;
+}
+
+const DetailsSlider = (props: DetailsSliderProps) => {
   const [stories, setStories] = useState(props.stories);
   const [isSeries, setIsSeries] = useState(props.isSeries);
   const [title, setTitle] = useState(props.title);
@@ -11,7 +23,12 @@ const DetailsSlider = (props) => {
     setTitle(props.title);
     setDescription(props.description.length ? props.description : "No description");
     if (props.stories && props.stories.length) {
-      const newStories = [...props.stories].sort((a, b) => a.place - b.place);
+      const newStories = [...props.stories].sort((a, b) => {
+        if (a.place && b.place) {
+          return a.place - b.place;
+        }
+        return 0;
+      });
       setStories(newStories);
     } else if (!props.stories || !props.stories.length) {
       setStories([]);
@@ -20,9 +37,9 @@ const DetailsSlider = (props) => {
   }, [props.stories, props.title, props.description, props.isSeries]);
 
   return (
-    <div className="details-slider">
-      <div className="details-description">{description}</div>
-      <div className="series-listing">
+    <div className={styles.detailsSlider}>
+      <div className={styles.detailsDescription}>{description}</div>
+      <div className={styles.seriesListing}>
         {isSeries ? (
           stories && stories.length ? (
             <div>
@@ -34,9 +51,9 @@ const DetailsSlider = (props) => {
                     <li
                       key={entry.story_id}
                       title={entry.description}
-                      onClick={(e) => props.onStoryClick(e, entry.story_id, firstChapter)}>
+                      onClick={(e) => props.onStoryClick(entry.story_id, firstChapter)}>
                       <span>
-                        <img className="series-story-thumbnail" src={entry.image_url} alt={entry.title} />
+                        <img className={styles.seriesStoryThumbnail} src={entry.image_url} alt={entry.title} />
                         {entry.title}
                       </span>
                     </li>

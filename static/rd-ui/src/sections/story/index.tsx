@@ -4,29 +4,38 @@ import { IconButton } from "@mui/material";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import React, { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import "../../css/story.css";
+import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import { flipEditingSeries, setSeriesBeingEdited, setSeriesList } from "../../stores/seriesSlice";
+import { AppDispatch, RootState } from "../../stores/store";
 import { flipEditingStory, setSelectedStory, setStandaloneList, setStoryBeingEdited } from "../../stores/storiesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
+import { Series, Story } from "../../types";
 import DetailsSlider from "./DetailsSlider";
+import styles from "./story.module.css";
 
-const StoryBox = (props) => {
-  const dispatch = useDispatch();
+interface StoryBoxProps {
+  data: Story | Series;
+}
+
+const StoryBox = (props: StoryBoxProps) => {
+  const useAppDispatch: () => AppDispatch = useDispatch;
+  const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
+  const dispatch = useAppDispatch();
+
   const [wasDeleted, setWasDeleted] = useState(false);
   const [isStoryLoaderVisible, setIsStoryLoaderVisible] = useState(true);
   const [isSeries, setIsSeries] = useState(false);
-  const seriesList = useSelector((state) => state.series.seriesList);
-  const standaloneList = useSelector((state) => state.stories.standaloneList);
+  const seriesList = useAppSelector((state) => state.series.seriesList);
+  const standaloneList = useAppSelector((state) => state.stories.standaloneList);
 
-  const getStoryDetails = async (storyID) => {
+  const getStoryDetails = async (storyID: string) => {
     const url = "/api/stories/" + storyID;
     try {
       const response = await fetch(url, {
         credentials: "include",
       });
       if (!response.ok) {
-        throw new Error(response);
+        throw new Error(response.statusText);
       }
       return await response.json();
     } catch (error) {
@@ -34,52 +43,35 @@ const StoryBox = (props) => {
     }
   };
 
-  const handleClick = async (event, storyID, chapterID) => {
+  const handleClick = async (storyID: string, chapterID: string) => {
     const history = window.history;
     const newStory = await getStoryDetails(storyID);
+    console.log("newstory", newStory, storyID, chapterID);
     dispatch(setSelectedStory(newStory));
     history.pushState({ storyID }, "clicked story", "/story/" + storyID + "?chapter=" + chapterID);
     dispatch(setIsLoaderVisible(true));
   };
 
-  const editStory = (event, storyID) => {
+  const editStory = (event: React.MouseEvent, storyID: string) => {
     event.stopPropagation();
-    const newProps = {};
-    newProps.story_id = storyID;
-    const selected = props.stories ? props.stories.find((volume) => volume.story_id === storyID) : props;
-    const seriesToAppend = props.stories ? selected.series_id : null;
-    newProps.title = selected.title;
-    newProps.description = selected.description;
-    if (props.stories) {
-      newProps.series_id = props.stories[0].series_id;
-    }
-    newProps.image_url = selected.image_url;
-    dispatch(setStoryBeingEdited(newProps));
-    dispatch(flipEditingStory(seriesToAppend));
+    dispatch(setStoryBeingEdited(props.data as Story));
+    dispatch(flipEditingStory(true));
   };
 
-  const editSeries = (event, seriesID) => {
+  const editSeries = (event: React.MouseEvent, seriesID: string) => {
     event.stopPropagation();
-    const newProps = {};
-    newProps.series_id = seriesID;
-    newProps.stories = props.stories;
-    newProps.series_title = props.title;
-    newProps.series_description = props.description;
-    newProps.image_url = props.image_url;
-    dispatch(setSeriesBeingEdited(newProps));
+    dispatch(setSeriesBeingEdited(props.data as Series));
     dispatch(flipEditingSeries());
   };
 
-  const deleteSeries = async (event, id, title) => {
+  const deleteSeries = async (event: React.MouseEvent, id: string, title: string) => {
     event.stopPropagation();
     const confirmText =
       "Delete series " + title + "? Any volumes assigned to it will be converted to standalone stories.";
     const conf = window.confirm(confirmText);
-
     if (conf) {
       dispatch(setIsLoaderVisible(true));
       try {
-        dispatch(setIsLoaderVisible(true));
         const url = "/api/series/" + id;
         const response = await fetch(url, {
           credentials: "include",
@@ -90,9 +82,7 @@ const StoryBox = (props) => {
         });
         if (!response.ok) {
           const errorData = await response.json();
-          const error = new Error(JSON.stringify(errorData));
-          error.response = response;
-          throw error;
+          throw new Error(JSON.stringify(errorData));
         }
 
         setWasDeleted(true);
@@ -119,16 +109,18 @@ const StoryBox = (props) => {
     }
   };
 
-  const deleteStory = (event, id, title) => {
+  const deleteStory = (event: React.MouseEvent, id: string, title: string) => {
     event.stopPropagation();
     const confirmText =
-      (!props.stories ? "Delete story " + title + "?" : "Delete " + title + " from your series " + props.title + "?") +
-      (props.series && props.stories.length === 1
+      (!props.data.stories
+        ? "Delete story " + title + "?"
+        : "Delete " + title + " from your series " + props.data.title + "?") +
+      (props.data.series && props.data.stories.length === 1
         ? "\n\nThere are no other titles in this series, so deleting it will also remove the series."
         : "");
 
     const conf = window.confirm(confirmText);
-    const seriesID = props.stories ? props.id : "";
+    const seriesID = props.data.stories ? props.data.id : "";
     if (conf) {
       dispatch(setIsLoaderVisible(true));
       const url = "/api/stories/" + id + "?series=" + seriesID;
@@ -147,48 +139,51 @@ const StoryBox = (props) => {
     }
   };
 
-  const editHoverText = "Edit " + props.title;
-  const deleteHoverText = "Delete " + props.title;
+  const id = props.data.stories ? props.data.series_id : props.data.story_id;
+  const title = props.data.stories ? props.data.series_title : props.data.title;
+  const description = props.data.stories ? props.data.series_description : props.data.description;
+  const editHoverText = "Edit " + title;
+  const deleteHoverText = "Delete " + title;
 
   useEffect(() => {
-    if (props.stories) {
+    if (props.data.stories) {
       setIsSeries(true);
     } else {
       setIsSeries(false);
     }
-  }, [props.stories]);
+  }, [props.data.stories]);
 
   return !wasDeleted ? (
     <button
-      className="doc-button"
-      onClick={!props.stories ? (e) => handleClick(e, props.id, props.chapters[0].id) : () => {}}>
+      className={styles.docButton}
+      onClick={!props.data.stories ? (e) => handleClick(props.data.story_id, props.data.chapters[0].id) : () => {}}>
       <div className="loading-screen" style={{ visibility: isStoryLoaderVisible ? "visible" : "hidden" }}>
         <Box className="progress-box" />
         <Box className="prog-anim-holder">
           <CircularProgress />
         </Box>
       </div>
-      <div className="storyBubble">
+      <div className={styles.storyBubble}>
         <img
-          src={props.image_url}
-          alt={props.title}
+          src={props.data.image_url}
+          alt={title}
           onLoad={() => {
             setIsStoryLoaderVisible(false);
           }}
         />
-        <div className="story-label">
-          <span className="title">{props.title}</span>
-          <span className="buttons">
+        <div className={styles.storyLabel}>
+          <span className={styles.title}>{title}</span>
+          <span className={styles.buttons}>
             <IconButton
               aria-label="edit story"
               sx={{ padding: "0" }}
               component="label"
               title={editHoverText}
               onClick={(event) => {
-                if (props.stories) {
-                  editSeries(event, props.id);
+                if (props.data.stories) {
+                  editSeries(event, props.data.id);
                 } else {
-                  editStory(event, props.id);
+                  editStory(event, props.data.id);
                 }
               }}>
               <EditIcon
@@ -208,10 +203,10 @@ const StoryBox = (props) => {
               component="label"
               title={deleteHoverText}
               onClick={(event) => {
-                if (props.stories) {
-                  deleteSeries(event, props.id, props.title);
+                if (props.data.stories) {
+                  deleteSeries(event, props.data.id, title);
                 } else {
-                  deleteStory(event, props.id, props.title);
+                  deleteStory(event, props.data.id, title);
                 }
               }}>
               <DeleteIcon
@@ -229,14 +224,15 @@ const StoryBox = (props) => {
           </span>
         </div>
         <DetailsSlider
-          key={props.id}
-          stories={props.stories}
-          chapters={props.chapters}
+          key={id}
+          id={id}
+          stories={props.data.stories}
+          chapters={props.data.chapters}
           onStoryClick={handleClick}
           setDeleted={setWasDeleted}
           isSeries={isSeries}
-          title={props.title}
-          description={props.description}
+          title={title}
+          description={description}
         />
       </div>
     </button>

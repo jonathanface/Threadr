@@ -7,7 +7,7 @@ import { AppDispatch, RootState } from "../../stores/store";
 import { flipCreatingNewStory, setStandaloneList } from "../../stores/storiesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
 import { Series, Story } from "../../types";
-import StoryBox from "../story/Story";
+import StoryBox from "../story";
 import styles from "./storyAndSeries.module.css";
 
 const StoryAndSeriesListing = () => {
@@ -24,53 +24,56 @@ const StoryAndSeriesListing = () => {
 
   useEffect(() => {
     dispatch(setIsLoaderVisible(true));
-    const getSeries = () => {
-      fetch("/api/series", {
-        credentials: "include",
-      })
-        .then((response) => {
-          if (response.ok) {
-            return response.json();
-          }
-          throw new Error("Fetch problem series " + response.status);
-        })
-        .then((data: any) => {
-          const userSeries: Series[] = [];
-          for (let key in data) {
-            if (data.hasOwnProperty(key)) {
-              if (key === userDetails.email && data[key]) {
-                userSeries.push(...data[key]);
-              }
+
+    const getSeries = async () => {
+      try {
+        const results = await fetch("/api/series", {
+          credentials: "include",
+        });
+        if (!results.ok) {
+          throw new Error("Fetch problem stories" + results.statusText);
+        }
+
+        const json = await results.json();
+
+        const userSeries: Series[] = [];
+        for (let key in json) {
+          if (json.hasOwnProperty(key)) {
+            if (key === userDetails.email && json[key]) {
+              userSeries.push(...json[key]);
             }
           }
-          dispatch(setSeriesList(userSeries));
-          setSeriesLoaded(true);
-        });
+        }
+
+        dispatch(setSeriesList(userSeries));
+        setSeriesLoaded(true);
+      } catch (error: any) {}
     };
 
-    const getStories = () => {
-      fetch("/api/stories", {
-        credentials: "include",
-      })
-        .then((response) => {
-          if (response.ok) {
-            return response.json();
-          }
-          throw new Error("Fetch problem stories " + response.status);
-        })
-        .then((data) => {
-          const userStories: Story[] = [];
-          for (let key in data) {
-            if (data.hasOwnProperty(key)) {
-              if (key === userDetails.email && data[key]) {
-                userStories.push(...data[key]);
-              }
+    const getStories = async () => {
+      try {
+        const results = await fetch("/api/stories", {
+          credentials: "include",
+        });
+        if (!results.ok) {
+          throw new Error("Fetch problem stories" + results.statusText);
+        }
+        const json = await results.json();
+        const userStories: Story[] = [];
+        for (let key in json) {
+          if (json.hasOwnProperty(key)) {
+            if (key === userDetails.email && json[key]) {
+              userStories.push(...json[key]);
             }
           }
-          dispatch(setStandaloneList(userStories));
-          setStoriesLoaded(true);
-        });
+        }
+        dispatch(setStandaloneList(userStories));
+        setStoriesLoaded(true);
+      } catch (error: any) {
+        console.error(error);
+      }
     };
+
     if (isLoggedIn) {
       if (!seriesLoaded) {
         getSeries();
@@ -87,30 +90,12 @@ const StoryAndSeriesListing = () => {
   };
 
   // If there are works, we prepare our series and stories components.
-  const seriesComponents = seriesList.map((series) => {
-    return (
-      <StoryBox
-        key={series.series_id}
-        id={series.series_id}
-        title={series.series_title}
-        description={series.series_description}
-        stories={series.stories}
-        image_url={series.image_url}
-      />
-    );
+  const seriesComponents = seriesList.map((series: Series) => {
+    return <StoryBox key={series.series_id} data={series} />;
   });
 
-  const storyComponents = storiesList.map((story) => {
-    return (
-      <StoryBox
-        key={story.story_id}
-        id={story.story_id}
-        chapters={story.chapters}
-        title={story.title}
-        description={story.description}
-        image_url={story.image_url}
-      />
-    );
+  const storyComponents = storiesList.map((story: Story) => {
+    return <StoryBox key={story.story_id} data={story} />;
   });
 
   let content = <div />;
