@@ -43,3 +43,16 @@
 .storyForm .seriesBox label {
   margin-left: 10px;
 }
+
+@media only screen and (max-width: 600px) {
+  .storyForm .content {
+    flex-direction: column;
+  }
+  .storyForm .column.left {
+    margin: 0 auto;
+    margin-bottom: 10px;
+  }
+  .storyForm .column.right input {
+    width: 100%;
+  }
+}

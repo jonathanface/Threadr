@@ -80,3 +80,16 @@
 .editSeriesVolumes span {
   margin-left: 10px;
 }
+
+@media only screen and (max-width: 600px) {
+  .editSeriesModal .content {
+    flex-direction: column;
+  }
+  .editSeriesModal .column.left {
+    margin: 0 auto;
+    margin-bottom: 10px;
+  }
+  .editSeriesModal .column.right input {
+    width: 100%;
+  }
+}
