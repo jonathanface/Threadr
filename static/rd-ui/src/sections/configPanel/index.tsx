@@ -7,9 +7,11 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import React, { useEffect, useState } from "react";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
+import { setAlert } from "../../stores/alertSlice";
 import { AppDispatch, RootState } from "../../stores/store";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
 import { flipConfigPanelVisible, setUserDetails } from "../../stores/userSlice";
+import { AlertLink, AlertToast, AlertToastType } from "../../utils/Toaster";
 
 const ConfigPanelModal = () => {
   const useAppDispatch: () => AppDispatch = useDispatch;
@@ -48,12 +50,21 @@ const ConfigPanelModal = () => {
       const json = await response.json();
       dispatch(setUserDetails(json));
     } catch (error: any) {
-      const errorData = error.message ? JSON.parse(error.message) : {};
-      if (errorData.error) {
-        setError(errorData.error);
-      } else {
-        setError("Unable to edit your settings at this time. Please try again later.");
-      }
+      const alertLink: AlertLink = {
+        url: "mailto:support@docter.io",
+        text: "support@docter.io",
+      };
+      const confirmFormMessage: AlertToast = {
+        title: "Cannot edit your settings",
+        message: "Cannot edit your settings at this time. Please try again later, or contact support.",
+        severity: AlertToastType.error,
+        link: alertLink,
+        open: true,
+      };
+      dispatch(setIsLoaderVisible(false));
+      dispatch(setAlert(confirmFormMessage));
+      handleClose();
+      return;
     }
     dispatch(setIsLoaderVisible(false));
   };

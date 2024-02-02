@@ -54,6 +54,7 @@ const UserMenu = (props: UserMenuProps) => {
   const subscribe = () => {
     dispatch(setIsSubscriptionFormOpen(true));
   };
+  console.log("deets", userDetails);
   //
   const displayComponent = !props.isParentLoading ? (
     isLoggedIn ? (

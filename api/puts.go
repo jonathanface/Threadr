@@ -50,7 +50,7 @@ func UpdateUserEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	fmt.Println("received", passedUser.Renewing)
+	fmt.Println("received", passedUser.Renewing, "old", user.Renewing)
 	if !user.Renewing && passedUser.Renewing {
 		subscription, err := sub.Get(user.SubscriptionID, nil)
 		if err != nil {

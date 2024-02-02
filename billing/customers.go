@@ -118,13 +118,6 @@ func CreateCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		userWithDetails.CustomerID = customerID
-		userWithDetails.Renewing = true
-		err = dao.UpdateUser(*userWithDetails)
-		if err != nil {
-			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
 		user.CustomerID = customerID
 		toJSON, err := json.Marshal(user)
 		if err != nil {
@@ -137,6 +130,13 @@ func CreateCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+	}
+	userWithDetails.CustomerID = customerID
+	userWithDetails.Renewing = true
+	err = dao.UpdateUser(*userWithDetails)
+	if err != nil {
+		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	sources, err := getPaymentMethodsForCustomer(customerID)

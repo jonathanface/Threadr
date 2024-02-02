@@ -232,6 +232,7 @@ func cancelSubscription(subscriptionID string) error {
 	if stripe.Key == "" {
 		return fmt.Errorf("missing stripe secret")
 	}
+	fmt.Println("attempting to cancel subscription", subscriptionID)
 	cancel := true
 	subscriptionParams := &stripe.SubscriptionParams{
 		CancelAtPeriodEnd: &cancel,
