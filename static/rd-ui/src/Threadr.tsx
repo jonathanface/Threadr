@@ -124,7 +124,7 @@ const Threadr = () => {
 
   const displayComponent = !isLoading ? (
     isLoggedIn && selectedStory ? (
-      <Document story={selectedStory} />
+      <Document />
     ) : isLoggedIn && !selectedStory ? (
       <StoryAndSeriesListing />
     ) : (

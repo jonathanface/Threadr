@@ -53,6 +53,7 @@
     "@babel/core": "^7.23.9",
     "@babel/preset-env": "^7.23.9",
     "@babel/preset-react": "^7.23.3",
+    "@types/draft-convert": "^2.1.8",
     "@types/draft-js": "^0.11.17",
     "@types/react-beautiful-dnd": "^13.1.8",
     "@types/webpack-env": "^1.18.4",

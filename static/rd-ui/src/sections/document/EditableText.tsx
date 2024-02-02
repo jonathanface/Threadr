@@ -1,7 +1,11 @@
 import { TextField } from "@mui/material";
 import React, { useEffect, useState } from "react";
 
-const EditableText = (props) => {
+interface EditableTextProps {
+  textValue: string;
+  onTextChange: Function;
+}
+const EditableText = (props: EditableTextProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [textValue, setTextValue] = useState("");
 
@@ -9,22 +13,26 @@ const EditableText = (props) => {
     setTextValue(props.textValue);
   }, [props.textValue]);
 
-  const onDblClick = (event) => {
+  const onDblClick = (event: React.MouseEvent) => {
     if (event.detail >= 2) {
       setIsEditing(true);
     }
   };
 
-  const onKeyDown = (event) => {
+  const onKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === "Enter") {
       onBlur(event);
     }
   };
 
-  const onBlur = (event) => {
+  const onBlur = (event: React.SyntheticEvent) => {
     setIsEditing(false);
     props.onTextChange(event);
-    setTextValue(event.currentTarget.textContent);
+    const target = event.currentTarget;
+    const text = (target as HTMLElement).textContent;
+    if (text) {
+      setTextValue(text);
+    }
   };
 
   return (
