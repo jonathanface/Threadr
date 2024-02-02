@@ -34,7 +34,7 @@ import "../../css/document.css";
 import "../../css/sidebar.css";
 import { setAlert } from "../../stores/alertSlice";
 import { setSelectedStory } from "../../stores/storiesSlice";
-import { setIsLoaderVisible } from "../../stores/uiSlice";
+import { setIsLoaderVisible, setIsSubscriptionFormOpen } from "../../stores/uiSlice";
 import { AlertToastType } from "../../utils/Toaster";
 import ContextMenu from "../ContextMenu";
 import AssociationUI from "./AssociationUI";
@@ -221,11 +221,18 @@ const Document = (props) => {
       });
       if (!response.ok) {
         if (response.status === 401) {
+          const alertFunction = {
+            func: () => {
+              setIsSubscriptionFormOpen(true);
+            },
+            text: "subscribe",
+          };
           const newAlert = {
             title: "Insufficient subscription",
             message: "Free accounts are unable to export their stories.",
             open: true,
             severity: AlertToastType.warning,
+            timeout: 6000,
             func: alertFunction,
           };
           dispatch(setAlert(newAlert));
@@ -644,12 +651,19 @@ const Document = (props) => {
         });
         if (!response.ok) {
           if (response.status === 401) {
+            const alertFunction = {
+              func: () => {
+                setIsSubscriptionFormOpen(true);
+              },
+              text: "subscribe",
+            };
             const newAlert = {
               title: "Insufficient subscription",
               message: "Free accounts are limited to 10 associations.",
               severity: AlertToastType.warning,
               open: true,
               timeout: 6000,
+              func: alertFunction,
             };
             dispatch(setAlert(newAlert));
           }
