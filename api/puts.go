@@ -47,7 +47,6 @@ func UpdateUserEndpoint(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	passedUser := models.UserInfo{}
 	if err := decoder.Decode(&passedUser); err != nil {
-		fmt.Println("here")
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -83,6 +82,7 @@ func UpdateUserEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 		user.SubscriptionID = sub.ID
 	} else if user.Renewing && !passedUser.Renewing {
+		fmt.Println("cancel sub")
 		err = cancelSubscription(user.SubscriptionID)
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())

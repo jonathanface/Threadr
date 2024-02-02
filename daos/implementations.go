@@ -35,6 +35,7 @@ const (
 	MAX_DEFAULT_LOCATION_IMAGES = 20
 	MAX_DEFAULT_EVENT_IMAGES    = 20
 	DYNAMO_WRITE_BATCH_SIZE     = 50
+	DEFAULT_SERIES_IMAGE_URL    = "/img/icons/story_series_icon.jpg"
 )
 
 type DAO struct {
@@ -689,6 +690,7 @@ func (d *DAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) (err 
 			TransactItems:      make([]types.TransactWriteItem, len(batch)),
 		}
 		for i, item := range batch {
+			fmt.Println("item", item.Place)
 			// Create a key for the item.
 			key := map[string]types.AttributeValue{
 				"key_id": &types.AttributeValueMemberS{Value: item.KeyID},
@@ -1214,6 +1216,7 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 				"series_id": &types.AttributeValueMemberS{Value: story.SeriesID},
 				"author":    &types.AttributeValueMemberS{Value: email},
 				"title":     &types.AttributeValueMemberS{Value: newSeriesTitle},
+				"image_url": &types.AttributeValueMemberS{Value: DEFAULT_SERIES_IMAGE_URL},
 			}
 			seriesTwi := types.TransactWriteItem{
 				Put: &types.Put{
@@ -1704,13 +1707,15 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 
 	storyOrSeriesID := storyID
 	deletedSeries := false
-	// Delete series
+	// Delete series IF no remaining stories assigned
 	if seriesID != "" {
 		series, err := d.GetSeriesByID(email, seriesID)
 		if err != nil {
 			return err
 		}
+		fmt.Println("Stories in", series.Title, len(series.Stories))
 		if len(series.Stories)-1 <= 0 {
+			fmt.Println("Deleting", series.Title)
 			storyOrSeriesID = seriesID
 			seriesKey := map[string]types.AttributeValue{
 				"series_id": &types.AttributeValueMemberS{Value: seriesID},

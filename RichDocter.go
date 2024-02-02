@@ -9,6 +9,7 @@ import (
 	"RichDocter/sessions"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -145,16 +146,17 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 						api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 						return
 					}
-					for idx, story := range stories {
-						if idx > 0 {
-							err = dao.SoftDeleteStory(user.Email, story.ID, true)
-							if err != nil {
-								api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-								return
+					go func() {
+						for idx, story := range stories {
+							if idx > 0 {
+								err = dao.SoftDeleteStory(user.Email, story.ID, true)
+								if err != nil {
+									fmt.Println(err.Error())
+								}
 							}
-						}
 
-					}
+						}
+					}()
 				}
 				// I need to somehow notify the client here
 			} else {
@@ -164,6 +166,7 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 					return
 				}
+				fmt.Println("Susp", suspended)
 				if suspended {
 					userDetails.Expired = false
 					err = dao.RestoreAutomaticallyDeletedStories(user.Email)

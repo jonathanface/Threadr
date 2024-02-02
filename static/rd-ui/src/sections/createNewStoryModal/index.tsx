@@ -225,10 +225,10 @@ const CreateNewStoryModal = () => {
           dispatch(
             pushToSeriesList({
               series_id: json.series_id,
-              series_title: json.series_title,
+              series_title: storyForm.series_title,
               series_description: "",
               stories: [json],
-              imageURL: "/img/icons/story_series_icon.jpg",
+              image_url: "/img/icons/story_series_icon.jpg",
             })
           );
         }
