@@ -13,7 +13,7 @@ import { Autocomplete, TextField } from "@mui/material";
 import { setAlert } from "../../stores/alertSlice";
 import { pushToSeriesList, setSeriesList } from "../../stores/seriesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
-import { AlertToast, AlertToastType } from "../../utils/Toaster";
+import { AlertCommandType, AlertToast, AlertToastType } from "../../utils/Toaster";
 import styles from "./createNewStory.module.css";
 
 interface SeriesSelectionOptions {
@@ -209,6 +209,7 @@ const CreateNewStoryModal = () => {
         const errorData = await response.json();
         const error: Error = new Error(JSON.stringify(errorData));
         error.message = response.statusText;
+        error.name = response.status.toString();
         throw error;
       }
       const json = await response.json();
@@ -227,6 +228,7 @@ const CreateNewStoryModal = () => {
               series_title: json.series_title,
               series_description: "",
               stories: [json],
+              imageURL: "/img/icons/story_series_icon.jpg",
             })
           );
         }
@@ -240,7 +242,18 @@ const CreateNewStoryModal = () => {
       handleClose();
     } catch (error: any) {
       console.error(error);
-      storyFormMessage.message = "Please try again later or contact support at the link below:";
+      if (error.name === "401") {
+        storyFormMessage.title = "Insufficient subscription";
+        storyFormMessage.severity = AlertToastType.warning;
+        storyFormMessage.message =
+          "Non-subscribers are limited to just one story. You may click the link below if you want to subscribe.";
+        storyFormMessage.func = {
+          type: AlertCommandType.subscribe,
+          text: "subscribe",
+        };
+      } else {
+        storyFormMessage.message = "Please try again later or contact support at the link below:";
+      }
       dispatch(setAlert(storyFormMessage));
     }
     dispatch(setIsLoaderVisible(false));

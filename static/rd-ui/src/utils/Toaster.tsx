@@ -8,12 +8,17 @@ import type { TypedUseSelectorHook } from "react-redux";
 import type { AppDispatch, RootState } from "../stores/store";
 
 import { clearAlert } from "../stores/alertSlice";
+import { setIsSubscriptionFormOpen } from "../stores/uiSlice";
 
 export enum AlertToastType {
   success = "success",
   info = "info",
   warning = "warning",
   error = "error",
+}
+
+export enum AlertCommandType {
+  subscribe = "subscribe",
 }
 
 export interface AlertLink {
@@ -23,7 +28,7 @@ export interface AlertLink {
 }
 
 export interface AlertFunctionCall {
-  func: Function;
+  type: AlertCommandType;
   text: string;
 }
 
@@ -49,6 +54,7 @@ const Toaster = () => {
   const timeout = useAppSelector((state) => state.alerts.timeout);
   const link = useAppSelector((state) => state.alerts.link);
   const func = useAppSelector((state) => state.alerts.func);
+  console.log("fnc", func);
 
   const alertState = useAppSelector((state) => state.alerts);
 
@@ -79,7 +85,15 @@ const Toaster = () => {
         })}
         {func ? (
           <p>
-            <a href="#" onClick={dispatch(func.func())}>
+            <a
+              href="#"
+              onClick={() => {
+                switch (func.type) {
+                  case AlertCommandType.subscribe:
+                    dispatch(setIsSubscriptionFormOpen(true));
+                    break;
+                }
+              }}>
               {func.text}
             </a>
           </p>

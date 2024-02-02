@@ -180,10 +180,10 @@ const StoryBox = (props: StoryBoxProps) => {
               component="label"
               title={editHoverText}
               onClick={(event) => {
-                if (props.data.stories) {
-                  editSeries(event, props.data.id);
+                if (isSeries) {
+                  editSeries(event, id);
                 } else {
-                  editStory(event, props.data.id);
+                  editStory(event, id);
                 }
               }}>
               <EditIcon
@@ -204,9 +204,9 @@ const StoryBox = (props: StoryBoxProps) => {
               title={deleteHoverText}
               onClick={(event) => {
                 if (props.data.stories) {
-                  deleteSeries(event, props.data.id, title);
+                  deleteSeries(event, id, title);
                 } else {
-                  deleteStory(event, props.data.id, title);
+                  deleteStory(event, id, title);
                 }
               }}>
               <DeleteIcon

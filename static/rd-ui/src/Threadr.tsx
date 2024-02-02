@@ -17,9 +17,9 @@ import UserMenu from "./sections/userMenu";
 import { setAlert } from "./stores/alertSlice";
 import type { AppDispatch, RootState } from "./stores/store";
 import { setSelectedStory } from "./stores/storiesSlice";
-import { setIsLoaderVisible, setIsSubscriptionFormOpen } from "./stores/uiSlice";
+import { setIsLoaderVisible } from "./stores/uiSlice";
 import { flipLoggedInState, setUserDetails } from "./stores/userSlice";
-import Toaster, { AlertFunctionCall, AlertLink, AlertToast, AlertToastType } from "./utils/Toaster";
+import Toaster, { AlertCommandType, AlertFunctionCall, AlertLink, AlertToast, AlertToastType } from "./utils/Toaster";
 
 const Threadr = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -80,16 +80,15 @@ const Threadr = () => {
         setIsLoading(false);
         dispatch(flipLoggedInState());
         if (json.expired) {
+          console.log("exp");
           const alertFunction: AlertFunctionCall = {
-            func: () => {
-              setIsSubscriptionFormOpen(true);
-            },
+            type: AlertCommandType.subscribe,
             text: "subscribe",
           };
           const newAlert: AlertToast = {
             title: "Subscription expired",
             message:
-              "Your subscription expired, and you didn't have auto-renewal enabled. Any additional stories you had created have been removed from your account, but may be recovered by re-subscribing.",
+              "Your subscription expired, and you didn't have auto-renewal enabled. Any additional stories you had created have been removed from your account, but may be recovered by re-subscribing within 30 days.",
             open: true,
             func: alertFunction,
             severity: AlertToastType.warning,
