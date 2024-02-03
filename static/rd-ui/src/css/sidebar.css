@@ -38,6 +38,7 @@
 
 .sidebar-container [data-rbd-droppable-id="droppable"] {
   text-align: left;
+  height: 100%;
 }
 .sidebar-container .ps-menuitem-root a button:hover {
   background: #0f1e1e;

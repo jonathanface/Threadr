@@ -1,46 +1,55 @@
-const path = require('path');
-const Dotenv = require('dotenv-webpack');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CopyPlugin = require('copy-webpack-plugin');
+const path = require("path");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
+const Dotenv = require("dotenv-webpack");
+const webpack = require("webpack");
 
-module.exports = (env, argv) => {
-  console.log(`This is the Webpack 4 'mode': ${argv.mode}`);
-  const htmlFile = argv.mode === 'development' ? 'index-dev.html' : 'index.html';
-  return {
-    entry: path.join(__dirname, 'src', 'index.js'),
-    output: {
-      path: path.resolve(__dirname, 'build'),
+module.exports = {
+  entry: path.join(__dirname, "src", "index.tsx"),
+  devtool: "inline-source-map",
+  output: {
+    path: path.resolve(__dirname, "dist"),
+    publicPath: "/",
+  },
+  devServer: {
+    proxy: {
+      "/": "http://localhost:8443", // Proxy requests to the Go server
     },
-    devtool: 'inline-source-map',
-    target: 'web',
-    module: {
-      rules: [
-        {
-          test: /\.css$/i,
-          use: ['style-loader', 'css-loader'],
-        }, {
-          test: /\.?js$/,
-          exclude: /node_modules/,
-          use: {
-            loader: 'babel-loader',
-            options: {
-              presets: ['@babel/preset-env', '@babel/preset-react']
-            }
-          }
+  },
+  module: {
+    rules: [
+      {
+        test: /\.tsx?$/,
+        use: {
+          loader: "ts-loader",
         },
-      ]
-    },
-    plugins: [
-      new MiniCssExtractPlugin({filename: 'styles.css'}),
-      new Dotenv({
-        path: './.env',
-      }),
-      new CopyPlugin({
-        patterns: [
-          {from: 'public/img', to: 'img'},
-          {from: 'public/' + htmlFile, to: 'index.html', toType: 'file'},
-        ]
-      }),
+        exclude: /node_modules/,
+      },
+      {
+        test: /\.css$/i,
+        use: ["style-loader", "css-loader"],
+      },
+      {
+        test: /\.?js|jsx$/,
+        exclude: /node_modules/,
+        use: {
+          loader: "babel-loader",
+          options: {
+            presets: ["@babel/preset-env", "@babel/preset-react"],
+          },
+        },
+      },
     ],
-  };
+  },
+  resolve: {
+    extensions: [".tsx", ".ts", ".js", ".jsx"],
+  },
+  plugins: [
+    new webpack.HotModuleReplacementPlugin(),
+    new HtmlWebpackPlugin({
+      template: path.join(__dirname, "public", "index.html"),
+    }),
+    new Dotenv({
+      path: "./.env",
+    }),
+  ],
 };

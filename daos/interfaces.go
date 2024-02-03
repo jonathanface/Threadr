@@ -19,6 +19,7 @@ type DaoInterface interface {
 	GetStoryOrSeriesAssociations(email, storyID string, needDetails bool) ([]*models.Association, error)
 	GetSeriesVolumes(email string, seriesID string) ([]*models.Story, error)
 	GetUserDetails(email string) (*models.UserInfo, error)
+	GetChapterByID(chapterID string) (*models.Chapter, error)
 
 	// PUTs
 	UpsertUser(email string) error

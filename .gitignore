@@ -25,6 +25,7 @@ richdocter
 
 static/rd-ui/node_modules/
 static/rd-ui/build/
+static/rd-ui/dist/
 node_modules
 /.pnp
 .pnp.js

@@ -9,6 +9,7 @@ import (
 	"RichDocter/sessions"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -23,8 +24,8 @@ import (
 )
 
 const (
-	port           = ":80"
-	staticFilesDir = "static/rd-ui/build"
+	port           = ":8443"
+	staticFilesDir = "static/rd-ui/dist"
 	servicePath    = "/api"
 	billingPath    = "/billing"
 	authPath       = "/auth"
@@ -58,6 +59,7 @@ func serveRootDirectory(w http.ResponseWriter, r *http.Request) {
 func looseMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
 			return
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(time.Second*5))
@@ -71,6 +73,7 @@ func looseMiddleware(next http.Handler) http.Handler {
 func billingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
 			return
 		}
 		token, err := sessions.Get(r, "token")
@@ -94,6 +97,7 @@ func billingMiddleware(next http.Handler) http.Handler {
 func accessControlMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
 			return
 		}
 		token, err := sessions.Get(r, "token")
@@ -142,16 +146,17 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 						api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 						return
 					}
-					for idx, story := range stories {
-						if idx > 0 {
-							err = dao.SoftDeleteStory(user.Email, story.ID, true)
-							if err != nil {
-								api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-								return
+					go func() {
+						for idx, story := range stories {
+							if idx > 0 {
+								err = dao.SoftDeleteStory(user.Email, story.ID, true)
+								if err != nil {
+									fmt.Println(err.Error())
+								}
 							}
-						}
 
-					}
+						}
+					}()
 				}
 				// I need to somehow notify the client here
 			} else {

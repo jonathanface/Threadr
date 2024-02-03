@@ -116,9 +116,6 @@ func FullStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	fullStory := models.FullStoryContent{}
 	fullStory.StoryTitle = story.Title
 
-	//var blocksList models.BlocksData
-	//blocksList.Items = []map[string]types.AttributeValue{}
-
 	for _, chap := range story.Chapters {
 		chapWithContents := models.ChapterWithContents{}
 		chapWithContents.Chapter = chap
@@ -412,5 +409,6 @@ func GetUserData(w http.ResponseWriter, r *http.Request) {
 	}
 	user.Admin = details.Admin
 	user.Renewing = details.Renewing
+	user.SubscriptionID = details.SubscriptionID
 	RespondWithJson(w, http.StatusOK, user)
 }

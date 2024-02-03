@@ -35,6 +35,7 @@ const (
 	MAX_DEFAULT_LOCATION_IMAGES = 20
 	MAX_DEFAULT_EVENT_IMAGES    = 20
 	DYNAMO_WRITE_BATCH_SIZE     = 50
+	DEFAULT_SERIES_IMAGE_URL    = "/img/icons/story_series_icon.jpg"
 )
 
 type DAO struct {
@@ -189,7 +190,6 @@ func (d *DAO) GetChaptersByStoryID(storyID string) (chapters []models.Chapter, e
 }
 
 func (d *DAO) CreateUser(email string) error {
-	fmt.Println("creating user", email)
 	twii := &dynamodb.TransactWriteItemsInput{}
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	attributes := map[string]types.AttributeValue{
@@ -282,6 +282,29 @@ func (d *DAO) GetStoryByID(email, storyID string) (story *models.Story, err erro
 		return
 	}
 	return &storyFromMap[0], nil
+}
+
+func (d *DAO) GetChapterByID(chapterID string) (chapter *models.Chapter, err error) {
+	scanInput := &dynamodb.ScanInput{
+		TableName:        aws.String("chapters"),
+		FilterExpression: aws.String("chapter_id=:cid AND attribute_not_exists(deleted_at)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":cid": &types.AttributeValueMemberS{Value: chapterID},
+		},
+	}
+	out, err := d.dynamoClient.Scan(context.TODO(), scanInput)
+	if err != nil {
+		return nil, err
+	}
+
+	chapterFromMap := []models.Chapter{}
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &chapterFromMap); err != nil {
+		return nil, err
+	}
+	if len(chapterFromMap) == 0 {
+		return nil, fmt.Errorf("no chapter found")
+	}
+	return &chapterFromMap[0], nil
 }
 
 func (d *DAO) GetSeriesByID(email, seriesID string) (series *models.Series, err error) {
@@ -853,68 +876,68 @@ func (d *DAO) CreateChapter(storyID string, chapter models.Chapter) (newChapter 
 	return newChapter, nil
 }
 
-func (d *DAO) waitForTableToGoActive(tableName string, maxRetries int, delayBetweenRetries time.Duration) error {
-	for i := 0; i < maxRetries; i++ {
-		resp, err := d.dynamoClient.DescribeTable(context.TODO(), &dynamodb.DescribeTableInput{
-			TableName: &tableName,
-		})
-		if err != nil {
-			return err
-		}
+// func (d *DAO) waitForTableToGoActive(tableName string, maxRetries int, delayBetweenRetries time.Duration) error {
+// 	for i := 0; i < maxRetries; i++ {
+// 		resp, err := d.dynamoClient.DescribeTable(context.TODO(), &dynamodb.DescribeTableInput{
+// 			TableName: &tableName,
+// 		})
+// 		if err != nil {
+// 			return err
+// 		}
 
-		if resp.Table.TableStatus == types.TableStatusActive {
-			return nil
-		}
-		time.Sleep(delayBetweenRetries)
-	}
-	return fmt.Errorf("table %s did not become active after %d retries", tableName, maxRetries)
-}
+// 		if resp.Table.TableStatus == types.TableStatusActive {
+// 			return nil
+// 		}
+// 		time.Sleep(delayBetweenRetries)
+// 	}
+// 	return fmt.Errorf("table %s did not become active after %d retries", tableName, maxRetries)
+// }
 
-func (d *DAO) copyTableContents(email, srcTableName, destTableName string) error {
-	describeInput := &dynamodb.DescribeTableInput{
-		TableName: &destTableName,
-	}
-	describeResp, err := d.dynamoClient.DescribeTable(context.TODO(), describeInput)
-	var resourceNotFoundErr *types.ResourceNotFoundException
-	if err != nil {
-		return err
-	}
-	if err == nil {
-		// The destination table exists, check its status.
-		if describeResp.Table.TableStatus != types.TableStatusActive {
-			// Table exists but is not active, you may need to wait.
-			err = d.waitForTableToGoActive(destTableName, 20, time.Second*1)
-			if err != nil {
-				return fmt.Errorf("destination table %s is not ready: %v", destTableName, err)
-			}
-		}
-	} else if !errors.As(err, &resourceNotFoundErr) {
-		// Other error other than not found, fail the operation.
-		return fmt.Errorf("error checking status of destination table %s: %v", destTableName, err)
-	}
+// func (d *DAO) copyTableContents(email, srcTableName, destTableName string) error {
+// 	describeInput := &dynamodb.DescribeTableInput{
+// 		TableName: &destTableName,
+// 	}
+// 	describeResp, err := d.dynamoClient.DescribeTable(context.TODO(), describeInput)
+// 	var resourceNotFoundErr *types.ResourceNotFoundException
+// 	if err != nil {
+// 		return err
+// 	}
+// 	if err == nil {
+// 		// The destination table exists, check its status.
+// 		if describeResp.Table.TableStatus != types.TableStatusActive {
+// 			// Table exists but is not active, you may need to wait.
+// 			err = d.waitForTableToGoActive(destTableName, 20, time.Second*1)
+// 			if err != nil {
+// 				return fmt.Errorf("destination table %s is not ready: %v", destTableName, err)
+// 			}
+// 		}
+// 	} else if !errors.As(err, &resourceNotFoundErr) {
+// 		// Other error other than not found, fail the operation.
+// 		return fmt.Errorf("error checking status of destination table %s: %v", destTableName, err)
+// 	}
 
-	paginator := dynamodb.NewScanPaginator(d.dynamoClient, &dynamodb.ScanInput{
-		TableName: &srcTableName,
-	})
-	for paginator.HasMorePages() {
-		page, err := paginator.NextPage(context.TODO())
-		if err != nil {
-			return err
-		}
+// 	paginator := dynamodb.NewScanPaginator(d.dynamoClient, &dynamodb.ScanInput{
+// 		TableName: &srcTableName,
+// 	})
+// 	for paginator.HasMorePages() {
+// 		page, err := paginator.NextPage(context.TODO())
+// 		if err != nil {
+// 			return err
+// 		}
 
-		for _, item := range page.Items {
-			_, err := d.dynamoClient.PutItem(context.TODO(), &dynamodb.PutItemInput{
-				TableName: &destTableName,
-				Item:      item,
-			})
+// 		for _, item := range page.Items {
+// 			_, err := d.dynamoClient.PutItem(context.TODO(), &dynamodb.PutItemInput{
+// 				TableName: &destTableName,
+// 				Item:      item,
+// 			})
 
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
+// 			if err != nil {
+// 				return err
+// 			}
+// 		}
+// 	}
+// 	return nil
+// }
 
 func (d *DAO) EditSeries(email string, series models.Series) (updatedSeries models.Series, err error) {
 	modifiedAtStr := strconv.FormatInt(time.Now().Unix(), 10)
@@ -1134,7 +1157,6 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 }
 
 func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle string) (storyID string, err error) {
-	fmt.Println("creating story", story)
 	twii := &dynamodb.TransactWriteItemsInput{}
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	attributes := map[string]types.AttributeValue{
@@ -1145,6 +1167,8 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 		"created_at":  &types.AttributeValueMemberN{Value: now},
 		"image_url":   &types.AttributeValueMemberS{Value: story.ImageURL},
 	}
+
+	fmt.Println("series", story.SeriesID)
 
 	if story.SeriesID != "" {
 		intPlace := strconv.Itoa(story.Place)
@@ -1167,9 +1191,9 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 	if !awsErr.IsNil() {
 		return "", fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 	}
-	twii = &dynamodb.TransactWriteItemsInput{}
 
 	if story.SeriesID != "" {
+		twii = &dynamodb.TransactWriteItemsInput{}
 		params := &dynamodb.ScanInput{
 			TableName:        aws.String("series"),
 			FilterExpression: aws.String("series_id=:sid"),
@@ -1190,6 +1214,7 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 				"series_id": &types.AttributeValueMemberS{Value: story.SeriesID},
 				"author":    &types.AttributeValueMemberS{Value: email},
 				"title":     &types.AttributeValueMemberS{Value: newSeriesTitle},
+				"image_url": &types.AttributeValueMemberS{Value: DEFAULT_SERIES_IMAGE_URL},
 			}
 			seriesTwi := types.TransactWriteItem{
 				Put: &types.Put{
@@ -1217,14 +1242,13 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 			},
 		}
 		twii.TransactItems = append(twii.TransactItems, updateStoryTwi)
-	}
-
-	err, awsErr = d.awsWriteTransaction(twii)
-	if err != nil {
-		return "", err
-	}
-	if !awsErr.IsNil() {
-		return "", fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
+		err, awsErr = d.awsWriteTransaction(twii)
+		if err != nil {
+			return "", err
+		}
+		if !awsErr.IsNil() {
+			return "", fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
+		}
 	}
 	return story.ID, nil
 }
@@ -1679,7 +1703,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 
 	storyOrSeriesID := storyID
 	deletedSeries := false
-	// Delete series
+	// Delete series IF no remaining stories assigned
 	if seriesID != "" {
 		series, err := d.GetSeriesByID(email, seriesID)
 		if err != nil {
@@ -2000,7 +2024,6 @@ func (d *DAO) AddCustomerID(email, customerID *string) error {
 }
 
 func (d *DAO) AddStripeData(email, subscriptionID, customerID *string) error {
-	fmt.Println("billing", *email, *subscriptionID)
 	key := map[string]types.AttributeValue{
 		"email": &types.AttributeValueMemberS{Value: *email},
 	}

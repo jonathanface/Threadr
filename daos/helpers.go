@@ -5,9 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -85,13 +83,7 @@ func (d *DAO) generateStoryChapterTransaction(storyID, chapterID, chapterTitle s
 	return input, nil
 }
 
-func (d *DAO) sanitizeTableName(name string) string {
-	tablenamePattern := regexp.MustCompile(`[^\w.-]+`)
-	return strings.ToLower(tablenamePattern.ReplaceAllString(name, ""))
-}
-
 func (d *DAO) checkBackupStatus(arn string) error {
-	fmt.Println("checking backup")
 	for {
 		describeInput := &dynamodb.DescribeBackupInput{
 			BackupArn: aws.String(arn),
@@ -103,10 +95,8 @@ func (d *DAO) checkBackupStatus(arn string) error {
 
 		status := output.BackupDescription.BackupDetails.BackupStatus
 		if status == types.BackupStatusAvailable {
-			fmt.Println("Backup is available.")
 			break
 		} else if status == types.BackupStatusCreating {
-			fmt.Println("Backup is still being created...")
 			time.Sleep(10 * time.Second) // Polling interval
 		} else {
 			return fmt.Errorf("backup creation failed with status: %v", status)
@@ -261,25 +251,6 @@ func (d *DAO) IsStoryInASeries(email string, storyID string) (string, error) {
 		return "", err
 	}
 	return story.SeriesID, nil
-}
-
-func (d *DAO) wasErrorOfTypeConditionalFailure(err error) bool {
-	if opErr, ok := err.(*smithy.OperationError); ok {
-		var txnErr *types.TransactionCanceledException
-		if errors.As(opErr.Unwrap(), &txnErr) && txnErr.CancellationReasons != nil {
-			for _, reason := range txnErr.CancellationReasons {
-				if *reason.Code == "ConditionalCheckFailed" {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
-
-func (d *DAO) purgeSoftDeletedStory(title, series, email string) (err error) {
-
-	return
 }
 
 func (d *DAO) GetTotalCreatedStories(email string) (storiesCount int, err error) {

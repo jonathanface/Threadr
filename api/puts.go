@@ -5,7 +5,6 @@ import (
 	"RichDocter/models"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -43,15 +42,12 @@ func UpdateUserEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusNotFound, "Unable to locate user")
 		return
 	}
-	fmt.Println("retreived", user)
 	decoder := json.NewDecoder(r.Body)
 	passedUser := models.UserInfo{}
 	if err := decoder.Decode(&passedUser); err != nil {
-		fmt.Println("here")
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	fmt.Println("received", passedUser.Renewing)
 	if !user.Renewing && passedUser.Renewing {
 		subscription, err := sub.Get(user.SubscriptionID, nil)
 		if err != nil {
@@ -165,9 +161,6 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-	}
-	for _, st := range series.Stories {
-		fmt.Println("storing", st.Title, st.Place)
 	}
 
 	const maxFileSize = 1024 * 1024 // 1 MB
@@ -312,7 +305,6 @@ func RemoveStoryFromSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusNotFound, "Unable to locate series")
 		return
 	}
-	fmt.Println("removing from", series.ID)
 
 	var updatedSeries models.Series
 	if updatedSeries, err = dao.RemoveStoryFromSeries(email, story.ID, *series); err != nil {

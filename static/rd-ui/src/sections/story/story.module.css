@@ -1,0 +1,134 @@
+.docButton {
+  max-width: 300px;
+  background: none;
+  border: none;
+  color: #eaeaea;
+  filter: drop-shadow(2px 2px 2px #1a1a1a);
+  letter-spacing: 1.5px;
+  text-align: center;
+  margin-right: 20px;
+  margin-bottom: 20px;
+  min-width: 300px;
+  min-height: 300px;
+}
+
+.docButton:hover {
+  cursor: pointer;
+  color: #fff;
+}
+
+.docButton:hover:not(.detailsSlider) .detailsSlider {
+  margin-top: -150px;
+  opacity: 1;
+  visibility: visible;
+}
+
+.docButton img {
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(2px 2px 2px #1a1a1a);
+  vertical-align: top;
+  max-height: 100%;
+  border-radius: 20px;
+}
+
+.docButton .storyText {
+  display: flex;
+  align-content: center;
+}
+
+.docButton .storyText .iconDeleteBtn {
+  margin-left: auto;
+}
+
+.docButton .storyLabel {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #282828;
+  opacity: 0.9;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  width: 80%;
+  margin: 0 auto;
+}
+.docButton .storyLabel .title {
+  margin-right: 15px;
+  font-size: 0.8rem;
+}
+.docButton .storyLabel .buttons {
+  white-space: nowrap;
+}
+
+.docButton .storyBubble {
+  position: relative;
+  overflow: hidden;
+}
+.docButton .detailsSlider {
+  filter: none;
+  border-radius: 10px;
+  border: 1px solid #000;
+  top: 100%;
+  position: absolute;
+  transition: all 0.2s ease-in-out;
+  background: #1e1e20;
+  height: 150px;
+  width: 100%;
+  z-index: 30;
+  padding: 10px;
+  box-sizing: border-box;
+  text-align: left;
+  overflow-x: hidden;
+  overflow-y: auto;
+  cursor: default;
+  visibility: hidden;
+  opacity: 0;
+}
+
+.docButton .detailsSlider .detailsTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.docButton .detailsSlider .detailsTitle h4 {
+  overflow: hidden;
+  word-wrap: break-word;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin: 0px;
+}
+
+.docButton .detailsSlider .seriesListing > div {
+  padding: 5px;
+  padding-left: 15px;
+  margin-top: 10px;
+}
+.docButton .detailsSlider .seriesListing {
+  margin-top: 10px;
+}
+.docButton .detailsSlider .seriesListing ul {
+  line-height: 1.25rem;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.docButton .detailsSlider .seriesListing li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.docButton .detailsSlider .seriesListing li:hover {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.docButton .detailsSlider .seriesListing li .seriesStoryThumbnail {
+  width: 25px;
+  height: auto;
+  border-radius: 5px;
+  padding: 5px;
+  vertical-align: middle;
+}

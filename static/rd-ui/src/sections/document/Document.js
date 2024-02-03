@@ -32,20 +32,14 @@ import { MenuItem, Menu as SideMenu, Sidebar, useProSidebar } from "react-pro-si
 import { useDispatch, useSelector } from "react-redux";
 import "../../css/document.css";
 import "../../css/sidebar.css";
-import {
-  setAlertLink,
-  setAlertMessage,
-  setAlertOpen,
-  setAlertSeverity,
-  setAlertTimeout,
-  setAlertTitle,
-} from "../../stores/alertSlice.js";
-import { setSelectedStory } from "../../stores/storiesSlice.js";
-import { setIsLoaderVisible } from "../../stores/uiSlice.js";
+import { setAlert } from "../../stores/alertSlice";
+import { setSelectedStory } from "../../stores/storiesSlice";
+import { setIsLoaderVisible, setIsSubscriptionFormOpen } from "../../stores/uiSlice";
+import { AlertToastType } from "../../utils/Toaster";
 import ContextMenu from "../ContextMenu";
-import AssociationUI from "./AssociationUI.js";
-import EditableText from "./EditableText.js";
-import Exporter from "./Exporter.js";
+import AssociationUI from "./AssociationUI";
+import EditableText from "./EditableText";
+import Exporter from "./Exporter";
 import { FindHighlightable, FindTabs, HighlightSpan, TabSpan } from "./decorators";
 import {
   FilterAndReduceDBOperations,
@@ -55,7 +49,7 @@ import {
   GetSelectedBlockKeys,
   GetSelectedText,
   InsertTab,
-} from "./utilities.js";
+} from "./utilities";
 
 const ASSOCIATION_TYPE_CHARACTER = "character";
 const ASSOCIATION_TYPE_EVENT = "event";
@@ -130,7 +124,7 @@ const isUserUsingMobile = () => {
 
 const isMobile = isUserUsingMobile();
 
-const Document = () => {
+const Document = (props) => {
   const domEditor = useRef(null);
   const dispatch = useDispatch();
 
@@ -203,11 +197,13 @@ const Document = () => {
   const [editorState, setEditorState] = React.useState(() => EditorState.createEmpty(createDecorators()));
 
   const exportDoc = async (type) => {
-    dispatch(setAlertTitle("Conversion in progress"));
-    dispatch(setAlertMessage("A download link will appear here when the process is complete."));
-    dispatch(setAlertSeverity("info"));
-    dispatch(setAlertTimeout(null));
-    dispatch(setAlertOpen(true));
+    const newAlert = {
+      title: "Conversion in progress",
+      message: "A download link will be provided when the process is complete.",
+      open: true,
+      severity: AlertToastType.info,
+    };
+    dispatch(setAlert(newAlert));
     const exp = new Exporter(selectedStory.story_id);
     const htmlData = await exp.DocToHTML();
     try {
@@ -225,12 +221,21 @@ const Document = () => {
       });
       if (!response.ok) {
         if (response.status === 401) {
-          dispatch(setAlertTitle("Insufficient subscription"));
-          dispatch(setAlertMessage("Free accounts are unable to export their stories."));
-          dispatch(setAlertLink({ location: "subscribe" }));
-          dispatch(setAlertSeverity("error"));
-          dispatch(setAlertTimeout(null));
-          dispatch(setAlertOpen(true));
+          const alertFunction = {
+            func: () => {
+              setIsSubscriptionFormOpen(true);
+            },
+            text: "subscribe",
+          };
+          const newAlert = {
+            title: "Insufficient subscription",
+            message: "Free accounts are unable to export their stories.",
+            open: true,
+            severity: AlertToastType.warning,
+            timeout: 6000,
+            func: alertFunction,
+          };
+          dispatch(setAlert(newAlert));
           return;
         } else {
           throw new Error("Fetch problem export " + response.status);
@@ -238,29 +243,29 @@ const Document = () => {
       }
       const json = await response.json();
 
-      dispatch(setAlertTitle("Conversion complete"));
-      dispatch(setAlertMessage("Click the link to access."));
-      dispatch(setAlertSeverity("success"));
-      dispatch(
-        setAlertLink({
-          custom: {
-            url: json.url,
-            text: "download/open",
-          },
-        })
-      );
-      dispatch(setAlertTimeout(null));
-      dispatch(setAlertOpen(true));
+      const alertLink = {
+        url: json.url,
+        text: "download/open",
+      };
+      const newAlert = {
+        title: "Conversion complete",
+        message: "Click the link to access.",
+        open: true,
+        severity: AlertToastType.success,
+        link: alertLink,
+        timeout: undefined,
+      };
+      dispatch(setAlert(newAlert));
     } catch (error) {
       console.error(error);
-      dispatch(
-        setAlertMessage(
-          "Unable to export your document at this time. Please try again later, or contact support@richdocter.io."
-        )
-      );
-      dispatch(setAlertSeverity("error"));
-      dispatch(setAlertTimeout(null));
-      dispatch(setAlertOpen(true));
+      const errorAlert = {
+        title: "Error",
+        message:
+          "Unable to export your document at this time. Please try again later, or contact support@richdocter.io.",
+        open: true,
+        severity: AlertToastType.error,
+      };
+      dispatch(setAlert(errorAlert));
     }
   };
 
@@ -298,15 +303,15 @@ const Document = () => {
   };
 
   const showGreeting = () => {
-    dispatch(setAlertTitle("INFO"));
-    dispatch(
-      setAlertMessage(
-        "This is a new document.\nYou can create an association by typing some text, selecting any of it, and right-clicking on your highlighted text.\nYou can manage chapters by opening the menu on the right."
-      )
-    );
-    dispatch(setAlertSeverity("info"));
-    dispatch(setAlertTimeout(20000));
-    dispatch(setAlertOpen(true));
+    const newAlert = {
+      title: "INFO",
+      message:
+        "This is a new document.\nYou can create an association by typing some text, selecting any of it, and right-clicking on your highlighted text.\nYou can manage chapters by opening the menu on the right.",
+      timeout: 20000,
+      severity: AlertToastType.info,
+      open: true,
+    };
+    dispatch(setAlert(newAlert));
   };
 
   const processDBBlock = (content, block) => {
@@ -394,12 +399,16 @@ const Document = () => {
         setBlocksLoaded(true);
       })
       .catch((error) => {
-        console.log("fetch story blocks error", error);
+        console.error("fetch story blocks error", error);
         if (parseInt(error.message) !== 404 && parseInt(error.message !== 501)) {
           console.error("get story blocks", error);
-          dispatch(setAlertMessage("An error occurred trying to retrieve your content.\nPlease report this."));
-          dispatch(setAlertSeverity("error"));
-          dispatch(setAlertOpen(true));
+          const newAlert = {
+            title: "Error",
+            message: "An error occurred trying to retrieve your content.\nPlease report this.",
+            severity: AlertToastType.error,
+            open: true,
+          };
+          dispatch(setAlert(newAlert));
         } else {
           showGreeting();
           setEditorState(EditorState.createEmpty(createDecorators()));
@@ -559,7 +568,6 @@ const Document = () => {
         const params = {};
         params.chapter_id = chapterID;
         params.blocks = blocks;
-        console.log("del", storyID, chapterID, blocks);
         const response = await fetch("/api/stories/" + storyID + "/block", {
           method: "DELETE",
           headers: {
@@ -642,12 +650,21 @@ const Document = () => {
         });
         if (!response.ok) {
           if (response.status === 401) {
-            dispatch(setAlertTitle("Insufficient account"));
-            dispatch(setAlertMessage("Free accounts are limited to 10 associations."));
-            dispatch(setAlertLink({ location: "subscribe" }));
-            dispatch(setAlertSeverity("error"));
-            dispatch(setAlertTimeout(null));
-            dispatch(setAlertOpen(true));
+            const alertFunction = {
+              func: () => {
+                setIsSubscriptionFormOpen(true);
+              },
+              text: "subscribe",
+            };
+            const newAlert = {
+              title: "Insufficient subscription",
+              message: "Free accounts are limited to 10 associations.",
+              severity: AlertToastType.warning,
+              open: true,
+              timeout: 6000,
+              func: alertFunction,
+            };
+            dispatch(setAlert(newAlert));
           }
           reject("SERVER ERROR SAVING BLOCK: ", response);
         }
@@ -954,7 +971,6 @@ const Document = () => {
 
   const updateEditorState = (newEditorState, isPasteAction) => {
     resetNavButtonStates();
-    console.log("change");
     setSelectedContextMenuVisible(false);
     setAssociationContextMenuVisible(false);
     const selection = newEditorState.getSelection();
@@ -1169,9 +1185,14 @@ const Document = () => {
   const onDeleteChapterClick = (event, chapterID, chapterTitle) => {
     event.stopPropagation();
     if (selectedStory.chapters.length === 1) {
-      dispatch(setAlertMessage("You cannot delete a story's only chapter."));
-      dispatch(setAlertSeverity("info"));
-      dispatch(setAlertOpen(true));
+      const newAlert = {
+        title: "Nope",
+        message: "You cannot delete a story's only chapter.",
+        severity: AlertToastType.info,
+        open: true,
+        timeout: 6000,
+      };
+      dispatch(setAlert(newAlert));
       return;
     }
 
@@ -1184,7 +1205,6 @@ const Document = () => {
         },
       })
         .then((response) => {
-          console.log("del response", response);
           const chapterIndex = selectedStory.chapters.findIndex((c) => c.id === chapterID);
           if ((response.ok || response.status === 501) && chapterIndex > -1) {
             const newChapters = [...selectedStory.chapters];
@@ -1242,9 +1262,14 @@ const Document = () => {
       });
       if (!response.ok) {
         console.error(response.body);
-        dispatch(setAlertMessage("There was an error updating your title."));
-        dispatch(setAlertSeverity("error"));
-        dispatch(setAlertOpen(true));
+        const newAlert = {
+          title: "Error",
+          message: "There was an error updating your title. Please report this.",
+          severity: AlertToastType.error,
+          open: true,
+          timeout: 6000,
+        };
+        dispatch(setAlert(newAlert));
         return;
       }
     }
@@ -1275,9 +1300,14 @@ const Document = () => {
         });
         if (!response.ok) {
           console.error(response.body);
-          dispatch(setAlertMessage("There was an error updating your chapter."));
-          dispatch(setAlertSeverity("error"));
-          dispatch(setAlertOpen(true));
+          const newAlert = {
+            title: "Error",
+            message: "There was an error updating your chapter. Please report this.",
+            severity: AlertToastType.error,
+            open: true,
+            timeout: 6000,
+          };
+          dispatch(setAlert(newAlert));
           return;
         }
       }
@@ -1307,9 +1337,14 @@ const Document = () => {
     });
     if (!response.ok) {
       console.error(response.body);
-      dispatch(setAlertMessage("There was an error updating your chapters."));
-      dispatch(setAlertSeverity("error"));
-      dispatch(setAlertOpen(true));
+      const newAlert = {
+        title: "Error",
+        message: "There was an error updating your chapters. Please report this.",
+        severity: AlertToastType.error,
+        open: true,
+        timeout: 6000,
+      };
+      dispatch(setAlert(newAlert));
       return;
     }
   };
@@ -1353,9 +1388,9 @@ const Document = () => {
       <AssociationUI
         open={associationWindowOpen}
         association={viewingAssociation}
-        story={selectedStory.story_id}
+        storyID={selectedStory.story_id}
         onEditCallback={onAssociationEdit}
-        onClose={() => {
+        onCloseCallback={() => {
           setAssociationWindowOpen(false);
           setFocusAndRestoreCursor();
         }}

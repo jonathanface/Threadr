@@ -1,0 +1,57 @@
+.listingPage {
+  color: #fff;
+  text-align: center;
+}
+
+.createStoryButton {
+  display: flex;
+  text-align: center;
+  align-items: center;
+  margin-right: 20px;
+  margin-bottom: 20px;
+  width: 300px;
+  border: 1px solid #495960;
+  border-radius: 20px;
+  filter: drop-shadow(2px 2px 2px #1a1a1a);
+  min-height: 300px;
+}
+
+.listingPage h2 {
+  display: flex;
+  align-items: center;
+  text-align: left;
+  max-width: 1024px;
+  filter: drop-shadow(2px 2px 2px #1a1a1a);
+  margin: 60px auto;
+  margin-bottom: 10px;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.listingPage .iconBox {
+  display: flex;
+  margin: 0 auto;
+  max-width: 1024px;
+  flex-wrap: wrap;
+  padding-left: 20px;
+  padding-right: 20px;
+  align-items: flex-start;
+}
+
+.listingPage .logoContainer {
+  margin-top: 100px;
+  text-align: center;
+}
+
+@media only screen and (max-width: 600px) {
+  .listingPage .iconBox {
+    flex-direction: column;
+  }
+
+  .listingPage .iconBox button:not(.docButton) {
+    max-width: none;
+    margin: 0 auto;
+    margin-bottom: 10px;
+    height: auto;
+  }
+}
