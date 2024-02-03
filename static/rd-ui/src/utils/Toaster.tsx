@@ -54,7 +54,6 @@ const Toaster = () => {
   const timeout = useAppSelector((state) => state.alerts.timeout);
   const link = useAppSelector((state) => state.alerts.link);
   const func = useAppSelector((state) => state.alerts.func);
-  console.log("fnc", func);
 
   const alertState = useAppSelector((state) => state.alerts);
 

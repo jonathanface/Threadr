@@ -399,7 +399,7 @@ const Document = (props) => {
         setBlocksLoaded(true);
       })
       .catch((error) => {
-        console.log("fetch story blocks error", error);
+        console.error("fetch story blocks error", error);
         if (parseInt(error.message) !== 404 && parseInt(error.message !== 501)) {
           console.error("get story blocks", error);
           const newAlert = {
@@ -568,7 +568,6 @@ const Document = (props) => {
         const params = {};
         params.chapter_id = chapterID;
         params.blocks = blocks;
-        console.log("del", storyID, chapterID, blocks);
         const response = await fetch("/api/stories/" + storyID + "/block", {
           method: "DELETE",
           headers: {
@@ -972,7 +971,6 @@ const Document = (props) => {
 
   const updateEditorState = (newEditorState, isPasteAction) => {
     resetNavButtonStates();
-    console.log("change");
     setSelectedContextMenuVisible(false);
     setAssociationContextMenuVisible(false);
     const selection = newEditorState.getSelection();
@@ -1207,7 +1205,6 @@ const Document = (props) => {
         },
       })
         .then((response) => {
-          console.log("del response", response);
           const chapterIndex = selectedStory.chapters.findIndex((c) => c.id === chapterID);
           if ((response.ok || response.status === 501) && chapterIndex > -1) {
             const newChapters = [...selectedStory.chapters];

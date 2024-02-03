@@ -84,7 +84,6 @@ func (d *DAO) generateStoryChapterTransaction(storyID, chapterID, chapterTitle s
 }
 
 func (d *DAO) checkBackupStatus(arn string) error {
-	fmt.Println("checking backup")
 	for {
 		describeInput := &dynamodb.DescribeBackupInput{
 			BackupArn: aws.String(arn),
@@ -96,10 +95,8 @@ func (d *DAO) checkBackupStatus(arn string) error {
 
 		status := output.BackupDescription.BackupDetails.BackupStatus
 		if status == types.BackupStatusAvailable {
-			fmt.Println("Backup is available.")
 			break
 		} else if status == types.BackupStatusCreating {
-			fmt.Println("Backup is still being created...")
 			time.Sleep(10 * time.Second) // Polling interval
 		} else {
 			return fmt.Errorf("backup creation failed with status: %v", status)

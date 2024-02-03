@@ -186,7 +186,6 @@ const Subscribe = () => {
         throw new Error("Fetch problem getting products " + response.status);
       })
       .then((data) => {
-        console.log("prod", data);
         setProduct(data[0]);
       });
   };
@@ -202,7 +201,7 @@ const Subscribe = () => {
 
   const handleCardElementChange = (e: StripeCardElementChangeEvent) => {
     if (e.error) {
-      console.log(e.error.message);
+      console.error(e.error.message);
     }
     if (e.complete) {
       confirmCard();

@@ -118,19 +118,14 @@ func FullStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	fullStory := models.FullStoryContent{}
 	fullStory.StoryTitle = story.Title
 
-	//var blocksList models.BlocksData
-	//blocksList.Items = []map[string]types.AttributeValue{}
-	//var key string
 	for _, chap := range story.Chapters {
 		chapWithContents := models.ChapterWithContents{}
 		chapWithContents.Chapter = chap
 		chapWithContents.Blocks, err = staggeredStoryBlockRetrieval(dao, email, storyID, chap.ID, nil, nil)
-		//fmt.Println("res for chapter", chap.ID, ": ", len(chapWithContents.Blocks.Items))
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		//blocksList.Items = append(blocksList.Items, blocks.Items...)
 		fullStory.ChaptersWithContents = append(fullStory.ChaptersWithContents, chapWithContents)
 	}
 	RespondWithJson(w, http.StatusOK, fullStory)

@@ -46,7 +46,6 @@ const StoryBox = (props: StoryBoxProps) => {
   const handleClick = async (storyID: string, chapterID: string) => {
     const history = window.history;
     const newStory = await getStoryDetails(storyID);
-    console.log("newstory", newStory, storyID, chapterID);
     dispatch(setSelectedStory(newStory));
     history.pushState({ storyID }, "clicked story", "/story/" + storyID + "?chapter=" + chapterID);
     dispatch(setIsLoaderVisible(true));

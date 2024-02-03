@@ -8,7 +8,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -217,7 +216,6 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	story.SeriesID = strings.TrimSpace(r.FormValue("series_id"))
 	seriesTitle := strings.TrimSpace(r.FormValue("series_title"))
 	if story.SeriesID == "" && len(seriesTitle) > 0 {
-		fmt.Println("genreate new seriesID")
 		story.SeriesID = uuid.New().String()
 	}
 

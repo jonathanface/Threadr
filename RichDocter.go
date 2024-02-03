@@ -166,7 +166,6 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 					return
 				}
-				fmt.Println("Susp", suspended)
 				if suspended {
 					userDetails.Expired = false
 					err = dao.RestoreAutomaticallyDeletedStories(user.Email)

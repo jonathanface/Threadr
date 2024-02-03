@@ -190,7 +190,6 @@ func (d *DAO) GetChaptersByStoryID(storyID string) (chapters []models.Chapter, e
 }
 
 func (d *DAO) CreateUser(email string) error {
-	fmt.Println("creating user", email)
 	twii := &dynamodb.TransactWriteItemsInput{}
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	attributes := map[string]types.AttributeValue{
@@ -690,7 +689,6 @@ func (d *DAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) (err 
 			TransactItems:      make([]types.TransactWriteItem, len(batch)),
 		}
 		for i, item := range batch {
-			fmt.Println("item", item.Place)
 			// Create a key for the item.
 			key := map[string]types.AttributeValue{
 				"key_id": &types.AttributeValueMemberS{Value: item.KeyID},
@@ -1246,11 +1244,9 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 		twii.TransactItems = append(twii.TransactItems, updateStoryTwi)
 		err, awsErr = d.awsWriteTransaction(twii)
 		if err != nil {
-			fmt.Println("Here?")
 			return "", err
 		}
 		if !awsErr.IsNil() {
-			fmt.Println("or here?")
 			return "", fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 		}
 	}
@@ -1713,9 +1709,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println("Stories in", series.Title, len(series.Stories))
 		if len(series.Stories)-1 <= 0 {
-			fmt.Println("Deleting", series.Title)
 			storyOrSeriesID = seriesID
 			seriesKey := map[string]types.AttributeValue{
 				"series_id": &types.AttributeValueMemberS{Value: seriesID},
@@ -2030,7 +2024,6 @@ func (d *DAO) AddCustomerID(email, customerID *string) error {
 }
 
 func (d *DAO) AddStripeData(email, subscriptionID, customerID *string) error {
-	fmt.Println("billing", *email, *subscriptionID)
 	key := map[string]types.AttributeValue{
 		"email": &types.AttributeValueMemberS{Value: *email},
 	}

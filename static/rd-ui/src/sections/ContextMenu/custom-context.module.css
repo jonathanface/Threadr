@@ -62,8 +62,8 @@
 }
 .customContext .submenu {
   display: none;
-  position: absolute; /* Adjust as needed for positioning */
-  left: 100%; /* Position to the right of parent item */
+  position: absolute;
+  left: 100%;
   top: -1px;
   border-left: none;
 }
@@ -75,6 +75,6 @@
   border-bottom-left-radius: 0px;
 }
 
-.customContext .menuItem.has-submenu:hover > .submenu {
+.customContext .menuItem.hasSubmenu:hover > .submenu {
   display: block; /* Show on hover */
 }

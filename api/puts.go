@@ -5,7 +5,6 @@ import (
 	"RichDocter/models"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -43,14 +42,12 @@ func UpdateUserEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusNotFound, "Unable to locate user")
 		return
 	}
-	fmt.Println("retreived", user)
 	decoder := json.NewDecoder(r.Body)
 	passedUser := models.UserInfo{}
 	if err := decoder.Decode(&passedUser); err != nil {
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	fmt.Println("received", passedUser.Renewing, "old", user.Renewing)
 	if !user.Renewing && passedUser.Renewing {
 		subscription, err := sub.Get(user.SubscriptionID, nil)
 		if err != nil {
@@ -82,7 +79,6 @@ func UpdateUserEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 		user.SubscriptionID = sub.ID
 	} else if user.Renewing && !passedUser.Renewing {
-		fmt.Println("cancel sub")
 		err = cancelSubscription(user.SubscriptionID)
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -309,7 +305,6 @@ func RemoveStoryFromSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusNotFound, "Unable to locate series")
 		return
 	}
-	fmt.Println("removing from", series.ID)
 
 	var updatedSeries models.Series
 	if updatedSeries, err = dao.RemoveStoryFromSeries(email, story.ID, *series); err != nil {

@@ -80,7 +80,6 @@ const Threadr = () => {
         setIsLoading(false);
         dispatch(flipLoggedInState());
         if (json.expired) {
-          console.log("exp");
           const alertFunction: AlertFunctionCall = {
             type: AlertCommandType.subscribe,
             text: "subscribe",

@@ -48,7 +48,6 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	fmt.Println("got back", sb)
 
 	var (
 		dao daos.DaoInterface

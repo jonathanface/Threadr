@@ -31,7 +31,6 @@ const ConfigPanelModal = () => {
   const toggleSubscriptionRenewal = async () => {
     setError("");
     dispatch(setIsLoaderVisible(true));
-    console.log("set to renew", !userDetails.renewing);
     try {
       const response = await fetch("/api/user", {
         credentials: "include",
