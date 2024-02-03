@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	port           = ":8443"
+	port           = ":80"
 	staticFilesDir = "static/rd-ui/dist"
 	servicePath    = "/api"
 	billingPath    = "/billing"
