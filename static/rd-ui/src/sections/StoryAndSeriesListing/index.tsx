@@ -7,7 +7,7 @@ import { AppDispatch, RootState } from "../../stores/store";
 import { flipCreatingNewStory, setStandaloneList } from "../../stores/storiesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
 import { Series, Story } from "../../types";
-import StoryBox from "../story";
+import StoryBox from "../Story";
 import styles from "./storyAndSeries.module.css";
 
 const StoryAndSeriesListing = () => {
