@@ -4,9 +4,9 @@ import React, { useEffect, useState } from "react";
 import { FormGroup, TextField } from "@mui/material";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
-import "../../css/association-ui.css";
 import { Association } from "../../types";
 import PortraitDropper from "../PortraitDropper";
+import styles from "./association-tooltip.module.css";
 import { UCWords } from "./utilities";
 
 interface AssociationProps {
@@ -124,21 +124,21 @@ const AssociationUI: React.FC<AssociationProps> = (props) => {
   };
 
   return (
-    <Backdrop onClick={handleClose} open={props.open} className="association-ui-bg">
+    <Backdrop onClick={handleClose} open={props.open} className={styles.associationUIBG}>
       <div
-        className="association-ui-container"
+        className={styles.associationUIContainer}
         onClick={(e) => {
           e.stopPropagation();
         }}>
-        <div className="column">
+        <div className={styles.column}>
           <PortraitDropper imageURL={imageURL} name={name} onComplete={processImage} />
         </div>
-        <div className="column">
-          <div className="association-details">
+        <div className={styles.column}>
+          <div className={styles.associationDetails}>
             <div>
               <h1>{name}</h1>
             </div>
-            <div className="detail-bubble">
+            <div className={styles.detailBubble}>
               <TextField
                 label="Overview"
                 helperText=""
@@ -163,7 +163,7 @@ const AssociationUI: React.FC<AssociationProps> = (props) => {
                 value={description}
               />
             </div>
-            <div className="detail-bubble">
+            <div className={styles.detailBubble}>
               <TextField
                 label="Background & Extended Details"
                 multiline
@@ -186,7 +186,7 @@ const AssociationUI: React.FC<AssociationProps> = (props) => {
                 }}
               />
             </div>
-            <div className="association-form">
+            <div className={styles.associationForm}>
               <TextField
                 label="Aliases (comma separated)"
                 type="search"

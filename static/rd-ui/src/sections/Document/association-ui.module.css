@@ -1,7 +1,7 @@
-.association-ui-bg {
+.associationUIBG {
   z-index: 60;
 }
-.association-ui-container {
+.associationUIContainer {
   width: 80%;
   height: 80%;
   background-color: #445c66;
@@ -15,7 +15,7 @@
   color: #bbb;
   padding: 10px;
 }
-.association-ui-container h1 {
+.associationUIContainer h1 {
   font-size: 1.5em;
   font-weight: normal;
   display: inline;
@@ -24,66 +24,64 @@
   margin-bottom: 0.67em;
 }
 
-.association-ui-container .inline-editable-text {
+.associationUIContainer .inlineEditableText {
   text-overflow: ellipsis;
   margin-top: 0.67em;
   margin-bottom: 0.67em;
 }
 
-.association-ui-container .multiline-editable-text {
+.associationUIContainer .multilineEditableText {
   line-height: 1.5em;
   outline: none;
 }
 
-.association-ui-container .column {
+.associationUIContainer .column {
   display: flex;
   flex-direction: column;
   flex-basis: 100%;
   flex: 1;
 }
 
-.association-ui-container .association-details {
+.associationUIContainer .associationDetails {
   text-align: left;
   width: 90%;
 }
 
-.association-ui-container .association-details .detail-bubble {
+.associationUIContainer .associationDetails .detailBubble {
   margin-bottom: 20px;
-}
-.association-ui-container .association-form {
 }
 
 @media only screen and (max-width: 600px) {
-  .association-ui-container h1 {
+  .associationUIContainer h1 {
     font-size: 1em;
   }
-  .association-ui-container .inline-editable-text {
+  .associationUIContainer .inlineEditableText {
     font-size: 1em;
     width: 60%;
   }
-  .association-ui-container .portrait {
+  .associationUIContainer .portrait {
     margin-bottom: 0;
     font-size: 0.8rem;
   }
-  .association-ui-container .portrait img {
+  .associationUIContainer .portrait img {
     width: 100%;
   }
-  .association-ui-container {
+  .associationUIContainer {
     flex-direction: column;
     flex-wrap: nowrap;
   }
-  .association-ui-container .column {
+  .associationUIContainer .column {
     flex-direction: row;
   }
 
-  .association-ui-container .association-details {
+  .associationUIContainer .associationDetails {
     width: 100%;
   }
-  .association-ui-container .association-details .detail-bubble {
+  .associationUIContainer .associationDetails .detailBubble {
     margin-right: 10px;
     margin-left: 10px;
   }
-  .association-ui-container .association-form {
+  .associationUIContainer .associationForm {
     margin-left: 10px;
     margin-right: 10px;
     padding: 15px;
