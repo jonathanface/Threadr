@@ -1,6 +1,6 @@
 import { Box, Tooltip } from "@mui/material";
 import React, { ReactElement, useEffect, useState } from "react";
-import "../../css/association-tooltip.css";
+import styles from "./association-tooltip.module.css";
 
 interface AssociationTooltipProps {
   portrait: string;
@@ -24,9 +24,9 @@ const AssociationTooltip: React.FC<AssociationTooltipProps> = (props) => {
     <Tooltip
       placement="top"
       title={
-        <div className="association-tooltip-body">
+        <div className={styles.associationTooltipBody}>
           <div className="row">
-            <span className="column">
+            <span className={styles.column}>
               <Box
                 component="img"
                 sx={{
@@ -37,7 +37,7 @@ const AssociationTooltip: React.FC<AssociationTooltipProps> = (props) => {
                 src={portrait}
               />
             </span>
-            <span className="column">{description}</span>
+            <span className={styles.column}>{description}</span>
           </div>
         </div>
       }
