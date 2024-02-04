@@ -21,10 +21,10 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 )
 
 const (
-	port           = ":80"
 	staticFilesDir = "static/rd-ui/dist"
 	servicePath    = "/api"
 	billingPath    = "/billing"
@@ -226,6 +226,12 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
+	if os.Getenv("APP_MODE") != "PRODUCTION" {
+		if err := godotenv.Load(); err != nil {
+			log.Fatal("Error loading .env file")
+		}
+	}
+	port := os.Getenv("PORT")
 	log.Println("Launching RichDocter version", os.Getenv("VERSION"))
 	log.Println("Listening for http on " + port)
 

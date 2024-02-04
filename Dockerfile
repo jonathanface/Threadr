@@ -32,6 +32,7 @@ ENV GO111MODULE=auto \
     PATH=$GOPATH/bin:/usr/local/go/bin:/usr/local/bin:/usr/local/:$PATH
 
 ENV APP_MODE="PRODUCTION"
+ENV PORT=":80"
 
 ARG AWS_ACCESS_KEY_ID
 ENV AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID

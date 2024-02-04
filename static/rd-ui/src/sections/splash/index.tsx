@@ -20,7 +20,7 @@ const SplashPage = () => {
         <span className={styles.column}>
           <figure>
             <video width="500" autoPlay muted loop playsInline>
-              <source src="https://richdocter-demo-videos.s3.amazonaws.com/rd-demo-yt-2.mp4" type="video/mp4" />
+              <source src="https://richdocter-demo-videos.s3.amazonaws.com/rd-demo-yt-3.mp4" type="video/mp4" />
               Unable to play demo video on this browser.
             </video>
           </figure>
