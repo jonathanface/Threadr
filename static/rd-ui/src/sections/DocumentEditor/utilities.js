@@ -1,6 +1,30 @@
 import { EditorState, Modifier, SelectionState } from "draft-js";
 import Immutable from "immutable";
 
+export const documentStyleMap = {
+  strikethrough: {
+    textDecoration: "line-through",
+  },
+  bold: {
+    fontWeight: "bold",
+  },
+  italic: {
+    fontStyle: "italic",
+  },
+  underscore: {
+    textDecoration: "underline",
+  },
+  center: {
+    textAlign: "center",
+  },
+  right: {
+    textAlign: "right",
+  },
+  justify: {
+    textAlign: "justify",
+  },
+};
+
 export const GetSelectedBlockKeys = (editorState) => {
   const lastSelection = editorState.getSelection();
   const min = lastSelection.getIsBackward() ? lastSelection.getFocusKey() : lastSelection.getAnchorKey();

@@ -12,7 +12,12 @@ module.exports = {
   },
   devServer: {
     proxy: {
-      "/": "http://localhost:8443", // Proxy requests to the Go server
+      "/api": "http://localhost:8443",
+      "/billing": "http://localhost:8443",
+      "/auth": "http://localhost:8443",
+    },
+    historyApiFallback: {
+      index: "/",
     },
   },
   module: {

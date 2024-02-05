@@ -1,14 +1,9 @@
 import Immutable from "immutable";
 import React, { useEffect, useRef, useState } from "react";
 
-import { faAlignCenter, faAlignJustify, faAlignLeft, faAlignRight } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import AddIcon from "@mui/icons-material/Add";
-import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
-import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
-import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import { IconButton, ListItemIcon, ListItemText, MenuItem as MaterialMenuItem, TextField } from "@mui/material";
+import { IconButton } from "@mui/material";
 import Button from "@mui/material/Button";
 import {
   CompositeDecorator,
@@ -38,8 +33,8 @@ import { setIsLoaderVisible, setIsSubscriptionFormOpen } from "../../stores/uiSl
 import { AlertToastType } from "../../utils/Toaster";
 import ContextMenu from "../ContextMenu";
 import AssociationUI from "./AssociationUI";
+import DocumentToolbar from "./DocumentToolbar";
 import EditableText from "./EditableText";
-import Exporter from "./Exporter";
 import { FindHighlightable, FindTabs, HighlightSpan, TabSpan } from "./decorators";
 import {
   FilterAndReduceDBOperations,
@@ -49,6 +44,7 @@ import {
   GetSelectedBlockKeys,
   GetSelectedText,
   InsertTab,
+  documentStyleMap,
 } from "./utilities";
 
 const ASSOCIATION_TYPE_CHARACTER = "character";
@@ -57,30 +53,6 @@ const ASSOCIATION_TYPE_PLACE = "place";
 const DB_OP_INTERVAL = 5000;
 
 const associations = [];
-
-const styleMap = {
-  STRIKETHROUGH: {
-    textDecoration: "line-through",
-  },
-  BOLD: {
-    fontWeight: "bold",
-  },
-  ITALIC: {
-    fontStyle: "italic",
-  },
-  UNDERLINE: {
-    textDecoration: "underline",
-  },
-  CENTER: {
-    textAlign: "center",
-  },
-  RIGHT: {
-    textAlign: "right",
-  },
-  JUSTIFY: {
-    textAlign: "justify",
-  },
-};
 
 const prompts = [
   "Don't think, just type.",
@@ -98,34 +70,9 @@ const dbOperationQueue = [];
 
 const defaultText = getWritingPrompt();
 
-const isUserUsingMobile = () => {
-  // User agent string method
-  let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-  // Screen resolution method
-  if (!isMobile) {
-    const screenWidth = window.screen.width;
-    const screenHeight = window.screen.height;
-    isMobile = screenWidth < 768 || screenHeight < 768;
-  }
-
-  // Touch events method
-  if (!isMobile) {
-    isMobile = "ontouchstart" in window || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
-  }
-
-  // CSS media queries method
-  if (!isMobile) {
-    const bodyElement = document.getElementsByTagName("body")[0];
-    isMobile = window.getComputedStyle(bodyElement).getPropertyValue("content").indexOf("mobile") !== -1;
-  }
-  return isMobile;
-};
-
-const isMobile = isUserUsingMobile();
-
-const Document = (props) => {
+const DocumentEditor = (props) => {
   const domEditor = useRef(null);
+  const navbarRef = useRef(null);
   const dispatch = useDispatch();
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -137,12 +84,8 @@ const Document = (props) => {
     chapter_title: "",
     chapter_num: 1,
   });
+
   const [currentRightClickedAssoc, setCurrentRightClickedAssoc] = useState(null);
-  const [currentBlockAlignment, setCurrentBlockAlignment] = useState("LEFT");
-  const [currentItalicsState, setCurrentItalicsState] = useState(false);
-  const [currentBoldState, setCurrentBoldState] = useState(false);
-  const [currentUnderscoreState, setCurrentUnderscoreState] = useState(false);
-  const [currentStrikethroughState, setCurrentStrikethroughState] = useState(false);
   const [associationWindowOpen, setAssociationWindowOpen] = useState(false);
   const [viewingAssociation, setViewingAssociation] = useState(null);
   const [selectedContextMenuVisible, setSelectedContextMenuVisible] = useState(false);
@@ -151,7 +94,7 @@ const Document = (props) => {
   const [selectedContextMenuY, setSelectedContextMenuY] = useState(0);
   const [associationContextMenuX, setAssociationContextMenuX] = useState(0);
   const [associationContextMenuY, setAssociationContextMenuY] = useState(0);
-  const [exportMenuValue, setExportMenuValue] = React.useState(false);
+
   const [associationsLoaded, setAssociationsLoaded] = React.useState(false);
   const [blocksLoaded, setBlocksLoaded] = React.useState(false);
   const { collapseSidebar, collapsed } = useProSidebar();
@@ -195,79 +138,6 @@ const Document = (props) => {
   };
 
   const [editorState, setEditorState] = React.useState(() => EditorState.createEmpty(createDecorators()));
-
-  const exportDoc = async (type) => {
-    const newAlert = {
-      title: "Conversion in progress",
-      message: "A download link will be provided when the process is complete.",
-      open: true,
-      severity: AlertToastType.info,
-    };
-    dispatch(setAlert(newAlert));
-    const exp = new Exporter(selectedStory.story_id);
-    const htmlData = await exp.DocToHTML();
-    try {
-      const response = await fetch("/api/stories/" + selectedStory.story_id + "/export", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          story_id: selectedStory.story_id,
-          html_by_chapter: htmlData,
-          type: type,
-          title: selectedStory.title,
-        }),
-      });
-      if (!response.ok) {
-        if (response.status === 401) {
-          const alertFunction = {
-            func: () => {
-              setIsSubscriptionFormOpen(true);
-            },
-            text: "subscribe",
-          };
-          const newAlert = {
-            title: "Insufficient subscription",
-            message: "Free accounts are unable to export their stories.",
-            open: true,
-            severity: AlertToastType.warning,
-            timeout: 6000,
-            func: alertFunction,
-          };
-          dispatch(setAlert(newAlert));
-          return;
-        } else {
-          throw new Error("Fetch problem export " + response.status);
-        }
-      }
-      const json = await response.json();
-
-      const alertLink = {
-        url: json.url,
-        text: "download/open",
-      };
-      const newAlert = {
-        title: "Conversion complete",
-        message: "Click the link to access.",
-        open: true,
-        severity: AlertToastType.success,
-        link: alertLink,
-        timeout: undefined,
-      };
-      dispatch(setAlert(newAlert));
-    } catch (error) {
-      console.error(error);
-      const errorAlert = {
-        title: "Error",
-        message:
-          "Unable to export your document at this time. Please try again later, or contact support@richdocter.io.",
-        open: true,
-        severity: AlertToastType.error,
-      };
-      dispatch(setAlert(errorAlert));
-    }
-  };
 
   const getAllAssociations = async () => {
     associations.splice(0);
@@ -835,7 +705,7 @@ const Document = (props) => {
     selectedKeys.forEach((key) => {
       const modifiedBlock = newEditorState.getCurrentContent().getBlockForKey(key);
       const newStyles = [];
-      for (const entry in styleMap) {
+      for (const entry in documentStyleMap) {
         const styleDataByType = GetBlockStyleDataByType(modifiedBlock, entry);
         newStyles.push(...styleDataByType);
       }
@@ -867,7 +737,6 @@ const Document = (props) => {
     const updatedEditorStateWithSelection = EditorState.forceSelection(updatedEditorState, originalSelectionState);
     setEditorState(updatedEditorStateWithSelection);
     prepBlocksForSave(newContent, updatedBlocks, selectedStory.story_id, selectedChapter.id);
-    setNavButtonState(style);
   };
 
   const handleKeyCommand = (command) => {
@@ -903,43 +772,6 @@ const Document = (props) => {
     setEditorState(RichUtils.handleKeyCommand(newEditorState, command));
   };
 
-  const resetNavButtonStates = () => {
-    setCurrentBoldState(false);
-    setCurrentItalicsState(false);
-    setCurrentUnderscoreState(false);
-    setCurrentStrikethroughState(false);
-    setCurrentBlockAlignment("LEFT");
-  };
-
-  const setNavButtonState = (style, value) => {
-    switch (style) {
-      case "BOLD": {
-        setCurrentBoldState(value);
-        break;
-      }
-      case "ITALIC": {
-        setCurrentItalicsState(value);
-        break;
-      }
-      case "UNDERSCORE": {
-        setCurrentUnderscoreState(value);
-        break;
-      }
-      case "STRIKETHROUGH": {
-        setCurrentStrikethroughState(value);
-        break;
-      }
-      case "LEFT":
-      case "RIGHT":
-      case "CENTER":
-      case "JUSTIFY": {
-        setCurrentBlockAlignment(style);
-        break;
-      }
-      default:
-    }
-  };
-
   const adjustBlockDataPositions = (newEditorState, newBlock) => {
     let content = newEditorState.getCurrentContent();
     const styleData = newBlock.getData().getIn(["STYLES"]);
@@ -970,24 +802,33 @@ const Document = (props) => {
   };
 
   const updateEditorState = (newEditorState, isPasteAction) => {
-    resetNavButtonStates();
+    if (navbarRef.current) {
+      navbarRef.current.resetNavButtons();
+    }
     setSelectedContextMenuVisible(false);
     setAssociationContextMenuVisible(false);
     const selection = newEditorState.getSelection();
     const block = newEditorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
-    for (const entry in styleMap) {
-      const styles = GetBlockStyleDataByType(block, entry);
-      styles.forEach((style) => {
-        if (selection.hasEdgeWithin(block.getKey(), style.start, style.end)) {
-          setNavButtonState(style.style, true);
-        } else {
-          setNavButtonState(style.style, false);
-        }
-      });
+    if (block && navbarRef.current) {
+      for (const entry in documentStyleMap) {
+        const styles = GetBlockStyleDataByType(block, entry);
+        styles.forEach((style) => {
+          if (selection.hasEdgeWithin(block.getKey(), style.start, style.end)) {
+            navbarRef.current.updateNavButtons(style.style, true);
+          } else {
+            navbarRef.current.updateNavButtons(style.style, false);
+          }
+        });
+      }
     }
     const data = block.getData();
-    const alignment = data.getIn(["ALIGNMENT"]) ? data.getIn(["ALIGNMENT"]) : "LEFT";
-    setCurrentBlockAlignment(alignment);
+    if (navbarRef.current) {
+      const alignment = data.getIn(["ALIGNMENT"]) ? data.getIn(["ALIGNMENT"]).toLowerCase() : "left";
+      if (alignment !== navbarRef.current.getCurrentBlockAlignment()) {
+        //updateBlockAlignment(alignment);
+        navbarRef.current.updateNavButtons("alignment", alignment);
+      }
+    }
 
     // Cursor has moved but no text changes detected
     if (editorState.getCurrentContent() === newEditorState.getCurrentContent()) {
@@ -1105,7 +946,7 @@ const Document = (props) => {
   const getBlockStyles = (contentBlock) => {
     const data = contentBlock.getData();
     let classStr = "";
-    const alignment = data.getIn(["ALIGNMENT"]) ? data.getIn(["ALIGNMENT"]) : "LEFT";
+    const alignment = data.getIn(["ALIGNMENT"]) ? data.getIn(["ALIGNMENT"]).toLowerCase() : "left";
     classStr += alignment;
     const lineHeight = data.getIn(["LINE_HEIGHT"]) ? data.getIn(["LINE_HEIGHT"]) : "LINEHEIGHT_DOUBLE";
     classStr += " " + lineHeight;
@@ -1113,7 +954,7 @@ const Document = (props) => {
     return classStr;
   };
 
-  const updateBlockAlignment = (event, alignment) => {
+  const saveBlockAlignment = (event, alignment) => {
     let newContentState = editorState.getCurrentContent();
     const selectedKeys = GetSelectedBlockKeys(editorState);
     const blocksToPrep = [];
@@ -1127,7 +968,6 @@ const Document = (props) => {
     });
     setEditorState(EditorState.push(editorState, newContentState, "change-block-data"));
     prepBlocksForSave(newContentState, blocksToPrep, selectedStory.story_id, selectedChapter.id);
-    setNavButtonState(alignment);
   };
 
   const onExitDocument = () => {
@@ -1403,133 +1243,16 @@ const Document = (props) => {
           <EditableText textValue={selectedChapter.chapter_title} onTextChange={onChapterTitleEdit} />
         </h3>
       </div>
-      <nav className="rich-controls">
-        <div>
-          <span className="controls-row">
-            <button
-              className={currentBoldState ? "active" : ""}
-              onMouseDown={(e) => {
-                handleStyleClick(e, "BOLD");
-              }}>
-              <b>B</b>
-            </button>
-            <button
-              className={currentItalicsState ? "active" : ""}
-              onMouseDown={(e) => {
-                handleStyleClick(e, "ITALIC");
-              }}>
-              <i>I</i>
-            </button>
-            <button
-              className={currentUnderscoreState ? "active" : ""}
-              onMouseDown={(e) => {
-                handleStyleClick(e, "UNDERLINE");
-              }}>
-              <u>U</u>
-            </button>
-            <button
-              className={currentStrikethroughState ? "active" : ""}
-              onMouseDown={(e) => {
-                handleStyleClick(e, "STRIKETHROUGH");
-              }}>
-              <s>S</s>
-            </button>
-          </span>
-          <span className="controls-row">
-            <button
-              className={currentBlockAlignment === "LEFT" ? "active" : ""}
-              onMouseDown={(e) => {
-                updateBlockAlignment(e, "LEFT");
-              }}>
-              <FontAwesomeIcon icon={faAlignLeft} />
-            </button>
-            <button
-              className={currentBlockAlignment === "CENTER" ? "active" : ""}
-              onMouseDown={(e) => {
-                updateBlockAlignment(e, "CENTER");
-              }}>
-              <FontAwesomeIcon icon={faAlignCenter} />
-            </button>
-            <button
-              className={currentBlockAlignment === "RIGHT" ? "active" : ""}
-              onMouseDown={(e) => {
-                updateBlockAlignment(e, "RIGHT");
-              }}>
-              <FontAwesomeIcon icon={faAlignRight} />
-            </button>
-            <button
-              className={currentBlockAlignment === "JUSTIFY" ? "active" : ""}
-              onMouseDown={(e) => {
-                updateBlockAlignment(e, "JUSTIFY");
-              }}>
-              <FontAwesomeIcon icon={faAlignJustify} />
-            </button>
-          </span>
-          <span className="right-controls">
-            <span>
-              <TextField
-                select
-                label="Save as..."
-                InputLabelProps={{
-                  style: { color: "#f0f0f0" },
-                }}
-                SelectProps={{
-                  value: "",
-                  onChange: (evt) => {
-                    setExportMenuValue(!exportMenuValue);
-                  },
-                  onClose: (evt) => {
-                    setTimeout(() => {
-                      document.activeElement.blur();
-                    }, 0);
-                  },
-                }}
-                size="small"
-                sx={{
-                  width: "120px",
-                }}>
-                <MaterialMenuItem
-                  value="docx"
-                  onClick={(e) => {
-                    exportDoc("docx");
-                  }}>
-                  <ListItemIcon>
-                    <ArticleOutlinedIcon />
-                  </ListItemIcon>
-                  <ListItemText primary="DOCX" />
-                </MaterialMenuItem>
-                <MaterialMenuItem
-                  value="pdf"
-                  onClick={(e) => {
-                    exportDoc("pdf");
-                  }}>
-                  <ListItemIcon>
-                    <PictureAsPdfIcon />
-                  </ListItemIcon>
-                  <ListItemText primary="PDF" />
-                </MaterialMenuItem>
-              </TextField>
-              <span className="close-doc-btn">
-                <IconButton aria-label="exit" component="label" onClick={onExitDocument}>
-                  <CloseIcon
-                    sx={{
-                      color: "#F0F0F0",
-                    }}
-                  />
-                </IconButton>
-              </span>
-            </span>
-          </span>
-        </div>
-      </nav>
+      <DocumentToolbar
+        story={selectedStory}
+        exitFunction={onExitDocument}
+        updateAlignment={saveBlockAlignment}
+        updateStyle={handleStyleClick}
+        ref={navbarRef}
+      />
       <section
         onContextMenu={(e) => {
           handleContextMenu(e);
-        }}
-        onDoubleClick={(e) => {
-          if (isMobile) {
-            handleContextMenu(e);
-          }
         }}
         className="editor_container"
         onClick={setFocus}
@@ -1538,7 +1261,7 @@ const Document = (props) => {
           placeholder={defaultText}
           spellCheck={true}
           blockStyleFn={getBlockStyles}
-          customStyleMap={styleMap}
+          customStyleMap={documentStyleMap}
           preserveSelectionOnBlur={true}
           editorState={editorState}
           onChange={updateEditorState}
@@ -1629,4 +1352,4 @@ const Document = (props) => {
   );
 };
 
-export default Document;
+export default DocumentEditor;

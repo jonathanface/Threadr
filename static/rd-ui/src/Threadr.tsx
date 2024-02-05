@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import "./css/main.css";
 import ConfigPanelModal from "./sections/ConfigPanel";
 import CreateNewStoryModal from "./sections/CreateNewStoryModal";
-import Document from "./sections/Document";
+import DocumentEditor from "./sections/DocumentEditor";
 import EditSeriesModal from "./sections/EditSeriesModal";
 import EditStoryModal from "./sections/EditStoryModal";
 import LoginPanelModal from "./sections/LoginPanelModal";
@@ -122,7 +122,7 @@ const Threadr = () => {
 
   const displayComponent = !isLoading ? (
     isLoggedIn && selectedStory ? (
-      <Document />
+      <DocumentEditor />
     ) : isLoggedIn && !selectedStory ? (
       <StoryAndSeriesListing />
     ) : (

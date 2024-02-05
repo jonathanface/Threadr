@@ -2,6 +2,11 @@ import { AttributeValue } from "@aws-sdk/client-dynamodb";
 import { BlockMap, ContentBlock } from "draft-js";
 export type AttributeMap = { [key: string]: AttributeValue };
 
+export enum DocumentExportType {
+  pdf = "pdf",
+  docx = "docx",
+}
+
 export interface AssociationDetails {
   aliases: string;
   case_sensitive: boolean;
