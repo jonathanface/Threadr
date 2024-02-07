@@ -1037,7 +1037,6 @@ const DocumentEditor = (props: DocumentEditorProps) => {
 
   const getBlockStyles = (contentBlock: ContentBlock) => {
     const data = contentBlock.getData();
-    data;
     let classStr = "";
     const alignment = data.has("ALIGNMENT") ? data.get("ALIGNMENT").toLowerCase() : "left";
     classStr += alignment;
