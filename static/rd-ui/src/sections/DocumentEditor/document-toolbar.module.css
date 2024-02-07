@@ -1,0 +1,73 @@
+nav.richControls {
+  width: 210mm;
+  display: inline-block;
+  text-align: left;
+  padding: 10px;
+  background: #545e55;
+  border-radius: 10px;
+  filter: drop-shadow(2px 2px 2px #1a1a1a);
+  z-index: 10;
+  position: relative;
+  margin-top: 10px;
+  height: 60px;
+  line-height: 40px;
+}
+
+nav.richControls:not(:hover) {
+  opacity: 0.8;
+  transition: opacity 0.2s ease-in-out;
+}
+nav.richControls:hover {
+  opacity: 0.95;
+  transition: opacity 0.2s ease-in-out;
+}
+
+nav.richControls button {
+  text-align: center;
+  margin: 0px 5px 0px 5px;
+  font-size: 1em;
+  padding: 5px;
+  width: 34px;
+  cursor: pointer;
+  border-radius: 5px;
+  border: none;
+  filter: drop-shadow(2px 2px 2px #1a1a1a);
+}
+nav.richControls button.active {
+  filter: none;
+  border: 1px solid black;
+  background-color: gray;
+}
+
+nav.richControls .rightControls {
+  float: right;
+}
+nav.richControls .exportOption {
+  width: auto;
+}
+
+@media only screen and (max-width: 600px) {
+  nav.richControls {
+    height: initial;
+    width: calc(100% - 60px);
+    opacity: 1;
+    margin-left: -50px;
+    min-height: 160px;
+  }
+  nav.richControls .rightControls {
+    float: none;
+    display: block;
+    position: absolute;
+    top: 10px;
+    width: calc(100% - 20px);
+  }
+  nav.richControls .rightControls .closeDocButton {
+    position: absolute;
+    right: 0px;
+  }
+  nav.richControls .controlsRow {
+    display: block;
+    position: relative;
+    top: 60px;
+  }
+}

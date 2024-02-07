@@ -36,8 +36,8 @@ type Association struct {
 type Chapter struct {
 	ID        string `json:"id" dynamodbav:"chapter_id"`
 	StoryID   string `json:"story_id" dynamodbav:"story_id"`
-	Place     int    `json:"chapter_num" dynamodbav:"chapter_num"`
-	Title     string `json:"chapter_title" dynamodbav:"title"`
+	Place     int    `json:"place" dynamodbav:"chapter_num"`
+	Title     string `json:"title" dynamodbav:"title"`
 	BackupARN string `dynamodbav:"bup_arn"`
 }
 

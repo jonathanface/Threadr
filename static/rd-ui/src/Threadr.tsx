@@ -94,7 +94,7 @@ const Threadr = () => {
             timeout: undefined,
           };
           dispatch(setAlert(newAlert));
-        } else {
+        } else if (window.location.pathname === "/") {
           const alertLink: AlertLink = {
             url: "mailto:support@docter.io",
             text: "support@docter.io",

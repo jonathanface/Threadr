@@ -6,8 +6,8 @@ interface StoriesPanel {
   isEditingStory: boolean;
   belongsToSeries: string;
   standaloneList: Story[];
-  selectedStory: Story | null;
-  storyBeingEdited: Story | null;
+  selectedStory: Story | undefined;
+  storyBeingEdited: Story | undefined;
 }
 
 const initialState: StoriesPanel = {
@@ -15,8 +15,8 @@ const initialState: StoriesPanel = {
   isEditingStory: false,
   belongsToSeries: "",
   standaloneList: [],
-  selectedStory: null,
-  storyBeingEdited: null,
+  selectedStory: undefined,
+  storyBeingEdited: undefined,
 };
 
 export const storiesSlice = createSlice({

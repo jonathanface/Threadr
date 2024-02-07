@@ -13,6 +13,12 @@ export interface AssociationDetails {
   extended_description: string;
 }
 
+export enum AssociationType {
+  character = "character",
+  event = "event",
+  place = "place",
+}
+
 export interface Association {
   association_id: string;
   association_name: string;
@@ -68,6 +74,11 @@ export interface DocumentTab {
   start: number;
   end: number;
 }
+export interface BlockData {
+  STYLES?: DocumentBlockStyle[];
+  ENTITY_TABS?: DocumentTab[];
+}
+
 export interface BlockOrder {
   key_id: string;
   place: string;
@@ -80,13 +91,13 @@ export interface BlockOrderMap {
 export interface BlocksForServer {
   story_id: string;
   chapter_id: string;
-  blocks: ContentBlock[];
+  blocks: DBOperationTask[];
 }
 
 export interface DBOperationTask {
   key_id: string;
-  chunk: ContentBlock | null;
-  place: string | null;
+  chunk: ContentBlock;
+  place: string;
 }
 
 export enum DBOperationType {
@@ -100,6 +111,17 @@ export interface DBOperation {
   storyID: string;
   chapterID: string;
   time: number;
-  ops: DBOperationTask[] | null;
+  ops: DBOperationTask[];
   blockList?: BlockMap;
+}
+
+export interface CharMetadata {
+  style: string[]; // Assuming style is an array of string identifiers for styles
+  entity: string | undefined;
+}
+
+export interface EntityData {
+  start: number;
+  end: number;
+  type: string;
 }

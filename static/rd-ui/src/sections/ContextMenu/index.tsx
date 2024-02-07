@@ -3,6 +3,7 @@ import MenuItem, { MenuItemEntry } from "./MenuItem";
 import styles from "./custom-context.module.css";
 
 interface ContextMenuProps {
+  name: string;
   visible: boolean;
   y: number;
   x: number;

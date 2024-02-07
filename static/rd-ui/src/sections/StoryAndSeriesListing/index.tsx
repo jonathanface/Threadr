@@ -149,7 +149,7 @@ const StoryAndSeriesListing = () => {
         ""
       )}
       <div className={styles.logoContainer}>
-        <img alt="RichDocter logo" title="RichDocter - Organized Imagination" src="img/logo_trans_scaled.png" />
+        <img alt="RichDocter logo" title="RichDocter - Organized Imagination" src="/img/logo_trans_scaled.png" />
       </div>
     </div>
   );

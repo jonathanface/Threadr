@@ -34,7 +34,7 @@ interface EditStoryForm {
 }
 
 interface EditStoryProps {
-  story: Story | null;
+  story: Story | undefined;
 }
 
 const EditStoryModal = (props: EditStoryProps) => {
@@ -94,7 +94,7 @@ const EditStoryModal = (props: EditStoryProps) => {
   };
 
   useEffect(() => {
-    if (props.story !== null) {
+    if (props.story) {
       if (props.story && props.story.image_url && props.story.image_url !== imageURL) {
         setImageURL(props.story.image_url);
       }

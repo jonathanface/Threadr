@@ -51,7 +51,7 @@ export default class Exporter {
       const contentByChapter = [];
       data.chapters_with_contents.forEach((chapter) => {
         const paragraphs = {
-          chapterTitle: chapter.chapter.chapter_title,
+          chapterTitle: chapter.chapter.title,
           blocks: [],
         };
         if (chapter.blocks && chapter.blocks.items) {

@@ -673,7 +673,6 @@ func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (
 
 func (d *DAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) (err error) {
 	tableName := storyID + "_" + storyBlocks.ChapterID + "_blocks"
-
 	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(storyBlocks.Blocks); i += d.writeBatchSize {
 		end := i + d.writeBatchSize

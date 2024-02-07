@@ -1,0 +1,36 @@
+.editorContainer {
+  max-height: 100vh;
+  width: 210mm;
+  margin: 0 auto;
+}
+
+.titleInfo {
+  color: #fff;
+  margin-top: 65px;
+}
+.titleInfo span {
+  display: inline-block;
+  padding: 10px;
+}
+.titleInfo span:hover {
+  border: 1px solid #333;
+  border-radius: 10px;
+}
+
+.titleInfo h2 {
+  filter: drop-shadow(2px 2px 2px #1a1a1a);
+  margin-bottom: 0;
+}
+.titleInfo h3 {
+  margin: 0;
+}
+
+/*padding: 0.75rem 1.25rem;*/
+@media only screen and (max-width: 600px) {
+  .titleInfo h3 {
+    margin: 5px;
+  }
+  .editorContainer {
+    width: inherit;
+  }
+}

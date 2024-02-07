@@ -6,7 +6,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import { Association } from "../../types";
 import PortraitDropper from "../PortraitDropper";
-import styles from "./association-tooltip.module.css";
+import styles from "./association-ui.module.css";
 import { UCWords } from "./utilities";
 
 interface AssociationProps {
