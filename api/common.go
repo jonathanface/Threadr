@@ -184,7 +184,7 @@ func staggeredStoryBlockRetrieval(dao daos.DaoInterface, email string, storyID s
 		accumulatedBlocks = &models.BlocksData{}
 	}
 
-	blocks, err := dao.GetStoryParagraphs(storyID, chapterID, key)
+	blocks, err := dao.GetChapterParagraphs(storyID, chapterID, key)
 	if err != nil {
 		return nil, err
 	}

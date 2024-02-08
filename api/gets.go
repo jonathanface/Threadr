@@ -50,7 +50,7 @@ func StoryBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusNotFound, "story not found")
 		return
 	}
-	blocks, err := dao.GetStoryParagraphs(storyID, chapterID, nil)
+	blocks, err := dao.GetChapterParagraphs(storyID, chapterID, nil)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)

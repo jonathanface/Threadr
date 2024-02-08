@@ -15,7 +15,7 @@ type DaoInterface interface {
 	GetStoryByID(email string, storyID string) (*models.Story, error)
 	GetSeriesByID(email string, seriesID string) (*models.Series, error)
 	GetStoryCountByUser(email string) (int, error)
-	GetStoryParagraphs(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error)
+	GetChapterParagraphs(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error)
 	GetStoryOrSeriesAssociations(email, storyID string, needDetails bool) ([]*models.Association, error)
 	GetSeriesVolumes(email string, seriesID string) ([]*models.Story, error)
 	GetUserDetails(email string) (*models.UserInfo, error)
@@ -42,7 +42,7 @@ type DaoInterface interface {
 	CreateUser(email string) error
 
 	// DELETEs
-	DeleteStoryParagraphs(storyID string, storyBlocks *models.StoryBlocks) error
+	DeleteChapterParagraphs(storyID string, storyBlocks *models.StoryBlocks) error
 	DeleteAssociations(email, storyID string, associations []*models.Association) error
 	DeleteChapters(storyID string, chapters []models.Chapter) error
 	SoftDeleteStory(email, storyID string, isAutomated bool) error
