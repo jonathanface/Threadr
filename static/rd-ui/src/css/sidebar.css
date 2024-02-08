@@ -130,3 +130,8 @@
 .sidebar-container .button-container .sidebar-add-new:hover {
   background-color: #0f1e1e;
 }
+
+.sidebar-container [data-rbd-droppable-id="droppable"] {
+  height: initial;
+  min-height: calc(100% - 90px);
+}
