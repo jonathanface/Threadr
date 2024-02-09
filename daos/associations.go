@@ -15,6 +15,9 @@ import (
 )
 
 func (d *DAO) WriteAssociations(email, storyOrSeriesID string, associations []*models.Association) (err error) {
+	if len(associations) == 0 {
+		return fmt.Errorf("empty associations array")
+	}
 	batches := make([][]*models.Association, 0, (len(associations)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(associations); i += d.writeBatchSize {
 		end := i + d.writeBatchSize
@@ -135,7 +138,7 @@ func (d *DAO) UpdateAssociationPortraitEntryInDB(email, storyOrSeriesID, associa
 		},
 		ReturnValues: types.ReturnValueAllNew,
 	}
-	_, err = d.dynamoClient.UpdateItem(context.Background(), updateInput)
+	_, err = d.DynamoClient.UpdateItem(context.Background(), updateInput)
 	if err != nil {
 		return err
 	}
@@ -231,7 +234,7 @@ func (d *DAO) GetStoryOrSeriesAssociations(email, storyID string, needDetails bo
 		associations []*models.Association
 		err          error
 	)
-	outStory, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+	outStory, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("stories"),
 		FilterExpression: aws.String("author=:eml AND story_id=:s"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -259,7 +262,7 @@ func (d *DAO) GetStoryOrSeriesAssociations(email, storyID string, needDetails bo
 		":s":   &types.AttributeValueMemberS{Value: storyOrSeries},
 	}
 
-	out, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:                 aws.String("associations"),
 		FilterExpression:          aws.String(filterString),
 		ExpressionAttributeValues: expressionValues,
@@ -273,7 +276,7 @@ func (d *DAO) GetStoryOrSeriesAssociations(email, storyID string, needDetails bo
 
 	if needDetails {
 		for i, v := range associations {
-			outDetails, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+			outDetails, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
 				TableName:        aws.String("association_details"),
 				FilterExpression: aws.String("association_id=:aid"),
 				ExpressionAttributeValues: map[string]types.AttributeValue{

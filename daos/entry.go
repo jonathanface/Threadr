@@ -45,7 +45,7 @@ type dynamoDBClient interface {
 }
 
 type DAO struct {
-	dynamoClient   dynamoDBClient
+	DynamoClient   dynamoDBClient
 	s3Client       *s3.Client
 	maxRetries     int
 	capacity       int
@@ -124,11 +124,11 @@ func NewMock() *DAO {
 
 	mockDB := new(MockDynamoDBClient)
 	return &DAO{
-		dynamoClient: mockDB,
+		DynamoClient: mockDB,
 		// s3Client:       s3.NewFromConfig(awsCfg),
-		// maxRetries:     maxAWSRetries,
-		// capacity:       blockTableMinWriteCapacity,
-		// writeBatchSize: DYNAMO_WRITE_BATCH_SIZE,
+		maxRetries:     1,
+		capacity:       10,
+		writeBatchSize: DYNAMO_WRITE_BATCH_SIZE,
 	}
 }
 
@@ -159,7 +159,7 @@ func NewDAO() *DAO {
 	}
 	awsCfg.RetryMaxAttempts = maxAWSRetries
 	return &DAO{
-		dynamoClient:   dynamodb.NewFromConfig(awsCfg),
+		DynamoClient:   dynamodb.NewFromConfig(awsCfg),
 		s3Client:       s3.NewFromConfig(awsCfg),
 		maxRetries:     maxAWSRetries,
 		capacity:       blockTableMinWriteCapacity,

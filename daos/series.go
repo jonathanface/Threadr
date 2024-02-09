@@ -19,7 +19,7 @@ func (d *DAO) GetSeriesByID(email, seriesID string) (series *models.Series, err 
 	if err != nil {
 		return series, err
 	}
-	out, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("series"),
 		FilterExpression: aws.String("author=:eml AND series_id=:s AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -68,7 +68,7 @@ func (d *DAO) GetAllSeriesWithStories(email string, adminRequest bool) (series m
 			FilterExpression: aws.String("attribute_not_exists(deleted_at)"),
 		}
 	}
-	scanOutput, err := d.dynamoClient.Scan(context.TODO(), scanInput)
+	scanOutput, err := d.DynamoClient.Scan(context.TODO(), scanInput)
 	if err != nil {
 		return series, err
 	}
@@ -130,7 +130,7 @@ func (d *DAO) GetSeriesVolumes(email, seriesID string) (volumes []*models.Story,
 	}
 
 	var seriesOutput *dynamodb.QueryOutput
-	if seriesOutput, err = d.dynamoClient.Query(context.TODO(), queryInput); err != nil {
+	if seriesOutput, err = d.DynamoClient.Query(context.TODO(), queryInput); err != nil {
 		return volumes, err
 	}
 
@@ -180,7 +180,7 @@ func (d *DAO) EditSeries(email string, series models.Series) (updatedSeries mode
 				":p": &types.AttributeValueMemberN{Value: strconv.Itoa(story.Place)},
 			},
 		}
-		_, err = d.dynamoClient.UpdateItem(context.Background(), storyUpdateInput)
+		_, err = d.DynamoClient.UpdateItem(context.Background(), storyUpdateInput)
 		if err != nil {
 			return updatedSeries, err
 		}
@@ -190,7 +190,7 @@ func (d *DAO) EditSeries(email string, series models.Series) (updatedSeries mode
 		TableName: aws.String("series"),
 		Item:      item,
 	}
-	_, err = d.dynamoClient.PutItem(context.Background(), seriesUpdateInput)
+	_, err = d.DynamoClient.PutItem(context.Background(), seriesUpdateInput)
 	if err != nil {
 		return updatedSeries, err
 	}
@@ -212,7 +212,7 @@ func (d *DAO) RemoveStoryFromSeries(email, storyID string, series models.Series)
 			":n": &types.AttributeValueMemberN{Value: now},
 		},
 	}
-	_, err = d.dynamoClient.UpdateItem(context.Background(), storyUpdateInput)
+	_, err = d.DynamoClient.UpdateItem(context.Background(), storyUpdateInput)
 	if err != nil {
 		return updatedSeries, err
 	}
@@ -243,7 +243,7 @@ func (d *DAO) DeleteSeries(email string, series models.Series) error {
 				":n": &types.AttributeValueMemberN{Value: now},
 			},
 		}
-		_, err := d.dynamoClient.UpdateItem(context.Background(), storyUpdateInput)
+		_, err := d.DynamoClient.UpdateItem(context.Background(), storyUpdateInput)
 		if err != nil {
 			return err
 		}
@@ -261,7 +261,7 @@ func (d *DAO) DeleteSeries(email string, series models.Series) error {
 			":n": &types.AttributeValueMemberN{Value: now},
 		},
 	}
-	_, err := d.dynamoClient.UpdateItem(context.Background(), seriesUpdateInput)
+	_, err := d.DynamoClient.UpdateItem(context.Background(), seriesUpdateInput)
 	if err != nil {
 		return err
 	}

@@ -17,7 +17,7 @@ import (
 )
 
 func (d *DAO) GetAllStories(email string) (stories []*models.Story, err error) {
-	out, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("stories"),
 		FilterExpression: aws.String("author=:eml AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -61,7 +61,7 @@ func (d *DAO) GetAllStandalone(email string, adminRequest bool) (stories map[str
 			FilterExpression: aws.String("attribute_not_exists(series_id) AND attribute_not_exists(deleted_at)"),
 		}
 	}
-	out, err := d.dynamoClient.Scan(context.TODO(), input)
+	out, err := d.DynamoClient.Scan(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +127,7 @@ func (d *DAO) GetStoryByID(email, storyID string) (story *models.Story, err erro
 			},
 		}
 	}
-	out, err := d.dynamoClient.Scan(context.TODO(), scanInput)
+	out, err := d.DynamoClient.Scan(context.TODO(), scanInput)
 	if err != nil {
 		return story, err
 	}
@@ -291,7 +291,7 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 						TableName: aws.String("series"),
 						Item:      seriesItem,
 					}
-					_, err = d.dynamoClient.PutItem(context.Background(), seriesUpdateInput)
+					_, err = d.DynamoClient.PutItem(context.Background(), seriesUpdateInput)
 					if err != nil {
 						return updatedStory, err
 					}
@@ -330,7 +330,7 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 						TableName: aws.String("series"),
 						Item:      seriesItem,
 					}
-					_, err = d.dynamoClient.PutItem(context.Background(), seriesUpdateInput)
+					_, err = d.DynamoClient.PutItem(context.Background(), seriesUpdateInput)
 					if err != nil {
 						return updatedStory, err
 					}
@@ -361,7 +361,7 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 		TableName: aws.String("stories"),
 		Item:      item,
 	}
-	_, err = d.dynamoClient.PutItem(context.Background(), storyUpdateInput)
+	_, err = d.DynamoClient.PutItem(context.Background(), storyUpdateInput)
 	if err != nil {
 		return updatedStory, err
 	}
@@ -417,7 +417,7 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 
 		// Execute the scan operation and get the count
 		var resp *dynamodb.ScanOutput
-		if resp, err = d.dynamoClient.Scan(context.TODO(), params); err != nil {
+		if resp, err = d.DynamoClient.Scan(context.TODO(), params); err != nil {
 			return
 		}
 
@@ -473,7 +473,7 @@ func (d *DAO) GetStoryCountByUser(email string) (count int, err error) {
 			":eml": &types.AttributeValueMemberS{Value: email},
 		},
 	}
-	storyOut, err := d.dynamoClient.Scan(context.TODO(), storyScanInput)
+	storyOut, err := d.DynamoClient.Scan(context.TODO(), storyScanInput)
 	if err != nil {
 		return
 	}

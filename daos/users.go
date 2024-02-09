@@ -42,7 +42,7 @@ func (d *DAO) CreateUser(email string) error {
 }
 
 func (d *DAO) GetUserDetails(email string) (user *models.UserInfo, err error) {
-	out, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("users"),
 		FilterExpression: aws.String("email=:eml AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -77,7 +77,7 @@ func (d *DAO) UpsertUser(email string) (err error) {
 		},
 	}
 	var out *dynamodb.UpdateItemOutput
-	if out, err = d.dynamoClient.UpdateItem(context.TODO(), input); err != nil {
+	if out, err = d.DynamoClient.UpdateItem(context.TODO(), input); err != nil {
 		return err
 	}
 	var createdAt string
@@ -106,7 +106,7 @@ func (d *DAO) UpdateUser(user models.UserInfo) (err error) {
 		},
 	}
 	var out *dynamodb.UpdateItemOutput
-	if out, err = d.dynamoClient.UpdateItem(context.TODO(), input); err != nil {
+	if out, err = d.DynamoClient.UpdateItem(context.TODO(), input); err != nil {
 		return err
 	}
 	var createdAt string
@@ -139,7 +139,7 @@ func (d *DAO) AddCustomerID(email, customerID *string) error {
 		},
 		ReturnValues: types.ReturnValueAllNew,
 	}
-	_, err := d.dynamoClient.UpdateItem(context.Background(), updateInput)
+	_, err := d.DynamoClient.UpdateItem(context.Background(), updateInput)
 	if err != nil {
 		fmt.Println("error saving", err)
 		return err

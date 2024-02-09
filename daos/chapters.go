@@ -17,7 +17,7 @@ import (
 )
 
 func (d *DAO) GetChaptersByStoryID(storyID string) (chapters []models.Chapter, err error) {
-	out, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("chapters"),
 		FilterExpression: aws.String("story_id=:sid AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -47,7 +47,7 @@ func (d *DAO) GetChapterByID(chapterID string) (chapter *models.Chapter, err err
 			":cid": &types.AttributeValueMemberS{Value: chapterID},
 		},
 	}
-	out, err := d.dynamoClient.Scan(context.TODO(), scanInput)
+	out, err := d.DynamoClient.Scan(context.TODO(), scanInput)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (d *DAO) GetChapterParagraphs(storyID, chapterID string, startKey *map[stri
 	}
 
 	var items []map[string]types.AttributeValue
-	paginator := dynamodb.NewQueryPaginator(d.dynamoClient, queryInput)
+	paginator := dynamodb.NewQueryPaginator(d.DynamoClient, queryInput)
 
 	var lastKey map[string]types.AttributeValue
 	for paginator.HasMorePages() {
@@ -152,7 +152,7 @@ func (d *DAO) EditChapter(storyID string, chapter models.Chapter) (updatedChapte
 		TableName: aws.String("chapters"),
 		Item:      item,
 	}
-	_, err = d.dynamoClient.PutItem(context.Background(), chapterUpdateInput)
+	_, err = d.DynamoClient.PutItem(context.Background(), chapterUpdateInput)
 	if err != nil {
 		return updatedChapter, err
 	}
@@ -251,7 +251,7 @@ func (d *DAO) DeleteChapters(storyID string, chapters []models.Chapter) (err err
 			}
 
 			// Delete the table
-			if _, err = d.dynamoClient.DeleteTable(context.Background(), deleteTableInput); err != nil {
+			if _, err = d.DynamoClient.DeleteTable(context.Background(), deleteTableInput); err != nil {
 				return
 			}
 		}
@@ -277,7 +277,7 @@ func (d *DAO) GetBlockCountByChapter(email, storyID, chapterID string) (count in
 			":eml": &types.AttributeValueMemberS{Value: email},
 		},
 	}
-	blocksOut, err := d.dynamoClient.Scan(context.TODO(), blockScanInput)
+	blocksOut, err := d.DynamoClient.Scan(context.TODO(), blockScanInput)
 	if err != nil {
 		return
 	}

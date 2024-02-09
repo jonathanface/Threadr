@@ -25,7 +25,7 @@ func (d *DAO) awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsIn
 	maxItemsPerSecond := d.capacity / 2
 
 	for numRetries := 0; numRetries < d.maxRetries; numRetries++ {
-		if _, err := d.dynamoClient.TransactWriteItems(context.Background(), writeItemsInput); err == nil {
+		if _, err := d.DynamoClient.TransactWriteItems(context.Background(), writeItemsInput); err == nil {
 			return nil, awsError
 		} else if opErr, ok := err.(*smithy.OperationError); ok {
 			var txnErr *types.TransactionCanceledException
@@ -92,7 +92,7 @@ func (d *DAO) checkBackupStatus(arn string) error {
 		describeInput := &dynamodb.DescribeBackupInput{
 			BackupArn: aws.String(arn),
 		}
-		output, err := d.dynamoClient.DescribeBackup(context.Background(), describeInput)
+		output, err := d.DynamoClient.DescribeBackup(context.Background(), describeInput)
 		if err != nil {
 			return err
 		}
@@ -111,7 +111,7 @@ func (d *DAO) checkBackupStatus(arn string) error {
 
 // Check if a story was "suspended" by an account's subscription not renewing
 func (d *DAO) CheckForSuspendedStories(email string) (bool, error) {
-	out, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("stories"),
 		FilterExpression: aws.String("author=:eml AND attribute_exists(deleted_at) AND automated_deletion=:a"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -175,7 +175,7 @@ func (d *DAO) createBlockTable(tableName string) error {
 		},
 	}
 
-	_, err := d.dynamoClient.CreateTable(context.TODO(), &dynamodb.CreateTableInput{
+	_, err := d.DynamoClient.CreateTable(context.TODO(), &dynamodb.CreateTableInput{
 		TableName:              aws.String(tableName),
 		KeySchema:              tableSchema,
 		AttributeDefinitions:   attributes,
@@ -187,7 +187,7 @@ func (d *DAO) createBlockTable(tableName string) error {
 	}
 
 	go func() {
-		waiter := dynamodb.NewTableExistsWaiter(d.dynamoClient)
+		waiter := dynamodb.NewTableExistsWaiter(d.DynamoClient)
 		if err = waiter.Wait(context.TODO(), &dynamodb.DescribeTableInput{
 			TableName: aws.String(tableName),
 		}, 1*time.Minute); err != nil {
@@ -203,7 +203,7 @@ func (d *DAO) createBlockTable(tableName string) error {
 		}
 
 		for {
-			_, err := d.dynamoClient.UpdateContinuousBackups(context.TODO(), pitrInput)
+			_, err := d.DynamoClient.UpdateContinuousBackups(context.TODO(), pitrInput)
 			if err == nil {
 				break // PITR enabled successfully
 			}
@@ -217,7 +217,7 @@ func (d *DAO) createBlockTable(tableName string) error {
 			time.Sleep(10 * time.Second)
 		}
 
-		_, err := d.dynamoClient.UpdateContinuousBackups(context.Background(), pitrInput)
+		_, err := d.DynamoClient.UpdateContinuousBackups(context.Background(), pitrInput)
 		if err != nil {
 			fmt.Println("error enabling continuous backups", err)
 		}
@@ -226,7 +226,7 @@ func (d *DAO) createBlockTable(tableName string) error {
 }
 
 func (d *DAO) WasStoryDeleted(email string, storyTitle string) (bool, error) {
-	exists, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+	exists, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("stories"),
 		FilterExpression: aws.String("author=:eml AND story_title=:s AND attribute_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -258,7 +258,7 @@ func (d *DAO) IsStoryInASeries(email string, storyID string) (string, error) {
 }
 
 func (d *DAO) GetTotalCreatedStories(email string) (storiesCount int, err error) {
-	out, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("stories"),
 		FilterExpression: aws.String("author=:eml AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -273,7 +273,7 @@ func (d *DAO) GetTotalCreatedStories(email string) (storiesCount int, err error)
 }
 
 func (d *DAO) CheckTableStatus(tableName string) (string, error) {
-	resp, err := d.dynamoClient.DescribeTable(context.TODO(), &dynamodb.DescribeTableInput{
+	resp, err := d.DynamoClient.DescribeTable(context.TODO(), &dynamodb.DescribeTableInput{
 		TableName: aws.String(tableName),
 	})
 	if err != nil {
@@ -284,7 +284,7 @@ func (d *DAO) CheckTableStatus(tableName string) (string, error) {
 
 // func (d *DAO) waitForTableToGoActive(tableName string, maxRetries int, delayBetweenRetries time.Duration) error {
 // 	for i := 0; i < maxRetries; i++ {
-// 		resp, err := d.dynamoClient.DescribeTable(context.TODO(), &dynamodb.DescribeTableInput{
+// 		resp, err := d.DynamoClient.DescribeTable(context.TODO(), &dynamodb.DescribeTableInput{
 // 			TableName: &tableName,
 // 		})
 // 		if err != nil {
@@ -303,7 +303,7 @@ func (d *DAO) CheckTableStatus(tableName string) (string, error) {
 // 	describeInput := &dynamodb.DescribeTableInput{
 // 		TableName: &destTableName,
 // 	}
-// 	describeResp, err := d.dynamoClient.DescribeTable(context.TODO(), describeInput)
+// 	describeResp, err := d.DynamoClient.DescribeTable(context.TODO(), describeInput)
 // 	var resourceNotFoundErr *types.ResourceNotFoundException
 // 	if err != nil {
 // 		return err
@@ -322,7 +322,7 @@ func (d *DAO) CheckTableStatus(tableName string) (string, error) {
 // 		return fmt.Errorf("error checking status of destination table %s: %v", destTableName, err)
 // 	}
 
-// 	paginator := dynamodb.NewScanPaginator(d.dynamoClient, &dynamodb.ScanInput{
+// 	paginator := dynamodb.NewScanPaginator(d.DynamoClient, &dynamodb.ScanInput{
 // 		TableName: &srcTableName,
 // 	})
 // 	for paginator.HasMorePages() {
@@ -332,7 +332,7 @@ func (d *DAO) CheckTableStatus(tableName string) (string, error) {
 // 		}
 
 // 		for _, item := range page.Items {
-// 			_, err := d.dynamoClient.PutItem(context.TODO(), &dynamodb.PutItemInput{
+// 			_, err := d.DynamoClient.PutItem(context.TODO(), &dynamodb.PutItemInput{
 // 				TableName: &destTableName,
 // 				Item:      item,
 // 			})
@@ -346,7 +346,7 @@ func (d *DAO) CheckTableStatus(tableName string) (string, error) {
 // }
 
 func (d *DAO) RestoreAutomaticallyDeletedStories(email string) error {
-	out, err := d.dynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("stories"),
 		FilterExpression: aws.String("author=:eml AND attribute_exists(deleted_at) AND automated_deletion=:a"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -371,7 +371,7 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(email string) error {
 			},
 			Select: types.SelectAllAttributes,
 		}
-		chapterOut, err := d.dynamoClient.Scan(context.TODO(), chapterScanInput)
+		chapterOut, err := d.DynamoClient.Scan(context.TODO(), chapterScanInput)
 		if err != nil {
 			return err
 		}
@@ -381,7 +381,7 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(email string) error {
 		}
 		for _, chapter := range chapters {
 			oldTableName := story.ID + "_" + chapter.ID + "_blocks"
-			_, err := d.dynamoClient.RestoreTableFromBackup(context.TODO(), &dynamodb.RestoreTableFromBackupInput{
+			_, err := d.DynamoClient.RestoreTableFromBackup(context.TODO(), &dynamodb.RestoreTableFromBackupInput{
 				BackupArn:       aws.String(chapter.BackupARN),
 				TargetTableName: aws.String(oldTableName),
 			})
@@ -397,7 +397,7 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(email string) error {
 				Key:              chapterKey,
 				UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 			}
-			_, err = d.dynamoClient.UpdateItem(context.Background(), chapterUpdateInput)
+			_, err = d.DynamoClient.UpdateItem(context.Background(), chapterUpdateInput)
 			if err != nil {
 				return err
 			}
@@ -411,7 +411,7 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(email string) error {
 			Key:              storyKey,
 			UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 		}
-		_, err = d.dynamoClient.UpdateItem(context.Background(), storyUpdateInput)
+		_, err = d.DynamoClient.UpdateItem(context.Background(), storyUpdateInput)
 		if err != nil {
 			return err
 		}
@@ -428,7 +428,7 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(email string) error {
 				Key:              seriesKey,
 				UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 			}
-			_, err = d.dynamoClient.UpdateItem(context.Background(), seriesUpdateInput)
+			_, err = d.DynamoClient.UpdateItem(context.Background(), seriesUpdateInput)
 			if err != nil {
 				return err
 			}
@@ -444,7 +444,7 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(email string) error {
 			},
 			Select: types.SelectAllAttributes,
 		}
-		associationOut, err := d.dynamoClient.Scan(context.TODO(), associationScanInput)
+		associationOut, err := d.DynamoClient.Scan(context.TODO(), associationScanInput)
 		if err != nil {
 			return err
 		}
@@ -460,7 +460,7 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(email string) error {
 				Key:              associationKey,
 				UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 			}
-			_, err = d.dynamoClient.UpdateItem(context.Background(), associationUpdateInput)
+			_, err = d.DynamoClient.UpdateItem(context.Background(), associationUpdateInput)
 			if err != nil {
 				return err
 			}
@@ -470,7 +470,7 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(email string) error {
 				Key:              associationKey,
 				UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 			}
-			_, err = d.dynamoClient.UpdateItem(context.Background(), associationDetailsUpdateInput)
+			_, err = d.DynamoClient.UpdateItem(context.Background(), associationDetailsUpdateInput)
 			if err != nil {
 				return err
 			}
@@ -492,7 +492,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 		},
 		Select: types.SelectAllAttributes,
 	}
-	chapterOut, err := d.dynamoClient.Scan(context.TODO(), chapterScanInput)
+	chapterOut, err := d.DynamoClient.Scan(context.TODO(), chapterScanInput)
 	if err != nil {
 		return err
 	}
@@ -524,7 +524,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 		}
 
 		// Create the backup
-		buResponse, err := d.dynamoClient.CreateBackup(context.TODO(), input)
+		buResponse, err := d.DynamoClient.CreateBackup(context.TODO(), input)
 		if err != nil {
 			fmt.Printf("Failed to create backup for table %s, %v", oldTableName, err)
 			return err
@@ -537,7 +537,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 
 		for numRetries := 0; numRetries < d.maxRetries; numRetries++ {
 			var deletionOutput *dynamodb.DeleteTableOutput
-			if deletionOutput, err = d.dynamoClient.DeleteTable(context.Background(), deleteTableInput); err != nil {
+			if deletionOutput, err = d.DynamoClient.DeleteTable(context.Background(), deleteTableInput); err != nil {
 				if opErr, ok := err.(*smithy.OperationError); ok {
 					var useErr *types.ResourceInUseException
 					if errors.As(opErr.Unwrap(), &useErr) {
@@ -571,7 +571,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 				":barn": &types.AttributeValueMemberS{Value: *buResponse.BackupDetails.BackupArn},
 			},
 		}
-		_, err = d.dynamoClient.UpdateItem(context.Background(), chapterUpdateInput)
+		_, err = d.DynamoClient.UpdateItem(context.Background(), chapterUpdateInput)
 		if err != nil {
 			return err
 		}
@@ -597,7 +597,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 			":a": &types.AttributeValueMemberBOOL{Value: automated},
 		},
 	}
-	_, err = d.dynamoClient.UpdateItem(context.Background(), storyUpdateInput)
+	_, err = d.DynamoClient.UpdateItem(context.Background(), storyUpdateInput)
 	if err != nil {
 		return err
 	}
@@ -625,7 +625,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 					":a": &types.AttributeValueMemberBOOL{Value: automated},
 				},
 			}
-			_, err = d.dynamoClient.UpdateItem(context.Background(), seriesUpdateInput)
+			_, err = d.DynamoClient.UpdateItem(context.Background(), seriesUpdateInput)
 			if err != nil {
 				return err
 			}
@@ -644,7 +644,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 			},
 			Select: types.SelectAllAttributes,
 		}
-		associationOut, err := d.dynamoClient.Scan(context.TODO(), associationScanInput)
+		associationOut, err := d.DynamoClient.Scan(context.TODO(), associationScanInput)
 		if err != nil {
 			return err
 		}
@@ -664,7 +664,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 					":a": &types.AttributeValueMemberBOOL{Value: automated},
 				},
 			}
-			_, err = d.dynamoClient.UpdateItem(context.Background(), associationUpdateInput)
+			_, err = d.DynamoClient.UpdateItem(context.Background(), associationUpdateInput)
 			if err != nil {
 				return err
 			}
@@ -678,7 +678,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 					":a": &types.AttributeValueMemberBOOL{Value: automated},
 				},
 			}
-			_, err = d.dynamoClient.UpdateItem(context.Background(), associationDetailsUpdateInput)
+			_, err = d.DynamoClient.UpdateItem(context.Background(), associationDetailsUpdateInput)
 			if err != nil {
 				return err
 			}
@@ -702,7 +702,7 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 		},
 		Select: types.SelectAllAttributes,
 	}
-	chapterOut, err := d.dynamoClient.Scan(context.TODO(), chapterScanInput)
+	chapterOut, err := d.DynamoClient.Scan(context.TODO(), chapterScanInput)
 	if err != nil {
 		return err
 	}
@@ -718,7 +718,7 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 			TableName: aws.String("chapters"),
 			Key:       chapterKey,
 		}
-		_, err = d.dynamoClient.DeleteItem(context.Background(), chapterDeleteInput)
+		_, err = d.DynamoClient.DeleteItem(context.Background(), chapterDeleteInput)
 		if err != nil {
 			return err
 		}
@@ -733,7 +733,7 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 		TableName: aws.String("stories"),
 		Key:       storyKey,
 	}
-	_, err = d.dynamoClient.DeleteItem(context.Background(), storyDeleteInput)
+	_, err = d.DynamoClient.DeleteItem(context.Background(), storyDeleteInput)
 	if err != nil {
 		return err
 	}
@@ -756,7 +756,7 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 				TableName: aws.String("series"),
 				Key:       seriesKey,
 			}
-			_, err = d.dynamoClient.DeleteItem(context.Background(), seriesDeleteInput)
+			_, err = d.DynamoClient.DeleteItem(context.Background(), seriesDeleteInput)
 			if err != nil {
 				return err
 			}
@@ -791,7 +791,7 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 			},
 			Select: types.SelectAllAttributes,
 		}
-		associationOut, err := d.dynamoClient.Scan(context.TODO(), associationScanInput)
+		associationOut, err := d.DynamoClient.Scan(context.TODO(), associationScanInput)
 		if err != nil {
 			return err
 		}
@@ -806,7 +806,7 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 				TableName: aws.String("associations"),
 				Key:       associationKey,
 			}
-			_, err = d.dynamoClient.DeleteItem(context.Background(), associationDeleteInput)
+			_, err = d.DynamoClient.DeleteItem(context.Background(), associationDeleteInput)
 			if err != nil {
 				return err
 			}
@@ -815,7 +815,7 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 				TableName: aws.String("association_details"),
 				Key:       associationKey,
 			}
-			_, err = d.dynamoClient.DeleteItem(context.Background(), associationDetailsDeleteInput)
+			_, err = d.DynamoClient.DeleteItem(context.Background(), associationDetailsDeleteInput)
 			if err != nil {
 				return err
 			}
@@ -876,7 +876,7 @@ func (d *DAO) AddStripeData(email, subscriptionID, customerID *string) error {
 		},
 		ReturnValues: types.ReturnValueAllNew,
 	}
-	_, err := d.dynamoClient.UpdateItem(context.Background(), updateInput)
+	_, err := d.DynamoClient.UpdateItem(context.Background(), updateInput)
 	if err != nil {
 		fmt.Println("error saving", err)
 		return err
