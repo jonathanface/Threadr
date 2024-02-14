@@ -146,6 +146,9 @@ func (d *DAO) UpdateAssociationPortraitEntryInDB(email, storyOrSeriesID, associa
 }
 
 func (d *DAO) DeleteAssociations(email, storyID string, associations []*models.Association) (err error) {
+	if len(associations) == 0 {
+		return fmt.Errorf(("no associations provided"))
+	}
 	batches := make([][]*models.Association, 0, (len(associations)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(associations); i += d.writeBatchSize {
 		end := i + d.writeBatchSize
@@ -273,7 +276,6 @@ func (d *DAO) GetStoryOrSeriesAssociations(email, storyID string, needDetails bo
 	if err = attributevalue.UnmarshalListOfMaps(out.Items, &associations); err != nil {
 		return associations, err
 	}
-
 	if needDetails {
 		for i, v := range associations {
 			outDetails, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{

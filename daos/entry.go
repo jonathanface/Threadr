@@ -87,6 +87,7 @@ func (m *MockDynamoDBClient) Query(ctx context.Context, input *dynamodb.QueryInp
 }
 func (m *MockDynamoDBClient) Scan(ctx context.Context, input *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
 	args := m.Called(ctx, input, optFns)
+	fmt.Println("scan got args", args)
 	return args.Get(0).(*dynamodb.ScanOutput), args.Error(1)
 }
 
