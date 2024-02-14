@@ -34,6 +34,7 @@ const DocumentSidebar = (props: DocumentSidebarProps) => {
     });
     const newStory = { ...props.story };
     newStory.chapters = updatedChapters;
+    console.log("updated", updatedChapters);
     dispatch(setSelectedStory(newStory));
 
     const response = await fetch("/api/stories/" + props.story.story_id + "/chapters", {
