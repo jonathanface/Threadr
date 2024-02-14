@@ -2,7 +2,7 @@ import ArticleOutlinedIcon from "@mui/icons-material/Article";
 import CloseIcon from "@mui/icons-material/Close";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import { IconButton, ListItemIcon, ListItemText, MenuItem as MaterialMenuItem, TextField } from "@mui/material";
-import React, { forwardRef, useImperativeHandle, useState } from "react";
+import React, { ChangeEvent, forwardRef, useImperativeHandle, useState } from "react";
 import { useDispatch } from "react-redux";
 import { setAlert } from "../../stores/alertSlice";
 import { setIsSubscriptionFormOpen } from "../../stores/uiSlice";
@@ -21,6 +21,7 @@ interface DocumentToolbarProps {
   exitFunction: Function;
   updateAlignment: Function;
   updateStyle: Function;
+  updateSpellcheck: Function;
 }
 
 export enum BlockAlignmentType {
@@ -198,6 +199,11 @@ const DocumentToolbar = forwardRef((props: DocumentToolbarProps, ref) => {
     }
   };
 
+  const toggleSpellcheck = (event: ChangeEvent) => {
+    const target = event.target as HTMLInputElement;
+    props.updateSpellcheck(target.checked);
+  };
+
   return (
     <nav className={styles.richControls}>
       <div>
@@ -270,6 +276,12 @@ const DocumentToolbar = forwardRef((props: DocumentToolbarProps, ref) => {
           </button>
         </span>
         <span className={styles.rightControls}>
+          <span>
+            <label>
+              Spellcheck
+              <input type="checkbox" defaultChecked={true} onChange={toggleSpellcheck} />
+            </label>
+          </span>
           <span>
             <TextField
               select

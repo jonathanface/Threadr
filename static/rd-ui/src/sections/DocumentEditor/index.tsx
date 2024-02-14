@@ -109,9 +109,10 @@ const DocumentEditor = (props: DocumentEditorProps) => {
   const [selectedContextMenuY, setSelectedContextMenuY] = useState(0);
   const [associationContextMenuX, setAssociationContextMenuX] = useState(0);
   const [associationContextMenuY, setAssociationContextMenuY] = useState(0);
+  const [isSpellcheckOn, setIsSpellcheckOn] = useState(true);
 
-  const [associationsLoaded, setAssociationsLoaded] = React.useState(false);
-  const [blocksLoaded, setBlocksLoaded] = React.useState(false);
+  const [associationsLoaded, setAssociationsLoaded] = useState(false);
+  const [blocksLoaded, setBlocksLoaded] = useState(false);
   const { collapseSidebar, collapsed } = useProSidebar();
 
   let lastRetrievedBlockKey: string | null = null;
@@ -377,7 +378,6 @@ const DocumentEditor = (props: DocumentEditorProps) => {
           console.error("invalid operation:", op);
       }
     }
-    //dbOperationQueue.push(...retryArray);
   };
 
   const setFocusAndRestoreCursor = () => {
@@ -1212,6 +1212,7 @@ const DocumentEditor = (props: DocumentEditorProps) => {
         exitFunction={onExitDocument}
         updateAlignment={saveBlockAlignment}
         updateStyle={handleStyleClick}
+        updateSpellcheck={setIsSpellcheckOn}
         ref={navbarRef}
       />
       <section
@@ -1223,7 +1224,7 @@ const DocumentEditor = (props: DocumentEditorProps) => {
         onScroll={handleScroll}>
         <Editor
           placeholder={defaultText}
-          spellCheck={true}
+          spellCheck={isSpellcheckOn}
           blockStyleFn={getBlockStyles}
           customStyleMap={documentStyleMap}
           preserveSelectionOnBlur={true}
