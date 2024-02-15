@@ -54,6 +54,7 @@ import {
   GetEntityData,
   GetSelectedBlockKeys,
   GetSelectedText,
+  InsertDash,
   InsertTab,
   documentStyleMap,
   filterAndReduceDBOperations,
@@ -649,6 +650,40 @@ const DocumentEditor = (props: DocumentEditorProps) => {
         });
         setEditorState(newEditorState);
         prepBlocksForSave(content, blocksToPrep, selectedStory.story_id, selectedChapter.id);
+      }
+    }
+    if (event.code.toLowerCase() === "minus") {
+      if (selectedStory && selectedChapter.id) {
+        const selection = editorState.getSelection();
+        const content = editorState.getCurrentContent();
+        const anchorKey = selection.getAnchorKey();
+        const anchorOffset = selection.getAnchorOffset();
+        if (anchorOffset > 0) {
+          const block = content.getBlockForKey(anchorKey);
+          const text = block.getText();
+          const precedingChar = text[anchorOffset - 1];
+          if (precedingChar == "-") {
+            event.preventDefault();
+            const newSelection = new SelectionState({
+              anchorOffset: anchorOffset - 1,
+              focusOffset: selection.getFocusOffset(),
+              focusKey: selection.getFocusKey(),
+              anchorKey: selection.getAnchorKey(),
+            });
+            const newEditorState = InsertDash(editorState, newSelection);
+            const blocksToPrep: ContentBlock[] = [];
+            GetSelectedBlockKeys(newEditorState).forEach((key: string) => {
+              blocksToPrep.push(content.getBlockForKey(key));
+            });
+            setEditorState(newEditorState);
+            prepBlocksForSave(
+              newEditorState.getCurrentContent(),
+              blocksToPrep,
+              selectedStory.story_id,
+              selectedChapter.id
+            );
+          }
+        }
       }
     }
     return getDefaultKeyBinding(event);

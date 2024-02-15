@@ -156,6 +156,13 @@ export const GenerateTabCharacter = (tabLength?: number) => {
   return tab;
 };
 
+export const InsertDash = (editorState: EditorState, selection: SelectionState) => {
+  const content = editorState.getCurrentContent();
+  const contentStateWithUpdatedText = Modifier.replaceText(content, selection, "—");
+  const editorStateWithData = EditorState.push(editorState, contentStateWithUpdatedText, "insert-characters");
+  return EditorState.forceSelection(editorStateWithData, contentStateWithUpdatedText.getSelectionAfter());
+};
+
 export const InsertTab = (editorState: EditorState, selection: SelectionState) => {
   const selectedKeys = GetSelectedBlockKeys(editorState);
   let newEditorState = editorState;
