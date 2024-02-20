@@ -7,8 +7,8 @@ nav.richControls {
   border-radius: 10px;
   filter: drop-shadow(2px 2px 2px #1a1a1a);
   z-index: 10;
-  position: relative;
-  margin-top: 10px;
+  position: sticky;
+  top: 10px;
   height: 60px;
   line-height: 40px;
 }
@@ -61,6 +61,9 @@ nav.richControls .exportOption {
     opacity: 1;
     margin-left: -50px;
     min-height: 160px;
+  }
+  nav.richControls:not(:hover) {
+    opacity: 1;
   }
   nav.richControls .rightControls {
     float: none;
