@@ -1218,6 +1218,12 @@ const DocumentEditor = (props: DocumentEditorProps) => {
             handleMenuItemClick(event, AssociationType.event);
           },
         },
+        {
+          name: "Item",
+          command: (event: React.MouseEvent) => {
+            handleMenuItemClick(event, AssociationType.item);
+          },
+        },
       ],
     },
   ];

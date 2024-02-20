@@ -34,7 +34,6 @@ const DocumentSidebar = (props: DocumentSidebarProps) => {
     });
     const newStory = { ...props.story };
     newStory.chapters = updatedChapters;
-    console.log("updated", updatedChapters);
     dispatch(setSelectedStory(newStory));
 
     const response = await fetch("/api/stories/" + props.story.story_id + "/chapters", {
@@ -136,6 +135,8 @@ const DocumentSidebar = (props: DocumentSidebarProps) => {
   const onNewChapterClick = () => {
     const newChapterNum = props.story.chapters.length + 1;
     const newChapterTitle = "Chapter " + newChapterNum;
+    //const place = props.story.chapters.findIndex((c) => c.id === props.chapter.id) + 1;
+
     fetch("/api/stories/" + props.story.story_id + "/chapter", {
       method: "POST",
       headers: {

@@ -17,6 +17,7 @@ export enum AssociationType {
   character = "character",
   event = "event",
   place = "place",
+  item = "item",
 }
 
 export interface Association {

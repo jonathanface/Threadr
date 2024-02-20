@@ -21,9 +21,11 @@ const (
 	S3_PORTRAIT_BASE_URL        = "https://richdocterportraits.s3.amazonaws.com/"
 	S3_LOCATION_BASE_URL        = "https://richdocterlocations.s3.amazonaws.com/"
 	S3_EVENT_BASE_URL           = "https://richdocterevents.s3.amazonaws.com/"
+	S3_ITEM_BASE_URL            = "https://richdocteritems.s3.amazonaws.com/"
 	MAX_DEFAULT_PORTRAIT_IMAGES = 50
 	MAX_DEFAULT_LOCATION_IMAGES = 20
 	MAX_DEFAULT_EVENT_IMAGES    = 20
+	MAX_DEFAULT_ITEM_IMAGES     = 20
 	DYNAMO_WRITE_BATCH_SIZE     = 50
 	DEFAULT_SERIES_IMAGE_URL    = "/img/icons/story_series_icon.jpg"
 )

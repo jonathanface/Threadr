@@ -51,6 +51,9 @@ func (d *DAO) WriteAssociations(email, storyOrSeriesID string, associations []*m
 				case "event":
 					imageFileName := rand.Intn(MAX_DEFAULT_EVENT_IMAGES-1) + 1
 					imgFile = S3_EVENT_BASE_URL + strconv.Itoa(imageFileName) + ".jpg"
+				case "item":
+					imageFileName := rand.Intn(MAX_DEFAULT_ITEM_IMAGES-1) + 1
+					imgFile = S3_ITEM_BASE_URL + strconv.Itoa(imageFileName) + ".jpg"
 				}
 			}
 			shortDescription := item.ShortDescription

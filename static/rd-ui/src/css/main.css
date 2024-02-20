@@ -186,6 +186,9 @@ div.public-DraftEditor-content .content-block:last-child {
 .highlight.event {
   color: red;
 }
+.highlight.item {
+  color: orange;
+}
 .public-DraftEditor-content .left .public-DraftStyleDefault-ltr {
   text-align: left;
 }
