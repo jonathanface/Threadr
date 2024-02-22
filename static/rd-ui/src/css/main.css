@@ -171,6 +171,7 @@ div.public-DraftEditor-content .content-block:last-child {
 }
 
 .highlight {
+  white-space: nowrap;
   cursor: pointer;
 }
 .highlight:hover {
