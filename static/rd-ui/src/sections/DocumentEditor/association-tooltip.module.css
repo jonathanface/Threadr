@@ -14,11 +14,13 @@
 }
 .associationTooltipBody .column:last-child {
   text-align: left;
-  text-overflow: ellipsis;
   height: 90%;
   overflow: hidden;
   max-height: 120px;
   padding-right: 15px;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
 }
 .associationTooltipBody .column img {
   filter: drop-shadow(1px 1px 1px #1a1a1a);
