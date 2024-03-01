@@ -208,19 +208,21 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     if (blockData.has("STYLES")) {
       blockData.getIn(["STYLES"]).forEach((style: DocumentBlockStyle) => {
         try {
+          const name = style.style ? style.style : style.name;
           const styleSelection = new SelectionState({
             focusKey: block.getKey(),
             anchorKey: block.getKey(),
             focusOffset: style.end,
             anchorOffset: style.start,
           });
-          content = Modifier.applyInlineStyle(content, styleSelection, style.style);
+          content = Modifier.applyInlineStyle(content, styleSelection, name);
         } catch (error) {
           console.error(error);
         }
       });
     }
     if (blockData.has("ENTITY_TABS")) {
+      const tabText = GenerateTabCharacter();
       blockData.getIn(["ENTITY_TABS"]).forEach((tab: DocumentTab) => {
         const tabSelection = new SelectionState({
           focusKey: block.getKey(),
@@ -230,13 +232,7 @@ const DocumentEditor = (props: DocumentEditorProps) => {
         });
         const contentStateWithEntity = content.createEntity("TAB", "IMMUTABLE");
         const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
-        content = Modifier.replaceText(
-          contentStateWithEntity,
-          tabSelection,
-          GenerateTabCharacter(),
-          undefined,
-          entityKey
-        );
+        content = Modifier.replaceText(contentStateWithEntity, tabSelection, tabText, undefined, entityKey);
       });
     }
     return content;
@@ -805,10 +801,11 @@ const DocumentEditor = (props: DocumentEditorProps) => {
             anchorOffset: subStyle.start,
             focusOffset: subStyle.end,
           });
-          if (newEditorState.getCurrentInlineStyle().has(subStyle.style)) {
+          const styleName = subStyle.style ? subStyle.style : subStyle.name;
+          if (newEditorState.getCurrentInlineStyle().has(styleName)) {
             newContent = Modifier.mergeBlockData(newContent, styleState, Immutable.Map([["STYLES", newStyles]]));
           } else {
-            const dataToRemove = Immutable.Map([[subStyle.style, undefined]]);
+            const dataToRemove = Immutable.Map([[styleName, undefined]]);
             const existingData = modifiedBlock.getData();
             const updatedData = existingData.delete("STYLES").mergeDeep({ STYLES: newStyles });
             const blockData = updatedData.merge(dataToRemove);
@@ -878,7 +875,8 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     const uniqueStyles = new Map();
     if (styleData) {
       styleData.forEach((style: DocumentBlockStyle) => {
-        const styleDataByType = GetBlockStyleDataByType(newBlock, style.style);
+        const styleName = style.style ? style.style : style.name;
+        const styleDataByType = GetBlockStyleDataByType(newBlock, styleName);
         styleDataByType.forEach((styleItem) => {
           const key = JSON.stringify(styleItem);
 
@@ -917,10 +915,11 @@ const DocumentEditor = (props: DocumentEditorProps) => {
       for (const entry in documentStyleMap) {
         const styles = GetBlockStyleDataByType(block, entry);
         styles.forEach((style) => {
+          const styleName = style.style ? style.style : style.name;
           if (selection.hasEdgeWithin(block.getKey(), style.start, style.end)) {
-            navbar.updateNavButtons(style.style, true);
+            navbar.updateNavButtons(styleName, true);
           } else {
-            navbar.updateNavButtons(style.style, false);
+            navbar.updateNavButtons(styleName, false);
           }
         });
       }

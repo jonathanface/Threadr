@@ -31,7 +31,7 @@ export enum BlockAlignmentType {
   justify = "justify",
 }
 
-enum TextFormatType {
+export enum TextFormatType {
   bold = "bold",
   italic = "italic",
   underscore = "underscore",

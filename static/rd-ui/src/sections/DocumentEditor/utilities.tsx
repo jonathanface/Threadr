@@ -68,7 +68,7 @@ export const GetBlockStyleDataByType = (block: ContentBlock, type: string) => {
       list.push({
         start: start,
         end: end,
-        style: type,
+        name: type,
       });
     }
   );

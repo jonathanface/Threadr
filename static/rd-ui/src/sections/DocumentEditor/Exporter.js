@@ -20,16 +20,18 @@ export default class Exporter {
   processDBBlock = (content, block) => {
     if (block.getData().STYLES) {
       block.getData().STYLES.forEach((style) => {
+        const name = style.style ? style.style : style.name;
         const styleSelection = new SelectionState({
-          focusKey: block.key,
-          anchorKey: block.key,
+          focusKey: block.getKey(),
+          anchorKey: block.getKey(),
           focusOffset: style.end,
           anchorOffset: style.start,
         });
-        content = Modifier.applyInlineStyle(content, styleSelection, style.style);
+        content = Modifier.applyInlineStyle(content, styleSelection, name);
       });
     }
     if (block.getData().ENTITY_TABS) {
+      const tabText = GenerateTabCharacter();
       block.getData().ENTITY_TABS.forEach((tab) => {
         const tabSelection = new SelectionState({
           focusKey: block.getKey(),
@@ -39,10 +41,64 @@ export default class Exporter {
         });
         const contentStateWithEntity = content.createEntity("TAB", "IMMUTABLE");
         const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
-        content = Modifier.replaceText(contentStateWithEntity, tabSelection, GenerateTabCharacter(), null, entityKey);
+        content = Modifier.replaceText(contentStateWithEntity, tabSelection, tabText, null, entityKey);
       });
     }
     return content;
+  };
+
+  applyStyles = (text, styles) => {
+    let modifier = 0;
+    styles.forEach((style) => {
+      const name = style.style ? style.style : style.name;
+      switch (name) {
+        case "bold":
+          text =
+            text.slice(0, style.offset + modifier) +
+            "<b>" +
+            text.slice(style.offset + modifier, text.length + modifier);
+          text =
+            text.slice(0, style.offset + style.length + 3 + modifier) +
+            "</b>" +
+            text.slice(style.offset + style.length + 3 + modifier, text.length + modifier);
+          modifier += 7;
+          break;
+        case "italic":
+          text =
+            text.slice(0, style.offset + modifier) +
+            "<i>" +
+            text.slice(style.offset + modifier, text.length + modifier);
+          text =
+            text.slice(0, style.offset + style.length + 3 + modifier) +
+            "</i>" +
+            text.slice(style.offset + style.length + 3 + modifier, text.length + modifier);
+          modifier += 7;
+          break;
+        case "underline":
+          text =
+            text.slice(0, style.offset + modifier) +
+            "<u>" +
+            text.slice(style.offset + modifier, text.length + modifier);
+          text =
+            text.slice(0, style.offset + style.length + 3 + modifier) +
+            "</u>" +
+            text.slice(style.offset + style.length + 3 + modifier, text.length + modifier);
+          modifier += 7;
+          break;
+        case "strikethrough":
+          text =
+            text.slice(0, style.offset + modifier) +
+            "<s>" +
+            text.slice(style.offset + modifier, text.length + modifier);
+          text =
+            text.slice(0, style.offset + style.length + 3 + modifier) +
+            "</s>" +
+            text.slice(style.offset + style.length + 3 + modifier, text.length + modifier);
+          modifier += 7;
+          break;
+      }
+    });
+    return text;
   };
 
   DocToHTML = async () => {
@@ -91,61 +147,15 @@ export default class Exporter {
           html: convertToHTML({
             blockToHTML: (block) => {
               const alignment = block.data.ALIGNMENT;
-              if (alignment && alignment != "LEFT") {
-                let text = block.text;
-                const styles = block.inlineStyleRanges;
-                if (styles) {
-                  let modifier = 0;
-                  styles.forEach((style) => {
-                    switch (style.style) {
-                      case "BOLD":
-                        text =
-                          text.slice(0, style.offset + modifier) +
-                          "<b>" +
-                          text.slice(style.offset + modifier, text.length + modifier);
-                        text =
-                          text.slice(0, style.offset + style.length + 3 + modifier) +
-                          "</b>" +
-                          text.slice(style.offset + style.length + 3 + modifier, text.length + modifier);
-                        modifier += 7;
-                        break;
-                      case "ITALIC":
-                        text =
-                          text.slice(0, style.offset + modifier) +
-                          "<i>" +
-                          text.slice(style.offset + modifier, text.length + modifier);
-                        text =
-                          text.slice(0, style.offset + style.length + 3 + modifier) +
-                          "</i>" +
-                          text.slice(style.offset + style.length + 3 + modifier, text.length + modifier);
-                        modifier += 7;
-                        break;
-                      case "UNDERLINE":
-                        text =
-                          text.slice(0, style.offset + modifier) +
-                          "<u>" +
-                          text.slice(style.offset + modifier, text.length + modifier);
-                        text =
-                          text.slice(0, style.offset + style.length + 3 + modifier) +
-                          "</u>" +
-                          text.slice(style.offset + style.length + 3 + modifier, text.length + modifier);
-                        modifier += 7;
-                        break;
-                      case "STRIKETHROUGH":
-                        text =
-                          text.slice(0, style.offset + modifier) +
-                          "<s>" +
-                          text.slice(style.offset + modifier, text.length + modifier);
-                        text =
-                          text.slice(0, style.offset + style.length + 3 + modifier) +
-                          "</s>" +
-                          text.slice(style.offset + style.length + 3 + modifier, text.length + modifier);
-                        modifier += 7;
-                        break;
-                    }
-                  });
-                }
-                return "<" + alignment + ">" + text + "</" + alignment + ">";
+              let text = block.text;
+              const styles = block.inlineStyleRanges;
+              if (styles.length) {
+                text = this.applyStyles(text, styles);
+              }
+              if (alignment && alignment.toUpperCase() !== "LEFT") {
+                return "<" + alignment.toUpperCase() + ">" + text + "</" + alignment.toUpperCase() + ">";
+              } else {
+                return "<p>" + text + "</p>";
               }
             },
           })(this.assembler.editorState.getCurrentContent()),

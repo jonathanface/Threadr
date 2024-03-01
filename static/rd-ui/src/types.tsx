@@ -66,9 +66,10 @@ export interface Series {
 }
 
 export interface DocumentBlockStyle {
-  style: string;
+  name: string;
   start: number;
   end: number;
+  style?: string; // alias for name, deprecated
 }
 
 export interface DocumentTab {
