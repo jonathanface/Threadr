@@ -96,6 +96,12 @@ export interface BlocksForServer {
   blocks: DBOperationTask[];
 }
 
+export interface APIError {
+  statusCode: number;
+  statusText: string;
+  retry: boolean;
+}
+
 export interface DBOperationTask {
   key_id: string;
   chunk: ContentBlock;

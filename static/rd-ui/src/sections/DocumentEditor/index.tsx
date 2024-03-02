@@ -27,6 +27,7 @@ import { AppDispatch, RootState } from "../../stores/store";
 import { setSelectedStory } from "../../stores/storiesSlice";
 import { setIsLoaderVisible, setIsSubscriptionFormOpen } from "../../stores/uiSlice";
 import {
+  APIError,
   Association,
   AssociationType,
   BlockOrderMap,
@@ -323,6 +324,11 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     }
   };
 
+  const isAPIError = (error: any): boolean => {
+    return "statusCode" in error && "statusText" in error && "retry" in error;
+  };
+
+  let retryCount = 0;
   const processDBQueue = async () => {
     dbOperationQueue.sort((a, b) => a.time - b.time);
     console.log("processing...", dbOperationQueue.length);
@@ -335,10 +341,21 @@ const DocumentEditor = (props: DocumentEditorProps) => {
           const minifiedOps = filterAndReduceDBOperations(dbOperationQueue, op.type, i);
           try {
             await deleteBlocksFromServer(minifiedOps, op.storyID, op.chapterID);
-            //dbOperationQueue.splice(i, 1);
-          } catch (retry) {
-            if (retry === true) {
-              console.error("server response 501, retrying...");
+            retryCount = 0;
+          } catch (error: any) {
+            if (isAPIError(error)) {
+              if (error.retry) {
+                console.error("server response " + error.statusCode + ", retrying...");
+                const retryOp: DBOperation = {
+                  type: DBOperationType.delete,
+                  ops: minifiedOps,
+                  storyID: op.storyID,
+                  chapterID: op.chapterID,
+                  time: new Date().getTime(),
+                };
+                retryArray.push(retryOp);
+                retryCount++;
+              }
             }
           }
           break;
@@ -347,10 +364,21 @@ const DocumentEditor = (props: DocumentEditorProps) => {
           const minifiedOps = filterAndReduceDBOperations(dbOperationQueue, op.type, i);
           try {
             await saveBlocksToServer(minifiedOps, op.storyID, op.chapterID);
-            //dbOperationQueue.splice(i, 1);
-          } catch (retry) {
-            if (retry === true) {
-              console.error("server response 501, retrying...");
+            retryCount = 0;
+          } catch (error: any) {
+            if (isAPIError(error)) {
+              if (error.retry) {
+                console.error("server response " + error.statusCode + ", retrying...");
+                const retryOp: DBOperation = {
+                  type: DBOperationType.save,
+                  ops: minifiedOps,
+                  storyID: op.storyID,
+                  chapterID: op.chapterID,
+                  time: new Date().getTime(),
+                };
+                retryCount++;
+                retryArray.push(retryOp);
+              }
             }
           }
           break;
@@ -360,20 +388,36 @@ const DocumentEditor = (props: DocumentEditorProps) => {
             if (op.blockList) {
               await syncBlockOrderMap(op.blockList);
               dbOperationQueue.splice(i, 1);
+              retryCount = 0;
             }
-          } catch (retry) {
-            if (retry !== true) {
-              console.error(retry);
-              // keep retrying failed block order syncs
-              continue;
+          } catch (error: any) {
+            if (error as APIError) {
+              if (error.retry) {
+                console.error("server response " + error.statusCode + ", retrying...");
+                retryArray.push(dbOperationQueue[i]);
+                retryCount++;
+              }
+              dbOperationQueue.splice(i, 1);
             }
-            console.error("server response 501, retrying...");
           }
           break;
         }
         default:
           console.error("invalid operation:", op);
       }
+    }
+    dbOperationQueue.push(...retryArray);
+    if (retryCount === 10) {
+      console.warn("ERROR SAVING");
+      const newAlert = {
+        title: "Unable to sync",
+        message:
+          "We are experiencing difficulty contacting the server. We'll keep attempting to save your work as long as you leave this window open, however we suggest you save a local copy of your current work.",
+        severity: AlertToastType.warning,
+        open: true,
+        timeout: 6000,
+      };
+      dispatch(setAlert(newAlert));
     }
   };
 
@@ -453,15 +497,19 @@ const DocumentEditor = (props: DocumentEditorProps) => {
             body: JSON.stringify(params),
           });
           if (!response.ok) {
-            if (response.status === 501) {
-              reject(true);
-            }
-            reject("SERVER ERROR ORDERING BLOCKS: " + response.statusText);
+            const error: APIError = {
+              statusCode: response.status,
+              statusText: response.statusText,
+              retry: true,
+            };
+            reject(error);
+            return;
           }
           resolve(response.json());
         }
       } catch (e) {
-        reject("ERROR ORDERING BLOCKS: " + e);
+        console.error("ERROR ORDERING BLOCKS: " + e);
+        reject(e);
       }
     });
   };
@@ -481,15 +529,20 @@ const DocumentEditor = (props: DocumentEditorProps) => {
           },
           body: JSON.stringify(params),
         });
+
         if (!response.ok) {
-          if (response.status === 501) {
-            reject(true);
-          }
-          reject("SERVER ERROR DELETING BLOCK: " + response.body);
+          const error: APIError = {
+            statusCode: response.status,
+            statusText: response.statusText,
+            retry: true,
+          };
+          reject(error);
+          return;
         }
         resolve(response.json());
       } catch (e) {
-        reject("ERROR DELETING BLOCK: " + e);
+        console.error("ERROR DELETING BLOCK: " + e);
+        reject(e);
       }
     });
   };
@@ -511,14 +564,18 @@ const DocumentEditor = (props: DocumentEditorProps) => {
           body: JSON.stringify(params),
         });
         if (!response.ok) {
-          if (response.status === 501) {
-            reject(true);
-          }
-          reject("SERVER ERROR SAVING BLOCK: " + response);
+          const error: APIError = {
+            statusCode: response.status,
+            statusText: response.statusText,
+            retry: true,
+          };
+          reject(error);
+          return;
         }
         resolve(response.json());
       } catch (e) {
-        reject("ERROR SAVING BLOCK: " + e);
+        console.error("ERROR SAVING BLOCK: " + e);
+        reject(e);
       }
     });
   };
