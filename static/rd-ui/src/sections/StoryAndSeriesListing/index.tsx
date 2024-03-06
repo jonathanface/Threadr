@@ -111,7 +111,7 @@ const StoryAndSeriesListing = () => {
       <h3>
         You haven't created any stories yet.
         <br />
-        Click the ridiculously oversized plus button to create your first work.
+        Click the plus button to create your first work.
       </h3>
     );
   }
