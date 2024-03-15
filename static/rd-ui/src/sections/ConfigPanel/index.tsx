@@ -9,7 +9,7 @@ import React, { useEffect, useState } from "react";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import { setAlert } from "../../stores/alertSlice";
 import { AppDispatch, RootState } from "../../stores/store";
-import { setIsLoaderVisible } from "../../stores/uiSlice";
+import { setIsLoaderVisible, setIsSubscriptionFormOpen } from "../../stores/uiSlice";
 import { flipConfigPanelVisible, setUserDetails } from "../../stores/userSlice";
 import { AlertLink, AlertToast, AlertToastType } from "../../utils/Toaster";
 
@@ -19,17 +19,17 @@ const ConfigPanelModal = () => {
   const dispatch = useAppDispatch();
   const isConfiguring = useAppSelector((state) => state.user.configPanelVisible);
   const userDetails = useAppSelector((state) => state.user.userDetails);
-  const [error, setError] = useState("");
 
-  useEffect(() => {}, [userDetails]);
+  const [isCustomer, setIsCustomer] = useState(true);
+  const [isRenewing, setIsRenewing] = useState(false);
+  const [toggleLabel, setToggleLabel] = useState("Subscribe");
 
-  const handleClose = () => {
-    setError("");
-    dispatch(flipConfigPanelVisible());
+  const subscribe = () => {
+    handleClose();
+    dispatch(setIsSubscriptionFormOpen(true));
   };
 
   const toggleSubscriptionRenewal = async () => {
-    setError("");
     dispatch(setIsLoaderVisible(true));
     try {
       const response = await fetch("/api/user", {
@@ -68,22 +68,38 @@ const ConfigPanelModal = () => {
     dispatch(setIsLoaderVisible(false));
   };
 
+  useEffect(() => {
+    if (!userDetails.subscription_id.length) {
+      setIsRenewing(false);
+      setIsCustomer(false);
+      setToggleLabel("Subscribe");
+    }
+    if (isCustomer) {
+      setIsRenewing(userDetails.renewing);
+      setToggleLabel("Auto-Renew Subscription");
+    }
+  }, [userDetails]);
+
+  const handleClose = () => {
+    dispatch(flipConfigPanelVisible());
+  };
+
   return (
     <Dialog open={isConfiguring} onClose={handleClose}>
       <DialogTitle>Account Settings</DialogTitle>
       <DialogContent>
         <Box component="form">
-          {userDetails && userDetails.subscription_id && userDetails.subscription_id.length ? (
-            <FormGroup>
-              <FormControlLabel
-                control={<Switch onChange={toggleSubscriptionRenewal} checked={userDetails.renewing || false} />}
-                label="Auto-Renew Subscription"
-              />
-            </FormGroup>
-          ) : (
-            <div>nothing here yet</div>
-          )}
-          <div>{error}</div>
+          <FormGroup>
+            <FormControlLabel
+              control={
+                <Switch
+                  onChange={() => (!isCustomer ? subscribe() : toggleSubscriptionRenewal())}
+                  checked={isRenewing}
+                />
+              }
+              label={toggleLabel}
+            />
+          </FormGroup>
         </Box>
       </DialogContent>
     </Dialog>

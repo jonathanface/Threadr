@@ -5,6 +5,7 @@ export interface UserDetails {
   email: string;
   renewing: boolean;
   subscription_id: string;
+  customer_id: string;
   admin?: boolean;
 }
 
@@ -22,6 +23,7 @@ const initialState: User = {
   userDetails: {
     user_id: "",
     email: "",
+    customer_id: "",
     renewing: false,
     subscription_id: "",
   },

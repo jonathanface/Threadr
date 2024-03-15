@@ -219,8 +219,9 @@ const Subscribe = () => {
         <div>
           <DialogTitle>{product.name}</DialogTitle>
           <DialogContent>
+            <div className={styles.productDescription}>{product.description}</div>
             {!paymentMethod ? (
-              <CardElement onChange={(e) => handleCardElementChange(e)} />
+              <CardElement className={styles.stripeCardInput} onChange={(e) => handleCardElementChange(e)} />
             ) : (
               <DialogContentText>
                 <span>{product.description}</span>
