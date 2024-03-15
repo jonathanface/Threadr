@@ -8,7 +8,7 @@ const SplashPage = () => {
         <span className={styles.column + " " + styles.leftText}>
           <h2>Organized Imagination</h2>
           <p>
-            Dive into the world of storytelling with RichDocter's revolutionary online writing application, tailored
+            Dive into the world of storytelling with Docter's revolutionary online writing application, tailored
             specifically for novelists like you. Say goodbye to scattered notes, endless tabs, and the frustration of
             losing track of your characters, places, and events. Say hello to seamless storytelling with our unique
             Highlight and Reference tool.

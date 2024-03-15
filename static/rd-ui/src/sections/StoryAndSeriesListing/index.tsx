@@ -2,11 +2,13 @@ import AddIcon from "@mui/icons-material/Add";
 import { IconButton } from "@mui/material";
 import React, { useEffect, useState } from "react";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
+import { setAlert } from "../../stores/alertSlice";
 import { setSeriesList } from "../../stores/seriesSlice";
 import { AppDispatch, RootState } from "../../stores/store";
 import { flipCreatingNewStory, setStandaloneList } from "../../stores/storiesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
 import { Series, Story } from "../../types";
+import { AlertToast, AlertToastType } from "../../utils/Toaster";
 import StoryBox from "../Story";
 import styles from "./storyAndSeries.module.css";
 
@@ -81,6 +83,16 @@ const StoryAndSeriesListing = () => {
         getStories();
       } else {
         dispatch(setIsLoaderVisible(false));
+        if (!seriesList.length && !storiesList.length) {
+          const newAlert: AlertToast = {
+            title: "The Docter is In",
+            message: "...but you haven't created any stories yet. Hit the big plus button to make one.",
+            open: true,
+            severity: AlertToastType.info,
+            timeout: undefined,
+          };
+          dispatch(setAlert(newAlert));
+        }
       }
     }
   }, [isLoggedIn, dispatch, seriesLoaded, storiesLoaded]);
@@ -105,14 +117,6 @@ const StoryAndSeriesListing = () => {
         {seriesComponents}
         {storyComponents}
       </React.Fragment>
-    );
-  } else if (seriesLoaded && storiesLoaded) {
-    content = (
-      <h3>
-        You haven't created any stories yet.
-        <br />
-        Click the plus button to create your first work.
-      </h3>
     );
   }
 

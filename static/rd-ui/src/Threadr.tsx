@@ -19,7 +19,7 @@ import type { AppDispatch, RootState } from "./stores/store";
 import { setSelectedStory } from "./stores/storiesSlice";
 import { setIsLoaderVisible } from "./stores/uiSlice";
 import { flipLoggedInState, setUserDetails } from "./stores/userSlice";
-import Toaster, { AlertCommandType, AlertFunctionCall, AlertLink, AlertToast, AlertToastType } from "./utils/Toaster";
+import Toaster, { AlertCommandType, AlertFunctionCall, AlertToast, AlertToastType } from "./utils/Toaster";
 
 const Threadr = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -94,21 +94,6 @@ const Threadr = () => {
             timeout: undefined,
           };
           dispatch(setAlert(newAlert));
-        } else if (window.location.pathname === "/") {
-          const alertLink: AlertLink = {
-            url: "mailto:support@docter.io",
-            text: "support@docter.io",
-          };
-          const newAlert: AlertToast = {
-            title: "Welcome to the RichDocter prerelease!",
-            message:
-              "As this application is still under development, making regular offline backup of your work is highly recommended.\nPlease send any bugs, feedback, or glowing praise to:",
-            open: true,
-            link: alertLink,
-            severity: AlertToastType.info,
-            timeout: 20000,
-          };
-          dispatch(setAlert(newAlert));
         }
       })
       .catch((e) => {
@@ -138,9 +123,9 @@ const Threadr = () => {
         <header>
           <UserMenu isParentLoading={isLoading} isLoggedIn={isLoggedIn} userDetails={null} />
           <h4>
-            <span>R</span>ich<span>D</span>octer
-            <img src="/img/logo_trans_scaled.png" alt="RichDocter" />
-            <div className="version">beta</div>
+            <span>D</span>octer
+            <img src="/img/logo_trans_scaled.png" alt="Docter.io" />
+            <span className="version">1.0</span>
           </h4>
         </header>
         {displayComponent}
