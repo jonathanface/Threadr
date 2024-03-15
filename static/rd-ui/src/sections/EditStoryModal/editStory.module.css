@@ -44,8 +44,11 @@
 .editStoryForm .seriesBox {
   padding: 8px;
 }
-.editStoryForm .seriesBox label {
-  margin-left: 10px;
+.editStoryForm .seriesBox > div {
+  margin-bottom: 10px;
+}
+.editStoryForm .seriesBox input[type="checkbox"] {
+  margin-right: 10px;
 }
 
 @media only screen and (max-width: 600px) {
