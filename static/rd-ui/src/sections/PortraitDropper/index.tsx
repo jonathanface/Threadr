@@ -1,5 +1,9 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { useDispatch } from "react-redux";
+import { setAlert } from "../../stores/alertSlice";
+import { AppDispatch } from "../../stores/store";
+import { AlertToast, AlertToastType } from "../../utils/Toaster";
 import styles from "./portrait-dropper.module.css";
 
 interface PortraitDropperProps {
@@ -8,9 +12,16 @@ interface PortraitDropperProps {
   onComplete?: Function;
   onImageLoaded?: Function;
 }
+
+const acceptedFileTypes = ["png", "jpg", "gif"];
+
 const PortraitDropper = (props: PortraitDropperProps) => {
   const [imageURL, setImageURL] = useState(props.imageURL);
   const [name, setName] = useState(props.name);
+
+  const useAppDispatch: () => AppDispatch = useDispatch;
+  const dispatch = useAppDispatch();
+
   useEffect(() => {
     setImageURL(props.imageURL);
     setName(props.name);
@@ -18,7 +29,22 @@ const PortraitDropper = (props: PortraitDropperProps) => {
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
-      setImageURL(URL.createObjectURL(acceptedFiles[0]));
+      const droppedFile = acceptedFiles[0];
+      if (droppedFile.type) {
+        console.log("type", droppedFile.type);
+        if (!acceptedFileTypes.includes("image/" + droppedFile.type)) {
+          const confirmFormMessage: AlertToast = {
+            title: "Cannot upload file",
+            message: "Only images of the following type are allowed: " + acceptedFileTypes.toString(),
+            severity: AlertToastType.warning,
+            open: true,
+            timeout: 10000,
+          };
+          dispatch(setAlert(confirmFormMessage));
+          return;
+        }
+      }
+      setImageURL(URL.createObjectURL(droppedFile));
       if (props.onComplete) {
         props.onComplete(acceptedFiles);
       }
