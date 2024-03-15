@@ -886,32 +886,34 @@ const DocumentEditor = (props: DocumentEditorProps) => {
   const handleKeyCommand = (command: string): DraftHandleValue => {
     let newEditorState = editorState;
     if (command === "backspace" || command === "delete") {
-      const selection = editorState.getSelection();
-      const postSelection = new SelectionState({
-        focusKey: selection.getFocusKey(),
-        anchorKey: selection.getAnchorKey(),
-        focusOffset: selection.isCollapsed() ? selection.getFocusOffset() - 1 : selection.getFocusOffset(),
-        anchorOffset: selection.getAnchorOffset(),
-      });
       const selectedKeys = GetSelectedBlockKeys(editorState);
-      selectedKeys.forEach((key: string) => {
-        const content = editorState.getCurrentContent();
-        const block = content.getBlockForKey(key);
-        const tabs = block.getData().getIn(["ENTITY_TABS"]);
-        if (tabs && tabs.length) {
-          tabs.forEach((tab: DocumentTab) => {
-            if (postSelection.hasEdgeWithin(key, tab.start, tab.end)) {
-              tabs.splice(tabs.indexOf(tab), 1);
-            }
-          });
-          const contentStateWithNewData = Modifier.mergeBlockData(
-            content,
-            selection,
-            Immutable.Map([["ENTITY_TABS", tabs]])
-          );
-          newEditorState = EditorState.push(newEditorState, contentStateWithNewData, "change-block-data");
-        }
-      });
+      if (selectedKeys.length) {
+        const selection = editorState.getSelection();
+        const postSelection = new SelectionState({
+          focusKey: selection.getFocusKey(),
+          anchorKey: selection.getAnchorKey(),
+          focusOffset: selection.isCollapsed() ? selection.getFocusOffset() - 1 : selection.getFocusOffset(),
+          anchorOffset: selection.getAnchorOffset(),
+        });
+        selectedKeys.forEach((key: string) => {
+          const content = editorState.getCurrentContent();
+          const block = content.getBlockForKey(key);
+          const tabs = block.getData().getIn(["ENTITY_TABS"]);
+          if (tabs && tabs.length) {
+            tabs.forEach((tab: DocumentTab) => {
+              if (postSelection.hasEdgeWithin(key, tab.start, tab.end)) {
+                tabs.splice(tabs.indexOf(tab), 1);
+              }
+            });
+            const contentStateWithNewData = Modifier.mergeBlockData(
+              content,
+              selection,
+              Immutable.Map([["ENTITY_TABS", tabs]])
+            );
+            newEditorState = EditorState.push(newEditorState, contentStateWithNewData, "change-block-data");
+          }
+        });
+      }
     }
 
     const keyCommandState = RichUtils.handleKeyCommand(newEditorState, command);
@@ -963,6 +965,7 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     if (navbarRef.current) {
       navbarRef.current.resetNavButtons();
     }
+
     setSelectedContextMenuVisible(false);
     setAssociationContextMenuVisible(false);
     const selection = newEditorState.getSelection();
