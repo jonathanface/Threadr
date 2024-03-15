@@ -77,13 +77,15 @@ main header h4 img {
   top: -4px;
 }
 main header .version {
-  color: azure;
-  font-size: 0.6em;
-  font-style: italic;
+  color: #c1e6e6;
+  font-size: 0.5em;
   font-weight: bold;
   text-align: right;
-  margin-left: 5px;
-  margin-top: 10px;
+  margin-top: -10px;
+}
+main header .tld {
+  font-size: 0.8em;
+  color: #2d9ca2;
 }
 
 .MultiTreeItem-root {

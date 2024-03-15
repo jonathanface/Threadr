@@ -123,9 +123,8 @@ const Threadr = () => {
         <header>
           <UserMenu isParentLoading={isLoading} isLoggedIn={isLoggedIn} userDetails={null} />
           <h4>
-            <span>D</span>octer
-            <img src="/img/logo_trans_scaled.png" alt="Docter.io" />
-            <span className="version">1.0</span>
+            <span>D</span>octer<span className="tld">.io</span>
+            <div className="version">ver 1.0.1</div>
           </h4>
         </header>
         {displayComponent}
