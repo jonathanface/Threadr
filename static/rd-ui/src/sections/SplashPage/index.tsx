@@ -13,9 +13,6 @@ const SplashPage = () => {
             losing track of your characters, places, and events. Say hello to seamless storytelling with our unique
             Highlight and Reference tool.
           </p>
-          <p>
-            <strong>We are officially in beta release and account creation is open.</strong>
-          </p>
         </span>
         <span className={styles.column}>
           <figure>
