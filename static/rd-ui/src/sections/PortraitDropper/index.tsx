@@ -13,7 +13,7 @@ interface PortraitDropperProps {
   onImageLoaded?: Function;
 }
 
-const acceptedFileTypes = ["png", "jpg", "gif"];
+const acceptedFileTypes = ["png", "jpg", "jpeg", "gif"];
 
 const PortraitDropper = (props: PortraitDropperProps) => {
   const [imageURL, setImageURL] = useState(props.imageURL);
@@ -32,7 +32,7 @@ const PortraitDropper = (props: PortraitDropperProps) => {
       const droppedFile = acceptedFiles[0];
       if (droppedFile.type) {
         console.log("type", droppedFile.type);
-        if (!acceptedFileTypes.includes("image/" + droppedFile.type)) {
+        if (!acceptedFileTypes.includes(droppedFile.type.split("image/")[1])) {
           const confirmFormMessage: AlertToast = {
             title: "Cannot upload file",
             message: "Only images of the following type are allowed: " + acceptedFileTypes.toString(),

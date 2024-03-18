@@ -128,12 +128,17 @@ main header .tld {
   color: #333;
 }
 
+.alert-toast .MuiAlert-message {
+  padding: 8px;
+}
+
 .MuiFormControl-root {
   width: 100%;
 }
 
 .alert-popup {
   width: 300px;
+  max-height: 400px;
 }
 .alert-popup .line {
   margin-bottom: 20px;

@@ -1309,6 +1309,7 @@ const DocumentEditor = (props: DocumentEditorProps) => {
       </div>
       <DocumentToolbar
         story={selectedStory}
+        chapterID={selectedChapter.id}
         exitFunction={onExitDocument}
         updateAlignment={saveBlockAlignment}
         updateStyle={handleStyleClick}

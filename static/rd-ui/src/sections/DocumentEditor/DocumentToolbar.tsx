@@ -1,5 +1,7 @@
 import ArticleOutlinedIcon from "@mui/icons-material/Article";
 import CloseIcon from "@mui/icons-material/Close";
+import KeyboardDoubleArrowDownIcon from "@mui/icons-material/KeyboardDoubleArrowDown";
+import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import { IconButton, ListItemIcon, ListItemText, MenuItem as MaterialMenuItem, TextField } from "@mui/material";
 import React, { ChangeEvent, forwardRef, useImperativeHandle, useState } from "react";
@@ -9,15 +11,16 @@ import { setIsSubscriptionFormOpen } from "../../stores/uiSlice";
 import { DocumentExportType, Story } from "../../types";
 import { AlertToastType } from "../../utils/Toaster";
 import Exporter from "./Exporter";
-
 import styles from "./document-toolbar.module.css";
 
 import { faAlignCenter, faAlignJustify, faAlignLeft, faAlignRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import TipsAndUpdatesIcon from "@mui/icons-material/TipsAndUpdates";
 import { AppDispatch } from "../../stores/store";
 
 interface DocumentToolbarProps {
   story?: Story;
+  chapterID: string;
   exitFunction: Function;
   updateAlignment: Function;
   updateStyle: Function;
@@ -61,6 +64,71 @@ export interface DocumentToolbarRef {
 }
 
 const DocumentToolbar = forwardRef((props: DocumentToolbarProps, ref) => {
+  const [isMenuExpanded, setIsMenuExpanded] = useState(false);
+
+  const toggleMenuExpand = () => {
+    setIsMenuExpanded(!isMenuExpanded);
+  };
+
+  const analyzeChapter = async () => {
+    if (!props.story) {
+      return;
+    }
+    const newAlert = {
+      title: "Analyzing...",
+      message: "Your chapter has been submitted for analysis. Awaiting response.",
+      open: true,
+      severity: AlertToastType.info,
+      timeout: undefined,
+    };
+    dispatch(setAlert(newAlert));
+    try {
+      const response = await fetch(
+        "/api/stories/" + props.story.story_id + "/chapter/" + props.chapterID + "/analyze",
+        {
+          credentials: "include",
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (!response.ok) {
+        if (response.status === 401) {
+          const alertFunction = {
+            func: () => {
+              setIsSubscriptionFormOpen(true);
+            },
+            text: "subscribe",
+          };
+          const newAlert = {
+            title: "Insufficient subscription",
+            message: "Free accounts are unable to use AI assistance.",
+            open: true,
+            severity: AlertToastType.warning,
+            timeout: 6000,
+            func: alertFunction,
+          };
+          dispatch(setAlert(newAlert));
+          return;
+        } else {
+          throw new Error("Fetch problem export " + response.status);
+        }
+      }
+      const json = await response.json();
+      const newAlert = {
+        title: "Analysis",
+        message: json.content,
+        open: true,
+        severity: AlertToastType.success,
+        timeout: undefined,
+      };
+      dispatch(setAlert(newAlert));
+    } catch (error: any) {
+      console.error(error);
+    }
+  };
+
   const useAppDispatch: () => AppDispatch = useDispatch;
   const dispatch = useAppDispatch();
 
@@ -82,7 +150,6 @@ const DocumentToolbar = forwardRef((props: DocumentToolbarProps, ref) => {
   const setNavButtonState = (style: string, value: boolean | string) => {
     switch (style) {
       case TextFormatType.bold: {
-        console.log("set bold to", value);
         setCurrentFormatting((prevState) => ({
           ...prevState,
           bold: value as boolean,
@@ -276,65 +343,92 @@ const DocumentToolbar = forwardRef((props: DocumentToolbarProps, ref) => {
           </button>
         </span>
         <span className={styles.rightControls}>
-          <span>
-            <label>
-              Spellcheck
-              <input type="checkbox" defaultChecked={true} onChange={toggleSpellcheck} />
-            </label>
+          <IconButton aria-label="expand" component="label" onClick={toggleMenuExpand}>
+            {!isMenuExpanded ? (
+              <KeyboardDoubleArrowLeftIcon
+                sx={{
+                  color: "#F0F0F0",
+                }}
+              />
+            ) : (
+              <KeyboardDoubleArrowDownIcon
+                sx={{
+                  color: "#F0F0F0",
+                }}
+              />
+            )}
+          </IconButton>
+          <span className={styles.closeDocButton}>
+            <IconButton aria-label="exit" component="label" onClick={() => props.exitFunction()}>
+              <CloseIcon
+                sx={{
+                  color: "#F0F0F0",
+                }}
+              />
+            </IconButton>
           </span>
-          <span>
-            <TextField
-              select
-              label="Save as..."
-              InputLabelProps={{
-                style: { color: "#f0f0f0" },
-              }}
-              SelectProps={{
-                value: "",
-                onChange: (evt) => {
-                  setExportMenuValue(!exportMenuValue);
-                },
-                onClose: (evt) => {
-                  //   setTimeout(() => {
-                  //     document.activeElement.blur();
-                  //   }, 0);
-                },
-              }}
-              size="small"
+        </span>
+      </div>
+      <div className={`${styles.hiddenControlsRow} ${isMenuExpanded ? styles.active : ""}`}>
+        <span>
+          <IconButton title="Analyze Chapter" aria-label="exit" component="label" onClick={analyzeChapter}>
+            <TipsAndUpdatesIcon
               sx={{
-                width: "120px",
+                color: "#F0F0F0",
+              }}
+            />
+          </IconButton>
+        </span>
+        <span>
+          <label title="Toggle Spellcheck">
+            Spellcheck
+            <input type="checkbox" defaultChecked={true} onChange={toggleSpellcheck} />
+          </label>
+        </span>
+        <span className={styles.rightControls}>
+          <TextField
+            title="Export to File"
+            select
+            label="Save as..."
+            InputLabelProps={{
+              style: { color: "#f0f0f0" },
+            }}
+            SelectProps={{
+              value: "",
+              onChange: (evt) => {
+                setExportMenuValue(!exportMenuValue);
+              },
+              onClose: (evt) => {
+                //   setTimeout(() => {
+                //     document.activeElement.blur();
+                //   }, 0);
+              },
+            }}
+            size="small"
+            sx={{
+              width: "120px",
+            }}>
+            <MaterialMenuItem
+              value="docx"
+              onClick={() => {
+                exportDoc(DocumentExportType.docx);
               }}>
-              <MaterialMenuItem
-                value="docx"
-                onClick={() => {
-                  exportDoc(DocumentExportType.docx);
-                }}>
-                <ListItemIcon>
-                  <ArticleOutlinedIcon />
-                </ListItemIcon>
-                <ListItemText primary="DOCX" />
-              </MaterialMenuItem>
-              <MaterialMenuItem
-                value="pdf"
-                onClick={(e) => {
-                  exportDoc(DocumentExportType.pdf);
-                }}>
-                <ListItemIcon>
-                  <PictureAsPdfIcon />
-                </ListItemIcon>
-                <ListItemText primary="PDF" />
-              </MaterialMenuItem>
-            </TextField>
-            <span className={styles.closeDocButton}>
-              <IconButton aria-label="exit" component="label" onClick={() => props.exitFunction()}>
-                <CloseIcon
-                  sx={{
-                    color: "#F0F0F0",
-                  }}
-                />
-              </IconButton>
-            </span>
-          </span>
+              <ListItemIcon>
+                <ArticleOutlinedIcon />
+              </ListItemIcon>
+              <ListItemText primary="DOCX" />
+            </MaterialMenuItem>
+            <MaterialMenuItem
+              value="pdf"
+              onClick={(e) => {
+                exportDoc(DocumentExportType.pdf);
+              }}>
+              <ListItemIcon>
+                <PictureAsPdfIcon />
+              </ListItemIcon>
+              <ListItemText primary="PDF" />
+            </MaterialMenuItem>
+          </TextField>
         </span>
       </div>
     </nav>

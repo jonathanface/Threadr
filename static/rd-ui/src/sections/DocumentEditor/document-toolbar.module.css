@@ -9,7 +9,6 @@ nav.richControls {
   z-index: 10;
   position: sticky;
   top: 10px;
-  height: 60px;
   line-height: 40px;
 }
 
@@ -42,16 +41,31 @@ nav.richControls button.active {
 nav.richControls .rightControls {
   float: right;
 }
-nav.richControls .rightControls label {
+
+nav.richControls .exportOption {
+  width: auto;
+}
+
+nav.richControls .hiddenControlsRow {
+  overflow: hidden;
+  height: 0;
+  transition: height 0.3s ease-out;
+  width: 100%;
+}
+nav.richControls .hiddenControlsRow > span {
+  margin-right: 10px;
+}
+
+nav.richControls .hiddenControlsRow.active {
+  height: auto;
+}
+nav.richControls .hiddenControlsRow label {
   color: #fff;
   vertical-align: middle;
 }
-nav.richControls .rightControls label input {
+nav.richControls .hiddenControlsRow label input {
   margin-left: 5px;
   margin-right: 10px;
-}
-nav.richControls .exportOption {
-  width: auto;
 }
 
 @media only screen and (max-width: 600px) {
