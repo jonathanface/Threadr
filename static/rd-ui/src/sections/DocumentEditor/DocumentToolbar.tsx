@@ -203,15 +203,13 @@ const DocumentToolbar = forwardRef((props: DocumentToolbarProps, ref) => {
       const exp = new Exporter(props.story.story_id);
       const htmlData = await exp.DocToHTML();
       try {
-        const response = await fetch("/api/stories/" + props.story.story_id + "/export", {
+        const response = await fetch("/api/stories/" + props.story.story_id + "/export?type=" + type, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            story_id: props.story.story_id,
             html_by_chapter: htmlData,
-            type: type,
             title: props.story.title,
           }),
         });

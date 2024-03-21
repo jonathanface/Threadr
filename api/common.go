@@ -178,7 +178,7 @@ func getPaymentMethodsForCustomer(customerID string) ([]models.PaymentMethod, er
 	return methods, nil
 }
 
-func staggeredStoryBlockRetrieval(dao daos.DaoInterface, email string, storyID string, chapterID string, key *map[string]types.AttributeValue, accumulatedBlocks *models.BlocksData) (*models.BlocksData, error) {
+func staggeredStoryBlockRetrieval(dao daos.DaoInterface, storyID string, chapterID string, key *map[string]types.AttributeValue, accumulatedBlocks *models.BlocksData) (*models.BlocksData, error) {
 	// If this is the first call, initialize accumulatedBlocks
 	if accumulatedBlocks == nil {
 		accumulatedBlocks = &models.BlocksData{}
@@ -194,7 +194,7 @@ func staggeredStoryBlockRetrieval(dao daos.DaoInterface, email string, storyID s
 
 	// If there are more blocks to retrieve, make a recursive call
 	if blocks.LastEvaluated != nil {
-		return staggeredStoryBlockRetrieval(dao, email, storyID, chapterID, &blocks.LastEvaluated, accumulatedBlocks)
+		return staggeredStoryBlockRetrieval(dao, storyID, chapterID, &blocks.LastEvaluated, accumulatedBlocks)
 	}
 	return accumulatedBlocks, nil
 }

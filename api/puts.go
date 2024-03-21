@@ -1,10 +1,13 @@
 package api
 
 import (
+	"RichDocter/converters"
 	"RichDocter/daos"
 	"RichDocter/models"
 	"context"
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -867,4 +870,99 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	RespondWithJson(w, http.StatusOK, models.Answer{Success: true, URL: portraitURL})
+}
+
+func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
+	// this should be transactified
+	var (
+		email   string
+		err     error
+		dao     daos.DaoInterface
+		ok      bool
+		storyID string
+	)
+	typeOf := r.URL.Query().Get("type")
+	if typeOf == "" {
+		RespondWithError(w, http.StatusBadRequest, "no type provided")
+		return
+	}
+	if email, err = getUserEmail(r); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	decoder := json.NewDecoder(r.Body)
+	export := models.DocumentExportRequest{}
+	if err := decoder.Decode(&export); err != nil {
+		RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing story ID")
+		return
+	}
+	if storyID == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing story ID")
+		return
+	}
+	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
+		return
+	}
+	// Make sure the user actually owns this story
+	_, err = dao.GetStoryByID(email, storyID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			RespondWithError(w, http.StatusForbidden, "story doesn't belong to you")
+			return
+		}
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	var awsCfg aws.Config
+	if awsCfg, err = config.LoadDefaultConfig(context.TODO(), func(opts *config.LoadOptions) error {
+		opts.Region = os.Getenv("AWS_REGION")
+		return nil
+	}); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	var generatedFile string
+	filetype := "application/pdf"
+	fmt.Println("t", typeOf)
+	switch typeOf {
+	case "pdf":
+		generatedFile, err = converters.HTMLToPDF(export)
+	case "docx":
+		filetype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+		generatedFile, err = converters.HTMLToDOCX(export)
+	}
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer os.Remove(TMP_EXPORT_DIR + "/" + generatedFile)
+
+	reader, err := os.Open(TMP_EXPORT_DIR + "/" + generatedFile)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	s3Client := s3.NewFromConfig(awsCfg)
+	if _, err = s3Client.PutObject(context.Background(), &s3.PutObjectInput{
+		Bucket:      aws.String(S3_EXPORTS_BUCKET),
+		Key:         aws.String(generatedFile),
+		Body:        reader,
+		ContentType: aws.String(filetype),
+		/*		Metadata: map[string]string{
+				"Content-Disposition": "attachment; filename=" + generatedFile,
+			},*/
+	}); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	docURL := "https://" + S3_EXPORTS_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + generatedFile
+	RespondWithJson(w, http.StatusCreated, models.Answer{Success: true, URL: docURL})
 }

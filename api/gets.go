@@ -119,7 +119,7 @@ func FullStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	for _, chap := range story.Chapters {
 		chapWithContents := models.ChapterWithContents{}
 		chapWithContents.Chapter = chap
-		chapWithContents.Blocks, err = staggeredStoryBlockRetrieval(dao, email, storyID, chap.ID, nil, nil)
+		chapWithContents.Blocks, err = staggeredStoryBlockRetrieval(dao, storyID, chap.ID, nil, nil)
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return

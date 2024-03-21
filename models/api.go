@@ -7,6 +7,21 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
+type OpenAIResponse struct {
+	Choices []struct {
+		Message struct {
+			Role    string `json:"role"`
+			Content string `json:"content"`
+		} `json:"message"`
+	} `json:"choices"`
+}
+
+type Chunk struct {
+	Key  string `json:"key"`
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
 type StoryBlock struct {
 	KeyID string          `json:"key_id" dynamodbav:"key_id"`
 	Chunk json.RawMessage `json:"chunk" dynamodbav:"chunk"`

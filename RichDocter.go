@@ -178,7 +178,7 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 		}
 
 		if userDetails.SubscriptionID == "" {
-			if r.Method == "POST" && (strings.HasSuffix(r.URL.Path, "/stories") || r.Method == "PUT" && strings.HasSuffix(r.URL.Path, "/export")) {
+			if r.Method == "POST" && (strings.HasSuffix(r.URL.Path, "/stories") || strings.HasSuffix(r.URL.Path, "/analyze")) || r.Method == "PUT" && strings.HasSuffix(r.URL.Path, "/export") {
 				stories, err := dao.GetTotalCreatedStories(user.Email)
 				if err != nil {
 					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -275,8 +275,10 @@ func main() {
 	apiRtr.HandleFunc("/series/{series}/volumes", api.AllSeriesVolumesEndPoint).Methods("GET", "OPTIONS")
 
 	// POSTs
+
 	apiRtr.HandleFunc("/stories", api.CreateStoryEndpoint).Methods("POST", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/chapter", api.CreateStoryChapterEndpoint).Methods("POST", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/chapter/{chapterID}/analyze", api.AnalyzeChapterEndpoint).Methods("POST", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/associations", api.CreateAssociationsEndpoint).Methods("POST", "OPTIONS")
 
 	// PUTs
@@ -287,7 +289,7 @@ func main() {
 	apiRtr.HandleFunc("/stories/{story}/associations/{association}/upload", api.UploadPortraitEndpoint).Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/chapters", api.UpdateChaptersEndpoint).Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/chapters/{chapterID}", api.EditChapterEndpoint).Methods("PUT", "OPTIONS")
-	apiRtr.HandleFunc("/stories/{story}/export", api.ExportStoryEndpoint).Methods("PUT", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/export", api.ExportStoryEndpoint).Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/series/{seriesID}", api.EditSeriesEndpoint).Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/series/{seriesID}/story/{storyID}", api.RemoveStoryFromSeriesEndpoint).Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/user", api.UpdateUserEndpoint).Methods("PUT", "OPTIONS")
