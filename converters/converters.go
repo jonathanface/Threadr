@@ -62,7 +62,7 @@ func HTMLToDOCX(export models.DocumentExportRequest) (filename string, err error
 		sanitizer := bluemonday.UGCPolicy()
 		sanitizer.AllowAttrs("style").OnElements("p")
 		sanitizedHTML := sanitizer.Sanitize(htmlData.HTML)
-		chapterTitle := fmt.Sprintf(`<div style="page-break-before: always; margin: 0; margin-bottom: %s; padding: 0; text-align: center; font-weight: bold; font-size: %s; line-height: %s;">%s</div>`, FONT_SIZE_HEADER, FONT_SIZE_HEADER, FONT_SIZE_HEADER, htmlData.Chapter)
+		chapterTitle := fmt.Sprintf(`<h1>%s</h1>`, htmlData.Chapter)
 		htmlContent += chapterTitle + sanitizedHTML
 	}
 	htmlContent += "</body></html>"
@@ -85,7 +85,7 @@ func HTMLToDOCX(export models.DocumentExportRequest) (filename string, err error
 	safeTitlePattern := regexp.MustCompile(`[^\w.-]+`)
 	safeTitle := strings.ToLower(safeTitlePattern.ReplaceAllString(export.Title, ""))
 	filename = fmt.Sprintf("%s.docx", safeTitle)
-	cmd := exec.Command("pandoc", "-f", "html", "-t", "docx", "-o", "./tmp/"+filename, tmpFile.Name())
+	cmd := exec.Command("pandoc", "-f", "html", "-t", "docx", "--reference-doc", "bins/custom-reference.docx", "-o", "./tmp/"+filename, tmpFile.Name())
 
 	// Execute the command
 	err = cmd.Run()
