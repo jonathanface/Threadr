@@ -369,7 +369,14 @@ const DocumentToolbar = forwardRef((props: DocumentToolbarProps, ref) => {
       <div className={`${styles.hiddenControlsRow} ${isMenuExpanded ? styles.active : ""}`}>
         <span>
           <IconButton title="Analyze Chapter" aria-label="exit" component="label" onClick={analyzeChapter}>
-            <span className={styles.docBtn} />
+            <span className={styles.docterBtn} title="Consult the Docter">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 16 16" id="doctor">
+                <path
+                  fill="#FFF"
+                  d="M14 11.3c-1-1.9-2-1.6-3.1-1.7.1.3.1.6.1 1 1.6.4 2 2.3 2 3.4v1h-2v-1h1s0-2.5-1.5-2.5S9 13.9 9 14h1v1H8v-1c0-1.1.4-3.1 2-3.4 0-.6-.1-1.1-.2-1.3-.2-.1-.4-.3-.4-.6 0-.6.8-.4 1.4-1.5 0 0 .9-2.3.6-4.3h-1c0-.2.1-.3.1-.5s0-.3-.1-.5h.8C10.9.9 9.9 0 8 0 6.1 0 5.1.9 4.7 2h.8c0 .2-.1.3-.1.5s0 .3.1.5h-1c-.2 2 .6 4.3.6 4.3.6 1 1.4.8 1.4 1.5 0 .5-.5.7-1.1.8-.2.2-.4.6-.4 1.4v1.2c.6.2 1 .8 1 1.4 0 .7-.7 1.4-1.5 1.4S3 14.3 3 13.5c0-.7.4-1.2 1-1.4v-1.2c0-.5.1-.9.2-1.3-.7.1-1.5.4-2.2 1.7-.6 1.1-.9 4.7-.9 4.7h13.7c.1 0-.2-3.6-.8-4.7zM6.5 2.5C6.5 1.7 7.2 1 8 1s1.5.7 1.5 1.5S8.8 4 8 4s-1.5-.7-1.5-1.5z"></path>
+                <path fill="#FFF" d="M5 13.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z"></path>
+              </svg>
+            </span>
           </IconButton>
         </span>
         <span>
