@@ -70,7 +70,7 @@ jobs:
           --build-arg VERSION=${{ github.sha }} \
           --build-arg STRIPE_SECRET=${{ secrets.STRIPE_SECRET }} \
           --build-arg STRIPE_KEY=${{ secrets.STRIPE_KEY }} \
-          --build-arg REACT_APP_STRIPE_KEY=${{ secrets.STRIPE_KEY }}
+          --build-arg REACT_APP_STRIPE_KEY=${{ secrets.STRIPE_KEY }} \
           --build-arg OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" >> $GITHUB_OUTPUT
