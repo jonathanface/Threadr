@@ -24,13 +24,13 @@ import (
 )
 
 func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
-
 	var (
-		err       error
-		storyID   string
-		chapterID string
-		dao       daos.DaoInterface
-		ok        bool
+		err            error
+		storyID        string
+		chapterID      string
+		dao            daos.DaoInterface
+		ok             bool
+		typeOfAnalysis string
 	)
 	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story ID")
@@ -46,6 +46,14 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	if chapterID == "" {
 		RespondWithError(w, http.StatusBadRequest, "Missing chapter ID")
+		return
+	}
+	if typeOfAnalysis, err = url.PathUnescape(mux.Vars(r)["type"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing analysis type")
+		return
+	}
+	if typeOfAnalysis == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing analysis type")
 		return
 	}
 	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
@@ -83,17 +91,30 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	//A helpful rule of thumb is that one token generally corresponds to ~4 characters of text for common English text. This translates to roughly ¾ of a word (so 100 tokens ~= 75 words).
 
+	var instructions, content string
+	switch typeOfAnalysis {
+	case "analyze":
+		{
+			instructions = "You are a story editor, skilled in explaining complex narrative formulas and detecting story flaws."
+			content = "Evaluate the following story chapter in less than 300 words: " + chapterText
+		}
+	case "propose":
+		{
+			instructions = "You are a story outliner, skilled in crafting compelling plots with interesting characters and twists."
+			content = "Provide some options of what should happen next in the following story chapter in less than 300 words: " + chapterText
+		}
+	}
 	// Data structure that matches the JSON payload structure of the request
 	payload := map[string]interface{}{
 		"model": "gpt-3.5-turbo",
 		"messages": []map[string]string{
 			{
 				"role":    "system",
-				"content": "You are a story editor, skilled in explaining complex narrative formulas and detecting story flaws.",
+				"content": instructions,
 			},
 			{
 				"role":    "user",
-				"content": "Evaluate the following story chapter in less than 300 words: " + chapterText,
+				"content": content,
 			},
 		},
 	}

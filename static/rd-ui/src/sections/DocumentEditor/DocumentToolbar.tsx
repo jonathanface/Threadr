@@ -3,13 +3,14 @@ import CloseIcon from "@mui/icons-material/Close";
 import KeyboardDoubleArrowDownIcon from "@mui/icons-material/KeyboardDoubleArrowDown";
 import KeyboardDoubleArrowLeftIcon from "@mui/icons-material/KeyboardDoubleArrowLeft";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import { IconButton, ListItemIcon, ListItemText, MenuItem as MaterialMenuItem, TextField } from "@mui/material";
+import { Button, IconButton, ListItemIcon, ListItemText, MenuItem as MaterialMenuItem, TextField } from "@mui/material";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
 import React, { ChangeEvent, forwardRef, useImperativeHandle, useState } from "react";
 import { useDispatch } from "react-redux";
 import { setAlert } from "../../stores/alertSlice";
-import { setIsSubscriptionFormOpen } from "../../stores/uiSlice";
 import { DocumentExportType, Story } from "../../types";
-import { AlertToastType } from "../../utils/Toaster";
+import { AlertCommandType, AlertFunctionCall, AlertToastType } from "../../utils/Toaster";
 import Exporter from "./Exporter";
 import styles from "./document-toolbar.module.css";
 
@@ -64,12 +65,14 @@ export interface DocumentToolbarRef {
 
 const DocumentToolbar = forwardRef((props: DocumentToolbarProps, ref) => {
   const [isMenuExpanded, setIsMenuExpanded] = useState(false);
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
 
   const toggleMenuExpand = () => {
     setIsMenuExpanded(!isMenuExpanded);
   };
 
-  const analyzeChapter = async () => {
+  const analyzeChapter = async (typeOf: string) => {
     if (!props.story) {
       return;
     }
@@ -83,7 +86,7 @@ const DocumentToolbar = forwardRef((props: DocumentToolbarProps, ref) => {
     dispatch(setAlert(newAlert));
     try {
       const response = await fetch(
-        "/api/stories/" + props.story.story_id + "/chapter/" + props.chapterID + "/analyze",
+        "/api/stories/" + props.story.story_id + "/chapter/" + props.chapterID + "/analyze/" + typeOf,
         {
           credentials: "include",
           method: "POST",
@@ -94,10 +97,8 @@ const DocumentToolbar = forwardRef((props: DocumentToolbarProps, ref) => {
       );
       if (!response.ok) {
         if (response.status === 401) {
-          const alertFunction = {
-            func: () => {
-              setIsSubscriptionFormOpen(true);
-            },
+          const subscribeFunc: AlertFunctionCall = {
+            type: AlertCommandType.subscribe,
             text: "subscribe",
           };
           const newAlert = {
@@ -106,7 +107,7 @@ const DocumentToolbar = forwardRef((props: DocumentToolbarProps, ref) => {
             open: true,
             severity: AlertToastType.warning,
             timeout: 6000,
-            func: alertFunction,
+            func: subscribeFunc,
           };
           dispatch(setAlert(newAlert));
           return;
@@ -214,10 +215,8 @@ const DocumentToolbar = forwardRef((props: DocumentToolbarProps, ref) => {
         });
         if (!response.ok) {
           if (response.status === 401) {
-            const alertFunction = {
-              func: () => {
-                setIsSubscriptionFormOpen(true);
-              },
+            const subscribeFunc: AlertFunctionCall = {
+              type: AlertCommandType.subscribe,
               text: "subscribe",
             };
             const newAlert = {
@@ -226,7 +225,7 @@ const DocumentToolbar = forwardRef((props: DocumentToolbarProps, ref) => {
               open: true,
               severity: AlertToastType.warning,
               timeout: 6000,
-              func: alertFunction,
+              func: subscribeFunc,
             };
             dispatch(setAlert(newAlert));
             return;
@@ -266,6 +265,14 @@ const DocumentToolbar = forwardRef((props: DocumentToolbarProps, ref) => {
   const toggleSpellcheck = (event: ChangeEvent) => {
     const target = event.target as HTMLInputElement;
     props.updateSpellcheck(target.checked);
+  };
+
+  const handleDocterButtonClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleDocterMenuClose = (event: MouseEvent) => {
+    setAnchorEl(null);
   };
 
   return (
@@ -368,16 +375,40 @@ const DocumentToolbar = forwardRef((props: DocumentToolbarProps, ref) => {
       </div>
       <div className={`${styles.hiddenControlsRow} ${isMenuExpanded ? styles.active : ""}`}>
         <span>
-          <IconButton title="Analyze Chapter" aria-label="exit" component="label" onClick={analyzeChapter}>
-            <span className={styles.docterBtn} title="Consult the Docter">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 16 16" id="doctor">
-                <path
-                  fill="#FFF"
-                  d="M14 11.3c-1-1.9-2-1.6-3.1-1.7.1.3.1.6.1 1 1.6.4 2 2.3 2 3.4v1h-2v-1h1s0-2.5-1.5-2.5S9 13.9 9 14h1v1H8v-1c0-1.1.4-3.1 2-3.4 0-.6-.1-1.1-.2-1.3-.2-.1-.4-.3-.4-.6 0-.6.8-.4 1.4-1.5 0 0 .9-2.3.6-4.3h-1c0-.2.1-.3.1-.5s0-.3-.1-.5h.8C10.9.9 9.9 0 8 0 6.1 0 5.1.9 4.7 2h.8c0 .2-.1.3-.1.5s0 .3.1.5h-1c-.2 2 .6 4.3.6 4.3.6 1 1.4.8 1.4 1.5 0 .5-.5.7-1.1.8-.2.2-.4.6-.4 1.4v1.2c.6.2 1 .8 1 1.4 0 .7-.7 1.4-1.5 1.4S3 14.3 3 13.5c0-.7.4-1.2 1-1.4v-1.2c0-.5.1-.9.2-1.3-.7.1-1.5.4-2.2 1.7-.6 1.1-.9 4.7-.9 4.7h13.7c.1 0-.2-3.6-.8-4.7zM6.5 2.5C6.5 1.7 7.2 1 8 1s1.5.7 1.5 1.5S8.8 4 8 4s-1.5-.7-1.5-1.5z"></path>
-                <path fill="#FFF" d="M5 13.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z"></path>
-              </svg>
-            </span>
-          </IconButton>
+          <Menu
+            id="basic-menu"
+            anchorEl={anchorEl}
+            open={open}
+            onClose={handleDocterMenuClose}
+            MenuListProps={{
+              "aria-labelledby": "basic-button",
+            }}>
+            <MenuItem
+              onClick={() => {
+                analyzeChapter("analyze");
+              }}>
+              Analyze Chapter
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                analyzeChapter("propose");
+              }}>
+              What Next?
+            </MenuItem>
+          </Menu>
+          <Button
+            id="basic-button"
+            aria-controls={open ? "basic-menu" : undefined}
+            aria-haspopup="true"
+            aria-expanded={open ? "true" : undefined}
+            onClick={handleDocterButtonClick}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 16 16" id="doctor">
+              <path
+                fill="#FFF"
+                d="M14 11.3c-1-1.9-2-1.6-3.1-1.7.1.3.1.6.1 1 1.6.4 2 2.3 2 3.4v1h-2v-1h1s0-2.5-1.5-2.5S9 13.9 9 14h1v1H8v-1c0-1.1.4-3.1 2-3.4 0-.6-.1-1.1-.2-1.3-.2-.1-.4-.3-.4-.6 0-.6.8-.4 1.4-1.5 0 0 .9-2.3.6-4.3h-1c0-.2.1-.3.1-.5s0-.3-.1-.5h.8C10.9.9 9.9 0 8 0 6.1 0 5.1.9 4.7 2h.8c0 .2-.1.3-.1.5s0 .3.1.5h-1c-.2 2 .6 4.3.6 4.3.6 1 1.4.8 1.4 1.5 0 .5-.5.7-1.1.8-.2.2-.4.6-.4 1.4v1.2c.6.2 1 .8 1 1.4 0 .7-.7 1.4-1.5 1.4S3 14.3 3 13.5c0-.7.4-1.2 1-1.4v-1.2c0-.5.1-.9.2-1.3-.7.1-1.5.4-2.2 1.7-.6 1.1-.9 4.7-.9 4.7h13.7c.1 0-.2-3.6-.8-4.7zM6.5 2.5C6.5 1.7 7.2 1 8 1s1.5.7 1.5 1.5S8.8 4 8 4s-1.5-.7-1.5-1.5z"></path>
+              <path fill="#FFF" d="M5 13.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z"></path>
+            </svg>
+          </Button>
         </span>
         <span>
           <label title="Toggle Spellcheck">

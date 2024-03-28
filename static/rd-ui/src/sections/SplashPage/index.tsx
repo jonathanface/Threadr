@@ -42,6 +42,30 @@ const SplashPage = () => {
       </div>
       <div className={styles.blurb}>
         <span className={styles.column + " " + styles.leftText}>
+          <h2>Assisted Writing with Artifical Intelligence</h2>
+          <div>
+            <ul>
+              <li>
+                Our AI story analyzer, The Docter, will read your chapters on the fly and provide meaningful feedback.
+              </li>
+              <li>On request, The Docter will provide suggestions or prompts about what to write next.</li>
+              <li>Tagged characters, places, or events can be reviewed and suggestions made to add greater depth.</li>
+            </ul>
+          </div>
+        </span>
+        <span className={styles.column}>
+          <figure>
+            <img src="./img/docter.jpg" alt="AI Enhanced" />
+          </figure>
+        </span>
+      </div>
+      <div className={styles.blurb}>
+        <span className={styles.column}>
+          <figure>
+            <img src="./img/characters.jpg" alt="character backstories" />
+          </figure>
+        </span>
+        <span className={styles.column + " " + styles.leftText}>
           <h2>Character Backstories at Your Fingertips</h2>
           <div>
             <ul>
@@ -51,18 +75,8 @@ const SplashPage = () => {
             </ul>
           </div>
         </span>
-        <span className={styles.column}>
-          <figure>
-            <img src="./img/characters.jpg" alt="character backstories" />
-          </figure>
-        </span>
       </div>
       <div className={styles.blurb}>
-        <span className={styles.column}>
-          <figure>
-            <img src="./img/lore.jpg" alt="diving deep into lore" />
-          </figure>
-        </span>
         <span className={styles.column + " " + styles.leftText}>
           <h2>Explore Your Story's Universe</h2>
           <div>
@@ -73,8 +87,18 @@ const SplashPage = () => {
             </ul>
           </div>
         </span>
+        <span className={styles.column}>
+          <figure>
+            <img src="./img/lore.jpg" alt="diving deep into lore" />
+          </figure>
+        </span>
       </div>
       <div className={styles.blurb}>
+        <span className={styles.column}>
+          <figure>
+            <img src="./img/exporting.jpg" alt="easy document conversion" />
+          </figure>
+        </span>
         <span className={styles.column + " " + styles.leftText}>
           <h2>Begin with Brilliance, End with Excellence.</h2>
           <div>
@@ -83,11 +107,6 @@ const SplashPage = () => {
             PDF, DOCX, and, coming soon, EPUB. Create documents compatible with Word and other popular document editors
             with just two clicks.
           </div>
-        </span>
-        <span className={styles.column}>
-          <figure>
-            <img src="./img/exporting.jpg" alt="easy document conversion" />
-          </figure>
         </span>
       </div>
     </div>

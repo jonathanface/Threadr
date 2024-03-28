@@ -178,7 +178,11 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 		}
 
 		if userDetails.SubscriptionID == "" {
-			if r.Method == "POST" && (strings.HasSuffix(r.URL.Path, "/stories") || strings.HasSuffix(r.URL.Path, "/analyze")) || r.Method == "PUT" && strings.HasSuffix(r.URL.Path, "/export") {
+			if r.Method == "POST" && (strings.HasSuffix(r.URL.Path, "/stories") ||
+				strings.HasSuffix(r.URL.Path, "/analyze") ||
+				strings.HasSuffix(r.URL.Path, "/propose")) ||
+				r.Method == "PUT" && strings.HasSuffix(r.URL.Path, "/export") {
+
 				stories, err := dao.GetTotalCreatedStories(user.Email)
 				if err != nil {
 					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -278,7 +282,7 @@ func main() {
 
 	apiRtr.HandleFunc("/stories", api.CreateStoryEndpoint).Methods("POST", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/chapter", api.CreateStoryChapterEndpoint).Methods("POST", "OPTIONS")
-	apiRtr.HandleFunc("/stories/{storyID}/chapter/{chapterID}/analyze", api.AnalyzeChapterEndpoint).Methods("POST", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/chapter/{chapterID}/analyze/{type}", api.AnalyzeChapterEndpoint).Methods("POST", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/associations", api.CreateAssociationsEndpoint).Methods("POST", "OPTIONS")
 
 	// PUTs
