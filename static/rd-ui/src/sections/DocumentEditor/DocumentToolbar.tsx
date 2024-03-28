@@ -126,6 +126,14 @@ const DocumentToolbar = forwardRef((props: DocumentToolbarProps, ref) => {
       dispatch(setAlert(newAlert));
     } catch (error: any) {
       console.error(error);
+      const newAlert = {
+        title: "Problem contacting the Docter",
+        message: "We are unable to analyze your chapter at this time. Please try again later.",
+        open: true,
+        severity: AlertToastType.error,
+        timeout: 6000,
+      };
+      dispatch(setAlert(newAlert));
     }
   };
 

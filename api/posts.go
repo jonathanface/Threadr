@@ -128,6 +128,7 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	// Create a new HTTP request with the appropriate method, URL, and payload
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
+		fmt.Println("bad gateway from openAI request", err)
 		RespondWithError(w, http.StatusBadGateway, err.Error())
 		return
 	}
