@@ -9,7 +9,6 @@ import {
   convertFromRaw,
 } from "draft-js";
 import { FindTabs, TabSpan } from "./decorators";
-import { GenerateTabCharacter } from "./utilities";
 
 export default class Exporter {
   constructor(story) {
@@ -20,28 +19,18 @@ export default class Exporter {
   processDBBlock = (content, block) => {
     if (block.getData().STYLES) {
       block.getData().STYLES.forEach((style) => {
-        const name = style.style ? style.style : style.name;
-        const styleSelection = new SelectionState({
-          focusKey: block.getKey(),
-          anchorKey: block.getKey(),
-          focusOffset: style.end,
-          anchorOffset: style.start,
-        });
-        content = Modifier.applyInlineStyle(content, styleSelection, name);
-      });
-    }
-    if (block.getData().ENTITY_TABS) {
-      const tabText = GenerateTabCharacter();
-      block.getData().ENTITY_TABS.forEach((tab) => {
-        const tabSelection = new SelectionState({
-          focusKey: block.getKey(),
-          anchorKey: block.getKey(),
-          anchorOffset: tab.start,
-          focusOffset: tab.end,
-        });
-        const contentStateWithEntity = content.createEntity("TAB", "IMMUTABLE");
-        const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
-        content = Modifier.replaceText(contentStateWithEntity, tabSelection, tabText, null, entityKey);
+        try {
+          const name = style.style ? style.style : style.name;
+          const styleSelection = new SelectionState({
+            focusKey: block.getKey(),
+            anchorKey: block.getKey(),
+            focusOffset: style.end,
+            anchorOffset: style.start,
+          });
+          content = Modifier.applyInlineStyle(content, styleSelection, name);
+        } catch (error) {
+          console.error("ERROR parsing block!", block.getKey());
+        }
       });
     }
     return content;
@@ -74,7 +63,7 @@ export default class Exporter {
             text.slice(style.offset + style.length + 3 + modifier, text.length + modifier);
           modifier += 7;
           break;
-        case "underline":
+        case "underscore":
           text =
             text.slice(0, style.offset + modifier) +
             "<u>" +
@@ -185,6 +174,7 @@ export default class Exporter {
         }
         resolve(response.json());
       } catch (e) {
+        console.log("Wtf err full", e);
         reject("ERROR FETCHING FULL STORY: ", e);
       }
     });

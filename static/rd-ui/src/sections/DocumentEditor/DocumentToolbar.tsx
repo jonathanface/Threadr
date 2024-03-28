@@ -15,7 +15,6 @@ import styles from "./document-toolbar.module.css";
 
 import { faAlignCenter, faAlignJustify, faAlignLeft, faAlignRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import TipsAndUpdatesIcon from "@mui/icons-material/TipsAndUpdates";
 import { AppDispatch } from "../../stores/store";
 
 interface DocumentToolbarProps {
@@ -243,7 +242,7 @@ const DocumentToolbar = forwardRef((props: DocumentToolbarProps, ref) => {
         };
         const newAlert = {
           title: "Conversion complete",
-          message: "Click the link to access.",
+          message: "Right-click the link to save your document.",
           open: true,
           severity: AlertToastType.success,
           link: alertLink,
@@ -370,11 +369,7 @@ const DocumentToolbar = forwardRef((props: DocumentToolbarProps, ref) => {
       <div className={`${styles.hiddenControlsRow} ${isMenuExpanded ? styles.active : ""}`}>
         <span>
           <IconButton title="Analyze Chapter" aria-label="exit" component="label" onClick={analyzeChapter}>
-            <TipsAndUpdatesIcon
-              sx={{
-                color: "#F0F0F0",
-              }}
-            />
+            <span className={styles.docBtn} />
           </IconButton>
         </span>
         <span>

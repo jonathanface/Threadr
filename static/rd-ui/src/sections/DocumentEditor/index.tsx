@@ -293,7 +293,9 @@ const DocumentEditor = (props: DocumentEditorProps) => {
           if (domEditor.current) {
             const editorBox = domEditor.current.editorContainer?.parentElement;
             if (editorBox) {
+              console.log("ed");
               editorBox.scrollTop = 0;
+              window.scrollTo(0, 0);
             }
           }
           setBlocksLoaded(true);
