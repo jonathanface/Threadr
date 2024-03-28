@@ -7,7 +7,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -930,7 +929,7 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	var generatedFile string
 	filetype := "application/pdf"
-	fmt.Println("t", typeOf)
+
 	switch typeOf {
 	case "pdf":
 		generatedFile, err = converters.HTMLToPDF(export)

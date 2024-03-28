@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/SebastiaanKlippert/go-wkhtmltopdf"
+	"github.com/google/uuid"
 	"github.com/microcosm-cc/bluemonday"
 )
 
@@ -82,9 +83,7 @@ func HTMLToDOCX(export models.DocumentExportRequest) (filename string, err error
 	tmpFile.Close()
 
 	// Convert HTML to DOCX using Pandoc command-line tool
-	safeTitlePattern := regexp.MustCompile(`[^\w.-]+`)
-	safeTitle := strings.ToLower(safeTitlePattern.ReplaceAllString(export.Title, ""))
-	filename = fmt.Sprintf("%s.docx", safeTitle)
+	filename = uuid.NewString()
 	cmd := exec.Command("pandoc", "-f", "html", "-t", "docx", "--reference-doc", "bins/custom-reference.docx", "-o", "./tmp/"+filename, tmpFile.Name())
 
 	// Execute the command
@@ -113,9 +112,8 @@ func HTMLToPDF(export models.DocumentExportRequest) (filename string, err error)
 		pdfg.AddPage(wkhtmltopdf.NewPageReader(strings.NewReader(htmlContent)))
 	}
 	htmlContent += "</body></html>"
-	safeTitlePattern := regexp.MustCompile(`[^\w.-]+`)
-	safeTitle := strings.ToLower(safeTitlePattern.ReplaceAllString(export.Title, ""))
 
+	safeTitle := uuid.New()
 	filename = fmt.Sprintf("%s.pdf", safeTitle)
 	cmd := exec.Command("wkhtmltopdf",
 		"--margin-top", "1in",
