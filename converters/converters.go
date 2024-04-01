@@ -71,6 +71,7 @@ func HTMLToDOCX(export models.DocumentExportRequest) (filename string, err error
 	// Create a temporary HTML file
 	tmpFile, err := os.CreateTemp("", "html_to_docx_*.html")
 	if err != nil {
+		fmt.Println("creating temp html file err", err)
 		return "", err
 	}
 	defer os.Remove(tmpFile.Name())
@@ -78,6 +79,7 @@ func HTMLToDOCX(export models.DocumentExportRequest) (filename string, err error
 	// Write HTML content to the temporary file
 	_, err = tmpFile.WriteString(htmlContent)
 	if err != nil {
+		fmt.Println("writing html to temp file error", err)
 		return "", err
 	}
 	tmpFile.Close()
@@ -89,6 +91,7 @@ func HTMLToDOCX(export models.DocumentExportRequest) (filename string, err error
 	// Execute the command
 	err = cmd.Run()
 	if err != nil {
+		fmt.Println("pandoc error", err)
 		return "", err
 	}
 	return filename, nil
