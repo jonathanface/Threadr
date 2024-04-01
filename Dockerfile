@@ -85,6 +85,7 @@ COPY ./models ./models
 COPY ./auth ./auth
 COPY ./billing ./billing
 COPY ./bins /usr/local/bin/
+COPY ./bins/custom-reference.docx ./bins/custom-reference.docx
 COPY ./daos ./daos
 COPY ./sessions ./sessions
 COPY ./RichDocter.go ./RichDocter.go
