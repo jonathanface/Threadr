@@ -2,16 +2,7 @@ import { CharacterMetadata, ContentBlock, EditorState, Modifier, SelectionState 
 import Immutable from "immutable";
 import { DBOperation, DBOperationTask, DBOperationType, DocumentBlockStyle, EntityData } from "../../types";
 
-/*
-center: {
-    textAlign: "center",
-  },
-  right: {
-    textAlign: "right",
-  },
-  justify: {
-    textAlign: "justify",
-  },*/
+const TAB_LENGTH = 5;
 
 export const documentStyleMap = {
   strikethrough: {
@@ -108,31 +99,6 @@ export const filterAndReduceDBOperations = (
   return toRun;
 };
 
-// export const filterAndReduceDBOperations = (
-//   dbOperations: DBOperation[],
-//   opType: DBOperationType,
-//   startIndex: number
-// ): DBOperationTask[] => {
-//   const operationsByBlock: { [key: string]: DBOperationTask[] } = {};
-
-//   dbOperations.forEach((obj, index) => {
-//     if (index >= startIndex && obj.type === opType) {
-//       obj.ops.forEach((op) => {
-//         if (!operationsByBlock[op.key_id]) {
-//           operationsByBlock[op.key_id] = [];
-//         }
-//         operationsByBlock[op.key_id].push(op);
-//       });
-
-//       return false;
-//     }
-//     return true;
-//   });
-//   return Object.values(operationsByBlock)
-//     .map((ops) => ops.pop())
-//     .filter((op): op is DBOperationTask => op !== undefined);
-// };
-
 export const GetSelectedText = (editorState: EditorState) => {
   const selection = editorState.getSelection();
   const anchorKey = selection.getAnchorKey();
@@ -145,8 +111,6 @@ export const GetSelectedText = (editorState: EditorState) => {
   return selectedText;
 };
 
-const TAB_LENGTH = 5;
-
 export const GenerateTabCharacter = (tabLength?: number) => {
   tabLength = tabLength ? tabLength : TAB_LENGTH;
   let tab = "";
@@ -156,11 +120,43 @@ export const GenerateTabCharacter = (tabLength?: number) => {
   return tab;
 };
 
-export const InsertDash = (editorState: EditorState, selection: SelectionState) => {
-  const content = editorState.getCurrentContent();
-  const contentStateWithUpdatedText = Modifier.replaceText(content, selection, "—");
-  const editorStateWithData = EditorState.push(editorState, contentStateWithUpdatedText, "insert-characters");
-  return EditorState.forceSelection(editorStateWithData, contentStateWithUpdatedText.getSelectionAfter());
+const replacementMap = new Map([
+  [/--/g, "—"], // Replace double dashes with emdashes
+]);
+
+export const ReplaceCharacters = (editorState: EditorState) => {
+  const contentState = editorState.getCurrentContent();
+  const blockMap = contentState.getBlockMap();
+  let newContentState = contentState;
+  blockMap.forEach((block: ContentBlock | undefined) => {
+    if (block) {
+      let blockText = block.getText();
+      replacementMap.forEach((replacement, regex) => {
+        let matchArr;
+        while ((matchArr = regex.exec(blockText)) !== null) {
+          const start = matchArr.index;
+          const end = start + matchArr[0].length;
+          const selectionState = editorState.getSelection().merge({
+            anchorKey: block.getKey(),
+            anchorOffset: start,
+            focusKey: block.getKey(),
+            focusOffset: end,
+          });
+
+          newContentState = Modifier.replaceText(newContentState, selectionState, replacement);
+
+          // Update blockText to reflect the most recent replacement for subsequent searches
+          blockText = newContentState.getBlockForKey(block.getKey()).getText();
+        }
+      });
+    }
+  });
+
+  if (newContentState !== contentState) {
+    return EditorState.push(editorState, newContentState, "insert-characters");
+  }
+
+  return editorState;
 };
 
 export const InsertTab = (editorState: EditorState, selection: SelectionState) => {

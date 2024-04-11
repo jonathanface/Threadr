@@ -55,8 +55,8 @@ import {
   GetEntityData,
   GetSelectedBlockKeys,
   GetSelectedText,
-  InsertDash,
   InsertTab,
+  ReplaceCharacters,
   documentStyleMap,
   filterAndReduceDBOperations,
 } from "./utilities";
@@ -457,11 +457,9 @@ const DocumentEditor = (props: DocumentEditorProps) => {
       if (selectedStory) {
         if (!associationsLoaded) {
           getAllAssociations();
-        } else if (!blocksLoaded) {
-          getBatchedStoryBlocks("");
         }
-        if (associationsLoaded && blocksLoaded) {
-          dispatch(setIsLoaderVisible(false));
+        if (!blocksLoaded) {
+          getBatchedStoryBlocks("");
         }
       }
     }
@@ -470,7 +468,13 @@ const DocumentEditor = (props: DocumentEditorProps) => {
       clearInterval(processInterval);
       window.removeEventListener("unload", processDBQueue);
     };
-  }, [isLoggedIn, selectedStory, lastRetrievedBlockKey, associationsLoaded, blocksLoaded]);
+  }, [isLoggedIn, selectedStory, lastRetrievedBlockKey, blocksLoaded]);
+
+  useEffect(() => {
+    if (associationsLoaded && blocksLoaded) {
+      dispatch(setIsLoaderVisible(false));
+    }
+  }, [associationsLoaded, blocksLoaded]);
 
   useEffect(() => {
     setBlocksLoaded(false);
@@ -692,6 +696,8 @@ const DocumentEditor = (props: DocumentEditorProps) => {
   };
 
   const keyBindings = (event: React.KeyboardEvent) => {
+    event.stopPropagation();
+    console.log(`Key event fired: ${Date.now()}`);
     // tab pressed
     if (event.code.toLowerCase() === "tab") {
       if (selectedStory && selectedChapter.id) {
@@ -707,40 +713,7 @@ const DocumentEditor = (props: DocumentEditorProps) => {
         prepBlocksForSave(content, blocksToPrep, selectedStory.story_id, selectedChapter.id);
       }
     }
-    if (event.code.toLowerCase() === "minus") {
-      if (selectedStory && selectedChapter.id) {
-        const selection = editorState.getSelection();
-        const content = editorState.getCurrentContent();
-        const anchorKey = selection.getAnchorKey();
-        const anchorOffset = selection.getAnchorOffset();
-        if (anchorOffset > 0) {
-          const block = content.getBlockForKey(anchorKey);
-          const text = block.getText();
-          const precedingChar = text[anchorOffset - 1];
-          if (precedingChar == "-") {
-            event.preventDefault();
-            const newSelection = new SelectionState({
-              anchorOffset: anchorOffset - 1,
-              focusOffset: selection.getFocusOffset(),
-              focusKey: selection.getFocusKey(),
-              anchorKey: selection.getAnchorKey(),
-            });
-            const newEditorState = InsertDash(editorState, newSelection);
-            const blocksToPrep: ContentBlock[] = [];
-            GetSelectedBlockKeys(newEditorState).forEach((key: string) => {
-              blocksToPrep.push(content.getBlockForKey(key));
-            });
-            setEditorState(newEditorState);
-            prepBlocksForSave(
-              newEditorState.getCurrentContent(),
-              blocksToPrep,
-              selectedStory.story_id,
-              selectedChapter.id
-            );
-          }
-        }
-      }
-    }
+
     return getDefaultKeyBinding(event);
   };
 
@@ -887,6 +860,7 @@ const DocumentEditor = (props: DocumentEditorProps) => {
 
   const handleKeyCommand = (command: string): DraftHandleValue => {
     let newEditorState = editorState;
+    console.log("kcm", command);
     if (command === "backspace" || command === "delete") {
       const selectedKeys = GetSelectedBlockKeys(editorState);
       if (selectedKeys.length) {
@@ -967,6 +941,8 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     if (navbarRef.current) {
       navbarRef.current.resetNavButtons();
     }
+
+    newEditorState = ReplaceCharacters(newEditorState);
 
     setSelectedContextMenuVisible(false);
     setAssociationContextMenuVisible(false);
@@ -1369,3 +1345,6 @@ const DocumentEditor = (props: DocumentEditorProps) => {
 };
 
 export default DocumentEditor;
+function replaceCharacters(newEditorState: EditorState): EditorState {
+  throw new Error("Function not implemented.");
+}
