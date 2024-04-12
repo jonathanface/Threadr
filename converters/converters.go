@@ -63,7 +63,7 @@ func HTMLToDOCX(export models.DocumentExportRequest) (filename string, err error
 		sanitizer := bluemonday.UGCPolicy()
 		sanitizer.AllowAttrs("style").OnElements("p")
 		sanitizedHTML := sanitizer.Sanitize(htmlData.HTML)
-		chapterTitle := fmt.Sprintf(`<h1>%s</h1>`, htmlData.Chapter)
+		chapterTitle := fmt.Sprintf(`<h1>%s<br /></h1>`, htmlData.Chapter)
 		htmlContent += chapterTitle + sanitizedHTML
 	}
 	htmlContent += "</body></html>"
