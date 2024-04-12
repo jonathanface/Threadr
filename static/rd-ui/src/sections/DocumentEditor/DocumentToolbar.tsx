@@ -25,6 +25,7 @@ interface DocumentToolbarProps {
   updateAlignment: Function;
   updateStyle: Function;
   updateSpellcheck: Function;
+  updateFont: Function;
 }
 
 export enum BlockAlignmentType {
@@ -355,7 +356,7 @@ const DocumentToolbar = forwardRef((props: DocumentToolbarProps, ref) => {
           </button>
         </span>
         <span className={styles.rightControls}>
-          <IconButton aria-label="expand" component="label" onClick={toggleMenuExpand}>
+          <IconButton aria-label="expand" title="More" component="label" onClick={toggleMenuExpand}>
             {!isMenuExpanded ? (
               <KeyboardDoubleArrowLeftIcon
                 sx={{
@@ -425,6 +426,43 @@ const DocumentToolbar = forwardRef((props: DocumentToolbarProps, ref) => {
           </label>
         </span>
         <span className={styles.rightControls}>
+          <TextField
+            title="Font"
+            select
+            label="Font"
+            InputLabelProps={{
+              style: { color: "#f0f0f0" },
+            }}
+            SelectProps={{
+              value: "",
+              onChange: (evt) => {
+                setExportMenuValue(!exportMenuValue);
+              },
+              onClose: (evt) => {
+                //   setTimeout(() => {
+                //     document.activeElement.blur();
+                //   }, 0);
+              },
+            }}
+            size="small"
+            sx={{
+              width: "120px",
+            }}>
+            <MaterialMenuItem
+              value="Arial"
+              onClick={() => {
+                props.updateFont("inherit");
+              }}>
+              <ListItemText primary="Arial" />
+            </MaterialMenuItem>
+            <MaterialMenuItem
+              value="Times New Roman"
+              onClick={(e) => {
+                props.updateFont("Times New Roman");
+              }}>
+              <ListItemText primary="Times New Roman" />
+            </MaterialMenuItem>
+          </TextField>
           <TextField
             title="Export to File"
             select

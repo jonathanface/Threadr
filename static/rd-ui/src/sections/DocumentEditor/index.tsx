@@ -112,6 +112,7 @@ const DocumentEditor = (props: DocumentEditorProps) => {
   const [associationContextMenuX, setAssociationContextMenuX] = useState(0);
   const [associationContextMenuY, setAssociationContextMenuY] = useState(0);
   const [isSpellcheckOn, setIsSpellcheckOn] = useState(true);
+  const [activeFont, setActiveFont] = useState("inherit");
 
   const [associationsLoaded, setAssociationsLoaded] = useState(false);
   const [blocksLoaded, setBlocksLoaded] = useState(false);
@@ -1292,6 +1293,7 @@ const DocumentEditor = (props: DocumentEditorProps) => {
         updateAlignment={saveBlockAlignment}
         updateStyle={handleStyleClick}
         updateSpellcheck={setIsSpellcheckOn}
+        updateFont={setActiveFont}
         ref={navbarRef}
       />
       <section
@@ -1299,6 +1301,7 @@ const DocumentEditor = (props: DocumentEditorProps) => {
           handleContextMenu(e);
         }}
         className={docStyles.editorContainer}
+        style={{ fontFamily: activeFont }}
         onClick={setFocus}
         onScroll={handleScroll}>
         <Editor

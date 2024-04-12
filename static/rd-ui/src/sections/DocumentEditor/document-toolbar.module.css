@@ -41,6 +41,9 @@ nav.richControls button.active {
 nav.richControls .rightControls {
   float: right;
 }
+nav.richControls .rightControls > div {
+  margin-right: 10px;
+}
 
 nav.richControls .exportOption {
   width: auto;
@@ -51,9 +54,6 @@ nav.richControls .hiddenControlsRow {
   height: 0;
   transition: height 0.3s ease-out;
   width: 100%;
-}
-nav.richControls .hiddenControlsRow > span {
-  margin-right: 10px;
 }
 
 nav.richControls .hiddenControlsRow.active {
