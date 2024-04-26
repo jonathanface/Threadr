@@ -26,7 +26,7 @@ func HTMLToDOCX(export models.DocumentExportRequest) (filename string, err error
 	htmlContent := `<html><body style="font-family:\"Times New Roman\",san-serif;font-size:` + FONT_SIZE_DEFAULT + `;line-height:` + LINE_HEIGHT + `;margin:0">`
 	for _, htmlData := range export.HtmlByChapter {
 		sanitizer := bluemonday.UGCPolicy()
-		sanitizer.AllowAttrs("style").OnElements("p")
+		sanitizer.AllowAttrs("style", "custom-style").OnElements("div", "p")
 		sanitizedHTML := sanitizer.Sanitize(htmlData.HTML)
 		chapterTitle := fmt.Sprintf(`<h1>%s<br /></h1>`, htmlData.Chapter)
 		htmlContent += chapterTitle + sanitizedHTML
