@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 
 	"github.com/SebastiaanKlippert/go-wkhtmltopdf"
@@ -21,6 +22,37 @@ const (
 	LINE_HEIGHT       = "24px"
 	MARGIN_1INCH      = "1in"
 )
+
+var regexes = []*regexp.Regexp{
+	regexp.MustCompile(`<div custom-style="Centered">(.*?)<\/div>`),
+	regexp.MustCompile(`<div custom-style="Righted">(.*?)<\/div>`),
+	regexp.MustCompile(`<div custom-style="Justified">(.*?)<\/div>`),
+	regexp.MustCompile(`<div>(.*?)</div>`),
+	regexp.MustCompile(`’`),
+	regexp.MustCompile(`&#x27;`),
+	regexp.MustCompile(`&#39;`),
+	regexp.MustCompile(`“`),
+	regexp.MustCompile(`”`),
+	regexp.MustCompile(`&quot;`),
+	regexp.MustCompile(`&#34;`),
+	regexp.MustCompile(`—`),
+	regexp.MustCompile(`&amp;`),
+}
+var reMatches = []string{
+	`<div style="margin:0;padding:0;white-space:pre-wrap;text-align:center;">$1</div>`,
+	`<div style="margin:0;padding:0;white-space:pre-wrap;text-align:right;">$1</div>`,
+	`<div style="margin:0;padding:0;white-space:pre-wrap;text-align:justify;">$1</div>`,
+	`<div style="margin:0;padding:0;white-space:pre-wrap;">$1</div>`,
+	`'`,
+	`'`,
+	`'`,
+	`"`,
+	`"`,
+	`"`,
+	`"`,
+	`--`,
+	`&`,
+}
 
 func HTMLToDOCX(export models.DocumentExportRequest) (filename string, err error) {
 	htmlContent := `<html><body style="font-family:\"Times New Roman\",san-serif;font-size:` + FONT_SIZE_DEFAULT + `;line-height:` + LINE_HEIGHT + `;margin:0">`
@@ -69,8 +101,12 @@ func HTMLToPDF(export models.DocumentExportRequest) (filename string, err error)
 	}
 	htmlContent := `<html><body style="font-family:Arial,san-serif;font-size:` + FONT_SIZE_DEFAULT + `;line-height:` + LINE_HEIGHT + `;margin:0">`
 	for _, htmlData := range export.HtmlByChapter {
+		for idx, re := range regexes {
+			htmlData.HTML = re.ReplaceAllString(htmlData.HTML, reMatches[idx])
+		}
+
 		sanitizer := bluemonday.UGCPolicy()
-		sanitizer.AllowAttrs("style").OnElements("p")
+		sanitizer.AllowAttrs("style").OnElements("p", "div")
 		sanitizedHTML := sanitizer.Sanitize(htmlData.HTML)
 		chapterTitle := fmt.Sprintf(`<div style="page-break-before: always; margin: 0; margin-bottom: %s; padding: 0; text-align: center; font-weight: bold; font-size: %s; line-height: %s;">%s</div>`, FONT_SIZE_HEADER, FONT_SIZE_HEADER, FONT_SIZE_HEADER, htmlData.Chapter)
 		htmlContent += chapterTitle + sanitizedHTML
