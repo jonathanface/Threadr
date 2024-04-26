@@ -56,11 +56,16 @@ var reMatches = []string{
 
 func HTMLToDOCX(export models.DocumentExportRequest) (filename string, err error) {
 	htmlContent := `<html><body style="font-family:\"Times New Roman\",san-serif;font-size:` + FONT_SIZE_DEFAULT + `;line-height:` + LINE_HEIGHT + `;margin:0">`
-	for _, htmlData := range export.HtmlByChapter {
+	for idx, htmlData := range export.HtmlByChapter {
 		sanitizer := bluemonday.UGCPolicy()
 		sanitizer.AllowAttrs("style", "custom-style").OnElements("div", "p")
 		sanitizedHTML := sanitizer.Sanitize(htmlData.HTML)
-		chapterTitle := fmt.Sprintf(`<h1>%s<br /></h1>`, htmlData.Chapter)
+		chapterHeadingStr := fmt.Sprintf(`Chapter %d`, idx+1)
+		chapterTitle := fmt.Sprintf(`<h1>%s</h1>`, htmlData.Chapter)
+		if htmlData.Chapter != chapterHeadingStr {
+			chapterTitle = `<h1>` + chapterHeadingStr + `</h1>`
+			chapterTitle += fmt.Sprintf(`<h2>%s</h2>`, htmlData.Chapter)
+		}
 		htmlContent += chapterTitle + sanitizedHTML
 	}
 	htmlContent += "</body></html>"
