@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"regexp"
 	"strings"
 
 	"github.com/SebastiaanKlippert/go-wkhtmltopdf"
@@ -23,43 +22,9 @@ const (
 	MARGIN_1INCH      = "1in"
 )
 
-var regexes = []*regexp.Regexp{
-	regexp.MustCompile(`<CENTER>(.*?)<\/CENTER>`),
-	regexp.MustCompile(`<RIGHT>(.*?)<\/RIGHT>`),
-	regexp.MustCompile(`<JUSTIFY>(.*?)<\/JUSTIFY>`),
-	regexp.MustCompile(`’`),
-	regexp.MustCompile(`&#x27;`),
-	regexp.MustCompile(`&#39;`),
-	regexp.MustCompile(`“`),
-	regexp.MustCompile(`”`),
-	regexp.MustCompile(`&quot;`),
-	regexp.MustCompile(`&#34;`),
-	regexp.MustCompile(`—`),
-	regexp.MustCompile(`<p>(.*?)<\/p>`),
-	regexp.MustCompile(`&amp;`),
-}
-var reMatches = []string{
-	`<p style="margin:0;padding:0;white-space:pre-wrap;text-align:center;">$1</p>`,
-	`<p style="margin:0;padding:0;white-space:pre-wrap;text-align:right;">$1</p>`,
-	`<p style="margin:0;padding:0;white-space:pre-wrap;text-align:justify;">$1</p>`,
-	`'`,
-	`'`,
-	`'`,
-	`"`,
-	`"`,
-	`"`,
-	`"`,
-	`--`,
-	`<p style="margin:0;padding:0;white-space:pre-wrap;">$1</p>`,
-	`&`,
-}
-
 func HTMLToDOCX(export models.DocumentExportRequest) (filename string, err error) {
-	htmlContent := `<html><body style="font-family:Arial,san-serif;font-size:` + FONT_SIZE_DEFAULT + `;line-height:` + LINE_HEIGHT + `;margin:0">`
+	htmlContent := `<html><body style="font-family:\"Times New Roman\",san-serif;font-size:` + FONT_SIZE_DEFAULT + `;line-height:` + LINE_HEIGHT + `;margin:0">`
 	for _, htmlData := range export.HtmlByChapter {
-		for idx, re := range regexes {
-			htmlData.HTML = re.ReplaceAllString(htmlData.HTML, reMatches[idx])
-		}
 		sanitizer := bluemonday.UGCPolicy()
 		sanitizer.AllowAttrs("style").OnElements("p")
 		sanitizedHTML := sanitizer.Sanitize(htmlData.HTML)
@@ -104,9 +69,6 @@ func HTMLToPDF(export models.DocumentExportRequest) (filename string, err error)
 	}
 	htmlContent := `<html><body style="font-family:Arial,san-serif;font-size:` + FONT_SIZE_DEFAULT + `;line-height:` + LINE_HEIGHT + `;margin:0">`
 	for _, htmlData := range export.HtmlByChapter {
-		for idx, re := range regexes {
-			htmlData.HTML = re.ReplaceAllString(htmlData.HTML, reMatches[idx])
-		}
 		sanitizer := bluemonday.UGCPolicy()
 		sanitizer.AllowAttrs("style").OnElements("p")
 		sanitizedHTML := sanitizer.Sanitize(htmlData.HTML)

@@ -141,11 +141,19 @@ export default class Exporter {
               if (styles.length) {
                 text = this.applyStyles(text, styles);
               }
-              if (alignment && alignment.toUpperCase() !== "LEFT") {
-                return "<" + alignment.toUpperCase() + ">" + text + "</" + alignment.toUpperCase() + ">";
-              } else {
-                return "<p>" + text + "</p>";
+              if (alignment) {
+                switch (alignment.toUpperCase()) {
+                  case "CENTER":
+                    return '<div custom-style="Centered">' + text + "</div>";
+                  case "RIGHT":
+                    return '<div custom-style="Righted">' + text + "</div>";
+                  case "JUSTIFY":
+                    return '<div custom-style="Justified">' + text + "</div>";
+                  default:
+                    return "<div>" + text + "</div>";
+                }
               }
+              return "<div>" + text + "</div>";
             },
           })(this.assembler.editorState.getCurrentContent()),
         });
