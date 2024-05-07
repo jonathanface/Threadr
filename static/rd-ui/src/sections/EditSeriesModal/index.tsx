@@ -303,7 +303,6 @@ const EditSeriesModal = (props: EditSeriesProps) => {
 
   const addStory = (event: React.MouseEvent) => {
     event.stopPropagation();
-    console.log("add to", props.series?.series_id);
     dispatch(flipCreatingNewStory(props.series?.series_id));
     handleClose();
   };
@@ -400,7 +399,9 @@ const EditSeriesModal = (props: EditSeriesProps) => {
                               {...provided.dragHandleProps}>
                               {
                                 <div>
-                                  <img src={entry.image_url} alt={entry.title} />
+                                  <span className={styles.seriesIcon}>
+                                    <img src={entry.image_url} alt={entry.title} />
+                                  </span>
                                   <span>{entry.title}</span>
                                   <span className={styles.storyButtons}>
                                     <IconButton

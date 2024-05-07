@@ -74,6 +74,11 @@
   box-sizing: initial;
 }
 
+.editSeriesVolumes .seriesIcon {
+  width: 50px;
+  text-align: right;
+}
+
 .editSeriesVolumes img {
   max-height: 50px;
   vertical-align: middle;
