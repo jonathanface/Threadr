@@ -303,6 +303,7 @@ const EditSeriesModal = (props: EditSeriesProps) => {
 
   const addStory = (event: React.MouseEvent) => {
     event.stopPropagation();
+    console.log("add to", props.series?.series_id);
     dispatch(flipCreatingNewStory(props.series?.series_id));
     handleClose();
   };

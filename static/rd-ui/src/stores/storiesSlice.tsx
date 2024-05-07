@@ -49,6 +49,9 @@ export const storiesSlice = createSlice({
     setStoryBeingEdited: (state, action) => {
       state.storyBeingEdited = action.payload;
     },
+    setStoryBelongsToSeries: (state, action) => {
+      state.belongsToSeries = action.payload;
+    },
   },
 });
 
@@ -59,6 +62,7 @@ export const {
   setSelectedStory,
   pushToStandaloneList,
   setStoryBeingEdited,
+  setStoryBelongsToSeries,
 } = storiesSlice.actions;
 
 export default storiesSlice.reducer;

@@ -6,7 +6,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import React, { useEffect, useState } from "react";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../stores/store";
-import { flipCreatingNewStory, pushToStandaloneList } from "../../stores/storiesSlice";
+import { flipCreatingNewStory, pushToStandaloneList, setStoryBelongsToSeries } from "../../stores/storiesSlice";
 import PortraitDropper from "../PortraitDropper";
 
 import { Autocomplete, TextField } from "@mui/material";
@@ -39,6 +39,7 @@ const CreateNewStoryModal = () => {
 
   const seriesList = useAppSelector((state) => state.series.seriesList);
   const isCreatingNewStory = useAppSelector((state) => state.stories.isCreatingNew);
+  const preassignedSeries = useAppSelector((state) => state.stories.belongsToSeries);
 
   const [imageURL, setImageURL] = useState("");
   const [imageName, setImageName] = useState("Loading...");
@@ -86,6 +87,7 @@ const CreateNewStoryModal = () => {
     setImageURL("");
     setImageName("Loading...");
     setIsInASeries(false);
+    dispatch(setStoryBelongsToSeries(false));
     storyFormMessage.title = "Cannot create story";
     storyFormMessage.message = "";
     storyFormMessage.severity = AlertToastType.error;
@@ -124,6 +126,10 @@ const CreateNewStoryModal = () => {
     if (isCreatingNewStory) {
       getDefaultImage();
     }
+    if (preassignedSeries !== "") {
+      setAssignedSeries(preassignedSeries);
+      setIsInASeries(true);
+    }
 
     setSeriesDisplayList(
       seriesList.map((entry) => {
@@ -134,7 +140,7 @@ const CreateNewStoryModal = () => {
         };
       })
     );
-  }, [isCreatingNewStory, seriesList]);
+  }, [isCreatingNewStory, seriesList, preassignedSeries]);
 
   const processImage = (acceptedFiles: File[]) => {
     acceptedFiles.forEach((file) => {
@@ -164,6 +170,7 @@ const CreateNewStoryModal = () => {
     if (!storyForm) {
       return;
     }
+    console.log("wtf", storyForm);
     if (!storyForm.title || !storyForm.title.trim().length) {
       storyFormMessage.message = "Title is required";
       dispatch(setAlert(storyFormMessage));
@@ -259,6 +266,18 @@ const CreateNewStoryModal = () => {
     dispatch(setIsLoaderVisible(false));
   };
 
+  const setAssignedSeries = (seriesID: string) => {
+    const foundSeries = seriesList?.find((srs) => srs.series_id === seriesID);
+    console.log("found", foundSeries);
+    if (foundSeries) {
+      setStoryForm((prevFormInput) => ({
+        ...prevFormInput,
+        series_id: foundSeries.series_id,
+        series_title: foundSeries.series_title,
+      }));
+    }
+  };
+
   return (
     <Dialog open={isCreatingNewStory} onClose={handleClose} className={styles.storyForm}>
       <DialogTitle>Create a Story</DialogTitle>
@@ -303,13 +322,19 @@ const CreateNewStoryModal = () => {
         </div>
         <div className={styles.seriesBox}>
           <div>
-            <input type="checkbox" id="create-story-is-in-series" onChange={() => setIsInASeries(!isInASeries)} />
+            <input
+              type="checkbox"
+              id="create-story-is-in-series"
+              checked={isInASeries}
+              onChange={() => setIsInASeries(!isInASeries)}
+            />
             <label htmlFor="create-story-is-in-series">This is part of a series</label>
           </div>
           <div>
             {isInASeries ? (
               <div>
                 <Autocomplete
+                  defaultValue={storyForm?.series_title}
                   onInputChange={(event: React.SyntheticEvent, value: string) => {
                     if (event) {
                       const foundSeries = seriesList?.find(
