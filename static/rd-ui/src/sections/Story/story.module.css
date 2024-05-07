@@ -31,6 +31,9 @@
   max-height: 100%;
   border-radius: 20px;
 }
+.docButton img.seriesImage {
+  cursor: initial;
+}
 
 .docButton .storyText {
   display: flex;

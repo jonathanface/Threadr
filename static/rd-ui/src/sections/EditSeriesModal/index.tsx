@@ -78,8 +78,8 @@ const EditSeriesModal = (props: EditSeriesProps) => {
   };
 
   const handleClose = () => {
-    resetForm();
     dispatch(flipEditingSeries());
+    // resetForm();
   };
 
   useEffect(() => {
@@ -330,6 +330,7 @@ const EditSeriesModal = (props: EditSeriesProps) => {
                 <label htmlFor="edit-series-title">Title:</label>
                 <input
                   defaultValue={preselectedTitle}
+                  key={preselectedTitle}
                   type="text"
                   id="edit-series-title"
                   onKeyUp={(event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -344,6 +345,7 @@ const EditSeriesModal = (props: EditSeriesProps) => {
                 <label htmlFor="edit-series-description">Description</label>
                 <textarea
                   defaultValue={preselectedDescription}
+                  key={preselectedDescription}
                   spellCheck="false"
                   id="edit-story-description"
                   onChange={(event) => {
@@ -372,7 +374,9 @@ const EditSeriesModal = (props: EditSeriesProps) => {
                   sx={{
                     fontSize: "24px",
                     color: "#000",
-                    padding: "8px",
+                    padding: "0px",
+                    marginLeft: "4px",
+                    marginTop: "-4px",
                     "&:hover": {
                       fontWeight: "bold",
                     },

@@ -164,6 +164,7 @@ const StoryBox = (props: StoryBoxProps) => {
       </div>
       <div className={styles.storyBubble}>
         <img
+          className={props.data.stories ? styles.seriesImage : ""}
           src={props.data.image_url}
           alt={title}
           onLoad={() => {
