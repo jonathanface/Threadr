@@ -186,6 +186,8 @@ const DocumentEditor = (props: DocumentEditorProps) => {
             }
           });
           setAssociationsLoaded(true);
+          const newEditorState = EditorState.set(editorState, { decorator: createDecorators() });
+          setEditorState(newEditorState);
         })
         .catch((error) => {
           console.error("get story associations", error);
@@ -294,7 +296,6 @@ const DocumentEditor = (props: DocumentEditorProps) => {
           if (domEditor.current) {
             const editorBox = domEditor.current.editorContainer?.parentElement;
             if (editorBox) {
-              console.log("ed");
               editorBox.scrollTop = 0;
               window.scrollTo(0, 0);
             }
@@ -453,10 +454,10 @@ const DocumentEditor = (props: DocumentEditorProps) => {
       }
     }, DB_OP_INTERVAL);
     window.addEventListener("unload", processDBQueue);
-
+    console.log("main effect", isLoggedIn, selectedStory, associationsLoaded, blocksLoaded);
     if (isLoggedIn) {
       if (selectedStory) {
-        if (!associationsLoaded) {
+        if (!associationsLoaded && blocksLoaded) {
           getAllAssociations();
         }
         if (!blocksLoaded) {
@@ -469,7 +470,7 @@ const DocumentEditor = (props: DocumentEditorProps) => {
       clearInterval(processInterval);
       window.removeEventListener("unload", processDBQueue);
     };
-  }, [isLoggedIn, selectedStory, lastRetrievedBlockKey, blocksLoaded]);
+  }, [isLoggedIn, selectedStory?.story_id, lastRetrievedBlockKey, blocksLoaded]);
 
   useEffect(() => {
     if (associationsLoaded && blocksLoaded) {
@@ -478,8 +479,9 @@ const DocumentEditor = (props: DocumentEditorProps) => {
   }, [associationsLoaded, blocksLoaded]);
 
   useEffect(() => {
+    getChapterDetails();
     setBlocksLoaded(false);
-  }, [selectedChapter]);
+  }, [selectedChapter.id, selectedStory?.story_id]);
 
   const syncBlockOrderMap = (blockList: BlockMap) => {
     return new Promise(async (resolve, reject) => {
@@ -861,7 +863,6 @@ const DocumentEditor = (props: DocumentEditorProps) => {
 
   const handleKeyCommand = (command: string): DraftHandleValue => {
     let newEditorState = editorState;
-    console.log("kcm", command);
     if (command === "backspace" || command === "delete") {
       const selectedKeys = GetSelectedBlockKeys(editorState);
       if (selectedKeys.length) {
@@ -1121,7 +1122,6 @@ const DocumentEditor = (props: DocumentEditorProps) => {
 
   const saveBlockAlignment = (alignment: BlockAlignmentType) => {
     if (selectedStory) {
-      console.log("set align to", alignment);
       let newContentState = editorState.getCurrentContent();
       const selectedKeys = GetSelectedBlockKeys(editorState);
       const blocksToPrep: ContentBlock[] = [];
@@ -1222,6 +1222,37 @@ const DocumentEditor = (props: DocumentEditorProps) => {
             return;
           }
         }
+      }
+    }
+  };
+
+  const getChapterDetails = async () => {
+    if (selectedStory) {
+      const response = await fetch("/api/stories/" + selectedStory.story_id + "/chapters/" + selectedChapter.id, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) {
+        console.error(response.body);
+        const newAlert = {
+          title: "Error",
+          message: "There was an error retrieving your chapter. Please report this.",
+          severity: AlertToastType.error,
+          open: true,
+          timeout: 6000,
+        };
+        dispatch(setAlert(newAlert));
+        return;
+      } else {
+        const responseJSON = (await response.json()) as Chapter;
+        setSelectedChapter({
+          id: selectedChapter.id,
+          title: responseJSON.title,
+          place: responseJSON.place,
+          story_id: selectedStory.story_id,
+        });
       }
     }
   };

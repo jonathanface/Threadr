@@ -28,8 +28,8 @@ const EditableText = (props: EditableTextProps) => {
   const onBlur = (event: React.SyntheticEvent) => {
     setIsEditing(false);
     props.onTextChange(event);
-    const target = event.currentTarget;
-    const text = (target as HTMLElement).textContent;
+    const target = event.target as HTMLInputElement;
+    const text = target.value;
     if (text) {
       setTextValue(text);
     }

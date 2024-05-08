@@ -13,6 +13,43 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func ChapterDetailsEndpoint(w http.ResponseWriter, r *http.Request) {
+	var (
+		storyID, chapterID string
+		err                error
+		dao                daos.DaoInterface
+		ok                 bool
+	)
+
+	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing story ID")
+		return
+	}
+	if storyID == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing story id")
+		return
+	}
+	if chapterID, err = url.PathUnescape(mux.Vars(r)["chapterID"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing chapter ID")
+		return
+	}
+	if chapterID == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing chapter id")
+		return
+	}
+	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
+		return
+	}
+	var chapter *models.Chapter
+	chapter, err = dao.GetChapterByID(chapterID)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	RespondWithJson(w, http.StatusOK, chapter)
+}
+
 func StoryBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 	chapterID := r.URL.Query().Get("chapter")
 	var (
@@ -84,7 +121,7 @@ func FullStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing story ID")
 		return
 	}
 	if storyID == "" {
