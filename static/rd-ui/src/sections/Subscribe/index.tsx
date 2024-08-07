@@ -10,11 +10,12 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
-import { StripeCardElementChangeEvent } from "@stripe/stripe-js/types/stripe-js";
+
 import { setAlert } from "../../stores/alertSlice";
 import { AppDispatch, RootState } from "../../stores/store";
 import { setIsSubscriptionFormOpen } from "../../stores/uiSlice";
 import { AlertToast, AlertToastType } from "../../utils/Toaster";
+import { StripeCardElementChangeEvent } from "@stripe/stripe-js";
 
 interface PaymentMethod {
   id: string;

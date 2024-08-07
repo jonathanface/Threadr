@@ -82,7 +82,7 @@ const DocumentSidebar = (props: DocumentSidebarProps) => {
           const chapterIndex = props.story.chapters.findIndex((c) => c.id === chapterID);
           if ((response.ok || response.status === 501) && chapterIndex > -1) {
             const newChapters = [...props.story.chapters];
-            newChapters.splice(chapterIndex);
+            newChapters.splice(chapterIndex, 1);
             const newSelectedStory = { ...props.story };
             newSelectedStory.chapters = newChapters;
             dispatch(setSelectedStory(newSelectedStory));
