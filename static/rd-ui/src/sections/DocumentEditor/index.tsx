@@ -84,8 +84,9 @@ interface DocumentEditorProps {}
 const dbOperationQueue: DBOperation[] = [];
 
 const DocumentEditor = (props: DocumentEditorProps) => {
-  const domEditor = useRef<Editor>(null);
+  const domEditorRef = useRef<Editor>(null);
   const navbarRef = useRef<DocumentToolbarRef>(null);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
   const useAppDispatch: () => AppDispatch = useDispatch;
   const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
   const dispatch = useAppDispatch();
@@ -293,13 +294,10 @@ const DocumentEditor = (props: DocumentEditorProps) => {
             contentStateWithStyles = processBlockData(contentStateWithStyles, block);
           });
           setEditorState(EditorState.createWithContent(newContentState, createDecorators()));
-          if (domEditor.current) {
-            const editorBox = domEditor.current.editorContainer?.parentElement;
-            if (editorBox) {
-              editorBox.scrollTop = 0;
-              window.scrollTo(0, 0);
-            }
+          if (editorContainerRef.current) {
+            editorContainerRef.current.scrollTo(0,0);
           }
+          document.body.scrollTo(0,0);
           setBlocksLoaded(true);
         })
         .catch((error) => {
@@ -317,11 +315,8 @@ const DocumentEditor = (props: DocumentEditorProps) => {
             showGreeting();
             setEditorState(EditorState.createEmpty(createDecorators()));
           }
-          if (domEditor.current) {
-            const editorBox = domEditor.current.editorContainer?.parentElement;
-            if (editorBox) {
-              editorBox.scrollTop = 0;
-            }
+          if (editorContainerRef.current) {
+            editorContainerRef.current.scrollTo(0,0);
           }
           setBlocksLoaded(true);
         });
@@ -431,8 +426,8 @@ const DocumentEditor = (props: DocumentEditorProps) => {
       anchorOffset: selection.getIsBackward() ? selection.getAnchorOffset() : selection.getFocusOffset(),
       focusOffset: selection.getIsBackward() ? selection.getAnchorOffset() : selection.getFocusOffset(),
     });
-    if (domEditor.current) {
-      domEditor.current.focus();
+    if (domEditorRef.current) {
+      domEditorRef.current.focus();
     }
     return EditorState.forceSelection(editorState, newSelection);
   };
@@ -454,7 +449,6 @@ const DocumentEditor = (props: DocumentEditorProps) => {
       }
     }, DB_OP_INTERVAL);
     window.addEventListener("unload", processDBQueue);
-    console.log("main effect", isLoggedIn, selectedStory, associationsLoaded, blocksLoaded);
     if (isLoggedIn) {
       if (selectedStory) {
         if (!associationsLoaded && blocksLoaded) {
@@ -1104,8 +1098,8 @@ const DocumentEditor = (props: DocumentEditorProps) => {
   };
 
   const setFocus = () => {
-    if (domEditor.current) {
-      domEditor.current.focus();
+    if (domEditorRef.current) {
+      domEditorRef.current.focus();
     }
   };
 
@@ -1328,6 +1322,7 @@ const DocumentEditor = (props: DocumentEditorProps) => {
         ref={navbarRef}
       />
       <section
+      ref={editorContainerRef}
         onContextMenu={(e) => {
           handleContextMenu(e);
         }}
@@ -1335,6 +1330,7 @@ const DocumentEditor = (props: DocumentEditorProps) => {
         style={{ fontFamily: activeFont }}
         onClick={setFocus}
         onScroll={handleScroll}>
+        <div style={{height:'100%', overflowY:'auto', maxHeight:'100%'}}>
         <Editor
           placeholder={defaultText}
           spellCheck={isSpellcheckOn}
@@ -1346,8 +1342,9 @@ const DocumentEditor = (props: DocumentEditorProps) => {
           handlePastedText={handlePasteAction}
           handleKeyCommand={handleKeyCommand}
           keyBindingFn={keyBindings}
-          ref={domEditor}
+          ref={domEditorRef}
         />
+        </div>
       </section>
       <div className="sidebar-container">
         <div className="handle" onClick={onExpandChapterMenu}>

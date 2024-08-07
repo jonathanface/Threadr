@@ -8,7 +8,7 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import React, { useEffect, useState } from "react";
-import { DragDropContext, Draggable, DropResult, Droppable } from "react-beautiful-dnd";
+import { DragDropContext, Draggable, DropResult, Droppable } from "@hello-pangea/dnd";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import { setAlert } from "../../stores/alertSlice";
 import { flipEditingSeries, setSeriesBeingEdited, setSeriesList } from "../../stores/seriesSlice";

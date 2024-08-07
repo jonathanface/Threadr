@@ -157,16 +157,15 @@ div.DraftEditor-root {
   border: 1px solid #000;
   border-radius: 10px;
   background-color: #f0f0f0;
-  min-height: 400px;
   padding: 10px;
   margin: 10px auto;
   color: #000;
   filter: drop-shadow(2px 2px 2px #1a1a1a);
+  min-height: 400px;
 }
 
 div.DraftEditor-editorContainer,
 div.public-DraftEditor-content {
-  height: 100%;
   line-height: 2em;
   padding: 1em;
 }

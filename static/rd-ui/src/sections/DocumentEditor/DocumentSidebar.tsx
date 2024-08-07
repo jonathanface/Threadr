@@ -2,7 +2,7 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { Button, IconButton } from "@mui/material";
 import React from "react";
-import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
+import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { MenuItem, Menu as SideMenu, Sidebar } from "react-pro-sidebar";
 import { useDispatch } from "react-redux";
 import { setAlert } from "../../stores/alertSlice";
