@@ -9,8 +9,9 @@ interface TabSpanProps {
 
 interface HighlightSpanProps {
   association: Association;
+  classModifier?: string;
   leftClickFunc: Function;
-  rightClickFunc: Function;
+  rightClickFunc?: Function;
   decoratedText: string;
   children: React.ReactElement;
 }
@@ -20,6 +21,7 @@ export const TabSpan: React.FC<TabSpanProps> = (props) => {
 };
 
 export const HighlightSpan: React.FC<HighlightSpanProps> = (props) => {
+  const className = !props.classModifier ? "highlight " + props.association.association_type : "highlight " + props.association.association_type + "-" + props.classModifier;
   return (
     <AssociationTooltip
       name={props.association.association_name}
@@ -33,9 +35,11 @@ export const HighlightSpan: React.FC<HighlightSpanProps> = (props) => {
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          props.rightClickFunc(props.decoratedText, props.association.association_type, e);
+          if (props.rightClickFunc) {
+            props.rightClickFunc(props.decoratedText, props.association.association_type, e);
+          }
         }}
-        className={"highlight " + props.association.association_type}>
+        className={className}>
         {props.children}
       </span>
     </AssociationTooltip>

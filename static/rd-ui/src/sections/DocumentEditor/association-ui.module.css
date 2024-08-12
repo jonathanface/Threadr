@@ -1,6 +1,7 @@
 .associationUIBG {
   z-index: 60;
 }
+
 .associationUIContainer {
   width: 80%;
   height: 80%;
@@ -15,6 +16,7 @@
   color: #bbb;
   padding: 10px;
 }
+
 .associationUIContainer h1 {
   font-size: 1.5em;
   font-weight: normal;
@@ -48,28 +50,43 @@
 }
 
 .associationUIContainer .associationDetails .detailBubble {
+  margin-top: 10px;
   margin-bottom: 20px;
+}
+
+.associationUIContainer .associationDetails .detailBubble .docBG {
+  border: 1px solid #000;
+  color: #bbb;
+  border-radius: 10px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 15px;
 }
 
 @media only screen and (max-width: 600px) {
   .associationUIContainer h1 {
     font-size: 1em;
   }
+
   .associationUIContainer .inlineEditableText {
     font-size: 1em;
     width: 60%;
   }
+
   .associationUIContainer .portrait {
     margin-bottom: 0;
     font-size: 0.8rem;
   }
+
   .associationUIContainer .portrait img {
     width: 100%;
   }
+
   .associationUIContainer {
     flex-direction: column;
     flex-wrap: nowrap;
   }
+
   .associationUIContainer .column {
     flex-direction: row;
   }
@@ -77,10 +94,12 @@
   .associationUIContainer .associationDetails {
     width: 100%;
   }
+
   .associationUIContainer .associationDetails .detailBubble {
     margin-right: 10px;
     margin-left: 10px;
   }
+
   .associationUIContainer .associationForm {
     margin-left: 10px;
     margin-right: 10px;

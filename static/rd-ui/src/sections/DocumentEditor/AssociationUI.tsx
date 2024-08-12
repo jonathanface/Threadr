@@ -8,9 +8,13 @@ import { Association } from "../../types";
 import PortraitDropper from "../PortraitDropper";
 import styles from "./association-ui.module.css";
 import { UCWords } from "./utilities";
+import { CompositeDecorator, ContentState, Editor, EditorState } from "draft-js";
+import { FindHighlightable, HighlightSpan } from "./decorators";
 
 interface AssociationProps {
-  association: Association;
+  associations: Association[];
+  updateView: Function;
+  associationIdx: number | null;
   onCloseCallback: Function;
   onEditCallback: Function;
   storyID: string;
@@ -18,41 +22,43 @@ interface AssociationProps {
 }
 //const Document: React.FC<DocumentProps> = () => {
 const AssociationUI: React.FC<AssociationProps> = (props) => {
-  const [caseSensitive, setCaseSensitive] = useState(
-    !props.association ? false : props.association.details.case_sensitive
-  );
+  const [caseSensitive, setCaseSensitive] = useState(false);
   const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [details, setDetails] = useState("");
   const [aliases, setAliases] = useState("");
-  const [imageURL, setImageURL] = useState(
-    !props.association ? "/img/default_association_portrait.jpg" : props.association.portrait
-  );
+  const [imageURL, setImageURL] = useState("/img/default_association_portrait.jpg");
+  const [descriptionEditorState, setDescriptionEditorState] = useState(() => EditorState.createEmpty());
+  const [backgroundEditorState, setBackgroundEditorState] = useState(() => EditorState.createEmpty());
 
   const handleClose = () => {
-    //setTimeout(() => {
+    setCaseSensitive(false);
     setName("");
-    setDescription("");
-    setDetails("");
     setAliases("");
     setImageURL("/img/default_association_portrait.jpg");
-    //}, 500);
+    setDescriptionEditorState(EditorState.createEmpty());
+    setBackgroundEditorState(EditorState.createEmpty());
     props.onCloseCallback();
   };
 
   useEffect(() => {
-    if (props.association && props.association.association_id) {
-      setCaseSensitive(props.association.details.case_sensitive);
-      setName(UCWords(props.association.association_name));
-      setImageURL(props.association.portrait);
-      setDescription(props.association.short_description);
-      setDetails(props.association.details.extended_description);
-      setAliases(props.association.details.aliases);
+    if (props.associationIdx === null) {
+      return;
     }
-  }, [props.association]);
+    const thisAssociation = props.associations[props.associationIdx];
+    if (thisAssociation && thisAssociation.association_id) {
+      setCaseSensitive(thisAssociation.details.case_sensitive);
+      setName(UCWords(thisAssociation.association_name));
+      setImageURL(thisAssociation.portrait);
+      setDescriptionEditorState(EditorState.createWithContent(ContentState.createFromText(thisAssociation.short_description), createDecorators()));
+      setBackgroundEditorState(EditorState.createWithContent(ContentState.createFromText(thisAssociation.details.extended_description), createDecorators()));
+      setAliases(thisAssociation.details.aliases);
+    }
+  }, [props.associations, props.associationIdx, props.storyID, props.open]);
 
   const onAssociationEdit = (newValue: any, id: string) => {
-    const newAssociation = props.association;
+    if (props.associationIdx === null) {
+      return;
+    }
+    const newAssociation = props.associations[props.associationIdx];
     let saveRequired = false;
     switch (id) {
       case "case":
@@ -91,6 +97,10 @@ const AssociationUI: React.FC<AssociationProps> = (props) => {
   };
 
   const processImage = (acceptedFiles: File[]) => {
+    if (!props.associationIdx) {
+      return;
+    }
+    const thisAssociation = props.associations[props.associationIdx];
     acceptedFiles.forEach((file) => {
       const reader = new FileReader();
       reader.onabort = () => console.log("file reading was aborted");
@@ -100,11 +110,11 @@ const AssociationUI: React.FC<AssociationProps> = (props) => {
         formData.append("file", file);
         fetch(
           "/api/stories/" +
-            props.storyID +
-            "/associations/" +
-            props.association.association_id +
-            "/upload?type=" +
-            props.association.association_type,
+          props.storyID +
+          "/associations/" +
+          thisAssociation.association_id +
+          "/upload?type=" +
+          thisAssociation.association_type,
           { credentials: "include", method: "PUT", body: formData }
         )
           .then((response) => {
@@ -123,6 +133,45 @@ const AssociationUI: React.FC<AssociationProps> = (props) => {
     });
   };
 
+  const handleAssociationClick = (association: Association) => {
+    const idx = props.associations.findIndex(ass => ass.association_id === association.association_id);
+    props.updateView(idx);
+  }
+
+  const createDecorators = () => {
+    if (props.associationIdx === null) {
+      return;
+    }
+
+    const thisAssociation = props.associations[props.associationIdx];
+    const decorators = new Array(props.associations.length);
+    props.associations.forEach((ass) => {
+      if (ass.association_id !== thisAssociation.association_id) {
+        decorators.push({
+          strategy: FindHighlightable(`${ass.association_type}`, ass.association_name, props.associations),
+          component: HighlightSpan,
+          props: {
+            association: ass,
+            leftClickFunc: handleAssociationClick,
+            classModifier: "association-ui"
+          },
+        });
+      }
+    });
+    return new CompositeDecorator(decorators);
+  };
+
+
+  const updateBackgroundEditorState = (newEditorState: EditorState) => {
+    setBackgroundEditorState(newEditorState);
+    onAssociationEdit(newEditorState.getCurrentContent().getPlainText(), "details");
+  }
+
+  const updateDescriptionEditorState = (newEditorState: EditorState) => {
+    setDescriptionEditorState(newEditorState);
+    onAssociationEdit(newEditorState.getCurrentContent().getPlainText(), "description");
+  }
+
   return (
     <Backdrop onClick={handleClose} open={props.open} className={styles.associationUIBG}>
       <div
@@ -139,52 +188,24 @@ const AssociationUI: React.FC<AssociationProps> = (props) => {
               <h1>{name}</h1>
             </div>
             <div className={styles.detailBubble}>
-              <TextField
-                label="Overview"
-                helperText=""
-                multiline
-                rows="6"
-                onBlur={(event) => {
-                  onAssociationEdit(event.target.value, "description");
-                }}
-                sx={{
-                  textarea: {
-                    color: "#bbb",
-                  },
-                  label: {
-                    color: "#F0F0F0",
-                  },
-                  width: "100%",
-                  marginTop: "10px",
-                }}
-                onChange={(event) => {
-                  setDescription(event.target.value);
-                }}
-                value={description}
-              />
+              Overview
+              <div className={styles.docBG}>
+                <Editor
+                  preserveSelectionOnBlur={true}
+                  editorState={descriptionEditorState}
+                  onChange={updateDescriptionEditorState}
+                />
+              </div>
             </div>
             <div className={styles.detailBubble}>
-              <TextField
-                label="Background & Extended Details"
-                multiline
-                rows="6"
-                onBlur={(event) => {
-                  onAssociationEdit(event.target.value, "details");
-                }}
-                onChange={(event) => {
-                  setDetails(event.target.value);
-                }}
-                value={details}
-                sx={{
-                  textarea: {
-                    color: "#bbb",
-                  },
-                  label: {
-                    color: "#F0F0F0",
-                  },
-                  width: "100%",
-                }}
-              />
+              Background
+              <div className={styles.docBG}>
+                <Editor
+                  preserveSelectionOnBlur={true}
+                  editorState={backgroundEditorState}
+                  onChange={updateBackgroundEditorState}
+                />
+              </div>
             </div>
             <div className={styles.associationForm}>
               <TextField

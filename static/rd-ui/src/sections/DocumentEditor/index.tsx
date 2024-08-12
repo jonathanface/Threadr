@@ -79,7 +79,7 @@ const getWritingPrompt = () => {
 
 const defaultText = getWritingPrompt();
 
-interface DocumentEditorProps {}
+interface DocumentEditorProps { }
 
 const dbOperationQueue: DBOperation[] = [];
 
@@ -105,7 +105,7 @@ const DocumentEditor = (props: DocumentEditorProps) => {
 
   const [currentRightClickedAssoc, setCurrentRightClickedAssoc] = useState<Association | null>(null);
   const [associationWindowOpen, setAssociationWindowOpen] = useState(false);
-  const [viewingAssociation, setViewingAssociation] = useState<Association | null>(null);
+  const [viewingAssociationIdx, setViewingAssociationIdx] = useState<number | null>(null);
   const [selectedContextMenuVisible, setSelectedContextMenuVisible] = useState(false);
   const [associationContextMenuVisible, setAssociationContextMenuVisible] = useState(false);
   const [selectedContextMenuX, setSelectedContextMenuX] = useState(0);
@@ -122,8 +122,8 @@ const DocumentEditor = (props: DocumentEditorProps) => {
   let lastRetrievedBlockKey: string | null = null;
 
   const handleAssociationClick = (association: Association, event: React.MouseEvent) => {
-    const newAssociation = { ...association };
-    setViewingAssociation(newAssociation);
+    const idx = associations.findIndex(ass => ass.association_id === association.association_id);
+    setViewingAssociationIdx(idx);
     setAssociationWindowOpen(true);
   };
 
@@ -295,9 +295,9 @@ const DocumentEditor = (props: DocumentEditorProps) => {
           });
           setEditorState(EditorState.createWithContent(newContentState, createDecorators()));
           if (editorContainerRef.current) {
-            editorContainerRef.current.scrollTo(0,0);
+            editorContainerRef.current.scrollTo(0, 0);
           }
-          document.body.scrollTo(0,0);
+          document.body.scrollTo(0, 0);
           setBlocksLoaded(true);
         })
         .catch((error) => {
@@ -316,7 +316,7 @@ const DocumentEditor = (props: DocumentEditorProps) => {
             setEditorState(EditorState.createEmpty(createDecorators()));
           }
           if (editorContainerRef.current) {
-            editorContainerRef.current.scrollTo(0,0);
+            editorContainerRef.current.scrollTo(0, 0);
           }
           setBlocksLoaded(true);
         });
@@ -1294,8 +1294,10 @@ const DocumentEditor = (props: DocumentEditorProps) => {
   return (
     <div>
       <AssociationUI
+        updateView={setViewingAssociationIdx}
         open={associationWindowOpen}
-        association={viewingAssociation as Association}
+        associationIdx={viewingAssociationIdx}
+        associations={associations}
         storyID={selectedStory?.story_id as string}
         onEditCallback={onAssociationEdit}
         onCloseCallback={() => {
@@ -1322,7 +1324,7 @@ const DocumentEditor = (props: DocumentEditorProps) => {
         ref={navbarRef}
       />
       <section
-      ref={editorContainerRef}
+        ref={editorContainerRef}
         onContextMenu={(e) => {
           handleContextMenu(e);
         }}
@@ -1330,20 +1332,22 @@ const DocumentEditor = (props: DocumentEditorProps) => {
         style={{ fontFamily: activeFont }}
         onClick={setFocus}
         onScroll={handleScroll}>
-        <div style={{height:'100%', overflowY:'auto', maxHeight:'100%'}}>
-        <Editor
-          placeholder={defaultText}
-          spellCheck={isSpellcheckOn}
-          blockStyleFn={getBlockStyles}
-          customStyleMap={documentStyleMap}
-          preserveSelectionOnBlur={true}
-          editorState={editorState}
-          onChange={updateEditorState}
-          handlePastedText={handlePasteAction}
-          handleKeyCommand={handleKeyCommand}
-          keyBindingFn={keyBindings}
-          ref={domEditorRef}
-        />
+        <div style={{ height: '100%', overflowY: 'auto', maxHeight: '100%' }}>
+          <div className={docStyles.editorBG}>
+            <Editor
+              placeholder={defaultText}
+              spellCheck={isSpellcheckOn}
+              blockStyleFn={getBlockStyles}
+              customStyleMap={documentStyleMap}
+              preserveSelectionOnBlur={true}
+              editorState={editorState}
+              onChange={updateEditorState}
+              handlePastedText={handlePasteAction}
+              handleKeyCommand={handleKeyCommand}
+              keyBindingFn={keyBindings}
+              ref={domEditorRef}
+            />
+          </div>
         </div>
       </section>
       <div className="sidebar-container">

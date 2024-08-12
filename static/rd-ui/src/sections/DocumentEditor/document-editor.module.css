@@ -1,18 +1,32 @@
 .editorContainer {
   width: 210mm;
   margin: 0 auto;
-  max-height:'100%';
-  overflow:hidden;
+  max-height: '100%';
+  overflow: hidden;
+}
+
+.editorBG {
+  border: 1px solid #000;
+  border-radius: 10px;
+  background-color: #f0f0f0;
+  margin: 10px auto;
+  color: #000;
+  filter: drop-shadow(2px 2px 2px #1a1a1a);
+  min-height: 400px;
+  padding: 1in;
+  padding-top: 40px;
 }
 
 .titleInfo {
   color: #fff;
   margin-top: 65px;
 }
+
 .titleInfo span {
   display: inline-block;
   padding: 10px;
 }
+
 .titleInfo span:hover {
   border: 1px solid #333;
   border-radius: 10px;
@@ -22,6 +36,7 @@
   filter: drop-shadow(2px 2px 2px #1a1a1a);
   margin-bottom: 0;
 }
+
 .titleInfo h3 {
   margin: 0;
 }
@@ -31,6 +46,7 @@
   .titleInfo h3 {
     margin: 5px;
   }
+
   .editorContainer {
     width: inherit;
   }
