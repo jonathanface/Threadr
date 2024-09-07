@@ -97,7 +97,7 @@ const AssociationUI: React.FC<AssociationProps> = (props) => {
   };
 
   const processImage = (acceptedFiles: File[]) => {
-    if (!props.associationIdx) {
+    if (props.associationIdx === null) {
       return;
     }
     const thisAssociation = props.associations[props.associationIdx];

@@ -1290,7 +1290,6 @@ const DocumentEditor = (props: DocumentEditorProps) => {
       ],
     },
   ];
-
   return (
     <div>
       <AssociationUI
