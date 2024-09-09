@@ -243,7 +243,7 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     return content;
   };
 
-  const getBatchedStoryBlocks = async (startKey: string) => {
+  const getBatchedStoryBlocks = async (startKey: string, scrollToTop: boolean) => {
     if (selectedStory) {
       return fetch(
         "/api/stories/" + selectedStory.story_id + "/content?key=" + startKey + "&chapter=" + selectedChapter.id
@@ -294,10 +294,12 @@ const DocumentEditor = (props: DocumentEditorProps) => {
             contentStateWithStyles = processBlockData(contentStateWithStyles, block);
           });
           setEditorState(EditorState.createWithContent(newContentState, createDecorators()));
-          if (editorContainerRef.current) {
-            editorContainerRef.current.scrollTo(0, 0);
+          if (scrollToTop) {
+            if (editorContainerRef.current) {
+              editorContainerRef.current.scrollTo(0, 0);
+            }
+            document.body.scrollTo(0, 0);
           }
-          document.body.scrollTo(0, 0);
           setBlocksLoaded(true);
         })
         .catch((error) => {
@@ -315,8 +317,11 @@ const DocumentEditor = (props: DocumentEditorProps) => {
             showGreeting();
             setEditorState(EditorState.createEmpty(createDecorators()));
           }
-          if (editorContainerRef.current) {
-            editorContainerRef.current.scrollTo(0, 0);
+          if (scrollToTop) {
+            if (editorContainerRef.current) {
+              editorContainerRef.current.scrollTo(0, 0);
+            }
+            document.body.scrollTo(0, 0);
           }
           setBlocksLoaded(true);
         });
@@ -435,7 +440,7 @@ const DocumentEditor = (props: DocumentEditorProps) => {
   const handleScroll = (e: React.UIEvent<HTMLElement>) => {
     const bottom = e.currentTarget.scrollHeight - e.currentTarget.scrollTop === e.currentTarget.clientHeight;
     if (bottom && lastRetrievedBlockKey !== null) {
-      getBatchedStoryBlocks(lastRetrievedBlockKey);
+      getBatchedStoryBlocks(lastRetrievedBlockKey, false);
     }
   };
 
@@ -455,7 +460,7 @@ const DocumentEditor = (props: DocumentEditorProps) => {
           getAllAssociations();
         }
         if (!blocksLoaded) {
-          getBatchedStoryBlocks("");
+          getBatchedStoryBlocks("", true);
         }
       }
     }
