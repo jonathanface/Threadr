@@ -47,7 +47,22 @@
     margin: 5px;
   }
 
+  div.DraftEditor-root {
+    margin-left: 5px;
+  }
+
+  div.DraftEditor-editorContainer {
+    padding: 0;
+    width: calc(95% - 20px);
+    user-select: none;
+  }
+
   .editorContainer {
     width: inherit;
+  }
+
+  .editorBG {
+    padding: 20px;
+    padding-right: 40px;
   }
 }

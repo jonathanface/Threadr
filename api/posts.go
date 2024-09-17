@@ -96,12 +96,12 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	case "analyze":
 		{
 			instructions = "You are a story editor, skilled in explaining complex narrative formulas and detecting story flaws."
-			content = "Evaluate the following story chapter in less than 300 words: " + chapterText
+			content = "Evaluate the following story chapter in less than 300 words, considering that it may be an unfinished sample or a work in progress: " + chapterText
 		}
 	case "propose":
 		{
 			instructions = "You are a story outliner, skilled in crafting compelling plots with interesting characters and twists."
-			content = "Provide some options of what should happen next in the following story chapter in less than 300 words: " + chapterText
+			content = "Provide some options of what should happen next in the following unfinished story chapter in less than 300 words: " + chapterText
 		}
 	}
 	// Data structure that matches the JSON payload structure of the request

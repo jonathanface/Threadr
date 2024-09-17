@@ -246,14 +246,5 @@ div.public-DraftEditor-content .content-block:last-child {
     font-size: 16px;
   }
 
-  div.DraftEditor-root {
-    width: calc(100% - 60px);
-    margin-left: 5px;
-  }
 
-  div.DraftEditor-editorContainer {
-    padding: 0;
-    width: calc(95% - 20px);
-    user-select: none;
-  }
 }
