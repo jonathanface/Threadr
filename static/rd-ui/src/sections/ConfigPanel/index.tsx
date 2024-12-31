@@ -5,11 +5,14 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import { setAlert } from "../../stores/alertSlice";
 import { AppDispatch, RootState } from "../../stores/store";
-import { setIsLoaderVisible, setIsSubscriptionFormOpen } from "../../stores/uiSlice";
+import {
+  setIsLoaderVisible,
+  setIsSubscriptionFormOpen,
+} from "../../stores/uiSlice";
 import { flipConfigPanelVisible, setUserDetails } from "../../stores/userSlice";
 import { AlertLink, AlertToast, AlertToastType } from "../../utils/Toaster";
 
@@ -17,7 +20,9 @@ const ConfigPanelModal = () => {
   const useAppDispatch: () => AppDispatch = useDispatch;
   const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
   const dispatch = useAppDispatch();
-  const isConfiguring = useAppSelector((state) => state.user.configPanelVisible);
+  const isConfiguring = useAppSelector(
+    (state) => state.user.configPanelVisible
+  );
   const userDetails = useAppSelector((state) => state.user.userDetails);
 
   const [isCustomer, setIsCustomer] = useState(true);
@@ -48,14 +53,16 @@ const ConfigPanelModal = () => {
       }
       const json = await response.json();
       dispatch(setUserDetails(json));
-    } catch (error: any) {
+    } catch (error: unknown) {
+      console.error(`Error: ${error}`);
       const alertLink: AlertLink = {
         url: "mailto:support@docter.io",
         text: "support@docter.io",
       };
       const confirmFormMessage: AlertToast = {
         title: "Cannot edit your settings",
-        message: "Cannot edit your settings at this time. Please try again later, or contact support.",
+        message:
+          "Cannot edit your settings at this time. Please try again later, or contact support.",
         severity: AlertToastType.error,
         link: alertLink,
         open: true,
@@ -78,7 +85,7 @@ const ConfigPanelModal = () => {
       setIsRenewing(userDetails.renewing);
       setToggleLabel("Auto-Renew Subscription");
     }
-  }, [userDetails]);
+  }, [userDetails, isCustomer]);
 
   const handleClose = () => {
     dispatch(flipConfigPanelVisible());
@@ -93,7 +100,9 @@ const ConfigPanelModal = () => {
             <FormControlLabel
               control={
                 <Switch
-                  onChange={() => (!isCustomer ? subscribe() : toggleSubscriptionRenewal())}
+                  onChange={() =>
+                    !isCustomer ? subscribe() : toggleSubscriptionRenewal()
+                  }
                   checked={isRenewing}
                 />
               }

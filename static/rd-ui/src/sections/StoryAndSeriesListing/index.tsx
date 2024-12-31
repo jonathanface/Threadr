@@ -5,7 +5,10 @@ import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import { setAlert } from "../../stores/alertSlice";
 import { setSeriesList } from "../../stores/seriesSlice";
 import { AppDispatch, RootState } from "../../stores/store";
-import { flipCreatingNewStory, setStandaloneList } from "../../stores/storiesSlice";
+import {
+  flipCreatingNewStory,
+  setStandaloneList,
+} from "../../stores/storiesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
 import { Series, Story } from "../../types";
 import { AlertToast, AlertToastType } from "../../utils/Toaster";
@@ -39,7 +42,7 @@ const StoryAndSeriesListing = () => {
         const json = await results.json();
 
         const userSeries: Series[] = [];
-        for (let key in json) {
+        for (const key in json) {
           if (json.hasOwnProperty(key)) {
             if (key === userDetails.email && json[key]) {
               userSeries.push(...json[key]);
@@ -62,7 +65,7 @@ const StoryAndSeriesListing = () => {
         }
         const json = await results.json();
         const userStories: Story[] = [];
-        for (let key in json) {
+        for (const key in json) {
           if (json.hasOwnProperty(key)) {
             if (key === userDetails.email && json[key]) {
               userStories.push(...json[key]);
@@ -86,7 +89,8 @@ const StoryAndSeriesListing = () => {
         if (!seriesList.length && !storiesList.length) {
           const newAlert: AlertToast = {
             title: "The Docter is In",
-            message: "...but you haven't created any stories yet. Hit the big plus button to make one.",
+            message:
+              "...but you haven't created any stories yet. Hit the big plus button to make one.",
             open: true,
             severity: AlertToastType.info,
             timeout: undefined,
@@ -111,7 +115,11 @@ const StoryAndSeriesListing = () => {
   });
 
   let content = <div />;
-  if (seriesLoaded && storiesLoaded && (seriesList.length || storiesList.length)) {
+  if (
+    seriesLoaded &&
+    storiesLoaded &&
+    (seriesList.length || storiesList.length)
+  ) {
     content = (
       <React.Fragment>
         {seriesComponents}
@@ -133,7 +141,8 @@ const StoryAndSeriesListing = () => {
                 sx={{ margin: "0 auto" }}
                 component="label"
                 onClick={createNewStory}
-                title="Create Story">
+                title="Create Story"
+              >
                 <AddIcon
                   sx={{
                     color: "#F0F0F0",
@@ -153,7 +162,11 @@ const StoryAndSeriesListing = () => {
         ""
       )}
       <div className={styles.logoContainer}>
-        <img alt="RichDocter logo" title="RichDocter - Organized Imagination" src="/img/logo_trans_scaled.png" />
+        <img
+          alt="RichDocter logo"
+          title="RichDocter - Organized Imagination"
+          src="/img/logo_trans_scaled.png"
+        />
       </div>
     </div>
   );

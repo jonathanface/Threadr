@@ -9,7 +9,7 @@ import Loader from "./utils/Loader";
 const rootElement = document.getElementById("root")!;
 const root = ReactDOM.createRoot(rootElement);
 
-const render = (Component: React.ComponentType<any>) => {
+const render = (Component: React.ComponentType) => {
   root.render(
     <Provider store={store}>
       <Loader />

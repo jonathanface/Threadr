@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import styles from "./subscribe.module.css";
 
@@ -39,7 +39,9 @@ const Subscribe = () => {
   const dispatch = useAppDispatch();
   const [customerID, setCustomerID] = useState("");
   const [subscribeError, setSubscribeError] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(
+    null
+  );
   const [product, setProduct] = useState<Product | null>(null);
 
   const isOpen = useAppSelector((state) => state.ui.isSubscriptionFormOpen);
@@ -84,10 +86,16 @@ const Subscribe = () => {
         throw new Error(error.message);
       }
 
-      if (paymentMethod.id && paymentMethod.card?.brand && paymentMethod.card?.last4) {
+      if (
+        paymentMethod.id &&
+        paymentMethod.card?.brand &&
+        paymentMethod.card?.last4
+      ) {
         setPaymentMethod({
           id: paymentMethod.id,
-          brand: paymentMethod.card?.brand ? paymentMethod.card.brand : "Unknown",
+          brand: paymentMethod.card?.brand
+            ? paymentMethod.card.brand
+            : "Unknown",
           last_four: paymentMethod.card?.last4,
         });
         const setPaymentResults = await fetch("/billing/customer", {
@@ -96,10 +104,15 @@ const Subscribe = () => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ customer_id: customerID, payment_method_id: paymentMethod.id }),
+          body: JSON.stringify({
+            customer_id: customerID,
+            payment_method_id: paymentMethod.id,
+          }),
         });
         if (!setPaymentResults.ok) {
-          throw new Error("Fetch problem update customer " + setPaymentResults.status);
+          throw new Error(
+            "Fetch problem update customer " + setPaymentResults.status
+          );
         }
       }
     } catch (error: any) {
@@ -124,7 +137,9 @@ const Subscribe = () => {
       if (json && json.id) {
         setCustomerID(json.id);
         if (json.payment_methods && json.payment_methods.length) {
-          const defaultPayment = json.payment_methods.filter((method: PaymentMethod) => method.is_default === true);
+          const defaultPayment = json.payment_methods.filter(
+            (method: PaymentMethod) => method.is_default === true
+          );
           if (defaultPayment.length) {
             setPaymentMethod(defaultPayment[0]);
           }
@@ -215,20 +230,34 @@ const Subscribe = () => {
   };
 
   return (
-    <Dialog open={isOpen} maxWidth={"md"} fullWidth={true} onClose={handleClose} className={styles.subscribe}>
+    <Dialog
+      open={isOpen}
+      maxWidth={"md"}
+      fullWidth={true}
+      onClose={handleClose}
+      className={styles.subscribe}
+    >
       {product ? (
         <div>
           <DialogTitle>{product.name}</DialogTitle>
           <DialogContent>
-            <div className={styles.productDescription}>{product.description}</div>
+            <div className={styles.productDescription}>
+              {product.description}
+            </div>
             {!paymentMethod ? (
-              <CardElement className={styles.stripeCardInput} onChange={(e) => handleCardElementChange(e)} />
+              <CardElement
+                className={styles.stripeCardInput}
+                onChange={(e) => handleCardElementChange(e)}
+              />
             ) : (
               <DialogContentText>
                 <span>{product.description}</span>
                 <br />
                 <span>
-                  Subscribe with {paymentMethod.brand.toUpperCase() + " ending in " + paymentMethod.last_four}
+                  Subscribe with{" "}
+                  {paymentMethod.brand.toUpperCase() +
+                    " ending in " +
+                    paymentMethod.last_four}
                 </span>
                 <span className={styles.changePaymentButton}>
                   <Button onClick={updatePaymentMethod}>change</Button>
@@ -244,7 +273,10 @@ const Subscribe = () => {
         </div>
       ) : (
         <div>
-          <h2>Unable to process subscriptions at this time. Please try again later.</h2>
+          <h2>
+            Unable to process subscriptions at this time. Please try again
+            later.
+          </h2>
         </div>
       )}
     </Dialog>

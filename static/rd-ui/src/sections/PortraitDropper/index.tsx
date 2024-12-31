@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { useDispatch } from "react-redux";
 import { setAlert } from "../../stores/alertSlice";
@@ -35,7 +35,9 @@ const PortraitDropper = (props: PortraitDropperProps) => {
         if (!acceptedFileTypes.includes(droppedFile.type.split("image/")[1])) {
           const confirmFormMessage: AlertToast = {
             title: "Cannot upload file",
-            message: "Only images of the following type are allowed: " + acceptedFileTypes.toString(),
+            message:
+              "Only images of the following type are allowed: " +
+              acceptedFileTypes.toString(),
             severity: AlertToastType.warning,
             open: true,
             timeout: 10000,
@@ -58,7 +60,7 @@ const PortraitDropper = (props: PortraitDropperProps) => {
     }
   };
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+  const { getRootProps, getInputProps } = useDropzone({ onDrop });
 
   return (
     <div className={styles.portraitDropper}>

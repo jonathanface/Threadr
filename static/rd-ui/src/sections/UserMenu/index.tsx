@@ -1,11 +1,19 @@
 import Person4Icon from "@mui/icons-material/Person4";
 import { IconButton } from "@mui/material";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../stores/store";
 import { setSelectedStory } from "../../stores/storiesSlice";
-import { setIsLoaderVisible, setIsSubscriptionFormOpen } from "../../stores/uiSlice";
-import { UserDetails, flipConfigPanelVisible, flipLoggedInState, flipLoginPanelVisible } from "../../stores/userSlice";
+import {
+  setIsLoaderVisible,
+  setIsSubscriptionFormOpen,
+} from "../../stores/uiSlice";
+import {
+  UserDetails,
+  flipConfigPanelVisible,
+  flipLoggedInState,
+  flipLoginPanelVisible,
+} from "../../stores/userSlice";
 import styles from "./user-menu.module.css";
 
 interface UserMenuProps {
@@ -61,7 +69,8 @@ const UserMenu = (props: UserMenuProps) => {
         className={styles.menuContainer}
         onClick={() => setIsOpen(!isOpen)}
         onMouseEnter={() => setIsOpen(true)}
-        onMouseLeave={() => setIsOpen(false)}>
+        onMouseLeave={() => setIsOpen(false)}
+      >
         <span className={styles.icon}>
           <IconButton size="small" sx={{ zIndex: 99 }} aria-label="user menu">
             <Person4Icon fontSize="small" />
@@ -69,7 +78,9 @@ const UserMenu = (props: UserMenuProps) => {
         </span>
         {isOpen && (
           <ul>
-            {userDetails && userDetails.subscription_id === "" && <li onClick={subscribe}>Subscribe</li>}
+            {userDetails && userDetails.subscription_id === "" && (
+              <li onClick={subscribe}>Subscribe</li>
+            )}
             <li onClick={showUserSettings}>Settings</li>
             <li onClick={signout}>Signout</li>
           </ul>

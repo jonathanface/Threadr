@@ -6,14 +6,22 @@ import DialogTitle from "@mui/material/DialogTitle";
 import React, { useEffect, useState } from "react";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../stores/store";
-import { flipCreatingNewStory, pushToStandaloneList, setStoryBelongsToSeries } from "../../stores/storiesSlice";
+import {
+  flipCreatingNewStory,
+  pushToStandaloneList,
+  setStoryBelongsToSeries,
+} from "../../stores/storiesSlice";
 import PortraitDropper from "../PortraitDropper";
 
 import { Autocomplete, TextField } from "@mui/material";
 import { setAlert } from "../../stores/alertSlice";
 import { pushToSeriesList, setSeriesList } from "../../stores/seriesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
-import { AlertCommandType, AlertToast, AlertToastType } from "../../utils/Toaster";
+import {
+  AlertCommandType,
+  AlertToast,
+  AlertToastType,
+} from "../../utils/Toaster";
 import styles from "./createNewStory.module.css";
 
 interface SeriesSelectionOptions {
@@ -38,13 +46,19 @@ const CreateNewStoryModal = () => {
   const dispatch = useAppDispatch();
 
   const seriesList = useAppSelector((state) => state.series.seriesList);
-  const isCreatingNewStory = useAppSelector((state) => state.stories.isCreatingNew);
-  const preassignedSeries = useAppSelector((state) => state.stories.belongsToSeries);
+  const isCreatingNewStory = useAppSelector(
+    (state) => state.stories.isCreatingNew
+  );
+  const preassignedSeries = useAppSelector(
+    (state) => state.stories.belongsToSeries
+  );
 
   const [imageURL, setImageURL] = useState("");
   const [imageName, setImageName] = useState("Loading...");
   const [isInASeries, setIsInASeries] = useState(false);
-  const [seriesDisplayList, setSeriesDisplayList] = useState<SeriesSelectionOptions[]>([]);
+  const [seriesDisplayList, setSeriesDisplayList] = useState<
+    SeriesSelectionOptions[]
+  >([]);
   const [storyForm, setStoryForm] = useState<CreateStoryForm | null>(null);
 
   const defaultImageURL = "img/icons/story_standalone_icon.jpg";
@@ -116,11 +130,23 @@ const CreateNewStoryModal = () => {
     }
   };
 
+  const setAssignedSeries = (seriesID: string) => {
+    const foundSeries = seriesList?.find((srs) => srs.series_id === seriesID);
+    console.log("found", foundSeries);
+    if (foundSeries) {
+      setStoryForm((prevFormInput) => ({
+        ...prevFormInput,
+        series_id: foundSeries.series_id,
+        series_title: foundSeries.series_title,
+      }));
+    }
+  };
+
   useEffect(() => {
     if (imageURL.length) {
       attachImageToForm();
     }
-  }, [imageURL]);
+  }, [imageURL, attachImageToForm]);
 
   useEffect(() => {
     if (isCreatingNewStory) {
@@ -140,7 +166,7 @@ const CreateNewStoryModal = () => {
         };
       })
     );
-  }, [isCreatingNewStory, seriesList, preassignedSeries]);
+  }, [isCreatingNewStory, seriesList, preassignedSeries, setAssignedSeries]);
 
   const processImage = (acceptedFiles: File[]) => {
     acceptedFiles.forEach((file) => {
@@ -183,9 +209,13 @@ const CreateNewStoryModal = () => {
     }
 
     if (storyForm.series_id) {
-      const foundSeries = seriesList?.find((srs) => srs.series_id === storyForm.series_id);
+      const foundSeries = seriesList?.find(
+        (srs) => srs.series_id === storyForm.series_id
+      );
       if (foundSeries) {
-        storyForm.series_place = foundSeries.stories.length ? foundSeries.stories.length : 1;
+        storyForm.series_place = foundSeries.stories.length
+          ? foundSeries.stories.length
+          : 1;
       }
     } else if (storyForm.series_title) {
       storyForm.series_place = 1;
@@ -193,7 +223,7 @@ const CreateNewStoryModal = () => {
 
     const formData = new FormData();
     for (const key in storyForm) {
-      if (storyForm.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(storyForm, key)) {
         const value = storyForm[key];
         if (value === undefined) continue;
         if (typeof value === "string" || typeof value === "number") {
@@ -222,7 +252,9 @@ const CreateNewStoryModal = () => {
       const json = await response.json();
       if (json.series_id) {
         const newSeriesList = [...seriesList];
-        const foundSeriesIndex = seriesList?.findIndex((srs) => srs.series_id === json.series_id);
+        const foundSeriesIndex = seriesList?.findIndex(
+          (srs) => srs.series_id === json.series_id
+        );
         if (foundSeriesIndex !== undefined && foundSeriesIndex >= 0) {
           const updatedSeries = { ...newSeriesList[foundSeriesIndex] };
           updatedSeries.stories = [...updatedSeries.stories, json];
@@ -259,27 +291,20 @@ const CreateNewStoryModal = () => {
           text: "subscribe",
         };
       } else {
-        storyFormMessage.message = "Please try again later or contact support at the link below:";
+        storyFormMessage.message =
+          "Please try again later or contact support at the link below:";
       }
       dispatch(setAlert(storyFormMessage));
     }
     dispatch(setIsLoaderVisible(false));
   };
 
-  const setAssignedSeries = (seriesID: string) => {
-    const foundSeries = seriesList?.find((srs) => srs.series_id === seriesID);
-    console.log("found", foundSeries);
-    if (foundSeries) {
-      setStoryForm((prevFormInput) => ({
-        ...prevFormInput,
-        series_id: foundSeries.series_id,
-        series_title: foundSeries.series_title,
-      }));
-    }
-  };
-
   return (
-    <Dialog open={isCreatingNewStory} onClose={handleClose} className={styles.storyForm}>
+    <Dialog
+      open={isCreatingNewStory}
+      onClose={handleClose}
+      className={styles.storyForm}
+    >
       <DialogTitle>Create a Story</DialogTitle>
       <DialogContent>
         <div className={styles.content}>
@@ -328,17 +353,23 @@ const CreateNewStoryModal = () => {
               checked={isInASeries}
               onChange={() => setIsInASeries(!isInASeries)}
             />
-            <label htmlFor="create-story-is-in-series">This is part of a series</label>
+            <label htmlFor="create-story-is-in-series">
+              This is part of a series
+            </label>
           </div>
           <div>
             {isInASeries ? (
               <div>
                 <Autocomplete
                   defaultValue={storyForm?.series_title}
-                  onInputChange={(event: React.SyntheticEvent, value: string) => {
+                  onInputChange={(
+                    event: React.SyntheticEvent,
+                    value: string
+                  ) => {
                     if (event) {
                       const foundSeries = seriesList?.find(
-                        (srs) => srs.series_title.toLowerCase() === value.toLowerCase()
+                        (srs) =>
+                          srs.series_title.toLowerCase() === value.toLowerCase()
                       );
                       if (foundSeries) {
                         setStoryForm((prevFormInput) => ({
@@ -356,7 +387,10 @@ const CreateNewStoryModal = () => {
                     }
                   }}
                   onChange={(event: React.SyntheticEvent, value: any) => {
-                    if (value.hasOwnProperty("id") && value.hasOwnProperty("label")) {
+                    if (
+                      value.hasOwnProperty("id") &&
+                      value.hasOwnProperty("label")
+                    ) {
                       setStoryForm((prevFormInput) => ({
                         ...prevFormInput,
                         series_id: value.id,
@@ -366,7 +400,9 @@ const CreateNewStoryModal = () => {
                   }}
                   freeSolo
                   options={seriesDisplayList}
-                  renderInput={(params) => <TextField {...params} label="Series" />}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Series" />
+                  )}
                 />
               </div>
             ) : (

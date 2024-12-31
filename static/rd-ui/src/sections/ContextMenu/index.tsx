@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import MenuItem, { MenuItemEntry } from "./MenuItem";
 import styles from "./custom-context.module.css";
 
@@ -35,7 +35,7 @@ const ContextMenu = (props: ContextMenuProps) => {
       }
       setVisible(props.visible);
     }
-  });
+  }, [props.visible, props.y, props.x, visible]);
 
   return (
     <div className={styles.customContext} style={inlineStyle}>

@@ -5,9 +5,18 @@ import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import React, { useEffect, useState } from "react";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
-import { flipEditingSeries, setSeriesBeingEdited, setSeriesList } from "../../stores/seriesSlice";
+import {
+  flipEditingSeries,
+  setSeriesBeingEdited,
+  setSeriesList,
+} from "../../stores/seriesSlice";
 import { AppDispatch, RootState } from "../../stores/store";
-import { flipEditingStory, setSelectedStory, setStandaloneList, setStoryBeingEdited } from "../../stores/storiesSlice";
+import {
+  flipEditingStory,
+  setSelectedStory,
+  setStandaloneList,
+  setStoryBeingEdited,
+} from "../../stores/storiesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
 import { Series, Story } from "../../types";
 import DetailsSlider from "./DetailsSlider";
@@ -26,7 +35,9 @@ const StoryBox = (props: StoryBoxProps) => {
   const [isStoryLoaderVisible, setIsStoryLoaderVisible] = useState(true);
   const [isSeries, setIsSeries] = useState(false);
   const seriesList = useAppSelector((state) => state.series.seriesList);
-  const standaloneList = useAppSelector((state) => state.stories.standaloneList);
+  const standaloneList = useAppSelector(
+    (state) => state.stories.standaloneList
+  );
 
   const getStoryDetails = async (storyID: string) => {
     const url = "/api/stories/" + storyID;
@@ -47,7 +58,11 @@ const StoryBox = (props: StoryBoxProps) => {
     const history = window.history;
     const newStory = await getStoryDetails(storyID);
     dispatch(setSelectedStory(newStory));
-    history.pushState({ storyID }, "clicked story", "/story/" + storyID + "?chapter=" + chapterID);
+    history.pushState(
+      { storyID },
+      "clicked story",
+      "/story/" + storyID + "?chapter=" + chapterID
+    );
     dispatch(setIsLoaderVisible(true));
   };
 
@@ -63,10 +78,16 @@ const StoryBox = (props: StoryBoxProps) => {
     dispatch(flipEditingSeries());
   };
 
-  const deleteSeries = async (event: React.MouseEvent, id: string, title: string) => {
+  const deleteSeries = async (
+    event: React.MouseEvent,
+    id: string,
+    title: string
+  ) => {
     event.stopPropagation();
     const confirmText =
-      "Delete series " + title + "? Any volumes assigned to it will be converted to standalone stories.";
+      "Delete series " +
+      title +
+      "? Any volumes assigned to it will be converted to standalone stories.";
     const conf = window.confirm(confirmText);
     if (conf) {
       dispatch(setIsLoaderVisible(true));
@@ -85,7 +106,9 @@ const StoryBox = (props: StoryBoxProps) => {
         }
 
         setWasDeleted(true);
-        const foundSeriesIndex = seriesList.findIndex((srs) => srs.series_id === id);
+        const foundSeriesIndex = seriesList.findIndex(
+          (srs) => srs.series_id === id
+        );
         if (foundSeriesIndex !== -1) {
           const newStandaloneList = [...standaloneList];
           seriesList[foundSeriesIndex].stories.forEach((story) => {
@@ -140,7 +163,9 @@ const StoryBox = (props: StoryBoxProps) => {
 
   const id = props.data.stories ? props.data.series_id : props.data.story_id;
   const title = props.data.stories ? props.data.series_title : props.data.title;
-  const description = props.data.stories ? props.data.series_description : props.data.description;
+  const description = props.data.stories
+    ? props.data.series_description
+    : props.data.description;
   const editHoverText = "Edit " + title;
   const deleteHoverText = "Delete " + title;
 
@@ -155,8 +180,16 @@ const StoryBox = (props: StoryBoxProps) => {
   return !wasDeleted ? (
     <button
       className={styles.docButton}
-      onClick={!props.data.stories ? (e) => handleClick(props.data.story_id, props.data.chapters[0].id) : () => {}}>
-      <div className="loading-screen" style={{ visibility: isStoryLoaderVisible ? "visible" : "hidden" }}>
+      onClick={
+        !props.data.stories
+          ? (e) => handleClick(props.data.story_id, props.data.chapters[0].id)
+          : () => {}
+      }
+    >
+      <div
+        className="loading-screen"
+        style={{ visibility: isStoryLoaderVisible ? "visible" : "hidden" }}
+      >
         <Box className="progress-box" />
         <Box className="prog-anim-holder">
           <CircularProgress />
@@ -185,7 +218,8 @@ const StoryBox = (props: StoryBoxProps) => {
                 } else {
                   editStory(event, id);
                 }
-              }}>
+              }}
+            >
               <EditIcon
                 sx={{
                   padding: "0",
@@ -208,7 +242,8 @@ const StoryBox = (props: StoryBoxProps) => {
                 } else {
                   deleteStory(event, id, title);
                 }
-              }}>
+              }}
+            >
               <DeleteIcon
                 sx={{
                   fontSize: "18px",

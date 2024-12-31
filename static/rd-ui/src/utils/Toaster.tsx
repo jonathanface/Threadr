@@ -1,7 +1,7 @@
 import Alert, { AlertColor } from "@mui/material/Alert";
 import AlertTitle from "@mui/material/AlertTitle";
 import Snackbar from "@mui/material/Snackbar";
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import type { TypedUseSelectorHook } from "react-redux";
@@ -72,10 +72,14 @@ const Toaster = () => {
       anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       open={open}
       onClose={handleClose}
-      key="bottom_right">
-      <Alert severity={severity.toString() as AlertColor} className="alert-popup">
+      key="bottom_right"
+    >
+      <Alert
+        severity={severity.toString() as AlertColor}
+        className="alert-popup"
+      >
         <AlertTitle>{title}</AlertTitle>
-        {splitByNewline.map((line, idx) => {
+        {splitByNewline.map((line: string, idx: number) => {
           return (
             <div key={idx} className="line">
               {line}
@@ -92,7 +96,8 @@ const Toaster = () => {
                     dispatch(setIsSubscriptionFormOpen(true));
                     break;
                 }
-              }}>
+              }}
+            >
               {func.text}
             </a>
           </p>

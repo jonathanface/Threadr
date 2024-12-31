@@ -4,7 +4,7 @@ import styles from "./custom-context.module.css";
 
 export interface MenuItemEntry {
   name: string;
-  command?: Function;
+  command?: (event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => void;
   subItems?: MenuItemEntry[];
 }
 
@@ -13,7 +13,10 @@ interface MenuItemProps {
 }
 
 const MenuItem = (props: MenuItemProps) => {
-  const handleClickAction = (item: MenuItemEntry, event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+  const handleClickAction = (
+    item: MenuItemEntry,
+    event: React.MouseEvent<HTMLAnchorElement, MouseEvent>
+  ) => {
     event.stopPropagation();
     event.preventDefault();
     if (item.command) {
@@ -26,10 +29,18 @@ const MenuItem = (props: MenuItemProps) => {
   return (
     <li
       onMouseDown={(event) => event.preventDefault()}
-      className={hasSubItems ? styles.menuItem + " " + styles.hasSubmenu : styles.menuItem}>
+      className={
+        hasSubItems
+          ? styles.menuItem + " " + styles.hasSubmenu
+          : styles.menuItem
+      }
+    >
       <a
         href="#"
-        onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => handleClickAction(props.item, event)}>
+        onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) =>
+          handleClickAction(props.item, event)
+        }
+      >
         <span className={styles.label}>
           {props.item.name}
           {hasSubItems && <KeyboardArrowRightIcon />}

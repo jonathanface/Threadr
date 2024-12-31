@@ -1,6 +1,6 @@
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { TypedUseSelectorHook } from "react-redux";
 import { useDispatch, useSelector } from "react-redux";
 import "./css/main.css";
@@ -19,12 +19,17 @@ import type { AppDispatch, RootState } from "./stores/store";
 import { setSelectedStory } from "./stores/storiesSlice";
 import { setIsLoaderVisible } from "./stores/uiSlice";
 import { flipLoggedInState, setUserDetails } from "./stores/userSlice";
-import Toaster, { AlertCommandType, AlertFunctionCall, AlertToast, AlertToastType } from "./utils/Toaster";
+import Toaster, {
+  AlertCommandType,
+  AlertFunctionCall,
+  AlertToast,
+  AlertToastType,
+} from "./utils/Toaster";
 
 const Threadr = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const stripeKey: string = process.env.REACT_APP_STRIPE_KEY ?? "";
-  const [stripe, setStripe] = useState(() => loadStripe(stripeKey));
+  const stripeKey: string = import.meta.env.REACT_APP_STRIPE_KEY ?? "";
+  const [stripe] = useState(() => loadStripe(stripeKey));
 
   const useAppDispatch: () => AppDispatch = useDispatch;
   const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
@@ -32,7 +37,9 @@ const Threadr = () => {
   const isLoggedIn = useAppSelector((state) => state.user.isLoggedIn);
   const selectedStory = useAppSelector((state) => state.stories.selectedStory);
   const storyToEdit = useAppSelector((state) => state.stories.storyBeingEdited);
-  const seriesToEdit = useAppSelector((state) => state.series.seriesBeingEdited);
+  const seriesToEdit = useAppSelector(
+    (state) => state.series.seriesBeingEdited
+  );
 
   const getStoryDetails = async (storyID: string) => {
     const url = "/api/stories/" + storyID;
@@ -103,7 +110,7 @@ const Threadr = () => {
       });
     handleNavChange();
     return () => window.removeEventListener("popstate", handleNavChange);
-  }, [dispatch]);
+  }, [dispatch, handleNavChange]);
 
   const displayComponent = !isLoading ? (
     isLoggedIn && selectedStory ? (
@@ -121,7 +128,11 @@ const Threadr = () => {
     <div className="App">
       <main>
         <header>
-          <UserMenu isParentLoading={isLoading} isLoggedIn={isLoggedIn} userDetails={null} />
+          <UserMenu
+            isParentLoading={isLoading}
+            isLoggedIn={isLoggedIn}
+            userDetails={null}
+          />
           <h4>
             <span>D</span>octer<span className="tld">.io</span>
             <div className="version">ver 1.0.1</div>

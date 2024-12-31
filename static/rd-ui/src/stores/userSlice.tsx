@@ -48,6 +48,11 @@ export const userSlice = createSlice({
   },
 });
 
-export const { flipLoggedInState, setUserDetails, flipConfigPanelVisible, flipLoginPanelVisible } = userSlice.actions;
+export const {
+  flipLoggedInState,
+  setUserDetails,
+  flipConfigPanelVisible,
+  flipLoginPanelVisible,
+} = userSlice.actions;
 
 export default userSlice.reducer;

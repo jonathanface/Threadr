@@ -6,11 +6,13 @@ interface AssociationTooltipProps {
   portrait: string;
   name: string;
   description: string;
-  children: ReactElement<any>;
+  children: ReactElement;
 }
 
 const AssociationTooltip: React.FC<AssociationTooltipProps> = (props) => {
-  const [portrait, setPortrait] = useState("/img/default_association_portrait.jpg");
+  const [portrait, setPortrait] = useState(
+    "/img/default_association_portrait.jpg"
+  );
   const [name, setName] = useState("someone or something");
   const [description, setDescription] = useState("Descriptive text goes here.");
 
@@ -46,7 +48,8 @@ const AssociationTooltip: React.FC<AssociationTooltipProps> = (props) => {
         border: "1px solid #333",
         borderRadius: "10px",
         textOverflow: "ellipsis",
-      }}>
+      }}
+    >
       {props.children}
     </Tooltip>
   );

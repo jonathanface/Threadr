@@ -50,6 +50,11 @@ export const seriesSlice = createSlice({
   },
 });
 
-export const { flipEditingSeries, setSeriesBeingEdited, setSeriesList, pushToSeriesList } = seriesSlice.actions;
+export const {
+  flipEditingSeries,
+  setSeriesBeingEdited,
+  setSeriesList,
+  pushToSeriesList,
+} = seriesSlice.actions;
 
 export default seriesSlice.reducer;

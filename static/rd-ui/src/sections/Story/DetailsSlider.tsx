@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Chapter, Story } from "../../types";
 import styles from "./story.module.css";
 
@@ -21,7 +21,9 @@ const DetailsSlider = (props: DetailsSliderProps) => {
 
   useEffect(() => {
     setTitle(props.title);
-    setDescription(props.description.length ? props.description : "No description");
+    setDescription(
+      props.description.length ? props.description : "No description"
+    );
     if (props.stories && props.stories.length) {
       const newStories = [...props.stories].sort((a, b) => {
         if (a.place && b.place) {
@@ -51,9 +53,16 @@ const DetailsSlider = (props: DetailsSliderProps) => {
                     <li
                       key={entry.story_id}
                       title={entry.description}
-                      onClick={(e) => props.onStoryClick(entry.story_id, firstChapter)}>
+                      onClick={(e) =>
+                        props.onStoryClick(entry.story_id, firstChapter)
+                      }
+                    >
                       <span>
-                        <img className={styles.seriesStoryThumbnail} src={entry.image_url} alt={entry.title} />
+                        <img
+                          className={styles.seriesStoryThumbnail}
+                          src={entry.image_url}
+                          alt={entry.title}
+                        />
                         {entry.title}
                       </span>
                     </li>

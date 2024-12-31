@@ -2,7 +2,13 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { Button, IconButton } from "@mui/material";
 import React from "react";
-import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
+import {
+  DragDropContext,
+  Draggable,
+  Droppable,
+  DropResult,
+  OnDragEndResponder,
+} from "@hello-pangea/dnd";
 import { MenuItem, Menu as SideMenu, Sidebar } from "react-pro-sidebar";
 import { useDispatch } from "react-redux";
 import { setAlert } from "../../stores/alertSlice";
@@ -14,15 +20,17 @@ import { AlertToastType } from "../../utils/Toaster";
 interface DocumentSidebarProps {
   story: Story;
   chapter: Chapter;
-  onSetChapter: Function;
-  setDocumentToBlank: Function;
+  onSetChapter: (chapter: Chapter) => void;
+  setDocumentToBlank: () => void;
 }
 
 const DocumentSidebar = (props: DocumentSidebarProps) => {
   const useAppDispatch: () => AppDispatch = useDispatch;
   const dispatch = useAppDispatch();
 
-  const onChapterDragEnd = async (result: any) => {
+  const onChapterDragEnd: OnDragEndResponder = async (
+    result: DropResult<string>
+  ) => {
     if (!result.destination) {
       return;
     }
@@ -36,18 +44,22 @@ const DocumentSidebar = (props: DocumentSidebarProps) => {
     newStory.chapters = updatedChapters;
     dispatch(setSelectedStory(newStory));
 
-    const response = await fetch("/api/stories/" + props.story.story_id + "/chapters", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(updatedChapters),
-    });
+    const response = await fetch(
+      "/api/stories/" + props.story.story_id + "/chapters",
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedChapters),
+      }
+    );
     if (!response.ok) {
       console.error(response.body);
       const newAlert = {
         title: "Error",
-        message: "There was an error updating your chapters. Please report this.",
+        message:
+          "There was an error updating your chapters. Please report this.",
         severity: AlertToastType.error,
         open: true,
         timeout: 6000,
@@ -57,7 +69,11 @@ const DocumentSidebar = (props: DocumentSidebarProps) => {
     }
   };
 
-  const onDeleteChapterClick = (event: React.MouseEvent, chapterID: string, chapterTitle: String) => {
+  const onDeleteChapterClick = (
+    event: React.MouseEvent,
+    chapterID: string,
+    chapterTitle: string
+  ) => {
     event.stopPropagation();
     if (props.story.chapters.length === 1) {
       const newAlert = {
@@ -70,7 +86,9 @@ const DocumentSidebar = (props: DocumentSidebarProps) => {
       dispatch(setAlert(newAlert));
       return;
     }
-    const confirm = window.confirm("Delete " + chapterTitle + " from " + props.story.title + "?");
+    const confirm = window.confirm(
+      "Delete " + chapterTitle + " from " + props.story.title + "?"
+    );
     if (confirm) {
       fetch("/api/stories/" + props.story.story_id + "/chapter/" + chapterID, {
         method: "DELETE",
@@ -79,7 +97,9 @@ const DocumentSidebar = (props: DocumentSidebarProps) => {
         },
       })
         .then((response) => {
-          const chapterIndex = props.story.chapters.findIndex((c) => c.id === chapterID);
+          const chapterIndex = props.story.chapters.findIndex(
+            (c) => c.id === chapterID
+          );
           if ((response.ok || response.status === 501) && chapterIndex > -1) {
             const newChapters = [...props.story.chapters];
             newChapters.splice(chapterIndex, 1);
@@ -95,22 +115,30 @@ const DocumentSidebar = (props: DocumentSidebarProps) => {
                   id: prevChapter.id,
                   title: prevChapter.title,
                   place: prevChapter.place,
+                  story_id: props.story.story_id,
                 });
               } else {
                 props.setDocumentToBlank();
                 props.onSetChapter({
-                  id: null,
+                  id: "id",
                   title: "",
-                  place: null,
+                  place: 0,
+                  story_id: props.story.story_id,
                 });
               }
               const history = window.history;
               const storyID = props.story.story_id;
-              history.pushState({ storyID }, "deleted chapter", "/story/" + storyID + "?chapter=" + newChapterID);
+              history.pushState(
+                { storyID },
+                "deleted chapter",
+                "/story/" + storyID + "?chapter=" + newChapterID
+              );
             }
             return;
           } else {
-            throw new Error("Fetch problem deleting chapter " + response.status);
+            throw new Error(
+              "Fetch problem deleting chapter " + response.status
+            );
           }
         })
         .catch((error) => {
@@ -123,11 +151,16 @@ const DocumentSidebar = (props: DocumentSidebarProps) => {
     if (id !== props.chapter.id) {
       const history = window.history;
       const storyID = props.story.story_id;
-      history.pushState({ storyID }, "changed chapter", "/story/" + props.story.story_id + "?chapter=" + id);
+      history.pushState(
+        { storyID },
+        "changed chapter",
+        "/story/" + props.story.story_id + "?chapter=" + id
+      );
       props.onSetChapter({
         id: id,
         title: title,
         place: num,
+        story_id: props.story.story_id,
       });
     }
   };
@@ -159,7 +192,12 @@ const DocumentSidebar = (props: DocumentSidebarProps) => {
           dispatch(setSelectedStory(updatedSelectedStory));
           onChapterClick(json.id, newChapterTitle, newChapterNum);
         } else {
-          throw new Error("Fetch problem creating chapter " + response.status + " " + response.statusText);
+          throw new Error(
+            "Fetch problem creating chapter " +
+              response.status +
+              " " +
+              response.statusText
+          );
         }
       })
       .catch((error) => {
@@ -176,17 +214,34 @@ const DocumentSidebar = (props: DocumentSidebarProps) => {
               <div {...provided.droppableProps} ref={provided.innerRef}>
                 {props.story.chapters.map((chapter, idx) => {
                   return (
-                    <Draggable key={chapter.id} draggableId={chapter.id} index={idx}>
+                    <Draggable
+                      key={chapter.id}
+                      draggableId={chapter.id}
+                      index={idx}
+                    >
                       {(provided) => (
-                        <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                        >
                           {
                             <MenuItem
                               key={idx}
-                              className={chapter.id === props.chapter.id ? "active" : ""}
+                              className={
+                                chapter.id === props.chapter.id ? "active" : ""
+                              }
                               onClick={() => {
-                                onChapterClick(chapter.id, chapter.title, chapter.place);
-                              }}>
-                              <span className="chapter-text">{chapter.title}</span>
+                                onChapterClick(
+                                  chapter.id,
+                                  chapter.title,
+                                  chapter.place
+                                );
+                              }}
+                            >
+                              <span className="chapter-text">
+                                {chapter.title}
+                              </span>
                               {props.story.chapters.length > 1 ? (
                                 <IconButton
                                   className="menu-icon"
@@ -195,9 +250,17 @@ const DocumentSidebar = (props: DocumentSidebarProps) => {
                                   aria-label="delete chapter"
                                   onClick={(event) => {
                                     event.stopPropagation();
-                                    onDeleteChapterClick(event, chapter.id, chapter.title);
-                                  }}>
-                                  <DeleteIcon fontSize="small" className={"menu-icon"} />
+                                    onDeleteChapterClick(
+                                      event,
+                                      chapter.id,
+                                      chapter.title
+                                    );
+                                  }}
+                                >
+                                  <DeleteIcon
+                                    fontSize="small"
+                                    className={"menu-icon"}
+                                  />
                                 </IconButton>
                               ) : (
                                 ""
@@ -220,7 +283,8 @@ const DocumentSidebar = (props: DocumentSidebarProps) => {
             onClick={onNewChapterClick}
             variant="outlined"
             sx={{ color: "#FFF" }}
-            startIcon={<AddIcon sx={{ marginLeft: "5px" }} />}>
+            startIcon={<AddIcon sx={{ marginLeft: "5px" }} />}
+          >
             New
           </Button>
         </div>

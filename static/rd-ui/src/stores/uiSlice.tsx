@@ -33,7 +33,11 @@ export const uiSlice = createSlice({
   },
 });
 
-export const { flipChapterMenuOpen, setIsSubscriptionFormOpen, triggerStoryListRefresh, setIsLoaderVisible } =
-  uiSlice.actions;
+export const {
+  flipChapterMenuOpen,
+  setIsSubscriptionFormOpen,
+  triggerStoryListRefresh,
+  setIsLoaderVisible,
+} = uiSlice.actions;
 
 export default uiSlice.reducer;

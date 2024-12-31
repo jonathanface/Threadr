@@ -6,7 +6,11 @@ import DialogTitle from "@mui/material/DialogTitle";
 import React, { useEffect, useState } from "react";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../stores/store";
-import { flipEditingStory, setStandaloneList, setStoryBeingEdited } from "../../stores/storiesSlice";
+import {
+  flipEditingStory,
+  setStandaloneList,
+  setStoryBeingEdited,
+} from "../../stores/storiesSlice";
 import PortraitDropper from "../PortraitDropper";
 
 import { Autocomplete, TextField } from "@mui/material";
@@ -43,18 +47,31 @@ const EditStoryModal = (props: EditStoryProps) => {
   const dispatch = useAppDispatch();
 
   const seriesList = useAppSelector((state) => state.series.seriesList);
-  const standaloneList = useAppSelector((state) => state.stories.standaloneList);
-  const isEditingStory = useAppSelector((state) => state.stories.isEditingStory);
+  const standaloneList = useAppSelector(
+    (state) => state.stories.standaloneList
+  );
+  const isEditingStory = useAppSelector(
+    (state) => state.stories.isEditingStory
+  );
 
-  const [imageURL, setImageURL] = useState(props.story?.image_url ? props.story.image_url : "");
-  const [imageName, setImageName] = useState(props.story?.title ? props.story.title : "");
+  const [imageURL, setImageURL] = useState(
+    props.story?.image_url ? props.story.image_url : ""
+  );
+  const [imageName, setImageName] = useState(
+    props.story?.title ? props.story.title : ""
+  );
   const [isInASeries, setIsInASeries] = useState(false);
-  const [preselectedTitle, setPreselectedTitle] = useState(props.story?.title ? props.story.title : "");
+  const [preselectedTitle, setPreselectedTitle] = useState(
+    props.story?.title ? props.story.title : ""
+  );
   const [preselectedDescription, setPreselectedDescription] = useState(
     props.story?.description ? props.story.description : ""
   );
-  const [preselectedSeries, setPreselectedSeries] = useState<SeriesSelectionOptions | null>(null);
-  const [seriesDisplayList, setSeriesDisplayList] = useState<SeriesSelectionOptions[]>([]);
+  const [preselectedSeries, setPreselectedSeries] =
+    useState<SeriesSelectionOptions | null>(null);
+  const [seriesDisplayList, setSeriesDisplayList] = useState<
+    SeriesSelectionOptions[]
+  >([]);
   const [storyForm, setStoryForm] = useState<EditStoryForm | null>(null);
 
   const resetForm = () => {
@@ -95,7 +112,11 @@ const EditStoryModal = (props: EditStoryProps) => {
 
   useEffect(() => {
     if (props.story) {
-      if (props.story && props.story.image_url && props.story.image_url !== imageURL) {
+      if (
+        props.story &&
+        props.story.image_url &&
+        props.story.image_url !== imageURL
+      ) {
         setImageURL(props.story.image_url);
       }
 
@@ -114,7 +135,9 @@ const EditStoryModal = (props: EditStoryProps) => {
 
   useEffect(() => {
     if (props.story?.series_id) {
-      const foundSeries = seriesList?.find((srs) => srs.series_id === props.story?.series_id);
+      const foundSeries = seriesList?.find(
+        (srs) => srs.series_id === props.story?.series_id
+      );
       if (foundSeries) {
         setStoryForm((prevFormInput) => ({
           ...prevFormInput,
@@ -180,10 +203,17 @@ const EditStoryModal = (props: EditStoryProps) => {
       return;
     }
 
-    if (storyForm.series_id !== props.story.series_id && storyForm.series_id !== null) {
-      const foundSeries = seriesList?.find((srs) => srs.series_id === storyForm.series_id);
+    if (
+      storyForm.series_id !== props.story.series_id &&
+      storyForm.series_id !== null
+    ) {
+      const foundSeries = seriesList?.find(
+        (srs) => srs.series_id === storyForm.series_id
+      );
       if (foundSeries) {
-        storyForm.series_place = foundSeries.stories.length ? foundSeries.stories.length : 1;
+        storyForm.series_place = foundSeries.stories.length
+          ? foundSeries.stories.length
+          : 1;
       }
     } else if (storyForm.series_title) {
       storyForm.series_place = 1;
@@ -206,11 +236,14 @@ const EditStoryModal = (props: EditStoryProps) => {
 
     dispatch(setIsLoaderVisible(true));
     try {
-      const response = await fetch("/api/stories/" + props.story.story_id + "/details", {
-        credentials: "include",
-        method: "PUT",
-        body: formData,
-      });
+      const response = await fetch(
+        "/api/stories/" + props.story.story_id + "/details",
+        {
+          credentials: "include",
+          method: "PUT",
+          body: formData,
+        }
+      );
       if (!response.ok) {
         const errorData = await response.json();
         const error: Error = new Error(JSON.stringify(errorData));
@@ -221,7 +254,9 @@ const EditStoryModal = (props: EditStoryProps) => {
       if (json.series_id && json.series_id !== props.story.series_id) {
         // this story was a standalone and has been added to a series
         const newSeriesList = [...seriesList];
-        const foundSeriesIndex = seriesList?.findIndex((srs) => srs.series_id === json.series_id);
+        const foundSeriesIndex = seriesList?.findIndex(
+          (srs) => srs.series_id === json.series_id
+        );
         if (foundSeriesIndex !== undefined && foundSeriesIndex >= 0) {
           const updatedSeries = { ...newSeriesList[foundSeriesIndex] };
           updatedSeries.stories = [...updatedSeries.stories, json];
@@ -237,19 +272,32 @@ const EditStoryModal = (props: EditStoryProps) => {
             })
           );
         }
-      } else if (!json.series_id && props.story && props.story.series_id !== null) {
+      } else if (
+        !json.series_id &&
+        props.story &&
+        props.story.series_id !== null
+      ) {
         // this story has been removed from a series
         const newSeriesList = [...seriesList];
-        const foundSeriesIndex = seriesList?.findIndex((srs) => srs.series_id === props.story?.series_id);
+        const foundSeriesIndex = seriesList?.findIndex(
+          (srs) => srs.series_id === props.story?.series_id
+        );
         if (foundSeriesIndex !== undefined && foundSeriesIndex >= 0) {
           const updatedSeries = { ...newSeriesList[foundSeriesIndex] };
-          const foundStoryIndex = updatedSeries.stories.findIndex((stry) => stry.story_id === json.story_id);
-          updatedSeries.stories = updatedSeries.stories.splice(foundStoryIndex, 1);
+          const foundStoryIndex = updatedSeries.stories.findIndex(
+            (stry) => stry.story_id === json.story_id
+          );
+          updatedSeries.stories = updatedSeries.stories.splice(
+            foundStoryIndex,
+            1
+          );
           newSeriesList[foundSeriesIndex] = updatedSeries;
           dispatch(setSeriesList(newSeriesList));
         }
       }
-      const foundStoryIndex = standaloneList.findIndex((stry) => stry.story_id === json.story_id);
+      const foundStoryIndex = standaloneList.findIndex(
+        (stry) => stry.story_id === json.story_id
+      );
       const newStandaloneList = [...standaloneList];
       newStandaloneList[foundStoryIndex] = json;
       dispatch(setStandaloneList(newStandaloneList));
@@ -260,14 +308,19 @@ const EditStoryModal = (props: EditStoryProps) => {
       handleClose();
     } catch (error: any) {
       console.error(error);
-      storyFormMessage.message = "Please try again later or contact support at the link below:";
+      storyFormMessage.message =
+        "Please try again later or contact support at the link below:";
       dispatch(setAlert(storyFormMessage));
     }
     dispatch(setIsLoaderVisible(false));
   };
 
   return (
-    <Dialog open={isEditingStory} onClose={handleClose} className={styles.editStoryForm}>
+    <Dialog
+      open={isEditingStory}
+      onClose={handleClose}
+      className={styles.editStoryForm}
+    >
       <DialogTitle>{"Editing " + preselectedTitle}</DialogTitle>
       <DialogContent>
         <div className={styles.content}>
@@ -312,17 +365,27 @@ const EditStoryModal = (props: EditStoryProps) => {
         </div>
         <div className={styles.seriesBox}>
           <div>
-            <input type="checkbox" id="edit-story-is-in-series" onChange={() => setIsInASeries(!isInASeries)} />
-            <label htmlFor="edit-story-is-in-series">This is part of a series</label>
+            <input
+              type="checkbox"
+              id="edit-story-is-in-series"
+              onChange={() => setIsInASeries(!isInASeries)}
+            />
+            <label htmlFor="edit-story-is-in-series">
+              This is part of a series
+            </label>
           </div>
           <div>
             {isInASeries ? (
               <div>
                 <Autocomplete
-                  onInputChange={(event: React.SyntheticEvent, value: string) => {
+                  onInputChange={(
+                    event: React.SyntheticEvent,
+                    value: string
+                  ) => {
                     if (event) {
                       const foundSeries = seriesList?.find(
-                        (srs) => srs.series_title.toLowerCase() === value.toLowerCase()
+                        (srs) =>
+                          srs.series_title.toLowerCase() === value.toLowerCase()
                       );
                       if (foundSeries) {
                         setStoryForm((prevFormInput) => ({
@@ -340,7 +403,10 @@ const EditStoryModal = (props: EditStoryProps) => {
                     }
                   }}
                   onChange={(event: React.SyntheticEvent, value: any) => {
-                    if (value.hasOwnProperty("id") && value.hasOwnProperty("label")) {
+                    if (
+                      value.hasOwnProperty("id") &&
+                      value.hasOwnProperty("label")
+                    ) {
                       setStoryForm((prevFormInput) => ({
                         ...prevFormInput,
                         series_id: value.id,
@@ -351,7 +417,9 @@ const EditStoryModal = (props: EditStoryProps) => {
                   freeSolo
                   options={seriesDisplayList}
                   value={preselectedSeries}
-                  renderInput={(params) => <TextField {...params} label="Series" />}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Series" />
+                  )}
                 />
               </div>
             ) : (
