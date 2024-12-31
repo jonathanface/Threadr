@@ -21,10 +21,3 @@ const render = (Component: React.ComponentType<any>) => {
 };
 
 render(Threadr);
-
-if (module?.hot) {
-  module?.hot.accept("./Threadr", () => {
-    const NextApp = require("./Threadr").default;
-    render(NextApp);
-  });
-}

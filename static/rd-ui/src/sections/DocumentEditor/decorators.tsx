@@ -4,7 +4,7 @@ import { Association } from "../../types";
 import AssociationTooltip from "./AssociationTooltip";
 
 interface TabSpanProps {
-  children: React.ReactElement;
+  children: React.ReactElement<any>;
 }
 
 interface HighlightSpanProps {
@@ -13,7 +13,7 @@ interface HighlightSpanProps {
   leftClickFunc: Function;
   rightClickFunc?: Function;
   decoratedText: string;
-  children: React.ReactElement;
+  children: React.ReactElement<any>;
 }
 
 export const TabSpan: React.FC<TabSpanProps> = (props) => {

@@ -6,7 +6,7 @@ interface AssociationTooltipProps {
   portrait: string;
   name: string;
   description: string;
-  children: ReactElement;
+  children: ReactElement<any>;
 }
 
 const AssociationTooltip: React.FC<AssociationTooltipProps> = (props) => {
