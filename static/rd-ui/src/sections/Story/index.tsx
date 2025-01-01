@@ -134,18 +134,21 @@ export const StoryBox = (props: StoryBoxProps) => {
 
   const deleteStory = (event: React.MouseEvent, id: string, title: string) => {
     event.stopPropagation();
-    const isStory = IsStory(props.data);
-    let item = isStory ? (props.data as Story) : (props.data as Series);
+
     const confirmText =
-      (isStory
+      (IsStory(props.data)
         ? "Delete story " + title + "?"
-        : "Delete " + title + " from your series " + item.title + "?") +
-      (item.series && props.data.stories.length === 1
+        : "Delete " +
+          title +
+          " from your series " +
+          props.data.series_title +
+          "?") +
+      (!IsStory(props.data) && props.data.stories.length === 1
         ? "\n\nThere are no other titles in this series, so deleting it will also remove the series."
         : "");
 
     const conf = window.confirm(confirmText);
-    const seriesID = props.data.stories ? props.data.id : "";
+    const seriesID = !IsStory(props.data) ? props.data.series_id : "";
     if (conf) {
       dispatch(setIsLoaderVisible(true));
       const url = "/api/stories/" + id + "?series=" + seriesID;
@@ -164,30 +167,32 @@ export const StoryBox = (props: StoryBoxProps) => {
     }
   };
 
-  const id = props.data.stories ? props.data.series_id : props.data.story_id;
-  const title = props.data.stories ? props.data.series_title : props.data.title;
-  const description = props.data.stories
+  const id = !IsStory(props.data) ? props.data.series_id : props.data.story_id;
+  const title = !IsStory(props.data)
+    ? props.data.series_title
+    : props.data.title;
+  const description = !IsStory(props.data)
     ? props.data.series_description
     : props.data.description;
   const editHoverText = "Edit " + title;
   const deleteHoverText = "Delete " + title;
 
   useEffect(() => {
-    if (props.data.stories) {
+    if (!IsStory(props.data)) {
       setIsSeries(true);
     } else {
       setIsSeries(false);
     }
-  }, [props.data.stories]);
+  }, [props.data, IsStory]);
 
   return !wasDeleted ? (
     <button
       className={styles.docButton}
-      onClick={
-        !props.data.stories
-          ? (_e) => handleClick(props.data.story_id, props.data.chapters[0].id)
-          : () => {}
-      }
+      onClick={() => {
+        if (IsStory(props.data)) {
+          handleClick(props.data.story_id, props.data.chapters[0].id);
+        }
+      }}
     >
       <div
         className="loading-screen"
@@ -200,7 +205,7 @@ export const StoryBox = (props: StoryBoxProps) => {
       </div>
       <div className={styles.storyBubble}>
         <img
-          className={props.data.stories ? styles.seriesImage : ""}
+          className={!IsStory(props.data) ? styles.seriesImage : ""}
           src={props.data.image_url}
           alt={title}
           onLoad={() => {
@@ -240,7 +245,7 @@ export const StoryBox = (props: StoryBoxProps) => {
               component="label"
               title={deleteHoverText}
               onClick={(event) => {
-                if (props.data.stories) {
+                if (!IsStory(props.data)) {
                   deleteSeries(event, id, title);
                 } else {
                   deleteStory(event, id, title);
@@ -264,8 +269,8 @@ export const StoryBox = (props: StoryBoxProps) => {
         <DetailsSlider
           key={id}
           id={id}
-          stories={props.data.stories}
-          chapters={props.data.chapters}
+          stories={!IsStory(props.data) ? props.data.stories : undefined}
+          chapters={IsStory(props.data) ? props.data.chapters : undefined}
           onStoryClick={handleClick}
           setDeleted={setWasDeleted}
           isSeries={isSeries}
