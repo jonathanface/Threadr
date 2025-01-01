@@ -1,6 +1,17 @@
-import { CharacterMetadata, ContentBlock, EditorState, Modifier, SelectionState } from "draft-js";
+import {
+  CharacterMetadata,
+  ContentBlock,
+  EditorState,
+  Modifier,
+  SelectionState,
+} from "draft-js";
 import Immutable from "immutable";
-import { DBOperation, DBOperationTask, DBOperationType, DocumentBlockStyle, EntityData } from "../../types";
+import { DocumentBlockStyle, EntityData } from "../../types/Document";
+import {
+  DBOperation,
+  DBOperationTask,
+  DBOperationType,
+} from "../../types/DBOperations";
 
 const TAB_LENGTH = 5;
 
@@ -21,8 +32,12 @@ export const documentStyleMap = {
 
 export const GetSelectedBlockKeys = (editorState: EditorState) => {
   const lastSelection = editorState.getSelection();
-  const min = lastSelection.getIsBackward() ? lastSelection.getFocusKey() : lastSelection.getAnchorKey();
-  const max = lastSelection.getIsBackward() ? lastSelection.getAnchorKey() : lastSelection.getFocusKey();
+  const min = lastSelection.getIsBackward()
+    ? lastSelection.getFocusKey()
+    : lastSelection.getAnchorKey();
+  const max = lastSelection.getIsBackward()
+    ? lastSelection.getAnchorKey()
+    : lastSelection.getFocusKey();
   const blockMap = editorState.getCurrentContent().getBlockMap();
   const firstSubselection = blockMap.skipUntil((v, k) => k === min);
   const toReverse = firstSubselection.reverse();
@@ -35,7 +50,11 @@ export const GetSelectedBlockKeys = (editorState: EditorState) => {
   return selectedKeys;
 };
 
-export const GetEntityData = (block: ContentBlock, type: string, list: EntityData[]) => {
+export const GetEntityData = (
+  block: ContentBlock,
+  type: string,
+  list: EntityData[]
+) => {
   block.findEntityRanges(
     (character: CharacterMetadata) => character.getEntity() !== null,
     (start, end) => {
@@ -79,7 +98,8 @@ export const filterAndReduceDBOperations = (
     const obj = dbOperations[j];
     if (obj.type === opType) {
       obj.ops.forEach((op) => {
-        keyIDMap[op.key_id] = keyIDMap[op.key_id] === undefined ? [] : keyIDMap[op.key_id];
+        keyIDMap[op.key_id] =
+          keyIDMap[op.key_id] === undefined ? [] : keyIDMap[op.key_id];
         keyIDMap[op.key_id].push(op);
       });
       dbOperations.splice(j, 1);
@@ -143,7 +163,11 @@ export const ReplaceCharacters = (editorState: EditorState) => {
             focusOffset: end,
           });
 
-          newContentState = Modifier.replaceText(newContentState, selectionState, replacement);
+          newContentState = Modifier.replaceText(
+            newContentState,
+            selectionState,
+            replacement
+          );
 
           // Update blockText to reflect the most recent replacement for subsequent searches
           blockText = newContentState.getBlockForKey(block.getKey()).getText();
@@ -159,7 +183,10 @@ export const ReplaceCharacters = (editorState: EditorState) => {
   return editorState;
 };
 
-export const InsertTab = (editorState: EditorState, selection: SelectionState) => {
+export const InsertTab = (
+  editorState: EditorState,
+  selection: SelectionState
+) => {
   const selectedKeys = GetSelectedBlockKeys(editorState);
   let newEditorState = editorState;
 
@@ -167,7 +194,9 @@ export const InsertTab = (editorState: EditorState, selection: SelectionState) =
     let content = newEditorState.getCurrentContent();
     selectedKeys.forEach((key) => {
       const block = content.getBlockForKey(selection.getFocusKey());
-      const tabData = block.getData().getIn(["ENTITY_TABS"]) ? block.getData().getIn(["ENTITY_TABS"]) : [];
+      const tabData = block.getData().getIn(["ENTITY_TABS"])
+        ? block.getData().getIn(["ENTITY_TABS"])
+        : [];
       tabData.push({ start: 0, end: TAB_LENGTH, type: "TAB" });
       const contentStateWithEntityData = Modifier.mergeBlockData(
         content,
@@ -183,18 +212,31 @@ export const InsertTab = (editorState: EditorState, selection: SelectionState) =
         undefined,
         entityKey
       );
-      newEditorState = EditorState.push(newEditorState, contentStateWithEntityText, "insert-characters");
+      newEditorState = EditorState.push(
+        newEditorState,
+        contentStateWithEntityText,
+        "insert-characters"
+      );
       content = newEditorState.getCurrentContent();
     });
-    newEditorState = EditorState.forceSelection(newEditorState, content.getSelectionAfter());
+    newEditorState = EditorState.forceSelection(
+      newEditorState,
+      content.getSelectionAfter()
+    );
   } else if (selectedKeys.length) {
     if (!selection.isCollapsed()) {
       selection = SelectionState.createEmpty(selection.getFocusKey());
     }
     const content = newEditorState.getCurrentContent();
     const block = content.getBlockForKey(selection.getFocusKey());
-    const tabData = block.getData().getIn(["ENTITY_TABS"]) ? block.getData().getIn(["ENTITY_TABS"]) : [];
-    tabData.push({ start: selection.getFocusOffset(), end: selection.getFocusOffset() + TAB_LENGTH, type: "TAB" });
+    const tabData = block.getData().getIn(["ENTITY_TABS"])
+      ? block.getData().getIn(["ENTITY_TABS"])
+      : [];
+    tabData.push({
+      start: selection.getFocusOffset(),
+      end: selection.getFocusOffset() + TAB_LENGTH,
+      type: "TAB",
+    });
     const contentStateWithEntityData = Modifier.mergeBlockData(
       content,
       selection,
@@ -209,8 +251,15 @@ export const InsertTab = (editorState: EditorState, selection: SelectionState) =
       undefined,
       entityKey
     );
-    const editorStateWithData = EditorState.push(newEditorState, contentStateWithEntityText, "insert-characters");
-    newEditorState = EditorState.forceSelection(editorStateWithData, contentStateWithEntityText.getSelectionAfter());
+    const editorStateWithData = EditorState.push(
+      newEditorState,
+      contentStateWithEntityText,
+      "insert-characters"
+    );
+    newEditorState = EditorState.forceSelection(
+      editorStateWithData,
+      contentStateWithEntityText.getSelectionAfter()
+    );
   } else {
     console.error("no blocks selected");
   }

@@ -3,7 +3,7 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../stores/store";
 import {
@@ -11,20 +11,22 @@ import {
   pushToStandaloneList,
   setStoryBelongsToSeries,
 } from "../../stores/storiesSlice";
-import PortraitDropper from "../PortraitDropper";
+import { PortraitDropper } from "../PortraitDropper";
 
 import { Autocomplete, TextField } from "@mui/material";
 import { setAlert } from "../../stores/alertSlice";
 import { pushToSeriesList, setSeriesList } from "../../stores/seriesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
+import styles from "./createNewStory.module.css";
 import {
   AlertCommandType,
   AlertToast,
   AlertToastType,
-} from "../../utils/Toaster";
-import styles from "./createNewStory.module.css";
+} from "../../types/AlertToasts";
+import { APIError } from "../../types/API";
+import { Series } from "../../types/Series";
 
-interface SeriesSelectionOptions {
+interface SeriesSelectionOption {
   label: string;
   id: string;
   count: number;
@@ -40,7 +42,7 @@ interface CreateStoryForm {
   series_place?: number;
 }
 
-const CreateNewStoryModal = () => {
+export const CreateNewStoryModal = () => {
   const useAppDispatch: () => AppDispatch = useDispatch;
   const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
   const dispatch = useAppDispatch();
@@ -57,13 +59,13 @@ const CreateNewStoryModal = () => {
   const [imageName, setImageName] = useState("Loading...");
   const [isInASeries, setIsInASeries] = useState(false);
   const [seriesDisplayList, setSeriesDisplayList] = useState<
-    SeriesSelectionOptions[]
+    SeriesSelectionOption[]
   >([]);
   const [storyForm, setStoryForm] = useState<CreateStoryForm | null>(null);
 
   const defaultImageURL = "img/icons/story_standalone_icon.jpg";
 
-  const attachImageToForm = async () => {
+  const attachImageToForm = useCallback(async () => {
     fetch(imageURL, {
       headers: {
         Accept: "image/*",
@@ -80,7 +82,7 @@ const CreateNewStoryModal = () => {
       .catch((error) => {
         console.error("Fetch operation failed: ", error);
       });
-  };
+  }, [setStoryForm]);
 
   const getDefaultImage = () => {
     const randomImageURL = "https://picsum.photos/300";
@@ -130,17 +132,20 @@ const CreateNewStoryModal = () => {
     }
   };
 
-  const setAssignedSeries = (seriesID: string) => {
-    const foundSeries = seriesList?.find((srs) => srs.series_id === seriesID);
-    console.log("found", foundSeries);
-    if (foundSeries) {
-      setStoryForm((prevFormInput) => ({
-        ...prevFormInput,
-        series_id: foundSeries.series_id,
-        series_title: foundSeries.series_title,
-      }));
-    }
-  };
+  const setAssignedSeries = useCallback(
+    (seriesID: string) => {
+      const foundSeries = seriesList?.find((srs) => srs.series_id === seriesID);
+      console.log("found", foundSeries);
+      if (foundSeries) {
+        setStoryForm((prevFormInput) => ({
+          ...prevFormInput,
+          series_id: foundSeries.series_id,
+          series_title: foundSeries.series_title,
+        }));
+      }
+    },
+    [setStoryForm]
+  );
 
   useEffect(() => {
     if (imageURL.length) {
@@ -279,9 +284,9 @@ const CreateNewStoryModal = () => {
       storyFormMessage.severity = AlertToastType.success;
       dispatch(setAlert(storyFormMessage));
       handleClose();
-    } catch (error: any) {
-      console.error(error);
-      if (error.name === "401") {
+    } catch (error: unknown) {
+      const apiError = error as APIError;
+      if (apiError && apiError.statusCode === 401) {
         storyFormMessage.title = "Insufficient subscription";
         storyFormMessage.severity = AlertToastType.warning;
         storyFormMessage.message =
@@ -371,30 +376,27 @@ const CreateNewStoryModal = () => {
                         (srs) =>
                           srs.series_title.toLowerCase() === value.toLowerCase()
                       );
-                      if (foundSeries) {
-                        setStoryForm((prevFormInput) => ({
-                          ...prevFormInput,
-                          series_id: foundSeries.series_id,
-                          series_title: foundSeries.series_title,
-                        }));
-                      } else {
-                        setStoryForm((prevFormInput) => ({
-                          ...prevFormInput,
-                          series_id: undefined,
-                          series_title: value,
-                        }));
-                      }
-                    }
-                  }}
-                  onChange={(event: React.SyntheticEvent, value: any) => {
-                    if (
-                      value.hasOwnProperty("id") &&
-                      value.hasOwnProperty("label")
-                    ) {
                       setStoryForm((prevFormInput) => ({
                         ...prevFormInput,
-                        series_id: value.id,
-                        series_title: value.label,
+                        series_id: foundSeries
+                          ? foundSeries.series_id
+                          : undefined,
+                        series_title: foundSeries
+                          ? foundSeries.series_title
+                          : value,
+                      }));
+                    }
+                  }}
+                  onChange={(
+                    _event: React.SyntheticEvent,
+                    value: string | SeriesSelectionOption | null
+                  ) => {
+                    const toSeries = value as SeriesSelectionOption;
+                    if (toSeries) {
+                      setStoryForm((prevFormInput) => ({
+                        ...prevFormInput,
+                        series_id: toSeries.id,
+                        series_title: toSeries.label,
                       }));
                     }
                   }}
@@ -418,4 +420,3 @@ const CreateNewStoryModal = () => {
     </Dialog>
   );
 };
-export default CreateNewStoryModal;

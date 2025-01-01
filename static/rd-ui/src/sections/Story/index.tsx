@@ -18,15 +18,16 @@ import {
   setStoryBeingEdited,
 } from "../../stores/storiesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
-import { Series, Story } from "../../types";
-import DetailsSlider from "./DetailsSlider";
+import { DetailsSlider } from "./DetailsSlider";
 import styles from "./story.module.css";
+import { IsStory, Story } from "../../types/Story";
+import { Series } from "../../types/Series";
 
 interface StoryBoxProps {
   data: Story | Series;
 }
 
-const StoryBox = (props: StoryBoxProps) => {
+export const StoryBox = (props: StoryBoxProps) => {
   const useAppDispatch: () => AppDispatch = useDispatch;
   const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
   const dispatch = useAppDispatch();
@@ -66,13 +67,13 @@ const StoryBox = (props: StoryBoxProps) => {
     dispatch(setIsLoaderVisible(true));
   };
 
-  const editStory = (event: React.MouseEvent, storyID: string) => {
+  const editStory = (event: React.MouseEvent, _storyID: string) => {
     event.stopPropagation();
     dispatch(setStoryBeingEdited(props.data as Story));
     dispatch(flipEditingStory(true));
   };
 
-  const editSeries = (event: React.MouseEvent, seriesID: string) => {
+  const editSeries = (event: React.MouseEvent, _seriesID: string) => {
     event.stopPropagation();
     dispatch(setSeriesBeingEdited(props.data as Series));
     dispatch(flipEditingSeries());
@@ -133,11 +134,13 @@ const StoryBox = (props: StoryBoxProps) => {
 
   const deleteStory = (event: React.MouseEvent, id: string, title: string) => {
     event.stopPropagation();
+    const isStory = IsStory(props.data);
+    let item = isStory ? (props.data as Story) : (props.data as Series);
     const confirmText =
-      (!props.data.stories
+      (isStory
         ? "Delete story " + title + "?"
-        : "Delete " + title + " from your series " + props.data.title + "?") +
-      (props.data.series && props.data.stories.length === 1
+        : "Delete " + title + " from your series " + item.title + "?") +
+      (item.series && props.data.stories.length === 1
         ? "\n\nThere are no other titles in this series, so deleting it will also remove the series."
         : "");
 
@@ -182,7 +185,7 @@ const StoryBox = (props: StoryBoxProps) => {
       className={styles.docButton}
       onClick={
         !props.data.stories
-          ? (e) => handleClick(props.data.story_id, props.data.chapters[0].id)
+          ? (_e) => handleClick(props.data.story_id, props.data.chapters[0].id)
           : () => {}
       }
     >
@@ -275,5 +278,3 @@ const StoryBox = (props: StoryBoxProps) => {
     ""
   );
 };
-
-export default StoryBox;

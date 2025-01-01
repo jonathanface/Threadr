@@ -29,10 +29,11 @@ import {
   setStoryBeingEdited,
 } from "../../stores/storiesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
-import { Series, Story } from "../../types";
-import { AlertToast, AlertToastType } from "../../utils/Toaster";
 import PortraitDropper from "../PortraitDropper";
 import styles from "./edit-series.module.css";
+import { AlertToast, AlertToastType } from "../../types/AlertToasts";
+import { Story } from "../../types/Story";
+import { Series } from "../../types/Series";
 
 interface EditSeriesForm {
   [key: string]: string | undefined | File | number | Story[];
@@ -48,7 +49,7 @@ interface EditSeriesProps {
   series: Series | null;
 }
 
-const EditSeriesModal = (props: EditSeriesProps) => {
+export const EditSeriesModal = (props: EditSeriesProps) => {
   const useAppDispatch: () => AppDispatch = useDispatch;
   const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
   const dispatch = useAppDispatch();
@@ -523,5 +524,3 @@ const EditSeriesModal = (props: EditSeriesProps) => {
     </div>
   );
 };
-
-export default EditSeriesModal;

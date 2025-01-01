@@ -3,8 +3,8 @@ import { useDropzone } from "react-dropzone";
 import { useDispatch } from "react-redux";
 import { setAlert } from "../../stores/alertSlice";
 import { AppDispatch } from "../../stores/store";
-import { AlertToast, AlertToastType } from "../../utils/Toaster";
 import styles from "./portrait-dropper.module.css";
+import { AlertToast, AlertToastType } from "../../types/AlertToasts";
 
 interface PortraitDropperProps {
   imageURL: string;
@@ -15,7 +15,7 @@ interface PortraitDropperProps {
 
 const acceptedFileTypes = ["png", "jpg", "jpeg", "gif"];
 
-const PortraitDropper = (props: PortraitDropperProps) => {
+export const PortraitDropper = (props: PortraitDropperProps) => {
   const [imageURL, setImageURL] = useState(props.imageURL);
   const [name, setName] = useState(props.name);
 
@@ -76,4 +76,3 @@ const PortraitDropper = (props: PortraitDropperProps) => {
     </div>
   );
 };
-export default PortraitDropper;

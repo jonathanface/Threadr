@@ -5,7 +5,7 @@ import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../stores/store";
 import { flipLoginPanelVisible } from "../../stores/userSlice";
 
-const LoginPanelModal = () => {
+export const LoginPanelModal = () => {
   const useAppDispatch: () => AppDispatch = useDispatch;
   const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
   const dispatch = useAppDispatch();
@@ -50,5 +50,3 @@ const LoginPanelModal = () => {
     </Dialog>
   );
 };
-
-export default LoginPanelModal;

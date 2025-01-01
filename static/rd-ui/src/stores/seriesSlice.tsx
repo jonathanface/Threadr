@@ -1,11 +1,5 @@
 import { Action, createSlice } from "@reduxjs/toolkit";
-import { Series } from "../types";
-
-export interface SeriesPanel {
-  isEditingSeries: boolean;
-  seriesList: Series[];
-  seriesBeingEdited: Series | null;
-}
+import { SeriesPanel } from "../types/Series";
 
 const initialState: SeriesPanel = {
   isEditingSeries: false,
@@ -24,7 +18,6 @@ interface IAction<T> extends Action<string> {
   type: string;
   payload?: T;
   error?: boolean;
-  meta?: any;
 }
 
 export const seriesSlice = createSlice({

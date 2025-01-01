@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Chapter, Story } from "../../types";
 import styles from "./story.module.css";
+import { Story } from "../../types/Story";
+import { Chapter } from "../../types/Chapter";
 
 interface DetailsSliderProps {
   id: string;
@@ -13,10 +14,10 @@ interface DetailsSliderProps {
   setDeleted: Function;
 }
 
-const DetailsSlider = (props: DetailsSliderProps) => {
+export const DetailsSlider = (props: DetailsSliderProps) => {
   const [stories, setStories] = useState(props.stories);
   const [isSeries, setIsSeries] = useState(props.isSeries);
-  const [title, setTitle] = useState(props.title);
+  const [, setTitle] = useState(props.title);
   const [description, setDescription] = useState(props.description);
 
   useEffect(() => {
@@ -53,7 +54,7 @@ const DetailsSlider = (props: DetailsSliderProps) => {
                     <li
                       key={entry.story_id}
                       title={entry.description}
-                      onClick={(e) =>
+                      onClick={(_e) =>
                         props.onStoryClick(entry.story_id, firstChapter)
                       }
                     >
@@ -80,5 +81,3 @@ const DetailsSlider = (props: DetailsSliderProps) => {
     </div>
   );
 };
-
-export default DetailsSlider;

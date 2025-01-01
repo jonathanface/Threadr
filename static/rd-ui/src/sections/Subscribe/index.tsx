@@ -14,8 +14,8 @@ import DialogTitle from "@mui/material/DialogTitle";
 import { setAlert } from "../../stores/alertSlice";
 import { AppDispatch, RootState } from "../../stores/store";
 import { setIsSubscriptionFormOpen } from "../../stores/uiSlice";
-import { AlertToast, AlertToastType } from "../../utils/Toaster";
 import { StripeCardElementChangeEvent } from "@stripe/stripe-js";
+import { AlertToast, AlertToastType } from "../../types/AlertToasts";
 
 interface PaymentMethod {
   id: string;
@@ -33,7 +33,7 @@ interface Product {
   billing_frequency: string;
 }
 
-const Subscribe = () => {
+export const Subscribe = () => {
   const useAppDispatch: () => AppDispatch = useDispatch;
   const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
   const dispatch = useAppDispatch();
@@ -70,7 +70,6 @@ const Subscribe = () => {
       if (!response.ok) {
         throw new Error("Fetch problem create customer " + response.status);
       }
-      const json = await response.json();
 
       const cardElement = elements.getElement(CardElement);
       if (!cardElement) {
@@ -115,8 +114,8 @@ const Subscribe = () => {
           );
         }
       }
-    } catch (error: any) {
-      setSubscribeError(error);
+    } catch (error: unknown) {
+      setSubscribeError((error as Error).message);
     }
   };
 
@@ -282,5 +281,3 @@ const Subscribe = () => {
     </Dialog>
   );
 };
-
-export default Subscribe;

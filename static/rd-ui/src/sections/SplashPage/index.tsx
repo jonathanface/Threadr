@@ -1,6 +1,6 @@
 import styles from "./splash.module.css";
 
-const SplashPage = () => {
+export const SplashPage = () => {
   return (
     <div className={styles.splash}>
       <div className={styles.blurb}>
@@ -144,5 +144,3 @@ const SplashPage = () => {
     </div>
   );
 };
-
-export default SplashPage;

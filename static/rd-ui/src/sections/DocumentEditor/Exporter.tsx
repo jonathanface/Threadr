@@ -1,4 +1,7 @@
-import { convertToHTML } from "draft-convert";
+import {
+  convertToHTML,
+  RawDraftContentBlockWithCustomType,
+} from "draft-convert";
 import {
   CompositeDecorator,
   ContentBlock,
@@ -9,6 +12,7 @@ import {
   convertFromRaw,
 } from "draft-js";
 import { FindTabs, TabSpan } from "./decorators";
+import { BlockAlignmentType } from "../../types/Document";
 
 interface StyleRange {
   style: string;
@@ -147,12 +151,10 @@ export class Exporter {
         htmlizedContent.push({
           chapter: chapterContents.chapterTitle,
           html: convertToHTML({
-            blockToHTML: (block: {
-              data: { ALIGNMENT: any };
-              text: any;
-              inlineStyleRanges: StyleRange[];
-            }) => {
-              const alignment = block.data.ALIGNMENT;
+            blockToHTML: (block) => {
+              const alignment = block.data
+                ? block.data.ALIGNMENT
+                : BlockAlignmentType.left;
               let text = block.text;
               const styles = block.inlineStyleRanges as StyleRange[];
               if (styles.length) {

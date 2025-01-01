@@ -1,18 +1,13 @@
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import React from "react";
 import styles from "./custom-context.module.css";
-
-export interface MenuItemEntry {
-  name: string;
-  command?: (event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => void;
-  subItems?: MenuItemEntry[];
-}
+import { MenuItemEntry } from "../../types/MenuItemEntry";
 
 interface MenuItemProps {
   item: MenuItemEntry;
 }
 
-const MenuItem = (props: MenuItemProps) => {
+export const MenuItem = (props: MenuItemProps) => {
   const handleClickAction = (
     item: MenuItemEntry,
     event: React.MouseEvent<HTMLAnchorElement, MouseEvent>
@@ -56,5 +51,3 @@ const MenuItem = (props: MenuItemProps) => {
     </li>
   );
 };
-
-export default MenuItem;

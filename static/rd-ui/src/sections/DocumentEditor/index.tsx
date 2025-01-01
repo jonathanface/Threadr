@@ -1,6 +1,5 @@
 import Immutable from "immutable";
 import React, { useEffect, useRef, useState } from "react";
-
 import {
   BlockMap,
   CharacterMetadata,
@@ -25,29 +24,22 @@ import "../../css/sidebar.css";
 import { setAlert } from "../../stores/alertSlice";
 import { AppDispatch, RootState } from "../../stores/store";
 import { setSelectedStory } from "../../stores/storiesSlice";
-import { setIsLoaderVisible, setIsSubscriptionFormOpen } from "../../stores/uiSlice";
 import {
-  APIError,
-  Association,
-  AssociationType,
-  BlockOrderMap,
-  BlocksForServer,
-  Chapter,
-  CharMetadata,
-  DBOperation,
-  DBOperationTask,
-  DBOperationType,
-  DocumentBlockStyle,
-  DocumentTab,
-  Story,
-} from "../../types";
-import { AlertToastType } from "../../utils/Toaster";
-import ContextMenu from "../ContextMenu";
-import AssociationUI from "./AssociationUI";
-import DocumentSidebar from "./DocumentSidebar";
-import DocumentToolbar, { BlockAlignmentType, DocumentToolbarRef } from "./DocumentToolbar";
-import EditableText from "./EditableText";
-import { FindHighlightable, FindTabs, HighlightSpan, TabSpan } from "./decorators";
+  setIsLoaderVisible,
+  setIsSubscriptionFormOpen,
+} from "../../stores/uiSlice";
+
+import { ContextMenu } from "../ContextMenu";
+import { AssociationUI } from "./AssociationUI";
+import { DocumentSidebar } from "./DocumentSidebar";
+import { DocumentToolbar, DocumentToolbarRef } from "./DocumentToolbar";
+import { EditableText } from "./EditableText";
+import {
+  FindHighlightable,
+  FindTabs,
+  HighlightSpan,
+  TabSpan,
+} from "./decorators";
 import docStyles from "./document-editor.module.css";
 import {
   GenerateTabCharacter,
@@ -60,6 +52,24 @@ import {
   documentStyleMap,
   filterAndReduceDBOperations,
 } from "./utilities";
+import { Association, AssociationType } from "../../types/Associations";
+import {
+  DBOperation,
+  DBOperationTask,
+  DBOperationType,
+  DocumentBlocksForServer,
+} from "../../types/DBOperations";
+import {
+  BlockAlignmentType,
+  BlockOrderMap,
+  CharMetadata,
+  DocumentBlockStyle,
+  DocumentTab,
+} from "../../types/Document";
+import { AlertToastType } from "../../types/AlertToasts";
+import { APIError } from "../../types/API";
+import { Chapter } from "../../types/Chapter";
+import { Story } from "../../types/Story";
 
 const DB_OP_INTERVAL = 5000;
 
@@ -78,12 +88,9 @@ const getWritingPrompt = () => {
 };
 
 const defaultText = getWritingPrompt();
-
-interface DocumentEditorProps { }
-
 const dbOperationQueue: DBOperation[] = [];
 
-const DocumentEditor = (props: DocumentEditorProps) => {
+export const DocumentEditor = () => {
   const domEditorRef = useRef<Editor>(null);
   const navbarRef = useRef<DocumentToolbarRef>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -103,11 +110,16 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     story_id: selectedStory?.story_id ? selectedStory.story_id : "",
   });
 
-  const [currentRightClickedAssoc, setCurrentRightClickedAssoc] = useState<Association | null>(null);
+  const [currentRightClickedAssoc, setCurrentRightClickedAssoc] =
+    useState<Association | null>(null);
   const [associationWindowOpen, setAssociationWindowOpen] = useState(false);
-  const [viewingAssociationIdx, setViewingAssociationIdx] = useState<number | null>(null);
-  const [selectedContextMenuVisible, setSelectedContextMenuVisible] = useState(false);
-  const [associationContextMenuVisible, setAssociationContextMenuVisible] = useState(false);
+  const [viewingAssociationIdx, setViewingAssociationIdx] = useState<
+    number | null
+  >(null);
+  const [selectedContextMenuVisible, setSelectedContextMenuVisible] =
+    useState(false);
+  const [associationContextMenuVisible, setAssociationContextMenuVisible] =
+    useState(false);
   const [selectedContextMenuX, setSelectedContextMenuX] = useState(0);
   const [selectedContextMenuY, setSelectedContextMenuY] = useState(0);
   const [associationContextMenuX, setAssociationContextMenuX] = useState(0);
@@ -121,13 +133,22 @@ const DocumentEditor = (props: DocumentEditorProps) => {
 
   let lastRetrievedBlockKey: string | null = null;
 
-  const handleAssociationClick = (association: Association, event: React.MouseEvent) => {
-    const idx = associations.findIndex(ass => ass.association_id === association.association_id);
+  const handleAssociationClick = (
+    association: Association,
+    _event: React.MouseEvent
+  ) => {
+    const idx = associations.findIndex(
+      (ass) => ass.association_id === association.association_id
+    );
     setViewingAssociationIdx(idx);
     setAssociationWindowOpen(true);
   };
 
-  const handleAssociationContextMenu = (name: string, type: AssociationType, event: React.MouseEvent) => {
+  const handleAssociationContextMenu = (
+    name: string,
+    type: AssociationType,
+    event: React.MouseEvent
+  ) => {
     event.preventDefault();
     event.stopPropagation();
     setSelectedContextMenuVisible(false);
@@ -141,7 +162,11 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     const decorators = new Array(associations.length);
     associations.forEach((association) => {
       decorators.push({
-        strategy: FindHighlightable(association.association_type, association.association_name, associations),
+        strategy: FindHighlightable(
+          association.association_type,
+          association.association_name,
+          associations
+        ),
         component: HighlightSpan,
         props: {
           association: association,
@@ -157,7 +182,9 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     return new CompositeDecorator(decorators);
   };
 
-  const [editorState, setEditorState] = React.useState(() => EditorState.createEmpty(createDecorators()));
+  const [editorState, setEditorState] = React.useState(() =>
+    EditorState.createEmpty(createDecorators())
+  );
 
   const getAllAssociations = async () => {
     if (selectedStory) {
@@ -187,7 +214,9 @@ const DocumentEditor = (props: DocumentEditorProps) => {
             }
           });
           setAssociationsLoaded(true);
-          const newEditorState = EditorState.set(editorState, { decorator: createDecorators() });
+          const newEditorState = EditorState.set(editorState, {
+            decorator: createDecorators(),
+          });
           setEditorState(newEditorState);
         })
         .catch((error) => {
@@ -237,16 +266,30 @@ const DocumentEditor = (props: DocumentEditorProps) => {
         });
         const contentStateWithEntity = content.createEntity("TAB", "IMMUTABLE");
         const entityKey = contentStateWithEntity.getLastCreatedEntityKey();
-        content = Modifier.replaceText(contentStateWithEntity, tabSelection, tabText, undefined, entityKey);
+        content = Modifier.replaceText(
+          contentStateWithEntity,
+          tabSelection,
+          tabText,
+          undefined,
+          entityKey
+        );
       });
     }
     return content;
   };
 
-  const getBatchedStoryBlocks = async (startKey: string, scrollToTop: boolean) => {
+  const getBatchedStoryBlocks = async (
+    startKey: string,
+    scrollToTop: boolean
+  ) => {
     if (selectedStory) {
       return fetch(
-        "/api/stories/" + selectedStory.story_id + "/content?key=" + startKey + "&chapter=" + selectedChapter.id
+        "/api/stories/" +
+          selectedStory.story_id +
+          "/content?key=" +
+          startKey +
+          "&chapter=" +
+          selectedChapter.id
       )
         .then((response) => {
           if (response.ok) {
@@ -278,7 +321,9 @@ const DocumentEditor = (props: DocumentEditorProps) => {
                   key: piece.key_id.Value,
                   text: jsonBlock.text ? jsonBlock.text : "",
                   type: jsonBlock.type,
-                  data: jsonBlock.data ? Immutable.Map(jsonBlock.data) : Immutable.Map(),
+                  data: jsonBlock.data
+                    ? Immutable.Map(jsonBlock.data)
+                    : Immutable.Map(),
                 });
                 newBlocks.push(block);
               }
@@ -291,9 +336,14 @@ const DocumentEditor = (props: DocumentEditorProps) => {
           const newContentState = ContentState.createFromBlockArray(newBlocks);
           let contentStateWithStyles = newContentState;
           newContentState.getBlocksAsArray().forEach((block) => {
-            contentStateWithStyles = processBlockData(contentStateWithStyles, block);
+            contentStateWithStyles = processBlockData(
+              contentStateWithStyles,
+              block
+            );
           });
-          setEditorState(EditorState.createWithContent(newContentState, createDecorators()));
+          setEditorState(
+            EditorState.createWithContent(newContentState, createDecorators())
+          );
           if (scrollToTop) {
             if (editorContainerRef.current) {
               editorContainerRef.current.scrollTo(0, 0);
@@ -304,11 +354,15 @@ const DocumentEditor = (props: DocumentEditorProps) => {
         })
         .catch((error) => {
           console.error("fetch story blocks error", error);
-          if (parseInt(error.message) !== 404 && parseInt(error.message) !== 501) {
+          if (
+            parseInt(error.message) !== 404 &&
+            parseInt(error.message) !== 501
+          ) {
             console.error("get story blocks", error, error);
             const newAlert = {
               title: "Error",
-              message: "An error occurred trying to retrieve your content.\nPlease report this.",
+              message:
+                "An error occurred trying to retrieve your content.\nPlease report this.",
               severity: AlertToastType.error,
               open: true,
             };
@@ -342,14 +396,20 @@ const DocumentEditor = (props: DocumentEditorProps) => {
       const op = dbOperationQueue[i];
       switch (op.type) {
         case DBOperationType.delete: {
-          const minifiedOps = filterAndReduceDBOperations(dbOperationQueue, op.type, i);
+          const minifiedOps = filterAndReduceDBOperations(
+            dbOperationQueue,
+            op.type,
+            i
+          );
           try {
             await deleteBlocksFromServer(minifiedOps, op.storyID, op.chapterID);
             retryCount = 0;
           } catch (error: any) {
             if (isAPIError(error)) {
               if (error.retry) {
-                console.error("server response " + error.statusCode + ", retrying...");
+                console.error(
+                  "server response " + error.statusCode + ", retrying..."
+                );
                 const retryOp: DBOperation = {
                   type: DBOperationType.delete,
                   ops: minifiedOps,
@@ -365,14 +425,20 @@ const DocumentEditor = (props: DocumentEditorProps) => {
           break;
         }
         case DBOperationType.save: {
-          const minifiedOps = filterAndReduceDBOperations(dbOperationQueue, op.type, i);
+          const minifiedOps = filterAndReduceDBOperations(
+            dbOperationQueue,
+            op.type,
+            i
+          );
           try {
             await saveBlocksToServer(minifiedOps, op.storyID, op.chapterID);
             retryCount = 0;
           } catch (error: any) {
             if (isAPIError(error)) {
               if (error.retry) {
-                console.error("server response " + error.statusCode + ", retrying...");
+                console.error(
+                  "server response " + error.statusCode + ", retrying..."
+                );
                 const retryOp: DBOperation = {
                   type: DBOperationType.save,
                   ops: minifiedOps,
@@ -394,13 +460,15 @@ const DocumentEditor = (props: DocumentEditorProps) => {
               dbOperationQueue.splice(i, 1);
               retryCount = 0;
             }
-          } catch (error: any) {
-            if (error as APIError) {
-              if (error.retry) {
-                console.error("server response " + error.statusCode + ", retrying...");
-                retryArray.push(dbOperationQueue[i]);
-                retryCount++;
-              }
+          } catch (error: unknown) {
+            const apiError = error as APIError;
+            if (apiError && apiError.retry) {
+              console.error(
+                "server response " + apiError.statusCode + ", retrying..."
+              );
+              retryArray.push(dbOperationQueue[i]);
+              retryCount++;
+
               dbOperationQueue.splice(i, 1);
             }
           }
@@ -428,8 +496,12 @@ const DocumentEditor = (props: DocumentEditorProps) => {
   const setFocusAndRestoreCursor = () => {
     const selection = editorState.getSelection();
     const newSelection = selection.merge({
-      anchorOffset: selection.getIsBackward() ? selection.getAnchorOffset() : selection.getFocusOffset(),
-      focusOffset: selection.getIsBackward() ? selection.getAnchorOffset() : selection.getFocusOffset(),
+      anchorOffset: selection.getIsBackward()
+        ? selection.getAnchorOffset()
+        : selection.getFocusOffset(),
+      focusOffset: selection.getIsBackward()
+        ? selection.getAnchorOffset()
+        : selection.getFocusOffset(),
     });
     if (domEditorRef.current) {
       domEditorRef.current.focus();
@@ -438,7 +510,9 @@ const DocumentEditor = (props: DocumentEditorProps) => {
   };
 
   const handleScroll = (e: React.UIEvent<HTMLElement>) => {
-    const bottom = e.currentTarget.scrollHeight - e.currentTarget.scrollTop === e.currentTarget.clientHeight;
+    const bottom =
+      e.currentTarget.scrollHeight - e.currentTarget.scrollTop ===
+      e.currentTarget.clientHeight;
     if (bottom && lastRetrievedBlockKey !== null) {
       getBatchedStoryBlocks(lastRetrievedBlockKey, false);
     }
@@ -469,7 +543,12 @@ const DocumentEditor = (props: DocumentEditorProps) => {
       clearInterval(processInterval);
       window.removeEventListener("unload", processDBQueue);
     };
-  }, [isLoggedIn, selectedStory?.story_id, lastRetrievedBlockKey, blocksLoaded]);
+  }, [
+    isLoggedIn,
+    selectedStory?.story_id,
+    lastRetrievedBlockKey,
+    blocksLoaded,
+  ]);
 
   useEffect(() => {
     if (associationsLoaded && blocksLoaded) {
@@ -493,17 +572,23 @@ const DocumentEditor = (props: DocumentEditorProps) => {
           let index = 0;
           blockList.forEach((block) => {
             if (block) {
-              params.blocks.push({ key_id: block.getKey(), place: index.toString() });
+              params.blocks.push({
+                key_id: block.getKey(),
+                place: index.toString(),
+              });
               index++;
             }
           });
-          const response = await fetch("/api/stories/" + selectedStory.story_id + "/orderMap", {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(params),
-          });
+          const response = await fetch(
+            "/api/stories/" + selectedStory.story_id + "/orderMap",
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(params),
+            }
+          );
           if (!response.ok) {
             const error: APIError = {
               statusCode: response.status,
@@ -522,10 +607,14 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     });
   };
 
-  const deleteBlocksFromServer = (ops: DBOperationTask[], storyID: string, chapterID: string) => {
+  const deleteBlocksFromServer = (
+    ops: DBOperationTask[],
+    storyID: string,
+    chapterID: string
+  ) => {
     return new Promise(async (resolve, reject) => {
       try {
-        const params: BlocksForServer = {
+        const params: DocumentBlocksForServer = {
           story_id: storyID,
           chapter_id: chapterID,
           blocks: ops,
@@ -555,10 +644,14 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     });
   };
 
-  const saveBlocksToServer = (ops: DBOperationTask[], storyID: string, chapterID: string) => {
+  const saveBlocksToServer = (
+    ops: DBOperationTask[],
+    storyID: string,
+    chapterID: string
+  ) => {
     return new Promise(async (resolve, reject) => {
       try {
-        const params: BlocksForServer = {
+        const params: DocumentBlocksForServer = {
           story_id: storyID,
           chapter_id: chapterID,
           blocks: ops,
@@ -588,18 +681,23 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     });
   };
 
-  const updateAssociationsOnServer = (associations: Association[]): Promise<Association[]> => {
+  const updateAssociationsOnServer = (
+    associations: Association[]
+  ): Promise<Association[]> => {
     return new Promise(async (resolve, reject) => {
       try {
         if (selectedStory) {
           console.log("saving associations", associations);
-          const response = await fetch("/api/stories/" + selectedStory.story_id + "/associations", {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(associations),
-          });
+          const response = await fetch(
+            "/api/stories/" + selectedStory.story_id + "/associations",
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(associations),
+            }
+          );
           if (!response.ok) {
             reject("SERVER ERROR SAVING BLOCK: " + response);
           }
@@ -611,18 +709,23 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     });
   };
 
-  const saveAssociationsToServer = (associations: Association[]): Promise<Association[]> => {
+  const saveAssociationsToServer = (
+    associations: Association[]
+  ): Promise<Association[]> => {
     return new Promise(async (resolve, reject) => {
       try {
         if (selectedStory) {
           console.log("creating associations", associations);
-          const response = await fetch("/api/stories/" + selectedStory.story_id + "/associations", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(associations),
-          });
+          const response = await fetch(
+            "/api/stories/" + selectedStory.story_id + "/associations",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(associations),
+            }
+          );
           if (!response.ok) {
             if (response.status === 401) {
               const alertFunction = {
@@ -655,13 +758,16 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     return new Promise(async (resolve, reject) => {
       try {
         if (selectedStory) {
-          const response = await fetch("/api/stories/" + selectedStory.story_id + "/associations", {
-            method: "DELETE",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(associations),
-          });
+          const response = await fetch(
+            "/api/stories/" + selectedStory.story_id + "/associations",
+            {
+              method: "DELETE",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(associations),
+            }
+          );
           if (!response.ok) {
             reject("SERVER ERROR SAVING BLOCK: " + response);
           }
@@ -673,7 +779,12 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     });
   };
 
-  const prepBlocksForSave = (content: ContentState, blocks: ContentBlock[], storyID: string, chapterID: string) => {
+  const prepBlocksForSave = (
+    content: ContentState,
+    blocks: ContentBlock[],
+    storyID: string,
+    chapterID: string
+  ) => {
     blocks.forEach((block) => {
       const key = block.getKey();
       const index = content
@@ -712,14 +823,22 @@ const DocumentEditor = (props: DocumentEditorProps) => {
           blocksToPrep.push(content.getBlockForKey(key));
         });
         setEditorState(newEditorState);
-        prepBlocksForSave(content, blocksToPrep, selectedStory.story_id, selectedChapter.id);
+        prepBlocksForSave(
+          content,
+          blocksToPrep,
+          selectedStory.story_id,
+          selectedChapter.id
+        );
       }
     }
 
     return getDefaultKeyBinding(event);
   };
 
-  const formatBlankAssociation = (type: AssociationType, name: string): Association => {
+  const formatBlankAssociation = (
+    type: AssociationType,
+    name: string
+  ): Association => {
     return {
       association_id: "",
       association_type: type,
@@ -735,16 +854,26 @@ const DocumentEditor = (props: DocumentEditorProps) => {
   };
 
   const onAssociationEdit = async (association: Association) => {
-    const storedAssociation: Association[] = await updateAssociationsOnServer([association]);
+    const storedAssociation: Association[] = await updateAssociationsOnServer([
+      association,
+    ]);
     if (storedAssociation) {
-      const existingIndex = associations.findIndex((assoc) => assoc.association_id === association.association_id);
-      storedAssociation[0].portrait = storedAssociation[0].portrait + "?date=" + Date.now();
+      const existingIndex = associations.findIndex(
+        (assoc) => assoc.association_id === association.association_id
+      );
+      storedAssociation[0].portrait =
+        storedAssociation[0].portrait + "?date=" + Date.now();
       associations[existingIndex] = storedAssociation[0];
-      setEditorState(EditorState.set(editorState, { decorator: createDecorators() }));
+      setEditorState(
+        EditorState.set(editorState, { decorator: createDecorators() })
+      );
     }
   };
 
-  const handleMenuItemClick = async (event: React.MouseEvent, type: AssociationType) => {
+  const handleMenuItemClick = async (
+    _event: React.MouseEvent,
+    type: AssociationType
+  ) => {
     setSelectedContextMenuVisible(false);
     const text = GetSelectedText(editorState);
     if (text.length) {
@@ -752,11 +881,15 @@ const DocumentEditor = (props: DocumentEditorProps) => {
       const newAssociation = formatBlankAssociation(type, text);
       const withSelection = setFocusAndRestoreCursor();
       try {
-        const storedAssociation = await saveAssociationsToServer([newAssociation]);
+        const storedAssociation = await saveAssociationsToServer([
+          newAssociation,
+        ]);
         newAssociation.portrait = storedAssociation[0].portrait;
         newAssociation.association_id = storedAssociation[0].association_id;
         associations.push(newAssociation);
-        const newEditorState = EditorState.set(withSelection, { decorator: createDecorators() });
+        const newEditorState = EditorState.set(withSelection, {
+          decorator: createDecorators(),
+        });
         setEditorState(newEditorState);
       } catch (e) {
         console.error(e);
@@ -768,14 +901,17 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     if (currentRightClickedAssoc) {
       const ind = associations.findIndex((assoc) => {
         return (
-          assoc.association_type === currentRightClickedAssoc.association_type &&
+          assoc.association_type ===
+            currentRightClickedAssoc.association_type &&
           assoc.association_name === currentRightClickedAssoc.association_name
         );
       });
       const deleteMe = associations[ind];
       associations.splice(ind, 1);
       const withSelection = setFocusAndRestoreCursor();
-      const newEditorState = EditorState.set(withSelection, { decorator: createDecorators() });
+      const newEditorState = EditorState.set(withSelection, {
+        decorator: createDecorators(),
+      });
       try {
         deleteAssociationsFromServer([deleteMe]);
       } catch (e) {
@@ -822,10 +958,15 @@ const DocumentEditor = (props: DocumentEditorProps) => {
       const selectedKeys = GetSelectedBlockKeys(newEditorState);
       const updatedBlocks: ContentBlock[] = [];
       selectedKeys.forEach((key: string) => {
-        const modifiedBlock = newEditorState.getCurrentContent().getBlockForKey(key);
+        const modifiedBlock = newEditorState
+          .getCurrentContent()
+          .getBlockForKey(key);
         const newStyles: DocumentBlockStyle[] = [];
         for (const entry in documentStyleMap) {
-          const styleDataByType: DocumentBlockStyle[] = GetBlockStyleDataByType(modifiedBlock, entry);
+          const styleDataByType: DocumentBlockStyle[] = GetBlockStyleDataByType(
+            modifiedBlock,
+            entry
+          );
           newStyles.push(...styleDataByType);
         }
         newStyles.forEach((subStyle) => {
@@ -837,26 +978,52 @@ const DocumentEditor = (props: DocumentEditorProps) => {
           });
           const styleName = subStyle.style ? subStyle.style : subStyle.name;
           if (newEditorState.getCurrentInlineStyle().has(styleName)) {
-            newContent = Modifier.mergeBlockData(newContent, styleState, Immutable.Map([["STYLES", newStyles]]));
+            newContent = Modifier.mergeBlockData(
+              newContent,
+              styleState,
+              Immutable.Map([["STYLES", newStyles]])
+            );
           } else {
             const dataToRemove = Immutable.Map([[styleName, undefined]]);
             const existingData = modifiedBlock.getData();
-            const updatedData = existingData.delete("STYLES").mergeDeep({ STYLES: newStyles });
+            const updatedData = existingData
+              .delete("STYLES")
+              .mergeDeep({ STYLES: newStyles });
             const blockData = updatedData.merge(dataToRemove);
-            const updatedContent = Modifier.mergeBlockData(newContent, originalSelectionState, blockData);
+            const updatedContent = Modifier.mergeBlockData(
+              newContent,
+              originalSelectionState,
+              blockData
+            );
             updatedBlocks.push(updatedContent.getBlockForKey(key));
             newContent = updatedContent;
           }
         });
         if (!newStyles.length) {
-          newContent = Modifier.setBlockData(newContent, newEditorState.getSelection(), Immutable.Map());
+          newContent = Modifier.setBlockData(
+            newContent,
+            newEditorState.getSelection(),
+            Immutable.Map()
+          );
         }
         updatedBlocks.push(newContent.getBlockForKey(key));
       });
-      const updatedEditorState = EditorState.push(newEditorState, newContent, "change-block-data");
-      const updatedEditorStateWithSelection = EditorState.forceSelection(updatedEditorState, originalSelectionState);
+      const updatedEditorState = EditorState.push(
+        newEditorState,
+        newContent,
+        "change-block-data"
+      );
+      const updatedEditorStateWithSelection = EditorState.forceSelection(
+        updatedEditorState,
+        originalSelectionState
+      );
       setEditorState(updatedEditorStateWithSelection);
-      prepBlocksForSave(newContent, updatedBlocks, selectedStory.story_id, selectedChapter.id);
+      prepBlocksForSave(
+        newContent,
+        updatedBlocks,
+        selectedStory.story_id,
+        selectedChapter.id
+      );
     }
   };
 
@@ -869,7 +1036,9 @@ const DocumentEditor = (props: DocumentEditorProps) => {
         const postSelection = new SelectionState({
           focusKey: selection.getFocusKey(),
           anchorKey: selection.getAnchorKey(),
-          focusOffset: selection.isCollapsed() ? selection.getFocusOffset() - 1 : selection.getFocusOffset(),
+          focusOffset: selection.isCollapsed()
+            ? selection.getFocusOffset() - 1
+            : selection.getFocusOffset(),
           anchorOffset: selection.getAnchorOffset(),
         });
         selectedKeys.forEach((key: string) => {
@@ -887,7 +1056,11 @@ const DocumentEditor = (props: DocumentEditorProps) => {
               selection,
               Immutable.Map([["ENTITY_TABS", tabs]])
             );
-            newEditorState = EditorState.push(newEditorState, contentStateWithNewData, "change-block-data");
+            newEditorState = EditorState.push(
+              newEditorState,
+              contentStateWithNewData,
+              "change-block-data"
+            );
           }
         });
       }
@@ -905,7 +1078,10 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     return "not-handled";
   };
 
-  const adjustBlockDataPositions = (newEditorState: EditorState, newBlock: ContentBlock) => {
+  const adjustBlockDataPositions = (
+    newEditorState: EditorState,
+    newBlock: ContentBlock
+  ) => {
     let content = newEditorState.getCurrentContent();
     const styleData = newBlock.getData().getIn(["STYLES"]);
     const uniqueStyles = new Map();
@@ -922,20 +1098,31 @@ const DocumentEditor = (props: DocumentEditorProps) => {
         });
       });
       const styles = Array.from(uniqueStyles.values());
-      content = Modifier.setBlockData(content, newEditorState.getSelection(), Immutable.Map([["STYLES", styles]]));
+      content = Modifier.setBlockData(
+        content,
+        newEditorState.getSelection(),
+        Immutable.Map([["STYLES", styles]])
+      );
       // content = Modifier.mergeBlockData(content, newEditorState.getSelection(), Immutable.Map([["STYLES", styles]]));
     }
 
     const tabData = newBlock.getData().getIn(["ENTITY_TABS"]);
     if (tabData) {
       const tabs = GetEntityData(newBlock, "TAB", []);
-      content = Modifier.mergeBlockData(content, newEditorState.getSelection(), Immutable.Map([["ENTITY_TABS", tabs]]));
+      content = Modifier.mergeBlockData(
+        content,
+        newEditorState.getSelection(),
+        Immutable.Map([["ENTITY_TABS", tabs]])
+      );
     }
 
     return EditorState.push(newEditorState, content, "change-block-data");
   };
 
-  const updateEditorState = (newEditorState: EditorState, isPasteAction?: boolean) => {
+  const updateEditorState = (
+    newEditorState: EditorState,
+    isPasteAction?: boolean
+  ) => {
     if (!selectedStory) {
       return;
     }
@@ -948,7 +1135,9 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     setSelectedContextMenuVisible(false);
     setAssociationContextMenuVisible(false);
     const selection = newEditorState.getSelection();
-    const block = newEditorState.getCurrentContent().getBlockForKey(selection.getFocusKey());
+    const block = newEditorState
+      .getCurrentContent()
+      .getBlockForKey(selection.getFocusKey());
     if (block && navbarRef.current) {
       const navbar = navbarRef.current;
       for (const entry in documentStyleMap) {
@@ -965,14 +1154,18 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     }
     const data = block.getData();
     if (navbarRef.current) {
-      const alignment = data.has("ALIGNMENT") ? data.getIn(["ALIGNMENT"]).toLowerCase() : "left";
+      const alignment = data.has("ALIGNMENT")
+        ? data.getIn(["ALIGNMENT"]).toLowerCase()
+        : "left";
       if (alignment !== navbarRef.current.getCurrentBlockAlignment()) {
         navbarRef.current.updateNavButtons("alignment", alignment);
       }
     }
 
     // Cursor has moved but no text changes detected
-    if (editorState.getCurrentContent() === newEditorState.getCurrentContent()) {
+    if (
+      editorState.getCurrentContent() === newEditorState.getCurrentContent()
+    ) {
       setEditorState(newEditorState);
       return;
     }
@@ -1020,10 +1213,15 @@ const DocumentEditor = (props: DocumentEditorProps) => {
             // the order of all blocks
             resyncRequired = true;
           }
-          newEditorState = InsertTab(newEditorState, SelectionState.createEmpty(newBlockKey));
+          newEditorState = InsertTab(
+            newEditorState,
+            SelectionState.createEmpty(newBlockKey)
+          );
           blocksToSave.push(newBlockKey);
         }
-        const selectionKey = selection.getIsBackward() ? selection.getFocusKey() : selection.getAnchorKey();
+        const selectionKey = selection.getIsBackward()
+          ? selection.getFocusKey()
+          : selection.getAnchorKey();
         if (selectionKey === newBlockKey && oldBlock) {
           if (newBlock.getText().length !== oldBlock.getText().length) {
             newEditorState = adjustBlockDataPositions(newEditorState, newBlock);
@@ -1049,7 +1247,9 @@ const DocumentEditor = (props: DocumentEditorProps) => {
         ops: [],
       };
       blocksToDelete.forEach((blockKey) => {
-        const block = newEditorState.getCurrentContent().getBlockForKey(blockKey);
+        const block = newEditorState
+          .getCurrentContent()
+          .getBlockForKey(blockKey);
         deleteOp.ops.push({ key_id: blockKey, chunk: block, place: "0" });
       });
 
@@ -1062,7 +1262,12 @@ const DocumentEditor = (props: DocumentEditorProps) => {
       blocksToSave.forEach((key) => {
         blocksToPrep.push(updatedContent.getBlockForKey(key));
       });
-      prepBlocksForSave(updatedContent, blocksToPrep, selectedStory.story_id, selectedChapter.id);
+      prepBlocksForSave(
+        updatedContent,
+        blocksToPrep,
+        selectedStory.story_id,
+        selectedChapter.id
+      );
     }
 
     if (resyncRequired) {
@@ -1083,13 +1288,17 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     if (blockMap.size > 100) {
       const newAlert = {
         title: "Oh, jeez",
-        message: "You're pasting a lot of paragraphs. This may take awhile to process...",
+        message:
+          "You're pasting a lot of paragraphs. This may take awhile to process...",
         severity: AlertToastType.warning,
         open: true,
         timeout: 10000,
       };
       dispatch(setAlert(newAlert));
-      console.log("Large paste operation detected. Total paragraphs: ", blockMap.size);
+      console.log(
+        "Large paste operation detected. Total paragraphs: ",
+        blockMap.size
+      );
       dispatch(setIsLoaderVisible(true));
     }
     const newState = Modifier.replaceWithFragment(
@@ -1097,7 +1306,10 @@ const DocumentEditor = (props: DocumentEditorProps) => {
       editorState.getSelection(),
       blockMap
     );
-    updateEditorState(EditorState.push(editorState, newState, "insert-fragment"), true);
+    updateEditorState(
+      EditorState.push(editorState, newState, "insert-fragment"),
+      true
+    );
     dispatch(setIsLoaderVisible(false));
     return "handled";
   };
@@ -1111,9 +1323,13 @@ const DocumentEditor = (props: DocumentEditorProps) => {
   const getBlockStyles = (contentBlock: ContentBlock) => {
     const data = contentBlock.getData();
     let classStr = "";
-    const alignment = data.has("ALIGNMENT") ? data.get("ALIGNMENT").toLowerCase() : "left";
+    const alignment = data.has("ALIGNMENT")
+      ? data.get("ALIGNMENT").toLowerCase()
+      : "left";
     classStr += alignment;
-    const lineHeight = data.getIn(["LINE_HEIGHT"]) ? data.getIn(["LINE_HEIGHT"]) : "LINEHEIGHT_DOUBLE";
+    const lineHeight = data.getIn(["LINE_HEIGHT"])
+      ? data.getIn(["LINE_HEIGHT"])
+      : "LINEHEIGHT_DOUBLE";
     classStr += " " + lineHeight;
     classStr += " content-block";
     return classStr;
@@ -1132,8 +1348,15 @@ const DocumentEditor = (props: DocumentEditorProps) => {
         );
         blocksToPrep.push(newContentState.getBlockForKey(key));
       });
-      setEditorState(EditorState.push(editorState, newContentState, "change-block-data"));
-      prepBlocksForSave(newContentState, blocksToPrep, selectedStory.story_id, selectedChapter.id);
+      setEditorState(
+        EditorState.push(editorState, newContentState, "change-block-data")
+      );
+      prepBlocksForSave(
+        newContentState,
+        blocksToPrep,
+        selectedStory.story_id,
+        selectedChapter.id
+      );
     }
   };
 
@@ -1148,7 +1371,8 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     collapseSidebar(!collapsed);
   };
 
-  const blankEditor = () => setEditorState(EditorState.createEmpty(createDecorators()));
+  const blankEditor = () =>
+    setEditorState(EditorState.createEmpty(createDecorators()));
 
   const onStoryTitleEdit = async (event: React.SyntheticEvent) => {
     if (selectedStory) {
@@ -1163,15 +1387,19 @@ const DocumentEditor = (props: DocumentEditorProps) => {
             formData.append(key, updatedStory[key]);
           }
         }
-        const response = await fetch("/api/stories/" + updatedStory.story_id + "/details", {
-          method: "PUT",
-          body: formData,
-        });
+        const response = await fetch(
+          "/api/stories/" + updatedStory.story_id + "/details",
+          {
+            method: "PUT",
+            body: formData,
+          }
+        );
         if (!response.ok) {
           console.error(response.body);
           const newAlert = {
             title: "Error",
-            message: "There was an error updating your title. Please report this.",
+            message:
+              "There was an error updating your title. Please report this.",
             severity: AlertToastType.error,
             open: true,
             timeout: 6000,
@@ -1187,7 +1415,10 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     if (selectedStory) {
       const target = event.target as HTMLInputElement;
       if (target.value !== selectedChapter.title) {
-        if (target.value !== selectedChapter.title && target.value.trim() !== "") {
+        if (
+          target.value !== selectedChapter.title &&
+          target.value.trim() !== ""
+        ) {
           const updatedChapter = { ...selectedChapter };
           updatedChapter.title = target.value;
           setSelectedChapter(updatedChapter);
@@ -1201,18 +1432,25 @@ const DocumentEditor = (props: DocumentEditorProps) => {
               return;
             }
           });
-          const response = await fetch("/api/stories/" + selectedStory.story_id + "/chapters/" + selectedChapter.id, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(updatedChapter),
-          });
+          const response = await fetch(
+            "/api/stories/" +
+              selectedStory.story_id +
+              "/chapters/" +
+              selectedChapter.id,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(updatedChapter),
+            }
+          );
           if (!response.ok) {
             console.error(response.body);
             const newAlert = {
               title: "Error",
-              message: "There was an error updating your chapter. Please report this.",
+              message:
+                "There was an error updating your chapter. Please report this.",
               severity: AlertToastType.error,
               open: true,
               timeout: 6000,
@@ -1227,17 +1465,24 @@ const DocumentEditor = (props: DocumentEditorProps) => {
 
   const getChapterDetails = async () => {
     if (selectedStory) {
-      const response = await fetch("/api/stories/" + selectedStory.story_id + "/chapters/" + selectedChapter.id, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await fetch(
+        "/api/stories/" +
+          selectedStory.story_id +
+          "/chapters/" +
+          selectedChapter.id,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
       if (!response.ok) {
         console.error(response.body);
         const newAlert = {
           title: "Error",
-          message: "There was an error retrieving your chapter. Please report this.",
+          message:
+            "There was an error retrieving your chapter. Please report this.",
           severity: AlertToastType.error,
           open: true,
           timeout: 6000,
@@ -1311,10 +1556,16 @@ const DocumentEditor = (props: DocumentEditorProps) => {
       />
       <div className={docStyles.titleInfo}>
         <h2>
-          <EditableText textValue={selectedStory?.title as string} onTextChange={onStoryTitleEdit} />
+          <EditableText
+            textValue={selectedStory?.title as string}
+            onTextChange={onStoryTitleEdit}
+          />
         </h2>
         <h3>
-          <EditableText textValue={selectedChapter.title} onTextChange={onChapterTitleEdit} />
+          <EditableText
+            textValue={selectedChapter.title}
+            onTextChange={onChapterTitleEdit}
+          />
         </h3>
       </div>
       <DocumentToolbar
@@ -1335,8 +1586,9 @@ const DocumentEditor = (props: DocumentEditorProps) => {
         className={docStyles.editorContainer}
         style={{ fontFamily: activeFont }}
         onClick={setFocus}
-        onScroll={handleScroll}>
-        <div style={{ height: '100%', overflowY: 'auto', maxHeight: '100%' }}>
+        onScroll={handleScroll}
+      >
+        <div style={{ height: "100%", overflowY: "auto", maxHeight: "100%" }}>
           <div className={docStyles.editorBG}>
             <Editor
               placeholder={defaultText}
@@ -1382,8 +1634,3 @@ const DocumentEditor = (props: DocumentEditorProps) => {
     </div>
   );
 };
-
-export default DocumentEditor;
-function replaceCharacters(newEditorState: EditorState): EditorState {
-  throw new Error("Function not implemented.");
-}

@@ -9,7 +9,9 @@ interface AssociationTooltipProps {
   children: ReactElement;
 }
 
-const AssociationTooltip: React.FC<AssociationTooltipProps> = (props) => {
+export const AssociationTooltip: React.FC<AssociationTooltipProps> = (
+  props
+) => {
   const [portrait, setPortrait] = useState(
     "/img/default_association_portrait.jpg"
   );
@@ -54,5 +56,3 @@ const AssociationTooltip: React.FC<AssociationTooltipProps> = (props) => {
     </Tooltip>
   );
 };
-
-export default AssociationTooltip;

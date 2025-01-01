@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import MenuItem, { MenuItemEntry } from "./MenuItem";
+import { MenuItem } from "./MenuItem";
 import styles from "./custom-context.module.css";
+import { MenuItemEntry } from "../../types/MenuItemEntry";
 
 interface ContextMenuProps {
   name: string;
@@ -10,7 +11,7 @@ interface ContextMenuProps {
   items: MenuItemEntry[];
 }
 
-const ContextMenu = (props: ContextMenuProps) => {
+export const ContextMenu = (props: ContextMenuProps) => {
   const [visible, setVisible] = useState(false);
   const [inlineStyle, setInlineStyle] = useState({
     display: "none",
@@ -47,5 +48,3 @@ const ContextMenu = (props: ContextMenuProps) => {
     </div>
   );
 };
-
-export default ContextMenu;

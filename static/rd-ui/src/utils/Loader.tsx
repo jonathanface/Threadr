@@ -3,7 +3,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import { TypedUseSelectorHook, useSelector } from "react-redux";
 import { RootState } from "../stores/store";
 
-const Loader = () => {
+export const Loader = () => {
   const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
   const isLoaderVisible = useAppSelector((state) => state.ui.isLoaderVisible);
   return (
@@ -18,4 +18,3 @@ const Loader = () => {
     </div>
   );
 };
-export default Loader;

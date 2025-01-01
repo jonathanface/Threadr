@@ -4,8 +4,7 @@ import React, { useEffect, useState } from "react";
 import { FormGroup, TextField } from "@mui/material";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
-import { Association } from "../../types";
-import PortraitDropper from "../PortraitDropper";
+import { PortraitDropper } from "../PortraitDropper";
 import styles from "./association-ui.module.css";
 import { UCWords } from "./utilities";
 import {
@@ -15,6 +14,7 @@ import {
   EditorState,
 } from "draft-js";
 import { FindHighlightable, HighlightSpan } from "./decorators";
+import { Association } from "../../types/Associations";
 
 interface AssociationProps {
   associations: Association[];
@@ -25,8 +25,8 @@ interface AssociationProps {
   storyID: string;
   open: boolean;
 }
-//const Document: React.FC<DocumentProps> = () => {
-const AssociationUI: React.FC<AssociationProps> = (props) => {
+
+export const AssociationUI: React.FC<AssociationProps> = (props) => {
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [name, setName] = useState("");
   const [aliases, setAliases] = useState("");
@@ -311,5 +311,3 @@ const AssociationUI: React.FC<AssociationProps> = (props) => {
     </Backdrop>
   );
 };
-
-export default AssociationUI;

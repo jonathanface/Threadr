@@ -1,32 +1,33 @@
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { TypedUseSelectorHook } from "react-redux";
 import { useDispatch, useSelector } from "react-redux";
 import "./css/main.css";
-import ConfigPanelModal from "./sections/ConfigPanel";
-import CreateNewStoryModal from "./sections/CreateNewStoryModal";
-import DocumentEditor from "./sections/DocumentEditor";
-import EditSeriesModal from "./sections/EditSeriesModal";
-import EditStoryModal from "./sections/EditStoryModal";
-import LoginPanelModal from "./sections/LoginPanelModal";
-import SplashPage from "./sections/SplashPage";
-import StoryAndSeriesListing from "./sections/StoryAndSeriesListing";
-import Subscribe from "./sections/Subscribe";
-import UserMenu from "./sections/UserMenu";
+import { ConfigPanelModal } from "./sections/ConfigPanel";
+import { CreateNewStoryModal } from "./sections/CreateNewStoryModal";
+import { DocumentEditor } from "./sections/DocumentEditor";
+import { EditSeriesModal } from "./sections/EditSeriesModal";
+import { EditStoryModal } from "./sections/EditStoryModal";
+import { LoginPanelModal } from "./sections/LoginPanelModal";
+import { SplashPage } from "./sections/SplashPage";
+import { StoryAndSeriesListing } from "./sections/StoryAndSeriesListing";
+import { Subscribe } from "./sections/Subscribe";
+import { UserMenu } from "./sections/UserMenu";
 import { setAlert } from "./stores/alertSlice";
 import type { AppDispatch, RootState } from "./stores/store";
 import { setSelectedStory } from "./stores/storiesSlice";
 import { setIsLoaderVisible } from "./stores/uiSlice";
 import { flipLoggedInState, setUserDetails } from "./stores/userSlice";
-import Toaster, {
+import { Toaster } from "./utils/Toaster";
+import {
   AlertCommandType,
   AlertFunctionCall,
   AlertToast,
   AlertToastType,
-} from "./utils/Toaster";
+} from "./types/AlertToasts";
 
-const Threadr = () => {
+export const Threadr = () => {
   const [isLoading, setIsLoading] = useState(true);
   const stripeKey: string = import.meta.env.REACT_APP_STRIPE_KEY ?? "";
   const [stripe] = useState(() => loadStripe(stripeKey));
@@ -56,7 +57,7 @@ const Threadr = () => {
     }
   };
 
-  const handleNavChange = async () => {
+  const handleNavChange = useCallback(async () => {
     const location = window.location.pathname;
     const splitDirectories = location.split("/");
     if (splitDirectories[1] === "story" && splitDirectories[2].trim() !== "") {
@@ -65,7 +66,7 @@ const Threadr = () => {
     } else {
       dispatch(setSelectedStory(null));
     }
-  };
+  }, [dispatch]);
 
   useEffect(() => {
     dispatch(setIsLoaderVisible(true));
@@ -152,5 +153,3 @@ const Threadr = () => {
     </div>
   );
 };
-
-export default Threadr;

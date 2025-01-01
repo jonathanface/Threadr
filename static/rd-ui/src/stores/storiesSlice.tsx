@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { Story } from "../types";
+import { Story } from "../types/Story";
 
 interface StoriesPanel {
   isCreatingNew: boolean;

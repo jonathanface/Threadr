@@ -11,15 +11,15 @@ import {
   setStandaloneList,
   setStoryBeingEdited,
 } from "../../stores/storiesSlice";
-import PortraitDropper from "../PortraitDropper";
+import { PortraitDropper } from "../PortraitDropper";
 
 import { Autocomplete, TextField } from "@mui/material";
 import { setAlert } from "../../stores/alertSlice";
 import { pushToSeriesList, setSeriesList } from "../../stores/seriesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
-import { Story } from "../../types";
-import { AlertToast, AlertToastType } from "../../utils/Toaster";
 import styles from "./editStory.module.css";
+import { AlertToast, AlertToastType } from "../../types/AlertToasts";
+import { Story } from "../../types/Story";
 
 interface SeriesSelectionOptions {
   label: string;
@@ -41,7 +41,7 @@ interface EditStoryProps {
   story: Story | undefined;
 }
 
-const EditStoryModal = (props: EditStoryProps) => {
+export const EditStoryModal = (props: EditStoryProps) => {
   const useAppDispatch: () => AppDispatch = useDispatch;
   const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
   const dispatch = useAppDispatch();
@@ -97,18 +97,18 @@ const EditStoryModal = (props: EditStoryProps) => {
     setImageName("New Image");
   };
 
-  const getBlobExtension = (mimeType: string) => {
-    switch (mimeType) {
-      case "image/jpeg":
-        return ".jpg";
-      case "image/png":
-        return ".png";
-      case "image/gif":
-        return ".gif";
-      default:
-        return "";
-    }
-  };
+  // const getBlobExtension = (mimeType: string) => {
+  //   switch (mimeType) {
+  //     case "image/jpeg":
+  //       return ".jpg";
+  //     case "image/png":
+  //       return ".png";
+  //     case "image/gif":
+  //       return ".gif";
+  //     default:
+  //       return "";
+  //   }
+  // };
 
   useEffect(() => {
     if (props.story) {
@@ -402,7 +402,7 @@ const EditStoryModal = (props: EditStoryProps) => {
                       }
                     }
                   }}
-                  onChange={(event: React.SyntheticEvent, value: any) => {
+                  onChange={(_event: React.SyntheticEvent, value: any) => {
                     if (
                       value.hasOwnProperty("id") &&
                       value.hasOwnProperty("label")
@@ -435,4 +435,3 @@ const EditStoryModal = (props: EditStoryProps) => {
     </Dialog>
   );
 };
-export default EditStoryModal;

@@ -1,7 +1,7 @@
 import { ContentBlock, ContentState } from "draft-js";
 import React from "react";
-import { Association } from "../../types";
 import AssociationTooltip from "./AssociationTooltip";
+import { Association } from "../../types/Associations";
 
 interface TabSpanProps {
   children: React.ReactElement<any>;
@@ -21,12 +21,18 @@ export const TabSpan: React.FC<TabSpanProps> = (props) => {
 };
 
 export const HighlightSpan: React.FC<HighlightSpanProps> = (props) => {
-  const className = !props.classModifier ? "highlight " + props.association.association_type : "highlight " + props.association.association_type + "-" + props.classModifier;
+  const className = !props.classModifier
+    ? "highlight " + props.association.association_type
+    : "highlight " +
+      props.association.association_type +
+      "-" +
+      props.classModifier;
   return (
     <AssociationTooltip
       name={props.association.association_name}
       description={props.association.short_description}
-      portrait={props.association.portrait}>
+      portrait={props.association.portrait}
+    >
       <span
         onClick={(e) => {
           props.leftClickFunc(props.association, e);
@@ -36,10 +42,15 @@ export const HighlightSpan: React.FC<HighlightSpanProps> = (props) => {
           e.preventDefault();
           e.stopPropagation();
           if (props.rightClickFunc) {
-            props.rightClickFunc(props.decoratedText, props.association.association_type, e);
+            props.rightClickFunc(
+              props.decoratedText,
+              props.association.association_type,
+              e
+            );
           }
         }}
-        className={className}>
+        className={className}
+      >
         {props.children}
       </span>
     </AssociationTooltip>
@@ -57,7 +68,11 @@ const getRegexString = (str: string): string => {
  * @param {function} callback
  * @param {ContentState} contentState
  */
-export const FindHighlightable = (type: string, name: string, associations: Association[]) => {
+export const FindHighlightable = (
+  type: string,
+  name: string,
+  associations: Association[]
+) => {
   return (contentBlock: ContentBlock, callback: Function) => {
     const text = contentBlock.getText();
     associations.forEach((association) => {
@@ -86,7 +101,10 @@ export const FindHighlightable = (type: string, name: string, associations: Asso
           const regex = new RegExp(regexStr, caseFlag);
           let match;
           while ((match = regex.exec(text)) !== null) {
-            const start = match.index + match[0].length - match[0].replace(/^\s+/, "").length;
+            const start =
+              match.index +
+              match[0].length -
+              match[0].replace(/^\s+/, "").length;
             callback(start, start + alias.length);
           }
         }
@@ -95,9 +113,16 @@ export const FindHighlightable = (type: string, name: string, associations: Asso
   };
 };
 
-export const FindTabs = (contentBlock: ContentBlock, callback: any, contentState: ContentState) => {
+export const FindTabs = (
+  contentBlock: ContentBlock,
+  callback: any,
+  contentState: ContentState
+) => {
   contentBlock.findEntityRanges((character) => {
     const entityKey = character.getEntity();
-    return entityKey !== null && contentState.getEntity(entityKey).getType() === "TAB";
+    return (
+      entityKey !== null &&
+      contentState.getEntity(entityKey).getType() === "TAB"
+    );
   }, callback);
 };

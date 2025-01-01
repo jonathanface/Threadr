@@ -14,9 +14,9 @@ import {
   setIsSubscriptionFormOpen,
 } from "../../stores/uiSlice";
 import { flipConfigPanelVisible, setUserDetails } from "../../stores/userSlice";
-import { AlertLink, AlertToast, AlertToastType } from "../../utils/Toaster";
+import { AlertLink, AlertToast, AlertToastType } from "../../types/AlertToasts";
 
-const ConfigPanelModal = () => {
+export const ConfigPanelModal = () => {
   const useAppDispatch: () => AppDispatch = useDispatch;
   const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
   const dispatch = useAppDispatch();
@@ -114,5 +114,3 @@ const ConfigPanelModal = () => {
     </Dialog>
   );
 };
-
-export default ConfigPanelModal;

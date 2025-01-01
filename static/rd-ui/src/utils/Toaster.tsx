@@ -9,40 +9,9 @@ import type { AppDispatch, RootState } from "../stores/store";
 
 import { clearAlert } from "../stores/alertSlice";
 import { setIsSubscriptionFormOpen } from "../stores/uiSlice";
+import { AlertCommandType } from "../types/AlertToasts";
 
-export enum AlertToastType {
-  success = "success",
-  info = "info",
-  warning = "warning",
-  error = "error",
-}
-
-export enum AlertCommandType {
-  subscribe = "subscribe",
-}
-
-export interface AlertLink {
-  url: string;
-  text: string;
-  sameWindow?: boolean;
-}
-
-export interface AlertFunctionCall {
-  type: AlertCommandType;
-  text: string;
-}
-
-export interface AlertToast {
-  message: string;
-  open: boolean;
-  title: string;
-  severity: AlertToastType;
-  timeout?: number;
-  link?: AlertLink;
-  func?: AlertFunctionCall;
-}
-
-const Toaster = () => {
+export const Toaster = () => {
   const useAppDispatch: () => AppDispatch = useDispatch;
   const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
   const dispatch = useAppDispatch();
@@ -111,4 +80,3 @@ const Toaster = () => {
     </Snackbar>
   );
 };
-export default Toaster;

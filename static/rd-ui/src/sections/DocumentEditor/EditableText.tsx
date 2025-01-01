@@ -5,7 +5,7 @@ interface EditableTextProps {
   textValue: string;
   onTextChange: Function;
 }
-const EditableText = (props: EditableTextProps) => {
+export const EditableText = (props: EditableTextProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [textValue, setTextValue] = useState("");
 
@@ -63,4 +63,3 @@ const EditableText = (props: EditableTextProps) => {
     </span>
   );
 };
-export default EditableText;

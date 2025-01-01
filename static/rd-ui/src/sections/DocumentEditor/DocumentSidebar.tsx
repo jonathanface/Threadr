@@ -14,8 +14,9 @@ import { useDispatch } from "react-redux";
 import { setAlert } from "../../stores/alertSlice";
 import { AppDispatch } from "../../stores/store";
 import { setSelectedStory } from "../../stores/storiesSlice";
-import { Chapter, Story } from "../../types";
-import { AlertToastType } from "../../utils/Toaster";
+import { AlertToastType } from "../../types/AlertToasts";
+import { Story } from "../../types/Story";
+import { Chapter } from "../../types/Chapter";
 
 interface DocumentSidebarProps {
   story: Story;
@@ -24,7 +25,7 @@ interface DocumentSidebarProps {
   setDocumentToBlank: () => void;
 }
 
-const DocumentSidebar = (props: DocumentSidebarProps) => {
+export const DocumentSidebar = (props: DocumentSidebarProps) => {
   const useAppDispatch: () => AppDispatch = useDispatch;
   const dispatch = useAppDispatch();
 
@@ -292,5 +293,3 @@ const DocumentSidebar = (props: DocumentSidebarProps) => {
     </Sidebar>
   );
 };
-
-export default DocumentSidebar;

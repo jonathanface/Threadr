@@ -10,12 +10,13 @@ import {
   setStandaloneList,
 } from "../../stores/storiesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
-import { Series, Story } from "../../types";
-import { AlertToast, AlertToastType } from "../../utils/Toaster";
-import StoryBox from "../Story";
+import { StoryBox } from "../Story";
 import styles from "./storyAndSeries.module.css";
+import { AlertToast, AlertToastType } from "../../types/AlertToasts";
+import { Series } from "../../types/Series";
+import { Story } from "../../types/Story";
 
-const StoryAndSeriesListing = () => {
+export const StoryAndSeriesListing = () => {
   const useAppDispatch: () => AppDispatch = useDispatch;
   const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
   const dispatch = useAppDispatch();
@@ -171,5 +172,3 @@ const StoryAndSeriesListing = () => {
     </div>
   );
 };
-
-export default StoryAndSeriesListing;

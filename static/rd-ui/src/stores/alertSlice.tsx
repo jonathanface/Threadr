@@ -1,6 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-
-import { AlertToast, AlertToastType } from "../utils/Toaster";
+import { AlertToast, AlertToastType } from "../types/AlertToasts";
 
 const initialState: AlertToast = {
   message: "",

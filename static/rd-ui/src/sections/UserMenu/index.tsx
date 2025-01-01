@@ -9,19 +9,19 @@ import {
   setIsSubscriptionFormOpen,
 } from "../../stores/uiSlice";
 import {
-  UserDetails,
   flipConfigPanelVisible,
   flipLoggedInState,
   flipLoginPanelVisible,
 } from "../../stores/userSlice";
 import styles from "./user-menu.module.css";
+import { UserDetails } from "../../types/User";
 
 interface UserMenuProps {
   isLoggedIn: boolean;
   userDetails: UserDetails | null;
   isParentLoading: boolean;
 }
-const UserMenu = (props: UserMenuProps) => {
+export const UserMenu = (props: UserMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const useAppDispatch: () => AppDispatch = useDispatch;
   const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
@@ -95,5 +95,3 @@ const UserMenu = (props: UserMenuProps) => {
 
   return <span className={styles.userMenu}>{displayComponent}</span>;
 };
-
-export default UserMenu;
