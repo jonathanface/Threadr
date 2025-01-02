@@ -125,7 +125,7 @@ export const FindHighlightable = (
 
 export const FindTabs = (
   contentBlock: ContentBlock,
-  callback: () => void,
+  callback: (start: number, end: number) => void,
   contentState: ContentState
 ) => {
   contentBlock.findEntityRanges((character) => {
