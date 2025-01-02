@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 
 interface EditableTextProps {
   textValue: string;
-  onTextChange: Function;
+  onTextChange: (event: React.SyntheticEvent<Element, Event>) => void;
 }
 export const EditableText = (props: EditableTextProps) => {
   const [isEditing, setIsEditing] = useState(false);

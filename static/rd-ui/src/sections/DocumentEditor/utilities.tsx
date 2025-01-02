@@ -15,6 +15,7 @@ import {
 
 const TAB_LENGTH = 5;
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const documentStyleMap = {
   strikethrough: {
     textDecoration: "line-through",
@@ -87,6 +88,8 @@ export const GetBlockStyleDataByType = (block: ContentBlock, type: string) => {
 interface OpsHolder {
   [key: string]: DBOperationTask[]; // or a more specific type instead of any
 }
+
+// eslint-disable-next-line react-refresh/only-export-components
 export const filterAndReduceDBOperations = (
   dbOperations: DBOperation[],
   opType: DBOperationType,

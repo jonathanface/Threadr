@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import styles from "./subscribe.module.css";
 
@@ -49,9 +49,9 @@ export const Subscribe = () => {
   const stripe = useStripe();
   const elements = useElements();
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     dispatch(setIsSubscriptionFormOpen(false));
-  };
+  }, [dispatch]);
 
   const confirmCard = async () => {
     setSubscribeError("");
@@ -119,7 +119,7 @@ export const Subscribe = () => {
     }
   };
 
-  const getOrCreateStripeCustomer = async () => {
+  const getOrCreateStripeCustomer = useCallback(async () => {
     try {
       const response = await fetch("/billing/customer", {
         credentials: "include",
@@ -148,7 +148,7 @@ export const Subscribe = () => {
       handleClose();
       console.error("ERROR", error);
     }
-  };
+  }, [setCustomerID, setPaymentMethod, handleClose]);
 
   const subscribe = async () => {
     if (!paymentMethod || !product) {
@@ -212,7 +212,7 @@ export const Subscribe = () => {
         getProducts();
       }
     }
-  }, [isOpen, customerID, paymentMethod]);
+  }, [isOpen, customerID, paymentMethod, getOrCreateStripeCustomer]);
 
   const handleCardElementChange = (e: StripeCardElementChangeEvent) => {
     if (e.error) {

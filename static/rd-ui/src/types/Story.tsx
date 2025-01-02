@@ -11,6 +11,7 @@ export interface Story {
   image_url: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const IsStory = (obj: any): obj is Story => {
   return (
     obj &&

@@ -29,7 +29,7 @@ import {
   setStoryBeingEdited,
 } from "../../stores/storiesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
-import PortraitDropper from "../PortraitDropper";
+import { PortraitDropper } from "../PortraitDropper";
 import styles from "./edit-series.module.css";
 import { AlertToast, AlertToastType } from "../../types/AlertToasts";
 import { Story } from "../../types/Story";
@@ -68,10 +68,10 @@ export const EditSeriesModal = (props: EditSeriesProps) => {
   );
 
   const [preselectedTitle, setPreselectedTitle] = useState(
-    props.series?.title ? props.series.title : ""
+    props.series?.series_title ? props.series.series_title : ""
   );
   const [preselectedDescription, setPreselectedDescription] = useState(
-    props.series?.description ? props.series.description : ""
+    props.series?.series_description ? props.series.series_description : ""
   );
   const [imageURL, setImageURL] = useState("");
   const [imageName, setImageName] = useState("Loading...");
@@ -85,15 +85,15 @@ export const EditSeriesModal = (props: EditSeriesProps) => {
     link: undefined,
   };
 
-  const resetForm = () => {
-    seriesFormMessage.title = "Cannot edit series";
-    seriesFormMessage.message = "";
-    seriesFormMessage.severity = AlertToastType.error;
-    setPreselectedDescription("");
-    setPreselectedTitle("");
-    setImageURL("");
-    setImageName("Loading...");
-  };
+  // const resetForm = () => {
+  //   seriesFormMessage.title = "Cannot edit series";
+  //   seriesFormMessage.message = "";
+  //   seriesFormMessage.severity = AlertToastType.error;
+  //   setPreselectedDescription("");
+  //   setPreselectedTitle("");
+  //   setImageURL("");
+  //   setImageName("Loading...");
+  // };
 
   const handleClose = () => {
     dispatch(flipEditingSeries());
@@ -127,7 +127,7 @@ export const EditSeriesModal = (props: EditSeriesProps) => {
         series_id: props.series?.series_id,
       }));
     }
-  }, [props.series]);
+  }, [props.series, imageURL, preselectedDescription, preselectedTitle]);
 
   const processImage = (acceptedFiles: File[]) => {
     acceptedFiles.forEach((file) => {
@@ -186,19 +186,17 @@ export const EditSeriesModal = (props: EditSeriesProps) => {
 
     const formData = new FormData();
     for (const key in seriesEditForm) {
-      if (seriesEditForm.hasOwnProperty(key)) {
-        const value = seriesEditForm[key];
-        if (value === undefined) continue;
-        if (typeof value === "string" || typeof value === "number") {
-          formData.append(key, value.toString());
-          continue;
-        }
-        if (value instanceof Array) {
-          formData.append(key, JSON.stringify(value));
-        }
-        if (value instanceof File) {
-          formData.append("file", value);
-        }
+      const value = seriesEditForm[key];
+      if (value === undefined) continue;
+      if (typeof value === "string" || typeof value === "number") {
+        formData.append(key, value.toString());
+        continue;
+      }
+      if (value instanceof Array) {
+        formData.append(key, JSON.stringify(value));
+      }
+      if (value instanceof File) {
+        formData.append("file", value);
       }
     }
     dispatch(setIsLoaderVisible(true));
@@ -214,6 +212,7 @@ export const EditSeriesModal = (props: EditSeriesProps) => {
         error.message = response.statusText;
         throw error;
       }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { ["series_id"]: _, ...rest } = seriesEditForm;
       setSeriesEditForm(rest);
 
@@ -232,7 +231,7 @@ export const EditSeriesModal = (props: EditSeriesProps) => {
           image_url: newImgURL,
           stories: seriesList[foundSeriesIndex].stories.map((volume) => {
             const matchingDbVolume = json.stories.find(
-              (dbVolume: any) => dbVolume.story_id === volume.story_id
+              (dbVolume: Story) => dbVolume.story_id === volume.story_id
             );
             return matchingDbVolume
               ? { ...volume, place: matchingDbVolume.place }
@@ -245,7 +244,7 @@ export const EditSeriesModal = (props: EditSeriesProps) => {
       }
       dispatch(setIsLoaderVisible(false));
       handleClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching data: ", error);
       seriesFormMessage.message =
         "Unable to edit your series at this time. Please try again later or contact support.";
@@ -311,8 +310,8 @@ export const EditSeriesModal = (props: EditSeriesProps) => {
           }
         }
         dispatch(setIsLoaderVisible(false));
-      } catch (error: any) {
-        console.error("Error fetching data: ", error.message);
+      } catch (error: unknown) {
+        console.error("Error fetching data: ", (error as Error).message);
         seriesFormMessage.message =
           "Unable to edit your series at this time. Please try again later or contact support.";
         dispatch(setAlert(seriesFormMessage));

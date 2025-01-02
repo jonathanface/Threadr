@@ -44,11 +44,14 @@ import { Story } from "../../types/Story";
 interface DocumentToolbarProps {
   story?: Story;
   chapterID: string;
-  exitFunction: Function;
-  updateAlignment: Function;
-  updateStyle: Function;
-  updateSpellcheck: Function;
-  updateFont: Function;
+  exitFunction: () => void;
+  updateAlignment: (alignment: BlockAlignmentType) => void;
+  updateStyle: (
+    event: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+    bold: string
+  ) => void;
+  updateSpellcheck: (checked: boolean) => void;
+  updateFont: (font: string) => void;
 }
 
 interface DocumentFormatting {
@@ -141,7 +144,7 @@ export const DocumentToolbar = forwardRef(
           timeout: undefined,
         };
         dispatch(setAlert(newAlert));
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error(error);
         const newAlert = {
           title: "Problem contacting the Docter",
@@ -306,7 +309,8 @@ export const DocumentToolbar = forwardRef(
       setAnchorEl(event.currentTarget);
     };
 
-    const handleDocterMenuClose = (_event: MouseEvent) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const handleDocterMenuClose = (event: MouseEvent) => {
       setAnchorEl(null);
     };
 
@@ -367,7 +371,8 @@ export const DocumentToolbar = forwardRef(
                   ? styles.active
                   : ""
               }
-              onMouseDown={(_e) => {
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              onMouseDown={(event) => {
                 setNavButtonState("alignment", BlockAlignmentType.left);
                 props.updateAlignment(BlockAlignmentType.left);
               }}
@@ -380,7 +385,8 @@ export const DocumentToolbar = forwardRef(
                   ? styles.active
                   : ""
               }
-              onMouseDown={(_e) => {
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              onMouseDown={(event) => {
                 setNavButtonState("alignment", BlockAlignmentType.center);
                 props.updateAlignment(BlockAlignmentType.center);
               }}
@@ -393,7 +399,8 @@ export const DocumentToolbar = forwardRef(
                   ? styles.active
                   : ""
               }
-              onMouseDown={(_e) => {
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              onMouseDown={(event) => {
                 setNavButtonState("alignment", BlockAlignmentType.right);
                 props.updateAlignment(BlockAlignmentType.right);
               }}
@@ -406,7 +413,8 @@ export const DocumentToolbar = forwardRef(
                   ? styles.active
                   : ""
               }
-              onMouseDown={(_e) => {
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              onMouseDown={(event) => {
                 setNavButtonState("alignment", BlockAlignmentType.justify);
                 props.updateAlignment(BlockAlignmentType.justify);
               }}
@@ -525,10 +533,12 @@ export const DocumentToolbar = forwardRef(
               }}
               SelectProps={{
                 value: "",
-                onChange: (_evt) => {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                onChange: (event) => {
                   setExportMenuValue(!exportMenuValue);
                 },
-                onClose: (_evt) => {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                onClose: (event) => {
                   //   setTimeout(() => {
                   //     document.activeElement.blur();
                   //   }, 0);
@@ -549,7 +559,8 @@ export const DocumentToolbar = forwardRef(
               </MaterialMenuItem>
               <MaterialMenuItem
                 value="Times New Roman"
-                onClick={(_e) => {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                onClick={(event) => {
                   props.updateFont("Times New Roman");
                 }}
               >
@@ -565,10 +576,12 @@ export const DocumentToolbar = forwardRef(
               }}
               SelectProps={{
                 value: "",
-                onChange: (_evt) => {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                onChange: (event) => {
                   setExportMenuValue(!exportMenuValue);
                 },
-                onClose: (_evt) => {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                onClose: (event) => {
                   //   setTimeout(() => {
                   //     document.activeElement.blur();
                   //   }, 0);
@@ -592,7 +605,8 @@ export const DocumentToolbar = forwardRef(
               </MaterialMenuItem>
               <MaterialMenuItem
                 value="pdf"
-                onClick={(_e) => {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                onClick={(event) => {
                   exportDoc(DocumentExportType.pdf);
                 }}
               >

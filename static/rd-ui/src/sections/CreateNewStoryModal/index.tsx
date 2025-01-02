@@ -24,7 +24,6 @@ import {
   AlertToastType,
 } from "../../types/AlertToasts";
 import { APIError } from "../../types/API";
-import { Series } from "../../types/Series";
 
 interface SeriesSelectionOption {
   label: string;
@@ -82,7 +81,7 @@ export const CreateNewStoryModal = () => {
       .catch((error) => {
         console.error("Fetch operation failed: ", error);
       });
-  }, [setStoryForm]);
+  }, [setStoryForm, imageURL]);
 
   const getDefaultImage = () => {
     const randomImageURL = "https://picsum.photos/300";
@@ -144,7 +143,7 @@ export const CreateNewStoryModal = () => {
         }));
       }
     },
-    [setStoryForm]
+    [setStoryForm, seriesList]
   );
 
   useEffect(() => {

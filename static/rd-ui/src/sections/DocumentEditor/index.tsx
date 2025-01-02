@@ -1,5 +1,6 @@
+/* eslint no-use-before-define: 0 */
 import Immutable from "immutable";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   BlockMap,
   CharacterMetadata,
@@ -135,7 +136,8 @@ export const DocumentEditor = () => {
 
   const handleAssociationClick = (
     association: Association,
-    _event: React.MouseEvent
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    event: React.MouseEvent
   ) => {
     const idx = associations.findIndex(
       (ass) => ass.association_id === association.association_id
@@ -303,31 +305,36 @@ export const DocumentEditor = () => {
             : (lastRetrievedBlockKey = null);
           const newBlocks: ContentBlock[] = [];
           if (data.items) {
-            data.items.forEach((piece: any) => {
-              if (piece.chunk && piece.chunk.Value) {
-                const jsonBlock = JSON.parse(piece.chunk.Value);
-                const characterListImmutable = Immutable.List(
-                  jsonBlock.characterList.map((char: CharMetadata) => {
-                    // Convert each character metadata object to a DraftJS CharacterMetadata
-                    return CharacterMetadata.create({
-                      style: Immutable.OrderedSet(char.style),
-                      entity: char.entity,
-                    });
-                  })
-                );
-                const block = new ContentBlock({
-                  characterList: characterListImmutable,
-                  depth: jsonBlock.depth,
-                  key: piece.key_id.Value,
-                  text: jsonBlock.text ? jsonBlock.text : "",
-                  type: jsonBlock.type,
-                  data: jsonBlock.data
-                    ? Immutable.Map(jsonBlock.data)
-                    : Immutable.Map(),
-                });
-                newBlocks.push(block);
+            data.items.forEach(
+              (piece: {
+                chunk: { Value: string };
+                key_id: { Value: string };
+              }) => {
+                if (piece.chunk && piece.chunk.Value) {
+                  const jsonBlock = JSON.parse(piece.chunk.Value);
+                  const characterListImmutable = Immutable.List(
+                    jsonBlock.characterList.map((char: CharMetadata) => {
+                      // Convert each character metadata object to a DraftJS CharacterMetadata
+                      return CharacterMetadata.create({
+                        style: Immutable.OrderedSet(char.style),
+                        entity: char.entity,
+                      });
+                    })
+                  );
+                  const block = new ContentBlock({
+                    characterList: characterListImmutable,
+                    depth: jsonBlock.depth,
+                    key: piece.key_id.Value,
+                    text: jsonBlock.text ? jsonBlock.text : "",
+                    type: jsonBlock.type,
+                    data: jsonBlock.data
+                      ? Immutable.Map(jsonBlock.data)
+                      : Immutable.Map(),
+                  });
+                  newBlocks.push(block);
+                }
               }
-            });
+            );
             if (newBlocks.length === 1 && !newBlocks[0].getText().length) {
               showGreeting();
             }
@@ -382,12 +389,13 @@ export const DocumentEditor = () => {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const isAPIError = (error: any): boolean => {
     return "statusCode" in error && "statusText" in error && "retry" in error;
   };
 
   let retryCount = 0;
-  const processDBQueue = async () => {
+  const processDBQueue = useCallback(async () => {
     dbOperationQueue.sort((a, b) => a.time - b.time);
     console.log("processing...", dbOperationQueue.length);
     const retryArray: DBOperation[] = [];
@@ -404,11 +412,12 @@ export const DocumentEditor = () => {
           try {
             await deleteBlocksFromServer(minifiedOps, op.storyID, op.chapterID);
             retryCount = 0;
-          } catch (error: any) {
+          } catch (error: unknown) {
             if (isAPIError(error)) {
-              if (error.retry) {
+              const apiError = error as APIError;
+              if (apiError.retry) {
                 console.error(
-                  "server response " + error.statusCode + ", retrying..."
+                  "server response " + apiError.statusCode + ", retrying..."
                 );
                 const retryOp: DBOperation = {
                   type: DBOperationType.delete,
@@ -433,11 +442,12 @@ export const DocumentEditor = () => {
           try {
             await saveBlocksToServer(minifiedOps, op.storyID, op.chapterID);
             retryCount = 0;
-          } catch (error: any) {
+          } catch (error: unknown) {
             if (isAPIError(error)) {
-              if (error.retry) {
+              const apiError = error as APIError;
+              if (apiError.retry) {
                 console.error(
-                  "server response " + error.statusCode + ", retrying..."
+                  "server response " + apiError.statusCode + ", retrying..."
                 );
                 const retryOp: DBOperation = {
                   type: DBOperationType.save,
@@ -491,7 +501,7 @@ export const DocumentEditor = () => {
       };
       dispatch(setAlert(newAlert));
     }
-  };
+  }, []);
 
   const setFocusAndRestoreCursor = () => {
     const selection = editorState.getSelection();
@@ -517,6 +527,44 @@ export const DocumentEditor = () => {
       getBatchedStoryBlocks(lastRetrievedBlockKey, false);
     }
   };
+
+  const getChapterDetails = useCallback(async () => {
+    if (selectedStory) {
+      const response = await fetch(
+        "/api/stories/" +
+          selectedStory.story_id +
+          "/chapters/" +
+          selectedChapter.id,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (!response.ok) {
+        console.error(response.body);
+        const newAlert = {
+          title: "Error",
+          message:
+            "There was an error retrieving your chapter. Please report this.",
+          severity: AlertToastType.error,
+          open: true,
+          timeout: 6000,
+        };
+        dispatch(setAlert(newAlert));
+        return;
+      } else {
+        const responseJSON = (await response.json()) as Chapter;
+        setSelectedChapter({
+          id: selectedChapter.id,
+          title: responseJSON.title,
+          place: responseJSON.place,
+          story_id: selectedStory.story_id,
+        });
+      }
+    }
+  }, [selectedStory, dispatch, selectedChapter.id]);
 
   useEffect(() => {
     dispatch(setIsLoaderVisible(true));
@@ -548,18 +596,24 @@ export const DocumentEditor = () => {
     selectedStory?.story_id,
     lastRetrievedBlockKey,
     blocksLoaded,
+    associationsLoaded,
+    dispatch,
+    getAllAssociations,
+    getBatchedStoryBlocks,
+    processDBQueue,
+    selectedStory,
   ]);
 
   useEffect(() => {
     if (associationsLoaded && blocksLoaded) {
       dispatch(setIsLoaderVisible(false));
     }
-  }, [associationsLoaded, blocksLoaded]);
+  }, [associationsLoaded, blocksLoaded, dispatch]);
 
   useEffect(() => {
     getChapterDetails();
     setBlocksLoaded(false);
-  }, [selectedChapter.id, selectedStory?.story_id]);
+  }, [selectedChapter.id, selectedStory?.story_id, getChapterDetails]);
 
   const syncBlockOrderMap = (blockList: BlockMap) => {
     return new Promise(async (resolve, reject) => {
@@ -1177,7 +1231,7 @@ export const DocumentEditor = () => {
     const selectedKeys = GetSelectedBlockKeys(editorState);
 
     const blocksToSave: string[] = [];
-    const blocksToDelete: any[] = [];
+    const blocksToDelete: string[] = [];
     let resyncRequired = false;
     oldBlockMap.forEach((_, oldBlockKey) => {
       if (oldBlockKey) {
@@ -1378,14 +1432,12 @@ export const DocumentEditor = () => {
     if (selectedStory) {
       const target = event.target as HTMLInputElement;
       if (target.value !== selectedStory.title && target.value.trim() !== "") {
-        const updatedStory = { ...selectedStory };
+        const updatedStory: Story = { ...selectedStory };
         updatedStory.title = target.value;
         dispatch(setSelectedStory(updatedStory));
         const formData = new FormData();
         for (const key in updatedStory) {
-          if (updatedStory.hasOwnProperty(key)) {
-            formData.append(key, updatedStory[key]);
-          }
+          formData.append(key, updatedStory[key as keyof Story] as string);
         }
         const response = await fetch(
           "/api/stories/" + updatedStory.story_id + "/details",
@@ -1459,44 +1511,6 @@ export const DocumentEditor = () => {
             return;
           }
         }
-      }
-    }
-  };
-
-  const getChapterDetails = async () => {
-    if (selectedStory) {
-      const response = await fetch(
-        "/api/stories/" +
-          selectedStory.story_id +
-          "/chapters/" +
-          selectedChapter.id,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      if (!response.ok) {
-        console.error(response.body);
-        const newAlert = {
-          title: "Error",
-          message:
-            "There was an error retrieving your chapter. Please report this.",
-          severity: AlertToastType.error,
-          open: true,
-          timeout: 6000,
-        };
-        dispatch(setAlert(newAlert));
-        return;
-      } else {
-        const responseJSON = (await response.json()) as Chapter;
-        setSelectedChapter({
-          id: selectedChapter.id,
-          title: responseJSON.title,
-          place: responseJSON.place,
-          story_id: selectedStory.story_id,
-        });
       }
     }
   };

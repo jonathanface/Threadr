@@ -21,7 +21,7 @@ import styles from "./editStory.module.css";
 import { AlertToast, AlertToastType } from "../../types/AlertToasts";
 import { Story } from "../../types/Story";
 
-interface SeriesSelectionOptions {
+interface SeriesSelectionOption {
   label: string;
   id: string;
   count: number;
@@ -68,9 +68,9 @@ export const EditStoryModal = (props: EditStoryProps) => {
     props.story?.description ? props.story.description : ""
   );
   const [preselectedSeries, setPreselectedSeries] =
-    useState<SeriesSelectionOptions | null>(null);
+    useState<SeriesSelectionOption | null>(null);
   const [seriesDisplayList, setSeriesDisplayList] = useState<
-    SeriesSelectionOptions[]
+    SeriesSelectionOption[]
   >([]);
   const [storyForm, setStoryForm] = useState<EditStoryForm | null>(null);
 
@@ -131,7 +131,7 @@ export const EditStoryModal = (props: EditStoryProps) => {
         description: props.story.description,
       });
     }
-  }, [props]);
+  }, [props, imageURL, preselectedDescription, preselectedTitle]);
 
   useEffect(() => {
     if (props.story?.series_id) {
@@ -144,7 +144,7 @@ export const EditStoryModal = (props: EditStoryProps) => {
           series_id: foundSeries.series_id,
           series_title: foundSeries.series_title,
         }));
-        const entry: SeriesSelectionOptions = {
+        const entry: SeriesSelectionOption = {
           label: foundSeries.series_title,
           id: foundSeries.series_id,
           count: 0,
@@ -162,7 +162,7 @@ export const EditStoryModal = (props: EditStoryProps) => {
         };
       })
     );
-  }, [isEditingStory, seriesList]);
+  }, [isEditingStory, seriesList, props.story?.series_id]);
 
   const processImage = (acceptedFiles: File[]) => {
     acceptedFiles.forEach((file) => {
@@ -221,7 +221,7 @@ export const EditStoryModal = (props: EditStoryProps) => {
 
     const formData = new FormData();
     for (const key in storyForm) {
-      if (storyForm.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(storyForm, key)) {
         const value = storyForm[key];
         if (value === undefined) continue;
         if (typeof value === "string" || typeof value === "number") {
@@ -306,7 +306,7 @@ export const EditStoryModal = (props: EditStoryProps) => {
       storyFormMessage.severity = AlertToastType.success;
       dispatch(setAlert(storyFormMessage));
       handleClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       storyFormMessage.message =
         "Please try again later or contact support at the link below:";
@@ -402,15 +402,16 @@ export const EditStoryModal = (props: EditStoryProps) => {
                       }
                     }
                   }}
-                  onChange={(_event: React.SyntheticEvent, value: any) => {
-                    if (
-                      value.hasOwnProperty("id") &&
-                      value.hasOwnProperty("label")
-                    ) {
+                  onChange={(
+                    _event: React.SyntheticEvent,
+                    value: string | SeriesSelectionOption | null
+                  ) => {
+                    const toSeries = value as SeriesSelectionOption;
+                    if (toSeries) {
                       setStoryForm((prevFormInput) => ({
                         ...prevFormInput,
-                        series_id: value.id,
-                        series_title: value.label,
+                        series_id: toSeries.id,
+                        series_title: toSeries.label,
                       }));
                     }
                   }}

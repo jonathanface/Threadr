@@ -10,8 +10,8 @@ interface DetailsSliderProps {
   isSeries: boolean;
   title: string;
   description: string;
-  onStoryClick: Function;
-  setDeleted: Function;
+  onStoryClick: (storyID: string, chapterID: string) => void;
+  setDeleted: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export const DetailsSlider = (props: DetailsSliderProps) => {
@@ -54,7 +54,7 @@ export const DetailsSlider = (props: DetailsSliderProps) => {
                     <li
                       key={entry.story_id}
                       title={entry.description}
-                      onClick={(_e) =>
+                      onClick={() =>
                         props.onStoryClick(entry.story_id, firstChapter)
                       }
                     >

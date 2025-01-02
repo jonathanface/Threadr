@@ -1,19 +1,26 @@
 import { ContentBlock, ContentState } from "draft-js";
 import React from "react";
-import AssociationTooltip from "./AssociationTooltip";
+import { AssociationTooltip } from "./AssociationTooltip";
 import { Association } from "../../types/Associations";
 
 interface TabSpanProps {
-  children: React.ReactElement<any>;
+  children: React.ReactElement;
 }
 
 interface HighlightSpanProps {
   association: Association;
   classModifier?: string;
-  leftClickFunc: Function;
-  rightClickFunc?: Function;
+  leftClickFunc: (
+    association: Association,
+    event: React.MouseEvent<HTMLSpanElement, MouseEvent>
+  ) => void;
+  rightClickFunc?: (
+    text: string,
+    type: string,
+    event: React.MouseEvent<HTMLSpanElement, MouseEvent>
+  ) => void;
   decoratedText: string;
-  children: React.ReactElement<any>;
+  children: React.ReactElement;
 }
 
 export const TabSpan: React.FC<TabSpanProps> = (props) => {
@@ -38,14 +45,14 @@ export const HighlightSpan: React.FC<HighlightSpanProps> = (props) => {
           props.leftClickFunc(props.association, e);
         }}
         onMouseDown={(e) => e.preventDefault()}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
+        onContextMenu={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
           if (props.rightClickFunc) {
             props.rightClickFunc(
               props.decoratedText,
               props.association.association_type,
-              e
+              event
             );
           }
         }}
@@ -73,7 +80,10 @@ export const FindHighlightable = (
   name: string,
   associations: Association[]
 ) => {
-  return (contentBlock: ContentBlock, callback: Function) => {
+  return (
+    contentBlock: ContentBlock,
+    callback: (start: number, length: number) => void
+  ) => {
     const text = contentBlock.getText();
     associations.forEach((association) => {
       if (association.association_type !== type) {
@@ -115,7 +125,7 @@ export const FindHighlightable = (
 
 export const FindTabs = (
   contentBlock: ContentBlock,
-  callback: any,
+  callback: () => void,
   contentState: ContentState
 ) => {
   contentBlock.findEntityRanges((character) => {

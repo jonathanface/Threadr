@@ -1,7 +1,4 @@
-import {
-  convertToHTML,
-  RawDraftContentBlockWithCustomType,
-} from "draft-convert";
+import { convertToHTML } from "draft-convert";
 import {
   CompositeDecorator,
   ContentBlock,
@@ -65,7 +62,7 @@ export class Exporter {
             name
           );
         } catch (error) {
-          console.error("ERROR parsing block!", block.getKey());
+          console.error(`Error parsing block ${block.getKey()}: ${error}`);
         }
       }
     );
@@ -186,17 +183,21 @@ export class Exporter {
   };
 
   private getFullStory = (story: string): Promise<StoryData> => {
-    return new Promise<StoryData>(async (resolve, reject) => {
-      try {
-        const response = await fetch(`/api/stories/${story}/full`);
-        if (!response.ok) {
-          reject(`SERVER ERROR FETCHING FULL STORY: ${response.statusText}`);
-        }
-        resolve(await response.json());
-      } catch (e) {
-        console.error("Error fetching full story: ", e);
-        reject(e);
-      }
+    return new Promise<StoryData>((resolve, reject) => {
+      fetch(`/api/stories/${story}/full`)
+        .then((response) => {
+          if (!response.ok) {
+            return reject(
+              `SERVER ERROR FETCHING FULL STORY: ${response.statusText}`
+            );
+          }
+          return response.json();
+        })
+        .then((data) => resolve(data))
+        .catch((e) => {
+          console.error("Error fetching full story: ", e);
+          reject(e);
+        });
     });
   };
 }

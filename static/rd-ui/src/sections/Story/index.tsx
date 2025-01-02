@@ -67,13 +67,13 @@ export const StoryBox = (props: StoryBoxProps) => {
     dispatch(setIsLoaderVisible(true));
   };
 
-  const editStory = (event: React.MouseEvent, _storyID: string) => {
+  const editStory = (event: React.MouseEvent) => {
     event.stopPropagation();
     dispatch(setStoryBeingEdited(props.data as Story));
     dispatch(flipEditingStory(true));
   };
 
-  const editSeries = (event: React.MouseEvent, _seriesID: string) => {
+  const editSeries = (event: React.MouseEvent) => {
     event.stopPropagation();
     dispatch(setSeriesBeingEdited(props.data as Series));
     dispatch(flipEditingSeries());
@@ -183,7 +183,7 @@ export const StoryBox = (props: StoryBoxProps) => {
     } else {
       setIsSeries(false);
     }
-  }, [props.data, IsStory]);
+  }, [props.data]);
 
   return !wasDeleted ? (
     <button
@@ -222,9 +222,9 @@ export const StoryBox = (props: StoryBoxProps) => {
               title={editHoverText}
               onClick={(event) => {
                 if (isSeries) {
-                  editSeries(event, id);
+                  editSeries(event);
                 } else {
-                  editStory(event, id);
+                  editStory(event);
                 }
               }}
             >

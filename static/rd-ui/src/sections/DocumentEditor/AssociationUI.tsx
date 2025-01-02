@@ -1,5 +1,5 @@
 import Backdrop from "@mui/material/Backdrop";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 import { FormGroup, TextField } from "@mui/material";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -50,7 +50,17 @@ export const AssociationUI: React.FC<AssociationProps> = (props) => {
     props.onCloseCallback();
   };
 
-  const createDecorators = () => {
+  const handleAssociationClick = useCallback(
+    (association: Association) => {
+      const idx = props.associations.findIndex(
+        (ass) => ass.association_id === association.association_id
+      );
+      props.updateView(idx);
+    },
+    [props]
+  );
+
+  const createDecorators = useCallback(() => {
     if (props.associationIdx === null) {
       return;
     }
@@ -75,7 +85,7 @@ export const AssociationUI: React.FC<AssociationProps> = (props) => {
       }
     });
     return new CompositeDecorator(decorators);
-  };
+  }, [props, handleAssociationClick]);
 
   useEffect(() => {
     if (props.associationIdx === null) {
@@ -108,6 +118,7 @@ export const AssociationUI: React.FC<AssociationProps> = (props) => {
     props.storyID,
     props.open,
     createDecorators,
+    handleAssociationClick,
   ]);
 
   const onAssociationEdit = (newValue: string | boolean, id: string) => {
@@ -201,13 +212,6 @@ export const AssociationUI: React.FC<AssociationProps> = (props) => {
       };
       reader.readAsArrayBuffer(file);
     });
-  };
-
-  const handleAssociationClick = (association: Association) => {
-    const idx = props.associations.findIndex(
-      (ass) => ass.association_id === association.association_id
-    );
-    props.updateView(idx);
   };
 
   const updateBackgroundEditorState = (newEditorState: EditorState) => {

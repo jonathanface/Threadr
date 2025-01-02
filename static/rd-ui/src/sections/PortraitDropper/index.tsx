@@ -9,8 +9,8 @@ import { AlertToast, AlertToastType } from "../../types/AlertToasts";
 interface PortraitDropperProps {
   imageURL: string;
   name: string;
-  onComplete?: Function;
-  onImageLoaded?: Function;
+  onImageLoaded?: () => void;
+  onComplete?: (files: File[]) => void;
 }
 
 const acceptedFileTypes = ["png", "jpg", "jpeg", "gif"];
@@ -51,7 +51,7 @@ export const PortraitDropper = (props: PortraitDropperProps) => {
         props.onComplete(acceptedFiles);
       }
     },
-    [props]
+    [props, dispatch]
   );
 
   const onImageLoaded = () => {

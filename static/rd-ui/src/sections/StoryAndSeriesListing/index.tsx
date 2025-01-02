@@ -44,7 +44,7 @@ export const StoryAndSeriesListing = () => {
 
         const userSeries: Series[] = [];
         for (const key in json) {
-          if (json.hasOwnProperty(key)) {
+          if (Object.prototype.hasOwnProperty.call(json, key)) {
             if (key === userDetails.email && json[key]) {
               userSeries.push(...json[key]);
             }
@@ -53,7 +53,9 @@ export const StoryAndSeriesListing = () => {
 
         dispatch(setSeriesList(userSeries));
         setSeriesLoaded(true);
-      } catch (error: any) {}
+      } catch (error: unknown) {
+        console.error(error);
+      }
     };
 
     const getStories = async () => {
@@ -67,7 +69,7 @@ export const StoryAndSeriesListing = () => {
         const json = await results.json();
         const userStories: Story[] = [];
         for (const key in json) {
-          if (json.hasOwnProperty(key)) {
+          if (Object.prototype.hasOwnProperty.call(json, key)) {
             if (key === userDetails.email && json[key]) {
               userStories.push(...json[key]);
             }
@@ -75,7 +77,7 @@ export const StoryAndSeriesListing = () => {
         }
         dispatch(setStandaloneList(userStories));
         setStoriesLoaded(true);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error(error);
       }
     };
@@ -100,7 +102,15 @@ export const StoryAndSeriesListing = () => {
         }
       }
     }
-  }, [isLoggedIn, dispatch, seriesLoaded, storiesLoaded]);
+  }, [
+    isLoggedIn,
+    dispatch,
+    seriesLoaded,
+    storiesLoaded,
+    storiesList.length,
+    seriesList.length,
+    userDetails.email,
+  ]);
 
   const createNewStory = () => {
     dispatch(flipCreatingNewStory(true));
