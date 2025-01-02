@@ -1,6 +1,6 @@
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
-import { useEffect, useState } from "react";
+import { createContext, useEffect, useState } from "react";
 import type { TypedUseSelectorHook } from "react-redux";
 import { useSelector } from "react-redux";
 import "./css/main.css";
@@ -18,12 +18,16 @@ import type { RootState } from "./stores/store";
 import { Toaster } from "./utils/Toaster";
 import { useFetchUserData } from "./hooks/useFetchUserData";
 import { useHandleNavigationHandler } from "./hooks/useNavigationHandler";
+import { UserContextType } from "./contexts/user";
+import { LoaderContext } from "./contexts/loader";
 
 export const Threadr = () => {
-  const { isLoading } = useFetchUserData();
+  const UserContext = createContext<UserContextType | undefined>(undefined);
+  const { userDetails, isLoadingUser, setUserDetails } = useFetchUserData();
   const { handleNavChange } = useHandleNavigationHandler();
   const stripeKey: string = import.meta.env.REACT_APP_STRIPE_KEY ?? "";
   const [stripe] = useState(() => loadStripe(stripeKey));
+  const [isLoaderVisible, setIsLoaderVisible] = useState(false);
 
   const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
   const isLoggedIn = useAppSelector((state) => state.user.isLoggedIn);
@@ -38,7 +42,7 @@ export const Threadr = () => {
   }, [handleNavChange]);
 
   const renderContent = () => {
-    if (isLoading) return <div />;
+    if (isLoadingUser) return <div />;
     if (isLoggedIn && selectedStory) return <DocumentEditor />;
     if (isLoggedIn && !selectedStory) return <StoryAndSeriesListing />;
     return <SplashPage />;
@@ -46,30 +50,34 @@ export const Threadr = () => {
   const displayComponent = renderContent();
 
   return (
-    <div className="App">
-      <main>
-        <header>
-          <UserMenu
-            isParentLoading={isLoading}
-            isLoggedIn={isLoggedIn}
-            userDetails={null}
-          />
-          <h4>
-            <span>D</span>octer<span className="tld">.io</span>
-            <div className="version">ver 1.0.1</div>
-          </h4>
-        </header>
-        {displayComponent}
-        <CreateNewStoryModal />
-        <EditStoryModal story={storyToEdit} />
-        <EditSeriesModal series={seriesToEdit} />
-        <ConfigPanelModal />
-        <LoginPanelModal />
-      </main>
-      <Toaster />
-      <Elements stripe={stripe}>
-        <Subscribe />
-      </Elements>
-    </div>
+    <LoaderContext.Provider value={{ isLoaderVisible, setIsLoaderVisible }}>
+      <UserContext.Provider value={{ isLoggedIn, userDetails, setUserDetails }}>
+        <div className="App">
+          <main>
+            <header>
+              <UserMenu
+                isParentLoading={isLoadingUser}
+                isLoggedIn={isLoggedIn}
+                userDetails={userDetails}
+              />
+              <h4>
+                <span>D</span>octer<span className="tld">.io</span>
+                <div className="version">ver 1.0.1</div>
+              </h4>
+            </header>
+            {displayComponent}
+            <CreateNewStoryModal />
+            <EditStoryModal story={storyToEdit} />
+            <EditSeriesModal series={seriesToEdit} />
+            <ConfigPanelModal />
+            <LoginPanelModal />
+          </main>
+          <Toaster />
+          <Elements stripe={stripe}>
+            <Subscribe />
+          </Elements>
+        </div>
+      </UserContext.Provider>
+    </LoaderContext.Provider>
   );
 };

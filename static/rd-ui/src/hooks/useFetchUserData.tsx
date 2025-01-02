@@ -1,31 +1,39 @@
-import { useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
-import { setUserDetails, flipLoggedInState } from "../stores/userSlice";
-import { setAlert } from "../stores/alertSlice";
-import { setIsLoaderVisible } from "../stores/uiSlice";
+import { useContext, useEffect, useState } from "react";
+
 import {
   AlertCommandType,
   AlertFunctionCall,
   AlertToast,
   AlertToastType,
 } from "../types/AlertToasts";
+import { LoaderContext } from "../contexts/loader";
+import { UserContext } from "../contexts/user";
 
 export const useFetchUserData = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const dispatch = useDispatch();
-
+  const loaderContext = useContext(LoaderContext);
+  if (!loaderContext) {
+    throw new Error(
+      "LoaderContext must be used within a LoaderContext.Provider"
+    );
+  }
+  const userContext = useContext(UserContext);
+  if (!userContext) {
+    throw new Error("UserContext must be used within a UserContext.Provider");
+  }
+  const [isLoadingUser, setIsLoadingUser] = useState(false);
+  const { setIsLoaderVisible } = loaderContext;
+  const { userDetails, setUserDetails } = userContext;
   useEffect(() => {
+    setIsLoaderVisible(true);
+    setIsLoadingUser(true);
     const fetchUserData = async () => {
-      dispatch(setIsLoaderVisible(true));
       try {
         const response = await fetch("/api/user", { credentials: "include" });
         if (!response.ok) throw new Error(`Fetch error: ${response.status}`);
         const userData = await response.json();
 
-        dispatch(setUserDetails(userData));
-        dispatch(flipLoggedInState());
-        setIsLoading(false);
-
+        setUserDetails(userData);
+        setIsLoadingUser(false);
         if (userData.expired) {
           const alertFunction: AlertFunctionCall = {
             type: AlertCommandType.subscribe,
@@ -40,18 +48,18 @@ export const useFetchUserData = () => {
             severity: AlertToastType.warning,
             timeout: undefined,
           };
-          dispatch(setAlert(newAlert));
+          // dispatch(setAlert(newAlert));
         }
       } catch (error) {
         console.error("Failed to fetch user data:", error);
-        setIsLoading(false);
+        setIsLoadingUser(false);
       } finally {
-        dispatch(setIsLoaderVisible(false));
+        setIsLoaderVisible(false);
       }
     };
 
     fetchUserData();
-  }, [dispatch]);
+  }, []);
 
-  return { isLoading };
+  return { userDetails, isLoadingUser, setUserDetails };
 };
