@@ -45,11 +45,8 @@ interface EditSeriesForm {
   image?: File;
   series_place?: number;
 }
-interface EditSeriesProps {
-  series: Series | null;
-}
 
-export const EditSeriesModal = (props: EditSeriesProps) => {
+export const EditSeriesModal = () => {
   const useAppDispatch: () => AppDispatch = useDispatch;
   const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
   const dispatch = useAppDispatch();

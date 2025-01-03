@@ -1,11 +1,9 @@
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
-import { TypedUseSelectorHook, useSelector } from "react-redux";
-import { RootState } from "../stores/store";
+import { useLoader } from "../hooks/useLoader";
 
 export const Loader = () => {
-  const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
-  const isLoaderVisible = useAppSelector((state) => state.ui.isLoaderVisible);
+  const { isLoaderVisible } = useLoader();
   return (
     <div
       className="loading-screen"

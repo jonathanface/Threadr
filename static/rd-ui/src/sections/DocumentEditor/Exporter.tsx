@@ -7,6 +7,7 @@ import {
   SelectionState,
   ContentState,
   convertFromRaw,
+  DraftDecorator,
 } from "draft-js";
 import { FindTabs, TabSpan } from "./decorators";
 import { BlockAlignmentType } from "../../types/Document";
@@ -173,7 +174,7 @@ export class Exporter {
   };
 
   private createDecorators = (): CompositeDecorator => {
-    const decorators = [
+    const decorators: DraftDecorator<any>[] = [
       {
         strategy: FindTabs,
         component: TabSpan,

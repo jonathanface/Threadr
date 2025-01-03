@@ -1,22 +1,37 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { ProSidebarProvider } from "react-pro-sidebar";
-import { Provider } from "react-redux";
 import { Threadr } from "./Threadr";
-import { store } from "./stores/store";
 import { Loader } from "./utils/Loader";
+import { LoaderProvider } from "./contexts/loader";
+import { UserProvider } from "./contexts/user";
+import { AlertProvider } from "./contexts/alert";
+import { Toaster } from "./utils/Toaster";
+import {
+  SeriesSelectionProvider,
+  StorySelectionProvider,
+} from "./contexts/selections";
 
 const rootElement = document.getElementById("root")!;
 const root = ReactDOM.createRoot(rootElement);
 
 const render = (Component: React.ComponentType) => {
   root.render(
-    <Provider store={store}>
-      <Loader />
-      <ProSidebarProvider>
-        <Component />
-      </ProSidebarProvider>
-    </Provider>
+    <SeriesSelectionProvider>
+      <StorySelectionProvider>
+        <LoaderProvider>
+          <AlertProvider>
+            <UserProvider>
+              <Loader />
+              <Toaster />
+              <ProSidebarProvider>
+                <Component />
+              </ProSidebarProvider>
+            </UserProvider>
+          </AlertProvider>
+        </LoaderProvider>
+      </StorySelectionProvider>
+    </SeriesSelectionProvider>
   );
 };
 

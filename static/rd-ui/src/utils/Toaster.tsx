@@ -1,79 +1,54 @@
 import Alert, { AlertColor } from "@mui/material/Alert";
 import AlertTitle from "@mui/material/AlertTitle";
 import Snackbar from "@mui/material/Snackbar";
-import { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-
-import type { TypedUseSelectorHook } from "react-redux";
-import type { AppDispatch, RootState } from "../stores/store";
-
-import { clearAlert } from "../stores/alertSlice";
-import { setIsSubscriptionFormOpen } from "../stores/uiSlice";
-import { AlertCommandType } from "../types/AlertToasts";
+import { useToaster } from "../hooks/useToaster";
 
 export const Toaster = () => {
-  const useAppDispatch: () => AppDispatch = useDispatch;
-  const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
-  const dispatch = useAppDispatch();
+  const { alertState, clearAlert, handleFunc } = useToaster();
 
-  const open = useAppSelector((state) => state.alerts.open);
-  const severity = useAppSelector((state) => state.alerts.severity);
-  const alertMessage = useAppSelector((state) => state.alerts.message);
-  const title = useAppSelector((state) => state.alerts.title);
-  const timeout = useAppSelector((state) => state.alerts.timeout);
-  const link = useAppSelector((state) => state.alerts.link);
-  const func = useAppSelector((state) => state.alerts.func);
+  const splitByNewline = alertState.message.split("\n");
 
-  const alertState = useAppSelector((state) => state.alerts);
-
-  const handleClose = () => {
-    dispatch(clearAlert());
-  };
-
-  const splitByNewline = alertMessage.split("\n");
-
-  useEffect(() => {}, [alertState]);
+  const timeout = alertState.timeout ? alertState.timeout : 5000;
 
   return (
     <Snackbar
       className="alert-toast"
       autoHideDuration={timeout}
       anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-      open={open}
-      onClose={handleClose}
+      open={alertState.open}
+      onClose={clearAlert}
       key="bottom_right"
     >
       <Alert
-        severity={severity.toString() as AlertColor}
+        severity={alertState.severity.toString() as AlertColor}
         className="alert-popup"
       >
-        <AlertTitle>{title}</AlertTitle>
-        {splitByNewline.map((line: string, idx: number) => {
-          return (
-            <div key={idx} className="line">
-              {line}
-            </div>
-          );
-        })}
-        {func ? (
+        <AlertTitle>{alertState.title}</AlertTitle>
+        {splitByNewline.map((line: string, idx: number) => (
+          <div key={idx} className="line">
+            {line}
+          </div>
+        ))}
+        {alertState.callback ? (
           <p>
             <a
               href="#"
-              onClick={() => {
-                switch (func.type) {
-                  case AlertCommandType.subscribe:
-                    dispatch(setIsSubscriptionFormOpen(true));
-                    break;
-                }
+              onClick={(e) => {
+                e.preventDefault();
+                handleFunc();
               }}
             >
-              {func.text}
+              {alertState.callback.text}
             </a>
           </p>
         ) : null}
-        {link ? (
-          <a href={link.url} target="_blank">
-            {link.text}
+        {alertState.link ? (
+          <a
+            href={alertState.link.url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {alertState.link.text}
           </a>
         ) : null}
       </Alert>

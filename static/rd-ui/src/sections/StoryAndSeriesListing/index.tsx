@@ -1,136 +1,58 @@
 import AddIcon from "@mui/icons-material/Add";
 import { IconButton } from "@mui/material";
-import React, { useEffect, useState } from "react";
-import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
-import { setAlert } from "../../stores/alertSlice";
-import { setSeriesList } from "../../stores/seriesSlice";
-import { AppDispatch, RootState } from "../../stores/store";
-import {
-  flipCreatingNewStory,
-  setStandaloneList,
-} from "../../stores/storiesSlice";
-import { setIsLoaderVisible } from "../../stores/uiSlice";
+import React, { useEffect } from "react";
 import { StoryBox } from "../Story";
 import styles from "./storyAndSeries.module.css";
-import { AlertToast, AlertToastType } from "../../types/AlertToasts";
 import { Series } from "../../types/Series";
 import { Story } from "../../types/Story";
+import { useFetchSeriesList } from "../../hooks/useFetchSeriesList";
+import { useFetchStoriesList } from "../../hooks/useFetchStoriesList";
+import { useFetchUserData } from "../../hooks/useFetchUserData";
+import { useLoader } from "../../hooks/useLoader";
+import { useToaster } from "../../hooks/useToaster";
+import { AlertToastType } from "../../types/AlertToasts";
 
 export const StoryAndSeriesListing = () => {
-  const useAppDispatch: () => AppDispatch = useDispatch;
-  const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
-  const dispatch = useAppDispatch();
-  const isLoggedIn = useAppSelector((state) => state.user.isLoggedIn);
-  const userDetails = useAppSelector((state) => state.user.userDetails);
-  const storiesList = useAppSelector((state) => state.stories.standaloneList);
-  const seriesList = useAppSelector((state) => state.series.seriesList);
-
-  const [seriesLoaded, setSeriesLoaded] = useState(false);
-  const [storiesLoaded, setStoriesLoaded] = useState(false);
+  const { isLoggedIn } = useFetchUserData();
+  const { storiesList } = useFetchStoriesList();
+  const { seriesList } = useFetchSeriesList();
+  const { setIsLoaderVisible } = useLoader();
+  const { setAlertState } = useToaster();
 
   useEffect(() => {
-    dispatch(setIsLoaderVisible(true));
-
-    const getSeries = async () => {
-      try {
-        const results = await fetch("/api/series", {
-          credentials: "include",
-        });
-        if (!results.ok) {
-          throw new Error("Fetch problem stories" + results.statusText);
-        }
-
-        const json = await results.json();
-
-        const userSeries: Series[] = [];
-        for (const key in json) {
-          if (Object.prototype.hasOwnProperty.call(json, key)) {
-            if (key === userDetails.email && json[key]) {
-              userSeries.push(...json[key]);
-            }
-          }
-        }
-
-        dispatch(setSeriesList(userSeries));
-        setSeriesLoaded(true);
-      } catch (error: unknown) {
-        console.error(error);
-      }
-    };
-
-    const getStories = async () => {
-      try {
-        const results = await fetch("/api/stories", {
-          credentials: "include",
-        });
-        if (!results.ok) {
-          throw new Error("Fetch problem stories" + results.statusText);
-        }
-        const json = await results.json();
-        const userStories: Story[] = [];
-        for (const key in json) {
-          if (Object.prototype.hasOwnProperty.call(json, key)) {
-            if (key === userDetails.email && json[key]) {
-              userStories.push(...json[key]);
-            }
-          }
-        }
-        dispatch(setStandaloneList(userStories));
-        setStoriesLoaded(true);
-      } catch (error: unknown) {
-        console.error(error);
-      }
-    };
-
-    if (isLoggedIn) {
-      if (!seriesLoaded) {
-        getSeries();
-      } else if (!storiesLoaded) {
-        getStories();
-      } else {
-        dispatch(setIsLoaderVisible(false));
-        if (!seriesList.length && !storiesList.length) {
-          const newAlert: AlertToast = {
-            title: "The Docter is In",
-            message:
-              "...but you haven't created any stories yet. Hit the big plus button to make one.",
-            open: true,
-            severity: AlertToastType.info,
-            timeout: undefined,
-          };
-          dispatch(setAlert(newAlert));
-        }
-      }
+    setIsLoaderVisible(true);
+    if (
+      seriesList &&
+      !seriesList.length &&
+      storiesList &&
+      !storiesList.length
+    ) {
+      setAlertState({
+        title: "The Docter is In",
+        message:
+          "...but you haven't created any stories yet. Hit the big plus button to make one.",
+        open: true,
+        severity: AlertToastType.info,
+        timeout: undefined,
+      });
     }
-  }, [
-    isLoggedIn,
-    dispatch,
-    seriesLoaded,
-    storiesLoaded,
-    storiesList.length,
-    seriesList.length,
-    userDetails.email,
-  ]);
+  }, [storiesList, seriesList, storiesList?.length, seriesList?.length]);
 
   const createNewStory = () => {
-    dispatch(flipCreatingNewStory(true));
+    //dispatch(flipCreatingNewStory(true));
   };
 
   // If there are works, we prepare our series and stories components.
-  const seriesComponents = seriesList.map((series: Series) => {
+  const seriesComponents = seriesList?.map((series: Series) => {
     return <StoryBox key={series.series_id} data={series} />;
   });
 
-  const storyComponents = storiesList.map((story: Story) => {
+  const storyComponents = storiesList?.map((story: Story) => {
     return <StoryBox key={story.story_id} data={story} />;
   });
 
   let content = <div />;
-  if (
-    seriesLoaded &&
-    storiesLoaded &&
-    (seriesList.length || storiesList.length)
-  ) {
+  if (seriesList?.length || storiesList?.length) {
     content = (
       <React.Fragment>
         {seriesComponents}

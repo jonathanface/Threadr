@@ -20,12 +20,12 @@ export interface AlertFunctionCall {
   text: string;
 }
 
-export interface AlertToast {
-  message: string;
+export type AlertState = {
   open: boolean;
+  severity: string;
+  message: string;
   title: string;
-  severity: AlertToastType;
   timeout?: number;
-  link?: AlertLink;
-  func?: AlertFunctionCall;
-}
+  link?: { url: string; text: string };
+  callback?: AlertFunctionCall;
+};

@@ -1,53 +1,25 @@
 import Person4Icon from "@mui/icons-material/Person4";
 import { IconButton } from "@mui/material";
-import { useEffect, useState } from "react";
-import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from "../../stores/store";
-import { setSelectedStory } from "../../stores/storiesSlice";
-import {
-  setIsLoaderVisible,
-  setIsSubscriptionFormOpen,
-} from "../../stores/uiSlice";
-import {
-  flipConfigPanelVisible,
-  flipLoggedInState,
-  flipLoginPanelVisible,
-} from "../../stores/userSlice";
+import { useState } from "react";
 import styles from "./user-menu.module.css";
-import { UserDetails } from "../../types/User";
+import { useFetchUserData } from "../../hooks/useFetchUserData";
+import { useLoader } from "../../hooks/useLoader";
 
-interface UserMenuProps {
-  isLoggedIn: boolean;
-  userDetails: UserDetails | null;
-  isParentLoading: boolean;
-}
-export const UserMenu = (props: UserMenuProps) => {
+export const UserMenu = () => {
+  const { userDetails, setIsLoggedIn, isLoggedIn } = useFetchUserData();
+  const { setIsLoaderVisible } = useLoader();
+
   const [isOpen, setIsOpen] = useState(false);
-  const useAppDispatch: () => AppDispatch = useDispatch;
-  const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
-  const dispatch = useAppDispatch();
-  const isLoggedIn = useAppSelector((state) => state.user.isLoggedIn);
-  const userDetails = useAppSelector((state) => state.user.userDetails);
-
-  const showLoginPanel = () => {
-    dispatch(flipLoginPanelVisible());
-  };
-
-  const showUserSettings = () => {
-    dispatch(flipConfigPanelVisible());
-  };
-
-  useEffect(() => {}, [userDetails.subscription_id]);
 
   const signout = () => {
-    dispatch(setIsLoaderVisible(false));
+    setIsLoaderVisible(false);
     fetch("/logout", {
       method: "DELETE",
     })
       .then((response) => {
         if (response.ok) {
-          dispatch(setSelectedStory(null));
-          dispatch(flipLoggedInState());
+          //dispatch(setSelectedStory(null));
+          setIsLoggedIn(true);
           const history = window.history;
           history.pushState({}, "", "/");
           return;
@@ -60,37 +32,41 @@ export const UserMenu = (props: UserMenuProps) => {
   };
 
   const subscribe = () => {
-    dispatch(setIsSubscriptionFormOpen(true));
+    //dispatch(setIsSubscriptionFormOpen(true));
   };
 
-  const displayComponent = !props.isParentLoading ? (
-    isLoggedIn ? (
-      <span
-        className={styles.menuContainer}
-        onClick={() => setIsOpen(!isOpen)}
-        onMouseEnter={() => setIsOpen(true)}
-        onMouseLeave={() => setIsOpen(false)}
-      >
-        <span className={styles.icon}>
-          <IconButton size="small" sx={{ zIndex: 99 }} aria-label="user menu">
-            <Person4Icon fontSize="small" />
-          </IconButton>
-        </span>
-        {isOpen && (
-          <ul>
-            {userDetails && userDetails.subscription_id === "" && (
-              <li onClick={subscribe}>Subscribe</li>
-            )}
-            <li onClick={showUserSettings}>Settings</li>
-            <li onClick={signout}>Signout</li>
-          </ul>
-        )}
+  const showUserSettings = () => {
+    // TO-DO
+  };
+
+  const showLoginPanel = () => {
+    // TO-DO
+  };
+
+  const displayComponent = isLoggedIn ? (
+    <span
+      className={styles.menuContainer}
+      onClick={() => setIsOpen(!isOpen)}
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={() => setIsOpen(false)}
+    >
+      <span className={styles.icon}>
+        <IconButton size="small" sx={{ zIndex: 99 }} aria-label="user menu">
+          <Person4Icon fontSize="small" />
+        </IconButton>
       </span>
-    ) : (
-      <a onClick={showLoginPanel}>Register / SignIn</a>
-    )
+      {isOpen && (
+        <ul>
+          {userDetails && userDetails.subscription_id === "" && (
+            <li onClick={subscribe}>Subscribe</li>
+          )}
+          <li onClick={showUserSettings}>Settings</li>
+          <li onClick={signout}>Signout</li>
+        </ul>
+      )}
+    </span>
   ) : (
-    <div />
+    <a onClick={showLoginPanel}>Register / SignIn</a>
   );
 
   return <span className={styles.userMenu}>{displayComponent}</span>;

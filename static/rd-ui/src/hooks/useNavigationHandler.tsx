@@ -1,6 +1,4 @@
 import { useCallback, useEffect } from "react";
-import { useDispatch } from "react-redux";
-import { setSelectedStory } from "../stores/storiesSlice";
 
 const fetchStoryDetails = async (storyID: string) => {
   const url = `/api/stories/${storyID}`;
@@ -18,18 +16,16 @@ const fetchStoryDetails = async (storyID: string) => {
 };
 
 export const useHandleNavigationHandler = () => {
-  const dispatch = useDispatch();
-
   const handleNavChange = useCallback(async () => {
     const location = window.location.pathname;
     const splitDirectories = location.split("/");
     if (splitDirectories[1] === "story" && splitDirectories[2]?.trim()) {
       const story = await fetchStoryDetails(splitDirectories[2].trim());
-      dispatch(setSelectedStory(story));
+      //dispatch(setSelectedStory(story));
     } else {
-      dispatch(setSelectedStory(null));
+      //dispatch(setSelectedStory(null));
     }
-  }, [dispatch]);
+  }, []);
 
   useEffect(() => {
     window.addEventListener("popstate", handleNavChange);

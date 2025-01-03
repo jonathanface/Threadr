@@ -18,8 +18,9 @@ import { setAlert } from "../../stores/alertSlice";
 import { pushToSeriesList, setSeriesList } from "../../stores/seriesSlice";
 import { setIsLoaderVisible } from "../../stores/uiSlice";
 import styles from "./editStory.module.css";
-import { AlertToast, AlertToastType } from "../../types/AlertToasts";
-import { Story } from "../../types/Story";
+import { useCurrentStoryContext } from "../../contexts/selections";
+import { useToaster } from "../../hooks/useToaster";
+import { AlertToastType } from "../../types/AlertToasts";
 
 interface SeriesSelectionOption {
   label: string;
@@ -37,35 +38,31 @@ interface EditStoryForm {
   series_place?: number;
 }
 
-interface EditStoryProps {
-  story: Story | undefined;
-}
+export const EditStoryModal = () => {
+  const { setAlertState } = useToaster();
 
-export const EditStoryModal = (props: EditStoryProps) => {
-  const useAppDispatch: () => AppDispatch = useDispatch;
-  const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
-  const dispatch = useAppDispatch();
+  const { currentStory } = useCurrentStoryContext();
 
-  const seriesList = useAppSelector((state) => state.series.seriesList);
-  const standaloneList = useAppSelector(
-    (state) => state.stories.standaloneList
-  );
-  const isEditingStory = useAppSelector(
-    (state) => state.stories.isEditingStory
-  );
+  // const seriesList = useAppSelector((state) => state.series.seriesList);
+  // const standaloneList = useAppSelector(
+  //   (state) => state.stories.standaloneList
+  // );
+  // const isEditingStory = useAppSelector(
+  //   (state) => state.stories.isEditingStory
+  // );
 
   const [imageURL, setImageURL] = useState(
-    props.story?.image_url ? props.story.image_url : ""
+    currentStory?.image_url ? currentStory.image_url : ""
   );
   const [imageName, setImageName] = useState(
-    props.story?.title ? props.story.title : ""
+    currentStory?.title ? currentStory.title : ""
   );
   const [isInASeries, setIsInASeries] = useState(false);
   const [preselectedTitle, setPreselectedTitle] = useState(
-    props.story?.title ? props.story.title : ""
+    currentStory?.title ? currentStory.title : ""
   );
   const [preselectedDescription, setPreselectedDescription] = useState(
-    props.story?.description ? props.story.description : ""
+    currentStory?.description ? currentStory.description : ""
   );
   const [preselectedSeries, setPreselectedSeries] =
     useState<SeriesSelectionOption | null>(null);
@@ -81,15 +78,12 @@ export const EditStoryModal = (props: EditStoryProps) => {
     setPreselectedTitle("");
     setPreselectedDescription("");
     setPreselectedSeries(null);
-    storyFormMessage.title = "Cannot edit story";
-    storyFormMessage.message = "";
-    storyFormMessage.severity = AlertToastType.error;
     setStoryForm(null);
   };
 
   const handleClose = () => {
-    dispatch(setStoryBeingEdited(null));
-    dispatch(flipEditingStory(null));
+    //dispatch(setStoryBeingEdited(null));
+    //dispatch(flipEditingStory(null));
     resetForm();
   };
 
@@ -111,32 +105,28 @@ export const EditStoryModal = (props: EditStoryProps) => {
   // };
 
   useEffect(() => {
-    if (props.story) {
-      if (
-        props.story &&
-        props.story.image_url &&
-        props.story.image_url !== imageURL
-      ) {
-        setImageURL(props.story.image_url);
-      }
-
-      if (props.story.title !== preselectedTitle) {
-        setPreselectedTitle(props.story.title);
-      }
-      if (props.story.description !== preselectedDescription) {
-        setPreselectedDescription(props.story.description);
-      }
-      setStoryForm({
-        title: props.story.title,
-        description: props.story.description,
-      });
+    if (!currentStory) return;
+    if (currentStory.image_url && currentStory.image_url !== imageURL) {
+      setImageURL(currentStory.image_url);
     }
-  }, [props, imageURL, preselectedDescription, preselectedTitle]);
+
+    if (currentStory.title !== preselectedTitle) {
+      setPreselectedTitle(currentStory.title);
+    }
+    if (currentStory.description !== preselectedDescription) {
+      setPreselectedDescription(currentStory.description);
+    }
+    setStoryForm({
+      title: currentStory.title,
+      description: currentStory.description,
+    });
+  }, [currentStory, imageURL, preselectedDescription, preselectedTitle]);
 
   useEffect(() => {
-    if (props.story?.series_id) {
+    if (!currentStory) return;
+    if (currentStory.series_id) {
       const foundSeries = seriesList?.find(
-        (srs) => srs.series_id === props.story?.series_id
+        (srs) => srs.series_id === currentStory?.series_id
       );
       if (foundSeries) {
         setStoryForm((prevFormInput) => ({
@@ -162,7 +152,7 @@ export const EditStoryModal = (props: EditStoryProps) => {
         };
       })
     );
-  }, [isEditingStory, seriesList, props.story?.series_id]);
+  }, [isEditingStory, seriesList, currentStory?.series_id]);
 
   const processImage = (acceptedFiles: File[]) => {
     acceptedFiles.forEach((file) => {
@@ -179,19 +169,16 @@ export const EditStoryModal = (props: EditStoryProps) => {
     });
   };
 
-  const storyFormMessage: AlertToast = {
+  setAlertState({
     title: "Cannot edit story",
     message: "",
-    timeout: 6000,
     open: true,
-    severity: AlertToastType.error,
-    link: undefined,
-  };
+    severity: AlertToastType.warning,
+  });
 
   const handleSubmit = async () => {
-    if (!storyForm || !props.story) {
-      return;
-    }
+    if (!storyForm || !currentStory) return;
+
     if (!storyForm.title || !storyForm.title.trim().length) {
       storyFormMessage.message = "Title is required";
       dispatch(setAlert(storyFormMessage));
