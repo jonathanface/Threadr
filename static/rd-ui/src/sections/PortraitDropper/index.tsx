@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { useDispatch } from "react-redux";
-import { setAlert } from "../../stores/alertSlice";
-import { AppDispatch } from "../../stores/store";
 import styles from "./portrait-dropper.module.css";
-import { AlertToast, AlertToastType } from "../../types/AlertToasts";
+import { AlertToastType } from "../../types/AlertToasts";
+import { useToaster } from "../../hooks/useToaster";
 
 interface PortraitDropperProps {
   imageURL: string;
@@ -19,8 +17,7 @@ export const PortraitDropper = (props: PortraitDropperProps) => {
   const [imageURL, setImageURL] = useState(props.imageURL);
   const [name, setName] = useState(props.name);
 
-  const useAppDispatch: () => AppDispatch = useDispatch;
-  const dispatch = useAppDispatch();
+  const { setAlertState } = useToaster();
 
   useEffect(() => {
     setImageURL(props.imageURL);
@@ -33,7 +30,7 @@ export const PortraitDropper = (props: PortraitDropperProps) => {
       if (droppedFile.type) {
         console.log("type", droppedFile.type);
         if (!acceptedFileTypes.includes(droppedFile.type.split("image/")[1])) {
-          const confirmFormMessage: AlertToast = {
+          setAlertState({
             title: "Cannot upload file",
             message:
               "Only images of the following type are allowed: " +
@@ -41,8 +38,7 @@ export const PortraitDropper = (props: PortraitDropperProps) => {
             severity: AlertToastType.warning,
             open: true,
             timeout: 10000,
-          };
-          dispatch(setAlert(confirmFormMessage));
+          });
           return;
         }
       }
@@ -51,7 +47,7 @@ export const PortraitDropper = (props: PortraitDropperProps) => {
         props.onComplete(acceptedFiles);
       }
     },
-    [props, dispatch]
+    [props]
   );
 
   const onImageLoaded = () => {
