@@ -1,4 +1,5 @@
 import { useCallback, useEffect } from "react";
+import { useCurrentStoryContext } from "../contexts/selections";
 
 const fetchStoryDetails = async (storyID: string) => {
   const url = `/api/stories/${storyID}`;
@@ -16,16 +17,17 @@ const fetchStoryDetails = async (storyID: string) => {
 };
 
 export const useHandleNavigationHandler = () => {
+  const { setCurrentStory, deselectStory } = useCurrentStoryContext();
   const handleNavChange = useCallback(async () => {
     const location = window.location.pathname;
     const splitDirectories = location.split("/");
     if (splitDirectories[1] === "story" && splitDirectories[2]?.trim()) {
       const story = await fetchStoryDetails(splitDirectories[2].trim());
-      //dispatch(setSelectedStory(story));
+      setCurrentStory(story);
     } else {
-      //dispatch(setSelectedStory(null));
+      deselectStory();
     }
-  }, []);
+  }, [deselectStory, setCurrentStory]);
 
   useEffect(() => {
     window.addEventListener("popstate", handleNavChange);

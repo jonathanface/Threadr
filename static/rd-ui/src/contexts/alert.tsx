@@ -14,7 +14,7 @@ const defaultState: AlertState = {
   title: "",
   timeout: undefined,
 };
-
+// eslint-disable-next-line react-refresh/only-export-components
 export const AlertContext = createContext<AlertContextType | undefined>(
   undefined
 );
@@ -35,6 +35,7 @@ export const AlertProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAlertContext = () => {
   const context = useContext(AlertContext);
   if (!context) {

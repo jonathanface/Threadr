@@ -6,24 +6,18 @@ import DialogTitle from "@mui/material/DialogTitle";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import { useEffect, useState } from "react";
-import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
-import { setAlert } from "../../stores/alertSlice";
-import { AppDispatch, RootState } from "../../stores/store";
-import {
-  setIsLoaderVisible,
-  setIsSubscriptionFormOpen,
-} from "../../stores/uiSlice";
-import { flipConfigPanelVisible, setUserDetails } from "../../stores/userSlice";
-import { AlertLink, AlertToast, AlertToastType } from "../../types/AlertToasts";
+import { useFetchUserData } from "../../hooks/useFetchUserData";
+import { useAppNavigation } from "../../hooks/useAppNavigation";
+import { useLoader } from "../../hooks/useLoader";
+import { AlertLink, AlertToastType } from "../../types/AlertToasts";
+import { useToaster } from "../../hooks/useToaster";
 
 export const ConfigPanelModal = () => {
-  const useAppDispatch: () => AppDispatch = useDispatch;
-  const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
-  const dispatch = useAppDispatch();
-  const isConfiguring = useAppSelector(
-    (state) => state.user.configPanelVisible
-  );
-  const userDetails = useAppSelector((state) => state.user.userDetails);
+  const { userDetails, setUserDetails } = useFetchUserData();
+  const { isConfigPanelOpen, setIsSubscriptionFormOpen, setIsConfigPanelOpen } =
+    useAppNavigation();
+  const { setIsLoaderVisible } = useLoader();
+  const { setAlertState } = useToaster();
 
   const [isCustomer, setIsCustomer] = useState(true);
   const [isRenewing, setIsRenewing] = useState(false);
@@ -31,11 +25,12 @@ export const ConfigPanelModal = () => {
 
   const subscribe = () => {
     handleClose();
-    dispatch(setIsSubscriptionFormOpen(true));
+    setIsSubscriptionFormOpen(true);
   };
 
   const toggleSubscriptionRenewal = async () => {
-    dispatch(setIsLoaderVisible(true));
+    if (!userDetails) return;
+    setIsLoaderVisible(true);
     try {
       const response = await fetch("/api/user", {
         credentials: "include",
@@ -52,30 +47,30 @@ export const ConfigPanelModal = () => {
         throw error;
       }
       const json = await response.json();
-      dispatch(setUserDetails(json));
+      setUserDetails(json);
     } catch (error: unknown) {
       console.error(`Error: ${error}`);
       const alertLink: AlertLink = {
         url: "mailto:support@docter.io",
         text: "support@docter.io",
       };
-      const confirmFormMessage: AlertToast = {
+      setAlertState({
         title: "Cannot edit your settings",
         message:
           "Cannot edit your settings at this time. Please try again later, or contact support.",
         severity: AlertToastType.error,
         link: alertLink,
         open: true,
-      };
-      dispatch(setIsLoaderVisible(false));
-      dispatch(setAlert(confirmFormMessage));
+      });
       handleClose();
       return;
+    } finally {
+      setIsLoaderVisible(false);
     }
-    dispatch(setIsLoaderVisible(false));
   };
 
   useEffect(() => {
+    if (!userDetails) return;
     if (!userDetails.subscription_id.length) {
       setIsRenewing(false);
       setIsCustomer(false);
@@ -88,11 +83,11 @@ export const ConfigPanelModal = () => {
   }, [userDetails, isCustomer]);
 
   const handleClose = () => {
-    dispatch(flipConfigPanelVisible());
+    setIsConfigPanelOpen(false);
   };
 
   return (
-    <Dialog open={isConfiguring} onClose={handleClose}>
+    <Dialog open={isConfigPanelOpen} onClose={handleClose}>
       <DialogTitle>Account Settings</DialogTitle>
       <DialogContent>
         <Box component="form">

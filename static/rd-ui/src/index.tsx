@@ -11,27 +11,30 @@ import {
   SeriesSelectionProvider,
   StorySelectionProvider,
 } from "./contexts/selections";
+import { AppNavigationProvider } from "./contexts/navigation";
 
 const rootElement = document.getElementById("root")!;
 const root = ReactDOM.createRoot(rootElement);
 
 const render = (Component: React.ComponentType) => {
   root.render(
-    <SeriesSelectionProvider>
-      <StorySelectionProvider>
-        <LoaderProvider>
-          <AlertProvider>
-            <UserProvider>
-              <Loader />
-              <Toaster />
-              <ProSidebarProvider>
-                <Component />
-              </ProSidebarProvider>
-            </UserProvider>
-          </AlertProvider>
-        </LoaderProvider>
-      </StorySelectionProvider>
-    </SeriesSelectionProvider>
+    <AppNavigationProvider>
+      <SeriesSelectionProvider>
+        <StorySelectionProvider>
+          <LoaderProvider>
+            <AlertProvider>
+              <UserProvider>
+                <Loader />
+                <Toaster />
+                <ProSidebarProvider>
+                  <Component />
+                </ProSidebarProvider>
+              </UserProvider>
+            </AlertProvider>
+          </LoaderProvider>
+        </StorySelectionProvider>
+      </SeriesSelectionProvider>
+    </AppNavigationProvider>
   );
 };
 

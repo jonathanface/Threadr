@@ -36,7 +36,14 @@ export const StoryAndSeriesListing = () => {
         timeout: undefined,
       });
     }
-  }, [storiesList, seriesList, storiesList?.length, seriesList?.length]);
+  }, [
+    storiesList,
+    seriesList,
+    storiesList?.length,
+    seriesList?.length,
+    setAlertState,
+    setIsLoaderVisible,
+  ]);
 
   const createNewStory = () => {
     //dispatch(flipCreatingNewStory(true));

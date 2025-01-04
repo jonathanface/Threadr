@@ -174,7 +174,7 @@ export class Exporter {
   };
 
   private createDecorators = (): CompositeDecorator => {
-    const decorators: DraftDecorator<any>[] = [
+    const decorators: DraftDecorator[] = [
       {
         strategy: FindTabs,
         component: TabSpan,

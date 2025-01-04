@@ -2,11 +2,13 @@ import React, { createContext, useContext, useState } from "react";
 import { Story } from "../types/Story";
 import { Series } from "../types/Series";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export enum StoryAction {
   editing = "editing",
   viewing = "viewing",
   none = "none",
 }
+// eslint-disable-next-line react-refresh/only-export-components
 export enum SeriesAction {
   editing = "editing",
   viewing = "viewing",
@@ -96,6 +98,7 @@ export const SeriesSelectionProvider: React.FC<{
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useCurrentStoryContext = () => {
   const context = useContext(CurrentStoryContext);
   if (!context) {
@@ -106,6 +109,7 @@ export const useCurrentStoryContext = () => {
   return context;
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useCurrentSeriesContext = () => {
   const context = useContext(CurrentSeriesContext);
   if (!context) {

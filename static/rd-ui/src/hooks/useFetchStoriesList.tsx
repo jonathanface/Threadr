@@ -35,7 +35,7 @@ export const useFetchStoriesList = () => {
     };
 
     fetchStoriesList();
-  }, []);
+  }, [setIsLoaderVisible]);
 
   return {
     storiesList,

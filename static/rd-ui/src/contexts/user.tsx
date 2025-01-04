@@ -1,7 +1,6 @@
 import { createContext, useState } from "react";
 import { UserDetails } from "../types/User";
 
-// Define types for your context values
 export type UserContextType = {
   isLoggedIn: boolean;
   userDetails: UserDetails | null;
@@ -9,7 +8,7 @@ export type UserContextType = {
   setUserDetails: React.Dispatch<React.SetStateAction<UserDetails | null>>;
 };
 
-// Create contexts
+// eslint-disable-next-line react-refresh/only-export-components
 export const UserContext = createContext<UserContextType | undefined>(
   undefined
 );

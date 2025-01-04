@@ -32,7 +32,7 @@ export const useFetchSeriesList = () => {
     };
 
     fetchSeriesList();
-  }, []);
+  }, [setIsLoaderVisible]);
 
   return {
     seriesList,

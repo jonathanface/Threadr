@@ -3,10 +3,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { useEffect, useState } from "react";
 import "./css/main.css";
 import { ConfigPanelModal } from "./sections/ConfigPanel";
-import { CreateNewStoryModal } from "./sections/CreateNewStoryModal";
 import { DocumentEditor } from "./sections/DocumentEditor";
-import { EditSeriesModal } from "./sections/EditSeriesModal";
-import { EditStoryModal } from "./sections/EditStoryModal";
 import { LoginPanelModal } from "./sections/LoginPanelModal";
 import { SplashPage } from "./sections/SplashPage";
 import { StoryAndSeriesListing } from "./sections/StoryAndSeriesListing";
@@ -57,9 +54,9 @@ export const Threadr = () => {
           </h4>
         </header>
         {displayComponent}
-        <CreateNewStoryModal />
+        {/* <CreateNewStoryModal />
         <EditStoryModal />
-        <EditSeriesModal />
+        <EditSeriesModal /> */}
         <ConfigPanelModal />
         <LoginPanelModal />
       </main>

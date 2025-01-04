@@ -1,22 +1,17 @@
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from "../../stores/store";
-import { flipLoginPanelVisible } from "../../stores/userSlice";
+import { useAppNavigation } from "../../hooks/useAppNavigation";
 
 export const LoginPanelModal = () => {
-  const useAppDispatch: () => AppDispatch = useDispatch;
-  const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
-  const dispatch = useAppDispatch();
-  const isLoggingIn = useAppSelector((state) => state.user.loginPanelVisible);
+  const { isLoginPanelOpen, setIsLoginPanelOpen } = useAppNavigation();
 
   const handleClose = () => {
-    dispatch(flipLoginPanelVisible());
+    setIsLoginPanelOpen(false);
   };
 
   return (
-    <Dialog open={isLoggingIn} onClose={handleClose}>
+    <Dialog open={isLoginPanelOpen} onClose={handleClose}>
       <DialogTitle>Sigin Options</DialogTitle>
       <DialogContent>
         <p>

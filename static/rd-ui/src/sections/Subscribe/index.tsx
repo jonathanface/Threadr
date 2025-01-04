@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 import styles from "./subscribe.module.css";
 
 import { CardElement, useElements, useStripe } from "@stripe/react-stripe-js";
@@ -10,12 +9,10 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
-
-import { setAlert } from "../../stores/alertSlice";
-import { AppDispatch, RootState } from "../../stores/store";
-import { setIsSubscriptionFormOpen } from "../../stores/uiSlice";
 import { StripeCardElementChangeEvent } from "@stripe/stripe-js";
-import { AlertToast, AlertToastType } from "../../types/AlertToasts";
+import { useAppNavigation } from "../../hooks/useAppNavigation";
+import { useToaster } from "../../hooks/useToaster";
+import { AlertToastType } from "../../types/AlertToasts";
 
 interface PaymentMethod {
   id: string;
@@ -34,9 +31,6 @@ interface Product {
 }
 
 export const Subscribe = () => {
-  const useAppDispatch: () => AppDispatch = useDispatch;
-  const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
-  const dispatch = useAppDispatch();
   const [customerID, setCustomerID] = useState("");
   const [subscribeError, setSubscribeError] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(
@@ -44,14 +38,16 @@ export const Subscribe = () => {
   );
   const [product, setProduct] = useState<Product | null>(null);
 
-  const isOpen = useAppSelector((state) => state.ui.isSubscriptionFormOpen);
+  const { isSubscriptionFormOpen, setIsSubscriptionFormOpen } =
+    useAppNavigation();
+  const { setAlertState } = useToaster();
 
   const stripe = useStripe();
   const elements = useElements();
 
   const handleClose = useCallback(() => {
-    dispatch(setIsSubscriptionFormOpen(false));
-  }, [dispatch]);
+    setIsSubscriptionFormOpen(false);
+  }, [setIsSubscriptionFormOpen]);
 
   const confirmCard = async () => {
     setSubscribeError("");
@@ -172,7 +168,7 @@ export const Subscribe = () => {
       }
       const json = await response.json();
 
-      const newAlert: AlertToast = {
+      setAlertState({
         title: "Welcome",
         message:
           "Your subscription is active until " +
@@ -181,8 +177,7 @@ export const Subscribe = () => {
         severity: AlertToastType.success,
         timeout: 10000,
         open: true,
-      };
-      dispatch(setAlert(newAlert));
+      });
       handleClose();
     } catch (error) {
       console.error(error);
@@ -206,13 +201,18 @@ export const Subscribe = () => {
   };
 
   useEffect(() => {
-    if (isOpen) {
+    if (isSubscriptionFormOpen) {
       if (!customerID.length) {
         getOrCreateStripeCustomer();
         getProducts();
       }
     }
-  }, [isOpen, customerID, paymentMethod, getOrCreateStripeCustomer]);
+  }, [
+    isSubscriptionFormOpen,
+    customerID,
+    paymentMethod,
+    getOrCreateStripeCustomer,
+  ]);
 
   const handleCardElementChange = (e: StripeCardElementChangeEvent) => {
     if (e.error) {
@@ -230,7 +230,7 @@ export const Subscribe = () => {
 
   return (
     <Dialog
-      open={isOpen}
+      open={isSubscriptionFormOpen}
       maxWidth={"md"}
       fullWidth={true}
       onClose={handleClose}
