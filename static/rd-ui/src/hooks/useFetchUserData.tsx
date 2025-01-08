@@ -54,7 +54,7 @@ export const useFetchUserData = () => {
     if (!userDetails) {
       fetchUserData();
     }
-  }, [setAlertState, setIsLoaderVisible, setUserDetails, userDetails]);
+  }, [userDetails]);
 
   return {
     userDetails,
