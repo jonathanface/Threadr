@@ -11,12 +11,18 @@ import { StoryAndSeriesListing } from "./sections/StoryAndSeriesListing";
 import { Subscribe } from "./sections/Subscribe";
 import { UserMenu } from "./sections/UserMenu";
 
-import { useFetchUserData } from "./hooks/useFetchUserData";
+import { UserDataProvider, useUserData } from "./contexts/UserDataProvider";
 import { useHandleNavigationHandler } from "./hooks/useNavigationHandler";
 import { StoryAction, useCurrentStoryContext } from "./contexts/selections";
 
-export const Threadr = () => {
-  const { isLoadingUser, isLoggedIn } = useFetchUserData();
+export const Threadr = () => (
+  <UserDataProvider>
+    <ThreadrContent />
+  </UserDataProvider>
+);
+
+const ThreadrContent = () => {
+  const { isLoadingUser, isLoggedIn } = useUserData();
   const { handleNavChange } = useHandleNavigationHandler();
   const stripeKey: string = import.meta.env.VITE_STRIPE_KEY ?? "";
   console.log("skey", stripeKey)
