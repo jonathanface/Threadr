@@ -1,5 +1,6 @@
-import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
+
 import { useEffect, useState } from "react";
 import "./css/main.css";
 import { ConfigPanelModal } from "./sections/ConfigPanel";
@@ -17,7 +18,8 @@ import { StoryAction, useCurrentStoryContext } from "./contexts/selections";
 export const Threadr = () => {
   const { isLoadingUser, isLoggedIn } = useFetchUserData();
   const { handleNavChange } = useHandleNavigationHandler();
-  const stripeKey: string = import.meta.env.REACT_APP_STRIPE_KEY ?? "";
+  const stripeKey: string = import.meta.env.VITE_STRIPE_KEY ?? "";
+  console.log("skey", stripeKey)
   const [stripe] = useState(() => loadStripe(stripeKey));
 
   const { currentStory, currentStoryAction } = useCurrentStoryContext();
