@@ -54,7 +54,7 @@ export const useFetchUserData = () => {
     if (!userDetails) {
       fetchUserData();
     }
-  }, [userDetails]);
+  }, []);
 
   return {
     userDetails,
