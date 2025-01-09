@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from "react";
-import { useCurrentStoryContext } from "../contexts/selections";
+import { StoryAction, useCurrentStoryContext } from "../contexts/selections";
 
 const fetchStoryDetails = async (storyID: string) => {
   const url = `/api/stories/${storyID}`;
@@ -17,17 +17,25 @@ const fetchStoryDetails = async (storyID: string) => {
 };
 
 export const useHandleNavigationHandler = () => {
-  const { setCurrentStory, deselectStory } = useCurrentStoryContext();
+  const { setCurrentStory, deselectStory, setCurrentStoryAction, currentStory } =
+    useCurrentStoryContext();
+
   const handleNavChange = useCallback(async () => {
     const location = window.location.pathname;
     const splitDirectories = location.split("/");
     if (splitDirectories[1] === "story" && splitDirectories[2]?.trim()) {
-      const story = await fetchStoryDetails(splitDirectories[2].trim());
-      setCurrentStory(story);
+      const storyID = splitDirectories[2].trim();
+
+      // Avoid fetching if the current story is already loaded
+      if (!currentStory || currentStory.story_id !== storyID) {
+        const story = await fetchStoryDetails(storyID);
+        setCurrentStory(story);
+      }
+      setCurrentStoryAction(StoryAction.editing);
     } else {
       deselectStory();
     }
-  }, [deselectStory, setCurrentStory]);
+  }, [currentStory, deselectStory, setCurrentStory]);
 
   useEffect(() => {
     window.addEventListener("popstate", handleNavChange);

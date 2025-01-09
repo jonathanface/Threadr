@@ -13,6 +13,7 @@ export const LoaderContext = createContext<LoaderContextType | undefined>(
 export const LoaderProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  console.log("LoaderProvider mounted");
   const [isLoaderVisible, setIsLoaderVisible] = useState(false);
 
   const loaderValue: LoaderContextType = {

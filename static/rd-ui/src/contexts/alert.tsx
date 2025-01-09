@@ -22,6 +22,7 @@ export const AlertContext = createContext<AlertContextType | undefined>(
 export const AlertProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  console.log("AlertProvider mounted");
   const [alertState, setAlertState] = useState<AlertState>(defaultState);
 
   const clearAlert = () => {

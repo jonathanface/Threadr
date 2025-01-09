@@ -27,6 +27,7 @@ export const AppNavigationContext = createContext<AppNavigation | undefined>(
 export const AppNavigationProvider: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
+  console.log("AppNavigationProvider mounted");
   const [isCreatingSeries, setIsCreatingSeries] = useState(false);
   const [isCreatingStory, setIsCreatingStory] = useState(false);
   const [isEditingStory, setIsEditingStory] = useState<Story | null>(null);

@@ -16,6 +16,7 @@ export const UserContext = createContext<UserContextType | undefined>(
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  console.log("UserProvider mounted");
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 

@@ -1,7 +1,7 @@
 import { useLoader } from "./useLoader";
 import { Series } from "../types/Series";
 import { APIError } from "../types/API";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef } from "react";
 import { WorksListContext } from "../contexts/worksList";
 
 export const useFetchSeriesList = () => {
@@ -13,11 +13,11 @@ export const useFetchSeriesList = () => {
   }
   const { seriesList, setSeriesList } = context
   const { setIsLoaderVisible } = useLoader();
-
+  const loadInProgress = useRef(false);
 
   useEffect(() => {
-    if (seriesList === undefined) {
-      console.log("loading")
+    if (seriesList === undefined && !loadInProgress.current) {
+      loadInProgress.current = true;
       setIsLoaderVisible(true);
       const fetchSeriesList = async () => {
         try {
@@ -39,9 +39,9 @@ export const useFetchSeriesList = () => {
           }
         } finally {
           setIsLoaderVisible(false);
+          loadInProgress.current = false;
         }
       };
-
       fetchSeriesList();
     }
   }, [seriesList, setIsLoaderVisible, setSeriesList]);

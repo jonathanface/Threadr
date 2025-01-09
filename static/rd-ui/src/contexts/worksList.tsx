@@ -1,4 +1,4 @@
-import { createContext, useState } from "react";
+import { createContext, useEffect, useState } from "react";
 import { Story } from "../types/Story";
 import { Series } from "../types/Series";
 
@@ -16,7 +16,11 @@ export const WorksListContext = createContext<WorksContextType | undefined>(
 export const WorksListContextProvider: React.FC<{
     children: React.ReactNode;
 }> = ({ children }) => {
+
     console.log("WorksListContextProvider mounted")
+    useEffect(() => {
+        return () => console.log("WorksListContextProvider unmounted");
+    }, []);
     const [storiesList, setStoriesList] = useState<undefined | Story[]>(undefined);
     const [seriesList, setSeriesList] = useState<undefined | Series[]>(undefined);
     return (

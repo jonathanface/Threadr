@@ -8,8 +8,6 @@ import { DetailsSlider } from "./DetailsSlider";
 import styles from "./story.module.css";
 import { IsStory, Story } from "../../types/Story";
 import { Series } from "../../types/Series";
-import { useFetchSeriesList } from "../../hooks/useFetchSeriesList";
-//import { useFetchStoriesList } from "../../hooks/useFetchStoriesList";
 import { useCurrentStoryContext } from "../../contexts/selections";
 import { useLoader } from "../../hooks/useLoader";
 import { useAppNavigation } from "../../hooks/useAppNavigation";
@@ -17,6 +15,10 @@ import { useAppNavigation } from "../../hooks/useAppNavigation";
 
 interface StoryBoxProps {
   data: Story | Series;
+  seriesList: Series[] | undefined;
+  storiesList: Story[] | undefined;
+  setSeriesList: (series: Series[]) => void;
+  setStoriesList: (stories: Story[]) => void;
 }
 
 export const StoryBox = (props: StoryBoxProps) => {
@@ -96,22 +98,22 @@ export const StoryBox = (props: StoryBoxProps) => {
         }
 
         setWasDeleted(true);
-        // const foundSeriesIndex = seriesList?.findIndex(
-        //   (srs) => srs.series_id === id
-        // );
-        // if (storiesList && seriesList && foundSeriesIndex && foundSeriesIndex !== -1) {
-        //   const newStandaloneList = [...storiesList];
-        //   seriesList[foundSeriesIndex].stories.forEach((story) => {
-        //     const newStory = { ...story };
-        //     delete newStory.series_id;
-        //     newStandaloneList.push(newStory);
-        //   });
-        //   setStoriesList(newStandaloneList);
+        const foundSeriesIndex = props.seriesList?.findIndex(
+          (srs) => srs.series_id === id
+        );
+        if (props.storiesList && props.seriesList && foundSeriesIndex && foundSeriesIndex !== -1) {
+          const newStandaloneList = [...props.storiesList];
+          props.seriesList[foundSeriesIndex].stories.forEach((story) => {
+            const newStory = { ...story };
+            delete newStory.series_id;
+            newStandaloneList.push(newStory);
+          });
+          props.setStoriesList(newStandaloneList);
 
-        //   const newSeriesList = [...seriesList];
-        //   newSeriesList.splice(foundSeriesIndex, 1);
-        //   setSeriesList(newSeriesList);
-        // }
+          const newSeriesList = [...props.seriesList];
+          newSeriesList.splice(foundSeriesIndex, 1);
+          props.setSeriesList(newSeriesList);
+        }
         setIsLoaderVisible(false);
       } catch (error) {
         console.error("Error fetching data: ", error);

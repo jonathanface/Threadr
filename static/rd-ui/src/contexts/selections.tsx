@@ -44,6 +44,7 @@ export const StorySelectionProvider: React.FC<{
   const [currentStory, setCurrentStory] = useState<Story | undefined>(
     undefined
   );
+  console.log("StorySelectionProvider mounted");
   const [currentStoryAction, setCurrentStoryAction] = useState<StoryAction>(
     StoryAction.none
   );
@@ -74,6 +75,7 @@ export const SeriesSelectionProvider: React.FC<{
   const [currentSeries, setCurrentSeries] = useState<Series | undefined>(
     undefined
   );
+  console.log("SeriesSelectionProvider mounted");
   const [currentSeriesAction, setCurrentSeriesAction] = useState<SeriesAction>(
     SeriesAction.none
   );

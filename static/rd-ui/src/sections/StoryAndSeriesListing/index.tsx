@@ -1,13 +1,12 @@
 import AddIcon from "@mui/icons-material/Add";
 import { IconButton } from "@mui/material";
 import React, { useContext, useEffect } from "react";
-import { StoryBox } from "../Story";
+import { StoryBox } from "../../components/StoryBox";
 import styles from "./storyAndSeries.module.css";
 import { Series } from "../../types/Series";
 import { Story } from "../../types/Story";
 import { useFetchSeriesList } from "../../hooks/useFetchSeriesList";
 import { useFetchStoriesList } from "../../hooks/useFetchStoriesList";
-import { useLoader } from "../../hooks/useLoader";
 import { useToaster } from "../../hooks/useToaster";
 import { AlertToastType } from "../../types/AlertToasts";
 import { UserContext } from "../../contexts/user";
@@ -18,8 +17,8 @@ export const StoryAndSeriesListing = () => {
     return <div />
   }
   const { isLoggedIn } = userData;
-  const { storiesList } = useFetchStoriesList();
-  const { seriesList } = useFetchSeriesList();
+  const { storiesList, setStoriesList } = useFetchStoriesList();
+  const { seriesList, setSeriesList } = useFetchSeriesList();
   const { setAlertState } = useToaster();
 
   useEffect(() => {
@@ -52,11 +51,11 @@ export const StoryAndSeriesListing = () => {
 
   // If there are works, we prepare our series and stories components.
   const seriesComponents = seriesList?.map((series: Series) => {
-    return <StoryBox key={series.series_id} data={series} />;
+    return <StoryBox key={series.series_id} data={series} storiesList={storiesList} seriesList={seriesList} setSeriesList={setSeriesList} setStoriesList={setStoriesList} />;
   });
 
   const storyComponents = storiesList?.map((story: Story) => {
-    return <StoryBox key={story.story_id} data={story} />;
+    return <StoryBox key={story.story_id} data={story} storiesList={storiesList} seriesList={seriesList} setSeriesList={setSeriesList} setStoriesList={setStoriesList} />;
   });
 
   let content = <div />;

@@ -1,11 +1,11 @@
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import "./css/main.css";
-import { ConfigPanelModal } from "./sections/ConfigPanel";
-import { DocumentEditor } from "./sections/DocumentEditor";
-import { LoginPanelModal } from "./sections/LoginPanelModal";
+import { ConfigPanelModal } from "./sections/UserConfigPanel";
+import { DocumentEditorPage } from "./sections/DocumentEditor";
+import { LoginPanelModal } from "./sections/LoginPanel";
 import { SplashPage } from "./sections/SplashPage";
 import { StoryAndSeriesListing } from "./sections/StoryAndSeriesListing";
 import { Subscribe } from "./sections/Subscribe";
@@ -15,40 +15,43 @@ import { useHandleNavigationHandler } from "./hooks/useNavigationHandler";
 import { StoryAction, useCurrentStoryContext } from "./contexts/selections";
 import { useFetchUserData } from "./hooks/useFetchUserData";
 
-export const Threadr = () => {
+export const Docter = () => {
+
+  console.log("Docter mounted");
+  useEffect(() => {
+    return () => console.log("Docter unmounted");
+  }, []);
 
   const { isLoggedIn, isLoadingUser } = useFetchUserData();
   const { handleNavChange } = useHandleNavigationHandler();
   const stripeKey: string = import.meta.env.VITE_STRIPE_KEY ?? "";
-  const [stripe] = useState(() => loadStripe(stripeKey));
+  const stripe = useMemo(() => loadStripe(stripeKey), [stripeKey]);
 
   const { currentStory, currentStoryAction } = useCurrentStoryContext();
-  const [displayComponent, setDisplayComponent] = useState(<div />);
 
   useEffect(() => {
     handleNavChange();
   }, [handleNavChange]);
 
-  const renderContent = useMemo(() => {
+  const renderContent = () => {
     if (
       isLoggedIn &&
       currentStory &&
-      currentStoryAction === StoryAction.viewing
-    )
-      return <DocumentEditor />;
+      currentStoryAction === StoryAction.editing
+    ) {
+      return <DocumentEditorPage />;
+    }
     if (
       (isLoggedIn && !currentStory) ||
       (isLoggedIn && currentStory && currentStoryAction === StoryAction.none)
-    )
+    ) {
       return <StoryAndSeriesListing />;
-    if (isLoadingUser) return <div />;
+    }
+    if (isLoadingUser) {
+      return <div />;
+    }
     return <SplashPage />;
-  }, [isLoggedIn, currentStory, currentStoryAction, isLoadingUser]);
-
-  useEffect(() => {
-    setDisplayComponent(renderContent);
-  }, [isLoggedIn, isLoadingUser, currentStory, currentStoryAction])
-
+  };
 
   return (
     <div className="App">
@@ -60,7 +63,7 @@ export const Threadr = () => {
             <div className="version">ver 1.0.1</div>
           </h4>
         </header>
-        {displayComponent}
+        {renderContent()}
         {/* <CreateNewStoryModal />
         <EditStoryModal />
         <EditSeriesModal /> */}

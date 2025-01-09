@@ -15,18 +15,24 @@ export const useFetchUserData = () => {
   if (!userContext) {
     throw new Error("UserContext must be used within a UserContext.Provider");
   }
-  const { userDetails, setUserDetails, setIsLoggedIn, isLoggedIn } =
-    userContext;
-  const [userError, setUserError] = useState({});
-  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const { userDetails, setUserDetails, setIsLoggedIn, isLoggedIn } = userContext;
+
+  const [userError, setUserError] = useState<Error | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(false);
 
   useEffect(() => {
-    setIsLoaderVisible(true);
     const fetchUserData = async () => {
+      if (userDetails) return;
+
+      setIsLoaderVisible(true);
+      setIsLoadingUser(true);
+
       try {
         const response = await fetch("/api/user", { credentials: "include" });
         if (!response.ok) throw new Error(`Fetch error: ${response.status}`);
+
         const userData = await response.json();
+
         if (userData.expired) {
           const alertFunction: AlertFunctionCall = {
             type: AlertCommandType.subscribe,
@@ -42,9 +48,10 @@ export const useFetchUserData = () => {
             timeout: undefined,
           });
         }
+
         setUserDetails(userData);
         setIsLoggedIn(true);
-      } catch (error: unknown) {
+      } catch (error) {
         console.error("Failed to fetch user data:", error);
         setUserError(error as Error);
       } finally {
@@ -52,10 +59,9 @@ export const useFetchUserData = () => {
         setIsLoadingUser(false);
       }
     };
-    if (!userDetails) {
-      fetchUserData();
-    }
-  }, []);
+
+    fetchUserData();
+  }, [userDetails, setIsLoaderVisible, setAlertState, setUserDetails, setIsLoggedIn]);
 
   return {
     userDetails,
@@ -66,3 +72,4 @@ export const useFetchUserData = () => {
     isLoggedIn,
   };
 };
+
