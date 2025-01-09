@@ -35,6 +35,6 @@ export const useFetchSeriesList = () => {
   }, [setIsLoaderVisible]);
 
   return {
-    seriesList,
+    seriesList, setSeriesList
   };
 };

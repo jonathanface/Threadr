@@ -1,15 +1,24 @@
 import Person4Icon from "@mui/icons-material/Person4";
 import { IconButton } from "@mui/material";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import styles from "./user-menu.module.css";
-import { useFetchUserData } from "../../hooks/useFetchUserData";
 import { useLoader } from "../../hooks/useLoader";
+import { UserContext } from "../../contexts/user";
+import { useAppNavigation } from "../../hooks/useAppNavigation";
+import { useCurrentSeriesContext, useCurrentStoryContext } from "../../contexts/selections";
 
 export const UserMenu = () => {
-  const { userDetails, setIsLoggedIn, isLoggedIn } = useFetchUserData();
+  const userData = useContext(UserContext);
+  if (!userData) {
+    return <div />
+  }
+  const { isLoggedIn, setIsLoggedIn, userDetails } = userData;
   const { setIsLoaderVisible } = useLoader();
 
   const [isOpen, setIsOpen] = useState(false);
+  const { setIsLoginPanelOpen, setIsConfigPanelOpen, setIsSubscriptionFormOpen } = useAppNavigation();
+  const storyData = useCurrentStoryContext();
+  const seriesData = useCurrentSeriesContext();
 
   const signout = () => {
     setIsLoaderVisible(false);
@@ -18,7 +27,8 @@ export const UserMenu = () => {
     })
       .then((response) => {
         if (response.ok) {
-          //dispatch(setSelectedStory(null));
+          storyData.setCurrentStory(undefined);
+          seriesData.setCurrentSeries(undefined);
           setIsLoggedIn(true);
           const history = window.history;
           history.pushState({}, "", "/");
@@ -32,15 +42,15 @@ export const UserMenu = () => {
   };
 
   const subscribe = () => {
-    //dispatch(setIsSubscriptionFormOpen(true));
+    setIsSubscriptionFormOpen(true);
   };
 
   const showUserSettings = () => {
-    // TO-DO
+    setIsConfigPanelOpen(true);
   };
 
   const showLoginPanel = () => {
-    // TO-DO
+    setIsLoginPanelOpen(true);
   };
 
   const displayComponent = isLoggedIn ? (

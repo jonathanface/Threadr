@@ -1,7 +1,7 @@
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import "./css/main.css";
 import { ConfigPanelModal } from "./sections/ConfigPanel";
 import { DocumentEditor } from "./sections/DocumentEditor";
@@ -11,21 +11,15 @@ import { StoryAndSeriesListing } from "./sections/StoryAndSeriesListing";
 import { Subscribe } from "./sections/Subscribe";
 import { UserMenu } from "./sections/UserMenu";
 
-import { UserDataProvider, useUserData } from "./contexts/UserDataProvider";
 import { useHandleNavigationHandler } from "./hooks/useNavigationHandler";
 import { StoryAction, useCurrentStoryContext } from "./contexts/selections";
+import { useFetchUserData } from "./hooks/useFetchUserData";
 
-export const Threadr = () => (
-  <UserDataProvider>
-    <ThreadrContent />
-  </UserDataProvider>
-);
+export const Threadr = () => {
 
-const ThreadrContent = () => {
-  const { isLoadingUser, isLoggedIn } = useUserData();
+  const { isLoggedIn } = useFetchUserData();
   const { handleNavChange } = useHandleNavigationHandler();
   const stripeKey: string = import.meta.env.VITE_STRIPE_KEY ?? "";
-  console.log("skey", stripeKey)
   const [stripe] = useState(() => loadStripe(stripeKey));
 
   const { currentStory, currentStoryAction } = useCurrentStoryContext();
@@ -35,7 +29,6 @@ const ThreadrContent = () => {
   }, [handleNavChange]);
 
   const renderContent = () => {
-    if (isLoadingUser) return <div />;
     if (
       isLoggedIn &&
       currentStory &&
@@ -73,4 +66,5 @@ const ThreadrContent = () => {
       </Elements>
     </div>
   );
-};
+}
+

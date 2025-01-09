@@ -1,13 +1,19 @@
 import { createContext, useState } from "react";
+import { Story } from "../types/Story";
+import { Series } from "../types/Series";
 
 type AppNavigation = {
   isCreatingSeries: boolean;
   isCreatingStory: boolean;
+  isEditingStory: Story | null;
+  isEditingSeries: Series | null;
   isConfigPanelOpen: boolean;
   isSubscriptionFormOpen: boolean;
   isLoginPanelOpen: boolean;
   setIsCreatingSeries: (creatingSeries: boolean) => void;
   setIsCreatingStory: (creatingStory: boolean) => void;
+  setIsEditingStory: (editingStory: Story | null) => void;
+  setIsEditingSeries: (editingSeries: Series | null) => void;
   setIsConfigPanelOpen: (configPanelOpen: boolean) => void;
   setIsSubscriptionFormOpen: (subscriptionFormOpen: boolean) => void;
   setIsLoginPanelOpen: (loginPanelOpen: boolean) => void;
@@ -23,6 +29,8 @@ export const AppNavigationProvider: React.FC<{
 }> = ({ children }) => {
   const [isCreatingSeries, setIsCreatingSeries] = useState(false);
   const [isCreatingStory, setIsCreatingStory] = useState(false);
+  const [isEditingStory, setIsEditingStory] = useState<Story | null>(null);
+  const [isEditingSeries, setIsEditingSeries] = useState<Series | null>(null);
   const [isConfigPanelOpen, setIsConfigPanelOpen] = useState(false);
   const [isSubscriptionFormOpen, setIsSubscriptionFormOpen] = useState(false);
   const [isLoginPanelOpen, setIsLoginPanelOpen] = useState(false);
@@ -31,11 +39,15 @@ export const AppNavigationProvider: React.FC<{
       value={{
         isCreatingSeries,
         isCreatingStory,
+        isEditingStory,
+        isEditingSeries,
         isConfigPanelOpen,
         isSubscriptionFormOpen,
         isLoginPanelOpen,
         setIsCreatingSeries,
         setIsCreatingStory,
+        setIsEditingStory,
+        setIsEditingSeries,
         setIsConfigPanelOpen,
         setIsSubscriptionFormOpen,
         setIsLoginPanelOpen,

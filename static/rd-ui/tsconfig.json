@@ -1,7 +1,22 @@
 {
   "files": [],
+  "compilerOptions": {
+    "target": "es6", // or later
+    "lib": [
+      "es6"
+    ], // Include ES6 library
+    "types": [
+      "node"
+    ], // Include Node.js types
+    "module": "esnext", // Vite uses ESNext modules
+    "moduleResolution": "node" // Resolve modules like Node.js
+  },
   "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.node.json"
+    }
   ]
 }

@@ -3,42 +3,32 @@ import EditIcon from "@mui/icons-material/Edit";
 import { IconButton } from "@mui/material";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
-import React, { useEffect, useState } from "react";
-import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
-import {
-  flipEditingSeries,
-  setSeriesBeingEdited,
-  setSeriesList,
-} from "../../stores/seriesSlice";
-import { AppDispatch, RootState } from "../../stores/store";
-import {
-  flipEditingStory,
-  setSelectedStory,
-  setStandaloneList,
-  setStoryBeingEdited,
-} from "../../stores/storiesSlice";
-import { setIsLoaderVisible } from "../../stores/uiSlice";
+import { useEffect, useState } from "react";
 import { DetailsSlider } from "./DetailsSlider";
 import styles from "./story.module.css";
 import { IsStory, Story } from "../../types/Story";
 import { Series } from "../../types/Series";
+import { useFetchSeriesList } from "../../hooks/useFetchSeriesList";
+import { useFetchStoriesList } from "../../hooks/useFetchStoriesList";
+import { useCurrentStoryContext } from "../../contexts/selections";
+import { useLoader } from "../../hooks/useLoader";
+import { useAppNavigation } from "../../hooks/useAppNavigation";
 
 interface StoryBoxProps {
   data: Story | Series;
 }
 
 export const StoryBox = (props: StoryBoxProps) => {
-  const useAppDispatch: () => AppDispatch = useDispatch;
-  const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
-  const dispatch = useAppDispatch();
+
+  const { seriesList, setSeriesList } = useFetchSeriesList();
+  const { storiesList, setStoriesList } = useFetchStoriesList();
+  const { setCurrentStory } = useCurrentStoryContext();
+  const { setIsLoaderVisible } = useLoader();
+  const { setIsEditingStory, setIsEditingSeries } = useAppNavigation();
 
   const [wasDeleted, setWasDeleted] = useState(false);
   const [isStoryLoaderVisible, setIsStoryLoaderVisible] = useState(true);
   const [isSeries, setIsSeries] = useState(false);
-  const seriesList = useAppSelector((state) => state.series.seriesList);
-  const standaloneList = useAppSelector(
-    (state) => state.stories.standaloneList
-  );
 
   const getStoryDetails = async (storyID: string) => {
     const url = "/api/stories/" + storyID;
@@ -58,25 +48,23 @@ export const StoryBox = (props: StoryBoxProps) => {
   const handleClick = async (storyID: string, chapterID: string) => {
     const history = window.history;
     const newStory = await getStoryDetails(storyID);
-    dispatch(setSelectedStory(newStory));
+    setCurrentStory(newStory);
     history.pushState(
       { storyID },
       "clicked story",
       "/story/" + storyID + "?chapter=" + chapterID
     );
-    dispatch(setIsLoaderVisible(true));
+    setIsLoaderVisible(true);
   };
 
   const editStory = (event: React.MouseEvent) => {
     event.stopPropagation();
-    dispatch(setStoryBeingEdited(props.data as Story));
-    dispatch(flipEditingStory(true));
+    setIsEditingStory(props.data as Story);
   };
 
   const editSeries = (event: React.MouseEvent) => {
     event.stopPropagation();
-    dispatch(setSeriesBeingEdited(props.data as Series));
-    dispatch(flipEditingSeries());
+    setIsEditingSeries(props.data as Series);
   };
 
   const deleteSeries = async (
@@ -91,7 +79,7 @@ export const StoryBox = (props: StoryBoxProps) => {
       "? Any volumes assigned to it will be converted to standalone stories.";
     const conf = window.confirm(confirmText);
     if (conf) {
-      dispatch(setIsLoaderVisible(true));
+      setIsLoaderVisible(true);
       try {
         const url = "/api/series/" + id;
         const response = await fetch(url, {
@@ -107,27 +95,27 @@ export const StoryBox = (props: StoryBoxProps) => {
         }
 
         setWasDeleted(true);
-        const foundSeriesIndex = seriesList.findIndex(
+        const foundSeriesIndex = seriesList?.findIndex(
           (srs) => srs.series_id === id
         );
-        if (foundSeriesIndex !== -1) {
-          const newStandaloneList = [...standaloneList];
+        if (storiesList && seriesList && foundSeriesIndex && foundSeriesIndex !== -1) {
+          const newStandaloneList = [...storiesList];
           seriesList[foundSeriesIndex].stories.forEach((story) => {
             const newStory = { ...story };
             delete newStory.series_id;
             newStandaloneList.push(newStory);
           });
-          dispatch(setStandaloneList(newStandaloneList));
+          setStoriesList(newStandaloneList);
 
           const newSeriesList = [...seriesList];
           newSeriesList.splice(foundSeriesIndex, 1);
-          dispatch(setSeriesList(newSeriesList));
+          setSeriesList(newSeriesList);
         }
-        dispatch(setIsLoaderVisible(false));
+        setIsLoaderVisible(false);
       } catch (error) {
         console.error("Error fetching data: ", error);
         //const errorData = error.response ? JSON.parse(error.message) : {};
-        dispatch(setIsLoaderVisible(false));
+        setIsLoaderVisible(false);
       }
     }
   };
@@ -139,10 +127,10 @@ export const StoryBox = (props: StoryBoxProps) => {
       (IsStory(props.data)
         ? "Delete story " + title + "?"
         : "Delete " +
-          title +
-          " from your series " +
-          props.data.series_title +
-          "?") +
+        title +
+        " from your series " +
+        props.data.series_title +
+        "?") +
       (!IsStory(props.data) && props.data.stories.length === 1
         ? "\n\nThere are no other titles in this series, so deleting it will also remove the series."
         : "");
@@ -150,7 +138,7 @@ export const StoryBox = (props: StoryBoxProps) => {
     const conf = window.confirm(confirmText);
     const seriesID = !IsStory(props.data) ? props.data.series_id : "";
     if (conf) {
-      dispatch(setIsLoaderVisible(true));
+      setIsLoaderVisible(true);
       const url = "/api/stories/" + id + "?series=" + seriesID;
       fetch(url, {
         credentials: "include",
@@ -162,7 +150,7 @@ export const StoryBox = (props: StoryBoxProps) => {
         if (response.ok) {
           setWasDeleted(true);
         }
-        dispatch(setIsLoaderVisible(false));
+        setIsLoaderVisible(false);
       });
     }
   };

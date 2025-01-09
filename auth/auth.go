@@ -7,18 +7,28 @@ import (
 	"RichDocter/sessions"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/amazon"
 	"github.com/markbates/goth/providers/google"
 	"github.com/markbates/goth/providers/microsoftonline"
 )
+
+func init() {
+	if os.Getenv("APP_MODE") != "PRODUCTION" {
+		if err := godotenv.Load(); err != nil {
+			log.Println("Error loading .env file for the auth service")
+		}
+	}
+}
 
 func New() {
 	goth.UseProviders(

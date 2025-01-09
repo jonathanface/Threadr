@@ -1,6 +1,6 @@
 /* eslint no-use-before-define: 0 */
 import Immutable from "immutable";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
   BlockMap,
   CharacterMetadata,
@@ -67,10 +67,10 @@ import {
 import { APIError } from "../../types/API";
 import { Chapter } from "../../types/Chapter";
 import { Story } from "../../types/Story";
-import { useFetchUserData } from "../../hooks/useFetchUserData";
 import { useCurrentStoryContext } from "../../contexts/selections";
 import { useToaster } from "../../hooks/useToaster";
 import { useLoader } from "../../hooks/useLoader";
+import { UserContext } from "../../contexts/user";
 
 const DB_OP_INTERVAL = 5000;
 
@@ -98,7 +98,11 @@ export const DocumentEditor = () => {
 
   const urlParams = new URLSearchParams(window.location.search);
 
-  const { isLoggedIn } = useFetchUserData();
+  const userData = useContext(UserContext);
+  if (!userData) {
+    return <div />
+  }
+  const { isLoggedIn } = userData;
   const { currentStory, deselectStory, setCurrentStory } =
     useCurrentStoryContext();
   const { setAlertState } = useToaster();
@@ -184,7 +188,7 @@ export const DocumentEditor = () => {
     return new CompositeDecorator(decorators);
   }, [handleAssociationContextMenu]);
 
-  const [editorState, setEditorState] = React.useState(() =>
+  const [editorState, setEditorState] = useState(() =>
     EditorState.createEmpty(createDecorators())
   );
 
@@ -285,11 +289,11 @@ export const DocumentEditor = () => {
       if (currentStory) {
         return fetch(
           "/api/stories/" +
-            currentStory.story_id +
-            "/content?key=" +
-            startKey +
-            "&chapter=" +
-            selectedChapter.id
+          currentStory.story_id +
+          "/content?key=" +
+          startKey +
+          "&chapter=" +
+          selectedChapter.id
         )
           .then((response) => {
             if (response.ok) {
@@ -531,9 +535,9 @@ export const DocumentEditor = () => {
     if (currentStory) {
       const response = await fetch(
         "/api/stories/" +
-          currentStory.story_id +
-          "/chapters/" +
-          selectedChapter.id,
+        currentStory.story_id +
+        "/chapters/" +
+        selectedChapter.id,
         {
           method: "GET",
           headers: {
@@ -951,7 +955,7 @@ export const DocumentEditor = () => {
       const ind = associations.findIndex((assoc) => {
         return (
           assoc.association_type ===
-            currentRightClickedAssoc.association_type &&
+          currentRightClickedAssoc.association_type &&
           assoc.association_name === currentRightClickedAssoc.association_name
         );
       });
@@ -1479,9 +1483,9 @@ export const DocumentEditor = () => {
           });
           const response = await fetch(
             "/api/stories/" +
-              currentStory.story_id +
-              "/chapters/" +
-              selectedChapter.id,
+            currentStory.story_id +
+            "/chapters/" +
+            selectedChapter.id,
             {
               method: "PUT",
               headers: {

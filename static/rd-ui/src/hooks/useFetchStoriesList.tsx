@@ -38,6 +38,6 @@ export const useFetchStoriesList = () => {
   }, [setIsLoaderVisible]);
 
   return {
-    storiesList,
+    storiesList, setStoriesList
   };
 };

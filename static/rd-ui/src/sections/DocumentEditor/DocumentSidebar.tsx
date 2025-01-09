@@ -1,7 +1,6 @@
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { Button, IconButton } from "@mui/material";
-import React from "react";
 import {
   DragDropContext,
   Draggable,
@@ -10,13 +9,13 @@ import {
   OnDragEndResponder,
 } from "@hello-pangea/dnd";
 import { MenuItem, Menu as SideMenu, Sidebar } from "react-pro-sidebar";
-import { useDispatch } from "react-redux";
-import { setAlert } from "../../stores/alertSlice";
-import { AppDispatch } from "../../stores/store";
-import { setSelectedStory } from "../../stores/storiesSlice";
 import { AlertToastType } from "../../types/AlertToasts";
 import { Story } from "../../types/Story";
 import { Chapter } from "../../types/Chapter";
+import { useToaster } from "../../hooks/useToaster";
+import { useCurrentStoryContext } from "../../contexts/selections";
+import { ClassAttributes, HTMLAttributes, Ref, ReactElement, JSXElementConstructor, ReactNode, ReactPortal } from "react";
+import { JSX } from "react/jsx-runtime";
 
 interface DocumentSidebarProps {
   story: Story;
@@ -26,8 +25,9 @@ interface DocumentSidebarProps {
 }
 
 export const DocumentSidebar = (props: DocumentSidebarProps) => {
-  const useAppDispatch: () => AppDispatch = useDispatch;
-  const dispatch = useAppDispatch();
+
+  const { setAlertState } = useToaster();
+  const { setCurrentStory } = useCurrentStoryContext();
 
   const onChapterDragEnd: OnDragEndResponder = async (
     result: DropResult<string>
@@ -43,7 +43,7 @@ export const DocumentSidebar = (props: DocumentSidebarProps) => {
     });
     const newStory = { ...props.story };
     newStory.chapters = updatedChapters;
-    dispatch(setSelectedStory(newStory));
+    setCurrentStory(newStory);
 
     const response = await fetch(
       "/api/stories/" + props.story.story_id + "/chapters",
@@ -57,15 +57,14 @@ export const DocumentSidebar = (props: DocumentSidebarProps) => {
     );
     if (!response.ok) {
       console.error(response.body);
-      const newAlert = {
+      setAlertState({
         title: "Error",
         message:
           "There was an error updating your chapters. Please report this.",
         severity: AlertToastType.error,
         open: true,
         timeout: 6000,
-      };
-      dispatch(setAlert(newAlert));
+      });
       return;
     }
   };
@@ -77,14 +76,13 @@ export const DocumentSidebar = (props: DocumentSidebarProps) => {
   ) => {
     event.stopPropagation();
     if (props.story.chapters.length === 1) {
-      const newAlert = {
+      setAlertState({
         title: "Nope",
         message: "You cannot delete a story's only chapter.",
         severity: AlertToastType.info,
         open: true,
         timeout: 6000,
-      };
-      dispatch(setAlert(newAlert));
+      });
       return;
     }
     const confirm = window.confirm(
@@ -106,7 +104,7 @@ export const DocumentSidebar = (props: DocumentSidebarProps) => {
             newChapters.splice(chapterIndex, 1);
             const newSelectedStory = { ...props.story };
             newSelectedStory.chapters = newChapters;
-            dispatch(setSelectedStory(newSelectedStory));
+            setCurrentStory(newSelectedStory)
             if (props.chapter.id === chapterID) {
               const prevChapter = props.story.chapters[chapterIndex - 1];
               let newChapterID = "";
@@ -190,14 +188,14 @@ export const DocumentSidebar = (props: DocumentSidebarProps) => {
           });
           const updatedSelectedStory = { ...props.story };
           updatedSelectedStory.chapters = newChapters;
-          dispatch(setSelectedStory(updatedSelectedStory));
+          setCurrentStory(updatedSelectedStory);
           onChapterClick(json.id, newChapterTitle, newChapterNum);
         } else {
           throw new Error(
             "Fetch problem creating chapter " +
-              response.status +
-              " " +
-              response.statusText
+            response.status +
+            " " +
+            response.statusText
           );
         }
       })
@@ -211,7 +209,7 @@ export const DocumentSidebar = (props: DocumentSidebarProps) => {
       <SideMenu>
         <DragDropContext onDragEnd={onChapterDragEnd}>
           <Droppable droppableId="droppable">
-            {(provided) => (
+            {(provided: { droppableProps: JSX.IntrinsicAttributes & ClassAttributes<HTMLDivElement> & HTMLAttributes<HTMLDivElement>; innerRef: Ref<HTMLDivElement> | undefined; placeholder: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; }) => (
               <div {...provided.droppableProps} ref={provided.innerRef}>
                 {props.story.chapters.map((chapter, idx) => {
                   return (
@@ -220,7 +218,7 @@ export const DocumentSidebar = (props: DocumentSidebarProps) => {
                       draggableId={chapter.id}
                       index={idx}
                     >
-                      {(provided) => (
+                      {(provided: { innerRef: Ref<HTMLDivElement> | undefined; draggableProps: JSX.IntrinsicAttributes & ClassAttributes<HTMLDivElement> & HTMLAttributes<HTMLDivElement>; dragHandleProps: JSX.IntrinsicAttributes & ClassAttributes<HTMLDivElement> & HTMLAttributes<HTMLDivElement>; }) => (
                         <div
                           ref={provided.innerRef}
                           {...provided.draggableProps}

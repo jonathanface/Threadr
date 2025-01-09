@@ -1,19 +1,23 @@
 import AddIcon from "@mui/icons-material/Add";
 import { IconButton } from "@mui/material";
-import React, { useEffect } from "react";
+import React, { useContext, useEffect } from "react";
 import { StoryBox } from "../Story";
 import styles from "./storyAndSeries.module.css";
 import { Series } from "../../types/Series";
 import { Story } from "../../types/Story";
 import { useFetchSeriesList } from "../../hooks/useFetchSeriesList";
 import { useFetchStoriesList } from "../../hooks/useFetchStoriesList";
-import { useFetchUserData } from "../../hooks/useFetchUserData";
 import { useLoader } from "../../hooks/useLoader";
 import { useToaster } from "../../hooks/useToaster";
 import { AlertToastType } from "../../types/AlertToasts";
+import { UserContext } from "../../contexts/user";
 
 export const StoryAndSeriesListing = () => {
-  const { isLoggedIn } = useFetchUserData();
+  const userData = useContext(UserContext);
+  if (!userData) {
+    return <div />
+  }
+  const { isLoggedIn } = userData;
   const { storiesList } = useFetchStoriesList();
   const { seriesList } = useFetchSeriesList();
   const { setIsLoaderVisible } = useLoader();

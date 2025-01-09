@@ -5,15 +5,19 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
-import { useEffect, useState } from "react";
-import { useFetchUserData } from "../../hooks/useFetchUserData";
+import { useContext, useEffect, useState } from "react";
 import { useAppNavigation } from "../../hooks/useAppNavigation";
 import { useLoader } from "../../hooks/useLoader";
 import { AlertLink, AlertToastType } from "../../types/AlertToasts";
 import { useToaster } from "../../hooks/useToaster";
+import { UserContext } from "../../contexts/user";
 
 export const ConfigPanelModal = () => {
-  const { userDetails, setUserDetails } = useFetchUserData();
+  const userData = useContext(UserContext);
+  if (!userData) {
+    return <div />
+  }
+  const { userDetails, setUserDetails } = userData;
   const { isConfigPanelOpen, setIsSubscriptionFormOpen, setIsConfigPanelOpen } =
     useAppNavigation();
   const { setIsLoaderVisible } = useLoader();

@@ -13,14 +13,13 @@ import {
 } from "@mui/material";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import React, {
+import {
   ChangeEvent,
   forwardRef,
   useImperativeHandle,
   useState,
 } from "react";
 import { useDispatch } from "react-redux";
-import { setAlert } from "../../stores/alertSlice";
 import { BlockAlignmentType, TextFormatType } from "../../types/Document";
 import { Exporter } from "./Exporter";
 import styles from "./document-toolbar.module.css";
@@ -32,7 +31,6 @@ import {
   faAlignRight,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { AppDispatch } from "../../stores/store";
 import {
   AlertCommandType,
   AlertFunctionCall,
@@ -40,6 +38,7 @@ import {
 } from "../../types/AlertToasts";
 import { DocumentExportType } from "../../types/DocumentExport";
 import { Story } from "../../types/Story";
+import { useToaster } from "../../hooks/useToaster";
 
 interface DocumentToolbarProps {
   story?: Story;
@@ -78,8 +77,9 @@ export interface DocumentToolbarRef {
 
 export const DocumentToolbar = forwardRef(
   (props: DocumentToolbarProps, ref) => {
+    const { setAlertState } = useToaster();
     const [isMenuExpanded, setIsMenuExpanded] = useState(false);
-    const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const open = Boolean(anchorEl);
 
     const toggleMenuExpand = () => {
@@ -90,23 +90,22 @@ export const DocumentToolbar = forwardRef(
       if (!props.story) {
         return;
       }
-      const newAlert = {
+      setAlertState({
         title: "Analyzing...",
         message:
           "Your chapter has been submitted for analysis. Awaiting response.",
         open: true,
         severity: AlertToastType.info,
         timeout: undefined,
-      };
-      dispatch(setAlert(newAlert));
+      });
       try {
         const response = await fetch(
           "/api/stories/" +
-            props.story.story_id +
-            "/chapter/" +
-            props.chapterID +
-            "/analyze/" +
-            typeOf,
+          props.story.story_id +
+          "/chapter/" +
+          props.chapterID +
+          "/analyze/" +
+          typeOf,
           {
             credentials: "include",
             method: "POST",
@@ -121,49 +120,44 @@ export const DocumentToolbar = forwardRef(
               type: AlertCommandType.subscribe,
               text: "subscribe",
             };
-            const newAlert = {
+            setAlertState({
               title: "Insufficient subscription",
               message: "Free accounts are unable to use AI assistance.",
               open: true,
               severity: AlertToastType.warning,
               timeout: 6000,
-              func: subscribeFunc,
-            };
-            dispatch(setAlert(newAlert));
+              callback: subscribeFunc,
+            });
             return;
           } else {
             throw new Error("Fetch problem export " + response.status);
           }
         }
         const json = await response.json();
-        const newAlert = {
+        setAlertState({
           title: "Analysis",
           message: json.content,
           open: true,
           severity: AlertToastType.success,
           timeout: undefined,
-        };
-        dispatch(setAlert(newAlert));
+        });
       } catch (error: unknown) {
         console.error(error);
-        const newAlert = {
+        setAlertState({
           title: "Problem contacting the Docter",
           message:
             "We are unable to analyze your chapter at this time. Please try again later.",
           open: true,
           severity: AlertToastType.error,
           timeout: 6000,
-        };
-        dispatch(setAlert(newAlert));
+        });
       }
     };
 
-    const useAppDispatch: () => AppDispatch = useDispatch;
-    const dispatch = useAppDispatch();
 
     const [currentFormatting, setCurrentFormatting] =
       useState(defaultFormatting);
-    const [exportMenuValue, setExportMenuValue] = React.useState(false);
+    const [exportMenuValue, setExportMenuValue] = useState(false);
 
     useImperativeHandle(ref, () => ({
       resetNavButtons() {
@@ -225,14 +219,13 @@ export const DocumentToolbar = forwardRef(
 
     const exportDoc = async (type: DocumentExportType) => {
       if (props.story) {
-        const newAlert = {
+        setAlertState({
           title: "Conversion in progress",
           message:
             "A download link will be provided when the process is complete.",
           open: true,
           severity: AlertToastType.info,
-        };
-        dispatch(setAlert(newAlert));
+        });
         const exp = new Exporter(props.story.story_id);
         const htmlData = await exp.DocToHTML();
         try {
@@ -255,15 +248,14 @@ export const DocumentToolbar = forwardRef(
                 type: AlertCommandType.subscribe,
                 text: "subscribe",
               };
-              const newAlert = {
+              setAlertState({
                 title: "Insufficient subscription",
                 message: "Free accounts are unable to export their stories.",
                 open: true,
                 severity: AlertToastType.warning,
                 timeout: 6000,
-                func: subscribeFunc,
-              };
-              dispatch(setAlert(newAlert));
+                callback: subscribeFunc,
+              });
               return;
             } else {
               throw new Error("Fetch problem export " + response.status);
@@ -275,25 +267,23 @@ export const DocumentToolbar = forwardRef(
             url: json.url,
             text: "download/open",
           };
-          const newAlert = {
+          setAlertState({
             title: "Conversion complete",
             message: "Right-click the link to save your document.",
             open: true,
             severity: AlertToastType.success,
             link: alertLink,
             timeout: undefined,
-          };
-          dispatch(setAlert(newAlert));
+          });
         } catch (error) {
           console.error(error);
-          const errorAlert = {
+          setAlertState({
             title: "Error",
             message:
               "Unable to export your document at this time. Please try again later, or contact support@richdocter.io.",
             open: true,
             severity: AlertToastType.error,
-          };
-          dispatch(setAlert(errorAlert));
+          });
         }
       }
     };
@@ -459,9 +449,8 @@ export const DocumentToolbar = forwardRef(
           </span>
         </div>
         <div
-          className={`${styles.hiddenControlsRow} ${
-            isMenuExpanded ? styles.active : ""
-          }`}
+          className={`${styles.hiddenControlsRow} ${isMenuExpanded ? styles.active : ""
+            }`}
         >
           <span>
             <Menu

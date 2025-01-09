@@ -1,6 +1,5 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { loadStripe } from "@stripe/stripe-js";
 import { ProSidebarProvider } from "react-pro-sidebar";
 import { Threadr } from "./Threadr";
 import { Loader } from "./utils/Loader";

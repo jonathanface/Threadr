@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -32,29 +31,6 @@ const (
 )
 
 var dao *daos.DAO
-
-func serveRootDirectory(w http.ResponseWriter, r *http.Request) {
-	var (
-		abs string
-		err error
-	)
-	if abs, err = filepath.Abs("."); err != nil {
-		log.Println(err.Error())
-		return
-	}
-	cleanedPath := filepath.Clean(r.URL.Path)
-	truePath := abs + string(os.PathSeparator) + staticFilesDir + cleanedPath
-	if _, err := os.Stat(truePath); os.IsNotExist(err) {
-		// return an error if this is a missing API request
-		if strings.Contains(r.URL.Path, servicePath) {
-			api.RespondWithError(w, http.StatusNotFound, err.Error())
-			return
-		}
-		http.StripPrefix(r.URL.Path, http.FileServer(http.Dir(staticFilesDir))).ServeHTTP(w, r)
-		return
-	}
-	http.FileServer(http.Dir(staticFilesDir+string(os.PathSeparator))).ServeHTTP(w, r)
-}
 
 func looseMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -305,7 +281,6 @@ func main() {
 	apiRtr.HandleFunc("/stories/{story}", api.DeleteStoryEndpoint).Methods("DELETE", "OPTIONS")
 	apiRtr.HandleFunc("/series/{seriesID}", api.DeleteSeriesEndpoint).Methods("DELETE", "OPTIONS")
 
-	rtr.PathPrefix("/").HandlerFunc(serveRootDirectory)
 	http.Handle("/", rtr)
 	log.Fatal(http.ListenAndServe(port, nil))
 }
