@@ -7,7 +7,6 @@ import { Series } from "../../types/Series";
 import { Story } from "../../types/Story";
 import { useFetchSeriesList } from "../../hooks/useFetchSeriesList";
 import { useFetchStoriesList } from "../../hooks/useFetchStoriesList";
-import { useLoader } from "../../hooks/useLoader";
 import { useToaster } from "../../hooks/useToaster";
 import { AlertToastType } from "../../types/AlertToasts";
 import { UserContext } from "../../contexts/user";
@@ -20,11 +19,9 @@ export const StoryAndSeriesListing = () => {
   const { isLoggedIn } = userData;
   const { storiesList } = useFetchStoriesList();
   const { seriesList } = useFetchSeriesList();
-  const { setIsLoaderVisible } = useLoader();
   const { setAlertState } = useToaster();
 
   useEffect(() => {
-    setIsLoaderVisible(true);
     if (
       seriesList &&
       !seriesList.length &&
@@ -46,7 +43,6 @@ export const StoryAndSeriesListing = () => {
     storiesList?.length,
     seriesList?.length,
     setAlertState,
-    setIsLoaderVisible,
   ]);
 
   const createNewStory = () => {
@@ -73,6 +69,7 @@ export const StoryAndSeriesListing = () => {
   }
 
   return (
+
     <div className={styles.listingPage}>
       <div className={styles.btnContainer}></div>
       {isLoggedIn ? (

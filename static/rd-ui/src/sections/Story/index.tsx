@@ -8,7 +8,7 @@ import { DetailsSlider } from "./DetailsSlider";
 import styles from "./story.module.css";
 import { IsStory, Story } from "../../types/Story";
 import { Series } from "../../types/Series";
-import { useFetchSeriesList } from "../../hooks/useFetchSeriesList";
+//import { useFetchSeriesList } from "../../hooks/useFetchSeriesList";
 import { useFetchStoriesList } from "../../hooks/useFetchStoriesList";
 import { useCurrentStoryContext } from "../../contexts/selections";
 import { useLoader } from "../../hooks/useLoader";
@@ -20,8 +20,8 @@ interface StoryBoxProps {
 
 export const StoryBox = (props: StoryBoxProps) => {
 
-  const { seriesList, setSeriesList } = useFetchSeriesList();
-  const { storiesList, setStoriesList } = useFetchStoriesList();
+  //const { seriesList, setSeriesList } = useFetchSeriesList();
+  // const { storiesList, setStoriesList } = useFetchStoriesList();
   const { setCurrentStory } = useCurrentStoryContext();
   const { setIsLoaderVisible } = useLoader();
   const { setIsEditingStory, setIsEditingSeries } = useAppNavigation();
@@ -95,22 +95,22 @@ export const StoryBox = (props: StoryBoxProps) => {
         }
 
         setWasDeleted(true);
-        const foundSeriesIndex = seriesList?.findIndex(
-          (srs) => srs.series_id === id
-        );
-        if (storiesList && seriesList && foundSeriesIndex && foundSeriesIndex !== -1) {
-          const newStandaloneList = [...storiesList];
-          seriesList[foundSeriesIndex].stories.forEach((story) => {
-            const newStory = { ...story };
-            delete newStory.series_id;
-            newStandaloneList.push(newStory);
-          });
-          setStoriesList(newStandaloneList);
+        // const foundSeriesIndex = seriesList?.findIndex(
+        //   (srs) => srs.series_id === id
+        // );
+        // if (storiesList && seriesList && foundSeriesIndex && foundSeriesIndex !== -1) {
+        //   const newStandaloneList = [...storiesList];
+        //   seriesList[foundSeriesIndex].stories.forEach((story) => {
+        //     const newStory = { ...story };
+        //     delete newStory.series_id;
+        //     newStandaloneList.push(newStory);
+        //   });
+        //   setStoriesList(newStandaloneList);
 
-          const newSeriesList = [...seriesList];
-          newSeriesList.splice(foundSeriesIndex, 1);
-          setSeriesList(newSeriesList);
-        }
+        //   const newSeriesList = [...seriesList];
+        //   newSeriesList.splice(foundSeriesIndex, 1);
+        //   setSeriesList(newSeriesList);
+        // }
         setIsLoaderVisible(false);
       } catch (error) {
         console.error("Error fetching data: ", error);

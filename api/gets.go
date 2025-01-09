@@ -256,29 +256,7 @@ func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var readyMap = make(map[string][]models.Story)
-	for author, authorStories := range stories {
-		var readyStories []models.Story
-		for _, story := range authorStories {
-			allTablesReady := true
-			for _, chapter := range story.Chapters {
-				status, err := dao.CheckTableStatus(story.ID + "_" + chapter.ID + "_blocks")
-				if err != nil {
-					RespondWithError(w, http.StatusInternalServerError, err.Error())
-				}
-				if status != "ACTIVE" {
-					// only return stories with all its tables in active status
-					allTablesReady = false
-				}
-			}
-			if allTablesReady {
-				readyStories = append(readyStories, story)
-			}
-		}
-		readyMap[author] = readyStories
-	}
-
-	RespondWithJson(w, http.StatusOK, readyMap)
+	RespondWithJson(w, http.StatusOK, stories)
 }
 
 func AllAssociationsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {

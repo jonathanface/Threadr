@@ -27,7 +27,6 @@ export const useFetchUserData = () => {
         const response = await fetch("/api/user", { credentials: "include" });
         if (!response.ok) throw new Error(`Fetch error: ${response.status}`);
         const userData = await response.json();
-        setUserDetails(userData);
         if (userData.expired) {
           const alertFunction: AlertFunctionCall = {
             type: AlertCommandType.subscribe,
@@ -43,6 +42,8 @@ export const useFetchUserData = () => {
             timeout: undefined,
           });
         }
+        setUserDetails(userData);
+        setIsLoggedIn(true);
       } catch (error: unknown) {
         console.error("Failed to fetch user data:", error);
         setUserError(error as Error);

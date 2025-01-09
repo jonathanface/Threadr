@@ -1,7 +1,7 @@
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import "./css/main.css";
 import { ConfigPanelModal } from "./sections/ConfigPanel";
 import { DocumentEditor } from "./sections/DocumentEditor";
@@ -17,18 +17,20 @@ import { useFetchUserData } from "./hooks/useFetchUserData";
 
 export const Threadr = () => {
 
-  const { isLoggedIn } = useFetchUserData();
+  const { isLoggedIn, isLoadingUser } = useFetchUserData();
   const { handleNavChange } = useHandleNavigationHandler();
   const stripeKey: string = import.meta.env.VITE_STRIPE_KEY ?? "";
   const [stripe] = useState(() => loadStripe(stripeKey));
 
   const { currentStory, currentStoryAction } = useCurrentStoryContext();
+  const [displayComponent, setDisplayComponent] = useState(<div />);
 
   useEffect(() => {
     handleNavChange();
   }, [handleNavChange]);
 
   const renderContent = () => {
+    console.log("vars", isLoggedIn, currentStory, currentStoryAction)
     if (
       isLoggedIn &&
       currentStory &&
@@ -40,9 +42,15 @@ export const Threadr = () => {
       (isLoggedIn && currentStory && currentStoryAction === StoryAction.none)
     )
       return <StoryAndSeriesListing />;
+    if (isLoadingUser)
+      return <div />
     return <SplashPage />;
   };
-  const displayComponent = renderContent();
+
+  useEffect(() => {
+    setDisplayComponent(renderContent());
+  }, [isLoggedIn, isLoadingUser, currentStory, currentStoryAction])
+
 
   return (
     <div className="App">

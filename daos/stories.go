@@ -47,7 +47,7 @@ func (d *DAO) GetAllStories(email string) (stories []*models.Story, err error) {
 	return stories, nil
 }
 
-func (d *DAO) GetAllStandalone(email string, adminRequest bool) (stories map[string][]models.Story, err error) {
+func (d *DAO) GetAllStandalone(email string, adminRequest bool) (stories []models.Story, err error) {
 	input := &dynamodb.ScanInput{
 		TableName:        aws.String("stories"),
 		FilterExpression: aws.String("author=:eml AND attribute_not_exists(series_id) AND attribute_not_exists(deleted_at)"),
@@ -55,50 +55,28 @@ func (d *DAO) GetAllStandalone(email string, adminRequest bool) (stories map[str
 			":eml": &types.AttributeValueMemberS{Value: email},
 		},
 	}
-	if adminRequest {
-		input = &dynamodb.ScanInput{
-			TableName:        aws.String("stories"),
-			FilterExpression: aws.String("attribute_not_exists(series_id) AND attribute_not_exists(deleted_at)"),
-		}
-	}
+
 	out, err := d.DynamoClient.Scan(context.TODO(), input)
 	if err != nil {
 		return nil, err
 	}
 
-	storiesMap := make(map[string][]models.Story)
-	for _, item := range out.Items {
-		if authorAttr, ok := item["author"]; ok {
-			if authorStrAttr, ok := authorAttr.(*types.AttributeValueMemberS); ok {
-				author := authorStrAttr.Value
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &stories); err != nil {
+		return nil, err
+	}
 
-				// Create a sub-map for the item's attributes
-				itemMap := make(map[string]types.AttributeValue)
-				for key, attr := range item {
-					itemMap[key] = attr
-				}
-
-				// Map the author to the item's attributes
-				var story models.Story
-				if err = attributevalue.UnmarshalMap(itemMap, &story); err != nil {
-					return nil, err
-				}
-
-				storiesMap[author] = append(storiesMap[author], story)
-			}
+	for i := range stories {
+		stories[i].Chapters, err = d.GetChaptersByStoryID(stories[i].ID)
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	for author, stories := range storiesMap {
-		for i, story := range stories {
-			story.Chapters, err = d.GetChaptersByStoryID(story.ID)
-			if err != nil {
-				return nil, err
-			}
-			storiesMap[author][i] = story
-		}
-	}
-	return storiesMap, nil
+	sort.Slice(stories, func(i, j int) bool {
+		return stories[i].CreatedAt < stories[j].CreatedAt
+	})
+
+	return stories, nil
 }
 
 func (d *DAO) GetStoryByID(email, storyID string) (story *models.Story, err error) {

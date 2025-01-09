@@ -52,7 +52,7 @@ func (d *DAO) GetSeriesByID(email, seriesID string) (series *models.Series, err 
 	return &seriesFromMap[0], nil
 }
 
-func (d *DAO) GetAllSeriesWithStories(email string, adminRequest bool) (series map[string][]models.Series, err error) {
+func (d *DAO) GetAllSeriesWithStories(email string, adminRequest bool) (series []models.Series, err error) {
 	scanInput := &dynamodb.ScanInput{
 		TableName:        aws.String("series"),
 		FilterExpression: aws.String("author=:eml AND attribute_not_exists(deleted_at)"),
@@ -62,55 +62,29 @@ func (d *DAO) GetAllSeriesWithStories(email string, adminRequest bool) (series m
 			},
 		},
 	}
-	if adminRequest {
-		scanInput = &dynamodb.ScanInput{
-			TableName:        aws.String("series"),
-			FilterExpression: aws.String("attribute_not_exists(deleted_at)"),
-		}
-	}
 	scanOutput, err := d.DynamoClient.Scan(context.TODO(), scanInput)
 	if err != nil {
-		return series, err
+		return nil, err
 	}
 
-	seriesMap := make(map[string][]models.Series)
-	for _, item := range scanOutput.Items {
-		if authorAttr, ok := item["author"]; ok {
-			if authorStrAttr, ok := authorAttr.(*types.AttributeValueMemberS); ok {
-				author := authorStrAttr.Value
+	if err = attributevalue.UnmarshalListOfMaps(scanOutput.Items, &series); err != nil {
+		return nil, err
+	}
 
-				// Create a sub-map for the item's attributes
-				itemMap := make(map[string]types.AttributeValue)
-				for key, attr := range item {
-					itemMap[key] = attr
-				}
+	for i := range series {
+		series[i].Stories, err = d.GetSeriesVolumes(email, series[i].ID)
+		if err != nil {
+			return nil, err
+		}
 
-				// Map the author to the item's attributes
-				var series models.Series
-				if err = attributevalue.UnmarshalMap(itemMap, &series); err != nil {
-					return nil, err
-				}
-				series.Stories, err = d.GetSeriesVolumes(email, series.ID)
-				if err != nil {
-					return nil, err
-				}
-				seriesMap[author] = append(seriesMap[author], series)
+		for j := range series[i].Stories {
+			series[i].Stories[j].Chapters, err = d.GetChaptersByStoryID(series[i].Stories[j].ID)
+			if err != nil {
+				return nil, err
 			}
 		}
 	}
-
-	for author, seri := range seriesMap {
-		for i, series := range seri {
-			for s, story := range series.Stories {
-				story.Chapters, err = d.GetChaptersByStoryID(story.ID)
-				if err != nil {
-					return nil, err
-				}
-				seriesMap[author][i].Stories[s] = story
-			}
-		}
-	}
-	return seriesMap, err
+	return series, nil
 }
 
 func (d *DAO) GetSeriesVolumes(email, seriesID string) (volumes []*models.Story, err error) {

@@ -12,6 +12,7 @@ import {
   StorySelectionProvider,
 } from "./contexts/selections";
 import { AppNavigationProvider } from "./contexts/navigation";
+import { WorksListContextProvider } from "./contexts/worksList";
 
 const rootElement = document.getElementById("root")!;
 const root = ReactDOM.createRoot(rootElement);
@@ -24,11 +25,13 @@ const render = (Component: React.ComponentType) => {
           <LoaderProvider>
             <AlertProvider>
               <UserProvider>
-                <Loader />
-                <Toaster />
-                <ProSidebarProvider>
-                  <Component />
-                </ProSidebarProvider>
+                <WorksListContextProvider>
+                  <Loader />
+                  <Toaster />
+                  <ProSidebarProvider>
+                    <Component />
+                  </ProSidebarProvider>
+                </WorksListContextProvider>
               </UserProvider>
             </AlertProvider>
           </LoaderProvider>
