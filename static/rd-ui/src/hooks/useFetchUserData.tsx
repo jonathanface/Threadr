@@ -18,15 +18,12 @@ export const useFetchUserData = () => {
   const { userDetails, setUserDetails, setIsLoggedIn, isLoggedIn } = userContext;
 
   const [userError, setUserError] = useState<Error | null>(null);
-  const [isLoadingUser, setIsLoadingUser] = useState(false);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
 
   useEffect(() => {
     const fetchUserData = async () => {
       if (userDetails) return;
-
       setIsLoaderVisible(true);
-      setIsLoadingUser(true);
-
       try {
         const response = await fetch("/api/user", { credentials: "include" });
         if (!response.ok) throw new Error(`Fetch error: ${response.status}`);

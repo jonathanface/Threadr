@@ -1,0 +1,125 @@
+/* Editor.module.css */
+.placeholder {
+  position: absolute;
+  top: 12px;
+  /* Align with padding */
+  left: 12px;
+  /* Align with padding */
+  font-size: 16px;
+  font-style: italic;
+  color: #888;
+  pointer-events: none;
+  /* Prevent interactions */
+}
+
+/* Editor container */
+.editorContainer {
+  width: 210mm;
+  margin: 0 auto;
+  margin-top: 70px;
+}
+
+/* General editor styling */
+.editorInput {
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #333;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  min-height: 200px;
+  background-color: #fff;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+  outline: none;
+  /* Remove default focus outline */
+  resize: vertical;
+  /* Allow resizing vertically */
+}
+
+/* Styling for focused state */
+.editorInput:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Paragraph styling */
+.myParagraphClass {
+  margin: 8px 0;
+}
+
+/* Bold text */
+.bold {
+  font-weight: bold;
+}
+
+/* Italic text */
+.italic {
+  font-style: italic;
+}
+
+/* Underlined text */
+.underline {
+  text-decoration: underline;
+}
+
+/* Links */
+a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Custom blockquote styling */
+.blockquote {
+  margin: 1em 0;
+  padding: 0.5em 1em;
+  background-color: #f9f9f9;
+  border-left: 4px solid #ccc;
+  font-style: italic;
+}
+
+/* List styles */
+ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+ol {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+li {
+  margin-bottom: 4px;
+}
+
+/* Custom toolbar styling */
+.toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 8px;
+}
+
+.toolbar button {
+  background: #f4f4f4;
+  border: 1px solid #ccc;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.toolbar button:hover {
+  background: #eaeaea;
+}
+
+.toolbar button.active {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}

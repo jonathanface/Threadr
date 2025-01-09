@@ -16,6 +16,6 @@ export const DocumentEditorPage = () => {
     }
 
     return (
-        <ThreadWriter story={currentStory} />
+        <ThreadWriter />
     )
 }

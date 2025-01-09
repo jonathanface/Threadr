@@ -34,24 +34,24 @@ export const Docter = () => {
   }, [handleNavChange]);
 
   const renderContent = () => {
-    if (
-      isLoggedIn &&
-      currentStory &&
-      currentStoryAction === StoryAction.editing
-    ) {
-      return <DocumentEditorPage />;
+    if (!isLoadingUser) {
+      if (
+        isLoggedIn &&
+        currentStory &&
+        currentStoryAction === StoryAction.editing
+      ) {
+        return <DocumentEditorPage />;
+      }
+      if (
+        (isLoggedIn && !currentStory) ||
+        (isLoggedIn && currentStory && currentStoryAction === StoryAction.none)
+      ) {
+        return <StoryAndSeriesListing />;
+      }
+      return <SplashPage />
     }
-    if (
-      (isLoggedIn && !currentStory) ||
-      (isLoggedIn && currentStory && currentStoryAction === StoryAction.none)
-    ) {
-      return <StoryAndSeriesListing />;
-    }
-    if (isLoadingUser) {
-      return <div />;
-    }
-    return <SplashPage />;
-  };
+    return <div />
+  }
 
   return (
     <div className="App">

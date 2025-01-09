@@ -57,7 +57,6 @@ export const StoryBox = (props: StoryBoxProps) => {
       "clicked story",
       "/story/" + storyID + "?chapter=" + chapterID
     );
-    setIsLoaderVisible(true);
   };
 
   const editStory = (event: React.MouseEvent) => {
@@ -114,10 +113,11 @@ export const StoryBox = (props: StoryBoxProps) => {
           newSeriesList.splice(foundSeriesIndex, 1);
           props.setSeriesList(newSeriesList);
         }
-        setIsLoaderVisible(false);
       } catch (error) {
         console.error("Error fetching data: ", error);
         //const errorData = error.response ? JSON.parse(error.message) : {};
+
+      } finally {
         setIsLoaderVisible(false);
       }
     }
