@@ -42,7 +42,7 @@ export const useFetchStoriesList = () => {
 
       fetchStoriesList();
     }
-  }, [setIsLoaderVisible]);
+  }, [storiesList, setIsLoaderVisible, setStoriesList]);
 
   return {
     storiesList, setStoriesList

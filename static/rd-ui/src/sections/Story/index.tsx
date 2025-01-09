@@ -8,11 +8,12 @@ import { DetailsSlider } from "./DetailsSlider";
 import styles from "./story.module.css";
 import { IsStory, Story } from "../../types/Story";
 import { Series } from "../../types/Series";
-//import { useFetchSeriesList } from "../../hooks/useFetchSeriesList";
-import { useFetchStoriesList } from "../../hooks/useFetchStoriesList";
+import { useFetchSeriesList } from "../../hooks/useFetchSeriesList";
+//import { useFetchStoriesList } from "../../hooks/useFetchStoriesList";
 import { useCurrentStoryContext } from "../../contexts/selections";
 import { useLoader } from "../../hooks/useLoader";
 import { useAppNavigation } from "../../hooks/useAppNavigation";
+
 
 interface StoryBoxProps {
   data: Story | Series;

@@ -1,7 +1,7 @@
 import { useLoader } from "./useLoader";
 import { Series } from "../types/Series";
 import { APIError } from "../types/API";
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useState } from "react";
 import { WorksListContext } from "../contexts/worksList";
 
 export const useFetchSeriesList = () => {
@@ -44,7 +44,7 @@ export const useFetchSeriesList = () => {
 
       fetchSeriesList();
     }
-  }, [setIsLoaderVisible]);
+  }, [seriesList, setIsLoaderVisible, setSeriesList]);
 
   return {
     seriesList, setSeriesList

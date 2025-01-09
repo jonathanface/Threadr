@@ -1,7 +1,7 @@
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./css/main.css";
 import { ConfigPanelModal } from "./sections/ConfigPanel";
 import { DocumentEditor } from "./sections/DocumentEditor";
@@ -29,8 +29,7 @@ export const Threadr = () => {
     handleNavChange();
   }, [handleNavChange]);
 
-  const renderContent = () => {
-    console.log("vars", isLoggedIn, currentStory, currentStoryAction)
+  const renderContent = useMemo(() => {
     if (
       isLoggedIn &&
       currentStory &&
@@ -42,13 +41,12 @@ export const Threadr = () => {
       (isLoggedIn && currentStory && currentStoryAction === StoryAction.none)
     )
       return <StoryAndSeriesListing />;
-    if (isLoadingUser)
-      return <div />
+    if (isLoadingUser) return <div />;
     return <SplashPage />;
-  };
+  }, [isLoggedIn, currentStory, currentStoryAction, isLoadingUser]);
 
   useEffect(() => {
-    setDisplayComponent(renderContent());
+    setDisplayComponent(renderContent);
   }, [isLoggedIn, isLoadingUser, currentStory, currentStoryAction])
 
 
