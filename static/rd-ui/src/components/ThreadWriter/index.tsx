@@ -15,6 +15,7 @@ const theme = {
     bold: styles.bold,
     italic: styles.italic,
     underline: styles.underline,
+    strikethrough: styles.strikethrough
   }
 };
 

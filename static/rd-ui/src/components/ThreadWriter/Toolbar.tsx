@@ -1,6 +1,18 @@
 import { useEffect, useState } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { FORMAT_TEXT_COMMAND, $getSelection, $isRangeSelection, TextFormatType } from "lexical";
+import {
+    FORMAT_TEXT_COMMAND,
+    FORMAT_ELEMENT_COMMAND,
+    $getSelection,
+    $isRangeSelection,
+    TextFormatType,
+    ElementFormatType,
+} from "lexical";
+import IconButton from '@mui/material/IconButton';
+import FormatAlignLeftIcon from '@mui/icons-material/FormatAlignLeft';
+import FormatAlignCenterIcon from '@mui/icons-material/FormatAlignCenter';
+import FormatAlignRightIcon from '@mui/icons-material/FormatAlignRight';
+import FormatAlignJustifyIcon from '@mui/icons-material/FormatAlignJustify';
 import styles from "./toolbar.module.css";
 
 export const Toolbar = () => {
@@ -8,10 +20,22 @@ export const Toolbar = () => {
     const [isBold, setIsBold] = useState(false);
     const [isItalic, setIsItalic] = useState(false);
     const [isUnderline, setIsUnderline] = useState(false);
+    const [isStrikethrough, setIsStrikethrough] = useState(false);
+    const [alignment, setAlignment] = useState<string | null>("left");
 
-    const toggleFormat = (format: TextFormatType) => {
-        console.log("set to", format)
+    const toggleTextFormat = (format: TextFormatType) => {
         editor.dispatchCommand(FORMAT_TEXT_COMMAND, format);
+    };
+
+    const applyAlignment = (alignment: ElementFormatType) => {
+        editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, alignment);
+    };
+
+    const alignmentMap: Record<number, ElementFormatType> = {
+        1: "left",
+        2: "center",
+        3: "right",
+        4: "justify",
     };
 
     useEffect(() => {
@@ -19,13 +43,24 @@ export const Toolbar = () => {
             editor.getEditorState().read(() => {
                 const selection = $getSelection();
                 if ($isRangeSelection(selection)) {
-                    console.log("Formats active:", selection.format); // This should include "underline"
                     setIsBold(selection.hasFormat("bold"));
                     setIsItalic(selection.hasFormat("italic"));
                     setIsUnderline(selection.hasFormat("underline"));
+                    setIsStrikethrough(selection.hasFormat("strikethrough"));
+                    const anchorNode = selection.anchor.getNode();
+                    const parentNode = anchorNode.getType() === "paragraph" ? anchorNode : anchorNode.getParent();
+                    if (parentNode?.getType() === "paragraph") {
+                        const format = parentNode.getFormat(); // Use parentNode here
+                        console.log("Format value:", format);
+                        const alignmentValue = alignmentMap[format] || "left";
+                        setAlignment(alignmentValue);
+                    } else {
+                        setAlignment("left");
+                    }
                 }
             });
         };
+
         const unsubscribe = editor.registerUpdateListener(() => {
             updateToolbar();
         });
@@ -35,24 +70,45 @@ export const Toolbar = () => {
 
     return (
         <div className={styles.toolbar}>
+            {/* Text formatting buttons */}
             <button
                 className={isBold ? styles.active : ""}
-                onClick={() => toggleFormat("bold")}
+                onClick={() => toggleTextFormat("bold")}
             >
-                B
+                <b>B</b>
             </button>
             <button
                 className={isItalic ? styles.active : ""}
-                onClick={() => toggleFormat("italic")}
+                onClick={() => toggleTextFormat("italic")}
             >
-                I
+                <i>I</i>
             </button>
             <button
                 className={isUnderline ? styles.active : ""}
-                onClick={() => toggleFormat("underline")}
+                onClick={() => toggleTextFormat("underline")}
             >
-                U
+                <u>U</u>
             </button>
+            <button
+                className={isStrikethrough ? styles.active : ""}
+                onClick={() => toggleTextFormat("strikethrough")}
+            >
+                <s>S</s>
+            </button>
+
+            {/* Alignment buttons */}
+            <IconButton className={alignment === 'left' ? styles.active : ""} aria-label="left" onClick={() => applyAlignment("left")}>
+                <FormatAlignLeftIcon fontSize="small" />
+            </IconButton>
+            <IconButton className={alignment === 'center' ? styles.active : ""} aria-label="center" onClick={() => applyAlignment("center")}>
+                <FormatAlignCenterIcon fontSize="small" />
+            </IconButton>
+            <IconButton className={alignment === 'right' ? styles.active : ""} aria-label="right" onClick={() => applyAlignment("right")}>
+                <FormatAlignRightIcon fontSize="small" />
+            </IconButton>
+            <IconButton className={alignment === 'justify' ? styles.active : ""} aria-label="justify" onClick={() => applyAlignment("justify")}>
+                <FormatAlignJustifyIcon fontSize="small" />
+            </IconButton>
         </div>
     );
 };

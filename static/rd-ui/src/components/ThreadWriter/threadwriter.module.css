@@ -64,6 +64,10 @@
   text-decoration: underline;
 }
 
+.strikethrough {
+  text-decoration: line-through;
+}
+
 /* Links */
 a {
   color: #007bff;
