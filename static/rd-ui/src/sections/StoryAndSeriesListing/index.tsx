@@ -13,10 +13,6 @@ import { UserContext } from "../../contexts/user";
 
 export const StoryAndSeriesListing = () => {
   const userData = useContext(UserContext);
-  if (!userData) {
-    return <div />
-  }
-  const { isLoggedIn } = userData;
   const { storiesList, setStoriesList } = useFetchStoriesList();
   const { seriesList, setSeriesList } = useFetchSeriesList();
   const { setAlertState } = useToaster();
@@ -72,7 +68,7 @@ export const StoryAndSeriesListing = () => {
 
     <div className={styles.listingPage}>
       <div className={styles.btnContainer}></div>
-      {isLoggedIn ? (
+      {userData?.isLoggedIn ? (
         <div>
           <h2>Stories</h2>
           <div className={styles.iconBox}>

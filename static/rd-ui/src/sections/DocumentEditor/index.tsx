@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { ThreadWriter } from "../../components/ThreadWriter"
 import { UserContext } from "../../contexts/user";
 import { useCurrentStoryContext } from "../../contexts/selections";
@@ -6,33 +6,21 @@ import { Chapter } from "../../types/Chapter";
 import { useToaster } from "../../hooks/useToaster";
 import { AlertToastType } from "../../types/AlertToasts";
 import { useLoader } from "../../hooks/useLoader";
-import { get } from "http";
 
 export const DocumentEditorPage = () => {
-    const userData = useContext(UserContext);
-    if (!userData) {
-        return <div />
-    }
-    const { isLoggedIn } = userData;
     const { currentStory } = useCurrentStoryContext();
-
-    if (!currentStory || !isLoggedIn) {
-        return;
-    }
+    const userData = useContext(UserContext);
     const { setAlertState } = useToaster();
     const { setIsLoaderVisible } = useLoader();
-
-    const urlParams = new URLSearchParams(window.location.search);
-    console.log("chaps", currentStory.chapters);
-
-    const chapterID = urlParams.get("chapter") || (currentStory.chapters.length ? currentStory.chapters[0].id : "");
-
     const [selectedChapter, setSelectedChapter] = useState<Chapter | undefined>(undefined);
 
-    const getChapterDetails = async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const chapterID = urlParams.get("chapter") || (currentStory?.chapters.length ? currentStory.chapters[0].id : "");
+
+    const getChapterDetails = useCallback(async () => {
         try {
             setIsLoaderVisible(true);
-            const response = await fetch("/api/stories/" + currentStory.story_id + "/chapters/" + chapterID, {
+            const response = await fetch("/api/stories/" + currentStory?.story_id + "/chapters/" + chapterID, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -47,6 +35,7 @@ export const DocumentEditorPage = () => {
                 setSelectedChapter(responseJSON as Chapter);
             }
         } catch (error: unknown) {
+            console.error(error);
             setAlertState({
                 title: "Error",
                 message: "There was an error retrieving your chapter contents. Please report this.",
@@ -57,12 +46,12 @@ export const DocumentEditorPage = () => {
         } finally {
             setIsLoaderVisible(false);
         }
-    };
+    }, [chapterID, currentStory?.story_id, setAlertState, setIsLoaderVisible]);
 
-    const getBatchedStoryBlocks = async (startKey: string) => {
+    const getBatchedStoryBlocks = useCallback(async (startKey: string) => {
         try {
             setIsLoaderVisible(true);
-            const response = await fetch("/api/stories/" + currentStory.story_id + "/content?key=" + startKey + "&chapter=" + selectedChapter?.id, {
+            const response = await fetch("/api/stories/" + currentStory?.story_id + "/content?key=" + startKey + "&chapter=" + selectedChapter?.id, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -111,20 +100,24 @@ export const DocumentEditorPage = () => {
         } finally {
             setIsLoaderVisible(false);
         }
-    }
+    }, [currentStory?.story_id, selectedChapter?.id, setIsLoaderVisible]);
 
 
     useEffect(() => {
-        getChapterDetails();
-    }, [currentStory.story_id, chapterID]);
+        if (currentStory) {
+            getChapterDetails();
+        }
+    }, [currentStory?.story_id, chapterID, getChapterDetails, currentStory]);
 
     useEffect(() => {
         if (selectedChapter) {
             getBatchedStoryBlocks("");
         }
-    }, [selectedChapter]);
+    }, [selectedChapter, getBatchedStoryBlocks]);
 
-    return (
+    return (userData?.isLoggedIn ? (
         <ThreadWriter chapter={selectedChapter} />
-    )
+    ) : (
+        <div />
+    ));
 }

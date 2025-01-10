@@ -6,7 +6,7 @@ import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import styles from "./threadwriter.module.css";
 import { Toolbar } from "./Toolbar";
 import { Chapter } from "../../types/Chapter";
-import { $getNodeByKey, $getSelection, $isRangeSelection, ElementNode, LexicalNode } from "lexical";
+import { $getNodeByKey, $getSelection, $isRangeSelection, EditorState, ElementNode, LexicalNode, SerializedElementNode, SerializedLexicalNode } from "lexical";
 import { useEffect, useState } from "react";
 
 const theme = {
@@ -30,8 +30,18 @@ const initialConfig = {
 interface ThreadWriterProps {
   chapter?: Chapter;
 }
+
 interface LexicalHTMLElement extends HTMLElement {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   __lexicalEditor?: any;
+}
+
+interface ParagraphData {
+  key?: string;
+  content?: string;
+  json?: SerializedElementNode<SerializedLexicalNode>;
+  type?: string;
+  version?: number;
 }
 
 export const ThreadWriter = (props: ThreadWriterProps) => {
@@ -40,7 +50,7 @@ export const ThreadWriter = (props: ThreadWriterProps) => {
     null
   );
 
-  const saveParagraph = (key: string, content: any) => {
+  const saveParagraph = (key: string, content: ParagraphData) => {
     console.log("Saved paragraph as HTML:", key, content);
   };
 
@@ -51,7 +61,7 @@ export const ThreadWriter = (props: ThreadWriterProps) => {
     return json;
   };
 
-  const handleChange = (editorState: any) => {
+  const handleChange = (editorState: EditorState) => {
     editorState.read(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {

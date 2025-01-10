@@ -14,10 +14,6 @@ import { UserContext } from "../../contexts/user";
 
 export const ConfigPanelModal = () => {
   const userData = useContext(UserContext);
-  if (!userData) {
-    return <div />
-  }
-  const { userDetails, setUserDetails } = userData;
   const { isConfigPanelOpen, setIsSubscriptionFormOpen, setIsConfigPanelOpen } =
     useAppNavigation();
   const { setIsLoaderVisible } = useLoader();
@@ -27,13 +23,14 @@ export const ConfigPanelModal = () => {
   const [isRenewing, setIsRenewing] = useState(false);
   const [toggleLabel, setToggleLabel] = useState("Subscribe");
 
+
   const subscribe = () => {
     handleClose();
     setIsSubscriptionFormOpen(true);
   };
 
   const toggleSubscriptionRenewal = async () => {
-    if (!userDetails) return;
+    if (!userData?.userDetails) return;
     setIsLoaderVisible(true);
     try {
       const response = await fetch("/api/user", {
@@ -42,7 +39,7 @@ export const ConfigPanelModal = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ renewing: !userDetails.renewing }),
+        body: JSON.stringify({ renewing: !userData?.userDetails.renewing }),
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -51,7 +48,7 @@ export const ConfigPanelModal = () => {
         throw error;
       }
       const json = await response.json();
-      setUserDetails(json);
+      userData?.setUserDetails(json);
     } catch (error: unknown) {
       console.error(`Error: ${error}`);
       const alertLink: AlertLink = {
@@ -74,17 +71,17 @@ export const ConfigPanelModal = () => {
   };
 
   useEffect(() => {
-    if (!userDetails) return;
-    if (!userDetails.subscription_id.length) {
+    if (!userData?.userDetails) return;
+    if (!userData?.userDetails.subscription_id.length) {
       setIsRenewing(false);
       setIsCustomer(false);
       setToggleLabel("Subscribe");
     }
     if (isCustomer) {
-      setIsRenewing(userDetails.renewing);
+      setIsRenewing(userData?.userDetails.renewing);
       setToggleLabel("Auto-Renew Subscription");
     }
-  }, [userDetails, isCustomer]);
+  }, [userData?.userDetails, isCustomer]);
 
   const handleClose = () => {
     setIsConfigPanelOpen(false);

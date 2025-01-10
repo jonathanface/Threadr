@@ -47,7 +47,7 @@ export const PortraitDropper = (props: PortraitDropperProps) => {
         props.onComplete(acceptedFiles);
       }
     },
-    [props]
+    [props, setAlertState]
   );
 
   const onImageLoaded = () => {

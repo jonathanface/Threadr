@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
     FORMAT_TEXT_COMMAND,
@@ -31,12 +31,12 @@ export const Toolbar = () => {
         editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, alignment);
     };
 
-    const alignmentMap: Record<number, ElementFormatType> = {
+    const alignmentMap = useMemo<Record<number, ElementFormatType>>(() => ({
         1: "left",
         2: "center",
         3: "right",
         4: "justify",
-    };
+    }), []);
 
     useEffect(() => {
         const updateToolbar = () => {
@@ -66,7 +66,7 @@ export const Toolbar = () => {
         });
 
         return () => unsubscribe();
-    }, [editor]);
+    }, [editor, alignmentMap]);
 
     return (
         <div className={styles.toolbar}>

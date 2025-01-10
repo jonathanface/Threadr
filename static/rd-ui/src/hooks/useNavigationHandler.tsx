@@ -35,7 +35,7 @@ export const useHandleNavigationHandler = () => {
     } else {
       deselectStory();
     }
-  }, [currentStory, deselectStory, setCurrentStory]);
+  }, [currentStory, deselectStory, setCurrentStory, setCurrentStoryAction]);
 
   useEffect(() => {
     window.addEventListener("popstate", handleNavChange);

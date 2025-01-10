@@ -9,10 +9,6 @@ import { useCurrentSeriesContext, useCurrentStoryContext } from "../../contexts/
 
 export const UserMenu = () => {
   const userData = useContext(UserContext);
-  if (!userData) {
-    return <div />
-  }
-  const { isLoggedIn, setIsLoggedIn, userDetails } = userData;
   const { setIsLoaderVisible } = useLoader();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -29,7 +25,7 @@ export const UserMenu = () => {
         if (response.ok) {
           storyData.setCurrentStory(undefined);
           seriesData.setCurrentSeries(undefined);
-          setIsLoggedIn(true);
+          userData?.setIsLoggedIn(true);
           const history = window.history;
           history.pushState({}, "", "/");
           return;
@@ -53,7 +49,7 @@ export const UserMenu = () => {
     setIsLoginPanelOpen(true);
   };
 
-  const displayComponent = isLoggedIn ? (
+  const displayComponent = userData?.isLoggedIn ? (
     <span
       className={styles.menuContainer}
       onClick={() => setIsOpen(!isOpen)}
@@ -67,7 +63,7 @@ export const UserMenu = () => {
       </span>
       {isOpen && (
         <ul>
-          {userDetails && userDetails.subscription_id === "" && (
+          {userData?.userDetails?.subscription_id === "" && (
             <li onClick={subscribe}>Subscribe</li>
           )}
           <li onClick={showUserSettings}>Settings</li>
