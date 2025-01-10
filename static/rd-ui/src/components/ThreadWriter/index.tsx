@@ -5,33 +5,95 @@ import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import styles from "./threadwriter.module.css";
 import { Toolbar } from "./Toolbar";
-import { useLoader } from "../../hooks/useLoader";
+import { Chapter } from "../../types/Chapter";
+import { $getNodeByKey, $getSelection, $isRangeSelection, ElementNode, LexicalNode } from "lexical";
+import { useEffect, useState } from "react";
 
 const theme = {
-  paragraph: styles.myParagraphClass,
-  bold: styles.bold,
-  italic: styles.italic,
-  underline: styles.underline,
+  paragraph: styles.paragraph,
+  text: {
+    bold: styles.bold,
+    italic: styles.italic,
+    underline: styles.underline,
+  }
 };
 
 const initialConfig = {
-  namespace: "MyEditor",
+  namespace: "ThreadWriter",
   theme,
   onError: (error: Error) => {
     console.error(error);
   },
 };
 
-export const ThreadWriter = () => {
+interface ThreadWriterProps {
+  chapter?: Chapter;
+}
+interface LexicalHTMLElement extends HTMLElement {
+  __lexicalEditor?: any;
+}
 
-  const { setIsLoaderVisible } = useLoader();
+export const ThreadWriter = (props: ThreadWriterProps) => {
+
+  const [activeParagraphKey, setActiveParagraphKey] = useState<string | null>(
+    null
+  );
+
+  const saveParagraph = (key: string, content: any) => {
+    console.log("Saved paragraph as HTML:", key, content);
+  };
+
+  const exportWithChildren = (node: ElementNode) => {
+    const json = node.exportJSON();
+    const children = node.getChildren();
+    json.children = children.map((child: LexicalNode) => child.exportJSON());
+    return json;
+  };
 
   const handleChange = (editorState: any) => {
     editorState.read(() => {
-      const json = editorState.toJSON();
-      console.log("Editor state:", json);
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        const anchorNode = selection.anchor.getNode();
+        const parentNode = anchorNode.getParent();
+
+        if (parentNode && parentNode.getType() === "paragraph") {
+          const paragraphKey = parentNode.getKey();
+          const paragraphContent = parentNode.getTextContent();
+          saveParagraph(paragraphKey, {
+            key: paragraphKey,
+            content: paragraphContent,
+            json: exportWithChildren(parentNode)
+          });
+
+          // Update the active paragraph key if it has changed
+          if (paragraphKey !== activeParagraphKey) {
+            setActiveParagraphKey(paragraphKey);
+          }
+        }
+      }
     });
   };
+
+  useEffect(() => {
+    return () => {
+      // On unmount, save the currently active paragraph
+      if (activeParagraphKey) {
+        const root = document.querySelector(
+          "[data-lexical-composer]"
+        ) as LexicalHTMLElement;
+        if (root && root.__lexicalEditor) {
+          const editor = root.__lexicalEditor;
+          editor.getEditorState().read(() => {
+            const activeNode = $getNodeByKey(activeParagraphKey);
+            if (activeNode) {
+              saveParagraph(activeParagraphKey, activeNode.exportJSON());
+            }
+          });
+        }
+      }
+    };
+  }, [activeParagraphKey]);
 
   return (
     <div className={styles.editorContainer}>

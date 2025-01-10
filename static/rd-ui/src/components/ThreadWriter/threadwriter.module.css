@@ -44,8 +44,9 @@
 }
 
 /* Paragraph styling */
-.myParagraphClass {
+.paragraph {
   margin: 8px 0;
+  text-align: left;
 }
 
 /* Bold text */

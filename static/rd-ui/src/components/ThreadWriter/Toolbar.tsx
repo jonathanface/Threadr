@@ -19,13 +19,13 @@ export const Toolbar = () => {
             editor.getEditorState().read(() => {
                 const selection = $getSelection();
                 if ($isRangeSelection(selection)) {
+                    console.log("Formats active:", selection.format); // This should include "underline"
                     setIsBold(selection.hasFormat("bold"));
                     setIsItalic(selection.hasFormat("italic"));
                     setIsUnderline(selection.hasFormat("underline"));
                 }
             });
         };
-
         const unsubscribe = editor.registerUpdateListener(() => {
             updateToolbar();
         });
