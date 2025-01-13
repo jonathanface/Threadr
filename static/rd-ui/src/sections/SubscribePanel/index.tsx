@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import styles from "./subscribe.module.css";
+import styles from "./subscribePanel.module.css";
 
 import { CardElement, useElements, useStripe } from "@stripe/react-stripe-js";
 
@@ -30,7 +30,7 @@ interface Product {
   billing_frequency: string;
 }
 
-export const Subscribe = () => {
+export const SubscribePanel = () => {
   const [customerID, setCustomerID] = useState("");
   const [subscribeError, setSubscribeError] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(

@@ -5,7 +5,7 @@ export interface Series {
   series_title: string;
   series_description: string;
   stories: Story[];
-  created_at: number;
+  created_at?: number;
   image_url: string;
 }
 

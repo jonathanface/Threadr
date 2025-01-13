@@ -1,15 +1,16 @@
-import { BlockMap, ContentBlock } from "draft-js";
+import { SerializedElementNode, SerializedLexicalNode } from "lexical";
+import { BlockOrderMap } from "./Document";
 
 export interface DocumentBlocksForServer {
   story_id: string;
   chapter_id: string;
-  blocks: DBOperationTask[];
+  blocks: DBOperationBlock[];
 }
 
-export interface DBOperationTask {
+export interface DBOperationBlock {
   key_id: string;
-  chunk: ContentBlock;
-  place: string;
+  chunk?: SerializedElementNode<SerializedLexicalNode>;
+  place?: string;
 }
 
 export enum DBOperationType {
@@ -23,6 +24,6 @@ export interface DBOperation {
   storyID: string;
   chapterID: string;
   time: number;
-  ops: DBOperationTask[];
-  blockList?: BlockMap;
+  blocks: DBOperationBlock[];
+  orderList?: BlockOrderMap;
 }

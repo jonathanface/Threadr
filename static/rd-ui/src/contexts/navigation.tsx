@@ -5,6 +5,7 @@ import { Series } from "../types/Series";
 type AppNavigation = {
   isCreatingSeries: boolean;
   isCreatingStory: boolean;
+  storyPreassignSeriesID?: string;
   isEditingStory: Story | null;
   isEditingSeries: Series | null;
   isConfigPanelOpen: boolean;
@@ -12,6 +13,7 @@ type AppNavigation = {
   isLoginPanelOpen: boolean;
   setIsCreatingSeries: (creatingSeries: boolean) => void;
   setIsCreatingStory: (creatingStory: boolean) => void;
+  setStoryPreassignSeriesID: (seriesID: string) => void;
   setIsEditingStory: (editingStory: Story | null) => void;
   setIsEditingSeries: (editingSeries: Series | null) => void;
   setIsConfigPanelOpen: (configPanelOpen: boolean) => void;
@@ -30,6 +32,7 @@ export const AppNavigationProvider: React.FC<{
   console.log("AppNavigationProvider mounted");
   const [isCreatingSeries, setIsCreatingSeries] = useState(false);
   const [isCreatingStory, setIsCreatingStory] = useState(false);
+  const [storyPreassignSeriesID, setStoryPreassignSeriesID] = useState("");
   const [isEditingStory, setIsEditingStory] = useState<Story | null>(null);
   const [isEditingSeries, setIsEditingSeries] = useState<Series | null>(null);
   const [isConfigPanelOpen, setIsConfigPanelOpen] = useState(false);
@@ -40,6 +43,7 @@ export const AppNavigationProvider: React.FC<{
       value={{
         isCreatingSeries,
         isCreatingStory,
+        storyPreassignSeriesID,
         isEditingStory,
         isEditingSeries,
         isConfigPanelOpen,
@@ -47,6 +51,7 @@ export const AppNavigationProvider: React.FC<{
         isLoginPanelOpen,
         setIsCreatingSeries,
         setIsCreatingStory,
+        setStoryPreassignSeriesID,
         setIsEditingStory,
         setIsEditingSeries,
         setIsConfigPanelOpen,

@@ -11,6 +11,7 @@ export const useAppNavigation = () => {
   const {
     isCreatingSeries,
     isCreatingStory,
+    storyPreassignSeriesID,
     isEditingSeries,
     isEditingStory,
     isConfigPanelOpen,
@@ -19,6 +20,7 @@ export const useAppNavigation = () => {
     setIsConfigPanelOpen,
     setIsCreatingSeries,
     setIsCreatingStory,
+    setStoryPreassignSeriesID,
     setIsEditingSeries,
     setIsEditingStory,
     setIsSubscriptionFormOpen,
@@ -27,6 +29,7 @@ export const useAppNavigation = () => {
   return {
     isCreatingSeries,
     isCreatingStory,
+    storyPreassignSeriesID,
     isEditingSeries,
     isEditingStory,
     isConfigPanelOpen,
@@ -34,6 +37,7 @@ export const useAppNavigation = () => {
     isLoginPanelOpen,
     setIsCreatingSeries,
     setIsCreatingStory,
+    setStoryPreassignSeriesID,
     setIsEditingSeries,
     setIsEditingStory,
     setIsConfigPanelOpen,

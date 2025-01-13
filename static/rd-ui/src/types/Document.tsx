@@ -1,4 +1,14 @@
 import { AttributeValue } from "@aws-sdk/client-dynamodb";
+import { SerializedElementNode, SerializedLexicalNode } from "lexical";
+
+
+export interface ParagraphData {
+  key?: string;
+  content?: string;
+  json?: SerializedElementNode<SerializedLexicalNode>;
+  type?: string;
+  version?: number;
+}
 
 export type AttributeMap = { [key: string]: AttributeValue };
 

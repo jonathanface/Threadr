@@ -8,12 +8,13 @@ import { DocumentEditorPage } from "./sections/DocumentEditor";
 import { LoginPanelModal } from "./sections/LoginPanel";
 import { SplashPage } from "./sections/SplashPage";
 import { StoryAndSeriesListing } from "./sections/StoryAndSeriesListing";
-import { Subscribe } from "./sections/Subscribe";
+import { SubscribePanel } from "./sections/SubscribePanel";
 import { UserMenu } from "./sections/UserMenu";
 
 import { useHandleNavigationHandler } from "./hooks/useNavigationHandler";
 import { StoryAction, useCurrentStoryContext } from "./contexts/selections";
 import { useFetchUserData } from "./hooks/useFetchUserData";
+import { CreatEditStoryPanel } from "./sections/CreateEditStoryPanel";
 
 export const Docter = () => {
 
@@ -64,14 +65,15 @@ export const Docter = () => {
           </h4>
         </header>
         {renderContent()}
-        {/* <CreateNewStoryModal />
+        <CreatEditStoryPanel />
+        {/*
         <EditStoryModal />
         <EditSeriesModal /> */}
         <ConfigPanelModal />
         <LoginPanelModal />
       </main>
       <Elements stripe={stripe}>
-        <Subscribe />
+        <SubscribePanel />
       </Elements>
     </div>
   );

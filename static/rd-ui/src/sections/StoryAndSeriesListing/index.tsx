@@ -10,11 +10,13 @@ import { useFetchStoriesList } from "../../hooks/useFetchStoriesList";
 import { useToaster } from "../../hooks/useToaster";
 import { AlertToastType } from "../../types/AlertToasts";
 import { UserContext } from "../../contexts/user";
+import { useAppNavigation } from "../../hooks/useAppNavigation";
 
 export const StoryAndSeriesListing = () => {
   const userData = useContext(UserContext);
   const { storiesList, setStoriesList } = useFetchStoriesList();
   const { seriesList, setSeriesList } = useFetchSeriesList();
+  const { setIsCreatingStory } = useAppNavigation();
   const { setAlertState } = useToaster();
 
   useEffect(() => {
@@ -42,7 +44,7 @@ export const StoryAndSeriesListing = () => {
   ]);
 
   const createNewStory = () => {
-    //dispatch(flipCreatingNewStory(true));
+    setIsCreatingStory(true);
   };
 
   // If there are works, we prepare our series and stories components.
