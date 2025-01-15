@@ -51,7 +51,7 @@ export const DocumentEditorPage = () => {
         if (currentStory) {
             getChapterDetails();
         }
-    }, [currentStory?.story_id, chapterID, getChapterDetails]);
+    }, [currentStory, chapterID, getChapterDetails]);
 
     return (userData?.isLoggedIn && currentStory && selectedChapter ? (
         <ThreadWriter storyID={currentStory.story_id} chapter={selectedChapter} />

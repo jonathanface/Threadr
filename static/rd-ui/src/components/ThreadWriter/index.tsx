@@ -24,6 +24,8 @@ import { CustomParagraphNode, CustomSerializedParagraphNode } from './CustomPara
 import { BlockOrderMap } from '../../types/Document';
 import { useToaster } from '../../hooks/useToaster';
 import { AlertToastType } from '../../types/AlertToasts';
+import { TextDecoratorPlugin } from './plugins/TextDecoratorPlugin';
+import { ClickableDecoratorNode } from './ClickableDecoratorNode';
 
 const theme = {
   paragraph: styles.paragraph,
@@ -88,7 +90,8 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
     namespace: 'ThreadWriterEditor',
     theme,
     nodes: [
-      CustomParagraphNode
+      CustomParagraphNode,
+      ClickableDecoratorNode
     ],
     onError: (error: Error) => {
       console.error('Lexical error:', error);
@@ -253,19 +256,23 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
 
   useEffect(() => {
     if (editorRef.current && storyBlocks) {
-      const newEditorState = editorRef.current.parseEditorState({
-        ...storyBlocks,
-        root: {
-          ...storyBlocks.root,
-          children: storyBlocks.root.children.map((child) => {
-            if (child.type === "paragraph") {
-              child.type = CustomParagraphNode.getType();
-            }
-            return child;
-          }),
-        },
+      Promise.resolve().then(() => {
+        editorRef.current.update(() => {
+          const newEditorState = editorRef.current.parseEditorState({
+            ...storyBlocks,
+            root: {
+              ...storyBlocks.root,
+              children: storyBlocks.root.children.map((child) => {
+                if (child.type === "paragraph") {
+                  child.type = CustomParagraphNode.getType();
+                }
+                return child;
+              }),
+            },
+          });
+          editorRef.current.setEditorState(newEditorState);
+        });
       });
-      editorRef.current.setEditorState(newEditorState);
     }
   }, [storyBlocks]);
 
@@ -427,6 +434,8 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
     });
   };
 
+
+
   return (
     <div className={styles.editorContainer}>
       <LexicalComposer
@@ -443,6 +452,7 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
           placeholder={<div className={styles.placeholder}>Start typing...</div>}
           ErrorBoundary={LexicalErrorBoundary}
         />
+        <TextDecoratorPlugin matchStrings={["hello"]} />
         <OnChangePlugin onChange={onChangeHandler} />
         <HistoryPlugin />
       </LexicalComposer>
