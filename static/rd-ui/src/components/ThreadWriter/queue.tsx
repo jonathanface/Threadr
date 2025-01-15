@@ -5,9 +5,6 @@ import { BlockOrderMap } from "../../types/Document";
 export const DbOperationQueue: DBOperation[] = [];
 
 let dbQueueRetryCount = 0;
-const isAPIError = (error: any): boolean => {
-    return "statusCode" in error && "statusText" in error && "retry" in error;
-};
 
 interface OpsHolder {
     [key: string]: DBOperationBlock[];
@@ -43,94 +40,81 @@ const filterAndReduceDBOperations = (
     return toRun;
 };
 
-const saveBlocksToServer = (ops: DBOperationBlock[], storyID: string, chapterID: string) => {
-    return new Promise(async (resolve, reject) => {
-        try {
-            const params: DocumentBlocksForServer = {
-                story_id: storyID,
-                chapter_id: chapterID,
-                blocks: ops,
-            };
-            const response = await fetch(`/api/stories/${storyID}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(params),
-            });
-            if (!response.ok) {
-                const error: APIError = { statusCode: response.status, statusText: response.statusText, retry: true };
-                reject(error);
-                return;
-            }
-            resolve(response.json());
-        } catch (e) {
-            console.error("ERROR SAVING BLOCK:", e);
-            reject(e);
+const saveBlocksToServer = async (ops: DBOperationBlock[], storyID: string, chapterID: string) => {
+    try {
+        const params: DocumentBlocksForServer = {
+            story_id: storyID,
+            chapter_id: chapterID,
+            blocks: ops,
+        };
+        const response = await fetch(`/api/stories/${storyID}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(params),
+        });
+        if (!response.ok) {
+            const error: APIError = { statusCode: response.status, statusText: response.statusText, retry: true };
+            throw error;
         }
-    });
+        return await response.json();
+    } catch (error: unknown) {
+        console.error("ERROR SAVING BLOCK:", error);
+    }
 };
 
-const deleteBlocksFromServer = (ops: DBOperationBlock[], storyID: string, chapterID: string) => {
-    return new Promise(async (resolve, reject) => {
-        try {
-            const params: DocumentBlocksForServer = {
-                story_id: storyID,
-                chapter_id: chapterID,
-                blocks: ops,
-            };
-            const response = await fetch("/api/stories/" + storyID + "/block", {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(params),
-            });
+const deleteBlocksFromServer = async (ops: DBOperationBlock[], storyID: string, chapterID: string) => {
+    try {
+        const params: DocumentBlocksForServer = {
+            story_id: storyID,
+            chapter_id: chapterID,
+            blocks: ops,
+        };
+        const response = await fetch("/api/stories/" + storyID + "/block", {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(params),
+        });
 
-            if (!response.ok) {
-                const error: APIError = {
-                    statusCode: response.status,
-                    statusText: response.statusText,
-                    retry: true,
-                };
-                reject(error);
-                return;
-            }
-            resolve(response.json());
-        } catch (e) {
-            console.error("ERROR DELETING BLOCK: " + e);
-            reject(e);
+        if (!response.ok) {
+            const error: APIError = {
+                statusCode: response.status,
+                statusText: response.statusText,
+                retry: true,
+            };
+            throw error;
         }
-    });
+        return await response.json();
+    } catch (error: unknown) {
+        console.error("ERROR DELETING BLOCK:", error);
+    }
 };
 
-const syncBlockOrderMap = (blockList: BlockOrderMap, storyID: string, chapterID: string) => {
-    return new Promise(async (resolve, reject) => {
-        try {
-            const params: BlockOrderMap = {
-                chapter_id: chapterID,
-                blocks: blockList.blocks,
+const syncBlockOrderMap = async (blockList: BlockOrderMap, storyID: string, chapterID: string) => {
+    try {
+        const params: BlockOrderMap = {
+            chapter_id: chapterID,
+            blocks: blockList.blocks,
+        };
+        const response = await fetch("/api/stories/" + storyID + "/orderMap", {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(params),
+        });
+        if (!response.ok) {
+            const error: APIError = {
+                statusCode: response.status,
+                statusText: response.statusText,
+                retry: true,
             };
-            const response = await fetch("/api/stories/" + storyID + "/orderMap", {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(params),
-            });
-            if (!response.ok) {
-                const error: APIError = {
-                    statusCode: response.status,
-                    statusText: response.statusText,
-                    retry: true,
-                };
-                reject(error);
-                return;
-            }
-            resolve(response.json());
-        } catch (e) {
-            console.error("ERROR ORDERING BLOCKS: " + e);
-            reject(e);
+            throw error;
         }
-    });
+    } catch (error: unknown) {
+        console.error("ERROR ORDERING BLOCKS: ", error);
+    }
 };
 
 export const ProcessDBQueue = async () => {
@@ -147,20 +131,12 @@ export const ProcessDBQueue = async () => {
                 try {
                     await saveBlocksToServer(minifiedBlocks, op.storyID, op.chapterID);
                     dbQueueRetryCount = 0;
-                } catch (error: any) {
-                    if (isAPIError(error)) {
-                        if (error.retry) {
-                            console.error("server response " + error.statusCode + ", retrying...");
-                            const retryOp: DBOperation = {
-                                type: DBOperationType.save,
-                                blocks: minifiedBlocks,
-                                storyID: op.storyID,
-                                chapterID: op.chapterID,
-                                time: new Date().getTime(),
-                            };
-                            dbQueueRetryCount++;
-                            retryArray.push(retryOp);
-                        }
+                } catch (error: unknown) {
+                    const apiError = error as APIError;
+                    if (apiError.retry) {
+                        console.error("server response " + apiError.statusCode + ", retrying...");
+                        retryArray.push(DbOperationQueue[i]);
+                        dbQueueRetryCount++;
                     }
                 }
                 break;
@@ -170,20 +146,12 @@ export const ProcessDBQueue = async () => {
                 try {
                     await deleteBlocksFromServer(minifiedBlocks, op.storyID, op.chapterID);
                     dbQueueRetryCount = 0;
-                } catch (error: any) {
-                    if (isAPIError(error)) {
-                        if (error.retry) {
-                            console.error("server response " + error.statusCode + ", retrying...");
-                            const retryOp: DBOperation = {
-                                type: DBOperationType.delete,
-                                blocks: minifiedBlocks,
-                                storyID: op.storyID,
-                                chapterID: op.chapterID,
-                                time: new Date().getTime(),
-                            };
-                            retryArray.push(retryOp);
-                            dbQueueRetryCount++;
-                        }
+                } catch (error: unknown) {
+                    const apiError = error as APIError;
+                    if (apiError.retry) {
+                        console.error("server response " + apiError.statusCode + ", retrying...");
+                        retryArray.push(DbOperationQueue[i]);
+                        dbQueueRetryCount++;
                     }
                 }
                 break;
@@ -195,18 +163,23 @@ export const ProcessDBQueue = async () => {
                         DbOperationQueue.splice(i, 1);
                         dbQueueRetryCount = 0;
                     }
-                } catch (error: any) {
-                    if (error as APIError) {
-                        if (error.retry) {
-                            console.error("server response " + error.statusCode + ", retrying...");
-                            retryArray.push(DbOperationQueue[i]);
-                            dbQueueRetryCount++;
-                        }
-                        DbOperationQueue.splice(i, 1);
+                } catch (error: unknown) {
+                    const apiError = error as APIError;
+                    if (apiError.retry) {
+                        console.error("server response " + apiError.statusCode + ", retrying...");
+                        retryArray.push(DbOperationQueue[i]);
+                        dbQueueRetryCount++;
                     }
+                    DbOperationQueue.splice(i, 1);
                 }
-                break;
             }
+                break;
+        }
+        if (dbQueueRetryCount === 10) {
+            const errorText = `Error contacting server, timing out after ${dbQueueRetryCount} tries...`;
+            throw new Error(errorText)
+        } else {
+            DbOperationQueue.push(...retryArray);
         }
     }
-};
+}
