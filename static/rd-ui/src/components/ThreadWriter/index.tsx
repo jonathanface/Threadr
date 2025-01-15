@@ -407,44 +407,50 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
   const onChangeHandler = (editorState: EditorState): void => {
     const currentNodeKeys = new Set<string>();
     let orderResyncRequired = false;
+
     editorState.read(() => {
       const root = $getRoot();
       const children = root.getChildren();
+
+      const previousNodeKeys = previousNodeKeysRef.current;
+      const deletedKeys = new Set(previousNodeKeys);
+
       children.forEach((node, nodeIndex) => {
         if (node instanceof CustomParagraphNode) {
-          const id = node.getKeyId()
+          const id = node.getKeyId();
+
           if (id) {
-            if (!previousNodeKeysRef.current.has(id)) {
-              //new paragraph
+            // Check for new paragraphs
+            if (!previousNodeKeys.has(id)) {
               if (nodeIndex !== children.length - 1) {
                 console.log(`New paragraph added at index ${nodeIndex}, not at the end of the document.`);
                 orderResyncRequired = true;
               }
+
+              // Update the new paragraph node
               editorRef.current.update(() => {
                 const writableNode = node.getWritable();
                 if (writableNode.getTextContent().trim() === "") {
-                  // Append a tab character to the new node
                   const tabTextNode = $createTextNode("\t");
                   writableNode.append(tabTextNode);
 
-                  // Move selection to the end of the tab character
                   const selection = $getSelection();
                   if ($isRangeSelection(selection)) {
                     selection.anchor.set(tabTextNode.getKey(), 1, "text");
                     selection.focus.set(tabTextNode.getKey(), 1, "text");
                   }
-                  console.log(`Tab character added to new node: ${id}`);
                 }
               });
             }
+
+            // Track current node keys and remove from deletedKeys
             currentNodeKeys.add(id);
+            deletedKeys.delete(id);
           }
         }
       });
-      const previousNodeKeys = previousNodeKeysRef.current;
-      const deletedKeys = Array.from(previousNodeKeys).filter(
-        (key) => !currentNodeKeys.has(key)
-      );
+
+      // Handle deleted nodes
       deletedKeys.forEach((key) => {
         queueParagraphForDeletion(key);
         orderResyncRequired = true;
@@ -453,6 +459,7 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
       // Update the reference with current keys
       previousNodeKeysRef.current = currentNodeKeys;
 
+      // Save updated paragraphs
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
         const selectedNode = selection.anchor.getNode();
@@ -460,26 +467,20 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
 
         if (parentParagraph instanceof CustomParagraphNode) {
           const textContent = parentParagraph.getTextContent().trim();
-          const index = getParagraphIndexByKey(editorState, parentParagraph.getKey());
-          if (index !== null && textContent.length) {
+          const parentIndex = children.indexOf(parentParagraph);
+          if (parentIndex !== -1 && textContent.length) {
             const paragraphWithChildren = serializeWithChildren(parentParagraph);
-            queueParagraphForSave(paragraphWithChildren.key_id, index.toString(), paragraphWithChildren);
+            queueParagraphForSave(paragraphWithChildren.key_id, parentIndex.toString(), paragraphWithChildren);
           }
         }
       }
+
+      // Resync order if needed
       if (orderResyncRequired) {
         queueParagraphOrderResync();
-        orderResyncRequired = false;
       }
     });
   };
-  /*else if (index) {
-              const children = root.getChildren<ElementNode>();
-              const isAtEnd = index === children.length - 1;
-              if (!isAtEnd) {
-                orderResyncRequired = true;
-              }
-            }*/
 
 
   return (
