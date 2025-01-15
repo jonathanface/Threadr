@@ -48,10 +48,9 @@ export const Toolbar = () => {
                     setIsUnderline(selection.hasFormat("underline"));
                     setIsStrikethrough(selection.hasFormat("strikethrough"));
                     const anchorNode = selection.anchor.getNode();
-                    const parentNode = anchorNode.getType() === "paragraph" ? anchorNode : anchorNode.getParent();
-                    if (parentNode?.getType() === "paragraph") {
+                    const parentNode = anchorNode.getType() === "custom-paragraph" ? anchorNode : anchorNode.getParent();
+                    if (parentNode?.getType() === "custom-paragraph") {
                         const format = parentNode.getFormat(); // Use parentNode here
-                        console.log("Format value:", format);
                         const alignmentValue = alignmentMap[format] || "left";
                         setAlignment(alignmentValue);
                     } else {
