@@ -24,8 +24,9 @@ import { CustomParagraphNode, CustomSerializedParagraphNode } from './CustomPara
 import { BlockOrderMap } from '../../types/Document';
 import { useToaster } from '../../hooks/useToaster';
 import { AlertToastType } from '../../types/AlertToasts';
-import { TextDecoratorPlugin } from './plugins/TextDecoratorPlugin';
+import { AssociationDecoratorPlugin } from './plugins/AssociationDecoratorPlugin';
 import { ClickableDecoratorNode } from './ClickableDecoratorNode';
+import { Association } from '../../types/Associations';
 
 const theme = {
   paragraph: styles.paragraph,
@@ -68,17 +69,33 @@ const getParagraphIndexByKey = (editor: EditorState, key: string): number | null
 
 const serializeWithChildren = (node: ElementNode): CustomSerializedParagraphNode => {
   if (!(node instanceof CustomParagraphNode)) {
-    throw new Error('Node is not an instance of CustomParagraphNode');
+    throw new Error("Node is not an instance of CustomParagraphNode");
   }
 
   const json = node.exportJSON() as CustomSerializedParagraphNode;
+
   json.children = node.getChildren().map((child) => {
+    if (child instanceof ClickableDecoratorNode) {
+      // Flatten the decorator node, only including its text content
+      return {
+        type: "text",
+        text: child.getTextContent(),
+        format: 0,
+        mode: "normal",
+        style: "",
+        detail: 0,
+        version: 1,
+      };
+    }
+
     return $isElementNode(child)
       ? serializeWithChildren(child as ElementNode)
       : child.exportJSON();
   });
+
   return json;
 };
+
 
 interface ThreadWriterProps {
   storyID: string;
@@ -105,6 +122,24 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
   const [storyBlocks, setStoryBlocks] = useState<SerializedEditorState | null>(null);
   const { setIsLoaderVisible } = useLoader();
   const previousNodeKeysRef = useRef<Set<string>>(new Set());
+  const [associations, setAssociations] = useState<Association[] | null>(null);
+
+  const getAllAssociations = useCallback(async () => {
+    try {
+      const response = await fetch("/api/stories/" + storyID + "/associations");
+      if (!response.ok) throw response;
+      const associationsData = await response.json();
+      setAssociations(associationsData.map((association: Association) => {
+        if (association.association_name.trim().length) {
+          return association;
+        }
+      }));
+    } catch (error: unknown) {
+      console.error(`error retrieving associations: ${error}`);
+
+    }
+  }, [storyID]);
+
 
   const getBatchedStoryBlocks = useCallback(async (startKey: string) => {
     try {
@@ -255,6 +290,10 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
   }, [getBatchedStoryBlocks]);
 
   useEffect(() => {
+    getAllAssociations();
+  }, [getAllAssociations]);
+
+  useEffect(() => {
     if (editorRef.current && storyBlocks) {
       Promise.resolve().then(() => {
         editorRef.current.update(() => {
@@ -371,11 +410,16 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
     editorState.read(() => {
       const root = $getRoot();
       const children = root.getChildren();
-      children.forEach((node) => {
+      children.forEach((node, nodeIndex) => {
         if (node instanceof CustomParagraphNode) {
           const id = node.getKeyId()
           if (id) {
             if (!previousNodeKeysRef.current.has(id)) {
+              //new paragraph
+              if (nodeIndex !== children.length - 1) {
+                console.log(`New paragraph added at index ${nodeIndex}, not at the end of the document.`);
+                orderResyncRequired = true;
+              }
               editorRef.current.update(() => {
                 const writableNode = node.getWritable();
                 if (writableNode.getTextContent().trim() === "") {
@@ -420,20 +464,22 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
           if (index !== null && textContent.length) {
             const paragraphWithChildren = serializeWithChildren(parentParagraph);
             queueParagraphForSave(paragraphWithChildren.key_id, index.toString(), paragraphWithChildren);
-            const children = root.getChildren<ElementNode>();
-            const isAtEnd = index === children.length - 1;
-            if (!isAtEnd) {
-              orderResyncRequired = true;
-            }
           }
         }
       }
       if (orderResyncRequired) {
         queueParagraphOrderResync();
+        orderResyncRequired = false;
       }
     });
   };
-
+  /*else if (index) {
+              const children = root.getChildren<ElementNode>();
+              const isAtEnd = index === children.length - 1;
+              if (!isAtEnd) {
+                orderResyncRequired = true;
+              }
+            }*/
 
 
   return (
@@ -452,7 +498,7 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
           placeholder={<div className={styles.placeholder}>Start typing...</div>}
           ErrorBoundary={LexicalErrorBoundary}
         />
-        <TextDecoratorPlugin matchStrings={["hello"]} />
+        <AssociationDecoratorPlugin associations={associations} />
         <OnChangePlugin onChange={onChangeHandler} />
         <HistoryPlugin />
       </LexicalComposer>

@@ -297,6 +297,10 @@ func AllAssociationsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	if len(associations) == 0 {
+		RespondWithError(w, http.StatusNotFound, "no associations found for this story")
+		return
+	}
 	RespondWithJson(w, http.StatusOK, associations)
 }
 
