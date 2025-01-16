@@ -1,4 +1,4 @@
-import { createContext, useState } from "react";
+import { createContext, useMemo, useState } from "react";
 import { UserDetails } from "../types/User";
 
 export type UserContextType = {
@@ -20,12 +20,15 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const userValue: UserContextType = {
-    userDetails,
-    isLoggedIn,
-    setUserDetails,
-    setIsLoggedIn,
-  };
+  const userValue: UserContextType = useMemo(
+    () => ({
+      userDetails,
+      isLoggedIn,
+      setUserDetails,
+      setIsLoggedIn,
+    }),
+    [userDetails, isLoggedIn]
+  );
 
   return (
     <UserContext.Provider value={userValue}>{children}</UserContext.Provider>

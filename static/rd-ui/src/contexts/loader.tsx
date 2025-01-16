@@ -1,4 +1,4 @@
-import { createContext, useState } from "react";
+import { createContext, useMemo, useState } from "react";
 
 export type LoaderContextType = {
   isLoaderVisible: boolean;
@@ -16,10 +16,13 @@ export const LoaderProvider: React.FC<{ children: React.ReactNode }> = ({
   console.log("LoaderProvider mounted");
   const [isLoaderVisible, setIsLoaderVisible] = useState(false);
 
-  const loaderValue: LoaderContextType = {
-    isLoaderVisible,
-    setIsLoaderVisible,
-  };
+  const loaderValue = useMemo(
+    () => ({
+      isLoaderVisible,
+      setIsLoaderVisible,
+    }),
+    [isLoaderVisible]
+  );
 
   return (
     <LoaderContext.Provider value={loaderValue}>

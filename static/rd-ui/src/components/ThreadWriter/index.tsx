@@ -4,7 +4,7 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
-import { $createTextNode, $isRangeSelection, $isTextNode, KEY_TAB_COMMAND, ParagraphNode, SerializedEditorState, SerializedElementNode, SerializedLexicalNode } from 'lexical';
+import { $createTextNode, $isRangeSelection, $isTextNode, KEY_TAB_COMMAND, LexicalEditor, ParagraphNode, SerializedEditorState, SerializedElementNode, SerializedLexicalNode } from 'lexical';
 import {
   $getRoot,
   $getSelection,
@@ -72,30 +72,40 @@ const serializeWithChildren = (node: ElementNode): CustomSerializedParagraphNode
     throw new Error("Node is not an instance of CustomParagraphNode");
   }
 
+  // Export the node to JSON and then modify its children
   const json = node.exportJSON() as CustomSerializedParagraphNode;
 
+  // Map over the children to serialize them properly
   json.children = node.getChildren().map((child) => {
-    if (child instanceof ClickableDecoratorNode) {
-      // Flatten the decorator node, only including its text content
-      return {
-        type: "text",
-        text: child.getTextContent(),
-        format: 0,
-        mode: "normal",
-        style: "",
-        detail: 0,
-        version: 1,
-      };
+
+    if ($isElementNode(child)) {
+      // Recursively serialize child elements
+      return serializeWithChildren(child as ElementNode);
     }
 
-    return $isElementNode(child)
-      ? serializeWithChildren(child as ElementNode)
-      : child.exportJSON();
+    // Serialize text nodes and other supported nodes
+    return child.exportJSON();
   });
-
   return json;
 };
 
+const generateTextHash = (editor: LexicalEditor): string => {
+  let combinedText = "";
+
+  editor.getEditorState().read(() => {
+    const root = $getRoot();
+    const children = root.getChildren();
+
+    children.forEach((node) => {
+      if (node instanceof CustomParagraphNode) {
+        combinedText += node.getTextContent();
+      }
+    });
+  });
+
+  // Generate a simple hash or checksum of the combined text
+  return combinedText; // For large text, you might want to use a hashing function here
+};
 
 interface ThreadWriterProps {
   storyID: string;
@@ -122,6 +132,7 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
   const [storyBlocks, setStoryBlocks] = useState<SerializedEditorState | null>(null);
   const { setIsLoaderVisible } = useLoader();
   const previousNodeKeysRef = useRef<Set<string>>(new Set());
+  const previousTextHashRef = useRef<string | null>(null); // Stores the previous text state as a hash
   const [associations, setAssociations] = useState<Association[] | null>(null);
 
   const getAllAssociations = useCallback(async () => {
@@ -148,8 +159,10 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
       if (!response.ok) throw response;
 
       const data = await response.json();
+      const nodeKeys = new Set<string>();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const remappedStoryBlocks = data.items.map((item: { chunk: any; key_id: any }) => {
+        nodeKeys.add(item.key_id.Value);
         const fixed: CustomSerializedParagraphNode = item.chunk.Value
           ? JSON.parse(item.chunk.Value)
           : generateBlankLine();
@@ -160,7 +173,7 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
         }
         return fixed;
       });
-
+      previousNodeKeysRef.current = nodeKeys;
       setStoryBlocks({
         root: {
           children: remappedStoryBlocks,
@@ -319,7 +332,7 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
     if (editorRef.current) {
       // Transform default ParagraphNode to CustomParagraphNode
       editorRef.current.registerNodeTransform(ParagraphNode, (node: ParagraphNode) => {
-        if (!(node instanceof CustomParagraphNode)) {
+        if (!(node instanceof CustomParagraphNode) || !node.getKeyId()) {
           const replacement = new CustomParagraphNode(uuidv4());
           replacement.append(...node.getChildren());
           node.replace(replacement);
@@ -405,6 +418,14 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
   }, [storyID, setAlertState]);
 
   const onChangeHandler = (editorState: EditorState): void => {
+    const currentHash = generateTextHash(editorRef.current); // Get the current text hash
+    const previousHash = previousTextHashRef.current;
+    if (currentHash === previousHash) {
+      // No changes, skip processing
+      console.log("No text changes detected, skipping processing.");
+      return;
+    }
+    previousTextHashRef.current = currentHash;
     const currentNodeKeys = new Set<string>();
     let orderResyncRequired = false;
 

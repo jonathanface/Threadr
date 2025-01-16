@@ -1,70 +1,102 @@
-import { useEffect } from "react";
-import { $getRoot, ElementNode, LexicalEditor, LexicalNode, TextNode } from "lexical";
-import { ClickableDecoratorNode } from "../ClickableDecoratorNode";
+import { useCallback, useEffect } from "react";
+import {
+    $getRoot,
+    $getSelection,
+    ElementNode,
+    LexicalNode,
+    TextNode,
+    $isRangeSelection,
+} from "lexical";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import { ClickableDecoratorNode } from "../ClickableDecoratorNode";
 import { Association } from "../../../types/Associations";
 
-export const AssociationDecoratorPlugin = ({ associations }: { associations: Association[] | null }) => {
+export const AssociationDecoratorPlugin = ({
+    associations,
+}: {
+    associations: Association[] | null;
+}) => {
     const [editor] = useLexicalComposerContext();
 
-    useEffect(() => {
-        if (associations !== null) {
-            const registerTextMatches = (editor: LexicalEditor) => {
-                return editor.registerUpdateListener(({ editorState }) => {
-                    editorState.read(() => {
-                        const root = $getRoot();
-                        const textNodes: TextNode[] = [];
+    const processAssociations = useCallback((associations: Association[], rootNode: ElementNode) => {
+        const textNodes: TextNode[] = [];
+        const traverse = (node: LexicalNode) => {
+            if (node instanceof TextNode) {
+                textNodes.push(node);
+            } else if (node instanceof ElementNode) {
+                node.getChildren().forEach(traverse);
+            }
+        };
 
-                        const traverse = (node: LexicalNode) => {
-                            if (node instanceof TextNode) {
-                                textNodes.push(node);
-                            } else if (node instanceof ElementNode) {
-                                // Ensure the node is an ElementNode before calling getChildren
-                                node.getChildren().forEach(traverse);
-                            }
-                        };
+        rootNode.getChildren().forEach(traverse);
 
-                        root.getChildren().forEach(traverse);
+        textNodes.forEach((textNode) => {
+            const textContent = textNode.getTextContent();
 
-                        editor.update(() => {
-                            textNodes.forEach((textNode) => {
-                                const textContent = textNode.getTextContent();
+            associations.forEach((association) => {
+                const index = textContent.indexOf(association.association_name);
+                if (index !== -1) {
+                    editor.update(() => {
+                        const parent = textNode.getParent();
+                        if (!(parent instanceof ElementNode)) return;
 
-                                associations.forEach((association) => {
-                                    const index = textContent.indexOf(association.association_name);
+                        const beforeMatch = textContent.slice(0, index);
+                        const match = textContent.slice(index, index + association.association_name.length);
+                        const afterMatch = textContent.slice(index + association.association_name.length);
 
-                                    if (index !== -1) {
-                                        const beforeMatch = textContent.slice(0, index);
-                                        const match = textContent.slice(index, index + association.association_name.length);
-                                        const afterMatch = textContent.slice(index + association.association_name.length);
+                        if (beforeMatch) {
+                            const beforeNode = new TextNode(beforeMatch);
+                            textNode.insertBefore(beforeNode);
+                        }
 
-                                        if (beforeMatch) {
-                                            const beforeNode = new TextNode(beforeMatch);
-                                            textNode.insertBefore(beforeNode);
-                                        }
+                        const decoratorNode = new ClickableDecoratorNode(match);
+                        textNode.insertBefore(decoratorNode);
 
-                                        const decoratorNode = new ClickableDecoratorNode(match);
-                                        textNode.insertBefore(decoratorNode);
+                        if (afterMatch) {
+                            const afterNode = new TextNode(afterMatch);
+                            decoratorNode.insertAfter(afterNode);
+                        }
 
-                                        if (afterMatch) {
-                                            const afterNode = new TextNode(afterMatch);
-                                            textNode.insertAfter(afterNode);
-                                        }
-
-                                        textNode.remove();
-                                    }
-                                });
-                            });
-                        });
+                        textNode.remove();
                     });
-                });
-            };
+                }
+            });
+        });
+    }, [editor]);
 
-            const unregister = registerTextMatches(editor);
+    const processCurrentParagraph = useCallback((associations: Association[]) => {
+        const selection = $getSelection();
+        if ($isRangeSelection(selection)) {
+            const anchorNode = selection.anchor.getNode();
+            const parentParagraph = anchorNode.getParent();
+            if (parentParagraph instanceof ElementNode) {
+                processAssociations(associations, parentParagraph);
+            }
+        }
+    }, [processAssociations]);
+
+    useEffect(() => {
+        if (associations && associations.length > 0) {
+            // Initial processing on load
+            editor.update(() => {
+                const root = $getRoot();
+                processAssociations(associations, root);
+            });
+        }
+    }, [associations, editor, processAssociations]);
+
+    useEffect(() => {
+        if (associations && associations.length > 0) {
+            // Process associations only for the selected paragraph on changes
+            const unregister = editor.registerUpdateListener(({ editorState }) => {
+                editorState.read(() => {
+                    processCurrentParagraph(associations);
+                });
+            });
 
             return () => unregister();
         }
-    }, [associations, editor]);
+    }, [associations, editor, processCurrentParagraph]);
 
     return null;
 };

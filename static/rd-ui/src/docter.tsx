@@ -48,8 +48,9 @@ export const Docter = () => {
         (isLoggedIn && currentStory && currentStoryAction === StoryAction.none)
       ) {
         return <StoryAndSeriesListing />;
+      } else {
+        return <SplashPage />
       }
-      return <SplashPage />
     }
     return <div />
   }

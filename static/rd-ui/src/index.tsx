@@ -24,8 +24,8 @@ root.render(
           <StorySelectionProvider>
             <LoaderProvider>
               <AlertProvider>
-                <Loader />
                 <Toaster />
+                <Loader />
                 <ProSidebarProvider>
                   <Docter />
                 </ProSidebarProvider>
