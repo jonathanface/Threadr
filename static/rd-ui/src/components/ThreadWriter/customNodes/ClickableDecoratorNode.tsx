@@ -3,30 +3,33 @@ import { JSX } from "react";
 
 export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
     private text: string;
+    private id: string;
 
     static getType(): string {
         return "clickable-decorator";
     }
 
     static clone(node: ClickableDecoratorNode): ClickableDecoratorNode {
-        return new ClickableDecoratorNode(node.text, node.__key);
+        return new ClickableDecoratorNode(node.text, node.id, node.__key,);
     }
 
-    constructor(text: string, key?: NodeKey) {
+    constructor(text: string, id: string, key?: NodeKey,) {
         super(key);
         this.text = text;
+        this.id = id;
     }
 
     static importJSON(serializedNode: { text: string; type: string; version: number }): ClickableDecoratorNode {
         const { text } = serializedNode;
-        return new ClickableDecoratorNode(text);
+        return new ClickableDecoratorNode(text, "");
     }
 
-    exportJSON(): { type: string; version: number; text: string } {
+    exportJSON(): { type: string; version: number; text: string, id: string } {
         return {
             type: "clickable-decorator",
             version: 1,
             text: this.text,
+            id: this.id
         };
     }
 
@@ -47,17 +50,17 @@ export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
     }
 
     decorate(): JSX.Element {
-        return <ClickableDecorator text={this.text} />;
+        return <ClickableDecorator text={this.text} id={this.id} />;
     }
 }
 
-const ClickableDecorator = ({ text }: { text: string }) => {
+const ClickableDecorator = ({ text, id }: { text: string, id: string }) => {
 
-    const handleLeftClick = () => alert(`Left-clicked: ${text}`);
+    const handleLeftClick = () => alert(`Left-clicked: ${text}, ${id}`);
 
     const handleRightClick = (event: React.MouseEvent) => {
         event.preventDefault();
-        alert(`Right-clicked: ${text}`);
+        alert(`Right-clicked: ${text}, ${id}`);
     }
 
     return (

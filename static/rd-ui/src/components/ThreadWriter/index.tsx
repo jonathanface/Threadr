@@ -20,12 +20,12 @@ import { Chapter } from '../../types/Chapter';
 import { DbOperationQueue, ProcessDBQueue } from './queue';
 import { DBOperation, DBOperationBlock, DBOperationType } from '../../types/DBOperations';
 import { v4 as uuidv4 } from 'uuid';
-import { CustomParagraphNode, CustomSerializedParagraphNode } from './CustomParagraphNode';
+import { CustomParagraphNode, CustomSerializedParagraphNode } from './customNodes/CustomParagraphNode';
 import { BlockOrderMap } from '../../types/Document';
 import { useToaster } from '../../hooks/useToaster';
 import { AlertToastType } from '../../types/AlertToasts';
 import { AssociationDecoratorPlugin } from './plugins/AssociationDecoratorPlugin';
-import { ClickableDecoratorNode } from './ClickableDecoratorNode';
+import { ClickableDecoratorNode } from './customNodes/ClickableDecoratorNode';
 import { Association } from '../../types/Associations';
 
 const theme = {

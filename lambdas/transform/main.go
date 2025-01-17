@@ -19,7 +19,9 @@ import (
 )
 
 type Event struct {
-	TableName string `json:"tableName"`
+	UUIDPrefix string `json:"uuidPrefix"`
+	TagValue   string `json:"tagValue"`
+	AccountID  string `json:"accountID"`
 }
 
 // DraftJSParagraph represents the DraftJS data structure
@@ -245,27 +247,44 @@ func waitForTableToBecomeActive(svc *dynamodb.DynamoDB, tableName string) error 
 	}
 }
 
-func handler(ctx context.Context, event Event) (string, error) {
-	if event.TableName == "" {
-		return "", fmt.Errorf("tableName parameter is required")
+func getTablesWithPrefix(svc *dynamodb.DynamoDB, uuidPrefix string) ([]string, error) {
+	var matchingTables []string
+
+	listTablesInput := &dynamodb.ListTablesInput{}
+	for {
+		result, err := svc.ListTables(listTablesInput)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list tables: %v", err)
+		}
+
+		for _, tableName := range result.TableNames {
+			// Match the format: [PASSED IN UUID]_[2ND-UUID]_blocks
+			if len(*tableName) > len(uuidPrefix)+8 && // Ensure the table name is long enough
+				(*tableName)[:len(uuidPrefix)] == uuidPrefix &&
+				(*tableName)[len(*tableName)-7:] == "_blocks" { // Check for "_blocks" suffix
+				matchingTables = append(matchingTables, *tableName)
+			}
+		}
+
+		if result.LastEvaluatedTableName == nil {
+			break
+		}
+
+		listTablesInput.ExclusiveStartTableName = result.LastEvaluatedTableName
 	}
 
-	sess := session.Must(session.NewSession())
-	svc := dynamodb.New(sess)
+	return matchingTables, nil
+}
 
-	sourceTableName := event.TableName
-	targetTableName := sourceTableName + "-rollout"
-
-	// Describe source table
+func processTable(svc *dynamodb.DynamoDB, sourceTableName, targetTableName, tagValue, accountID string) error {
 	describeInput := &dynamodb.DescribeTableInput{
 		TableName: aws.String(sourceTableName),
 	}
 	sourceTableDesc, err := svc.DescribeTable(describeInput)
 	if err != nil {
-		return "", fmt.Errorf("failed to describe source table: %v", err)
+		return fmt.Errorf("failed to describe source table: %v", err)
 	}
 
-	// Check if the target table exists
 	_, err = svc.DescribeTable(&dynamodb.DescribeTableInput{
 		TableName: aws.String(targetTableName),
 	})
@@ -273,7 +292,7 @@ func handler(ctx context.Context, event Event) (string, error) {
 		log.Printf("Target table %s already exists. Deleting contents...", targetTableName)
 		err = deleteTableContents(svc, targetTableName)
 		if err != nil {
-			return "", fmt.Errorf("failed to delete contents of target table: %v", err)
+			return fmt.Errorf("failed to delete contents of target table: %v", err)
 		}
 	} else {
 		log.Printf("Target table %s does not exist. Creating table...", targetTableName)
@@ -297,13 +316,35 @@ func handler(ctx context.Context, event Event) (string, error) {
 
 		_, err := svc.CreateTable(createInput)
 		if err != nil {
-			return "", fmt.Errorf("failed to create target table: %v", err)
+			return fmt.Errorf("failed to create target table: %v", err)
 		}
 		err = waitForTableToBecomeActive(svc, targetTableName)
 		if err != nil {
-			return "", fmt.Errorf("error while waiting for table %s to become ACTIVE: %v", targetTableName, err)
+			return fmt.Errorf("error while waiting for table %s to become ACTIVE: %v", targetTableName, err)
 		}
 		log.Printf("Successfully created target table: %s", targetTableName)
+
+		// Add the tag to the newly created table
+		tagInput := &dynamodb.TagResourceInput{
+			ResourceArn: aws.String(fmt.Sprintf("arn:aws:dynamodb:%s:%s:table/%s",
+				aws.StringValue(svc.Config.Region),
+				aws.StringValue(&accountID),
+				targetTableName,
+			)),
+			Tags: []*dynamodb.Tag{
+				{
+					Key:   aws.String("title"),
+					Value: aws.String(tagValue),
+				},
+			},
+		}
+
+		_, err = svc.TagResource(tagInput)
+		if err != nil {
+			return fmt.Errorf("failed to tag target table: %v", err)
+		}
+
+		log.Printf("Successfully tagged target table: %s with %s=%s", targetTableName, "title", tagValue)
 	}
 
 	scanInput := &dynamodb.ScanInput{
@@ -312,11 +353,10 @@ func handler(ctx context.Context, event Event) (string, error) {
 
 	scanResult, err := svc.Scan(scanInput)
 	if err != nil {
-		return "", fmt.Errorf("failed to scan source table: %v", err)
+		return fmt.Errorf("failed to scan source table: %v", err)
 	}
 
 	for _, item := range scanResult.Items {
-		log.Printf("Processing record: %+v", item)
 		var record DynamoDBRecord
 		err = dynamodbattribute.UnmarshalMap(item, &record)
 		if err != nil {
@@ -365,8 +405,42 @@ func handler(ctx context.Context, event Event) (string, error) {
 			log.Printf("Failed to write item to target table: %v", err)
 		}
 	}
+	return nil
+}
 
-	return fmt.Sprintf("Data transformed and stored in %s successfully", targetTableName), nil
+func handler(ctx context.Context, event Event) (string, error) {
+	if event.UUIDPrefix == "" {
+		return "", fmt.Errorf("uuidPrefix parameter is required")
+	}
+	if event.UUIDPrefix == "" {
+		return "", fmt.Errorf("uuidPrefix parameter is required")
+	}
+	if event.AccountID == "" || event.TagValue == "" {
+		return "", fmt.Errorf("Both accountID and tagValue parameters are required")
+	}
+
+	sess := session.Must(session.NewSession())
+	svc := dynamodb.New(sess)
+
+	tables, err := getTablesWithPrefix(svc, event.UUIDPrefix)
+	if err != nil {
+		return "", fmt.Errorf("failed to list tables with prefix %s: %v", event.UUIDPrefix, err)
+	}
+
+	if len(tables) == 0 {
+		return fmt.Sprintf("No tables found with prefix %s", event.UUIDPrefix), nil
+	}
+
+	for _, sourceTableName := range tables {
+		targetTableName := sourceTableName + "-rollout"
+		log.Printf("Processing table: %s", sourceTableName)
+		err := processTable(svc, sourceTableName, targetTableName, event.TagValue, event.AccountID)
+		if err != nil {
+			log.Printf("Error processing table %s: %v", sourceTableName, err)
+		}
+	}
+
+	return fmt.Sprintf("Processed %d tables with prefix %s", len(tables), event.UUIDPrefix), nil
 }
 
 func main() {

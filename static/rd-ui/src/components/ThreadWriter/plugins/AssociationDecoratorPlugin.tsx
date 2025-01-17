@@ -8,7 +8,7 @@ import {
     $isRangeSelection,
 } from "lexical";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { ClickableDecoratorNode } from "../ClickableDecoratorNode";
+import { ClickableDecoratorNode } from "../customNodes/ClickableDecoratorNode";
 import { Association } from "../../../types/Associations";
 
 export const AssociationDecoratorPlugin = ({
@@ -49,7 +49,7 @@ export const AssociationDecoratorPlugin = ({
                             textNode.insertBefore(beforeNode);
                         }
 
-                        const decoratorNode = new ClickableDecoratorNode(match);
+                        const decoratorNode = new ClickableDecoratorNode(match, association.association_id);
                         textNode.insertBefore(decoratorNode);
 
                         if (afterMatch) {
