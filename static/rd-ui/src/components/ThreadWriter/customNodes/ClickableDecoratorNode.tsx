@@ -1,5 +1,7 @@
 import { DecoratorNode, NodeKey } from "lexical";
 import { JSX } from "react";
+import { useAppNavigation } from "../../../hooks/useAppNavigation";
+import { useCurrentSelections } from "../../../hooks/useCurrentSelections";
 
 export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
     private text: string;
@@ -56,7 +58,13 @@ export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
 
 const ClickableDecorator = ({ text, id }: { text: string, id: string }) => {
 
-    const handleLeftClick = () => alert(`Left-clicked: ${text}, ${id}`);
+    const { setIsAssociationPanelOpen } = useAppNavigation();
+    const { setCurrentAssociationID } = useCurrentSelections();
+
+    const handleLeftClick = () => {
+        setCurrentAssociationID(id);
+        setIsAssociationPanelOpen(true);
+    }
 
     const handleRightClick = (event: React.MouseEvent) => {
         event.preventDefault();

@@ -8,24 +8,21 @@ import { DetailsSlider } from "./DetailsSlider";
 import styles from "./story.module.css";
 import { IsStory, Story } from "../../types/Story";
 import { Series } from "../../types/Series";
-import { useCurrentStoryContext } from "../../contexts/selections";
 import { useLoader } from "../../hooks/useLoader";
 import { useAppNavigation } from "../../hooks/useAppNavigation";
+import { useCurrentSelections } from "../../hooks/useCurrentSelections";
 
 
 interface StoryBoxProps {
   data: Story | Series;
-  seriesList: Series[] | undefined;
-  storiesList: Story[] | undefined;
+  seriesList: Series[] | null;
+  storiesList: Story[] | null;
   setSeriesList: (series: Series[]) => void;
   setStoriesList: (stories: Story[]) => void;
 }
 
 export const StoryBox = (props: StoryBoxProps) => {
-
-  //const { seriesList, setSeriesList } = useFetchSeriesList();
-  // const { storiesList, setStoriesList } = useFetchStoriesList();
-  const { setCurrentStory } = useCurrentStoryContext();
+  const { setCurrentStory } = useCurrentSelections();
   const { setIsLoaderVisible } = useLoader();
   const { setIsEditingStory, setIsEditingSeries } = useAppNavigation();
 

@@ -11,6 +11,7 @@ type AppNavigation = {
   isConfigPanelOpen: boolean;
   isSubscriptionFormOpen: boolean;
   isLoginPanelOpen: boolean;
+  isAssociationPanelOpen: boolean;
   setIsCreatingSeries: (creatingSeries: boolean) => void;
   setIsCreatingStory: (creatingStory: boolean) => void;
   setStoryPreassignSeriesID: (seriesID: string) => void;
@@ -19,6 +20,7 @@ type AppNavigation = {
   setIsConfigPanelOpen: (configPanelOpen: boolean) => void;
   setIsSubscriptionFormOpen: (subscriptionFormOpen: boolean) => void;
   setIsLoginPanelOpen: (loginPanelOpen: boolean) => void;
+  setIsAssociationPanelOpen: (associationPanelOpen: boolean) => void;
 };
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -38,6 +40,7 @@ export const AppNavigationProvider: React.FC<{
   const [isConfigPanelOpen, setIsConfigPanelOpen] = useState(false);
   const [isSubscriptionFormOpen, setIsSubscriptionFormOpen] = useState(false);
   const [isLoginPanelOpen, setIsLoginPanelOpen] = useState(false);
+  const [isAssociationPanelOpen, setIsAssociationPanelOpen] = useState(false);
   return (
     <AppNavigationContext.Provider
       value={{
@@ -49,6 +52,7 @@ export const AppNavigationProvider: React.FC<{
         isConfigPanelOpen,
         isSubscriptionFormOpen,
         isLoginPanelOpen,
+        isAssociationPanelOpen,
         setIsCreatingSeries,
         setIsCreatingStory,
         setStoryPreassignSeriesID,
@@ -57,6 +61,7 @@ export const AppNavigationProvider: React.FC<{
         setIsConfigPanelOpen,
         setIsSubscriptionFormOpen,
         setIsLoginPanelOpen,
+        setIsAssociationPanelOpen
       }}
     >
       {children}

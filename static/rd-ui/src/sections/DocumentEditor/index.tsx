@@ -1,15 +1,15 @@
 import { useCallback, useContext, useEffect, useState } from "react";
 import { ThreadWriter } from "../../components/ThreadWriter"
 import { UserContext } from "../../contexts/user";
-import { useCurrentStoryContext } from "../../contexts/selections";
 import { Chapter } from "../../types/Chapter";
 import { useToaster } from "../../hooks/useToaster";
 import { AlertToastType } from "../../types/AlertToasts";
 import { useLoader } from "../../hooks/useLoader";
+import { useCurrentSelections } from "../../hooks/useCurrentSelections";
 
 export const DocumentEditorPage = () => {
     console.log("loading document editor")
-    const { currentStory } = useCurrentStoryContext();
+    const { currentStory } = useCurrentSelections();
     const userData = useContext(UserContext);
     const { setAlertState } = useToaster();
     const { setIsLoaderVisible } = useLoader();

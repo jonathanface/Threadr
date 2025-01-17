@@ -7,11 +7,10 @@ import { UserProvider } from "./contexts/user";
 import { AlertProvider } from "./contexts/alert";
 import { Toaster } from "./utils/Toaster";
 import {
-  SeriesSelectionProvider,
-  StorySelectionProvider,
+  CurrentSelectionsProvider,
 } from "./contexts/selections";
 import { AppNavigationProvider } from "./contexts/navigation";
-import { WorksListContextProvider } from "./contexts/worksList";
+import { WorksListProvider } from "./contexts/worksList";
 
 const rootElement = document.getElementById("root")!;
 const root = ReactDOM.createRoot(rootElement);
@@ -19,21 +18,19 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <AppNavigationProvider>
     <UserProvider>
-      <WorksListContextProvider>
-        <SeriesSelectionProvider>
-          <StorySelectionProvider>
-            <LoaderProvider>
-              <AlertProvider>
-                <Toaster />
-                <Loader />
-                <ProSidebarProvider>
-                  <Docter />
-                </ProSidebarProvider>
-              </AlertProvider>
-            </LoaderProvider>
-          </StorySelectionProvider>
-        </SeriesSelectionProvider>
-      </WorksListContextProvider>
+      <WorksListProvider>
+        <CurrentSelectionsProvider>
+          <LoaderProvider>
+            <AlertProvider>
+              <Toaster />
+              <Loader />
+              <ProSidebarProvider>
+                <Docter />
+              </ProSidebarProvider>
+            </AlertProvider>
+          </LoaderProvider>
+        </CurrentSelectionsProvider>
+      </WorksListProvider>
     </UserProvider>
   </AppNavigationProvider>
 );

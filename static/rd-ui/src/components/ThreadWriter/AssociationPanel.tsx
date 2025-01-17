@@ -7,12 +7,6 @@ import Switch from "@mui/material/Switch";
 import { PortraitDropper } from "../PortraitDropper";
 import styles from "./association-ui.module.css";
 import { UCWords } from "./utilities";
-import {
-  CompositeDecorator,
-  ContentState,
-  Editor,
-  EditorState,
-} from "draft-js";
 import { FindHighlightable, HighlightSpan } from "./decorators";
 import { Association } from "../../types/Associations";
 
@@ -26,7 +20,7 @@ interface AssociationProps {
   open: boolean;
 }
 
-export const AssociationUI: React.FC<AssociationProps> = (props) => {
+export const AssociationPanel: React.FC<AssociationProps> = (props) => {
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [name, setName] = useState("");
   const [aliases, setAliases] = useState("");
@@ -191,11 +185,11 @@ export const AssociationUI: React.FC<AssociationProps> = (props) => {
         formData.append("file", file);
         fetch(
           "/api/stories/" +
-            props.storyID +
-            "/associations/" +
-            thisAssociation.association_id +
-            "/upload?type=" +
-            thisAssociation.association_type,
+          props.storyID +
+          "/associations/" +
+          thisAssociation.association_id +
+          "/upload?type=" +
+          thisAssociation.association_type,
           { credentials: "include", method: "PUT", body: formData }
         )
           .then((response) => {

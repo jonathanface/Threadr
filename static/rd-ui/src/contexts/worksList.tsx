@@ -1,37 +1,37 @@
-import { createContext, useEffect, useState } from "react";
-import { Story } from "../types/Story";
-import { Series } from "../types/Series";
+import { createContext, useMemo, useState } from "react"
+import { Series } from "../types/Series"
+import { Story } from "../types/Story"
 
-type WorksContextType = {
-    storiesList: Story[] | undefined;
-    seriesList: Series[] | undefined;
-    setStoriesList: (list: Story[] | undefined) => void;
-    setSeriesList: (list: Series[] | undefined) => void;
+type WorksList = {
+    seriesList: Series[] | null
+    storiesList: Story[] | null
+
+    setSeriesList: (list: Series[] | null) => void;
+    setStoriesList: (list: Story[] | null) => void;
 }
 
-export const WorksListContext = createContext<WorksContextType | undefined>(
+export const WorksListContext = createContext<WorksList | undefined>(
     undefined
 );
 
-export const WorksListContextProvider: React.FC<{
+export const WorksListProvider: React.FC<{
     children: React.ReactNode;
 }> = ({ children }) => {
+    const [seriesList, setSeriesList] = useState<Series[] | null>(null);
+    const [storiesList, setStoriesList] = useState<Story[] | null>(null);
 
-    console.log("WorksListContextProvider mounted")
-    useEffect(() => {
-        return () => console.log("WorksListContextProvider unmounted");
-    }, []);
-    const [storiesList, setStoriesList] = useState<undefined | Story[]>(undefined);
-    const [seriesList, setSeriesList] = useState<undefined | Series[]>(undefined);
+    const value = useMemo(
+        () => ({
+            seriesList,
+            setSeriesList,
+            storiesList,
+            setStoriesList,
+        }),
+        [seriesList, storiesList] // Only recompute when these values change
+    );
+
     return (
-        <WorksListContext.Provider
-            value={{
-                storiesList,
-                seriesList,
-                setStoriesList,
-                setSeriesList
-            }}
-        >
+        <WorksListContext.Provider value={value}>
             {children}
         </WorksListContext.Provider>
     );

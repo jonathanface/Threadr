@@ -3,17 +3,17 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Autocomplete, TextField } from "@mui/material";
 import styles from "./createEditStoryPanel.module.css";
-import { useFetchSeriesList } from "../../hooks/useFetchSeriesList";
 import { useAppNavigation } from "../../hooks/useAppNavigation";
 import { useToaster } from "../../hooks/useToaster";
 import { AlertCommandType, AlertState, AlertToastType } from "../../types/AlertToasts";
 import { useLoader } from "../../hooks/useLoader";
-import { useFetchStoriesList } from "../../hooks/useFetchStoriesList";
 import { Story } from "../../types/Story";
 import { PortraitDropper } from "../../components/PortraitDropper";
+import { Series } from "../../types/Series";
+import { APIError } from "../../types/API";
 
 interface SeriesSelectionOptions {
   label: string;
@@ -31,9 +31,14 @@ interface CreateStoryForm {
   series_place?: number;
 }
 
-export const CreatEditStoryPanel = () => {
-  const { seriesList, setSeriesList } = useFetchSeriesList();
-  const { storiesList, setStoriesList } = useFetchStoriesList();
+interface CreateEditStoryPanelProps {
+  seriesList: Series[] | null;
+  setSeriesList: (series: Series[]) => void
+  storiesList: Story[] | null;
+  setStoriesList: (series: Story[]) => void
+}
+
+export const CreatEditStoryPanel = (props: CreateEditStoryPanelProps) => {
   const { isCreatingStory, setIsCreatingStory, storyPreassignSeriesID } = useAppNavigation();
   const { setAlertState } = useToaster();
   const { setIsLoaderVisible } = useLoader();
@@ -46,7 +51,7 @@ export const CreatEditStoryPanel = () => {
 
   const defaultImageURL = "img/icons/story_standalone_icon.jpg";
 
-  const attachImageToForm = async () => {
+  const attachImageToForm = useCallback(async () => {
     fetch(imageURL, {
       headers: {
         Accept: "image/*",
@@ -63,7 +68,7 @@ export const CreatEditStoryPanel = () => {
       .catch((error) => {
         console.error("Fetch operation failed: ", error);
       });
-  };
+  }, [imageURL]);
 
   const getDefaultImage = () => {
     const randomImageURL = "https://picsum.photos/300";
@@ -117,7 +122,7 @@ export const CreatEditStoryPanel = () => {
     if (imageURL.length) {
       attachImageToForm();
     }
-  }, [imageURL]);
+  }, [imageURL, attachImageToForm]);
 
   useEffect(() => {
     if (isCreatingStory) {
@@ -128,7 +133,7 @@ export const CreatEditStoryPanel = () => {
     }
 
     setSeriesDisplayList(
-      seriesList?.map((entry) => {
+      props.seriesList?.map((entry) => {
         return {
           label: entry.series_title,
           id: entry.series_id,
@@ -136,7 +141,11 @@ export const CreatEditStoryPanel = () => {
         };
       }) || []
     );
-  }, [isCreatingStory, seriesList, storyPreassignSeriesID]);
+  }, [isCreatingStory, props.seriesList, storyPreassignSeriesID]);
+
+  useEffect(() => {
+
+  }, []);
 
   const processImage = (acceptedFiles: File[]) => {
     acceptedFiles.forEach((file) => {
@@ -178,7 +187,7 @@ export const CreatEditStoryPanel = () => {
     }
 
     if (storyForm.series_id) {
-      const foundSeries = seriesList?.find((srs) => srs.series_id === storyForm.series_id);
+      const foundSeries = props.seriesList?.find((srs) => srs.series_id === storyForm.series_id);
       if (foundSeries) {
         storyForm.series_place = foundSeries.stories.length ? foundSeries.stories.length : 1;
       }
@@ -188,7 +197,7 @@ export const CreatEditStoryPanel = () => {
 
     const formData = new FormData();
     for (const key in storyForm) {
-      if (storyForm.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(storyForm, key)) {
         const value = storyForm[key];
         if (value === undefined) continue;
         if (typeof value === "string" || typeof value === "number") {
@@ -216,13 +225,13 @@ export const CreatEditStoryPanel = () => {
       }
       const json = await response.json();
       if (json.series_id) {
-        const newSeriesList = seriesList ? [...seriesList] : [];
-        const foundSeriesIndex = seriesList?.findIndex((srs) => srs.series_id === json.series_id);
+        const newSeriesList = props.seriesList ? [...props.seriesList] : [];
+        const foundSeriesIndex = props.seriesList?.findIndex((srs) => srs.series_id === json.series_id);
         if (foundSeriesIndex !== undefined && foundSeriesIndex >= 0) {
           const updatedSeries = { ...newSeriesList[foundSeriesIndex] };
           updatedSeries.stories = [...updatedSeries.stories, json];
           newSeriesList[foundSeriesIndex] = updatedSeries;
-          setSeriesList(newSeriesList);
+          props.setSeriesList(newSeriesList);
         } else {
           newSeriesList.push({
             series_id: json.series_id,
@@ -234,18 +243,19 @@ export const CreatEditStoryPanel = () => {
         }
       } else {
         const story = json as Story;
-        const newStoriesList = storiesList ? storiesList : [];
+        const newStoriesList = props.storiesList ? props.storiesList : [];
         newStoriesList.push(story);
-        setStoriesList(newStoriesList);
+        props.setStoriesList(newStoriesList);
       }
       storyFormMessage.title = "Story creation success";
       storyFormMessage.message = "";
       storyFormMessage.severity = AlertToastType.success;
       setAlertState(storyFormMessage)
       handleClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      if (error.name === "401") {
+      const apiError = error as APIError;
+      if (apiError.statusCode === 401) {
         storyFormMessage.title = "Insufficient subscription";
         storyFormMessage.severity = AlertToastType.warning;
         storyFormMessage.message =
@@ -322,7 +332,7 @@ export const CreatEditStoryPanel = () => {
                   defaultValue={storyForm?.series_title}
                   onInputChange={(event: React.SyntheticEvent, value: string) => {
                     if (event) {
-                      const foundSeries = seriesList?.find(
+                      const foundSeries = props.seriesList?.find(
                         (srs) => srs.series_title.toLowerCase() === value.toLowerCase()
                       );
                       if (foundSeries) {
@@ -340,8 +350,9 @@ export const CreatEditStoryPanel = () => {
                       }
                     }
                   }}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   onChange={(event: React.SyntheticEvent, value: any) => {
-                    if (value.hasOwnProperty("id") && value.hasOwnProperty("label")) {
+                    if (Object.prototype.hasOwnProperty.call(value, 'id') && Object.prototype.hasOwnProperty.call(value, 'label')) {
                       setStoryForm((prevFormInput) => ({
                         ...prevFormInput,
                         series_id: value.id,

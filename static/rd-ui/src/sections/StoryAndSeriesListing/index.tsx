@@ -5,26 +5,29 @@ import { StoryBox } from "../../components/StoryBox";
 import styles from "./storyAndSeries.module.css";
 import { Series } from "../../types/Series";
 import { Story } from "../../types/Story";
-import { useFetchSeriesList } from "../../hooks/useFetchSeriesList";
-import { useFetchStoriesList } from "../../hooks/useFetchStoriesList";
 import { useToaster } from "../../hooks/useToaster";
 import { AlertToastType } from "../../types/AlertToasts";
 import { UserContext } from "../../contexts/user";
 import { useAppNavigation } from "../../hooks/useAppNavigation";
 
-export const StoryAndSeriesListing = () => {
+interface StoryAndSeriesListingProps {
+  seriesList: Series[] | null;
+  setSeriesList: (series: Series[]) => void
+  storiesList: Story[] | null;
+  setStoriesList: (series: Story[]) => void
+}
+
+export const StoryAndSeriesListing = (props: StoryAndSeriesListingProps) => {
   const userData = useContext(UserContext);
-  const { storiesList, setStoriesList } = useFetchStoriesList();
-  const { seriesList, setSeriesList } = useFetchSeriesList();
   const { setIsCreatingStory } = useAppNavigation();
   const { setAlertState } = useToaster();
 
   useEffect(() => {
     if (
-      seriesList &&
-      !seriesList.length &&
-      storiesList &&
-      !storiesList.length
+      props.seriesList &&
+      !props.seriesList.length &&
+      props.storiesList &&
+      !props.storiesList.length
     ) {
       setAlertState({
         title: "The Docter is In",
@@ -36,10 +39,10 @@ export const StoryAndSeriesListing = () => {
       });
     }
   }, [
-    storiesList,
-    seriesList,
-    storiesList?.length,
-    seriesList?.length,
+    props.storiesList,
+    props.seriesList,
+    props.storiesList?.length,
+    props.seriesList?.length,
     setAlertState,
   ]);
 
@@ -48,16 +51,16 @@ export const StoryAndSeriesListing = () => {
   };
 
   // If there are works, we prepare our series and stories components.
-  const seriesComponents = seriesList?.map((series: Series) => {
-    return <StoryBox key={series.series_id} data={series} storiesList={storiesList} seriesList={seriesList} setSeriesList={setSeriesList} setStoriesList={setStoriesList} />;
+  const seriesComponents = props.seriesList?.map((series: Series) => {
+    return <StoryBox key={series.series_id} data={series} storiesList={props.storiesList || []} seriesList={props.seriesList} setSeriesList={props.setSeriesList} setStoriesList={props.setStoriesList} />;
   });
 
-  const storyComponents = storiesList?.map((story: Story) => {
-    return <StoryBox key={story.story_id} data={story} storiesList={storiesList} seriesList={seriesList} setSeriesList={setSeriesList} setStoriesList={setStoriesList} />;
+  const storyComponents = props.storiesList?.map((story: Story) => {
+    return <StoryBox key={story.story_id} data={story} storiesList={props.storiesList} seriesList={props.seriesList || []} setSeriesList={props.setSeriesList} setStoriesList={props.setStoriesList} />;
   });
 
   let content = <div />;
-  if (seriesList?.length || storiesList?.length) {
+  if (props.seriesList?.length || props.storiesList?.length) {
     content = (
       <React.Fragment>
         {seriesComponents}

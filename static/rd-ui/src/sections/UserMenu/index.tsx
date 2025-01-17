@@ -5,7 +5,7 @@ import styles from "./user-menu.module.css";
 import { useLoader } from "../../hooks/useLoader";
 import { UserContext } from "../../contexts/user";
 import { useAppNavigation } from "../../hooks/useAppNavigation";
-import { useCurrentSeriesContext, useCurrentStoryContext } from "../../contexts/selections";
+import { useCurrentSelections } from "../../hooks/useCurrentSelections";
 
 export const UserMenu = () => {
   const userData = useContext(UserContext);
@@ -13,8 +13,7 @@ export const UserMenu = () => {
 
   const [isOpen, setIsOpen] = useState(false);
   const { setIsLoginPanelOpen, setIsConfigPanelOpen, setIsSubscriptionFormOpen } = useAppNavigation();
-  const storyData = useCurrentStoryContext();
-  const seriesData = useCurrentSeriesContext();
+  const selectionsData = useCurrentSelections();
 
   const signout = () => {
     setIsLoaderVisible(false);
@@ -23,8 +22,8 @@ export const UserMenu = () => {
     })
       .then((response) => {
         if (response.ok) {
-          storyData.setCurrentStory(undefined);
-          seriesData.setCurrentSeries(undefined);
+          selectionsData.setCurrentStory(undefined);
+          selectionsData.setCurrentSeries(undefined);
           userData?.setIsLoggedIn(true);
           const history = window.history;
           history.pushState({}, "", "/");

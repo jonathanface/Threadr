@@ -1,7 +1,7 @@
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 
-import { useEffect, useMemo } from "react";
+import { memo, useEffect } from "react";
 import "./css/main.css";
 import { ConfigPanelModal } from "./sections/UserConfigPanel";
 import { DocumentEditorPage } from "./sections/DocumentEditor";
@@ -12,48 +12,46 @@ import { SubscribePanel } from "./sections/SubscribePanel";
 import { UserMenu } from "./sections/UserMenu";
 
 import { useHandleNavigationHandler } from "./hooks/useNavigationHandler";
-import { StoryAction, useCurrentStoryContext } from "./contexts/selections";
 import { useFetchUserData } from "./hooks/useFetchUserData";
 import { CreatEditStoryPanel } from "./sections/CreateEditStoryPanel";
+import { StoryAction } from "./contexts/selections";
+import { useCurrentSelections } from "./hooks/useCurrentSelections";
+import { useWorksList } from "./hooks/useWorksList";
 
-export const Docter = () => {
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_KEY ?? "");
 
+export const Docter = memo(() => {
   console.log("Docter mounted");
   useEffect(() => {
     return () => console.log("Docter unmounted");
   }, []);
 
-  const { isLoggedIn, isLoadingUser } = useFetchUserData();
+  const { isLoggedIn } = useFetchUserData();
   const { handleNavChange } = useHandleNavigationHandler();
-  const stripeKey: string = import.meta.env.VITE_STRIPE_KEY ?? "";
-  const stripe = useMemo(() => loadStripe(stripeKey), [stripeKey]);
-
-  const { currentStory, currentStoryAction } = useCurrentStoryContext();
+  const { currentStory, currentStoryAction } = useCurrentSelections();
+  const { seriesList, setSeriesList, storiesList, setStoriesList } = useWorksList();
 
   useEffect(() => {
     handleNavChange();
   }, [handleNavChange]);
 
   const renderContent = () => {
-    if (!isLoadingUser) {
-      if (
-        isLoggedIn &&
-        currentStory &&
-        currentStoryAction === StoryAction.editing
-      ) {
-        return <DocumentEditorPage />;
-      }
-      if (
-        (isLoggedIn && !currentStory) ||
-        (isLoggedIn && currentStory && currentStoryAction === StoryAction.none)
-      ) {
-        return <StoryAndSeriesListing />;
-      } else {
-        return <SplashPage />
-      }
+    if (
+      isLoggedIn &&
+      currentStory &&
+      currentStoryAction === StoryAction.editing
+    ) {
+      return <DocumentEditorPage />;
     }
-    return <div />
-  }
+    if (
+      (isLoggedIn && !currentStory) ||
+      (isLoggedIn && currentStory && currentStoryAction === StoryAction.none)
+    ) {
+      return <StoryAndSeriesListing seriesList={seriesList} setSeriesList={setSeriesList} storiesList={storiesList} setStoriesList={setStoriesList} />;
+    } else {
+      return <SplashPage />;
+    }
+  };
 
   return (
     <div className="App">
@@ -66,17 +64,13 @@ export const Docter = () => {
           </h4>
         </header>
         {renderContent()}
-        <CreatEditStoryPanel />
-        {/*
-        <EditStoryModal />
-        <EditSeriesModal /> */}
+        <CreatEditStoryPanel seriesList={seriesList} setSeriesList={setSeriesList} storiesList={storiesList} setStoriesList={setStoriesList} />
         <ConfigPanelModal />
         <LoginPanelModal />
       </main>
-      <Elements stripe={stripe}>
+      <Elements stripe={stripePromise}>
         <SubscribePanel />
       </Elements>
     </div>
   );
-}
-
+});

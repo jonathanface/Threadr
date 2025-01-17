@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { UserContext } from "../contexts/user";
 import { useLoader } from "./useLoader";
 import { useToaster } from "./useToaster";
@@ -16,13 +16,14 @@ export const useFetchUserData = () => {
     throw new Error("UserContext must be used within a UserContext.Provider");
   }
   const { userDetails, setUserDetails, setIsLoggedIn, isLoggedIn } = userContext;
-  const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [userError, setUserError] = useState<Error | null>(null);
 
+  const isFetchingRef = useRef(false);
+
   const fetchUserData = useCallback(async () => {
-    if (userDetails) return;
+    if (userDetails || isFetchingRef.current) return;
+    isFetchingRef.current = true;
     setIsLoaderVisible(true);
-    setIsLoadingUser(true);
     try {
       const response = await fetch("/api/user", { credentials: "include" });
       if (!response.ok) throw new Error(`Fetch error: ${response.status}`);
@@ -52,15 +53,9 @@ export const useFetchUserData = () => {
       setUserError(error as Error);
     } finally {
       setIsLoaderVisible(false);
-      setIsLoadingUser(false);
     }
-  }, [
-    userDetails,
-    setIsLoaderVisible,
-    setAlertState,
-    setUserDetails,
-    setIsLoggedIn
-  ]);
+    //eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setIsLoaderVisible, setAlertState, setUserDetails, setIsLoggedIn]);
 
   useEffect(() => {
     fetchUserData();
@@ -69,7 +64,6 @@ export const useFetchUserData = () => {
   return {
     userDetails,
     setUserDetails,
-    isLoadingUser,
     userError,
     setIsLoggedIn,
     isLoggedIn,

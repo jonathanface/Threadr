@@ -17,6 +17,7 @@ export const useAppNavigation = () => {
     isConfigPanelOpen,
     isSubscriptionFormOpen,
     isLoginPanelOpen,
+    isAssociationPanelOpen,
     setIsConfigPanelOpen,
     setIsCreatingSeries,
     setIsCreatingStory,
@@ -25,6 +26,7 @@ export const useAppNavigation = () => {
     setIsEditingStory,
     setIsSubscriptionFormOpen,
     setIsLoginPanelOpen,
+    setIsAssociationPanelOpen
   } = appNavigationContext;
   return {
     isCreatingSeries,
@@ -35,6 +37,7 @@ export const useAppNavigation = () => {
     isConfigPanelOpen,
     isSubscriptionFormOpen,
     isLoginPanelOpen,
+    isAssociationPanelOpen,
     setIsCreatingSeries,
     setIsCreatingStory,
     setStoryPreassignSeriesID,
@@ -43,5 +46,6 @@ export const useAppNavigation = () => {
     setIsConfigPanelOpen,
     setIsSubscriptionFormOpen,
     setIsLoginPanelOpen,
+    setIsAssociationPanelOpen
   };
 };

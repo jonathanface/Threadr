@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from "react";
-import { StoryAction, useCurrentStoryContext } from "../contexts/selections";
+import { StoryAction } from "../contexts/selections";
+import { useCurrentSelections } from "./useCurrentSelections";
 
 const fetchStoryDetails = async (storyID: string) => {
   const url = `/api/stories/${storyID}`;
@@ -18,7 +19,7 @@ const fetchStoryDetails = async (storyID: string) => {
 
 export const useHandleNavigationHandler = () => {
   const { setCurrentStory, deselectStory, setCurrentStoryAction, currentStory } =
-    useCurrentStoryContext();
+    useCurrentSelections();
 
   const handleNavChange = useCallback(async () => {
     const location = window.location.pathname;
