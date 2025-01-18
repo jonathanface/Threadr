@@ -4,7 +4,7 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
-import { $createTextNode, $isRangeSelection, $isTextNode, KEY_TAB_COMMAND, LexicalEditor, ParagraphNode, SerializedEditorState, SerializedElementNode, SerializedLexicalNode } from 'lexical';
+import { $createTextNode, $isRangeSelection, $isTextNode, KEY_TAB_COMMAND, LexicalEditor, ParagraphNode, PASTE_COMMAND, SerializedEditorState, SerializedElementNode, SerializedLexicalNode, TextNode } from 'lexical';
 import {
   $getRoot,
   $getSelection,
@@ -67,6 +67,21 @@ const getParagraphIndexByKey = (editor: EditorState, key: string): number | null
   return result;
 };
 
+const getParagraphByCustomKey = (editor: EditorState, key: string): CustomParagraphNode | null => {
+  editor.read(() => {
+    const root = $getRoot();
+    const children = root.getChildren<ElementNode>();
+
+    for (let index = 0; index < children.length; index++) {
+      const node = children[index] as CustomParagraphNode;
+      if (node.getKeyId() === key) {
+        return node;
+      }
+    }
+  });
+  return null;
+};
+
 const serializeWithChildren = (node: ElementNode): CustomSerializedParagraphNode => {
   if (!(node instanceof CustomParagraphNode)) {
     throw new Error("Node is not an instance of CustomParagraphNode");
@@ -90,22 +105,41 @@ const serializeWithChildren = (node: ElementNode): CustomSerializedParagraphNode
 };
 
 const generateTextHash = (editor: LexicalEditor): string => {
-  let combinedText = "";
+  let hash = "";
 
   editor.getEditorState().read(() => {
     const root = $getRoot();
-    const children = root.getChildren();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const traverseNode = (node: any) => {
+      const nodeKey = node.getKey();
+      const nodeType = node.getType();
+      const textContent = node.getTextContent();
 
-    children.forEach((node) => {
-      if (node instanceof CustomParagraphNode) {
-        combinedText += node.getTextContent();
+      // Include formatting attributes (e.g., bold, italic)
+      const formatAttributes =
+        node instanceof TextNode
+          ? JSON.stringify({
+            format: node.getFormat(), // Bitmask for bold, italic, underline, etc.
+            style: node.getStyle(), // Inline styles (e.g., font size, color)
+          })
+          : "";
+
+      // Include node's serialized data in the hash
+      hash += `${nodeKey}:${nodeType}:${textContent}:${formatAttributes};`;
+
+      // Recursively process children (if any)
+      if (node.getChildren) {
+        node.getChildren().forEach(traverseNode);
       }
-    });
+    };
+
+    traverseNode(root);
   });
 
-  // Generate a simple hash or checksum of the combined text
-  return combinedText; // For large text, you might want to use a hashing function here
+  return hash;
 };
+
+
 
 interface ThreadWriterProps {
   storyID: string;
@@ -133,6 +167,7 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
   const { setIsLoaderVisible } = useLoader();
   const previousNodeKeysRef = useRef<Set<string>>(new Set());
   const previousTextHashRef = useRef<string | null>(null); // Stores the previous text state as a hash
+  const pastedParagraphKeys = useRef(new Set<string>());
   const [associations, setAssociations] = useState<Association[] | null>(null);
 
   const getAllAssociations = useCallback(async () => {
@@ -187,6 +222,11 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
     } catch (error: unknown) {
       const response: Response = error as Response;
       if (response.status === 404) {
+        editorRef.current.update(() => {
+          const newParagraph = new CustomParagraphNode(uuidv4());
+          const root = $getRoot();
+          root.append(newParagraph);
+        });
         return;
       }
       console.error("Error retrieving story content:", error);
@@ -253,30 +293,32 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
   }
 
   const queueParagraphOrderResync = () => {
-    const root = $getRoot();
-    const paragraphs = root.getChildren().filter((node) => node.getType() === "custom-paragraph");
-    const orderMap: BlockOrderMap = {
-      chapter_id: chapter.id,
-      blocks: []
-    }
-    paragraphs.forEach(paragraph => {
-      const index = getParagraphIndexByKey(editorRef.current, paragraph.getKey());
-      if (index !== null) {
-        const asCP = paragraph as CustomParagraphNode;
-        const customKey = asCP.getKeyId();
-        if (customKey) {
-          orderMap.blocks.push({ key_id: customKey, place: index.toString() });
-        }
-
+    editorRef.current.read(() => {
+      const root = $getRoot();
+      const paragraphs = root.getChildren().filter((node) => node.getType() === "custom-paragraph");
+      const orderMap: BlockOrderMap = {
+        chapter_id: chapter.id,
+        blocks: []
       }
-    })
-    DbOperationQueue.push({
-      type: DBOperationType.syncOrder,
-      orderList: orderMap,
-      blocks: [],
-      time: Date.now(),
-      storyID: storyID,
-      chapterID: chapter.id,
+      paragraphs.forEach(paragraph => {
+        const index = getParagraphIndexByKey(editorRef.current, paragraph.getKey());
+        if (index !== null) {
+          const asCP = paragraph as CustomParagraphNode;
+          const customKey = asCP.getKeyId();
+          if (customKey) {
+            orderMap.blocks.push({ key_id: customKey, place: index.toString() });
+          }
+
+        }
+      })
+      DbOperationQueue.push({
+        type: DBOperationType.syncOrder,
+        orderList: orderMap,
+        blocks: [],
+        time: Date.now(),
+        storyID: storyID,
+        chapterID: chapter.id,
+      });
     });
   }
 
@@ -417,18 +459,129 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
     };
   }, [storyID, setAlertState]);
 
+  useEffect(() => {
+    if (editorRef.current) {
+      const removeListener = editorRef.current.registerCommand(
+        PASTE_COMMAND,
+        (event: ClipboardEvent) => {
+          event.preventDefault();
+          // Handle the paste event
+          const pastedText = event.clipboardData?.getData("text/plain")
+          if (pastedText) {
+            const cleanedText = pastedText
+              .replace(/“/g, '"') // Left double quote
+              .replace(/”/g, '"') // Right double quote
+              .replace(/‘/g, "'") // Left single quote
+              .replace(/’/g, "'"); // Right single quote
+            const paragraphs = cleanedText.split("\n");
+            if (paragraphs.length > 100) {
+              const newAlert = {
+                title: "Oh, jeez",
+                message: "You're pasting a lot of paragraphs. This may take awhile to process...",
+                severity: AlertToastType.warning,
+                open: true,
+                timeout: 10000,
+              };
+              setAlertState(newAlert);
+              console.log(`Large paste operation detected. Total paragraphs: ${paragraphs.length}`);
+            }
+
+            editorRef.current.update(() => {
+              const selection = $getSelection();
+
+              if ($isRangeSelection(selection)) {
+                let lastInsertedNode = selection.anchor.getNode();
+
+                // Ensure we're working with the top-level parent node
+                const parent = lastInsertedNode.getTopLevelElementOrThrow();
+
+                const isParentEmpty = parent.getTextContent().trim() === "";
+                if (isParentEmpty) {
+                  parent.clear();
+                }
+
+                paragraphs.forEach((paragraphText, index) => {
+                  if (index > 0 && !paragraphText.startsWith("\t")) {
+                    paragraphText = `\t${paragraphText}`;
+                  }
+
+                  if (index === 0 && isParentEmpty) {
+                    // Replace the first paragraph if the parent is empty
+                    parent.append($createTextNode(paragraphText));
+                    lastInsertedNode = parent; // Update reference
+                  } else if (index === 0) {
+                    // Insert text at the current selection for the first paragraph
+                    selection.insertText(paragraphText);
+                    lastInsertedNode = selection.anchor.getNode(); // Update reference
+                  } else {
+                    // Create and append new paragraphs for subsequent lines
+                    const customKey = uuidv4();
+                    const newParagraphNode = new CustomParagraphNode(customKey);
+                    newParagraphNode.append($createTextNode(paragraphText));
+
+                    if (lastInsertedNode) {
+                      lastInsertedNode.insertAfter(newParagraphNode);
+                    } else {
+                      parent.append(newParagraphNode);
+                    }
+                    pastedParagraphKeys.current.add(customKey);
+                    lastInsertedNode = newParagraphNode; // Update reference
+                  }
+                });
+              } else {
+                // Append to the root if no selection exists
+                const root = $getRoot();
+                let lastInsertedNode: null | ParagraphNode = null;
+
+                paragraphs.forEach((paragraphText, index) => {
+                  if (index > 0 && !paragraphText.startsWith("\t")) {
+                    paragraphText = `\t${paragraphText}`;
+                  }
+                  const customKey = uuidv4();
+                  const paragraphNode = new CustomParagraphNode(customKey);
+                  paragraphNode.append($createTextNode(paragraphText));
+
+                  if (lastInsertedNode) {
+                    lastInsertedNode.insertAfter(paragraphNode);
+                  } else {
+                    root.append(paragraphNode); // Append the first paragraph directly to the root
+                  }
+                  console.log("pushing2", customKey);
+                  pastedParagraphKeys.current.add(customKey);
+                  lastInsertedNode = paragraphNode; // Update reference
+                });
+              }
+            });
+
+          }
+          return true;
+        },
+        1
+      );
+
+      // Cleanup the listener on unmount
+      return () => {
+        removeListener();
+      };
+    }
+  }, [editorRef.current, setAlertState]);
+
   const onChangeHandler = (editorState: EditorState): void => {
     const currentHash = generateTextHash(editorRef.current); // Get the current text hash
     const previousHash = previousTextHashRef.current;
+
     if (currentHash === previousHash) {
-      // No changes, skip processing
       console.log("No text changes detected, skipping processing.");
       return;
     }
+
     previousTextHashRef.current = currentHash;
+
     const currentNodeKeys = new Set<string>();
+    const newParagraphKeys = new Set<string>();
     let orderResyncRequired = false;
 
+    // Read current editor state
     editorState.read(() => {
       const root = $getRoot();
       const children = root.getChildren();
@@ -439,69 +592,75 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
       children.forEach((node, nodeIndex) => {
         if (node instanceof CustomParagraphNode) {
           const id = node.getKeyId();
-
           if (id) {
-            // Check for new paragraphs
+            // Detect new paragraphs
             if (!previousNodeKeys.has(id)) {
+              newParagraphKeys.add(id);
               if (nodeIndex !== children.length - 1) {
-                console.log(`New paragraph added at index ${nodeIndex}, not at the end of the document.`);
                 orderResyncRequired = true;
               }
-
-              // Update the new paragraph node
-              editorRef.current.update(() => {
-                const writableNode = node.getWritable();
-                if (writableNode.getTextContent().trim() === "") {
-                  const tabTextNode = $createTextNode("\t");
-                  writableNode.append(tabTextNode);
-
-                  const selection = $getSelection();
-                  if ($isRangeSelection(selection)) {
-                    selection.anchor.set(tabTextNode.getKey(), 1, "text");
-                    selection.focus.set(tabTextNode.getKey(), 1, "text");
-                  }
-                }
-              });
             }
 
             // Track current node keys and remove from deletedKeys
             currentNodeKeys.add(id);
             deletedKeys.delete(id);
+            const selection = $getSelection();
+            const customParagraph = $isRangeSelection(selection)
+              ? selection.anchor.getNode().getParent()
+              : null;
+
+            const selectedNodeKey = customParagraph instanceof CustomParagraphNode ? customParagraph.getKeyId() : null;
+            if (pastedParagraphKeys.current.has(id) || newParagraphKeys.has(id) || id === selectedNodeKey) {
+              const textContent = node.getTextContent().trim();
+              if (textContent.length) {
+                const paragraphWithChildren = serializeWithChildren(node);
+                queueParagraphForSave(
+                  paragraphWithChildren.key_id,
+                  nodeIndex.toString(),
+                  paragraphWithChildren
+                );
+              }
+              pastedParagraphKeys.current.delete(id); // Clean up processed key
+            }
           }
         }
       });
-
+      console.log("to delete", deletedKeys)
       // Handle deleted nodes
       deletedKeys.forEach((key) => {
         queueParagraphForDeletion(key);
         orderResyncRequired = true;
       });
-
-      // Update the reference with current keys
-      previousNodeKeysRef.current = currentNodeKeys;
-
-      // Save updated paragraphs
-      const selection = $getSelection();
-      if ($isRangeSelection(selection)) {
-        const selectedNode = selection.anchor.getNode();
-        const parentParagraph = selectedNode.getParent();
-
-        if (parentParagraph instanceof CustomParagraphNode) {
-          const textContent = parentParagraph.getTextContent().trim();
-          const parentIndex = children.indexOf(parentParagraph);
-          if (parentIndex !== -1 && textContent.length) {
-            const paragraphWithChildren = serializeWithChildren(parentParagraph);
-            queueParagraphForSave(paragraphWithChildren.key_id, parentIndex.toString(), paragraphWithChildren);
-          }
-        }
-      }
-
-      // Resync order if needed
-      if (orderResyncRequired) {
-        queueParagraphOrderResync();
-      }
     });
+
+    // Apply updates for new paragraphs
+    if (newParagraphKeys.size > 0) {
+      editorRef.current.update(() => {
+        newParagraphKeys.forEach((key) => {
+          const node = getParagraphByCustomKey(editorRef.current, key);
+          if (node?.getTextContent().trim() === "") {
+            const tabTextNode = $createTextNode("\t");
+            node.append(tabTextNode);
+
+            const selection = $getSelection();
+            if ($isRangeSelection(selection)) {
+              selection.anchor.set(tabTextNode.getKey(), 1, "text");
+              selection.focus.set(tabTextNode.getKey(), 1, "text");
+            }
+          }
+        });
+      });
+    }
+
+    // Update reference with current keys
+    previousNodeKeysRef.current = currentNodeKeys;
+
+    // Resync order if needed
+    if (orderResyncRequired) {
+      queueParagraphOrderResync();
+    }
   };
+
 
 
   return (
