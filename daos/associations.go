@@ -235,7 +235,7 @@ func (d *DAO) DeleteAssociations(email, storyID string, associations []*models.A
 	return
 }
 
-func (d *DAO) GetStoryOrSeriesAssociations(email, storyID string, needDetails bool) ([]*models.Association, error) {
+func (d *DAO) GetStoryOrSeriesAssociationDetails(email, storyID string, needDetails bool) ([]*models.Association, error) {
 	var (
 		associations []*models.Association
 		err          error
@@ -297,6 +297,79 @@ func (d *DAO) GetStoryOrSeriesAssociations(email, storyID string, needDetails bo
 			}
 			if len(deets) > 0 {
 				associations[i].Details = deets[0]
+			}
+		}
+	}
+
+	return associations, nil
+}
+
+func (d *DAO) GetStoryOrSeriesAssociationThumbnails(email, storyID string, needDetails bool) ([]*models.SimplifiedAssociation, error) {
+	var (
+		associations []*models.SimplifiedAssociation
+		err          error
+	)
+	outStory, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName:        aws.String("stories"),
+		FilterExpression: aws.String("author=:eml AND story_id=:s"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":eml": &types.AttributeValueMemberS{Value: email},
+			":s":   &types.AttributeValueMemberS{Value: storyID},
+		},
+	})
+	if err != nil {
+		return associations, err
+	}
+	storyObj := []models.Story{}
+	if err = attributevalue.UnmarshalListOfMaps(outStory.Items, &storyObj); err != nil {
+		return associations, err
+	}
+	var storyOrSeries string
+	if storyOrSeries, err = d.IsStoryInASeries(email, storyID); err != nil {
+		return associations, err
+	}
+	if storyOrSeries == "" {
+		storyOrSeries = storyID
+	}
+	filterString := "author=:eml AND story_or_series_id=:s"
+	expressionValues := map[string]types.AttributeValue{
+		":eml": &types.AttributeValueMemberS{Value: email},
+		":s":   &types.AttributeValueMemberS{Value: storyOrSeries},
+	}
+
+	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName:                 aws.String("associations"),
+		FilterExpression:          aws.String(filterString),
+		ExpressionAttributeValues: expressionValues,
+	})
+	if err != nil {
+		return associations, err
+	}
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &associations); err != nil {
+		return associations, err
+	}
+	if needDetails {
+		for i, v := range associations {
+			if len(associations[i].ShortDescription) > 120 {
+				associations[i].ShortDescription = associations[i].ShortDescription[:120] + "..."
+			}
+			outDetails, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+				TableName:        aws.String("association_details"),
+				FilterExpression: aws.String("association_id=:aid"),
+				ExpressionAttributeValues: map[string]types.AttributeValue{
+					":aid": &types.AttributeValueMemberS{Value: v.ID},
+				},
+			})
+			if err != nil {
+				return associations, err
+			}
+			deets := []models.AssociationDetails{}
+			if err = attributevalue.UnmarshalListOfMaps(outDetails.Items, &deets); err != nil {
+				return associations, err
+			}
+			if len(deets) > 0 {
+				associations[i].Aliases = deets[0].Aliases
+				associations[i].CaseSensitive = deets[0].CaseSensitive
 			}
 		}
 	}

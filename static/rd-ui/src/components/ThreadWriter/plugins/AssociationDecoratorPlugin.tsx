@@ -9,16 +9,19 @@ import {
 } from "lexical";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { ClickableDecoratorNode } from "../customNodes/ClickableDecoratorNode";
-import { Association } from "../../../types/Associations";
+import { SimplifiedAssociation } from "../../../types/Associations";
 
 export const AssociationDecoratorPlugin = ({
     associations,
 }: {
-    associations: Association[] | null;
+    associations: SimplifiedAssociation[] | null;
 }) => {
     const [editor] = useLexicalComposerContext();
 
-    const processAssociations = useCallback((associations: Association[], rootNode: ElementNode) => {
+    const processAssociations = useCallback((associations: SimplifiedAssociation[], rootNode: ElementNode) => {
+        if (!associations.length) {
+            return;
+        }
         const textNodes: TextNode[] = [];
         const traverse = (node: LexicalNode) => {
             if (node instanceof TextNode) {
@@ -34,37 +37,50 @@ export const AssociationDecoratorPlugin = ({
             const textContent = textNode.getTextContent();
 
             associations.forEach((association) => {
-                const index = textContent.indexOf(association.association_name);
-                if (index !== -1) {
-                    editor.update(() => {
-                        const parent = textNode.getParent();
-                        if (!(parent instanceof ElementNode)) return;
+                const aliases = association.aliases.length ? association.aliases.split(",") : [];
+                aliases.sort((a, b) => a.length - b.length);
+                const namesToMatch = [...aliases, association.association_name];
+                for (const name of namesToMatch) {
+                    const searchText = association.case_sensitive
+                        ? textContent
+                        : textContent.toLowerCase();
+                    const searchFor = association.case_sensitive
+                        ? name.trim()
+                        : name.trim().toLowerCase();
 
-                        const beforeMatch = textContent.slice(0, index);
-                        const match = textContent.slice(index, index + association.association_name.length);
-                        const afterMatch = textContent.slice(index + association.association_name.length);
+                    const index = searchText.indexOf(searchFor);
+                    if (index !== -1) {
+                        editor.update(() => {
+                            const parent = textNode.getParent();
+                            if (!(parent instanceof ElementNode)) return;
 
-                        if (beforeMatch) {
-                            const beforeNode = new TextNode(beforeMatch);
-                            textNode.insertBefore(beforeNode);
-                        }
+                            const beforeMatch = textContent.slice(0, index);
+                            const match = textContent.slice(index, index + searchFor.length);
+                            const afterMatch = textContent.slice(index + searchFor.length);
 
-                        const decoratorNode = new ClickableDecoratorNode(match, association.association_id);
-                        textNode.insertBefore(decoratorNode);
+                            if (beforeMatch) {
+                                const beforeNode = new TextNode(beforeMatch);
+                                textNode.insertBefore(beforeNode);
+                            }
+                            const decoratorNode = new ClickableDecoratorNode(match, association.association_id, association.short_description, association.association_type, association.portrait);
+                            textNode.insertBefore(decoratorNode);
 
-                        if (afterMatch) {
-                            const afterNode = new TextNode(afterMatch);
-                            decoratorNode.insertAfter(afterNode);
-                        }
+                            if (afterMatch) {
+                                const afterNode = new TextNode(afterMatch);
+                                decoratorNode.insertAfter(afterNode);
+                            }
 
-                        textNode.remove();
-                    });
+                            textNode.remove();
+                            decoratorNode.selectEnd();
+                        });
+                        break;
+                    }
                 }
             });
         });
     }, [editor]);
 
-    const processCurrentParagraph = useCallback((associations: Association[]) => {
+    const processCurrentParagraph = useCallback((associations: SimplifiedAssociation[]) => {
         const selection = $getSelection();
         if ($isRangeSelection(selection)) {
             const anchorNode = selection.anchor.getNode();
@@ -76,7 +92,7 @@ export const AssociationDecoratorPlugin = ({
     }, [processAssociations]);
 
     useEffect(() => {
-        if (associations && associations.length > 0) {
+        if (associations && associations.length) {
             // Initial processing on load
             editor.update(() => {
                 const root = $getRoot();
@@ -86,7 +102,7 @@ export const AssociationDecoratorPlugin = ({
     }, [associations, editor, processAssociations]);
 
     useEffect(() => {
-        if (associations && associations.length > 0) {
+        if (associations && associations.length) {
             // Process associations only for the selected paragraph on changes
             const unregister = editor.registerUpdateListener(({ editorState }) => {
                 editorState.read(() => {

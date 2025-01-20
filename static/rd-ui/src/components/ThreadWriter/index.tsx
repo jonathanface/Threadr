@@ -26,7 +26,7 @@ import { useToaster } from '../../hooks/useToaster';
 import { AlertToastType } from '../../types/AlertToasts';
 import { AssociationDecoratorPlugin } from './plugins/AssociationDecoratorPlugin';
 import { ClickableDecoratorNode } from './customNodes/ClickableDecoratorNode';
-import { Association } from '../../types/Associations';
+import { SimplifiedAssociation } from '../../types/Associations';
 
 const theme = {
   paragraph: styles.paragraph,
@@ -139,8 +139,6 @@ const generateTextHash = (editor: LexicalEditor): string => {
   return hash;
 };
 
-
-
 interface ThreadWriterProps {
   storyID: string;
   chapter: Chapter;
@@ -168,14 +166,14 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
   const previousNodeKeysRef = useRef<Set<string>>(new Set());
   const previousTextHashRef = useRef<string | null>(null); // Stores the previous text state as a hash
   const pastedParagraphKeys = useRef(new Set<string>());
-  const [associations, setAssociations] = useState<Association[] | null>(null);
+  const [associations, setAssociations] = useState<SimplifiedAssociation[] | null>(null);
 
   const getAllAssociations = useCallback(async () => {
     try {
-      const response = await fetch("/api/stories/" + storyID + "/associations");
+      const response = await fetch("/api/stories/" + storyID + "/associations/thumbs");
       if (!response.ok) throw response;
       const associationsData = await response.json();
-      setAssociations(associationsData.map((association: Association) => {
+      setAssociations(associationsData.map((association: SimplifiedAssociation) => {
         if (association.association_name.trim().length) {
           return association;
         }

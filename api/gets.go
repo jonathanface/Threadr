@@ -259,7 +259,7 @@ func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 	RespondWithJson(w, http.StatusOK, stories)
 }
 
-func AllAssociationsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {
+func AllAssociationThumbnailsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		email   string
 		err     error
@@ -283,7 +283,7 @@ func AllAssociationsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	associations, err := dao.GetStoryOrSeriesAssociations(email, storyID, true)
+	associations, err := dao.GetStoryOrSeriesAssociationThumbnails(email, storyID, true)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)

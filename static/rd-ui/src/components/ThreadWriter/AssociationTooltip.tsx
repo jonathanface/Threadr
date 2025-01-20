@@ -1,29 +1,20 @@
 import { Box, Tooltip } from "@mui/material";
-import React, { ReactElement, useEffect, useState } from "react";
+import React from "react";
 import styles from "./association-tooltip.module.css";
 
 interface AssociationTooltipProps {
   portrait: string;
   name: string;
   description: string;
-  children: ReactElement;
+  children: React.ReactElement;
 }
 
-export const AssociationTooltip: React.FC<AssociationTooltipProps> = (
-  props
-) => {
-  const [portrait, setPortrait] = useState(
-    "/img/default_association_portrait.jpg"
-  );
-  const [name, setName] = useState("someone or something");
-  const [description, setDescription] = useState("Descriptive text goes here.");
-
-  useEffect(() => {
-    setPortrait(props.portrait);
-    setName(props.name);
-    setDescription(props.description);
-  }, [props]);
-
+export const AssociationTooltip: React.FC<AssociationTooltipProps> = ({
+  portrait,
+  name,
+  description,
+  children,
+}) => {
   return (
     <Tooltip
       placement="top"
@@ -37,11 +28,13 @@ export const AssociationTooltip: React.FC<AssociationTooltipProps> = (
                   maxHeight: 100,
                   margin: "auto",
                 }}
-                alt={name}
-                src={portrait}
+                alt={name || "Default Name"}
+                src={portrait || "/img/default_association_portrait.jpg"}
               />
             </span>
-            <span className={styles.column}>{description}</span>
+            <span className={styles.column}>
+              {description || "Descriptive text goes here."}
+            </span>
           </div>
         </div>
       }
@@ -52,7 +45,7 @@ export const AssociationTooltip: React.FC<AssociationTooltipProps> = (
         textOverflow: "ellipsis",
       }}
     >
-      {props.children}
+      {children}
     </Tooltip>
   );
 };

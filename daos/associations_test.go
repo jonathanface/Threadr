@@ -595,7 +595,7 @@ func TestGetStoryOrSeriesAssociations(t *testing.T) {
 			if tc.setupMock != nil {
 				tc.setupMock(dao.DynamoClient.(*daos.MockDynamoDBClient))
 			}
-			_, err := dao.GetStoryOrSeriesAssociations(tc.email, tc.storyID, tc.needDetails)
+			_, err := dao.GetStoryOrSeriesAssociationThumbnails(tc.email, tc.storyID, tc.needDetails)
 			if tc.expectError {
 				fmt.Println("err", err.Error())
 				assert.Error(t, err)

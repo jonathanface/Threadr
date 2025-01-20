@@ -19,3 +19,13 @@ export interface Association {
   portrait: string;
   details: AssociationDetails;
 }
+
+export interface SimplifiedAssociation {
+  association_id: string;
+  association_name: string;
+  association_type: string;
+  short_description: string;
+  portrait: string;
+  aliases: string;
+  case_sensitive: boolean;
+}

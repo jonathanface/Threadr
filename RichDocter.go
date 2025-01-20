@@ -180,7 +180,7 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 					return
 				}
-				associations, err := dao.GetStoryOrSeriesAssociations(user.Email, storyOrSeriesID, false)
+				associations, err := dao.GetStoryOrSeriesAssociationThumbnails(user.Email, storyOrSeriesID, false)
 				if err != nil {
 					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 					return
@@ -250,7 +250,7 @@ func main() {
 	apiRtr.HandleFunc("/stories/{storyID}", api.StoryEndPoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/full", api.FullStoryEndPoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/content", api.StoryBlocksEndPoint).Methods("GET", "OPTIONS")
-	apiRtr.HandleFunc("/stories/{storyID}/associations", api.AllAssociationsByStoryEndPoint).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/associations/thumbs", api.AllAssociationThumbnailsByStoryEndPoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/series", api.AllSeriesEndPoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/series/{series}/volumes", api.AllSeriesVolumesEndPoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/chapters/{chapterID}", api.ChapterDetailsEndpoint).Methods("GET", "OPTIONS")

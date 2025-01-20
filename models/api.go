@@ -48,6 +48,16 @@ type Association struct {
 	Details          AssociationDetails `json:"details"`
 }
 
+type SimplifiedAssociation struct {
+	ID               string `json:"association_id" dynamodbav:"association_id"`
+	Name             string `json:"association_name" dynamodbav:"association_name"`
+	Type             string `json:"association_type" dynamodbav:"association_type"`
+	Portrait         string `json:"portrait" dynamodbav:"portrait"`
+	ShortDescription string `json:"short_description" dynamodbav:"short_description"`
+	CaseSensitive    bool   `json:"case_sensitive" dynamodbav:"case_sensitive"`
+	Aliases          string `json:"aliases" dynamodbav:"aliases"`
+}
+
 type Chapter struct {
 	ID        string `json:"id" dynamodbav:"chapter_id"`
 	StoryID   string `json:"story_id" dynamodbav:"story_id"`
