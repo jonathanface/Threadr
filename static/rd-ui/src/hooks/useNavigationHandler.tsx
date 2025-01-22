@@ -1,46 +1,81 @@
 import { useCallback, useEffect } from "react";
 import { StoryAction } from "../contexts/selections";
 import { useCurrentSelections } from "./useCurrentSelections";
+import { Story } from "../types/Story";
 
-const fetchStoryDetails = async (storyID: string) => {
-  const url = `/api/stories/${storyID}`;
-  try {
-    const response = await fetch(url, {
-      credentials: "include",
-    });
-    if (!response.ok)
-      throw new Error(`Error fetching story: ${response.statusText}`);
-    return await response.json();
-  } catch (error) {
-    console.error("Failed to fetch story details:", error);
-    return null;
-  }
-};
 
 export const useHandleNavigationHandler = () => {
-  const { setCurrentStory, deselectStory, setCurrentStoryAction, currentStory } =
+  const { setCurrentStory, deselectStory, setCurrentStoryAction, currentStory, setCurrentChapter } =
     useCurrentSelections();
+
+  const fetchStoryDetails = async (storyID: string) => {
+    const url = `/api/stories/${storyID}`;
+    try {
+      const response = await fetch(url, {
+        credentials: "include",
+      });
+      if (!response.ok)
+        throw new Error(`Error fetching story: ${response.statusText}`);
+      return await response.json() as Story;
+    } catch (error) {
+      console.error("Failed to fetch story details:", error);
+      return null;
+    }
+  }
+
+  const fetchChapterDetails = async (storyID: string, chapterID: string) => {
+    try {
+      const response = await fetch("/api/stories/" + storyID + "/chapters/" + chapterID, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) {
+        throw new Error(response.statusText);
+      }
+      return await response.json();
+    } catch (error: unknown) {
+      console.error(`Error retrieving chapters: ${error}`);
+      return null;
+    }
+  };
 
   const handleNavChange = useCallback(async () => {
     const location = window.location.pathname;
     const splitDirectories = location.split("/");
+
     if (splitDirectories[1] === "story" && splitDirectories[2]?.trim()) {
       const storyID = splitDirectories[2].trim();
-
       // Avoid fetching if the current story is already loaded
       if (!currentStory || currentStory.story_id !== storyID) {
         const story = await fetchStoryDetails(storyID);
-        setCurrentStory(story);
+        if (story) {
+          setCurrentStory(story);
+          setCurrentStoryAction(StoryAction.editing);
+          const urlParams = new URLSearchParams(window.location.search);
+          const chapterID = urlParams.get("chapter");
+          if (chapterID?.length) {
+            const chapter = await fetchChapterDetails(storyID, chapterID);
+            setCurrentChapter(chapter);
+          } else {
+            const firstChapterID = story.chapters[0].id;
+            const chapter = await fetchChapterDetails(storyID, firstChapterID);
+            setCurrentChapter(chapter);
+          }
+        } else {
+          deselectStory();
+        }
       }
-      setCurrentStoryAction(StoryAction.editing);
     } else {
       deselectStory();
     }
-  }, [currentStory, deselectStory, setCurrentStory, setCurrentStoryAction]);
+
+  }, [currentStory, setCurrentStory, setCurrentStoryAction, setCurrentChapter, deselectStory]);
 
   useEffect(() => {
     window.addEventListener("popstate", handleNavChange);
-    handleNavChange(); // Run it once on mount to handle the current path
+    //handleNavChange(); // Run it once on mount to handle the current path
     return () => window.removeEventListener("popstate", handleNavChange);
   }, [handleNavChange]);
 

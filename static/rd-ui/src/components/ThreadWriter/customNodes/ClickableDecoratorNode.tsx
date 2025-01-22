@@ -2,7 +2,7 @@ import { DecoratorNode, NodeKey } from "lexical";
 import { JSX } from "react";
 import { useAppNavigation } from "../../../hooks/useAppNavigation";
 import { useCurrentSelections } from "../../../hooks/useCurrentSelections";
-import { AssociationTooltip } from "../AssociationTooltip";
+import { AssociationTooltip } from "../../AssociationTooltip";
 
 export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
     private name: string;
@@ -11,6 +11,7 @@ export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
     private classModifier?: string | undefined;
     private associationType: string;
     private portrait: string;
+    private customLeftClick?: () => void;
 
     static getType(): string {
         return "clickable-decorator";
@@ -20,7 +21,7 @@ export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
         return new ClickableDecoratorNode(node.name, node.id, node.shortDescription, node.associationType, node.portrait, node.classModifier, node.__key);
     }
 
-    constructor(text: string, id: string, description: string, associationType: string, portrait: string, classModifier?: string, key?: NodeKey,) {
+    constructor(text: string, id: string, description: string, associationType: string, portrait: string, classModifier?: string, key?: NodeKey, customLeftClick?: () => void) {
         super(key);
         this.name = text;
         this.id = id;
@@ -28,6 +29,7 @@ export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
         this.classModifier = classModifier ? classModifier : "";
         this.associationType = associationType;
         this.portrait = portrait ? portrait : "";
+        this.customLeftClick = customLeftClick;
     }
 
     static importJSON(serializedNode: {
@@ -90,17 +92,32 @@ export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
     }
 
     decorate(): JSX.Element {
-        return <ClickableDecorator name={this.name} id={this.id} shortDescription={this.shortDescription} associationType={this.associationType} portrait={this.portrait} classModifier={this.classModifier} />;
+        return <ClickableDecorator
+            name={this.name}
+            id={this.id}
+            shortDescription={this.shortDescription}
+            associationType={this.associationType}
+            portrait={this.portrait}
+            classModifier={this.classModifier}
+            leftClickCallback={this.customLeftClick}
+        />
+    }
+
+    getTextContent(): string {
+        return this.name;
     }
 }
 
-const ClickableDecorator = ({ name, id, shortDescription, associationType, portrait, classModifier }: {
-    name: string, id: string, shortDescription: string, associationType: string, portrait: string, classModifier: string | undefined
+const ClickableDecorator = ({ name, id, shortDescription, associationType, portrait, classModifier, leftClickCallback }: {
+    name: string, id: string, shortDescription: string, associationType: string, portrait: string, classModifier: string | undefined, leftClickCallback?: () => void
 }) => {
     const { setIsAssociationPanelOpen } = useAppNavigation();
     const { setCurrentAssociationID } = useCurrentSelections();
 
     const handleLeftClick = () => {
+        if (leftClickCallback) {
+            leftClickCallback();
+        }
         setCurrentAssociationID(id);
         setIsAssociationPanelOpen(true);
     }

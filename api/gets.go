@@ -259,6 +259,56 @@ func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 	RespondWithJson(w, http.StatusOK, stories)
 }
 
+func AssociationDetailsEndpoint(w http.ResponseWriter, r *http.Request) {
+	var (
+		email         string
+		storyID       string
+		err           error
+		associationID string
+		dao           daos.DaoInterface
+		ok            bool
+	)
+	if email, err = getUserEmail(r); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing story id")
+		return
+	}
+	if storyID == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing story id")
+		return
+	}
+	if associationID, err = url.PathUnescape(mux.Vars(r)["associationID"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing association id")
+		return
+	}
+	if associationID == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing association id")
+		return
+	}
+	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
+		return
+	}
+	association, err := dao.GetAssociationDetails(email, storyID, associationID)
+	if err != nil {
+		if opErr, ok := err.(*smithy.OperationError); ok {
+			awsResponse := processAWSError(opErr)
+			if awsResponse.Code == 0 {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			RespondWithError(w, awsResponse.Code, awsResponse.Message)
+			return
+		}
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	RespondWithJson(w, http.StatusOK, association)
+}
+
 func AllAssociationThumbnailsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		email   string

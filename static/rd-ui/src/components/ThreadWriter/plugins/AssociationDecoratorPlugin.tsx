@@ -13,8 +13,10 @@ import { SimplifiedAssociation } from "../../../types/Associations";
 
 export const AssociationDecoratorPlugin = ({
     associations,
+    customLeftClick
 }: {
     associations: SimplifiedAssociation[] | null;
+    customLeftClick?: () => void | undefined;
 }) => {
     const [editor] = useLexicalComposerContext();
 
@@ -62,7 +64,7 @@ export const AssociationDecoratorPlugin = ({
                                 const beforeNode = new TextNode(beforeMatch);
                                 textNode.insertBefore(beforeNode);
                             }
-                            const decoratorNode = new ClickableDecoratorNode(match, association.association_id, association.short_description, association.association_type, association.portrait);
+                            const decoratorNode = new ClickableDecoratorNode(match, association.association_id, association.short_description, association.association_type, association.portrait, undefined, undefined, customLeftClick);
                             textNode.insertBefore(decoratorNode);
 
                             if (afterMatch) {
@@ -78,7 +80,7 @@ export const AssociationDecoratorPlugin = ({
                 }
             });
         });
-    }, [editor]);
+    }, [editor, associations]);
 
     const processCurrentParagraph = useCallback((associations: SimplifiedAssociation[]) => {
         const selection = $getSelection();

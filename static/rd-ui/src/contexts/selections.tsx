@@ -1,6 +1,7 @@
 import React, { createContext, useState } from "react";
 import { Story } from "../types/Story";
 import { Series } from "../types/Series";
+import { Chapter } from "../types/Chapter";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export enum StoryAction {
@@ -31,6 +32,10 @@ type CurrentSelectionsContextType = {
   currentAssociationID: string | undefined;
   setCurrentAssociationID: (id: string) => void;
   deselectAssociation: (id: string) => void;
+
+  currentChapter: Chapter | undefined;
+  setCurrentChapter: (chapter: Chapter) => void;
+  deselectChapter: () => void;
 };
 
 export const CurrentSelectionsContext = createContext<CurrentSelectionsContextType | undefined>(
@@ -65,6 +70,13 @@ export const CurrentSelectionsProvider: React.FC<{
     setCurrentSeriesAction(SeriesAction.none);
   };
 
+  const [currentChapter, setCurrentChapter] = useState<Chapter | undefined>(
+    undefined
+  );
+  const deselectChapter = () => {
+    setCurrentChapter(undefined);
+  };
+
   const [currentAssociationID, setCurrentAssociationID] = useState<string | undefined>(
     undefined
   );
@@ -87,6 +99,10 @@ export const CurrentSelectionsProvider: React.FC<{
         deselectSeries,
         setCurrentSeries,
         setCurrentSeriesAction,
+
+        currentChapter,
+        setCurrentChapter,
+        deselectChapter,
 
         currentAssociationID,
         setCurrentAssociationID,

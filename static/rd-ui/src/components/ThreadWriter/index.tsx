@@ -14,9 +14,8 @@ import {
 } from 'lexical';
 import LexicalErrorBoundary from '@lexical/react/LexicalErrorBoundary';
 import styles from "./threadwriter.module.css";
-import { Toolbar } from './Toolbar';
+import { Toolbar } from '../ThreadWriterToolbar';
 import { useLoader } from '../../hooks/useLoader';
-import { Chapter } from '../../types/Chapter';
 import { DbOperationQueue, ProcessDBQueue } from './queue';
 import { DBOperation, DBOperationBlock, DBOperationType } from '../../types/DBOperations';
 import { v4 as uuidv4 } from 'uuid';
@@ -26,7 +25,9 @@ import { useToaster } from '../../hooks/useToaster';
 import { AlertToastType } from '../../types/AlertToasts';
 import { AssociationDecoratorPlugin } from './plugins/AssociationDecoratorPlugin';
 import { ClickableDecoratorNode } from './customNodes/ClickableDecoratorNode';
-import { SimplifiedAssociation } from '../../types/Associations';
+import { Association, SimplifiedAssociation } from '../../types/Associations';
+import { AssociationPanel } from '../AssociationPanel';
+import { useCurrentSelections } from '../../hooks/useCurrentSelections';
 
 const theme = {
   paragraph: styles.paragraph,
@@ -139,12 +140,7 @@ const generateTextHash = (editor: LexicalEditor): string => {
   return hash;
 };
 
-interface ThreadWriterProps {
-  storyID: string;
-  chapter: Chapter;
-}
-
-export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
+export const ThreadWriter = () => {
   const initialConfig = {
     namespace: 'ThreadWriterEditor',
     theme,
@@ -167,10 +163,12 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
   const previousTextHashRef = useRef<string | null>(null); // Stores the previous text state as a hash
   const pastedParagraphKeys = useRef(new Set<string>());
   const [associations, setAssociations] = useState<SimplifiedAssociation[] | null>(null);
+  const { currentStory, currentChapter } = useCurrentSelections();
 
   const getAllAssociations = useCallback(async () => {
+    if (!currentStory) return;
     try {
-      const response = await fetch("/api/stories/" + storyID + "/associations/thumbs");
+      const response = await fetch("/api/stories/" + currentStory.story_id + "/associations/thumbs");
       if (!response.ok) throw response;
       const associationsData = await response.json();
       setAssociations(associationsData.map((association: SimplifiedAssociation) => {
@@ -182,13 +180,14 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
       console.error(`error retrieving associations: ${error}`);
 
     }
-  }, [storyID]);
+  }, [currentStory, currentStory?.story_id]);
 
 
   const getBatchedStoryBlocks = useCallback(async (startKey: string) => {
+    if (!currentStory || !currentChapter) return;
     try {
       setIsLoaderVisible(true);
-      const response = await fetch(`/api/stories/${storyID}/content?key=${startKey}&chapter=${chapter.id}`);
+      const response = await fetch(`/api/stories/${currentStory.story_id}/content?key=${startKey}&chapter=${currentChapter.id}`);
       if (!response.ok) throw response;
 
       const data = await response.json();
@@ -231,7 +230,7 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
     } finally {
       setIsLoaderVisible(false);
     }
-  }, [setIsLoaderVisible, storyID, chapter.id]);
+  }, [setIsLoaderVisible, currentStory, currentChapter]);
 
   const handleTabPress = () => {
     if (editorRef.current) {
@@ -291,11 +290,12 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
   }
 
   const queueParagraphOrderResync = () => {
+    if (!currentStory || !currentChapter) return;
     editorRef.current.read(() => {
       const root = $getRoot();
       const paragraphs = root.getChildren().filter((node) => node.getType() === "custom-paragraph");
       const orderMap: BlockOrderMap = {
-        chapter_id: chapter.id,
+        chapter_id: currentChapter.id,
         blocks: []
       }
       paragraphs.forEach(paragraph => {
@@ -314,29 +314,35 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
         orderList: orderMap,
         blocks: [],
         time: Date.now(),
-        storyID: storyID,
-        chapterID: chapter.id,
+        storyID: currentStory.story_id,
+        chapterID: currentChapter.id,
       });
     });
   }
 
   const queueParagraphForDeletion = (customKey: string) => {
+    if (!currentStory || !currentChapter) return;
     const deleteBlock: DBOperationBlock = { key_id: customKey };
-    const op: DBOperation = { type: DBOperationType.delete, storyID, chapterID: chapter.id, blocks: [deleteBlock], time: Date.now() };
+    const storyID = currentStory.story_id;
+    const chapterID = currentChapter.id;
+    const op: DBOperation = { type: DBOperationType.delete, storyID, chapterID, blocks: [deleteBlock], time: Date.now() };
     DbOperationQueue.push(op);
   };
 
   const queueParagraphForSave = useCallback((customKey: string, order: string, content: SerializedElementNode<SerializedLexicalNode>) => {
+    if (!currentStory || !currentChapter) return;
     const saveBlock: DBOperationBlock = { key_id: customKey, chunk: content, place: order };
+    const storyID = currentStory.story_id;
+    const chapterID = currentChapter.id;
     const op: DBOperation = {
       type: DBOperationType.save,
       storyID,
-      chapterID: chapter.id,
+      chapterID,
       blocks: [saveBlock],
       time: Date.now(),
     };
     DbOperationQueue.push(op);
-  }, [chapter.id, storyID]);
+  }, [currentChapter?.id, currentStory?.story_id]);
 
   useEffect(() => {
     getBatchedStoryBlocks("");
@@ -455,7 +461,7 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
       clearInterval(processInterval);
       window.removeEventListener("unload", () => { });
     };
-  }, [storyID, setAlertState]);
+  }, [currentStory?.story_id, setAlertState]);
 
   useEffect(() => {
     if (editorRef.current) {
@@ -659,7 +665,51 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
     }
   };
 
-
+  const onAssociationEditCallback = useCallback(async (assoc: Association) => {
+    if (!currentStory) return;
+    try {
+      setIsLoaderVisible(true);
+      const response = await fetch("/api/stories/" + currentStory.story_id + "/associations", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify([assoc]),
+      });
+      if (!response.ok) {
+        throw new Error(`Error saving association: ${response.body}`);
+      }
+    } catch (error: unknown) {
+      console.error(`Error saving association: ${error}`)
+      setAlertState({
+        title: "Save Failure",
+        message:
+          "We are unable to save your association. Please try again later.",
+        severity: AlertToastType.error,
+        open: true,
+        timeout: 6000,
+      });
+    } finally {
+      if (associations) {
+        const updatedAssociations = associations?.map((storedAssociation) => {
+          if (storedAssociation.association_id === assoc.association_id) {
+            return {
+              association_id: assoc.association_id,
+              association_name: assoc.association_name,
+              association_type: assoc.association_type,
+              short_description: assoc.short_description,
+              portrait: assoc.portrait,
+              aliases: assoc.details.aliases,
+              case_sensitive: assoc.details.case_sensitive
+            }
+          }
+          return storedAssociation;
+        })
+        setAssociations(updatedAssociations);
+      }
+      setIsLoaderVisible(false);
+    }
+  }, [currentStory?.story_id]);
 
   return (
     <div className={styles.editorContainer}>
@@ -680,6 +730,7 @@ export const ThreadWriter = ({ storyID, chapter }: ThreadWriterProps) => {
         <AssociationDecoratorPlugin associations={associations} />
         <OnChangePlugin onChange={onChangeHandler} />
         <HistoryPlugin />
+        <AssociationPanel associations={associations} onEditCallback={onAssociationEditCallback} />
       </LexicalComposer>
     </div>
   );

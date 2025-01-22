@@ -10,8 +10,6 @@ import { IsStory, Story } from "../../types/Story";
 import { Series } from "../../types/Series";
 import { useLoader } from "../../hooks/useLoader";
 import { useAppNavigation } from "../../hooks/useAppNavigation";
-import { useCurrentSelections } from "../../hooks/useCurrentSelections";
-
 
 interface StoryBoxProps {
   data: Story | Series;
@@ -22,7 +20,6 @@ interface StoryBoxProps {
 }
 
 export const StoryBox = (props: StoryBoxProps) => {
-  const { setCurrentStory } = useCurrentSelections();
   const { setIsLoaderVisible } = useLoader();
   const { setIsEditingStory, setIsEditingSeries } = useAppNavigation();
 
@@ -30,25 +27,8 @@ export const StoryBox = (props: StoryBoxProps) => {
   const [isStoryLoaderVisible, setIsStoryLoaderVisible] = useState(true);
   const [isSeries, setIsSeries] = useState(false);
 
-  const getStoryDetails = async (storyID: string) => {
-    const url = "/api/stories/" + storyID;
-    try {
-      const response = await fetch(url, {
-        credentials: "include",
-      });
-      if (!response.ok) {
-        throw new Error(response.statusText);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
   const handleClick = async (storyID: string, chapterID: string) => {
     const history = window.history;
-    const newStory = await getStoryDetails(storyID);
-    setCurrentStory(newStory);
     history.pushState(
       { storyID },
       "clicked story",
