@@ -4,7 +4,7 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
-import { $createTextNode, $isRangeSelection, $isTextNode, KEY_TAB_COMMAND, LexicalEditor, ParagraphNode, PASTE_COMMAND, SerializedEditorState, SerializedElementNode, SerializedLexicalNode, TextNode } from 'lexical';
+import { $createTextNode, $isRangeSelection, $isTextNode, KEY_TAB_COMMAND, LexicalEditor, ParagraphNode, PASTE_COMMAND, SerializedEditorState, SerializedElementNode, SerializedLexicalNode, SerializedTextNode, TextNode } from 'lexical';
 import {
   $getRoot,
   $getSelection,
@@ -88,22 +88,69 @@ const serializeWithChildren = (node: ElementNode): CustomSerializedParagraphNode
     throw new Error("Node is not an instance of CustomParagraphNode");
   }
 
-  // Export the node to JSON and then modify its children
   const json = node.exportJSON() as CustomSerializedParagraphNode;
 
-  // Map over the children to serialize them properly
-  json.children = node.getChildren().map((child) => {
+  const children = node.getChildren();
+  const mergedChildren: SerializedLexicalNode[] = [];
 
-    if ($isElementNode(child)) {
-      // Recursively serialize child elements
-      return serializeWithChildren(child as ElementNode);
+  let bufferText = ""; // Buffer to accumulate text from `clickable-decorator` and `text` nodes
+
+  children.forEach((child) => {
+    if (child.getType() === "clickable-decorator" || $isTextNode(child)) {
+      // Accumulate text from both `clickable-decorator` and `text` nodes
+      bufferText += child.getTextContent();
+    } else if ($isElementNode(child)) {
+      // Serialize nested child elements
+      if (bufferText) {
+        // If there's buffered text, create a text node for it
+        mergedChildren.push({
+          type: "text",
+          version: 1,
+          text: bufferText,
+          format: 0,
+          style: "",
+          mode: "normal",
+          detail: 0,
+        } as SerializedTextNode);
+        bufferText = ""; // Clear the buffer
+      }
+      mergedChildren.push(serializeWithChildren(child as ElementNode)); // Recursively serialize child element
+    } else {
+      // If it's an unsupported node, flush buffer and skip
+      if (bufferText) {
+        mergedChildren.push({
+          type: "text",
+          version: 1,
+          text: bufferText,
+          format: 0,
+          style: "",
+          mode: "normal",
+          detail: 0,
+        } as SerializedTextNode);
+        bufferText = ""; // Clear the buffer
+      }
     }
-
-    // Serialize text nodes and other supported nodes
-    return child.exportJSON();
   });
+
+  // Add any remaining buffered text as a final text node
+  if (bufferText) {
+    mergedChildren.push({
+      type: "text",
+      version: 1,
+      text: bufferText,
+      format: 0,
+      style: "",
+      mode: "normal",
+      detail: 0,
+    } as SerializedTextNode);
+  }
+
+  json.children = mergedChildren;
+
   return json;
 };
+
+
 
 const generateTextHash = (editor: LexicalEditor): string => {
   let hash = "";

@@ -133,16 +133,12 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
           },
         }))
       );
+      if (isAssociationPanelOpen && currentStory && currentAssociationID) {
+        setClosing(false);
+        fetchAssociationDetails();
+      }
     }
-  }, [props.associations]);
-
-  useEffect(() => {
-    console.log("ps", isAssociationPanelOpen, currentAssociationID)
-    if (isAssociationPanelOpen && currentStory && currentAssociationID) {
-      setClosing(false);
-      fetchAssociationDetails();
-    }
-  }, [isAssociationPanelOpen, currentAssociationID, currentStory, fetchAssociationDetails]);
+  }, [props.associations, isAssociationPanelOpen, currentAssociationID, currentStory]);
 
   const onAssociationEdit = (newValue: string | boolean, id: string) => {
     if (!currentAssociationID || !fullAssociations) return;

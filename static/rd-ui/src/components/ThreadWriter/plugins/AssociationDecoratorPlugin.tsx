@@ -11,6 +11,10 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import { ClickableDecoratorNode } from "../customNodes/ClickableDecoratorNode";
 import { SimplifiedAssociation } from "../../../types/Associations";
 
+const escapeRegExp = (string: string) => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
 export const AssociationDecoratorPlugin = ({
     associations,
     customLeftClick
@@ -50,21 +54,32 @@ export const AssociationDecoratorPlugin = ({
                         ? name.trim()
                         : name.trim().toLowerCase();
 
-                    const index = searchText.indexOf(searchFor);
-                    if (index !== -1) {
+                    const regex = new RegExp(`\\b${escapeRegExp(searchFor)}\\b`, "g");
+                    let match: RegExpExecArray | null;
+                    while ((match = regex.exec(searchText)) !== null) {
+                        const currentMatch = match;
                         editor.update(() => {
                             const parent = textNode.getParent();
                             if (!(parent instanceof ElementNode)) return;
 
-                            const beforeMatch = textContent.slice(0, index);
-                            const match = textContent.slice(index, index + searchFor.length);
-                            const afterMatch = textContent.slice(index + searchFor.length);
+                            const beforeMatch = textContent.slice(0, currentMatch.index);
+                            const matchedText = textContent.slice(currentMatch.index, currentMatch.index + searchFor.length); // Use a different name here
+                            const afterMatch = textContent.slice(currentMatch.index + searchFor.length);
 
                             if (beforeMatch) {
                                 const beforeNode = new TextNode(beforeMatch);
                                 textNode.insertBefore(beforeNode);
                             }
-                            const decoratorNode = new ClickableDecoratorNode(match, association.association_id, association.short_description, association.association_type, association.portrait, undefined, undefined, customLeftClick);
+                            const decoratorNode = new ClickableDecoratorNode(
+                                matchedText,
+                                association.association_id,
+                                association.short_description,
+                                association.association_type,
+                                association.portrait,
+                                undefined,
+                                undefined,
+                                customLeftClick
+                            );
                             textNode.insertBefore(decoratorNode);
 
                             if (afterMatch) {
@@ -75,7 +90,8 @@ export const AssociationDecoratorPlugin = ({
                             textNode.remove();
                             decoratorNode.selectEnd();
                         });
-                        break;
+
+                        break; // Stop processing after the first match for this association
                     }
                 }
             });
