@@ -31,7 +31,7 @@ type CurrentSelectionsContextType = {
 
   currentAssociationID: string | undefined;
   setCurrentAssociationID: (id: string) => void;
-  deselectAssociation: (id: string) => void;
+  deselectAssociation: () => void;
 
   currentChapter: Chapter | undefined;
   setCurrentChapter: (chapter: Chapter) => void;

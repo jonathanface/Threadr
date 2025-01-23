@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { StoryAction } from "../contexts/selections";
 import { useCurrentSelections } from "./useCurrentSelections";
 import { Story } from "../types/Story";
@@ -7,6 +7,7 @@ import { Story } from "../types/Story";
 export const useHandleNavigationHandler = () => {
   const { setCurrentStory, deselectStory, setCurrentStoryAction, currentStory, setCurrentChapter } =
     useCurrentSelections();
+  const [navLoading, setNavLoading] = useState(true);
 
   const fetchStoryDetails = async (storyID: string) => {
     const url = `/api/stories/${storyID}`;
@@ -42,6 +43,7 @@ export const useHandleNavigationHandler = () => {
   };
 
   const handleNavChange = useCallback(async () => {
+    setNavLoading(true);
     const location = window.location.pathname;
     const splitDirectories = location.split("/");
 
@@ -70,14 +72,14 @@ export const useHandleNavigationHandler = () => {
     } else {
       deselectStory();
     }
+    setNavLoading(false);
 
   }, [currentStory, setCurrentStory, setCurrentStoryAction, setCurrentChapter, deselectStory]);
 
   useEffect(() => {
     window.addEventListener("popstate", handleNavChange);
-    //handleNavChange(); // Run it once on mount to handle the current path
     return () => window.removeEventListener("popstate", handleNavChange);
   }, [handleNavChange]);
 
-  return { handleNavChange };
+  return { handleNavChange, navLoading };
 };

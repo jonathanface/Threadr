@@ -349,26 +349,27 @@ func (d *DAO) GetStoryOrSeriesAssociationThumbnails(email, storyID string, needD
 	if err = attributevalue.UnmarshalListOfMaps(out.Items, &associations); err != nil {
 		return associations, err
 	}
-	if needDetails {
-		for i, v := range associations {
-			outDetails, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
-				TableName:        aws.String("association_details"),
-				FilterExpression: aws.String("association_id=:aid"),
-				ExpressionAttributeValues: map[string]types.AttributeValue{
-					":aid": &types.AttributeValueMemberS{Value: v.ID},
-				},
-			})
-			if err != nil {
-				return associations, err
-			}
-			deets := []models.AssociationDetails{}
-			if err = attributevalue.UnmarshalListOfMaps(outDetails.Items, &deets); err != nil {
-				return associations, err
-			}
-			if len(deets) > 0 {
-				associations[i].Aliases = deets[0].Aliases
-				associations[i].CaseSensitive = deets[0].CaseSensitive
-			}
+	for i, v := range associations {
+		if len(v.ShortDescription) > 100 {
+			associations[i].ShortDescription = v.ShortDescription[:100] + "..."
+		}
+		outDetails, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+			TableName:        aws.String("association_details"),
+			FilterExpression: aws.String("association_id=:aid"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":aid": &types.AttributeValueMemberS{Value: v.ID},
+			},
+		})
+		if err != nil {
+			return associations, err
+		}
+		deets := []models.AssociationDetails{}
+		if err = attributevalue.UnmarshalListOfMaps(outDetails.Items, &deets); err != nil {
+			return associations, err
+		}
+		if len(deets) > 0 {
+			associations[i].Aliases = deets[0].Aliases
+			associations[i].CaseSensitive = deets[0].CaseSensitive
 		}
 	}
 

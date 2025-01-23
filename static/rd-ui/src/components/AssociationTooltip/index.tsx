@@ -42,7 +42,6 @@ export const AssociationTooltip: React.FC<AssociationTooltipProps> = ({
         backgroundColor: "#445c66;",
         border: "1px solid #333",
         borderRadius: "10px",
-        textOverflow: "ellipsis",
       }}
     >
       {children}

@@ -17,14 +17,16 @@ const escapeRegExp = (string: string) => {
 
 export const AssociationDecoratorPlugin = ({
     associations,
-    customLeftClick
+    customLeftClick,
+    exclusionList
 }: {
     associations: SimplifiedAssociation[] | null;
     customLeftClick?: () => void | undefined;
+    exclusionList?: string[]
 }) => {
     const [editor] = useLexicalComposerContext();
 
-    const processAssociations = useCallback((associations: SimplifiedAssociation[], rootNode: ElementNode) => {
+    const processAssociations = useCallback((associations: SimplifiedAssociation[], rootNode: ElementNode, exclusionList?: string[]) => {
         if (!associations.length) {
             return;
         }
@@ -44,9 +46,12 @@ export const AssociationDecoratorPlugin = ({
 
             associations.forEach((association) => {
                 const aliases = association.aliases.length ? association.aliases.split(",") : [];
-                aliases.sort((a, b) => a.length - b.length);
+                aliases.sort((a, b) => b.length - a.length);
                 const namesToMatch = [...aliases, association.association_name];
                 for (const name of namesToMatch) {
+                    if (exclusionList?.includes(name)) {
+                        continue;
+                    }
                     const searchText = association.case_sensitive
                         ? textContent
                         : textContent.toLowerCase();
@@ -77,7 +82,6 @@ export const AssociationDecoratorPlugin = ({
                                 association.association_type,
                                 association.portrait,
                                 undefined,
-                                undefined,
                                 customLeftClick
                             );
                             textNode.insertBefore(decoratorNode);
@@ -98,33 +102,33 @@ export const AssociationDecoratorPlugin = ({
         });
     }, [editor, associations]);
 
-    const processCurrentParagraph = useCallback((associations: SimplifiedAssociation[]) => {
+    const processCurrentParagraph = useCallback((associations: SimplifiedAssociation[], exclusionList?: string[]) => {
         const selection = $getSelection();
         if ($isRangeSelection(selection)) {
             const anchorNode = selection.anchor.getNode();
             const parentParagraph = anchorNode.getParent();
             if (parentParagraph instanceof ElementNode) {
-                processAssociations(associations, parentParagraph);
+                processAssociations(associations, parentParagraph, exclusionList);
             }
         }
-    }, [processAssociations]);
+    }, [processAssociations, exclusionList]);
 
     useEffect(() => {
         if (associations && associations.length) {
             // Initial processing on load
             editor.update(() => {
                 const root = $getRoot();
-                processAssociations(associations, root);
+                processAssociations(associations, root, exclusionList);
             });
         }
-    }, [associations, editor, processAssociations]);
+    }, [associations, editor, processAssociations, exclusionList]);
 
     useEffect(() => {
         if (associations && associations.length) {
             // Process associations only for the selected paragraph on changes
             const unregister = editor.registerUpdateListener(({ editorState }) => {
                 editorState.read(() => {
-                    processCurrentParagraph(associations);
+                    processCurrentParagraph(associations, exclusionList);
                 });
             });
 

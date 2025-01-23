@@ -62,9 +62,9 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
   );
   const [description, setDescription] = useState('');
   const [background, setBackground] = useState('');
-  const [closing, setClosing] = useState(false); // Track closing state
   const { isAssociationPanelOpen, setIsAssociationPanelOpen } = useAppNavigation();
-  const { currentAssociationID, currentStory } = useCurrentSelections();
+  const { currentAssociationID, currentStory, deselectAssociation } = useCurrentSelections();
+
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const bgEditorRef = useRef<any>(null);
@@ -72,6 +72,9 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
   const descriptionEditorRef = useRef<any>(null);
   const { setIsLoaderVisible } = useLoader();
   const [fullAssociations, setFullAssociations] = useState<Association[] | null>(null);
+  const [exclusionList, setExclusionList] = useState<string[]>([]);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
 
   const clearData = () => {
     setCaseSensitive(false);
@@ -89,36 +92,16 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
   }
 
   const handleClose = () => {
-    setClosing(true);
-    clearData();
+    deselectAssociation();
+    setIsInitialLoad(true);
     setIsAssociationPanelOpen(false);
+    setTimeout(() => {
+      clearData();
+    }, 500);
   };
 
-  const fetchAssociationDetails = useCallback(async () => {
-    console.log("pre", currentStory, currentAssociationID, closing, fullAssociations)
-    if (!currentStory || !currentAssociationID || !fullAssociations) return;
-    try {
-      setIsLoaderVisible(true);
-      const response = await fetch(`/api/stories/${currentStory.story_id}/associations/${currentAssociationID}`);
-      if (!response.ok) throw response;
-      const association = await response.json() as Association;
-      const idx = fullAssociations.findIndex(ass => ass.association_id === currentAssociationID);
-      fullAssociations[idx] = association;
-      setCaseSensitive(association.details.case_sensitive);
-      setName(UCWords(association.association_name));
-      setImageURL(association.portrait);
-      setAliases(association.details.aliases);
-      setDescription(association.short_description);
-      setBackground(association.details.extended_description);
-    } catch (error: unknown) {
-      console.error(`error fetching association details: ${error}`);
-    } finally {
-      setIsLoaderVisible(false);
-    }
-  }, [currentStory?.story_id, currentAssociationID]);
-
   useEffect(() => {
-    if (props.associations) {
+    if (props.associations && isInitialLoad) {
       setFullAssociations(
         props.associations.map(assoc => ({
           association_id: assoc.association_id,
@@ -133,15 +116,49 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
           },
         }))
       );
-      if (isAssociationPanelOpen && currentStory && currentAssociationID) {
-        setClosing(false);
-        fetchAssociationDetails();
+    }
+    if (isAssociationPanelOpen && currentStory && currentAssociationID && props.associations) {
+      const thisAssociation = props.associations.find(assoc => assoc.association_id === currentAssociationID);
+      if (thisAssociation) {
+        setName(UCWords(thisAssociation.association_name));
+        setImageURL(thisAssociation.portrait);
       }
     }
-  }, [props.associations, isAssociationPanelOpen, currentAssociationID, currentStory]);
+  }, [props.associations, isInitialLoad]);
+
+  useEffect(() => {
+    const fetchAssociationDetails = async () => {
+      if (!currentStory || !currentAssociationID || !fullAssociations) return;
+      try {
+        setIsLoaderVisible(true);
+        const response = await fetch(`/api/stories/${currentStory.story_id}/associations/${currentAssociationID}`);
+        if (!response.ok) throw response;
+        const association = await response.json() as Association;
+        setFullAssociations(fullAssociations.map(assoc => {
+          if (assoc.association_id === currentAssociationID) {
+            return association;
+          }
+          return assoc;
+        }));
+        setDescription(association.short_description);
+        setCaseSensitive(association.details.case_sensitive);
+        setAliases(association.details.aliases);
+        setBackground(association.details.extended_description);
+        setExclusionList([association.association_name, ...association.details.aliases.split(',')]);
+      } catch (error: unknown) {
+        console.error(`error fetching association details: ${error}`);
+      } finally {
+        setIsLoaderVisible(false);
+        setIsInitialLoad(false);
+      }
+    };
+    if (isAssociationPanelOpen && currentAssociationID && currentStory) {
+      fetchAssociationDetails();
+    }
+  }, [isAssociationPanelOpen, currentAssociationID, currentStory]);
 
   const onAssociationEdit = (newValue: string | boolean, id: string) => {
-    if (!currentAssociationID || !fullAssociations) return;
+    if (!currentAssociationID || !fullAssociations || isInitialLoad) return;
 
     setFullAssociations(prev => prev ?
       prev?.map(assoc => {
@@ -158,19 +175,19 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
               break;
             case "description":
               if (typeof newValue === "string" && updatedAssociation.short_description !== newValue) {
-                updatedAssociation.short_description = newValue;
+                updatedAssociation.short_description = newValue.trim();
                 saveRequired = true;
               }
               break;
             case "background":
               if (typeof newValue === "string" && updatedAssociation.details.extended_description !== newValue) {
-                updatedAssociation.details.extended_description = newValue;
+                updatedAssociation.details.extended_description = newValue.trim();
                 saveRequired = true;
               }
               break;
             case "aliases":
               if (typeof newValue === "string" && updatedAssociation.details.aliases !== newValue) {
-                updatedAssociation.details.aliases = newValue;
+                updatedAssociation.details.aliases = newValue.trim();
                 saveRequired = true;
               }
               break;
@@ -234,26 +251,39 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
 
   useEffect(() => {
     if (bgEditorRef.current) {
+      bgEditorRef.current.setEditable(!isInitialLoad);
       bgEditorRef.current.update(() => {
         const root = $getRoot();
-        const paragraphNode = $createParagraphNode();
-        const textNode = $createTextNode(background);
-        paragraphNode.append(textNode);
-        root.append(paragraphNode);
+        root.clear();
+        const paragraphs = description.split("\n");
+        paragraphs.forEach((paragraphText) => {
+          const paragraphNode = $createParagraphNode();
+          const formattedText = paragraphText.replace(/\t/g, "    ");
+          const textNode = $createTextNode(formattedText);
+          paragraphNode.append(textNode);
+          root.append(paragraphNode);
+        });
       });
     }
     if (descriptionEditorRef.current) {
+      descriptionEditorRef.current.setEditable(!isInitialLoad);
       descriptionEditorRef.current.update(() => {
         const root = $getRoot();
-        const paragraphNode = $createParagraphNode();
-        const textNode = $createTextNode(description);
-        paragraphNode.append(textNode);
-        root.append(paragraphNode);
+        root.clear();
+        const paragraphs = description.split("\n");
+        paragraphs.forEach((paragraphText) => {
+          const paragraphNode = $createParagraphNode();
+          const formattedText = paragraphText.replace(/\t/g, "    ");
+          const textNode = $createTextNode(formattedText);
+          paragraphNode.append(textNode);
+          root.append(paragraphNode);
+        });
       });
     }
   }, [bgEditorRef.current, background, descriptionEditorRef, description]);
 
   const onAssociationClick = () => {
+    setIsInitialLoad(true);
     clearData();
   }
 
@@ -296,6 +326,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
               Overview
               <div className={styles.docBG}>
                 <LexicalComposer initialConfig={{
+                  editable: false,
                   ...descriptionConfig,
                   editorState: (editor) => {
                     descriptionEditorRef.current = editor;
@@ -304,7 +335,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
                 }}>
                   <RichTextPlugin
                     contentEditable={<ContentEditable className={styles.editorInput} onBlur={() => {
-                      if (closing) return;
+                      if (isInitialLoad) return;
                       const editor = descriptionEditorRef.current;
                       if (editor) {
                         const editorState = editor.getEditorState();
@@ -314,7 +345,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
                     ErrorBoundary={LexicalErrorBoundary}
                   />
                   <HistoryPlugin />
-                  <AssociationDecoratorPlugin associations={props.associations} customLeftClick={onAssociationClick} />
+                  <AssociationDecoratorPlugin associations={props.associations} customLeftClick={onAssociationClick} exclusionList={exclusionList} />
                 </LexicalComposer>
               </div>
             </div>
@@ -322,6 +353,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
               Background
               <div className={styles.docBG}>
                 <LexicalComposer initialConfig={{
+                  editable: false,
                   ...bgConfig,
                   editorState: (editor) => {
                     bgEditorRef.current = editor;
@@ -329,7 +361,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
                 }}>
                   <RichTextPlugin
                     contentEditable={<ContentEditable className={styles.editorInput} onBlur={() => {
-                      if (closing) return;
+                      if (isInitialLoad) return;
                       const editor = bgEditorRef.current;
                       if (editor) {
                         const editorState = editor.getEditorState();

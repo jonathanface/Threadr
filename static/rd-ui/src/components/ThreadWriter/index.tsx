@@ -225,15 +225,12 @@ export const ThreadWriter = () => {
       }));
     } catch (error: unknown) {
       console.error(`error retrieving associations: ${error}`);
-
     }
   }, [currentStory, currentStory?.story_id]);
-
 
   const getBatchedStoryBlocks = useCallback(async (startKey: string) => {
     if (!currentStory || !currentChapter) return;
     try {
-      setIsLoaderVisible(true);
       const response = await fetch(`/api/stories/${currentStory.story_id}/content?key=${startKey}&chapter=${currentChapter.id}`);
       if (!response.ok) throw response;
 
@@ -274,10 +271,8 @@ export const ThreadWriter = () => {
         return;
       }
       console.error("Error retrieving story content:", error);
-    } finally {
-      setIsLoaderVisible(false);
     }
-  }, [setIsLoaderVisible, currentStory, currentChapter]);
+  }, [currentStory, currentChapter]);
 
   const handleTabPress = () => {
     if (editorRef.current) {
@@ -391,13 +386,23 @@ export const ThreadWriter = () => {
     DbOperationQueue.push(op);
   }, [currentChapter?.id, currentStory?.story_id]);
 
-  useEffect(() => {
-    getBatchedStoryBlocks("");
-  }, [getBatchedStoryBlocks]);
 
   useEffect(() => {
-    getAllAssociations();
-  }, [getAllAssociations]);
+    const retrieveData = async () => {
+      try {
+        setIsLoaderVisible(true);
+        await getBatchedStoryBlocks("");
+        setIsLoaderVisible(true);
+        await getAllAssociations();
+      } catch (error: unknown) {
+        console.error(`error retrieving story data ${error}`);
+      } finally {
+        setIsLoaderVisible(false);
+      }
+    }
+    retrieveData();
+
+  }, [getAllAssociations, getBatchedStoryBlocks]);
 
   useEffect(() => {
     if (editorRef.current && storyBlocks) {

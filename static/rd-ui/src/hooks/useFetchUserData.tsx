@@ -17,6 +17,7 @@ export const useFetchUserData = () => {
   }
   const { userDetails, setUserDetails, setIsLoggedIn, isLoggedIn } = userContext;
   const [userError, setUserError] = useState<Error | null>(null);
+  const [userLoading, setUserLoading] = useState(true);
 
   const isFetchingRef = useRef(false);
 
@@ -53,6 +54,7 @@ export const useFetchUserData = () => {
       setUserError(error as Error);
     } finally {
       setIsLoaderVisible(false);
+      setUserLoading(false);
     }
     //eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setIsLoaderVisible, setAlertState, setUserDetails, setIsLoggedIn]);
@@ -67,6 +69,7 @@ export const useFetchUserData = () => {
     userError,
     setIsLoggedIn,
     isLoggedIn,
+    userLoading
   };
 };
 

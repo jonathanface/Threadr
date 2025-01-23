@@ -26,8 +26,8 @@ export const Docter = memo(() => {
     return () => console.log("Docter unmounted");
   }, []);
 
-  const { isLoggedIn } = useFetchUserData();
-  const { handleNavChange } = useHandleNavigationHandler();
+  const { isLoggedIn, userLoading } = useFetchUserData();
+  const { handleNavChange, navLoading } = useHandleNavigationHandler();
   const { currentStory, currentStoryAction } = useCurrentSelections();
   const { seriesList, setSeriesList, storiesList, setStoriesList } = useWorksList();
 
@@ -52,6 +52,10 @@ export const Docter = memo(() => {
       return <SplashPage />;
     }
   };
+
+  if (userLoading || navLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="App">

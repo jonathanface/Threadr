@@ -18,10 +18,10 @@ export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
     }
 
     static clone(node: ClickableDecoratorNode): ClickableDecoratorNode {
-        return new ClickableDecoratorNode(node.name, node.id, node.shortDescription, node.associationType, node.portrait, node.classModifier, node.__key);
+        return new ClickableDecoratorNode(node.name, node.id, node.shortDescription, node.associationType, node.portrait, node.classModifier, node.customLeftClick, node.__key);
     }
 
-    constructor(text: string, id: string, description: string, associationType: string, portrait: string, classModifier?: string, key?: NodeKey, customLeftClick?: () => void) {
+    constructor(text: string, id: string, description: string, associationType: string, portrait: string, classModifier?: string, customLeftClick?: () => void, key?: NodeKey,) {
         super(key);
         this.name = text;
         this.id = id;
