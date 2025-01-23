@@ -681,7 +681,6 @@ export const ThreadWriter = () => {
           }
         }
       });
-      console.log("to delete", deletedKeys)
       // Handle deleted nodes
       deletedKeys.forEach((key) => {
         queueParagraphForDeletion(key);

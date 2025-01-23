@@ -1,5 +1,5 @@
 import Backdrop from "@mui/material/Backdrop";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { FormGroup, TextField } from "@mui/material";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
@@ -101,34 +101,36 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
   };
 
   useEffect(() => {
-    if (props.associations && isInitialLoad) {
-      setFullAssociations(
-        props.associations.map(assoc => ({
-          association_id: assoc.association_id,
-          association_name: assoc.association_name,
-          association_type: assoc.association_type,
-          short_description: assoc.short_description,
-          portrait: assoc.portrait,
-          details: {
-            aliases: "",
-            case_sensitive: true,
-            extended_description: "",
-          },
-        }))
-      );
-    }
-    if (isAssociationPanelOpen && currentStory && currentAssociationID && props.associations) {
-      const thisAssociation = props.associations.find(assoc => assoc.association_id === currentAssociationID);
-      if (thisAssociation) {
-        setName(UCWords(thisAssociation.association_name));
-        setImageURL(thisAssociation.portrait);
+    if (isAssociationPanelOpen && props.associations) {
+      if (isInitialLoad) {
+        setFullAssociations(
+          props.associations.map(assoc => ({
+            association_id: assoc.association_id,
+            association_name: assoc.association_name,
+            association_type: assoc.association_type,
+            short_description: assoc.short_description,
+            portrait: assoc.portrait,
+            details: {
+              aliases: "",
+              case_sensitive: true,
+              extended_description: "",
+            },
+          }))
+        );
+      }
+      if (currentStory && currentAssociationID) {
+        const thisAssociation = props.associations.find(assoc => assoc.association_id === currentAssociationID);
+        if (thisAssociation) {
+          setName(UCWords(thisAssociation.association_name));
+          setImageURL(thisAssociation.portrait);
+        }
       }
     }
-  }, [props.associations, isInitialLoad]);
+  }, [isAssociationPanelOpen, props.associations, isInitialLoad]);
 
   useEffect(() => {
     const fetchAssociationDetails = async () => {
-      if (!currentStory || !currentAssociationID || !fullAssociations) return;
+      if (!currentStory || !currentAssociationID || !isInitialLoad || !fullAssociations) return;
       try {
         setIsLoaderVisible(true);
         const response = await fetch(`/api/stories/${currentStory.story_id}/associations/${currentAssociationID}`);
@@ -152,10 +154,11 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
         setIsInitialLoad(false);
       }
     };
-    if (isAssociationPanelOpen && currentAssociationID && currentStory) {
+
+    if (isAssociationPanelOpen) {
       fetchAssociationDetails();
     }
-  }, [isAssociationPanelOpen, currentAssociationID, currentStory]);
+  }, [isAssociationPanelOpen, currentAssociationID, currentStory, isInitialLoad, fullAssociations]);
 
   const onAssociationEdit = (newValue: string | boolean, id: string) => {
     if (!currentAssociationID || !fullAssociations || isInitialLoad) return;
@@ -255,7 +258,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
       bgEditorRef.current.update(() => {
         const root = $getRoot();
         root.clear();
-        const paragraphs = description.split("\n");
+        const paragraphs = background.split("\n");
         paragraphs.forEach((paragraphText) => {
           const paragraphNode = $createParagraphNode();
           const formattedText = paragraphText.replace(/\t/g, "    ");

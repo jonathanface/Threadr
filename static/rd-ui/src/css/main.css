@@ -52,51 +52,6 @@ main {
   width: 100%;
 }
 
-main header {
-  position: fixed;
-  top: 0px;
-  margin: 0;
-  height: 65px;
-  z-index: 5;
-  width: 100%;
-  background-color: #495960;
-}
-
-main header h4 {
-  font-size: 1.4em;
-  color: #78a4a4;
-  filter: drop-shadow(2px 2px 2px #1a1a1a);
-  letter-spacing: 2px;
-  margin: 0px;
-  font-family: courier;
-  position: absolute;
-  right: 58px;
-}
-
-main header h4 span {
-  font-size: 1.2em;
-}
-
-main header h4 img {
-  max-height: 40px;
-  vertical-align: middle;
-  position: relative;
-  top: -4px;
-}
-
-main header .version {
-  color: #c1e6e6;
-  font-size: 0.5em;
-  font-weight: bold;
-  text-align: right;
-  margin-top: -10px;
-}
-
-main header .tld {
-  font-size: 0.8em;
-  color: #2d9ca2;
-}
-
 .MultiTreeItem-root {
   padding-top: 0px;
   padding-left: 0.5em;
@@ -166,17 +121,6 @@ footer {
   flex-shrink: 0;
 }
 
-
-div.DraftEditor-editorContainer,
-div.public-DraftEditor-content {
-  line-height: 2em;
-}
-
-div.DraftEditor-editorContainer,
-div.public-DraftEditor-content .content-block:last-child {
-  padding-bottom: 40px;
-}
-
 .highlight {
   white-space: nowrap;
   cursor: pointer;
@@ -218,23 +162,6 @@ div.public-DraftEditor-content .content-block:last-child {
   color: orange;
 }
 
-.public-DraftEditor-content .left .public-DraftStyleDefault-ltr {
-  text-align: left;
-}
-
-.public-DraftEditor-content .center .public-DraftStyleDefault-ltr {
-  text-align: center;
-}
-
-.public-DraftEditor-content .right .public-DraftStyleDefault-ltr {
-  text-align: right;
-}
-
-.public-DraftEditor-content .justify .public-DraftStyleDefault-ltr {
-  text-align: justify;
-  text-justify: auto;
-  white-space: normal;
-}
 
 @media only screen and (max-width: 600px) {
   footer {

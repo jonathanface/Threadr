@@ -9,7 +9,7 @@ import { LoginPanelModal } from "./sections/LoginPanel";
 import { SplashPage } from "./sections/SplashPage";
 import { StoryAndSeriesListing } from "./sections/StoryAndSeriesListing";
 import { SubscribePanel } from "./sections/SubscribePanel";
-import { UserMenu } from "./sections/UserMenu";
+
 
 import { useHandleNavigationHandler } from "./hooks/useNavigationHandler";
 import { useFetchUserData } from "./hooks/useFetchUserData";
@@ -17,6 +17,7 @@ import { CreatEditStoryPanel } from "./sections/CreateEditStoryPanel";
 import { StoryAction } from "./contexts/selections";
 import { useCurrentSelections } from "./hooks/useCurrentSelections";
 import { useWorksList } from "./hooks/useWorksList";
+import { HeaderMenu } from "./components/HeaderMenu";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_KEY ?? "");
 
@@ -59,14 +60,8 @@ export const Docter = memo(() => {
 
   return (
     <div className="App">
+      <HeaderMenu />
       <main>
-        <header>
-          <UserMenu />
-          <h4>
-            <span>D</span>octer<span className="tld">.io</span>
-            <div className="version">ver 1.0.1</div>
-          </h4>
-        </header>
         {renderContent()}
         <CreatEditStoryPanel seriesList={seriesList} setSeriesList={setSeriesList} storiesList={storiesList} setStoriesList={setStoriesList} />
         <ConfigPanelModal />

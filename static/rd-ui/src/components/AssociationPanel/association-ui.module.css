@@ -2,6 +2,18 @@
   z-index: 60;
 }
 
+.editorInput {
+  outline: none;
+}
+
+.paragraph {
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  outline: none !important;
+  border: none !important;
+}
+
 .associationUIContainer {
   width: 80%;
   height: 80%;

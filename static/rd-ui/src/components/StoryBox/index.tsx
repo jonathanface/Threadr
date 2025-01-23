@@ -34,6 +34,7 @@ export const StoryBox = (props: StoryBoxProps) => {
       "clicked story",
       "/story/" + storyID + "?chapter=" + chapterID
     );
+    window.dispatchEvent(new Event("navigation"))
   };
 
   const editStory = (event: React.MouseEvent) => {
