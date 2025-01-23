@@ -78,7 +78,11 @@ export const useHandleNavigationHandler = () => {
 
   useEffect(() => {
     window.addEventListener("popstate", handleNavChange);
-    return () => window.removeEventListener("popstate", handleNavChange);
+    window.addEventListener("navigation", handleNavChange);
+    return () => {
+      window.removeEventListener("popstate", handleNavChange);
+      window.removeEventListener("navigation", handleNavChange);
+    }
   }, [handleNavChange]);
 
   return { handleNavChange, navLoading };

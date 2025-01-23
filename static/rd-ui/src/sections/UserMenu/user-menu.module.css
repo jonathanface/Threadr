@@ -1,10 +1,10 @@
 .userMenu {
-  position: absolute;
-  top: 10px;
-  left: 10px;
+  position: relative;
+  margin-top: -35px;
+  z-index: 40;
 }
 
-.userMenu > a {
+.userMenu>a {
   font-size: 0.8rem;
   color: #f0f0f0;
   cursor: pointer;
@@ -15,8 +15,10 @@
   top: 10px;
   background-color: #1b2828;
   filter: drop-shadow(2px 2px 2px #1a1a1a);
+  z-index: 10;
 }
-.userMenu > a:hover {
+
+.userMenu>a:hover {
   color: #fff;
   background-color: #131c1c;
 }
@@ -24,7 +26,7 @@
 .menuContainer {
   position: absolute;
   text-align: left;
-  z-index: 40;
+  z-index: 50;
 }
 
 .userMenu .menuContainer .icon {
@@ -34,6 +36,12 @@
   width: 35.5px;
   height: 32.5px;
   display: inline-block;
+  color: #FFF;
+}
+
+.userMenu .menuContainer .icon button {
+  background-color: #515d57;
+  color: #000;
 }
 
 .userMenu .menuContainer ul {
@@ -47,7 +55,10 @@
   padding: 0;
   margin: 0;
   margin-top: 5px;
+  position: relative;
+  z-index: 50;
 }
+
 .userMenu .menuContainer ul li {
   border-bottom: 1px solid #333;
   width: 100px;
@@ -55,7 +66,9 @@
   cursor: pointer;
   position: relative;
   padding: 5px;
+  margin: 0;
 }
+
 .userMenu .menuContainer ul li:hover {
-  background-color: #40554b;
+  background-color: #4F6464;
 }
