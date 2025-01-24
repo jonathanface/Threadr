@@ -1,15 +1,27 @@
 {
   "files": [],
+  "include": [
+    "globals.d.ts"
+  ],
   "compilerOptions": {
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
     "target": "es6", // or later
     "lib": [
-      "es6"
+      "es6",
+      "dom"
     ], // Include ES6 library
     "types": [
       "node"
     ], // Include Node.js types
     "module": "esnext", // Vite uses ESNext modules
-    "moduleResolution": "node" // Resolve modules like Node.js
+    "moduleResolution": "node",
+    "baseUrl": "./",
+    "paths": {
+      "*": [
+        "src/types/*"
+      ]
+    }
   },
   "references": [
     {
