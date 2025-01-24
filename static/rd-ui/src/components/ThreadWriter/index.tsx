@@ -778,7 +778,7 @@ export const ThreadWriter = () => {
           placeholder={<div className={styles.placeholder}>Start typing...</div>}
           ErrorBoundary={LexicalErrorBoundary}
         />
-        <AssociationDecoratorPlugin associations={associations} />
+        <AssociationDecoratorPlugin associations={associations} scrollToTop={true} />
         <OnChangePlugin onChange={onChangeHandler} />
         <HistoryPlugin />
         <AssociationPanel associations={associations} onEditCallback={onAssociationEditCallback} />

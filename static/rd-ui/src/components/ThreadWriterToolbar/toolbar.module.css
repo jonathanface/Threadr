@@ -9,7 +9,6 @@
     top: 100px;
     left: 0;
     background: gray;
-    z-index: 10;
     box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
 }
 

@@ -2,10 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { StoryAction } from "../contexts/selections";
 import { useCurrentSelections } from "./useCurrentSelections";
 import { Story } from "../types/Story";
+import { Series } from "../types/Series";
 
 
 export const useHandleNavigationHandler = () => {
-  const { setCurrentStory, deselectStory, setCurrentStoryAction, currentStory, setCurrentChapter } =
+  const { setCurrentStory, deselectStory, setCurrentStoryAction, currentStory, setCurrentChapter, setCurrentSeries } =
     useCurrentSelections();
   const [navLoading, setNavLoading] = useState(true);
 
@@ -20,6 +21,21 @@ export const useHandleNavigationHandler = () => {
       return await response.json() as Story;
     } catch (error) {
       console.error("Failed to fetch story details:", error);
+      return null;
+    }
+  }
+
+  const fetchSeriesDetails = async (seriesID: string) => {
+    const url = `/api/series/${seriesID}`;
+    try {
+      const response = await fetch(url, {
+        credentials: "include",
+      });
+      if (!response.ok)
+        throw new Error(`Error fetching series: ${response.statusText}`);
+      return await response.json() as Series;
+    } catch (error) {
+      console.error("Failed to fetch series details:", error);
       return null;
     }
   }
@@ -55,6 +71,12 @@ export const useHandleNavigationHandler = () => {
         if (story) {
           setCurrentStory(story);
           setCurrentStoryAction(StoryAction.editing);
+          if (story.series_id) {
+            const series = await fetchSeriesDetails(story.series_id);
+            if (series) {
+              setCurrentSeries(series);
+            }
+          }
           const urlParams = new URLSearchParams(window.location.search);
           const chapterID = urlParams.get("chapter");
           if (chapterID?.length) {

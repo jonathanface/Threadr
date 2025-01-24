@@ -1,16 +1,26 @@
-import { UserMenu } from "../../sections/UserMenu"
+import { useCurrentSelections } from "../../hooks/useCurrentSelections";
+import { UserMenu } from "..//UserMenu"
 
 import styles from "./headermenu.module.css";
 
 export const HeaderMenu = () => {
 
+  const { currentStory, currentSeries } = useCurrentSelections();
+
   return (
     <header className={styles.header}>
+      <span className={styles.leftPane}>
+        <img className={styles.logoImage}
+          alt="RichDocter logo"
+          title="RichDocter - Organized Imagination"
+          src="/img/logo_trans_scaled.png"
+        />
+        <span className={styles.storyInfo}>
+          <div>{currentStory?.title}</div>
+          <div className={styles.seriesInfo}>{currentSeries?.series_title}</div>
+        </span>
+      </span>
       <UserMenu />
-      <h4>
-        <div><span>D</span>octer<span className={styles.tld}>.io</span></div>
-        <div className={styles.version}>ver 2.0.0</div>
-      </h4>
     </header >
   )
 }

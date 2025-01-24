@@ -354,6 +354,47 @@ func AllAssociationThumbnailsByStoryEndPoint(w http.ResponseWriter, r *http.Requ
 	RespondWithJson(w, http.StatusOK, associations)
 }
 
+func SingleSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
+	var (
+		email    string
+		err      error
+		dao      daos.DaoInterface
+		ok       bool
+		seriesID string
+	)
+	if email, err = getUserEmail(r); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
+		return
+	}
+	if seriesID, err = url.PathUnescape(mux.Vars(r)["series"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing series id")
+		return
+	}
+	if seriesID == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing series id")
+		return
+	}
+	series, err := dao.GetSeriesByID(email, seriesID)
+	if err != nil {
+		if opErr, ok := err.(*smithy.OperationError); ok {
+			awsResponse := processAWSError(opErr)
+			if awsResponse.Code == 0 {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			RespondWithError(w, awsResponse.Code, awsResponse.Message)
+			return
+		}
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	RespondWithJson(w, http.StatusOK, series)
+}
+
 func AllSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		email string

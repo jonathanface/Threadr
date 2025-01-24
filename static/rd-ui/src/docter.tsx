@@ -55,7 +55,7 @@ export const Docter = memo(() => {
   };
 
   if (userLoading || navLoading) {
-    return <div>Loading...</div>;
+    return <div />;
   }
 
   return (
