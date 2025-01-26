@@ -1,8 +1,5 @@
 {
   "files": [],
-  "include": [
-    "globals.d.ts"
-  ],
   "compilerOptions": {
     "jsx": "react-jsx",
     "esModuleInterop": true,
@@ -12,7 +9,8 @@
       "dom"
     ], // Include ES6 library
     "types": [
-      "node"
+      "node",
+      "vitest/globals"
     ], // Include Node.js types
     "module": "esnext", // Vite uses ESNext modules
     "moduleResolution": "node",

@@ -1,6 +1,6 @@
 /* eslint-disable */
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -45,6 +45,10 @@ export default defineConfig({
         },
       },
     },
-  }
-
+  },
+  test: {
+    globals: true, // Use Jest-like globals (describe, it, expect)
+    environment: 'jsdom', // Simulate browser-like environment
+    setupFiles: './vitest.setup.ts', // Optional setup file for global configurations
+  },
 });

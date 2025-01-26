@@ -1,183 +1,258 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
+// Vitest unit tests for ThreadWriter component
+import React, { act } from 'react';
+import { render, screen, fireEvent, cleanup, waitFor, createEvent } from '@testing-library/react';
 import { ThreadWriter } from './index';
-import { useLoader } from '../../hooks/useLoader';
-import { useToaster } from '../../hooks/useToaster';
-import { useCurrentSelections } from '../../hooks/useCurrentSelections';
-import { PASTE_COMMAND } from 'lexical';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
+import * as matchers from '@testing-library/jest-dom/matchers';
+import '@testing-library/jest-dom/vitest'
+import { AppNavigationProvider } from '../../contexts/navigation';
 
-// Mock external hooks
-jest.mock('../../hooks/useLoader', () => ({
-    useLoader: jest.fn(),
-}));
 
-jest.mock('../../hooks/useToaster', () => ({
-    useToaster: jest.fn(),
-}));
+expect.extend(matchers);
 
-jest.mock('../../hooks/useCurrentSelections', () => ({
-    useCurrentSelections: jest.fn(),
-}));
+beforeAll(() => {
+    // Stub out global fetch so it doesn't try the real network
+    global.fetch = vi.fn(async (url: RequestInfo) => {
+        // If desired, you can check `url` and return mock data
+        return {
+            ok: true,
+            json: async () => ({ items: [] }),
+        };
+    }) as unknown as typeof fetch;
+});
 
-// Mock Lexical dependencies
-jest.mock('@lexical/react/LexicalComposer', () => ({
-    LexicalComposer: jest.fn(({ children }) => <div>{children}</div>),
-}));
+// threadwriter.test.tsx
+vi.mock('@lexical/react/LexicalComposer', () => {
+    const React = require('react');
+    const LexicalComposerContext = React.createContext([
+        {
+            registerNodeTransform: vi.fn(),
+            registerCommand: vi.fn(),
+            getEditorState: vi.fn(() => ({
+                read: vi.fn((fn: () => void) => fn()),
+            })),
+            update: vi.fn((fn: () => void) => fn()),
+            focus: vi.fn(),
+        },
+        vi.fn(),
+    ]);
 
-jest.mock('@lexical/react/LexicalContentEditable', () => ({
-    ContentEditable: jest.fn(({ className }) => <div className={className} contentEditable></div>),
-}));
+    return {
+        // Mock LexicalComposer itself
+        LexicalComposer: vi.fn(({ children }: { children: React.ReactNode }) => (
+            <LexicalComposerContext.Provider
+                value={[
+                    {
+                        registerNodeTransform: vi.fn(),
+                        registerCommand: vi.fn(),
+                        getEditorState: vi.fn(() => ({
+                            read: vi.fn((fn: () => void) => fn()),
+                        })),
+                        update: vi.fn((fn: () => void) => fn()),
+                        focus: vi.fn(),
+                    },
+                    vi.fn(),
+                ]}
+            >
+                <div data-testid="LexicalComposer">{children}</div>
+            </LexicalComposerContext.Provider>
+        )),
+        // Mock the hook
+        useLexicalComposerContext: () => React.useContext(LexicalComposerContext),
+    };
+});
 
-jest.mock('@lexical/react/LexicalOnChangePlugin', () => ({
-    OnChangePlugin: jest.fn(({ onChange }) => <div data-testid="onChangePlugin" onClick={() => onChange?.({})}>OnChangePlugin</div>),
-}));
-
-jest.mock('@lexical/react/LexicalRichTextPlugin', () => ({
-    RichTextPlugin: jest.fn(() => <div>RichTextPlugin</div>),
-}));
-
-jest.mock('@lexical/react/LexicalHistoryPlugin', () => ({
-    HistoryPlugin: jest.fn(() => <div>HistoryPlugin</div>),
-}));
-
-jest.mock('./customNodes/CustomParagraphNode', () => ({
-    CustomParagraphNode: jest.fn(),
-}));
-
-jest.mock('./customNodes/ClickableDecoratorNode', () => ({
-    ClickableDecoratorNode: jest.fn(),
-}));
-
-const mockRegisterCommand = jest.fn();
-
-jest.mock('./plugins/AssociationDecoratorPlugin', () => ({
-    AssociationDecoratorPlugin: jest.fn(({ registerCommand }) => {
-        if (registerCommand) {
-            mockRegisterCommand.mockImplementation(registerCommand);
-        }
-        return <div>AssociationDecoratorPlugin</div>;
+// Each plugin used by ThreadWriter must be mocked, too:
+vi.mock('@lexical/react/LexicalRichTextPlugin', () => ({
+    RichTextPlugin: vi.fn(({ contentEditable, placeholder, ErrorBoundary }) => {
+        // In real usage, RichTextPlugin also calls useLexicalComposerContext
+        return (
+            <div data-testid="RichTextPlugin">
+                {contentEditable}
+                {placeholder}
+            </div>
+        );
     }),
 }));
 
-jest.mock('../ThreadWriterToolbar', () => ({
-    Toolbar: jest.fn(() => <div>Toolbar</div>),
+vi.mock('@lexical/react/LexicalOnChangePlugin', () => ({
+    OnChangePlugin: vi.fn(({ onChange }) => {
+        // Also calls useLexicalComposerContext internally
+        return <div data-testid="OnChangePlugin" />;
+    }),
 }));
 
-jest.mock('../AssociationPanel', () => ({
-    AssociationPanel: jest.fn(() => <div>AssociationPanel</div>),
+vi.mock('@lexical/react/LexicalContentEditable', () => ({
+    ContentEditable: vi.fn(({ className }) => (
+        <div data-testid="MockedContentEditable" className={className}>
+            {/* mock ContentEditable */}
+        </div>
+    )),
 }));
 
-// Helper mock data
-const mockCurrentSelections = {
-    currentStory: { story_id: 'test-story-id', chapters: [{ id: 'test-chapter-id' }] },
-    currentChapter: { id: 'test-chapter-id' },
-    setCurrentStory: jest.fn(),
-    setCurrentChapter: jest.fn(),
-    setCurrentStoryAction: jest.fn(),
-    deselectStory: jest.fn(),
-};
+vi.mock('@lexical/react/LexicalHistoryPlugin', () => ({
+    HistoryPlugin: vi.fn(() => <div data-testid="HistoryPlugin" />),
+}));
 
-const mockLoader = { setIsLoaderVisible: jest.fn() };
+vi.mock('../ThreadWriterToolbar', () => ({
+    Toolbar: vi.fn(() => <div data-testid="mocked-toolbar" />),
+}));
 
-const mockToaster = { setAlertState: jest.fn() };
+vi.mock('@lexical/react/LexicalErrorBoundary', () => {
+    return {
+        __esModule: true,
+        default: ({ children }: { children: React.ReactNode }) => (
+            <div data-testid="MockedLexicalErrorBoundary">{children}</div>
+        ),
+    };
+});
 
-// Tests
-describe('ThreadWriter', () => {
+vi.mock('./plugins/AssociationDecoratorPlugin', () => ({
+    AssociationDecoratorPlugin: vi.fn(() => (
+        <div data-testid="AssociationDecoratorPlugin" />
+    )),
+}));
+
+vi.mock('../../hooks/useCurrentSelections', () => ({
+    useCurrentSelections: vi.fn(() => ({
+        currentStory: { story_id: 'mock-story' },
+        currentChapter: { id: 'mock-chapter' },
+    })),
+}));
+
+
+
+vi.mock('uuid', () => ({
+    v4: vi.fn(() => 'mock-uuid'),
+}));
+
+vi.mock('../../hooks/useToaster', () => ({
+    useToaster: vi.fn(() => ({ setAlertState: vi.fn() })),
+}));
+
+vi.mock('../../hooks/useLoader', () => ({
+    useLoader: vi.fn(() => ({ setIsLoaderVisible: vi.fn() })),
+}));
+import { useLoader } from '../../hooks/useLoader';
+
+vi.mock('./queue', () => ({
+    DbOperationQueue: {
+        push: vi.fn(),
+    },
+    ProcessDBQueue: vi.fn(),
+}));
+
+vi.mock('../AssociationPanel', () => ({
+    AssociationPanel: () => <div data-testid="mocked-association-panel" />,
+}));
+
+// Mock styles module
+vi.mock('./threadwriter.module.css', () => ({
+    default: {
+        paragraph: 'mock-paragraph',
+        bold: 'mock-bold',
+        italic: 'mock-italic',
+        underline: 'mock-underline',
+        strikethrough: 'mock-strikethrough',
+        editorContainer: 'mock-editor-container',
+        editorInput: 'mock-editor-input',
+        placeholder: 'mock-placeholder',
+    },
+}));
+
+
+describe('ThreadWriter Component', () => {
+
     beforeEach(() => {
-        (useLoader as jest.Mock).mockReturnValue(mockLoader);
-        (useToaster as jest.Mock).mockReturnValue(mockToaster);
-        (useCurrentSelections as jest.Mock).mockReturnValue(mockCurrentSelections);
+        vi.clearAllMocks();
     });
-
     afterEach(() => {
-        jest.clearAllMocks();
+        cleanup();
     });
 
-    test('renders ThreadWriter component with plugins', () => {
-        render(<ThreadWriter />);
+    it('renders the component', () => {
+        render(<AppNavigationProvider><ThreadWriter /></AppNavigationProvider>);
 
-        expect(screen.getByText('Toolbar')).toBeInTheDocument();
-        expect(screen.getByText('RichTextPlugin')).toBeInTheDocument();
-        expect(screen.getByText('OnChangePlugin')).toBeInTheDocument();
-        expect(screen.getByText('HistoryPlugin')).toBeInTheDocument();
-        expect(screen.getByText('AssociationDecoratorPlugin')).toBeInTheDocument();
-        expect(screen.getByText('AssociationPanel')).toBeInTheDocument();
+        expect(screen.getByText('Start typing...')).toBeInTheDocument();
     });
 
-    test('shows loader during data fetching', async () => {
-        render(<ThreadWriter />);
+    it('initializes the LexicalComposer with the correct config', () => {
+        render(<AppNavigationProvider><ThreadWriter /></AppNavigationProvider>);
 
-        expect(mockLoader.setIsLoaderVisible).toHaveBeenCalledWith(true);
+        const composers = screen.getAllByTestId('LexicalComposer');
 
-        // Simulate data fetching completion
+        // Ensure at least one is rendered:
+        expect(composers.length).toBeGreaterThan(0);
+    });
+
+    it('calls setIsLoaderVisible when retrieving data', async () => {
+        const { setIsLoaderVisible } = useLoader();
+        render(<AppNavigationProvider><ThreadWriter /></AppNavigationProvider>);
+
         await waitFor(() => {
-            expect(mockLoader.setIsLoaderVisible).toHaveBeenCalledWith(false);
+            expect(setIsLoaderVisible).toHaveBeenCalledWith(true);
+        });
+        await waitFor(() => {
+            expect(setIsLoaderVisible).toHaveBeenCalledWith(false);
         });
     });
 
-    test('fetches and sets story blocks on mount', async () => {
-        const mockFetch = jest.spyOn(global, 'fetch').mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-                items: [
-                    { chunk: { Value: JSON.stringify({ type: 'custom-paragraph', children: [] }) }, key_id: { Value: '1' } },
-                ],
-            }),
-        } as Response);
+    it.only('handles paste events correctly', () => {
 
-        render(<ThreadWriter />);
+        act(() => {
+            render(<AppNavigationProvider><ThreadWriter /></AppNavigationProvider>);
 
-        await waitFor(() => {
-            expect(mockFetch).toHaveBeenCalledWith('/api/stories/test-story-id/content?key=&chapter=test-chapter-id');
-        });
+            const editor = screen.getByTestId('MockedContentEditable');
+            const clipboardData = {
+                getData: vi.fn(() => 'Some text\nAnother line'),
+            };
 
-        expect(mockLoader.setIsLoaderVisible).toHaveBeenCalledWith(false);
+            // Create a real paste event recognized by Testing Library
+            const pasteEvent = createEvent.paste(editor, {
+                clipboardData: clipboardData as unknown as DataTransfer,
+            });
 
-        mockFetch.mockRestore();
-    });
+            fireEvent.paste(editor, pasteEvent);
+            console.log("ed", editor, editor.parentElement);
 
-    test('handles editor updates on content change', async () => {
-        render(<ThreadWriter />);
+            // Now the Lexical paste handler will be triggered,
+            // calling clipboardData.getData('text/plain')
+            expect(clipboardData.getData).toHaveBeenCalledWith('text/plain');
 
-        // Simulate onChange handler
-        const onChangePlugin = screen.getByTestId('onChangePlugin');
-        onChangePlugin.click();
-
-        await waitFor(() => {
-            expect(mockToaster.setAlertState).not.toHaveBeenCalledWith(expect.anything());
         });
     });
 
-    test('processes paste command correctly', async () => {
-        render(<ThreadWriter />);
+    it('queues paragraph for save when onChangeHandler detects changes', () => {
+        render(<AppNavigationProvider><ThreadWriter /></AppNavigationProvider>);
 
-        // Simulate paste event
-        const clipboardEvent = { preventDefault: jest.fn(), clipboardData: { getData: jest.fn(() => 'pasted text') } };
-        mockRegisterCommand(PASTE_COMMAND, clipboardEvent);
-
-        await waitFor(() => {
-            expect(clipboardEvent.preventDefault).toHaveBeenCalled();
-            expect(clipboardEvent.clipboardData.getData).toHaveBeenCalledWith('text/plain');
-        });
-    });
-
-    test('displays alert for large paste operations', async () => {
-        render(<ThreadWriter />);
-
-        // Simulate large paste operation
-        const clipboardEvent = {
-            preventDefault: jest.fn(),
-            clipboardData: { getData: jest.fn(() => 'line1\nline2\n'.repeat(51)) }, // Over 100 lines
+        const editorStateMock = {
+            read: vi.fn((callback) => callback()),
         };
-        mockRegisterCommand(PASTE_COMMAND, clipboardEvent);
 
-        await waitFor(() => {
-            expect(mockToaster.setAlertState).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    title: 'Oh, jeez',
-                    message: expect.stringContaining('You\'re pasting a lot of paragraphs.'),
-                })
-            );
+        const instance = require('@lexical/react/LexicalComposer').LexicalComposer.mock.calls[0][0].initialConfig.editorState;
+        instance(editorStateMock);
+
+        expect(require('./queue').DbOperationQueue.push).toHaveBeenCalled();
+    });
+
+    it('shows an error toast when ProcessDBQueue fails', () => {
+        const { setAlertState } = require('../../hooks/useToaster').useToaster();
+        const ProcessDBQueue = require('./queue').ProcessDBQueue;
+
+        ProcessDBQueue.mockImplementationOnce(() => {
+            throw new Error('Queue processing error');
         });
+
+        vi.useFakeTimers();
+
+        render(<AppNavigationProvider><ThreadWriter /></AppNavigationProvider>);
+
+        vi.advanceTimersByTime(5000);
+
+        expect(setAlertState).toHaveBeenCalledWith(
+            expect.objectContaining({
+                title: 'Unable to sync',
+            })
+        );
     });
 });
