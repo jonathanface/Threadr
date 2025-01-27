@@ -83,7 +83,7 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		chapterText += chk.Text
 	}
 	if chapterText == "" {
-		RespondWithError(w, http.StatusUnprocessableEntity, err.Error())
+		RespondWithError(w, http.StatusUnprocessableEntity, "Cannot process chapter")
 		return
 	}
 	openAIKey := os.Getenv("OPENAI_API_KEY")
@@ -160,7 +160,7 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	if len(response.Choices) > 0 && response.Choices[0].Message.Content != "" {
 		RespondWithJson(w, http.StatusOK, response.Choices[0].Message)
 	} else {
-		RespondWithError(w, http.StatusNoContent, err.Error())
+		RespondWithError(w, http.StatusNoContent, "invalid response from gpt")
 	}
 }
 
@@ -286,7 +286,6 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	const maxFileSize = 1024 * 1024 // 1 MB
-	const maxImageWidth = uint(400)
 	// image upload
 	err = r.ParseMultipartForm(10 << 20)
 	if err != nil {
