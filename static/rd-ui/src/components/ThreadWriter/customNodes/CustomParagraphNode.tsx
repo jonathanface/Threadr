@@ -1,4 +1,4 @@
-import { ParagraphNode, SerializedParagraphNode } from "lexical";
+import { LexicalEditor, ParagraphNode, SerializedParagraphNode } from "lexical";
 
 export interface CustomSerializedParagraphNode extends SerializedParagraphNode {
     key_id: string;
@@ -33,6 +33,21 @@ export class CustomParagraphNode extends ParagraphNode {
             key_id: this.__key_id || "",
             children: this.getChildren().map((child) => child.exportJSON()),
         };
+    }
+
+    exportDOM(editor: LexicalEditor): { element: HTMLElement } {
+        const element = document.createElement("p");
+
+        // Iterate over child nodes and append their content
+        const children = this.getChildren();
+        children.forEach((child) => {
+            const { element: childElement } = child.exportDOM(editor);
+            if (childElement) {
+                element.appendChild(childElement);
+            }
+        });
+
+        return { element };
     }
 
     setKeyId(key_id: string): void {

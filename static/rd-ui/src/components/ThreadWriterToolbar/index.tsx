@@ -14,6 +14,7 @@ import FormatAlignCenterIcon from '@mui/icons-material/FormatAlignCenter';
 import FormatAlignRightIcon from '@mui/icons-material/FormatAlignRight';
 import FormatAlignJustifyIcon from '@mui/icons-material/FormatAlignJustify';
 import styles from "./toolbar.module.css";
+import { DocumentExporter } from "./DocumentExporter";
 
 export const Toolbar = () => {
     const [editor] = useLexicalComposerContext();
@@ -108,6 +109,8 @@ export const Toolbar = () => {
             <IconButton className={alignment === 'justify' ? styles.active : ""} aria-label="justify" onClick={() => applyAlignment("justify")}>
                 <FormatAlignJustifyIcon fontSize="small" />
             </IconButton>
+            <DocumentExporter />
+
         </div>
     );
 };

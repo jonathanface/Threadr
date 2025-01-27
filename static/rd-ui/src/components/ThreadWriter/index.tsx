@@ -153,12 +153,20 @@ const serializeWithChildren = (node: ElementNode): CustomSerializedParagraphNode
 
 
 const generateTextHash = (editor: LexicalEditor): string => {
+  if (!editor) {
+    console.error("Editor instance is not initialized.");
+    return "";
+  }
   let hash = "";
 
   editor.getEditorState().read(() => {
     const root = $getRoot();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const traverseNode = (node: any) => {
+      if (typeof node.getKey !== 'function') {
+        console.error('Node is missing getKey method:', node);
+        return;
+      }
       const nodeKey = node.getKey();
       const nodeType = node.getType();
       const textContent = node.getTextContent();
@@ -237,18 +245,18 @@ export const ThreadWriter = () => {
       const data = await response.json();
       const nodeKeys = new Set<string>();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const remappedStoryBlocks = data.items.map((item: { chunk: any; key_id: any }) => {
-        nodeKeys.add(item.key_id.Value);
-        const fixed: CustomSerializedParagraphNode = item.chunk.Value
+      const remappedStoryBlocks = data.items?.map((item: { chunk: any; key_id: any }) => {
+        nodeKeys.add(item.key_id?.Value || '');
+        const fixed: CustomSerializedParagraphNode = item.chunk?.Value
           ? JSON.parse(item.chunk.Value)
           : generateBlankLine();
-        fixed.key_id = item.key_id.Value;
+        fixed.key_id = item.key_id?.Value || '';
 
         if (fixed.type !== CustomParagraphNode.getType()) {
           fixed.type = CustomParagraphNode.getType();
         }
         return fixed;
-      });
+      }) || [];
       previousNodeKeysRef.current = nodeKeys;
       setStoryBlocks({
         root: {
@@ -392,7 +400,6 @@ export const ThreadWriter = () => {
       try {
         setIsLoaderVisible(true);
         await getBatchedStoryBlocks("");
-        setIsLoaderVisible(true);
         await getAllAssociations();
       } catch (error: unknown) {
         console.error(`error retrieving story data ${error}`);
