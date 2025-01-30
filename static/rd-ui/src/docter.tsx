@@ -1,60 +1,30 @@
+
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 
 import { memo, useEffect } from "react";
 import "./css/main.css";
-import { ConfigPanelModal } from "./sections/UserConfigPanel";
 import { DocumentEditorPage } from "./sections/DocumentEditor";
-import { LoginPanelModal } from "./sections/LoginPanel";
 import { SplashPage } from "./sections/SplashPage";
 import { StoryAndSeriesListing } from "./sections/StoryAndSeriesListing";
 import { SubscribePanel } from "./sections/SubscribePanel";
-
-
-import { useHandleNavigationHandler } from "./hooks/useNavigationHandler";
 import { useFetchUserData } from "./hooks/useFetchUserData";
-import { CreatEditStoryPanel } from "./sections/CreateEditStoryPanel";
-import { StoryAction } from "./contexts/selections";
-import { useCurrentSelections } from "./hooks/useCurrentSelections";
 import { useWorksList } from "./hooks/useWorksList";
 import { HeaderMenu } from "./components/HeaderMenu";
+import { Navigate, Route, Routes } from "react-router-dom";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_KEY ?? "");
 
 export const Docter = memo(() => {
-  console.log("Docter mounted");
-  useEffect(() => {
-    return () => console.log("Docter unmounted");
-  }, []);
-
   const { isLoggedIn, userLoading } = useFetchUserData();
-  const { handleNavChange, navLoading } = useHandleNavigationHandler();
-  const { currentStory, currentStoryAction } = useCurrentSelections();
   const { seriesList, setSeriesList, storiesList, setStoriesList } = useWorksList();
-
   useEffect(() => {
-    handleNavChange();
-  }, [handleNavChange]);
-
-  const renderContent = () => {
-    if (
-      isLoggedIn &&
-      currentStory &&
-      currentStoryAction === StoryAction.editing
-    ) {
-      return <DocumentEditorPage />;
-    }
-    if (
-      (isLoggedIn && !currentStory) ||
-      (isLoggedIn && currentStory && currentStoryAction === StoryAction.none)
-    ) {
-      return <StoryAndSeriesListing seriesList={seriesList} setSeriesList={setSeriesList} storiesList={storiesList} setStoriesList={setStoriesList} />;
-    } else {
-      return <SplashPage />;
-    }
-  };
-
-  if (userLoading || navLoading) {
+    console.log("Docter mounted");
+    return () => {
+      console.log("Docter unmounted");
+    };
+  }, []);
+  if (userLoading) {
     return <div />;
   }
 
@@ -62,10 +32,39 @@ export const Docter = memo(() => {
     <div className="App">
       <HeaderMenu />
       <main>
-        {renderContent()}
-        <CreatEditStoryPanel seriesList={seriesList} setSeriesList={setSeriesList} storiesList={storiesList} setStoriesList={setStoriesList} />
+        <Routes>
+          <Route
+            path="/stories/:storyID"
+            element={
+              isLoggedIn ? (
+                <DocumentEditorPage />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+          <Route
+            path="/stories"
+            element={
+              isLoggedIn ? (
+                <StoryAndSeriesListing seriesList={seriesList} setSeriesList={setSeriesList} storiesList={storiesList} setStoriesList={setStoriesList} />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+          <Route
+            path="/"
+            element={isLoggedIn ? (
+              <Navigate to="/stories" replace />
+            ) : (
+              <SplashPage />
+            )}
+          />
+        </Routes>
+        {/* <CreatEditStoryPanel seriesList={seriesList} setSeriesList={setSeriesList} storiesList={storiesList} setStoriesList={setStoriesList} />
         <ConfigPanelModal />
-        <LoginPanelModal />
+        <LoginPanelModal /> */}
       </main>
       <Elements stripe={stripePromise}>
         <SubscribePanel />

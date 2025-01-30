@@ -1,3 +1,4 @@
+// src/hooks/useFetchUserData.ts
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { UserContext } from "../contexts/user";
 import { useLoader } from "./useLoader";
@@ -9,22 +10,25 @@ import {
 } from "../types/AlertToasts";
 
 export const useFetchUserData = () => {
-  const { setIsLoaderVisible } = useLoader();
+  const { showLoader, hideLoader } = useLoader();
   const { setAlertState } = useToaster();
   const userContext = useContext(UserContext);
   if (!userContext) {
     throw new Error("UserContext must be used within a UserContext.Provider");
   }
+
   const { userDetails, setUserDetails, setIsLoggedIn, isLoggedIn } = userContext;
-  const [userError, setUserError] = useState<Error | null>(null);
   const [userLoading, setUserLoading] = useState(true);
 
   const isFetchingRef = useRef(false);
 
   const fetchUserData = useCallback(async () => {
-    if (userDetails || isFetchingRef.current) return;
+    if (userDetails || isFetchingRef.current) {
+      console.log("fetchUserData aborted: userDetails present or already fetching");
+      return;
+    }
     isFetchingRef.current = true;
-    setIsLoaderVisible(true);
+    showLoader();
     try {
       const response = await fetch("/api/user", { credentials: "include" });
       if (!response.ok) throw new Error(`Fetch error: ${response.status}`);
@@ -47,29 +51,29 @@ export const useFetchUserData = () => {
         });
       }
 
-      setUserDetails(userData);
-      setIsLoggedIn(true);
+      if (!isLoggedIn && userData) {
+        setIsLoggedIn(true);
+        setUserDetails(userData);
+      }
     } catch (error) {
       console.error("Failed to fetch user data:", error);
-      setUserError(error as Error);
     } finally {
-      setIsLoaderVisible(false);
+      hideLoader();
       setUserLoading(false);
+      console.log("Finished fetchUserData");
     }
-    //eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setIsLoaderVisible, setAlertState, setUserDetails, setIsLoggedIn]);
+  }, [setUserDetails, setIsLoggedIn]);
 
   useEffect(() => {
     fetchUserData();
   }, [fetchUserData]);
 
+
   return {
     userDetails,
     setUserDetails,
-    userError,
     setIsLoggedIn,
     isLoggedIn,
     userLoading
   };
 };
-

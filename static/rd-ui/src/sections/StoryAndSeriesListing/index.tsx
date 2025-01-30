@@ -8,7 +8,6 @@ import { Story } from "../../types/Story";
 import { useToaster } from "../../hooks/useToaster";
 import { AlertToastType } from "../../types/AlertToasts";
 import { UserContext } from "../../contexts/user";
-import { useAppNavigation } from "../../hooks/useAppNavigation";
 
 interface StoryAndSeriesListingProps {
   seriesList: Series[] | null;
@@ -19,7 +18,6 @@ interface StoryAndSeriesListingProps {
 
 export const StoryAndSeriesListing = (props: StoryAndSeriesListingProps) => {
   const userData = useContext(UserContext);
-  const { setIsCreatingStory } = useAppNavigation();
   const { setAlertState } = useToaster();
 
   useEffect(() => {
@@ -47,7 +45,7 @@ export const StoryAndSeriesListing = (props: StoryAndSeriesListingProps) => {
   ]);
 
   const createNewStory = () => {
-    setIsCreatingStory(true);
+    // setIsCreatingStory(true);
   };
 
   // If there are works, we prepare our series and stories components.

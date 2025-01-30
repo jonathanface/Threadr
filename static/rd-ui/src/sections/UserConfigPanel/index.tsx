@@ -6,7 +6,6 @@ import DialogTitle from "@mui/material/DialogTitle";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import { useContext, useEffect, useState } from "react";
-import { useAppNavigation } from "../../hooks/useAppNavigation";
 import { useLoader } from "../../hooks/useLoader";
 import { AlertLink, AlertToastType } from "../../types/AlertToasts";
 import { useToaster } from "../../hooks/useToaster";
@@ -14,8 +13,6 @@ import { UserContext } from "../../contexts/user";
 
 export const ConfigPanelModal = () => {
   const userData = useContext(UserContext);
-  const { isConfigPanelOpen, setIsSubscriptionFormOpen, setIsConfigPanelOpen } =
-    useAppNavigation();
   const { setIsLoaderVisible } = useLoader();
   const { setAlertState } = useToaster();
 
@@ -26,7 +23,7 @@ export const ConfigPanelModal = () => {
 
   const subscribe = () => {
     handleClose();
-    setIsSubscriptionFormOpen(true);
+    //setIsSubscriptionFormOpen(true);
   };
 
   const toggleSubscriptionRenewal = async () => {
@@ -84,11 +81,11 @@ export const ConfigPanelModal = () => {
   }, [userData?.userDetails, isCustomer]);
 
   const handleClose = () => {
-    setIsConfigPanelOpen(false);
+    //setIsConfigPanelOpen(false);
   };
 
   return (
-    <Dialog open={isConfigPanelOpen} onClose={handleClose}>
+    <Dialog open={false} onClose={handleClose}>
       <DialogTitle>Account Settings</DialogTitle>
       <DialogContent>
         <Box component="form">

@@ -1,5 +1,5 @@
 import Backdrop from "@mui/material/Backdrop";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { FormGroup, TextField } from "@mui/material";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
@@ -7,8 +7,7 @@ import { PortraitDropper } from "../PortraitDropper";
 import styles from "./association-ui.module.css";
 import { UCWords } from "../ThreadWriter/utilities";
 import { Association, SimplifiedAssociation } from "../../types/Associations";
-import { useAppNavigation } from "../../hooks/useAppNavigation";
-import { useCurrentSelections } from "../../hooks/useCurrentSelections";
+import { useSelections } from "../../hooks/useSelections";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -62,19 +61,22 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
   );
   const [description, setDescription] = useState('');
   const [background, setBackground] = useState('');
-  const { isAssociationPanelOpen, setIsAssociationPanelOpen } = useAppNavigation();
-  const { currentAssociationID, currentStory, deselectAssociation } = useCurrentSelections();
+  const { story } = useSelections();
+  const isProgrammaticChange = useRef(false);
 
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const bgEditorRef = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const descriptionEditorRef = useRef<any>(null);
-  const { setIsLoaderVisible } = useLoader();
+  //const { showLoader, hideLoader } = useLoader();
   const [fullAssociations, setFullAssociations] = useState<Association[] | null>(null);
   const [exclusionList, setExclusionList] = useState<string[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
+  const setProgrammaticChange = useCallback((value: boolean) => {
+    isProgrammaticChange.current = value;
+  }, []);
 
   const clearData = () => {
     setCaseSensitive(false);
@@ -92,165 +94,165 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
   }
 
   const handleClose = () => {
-    deselectAssociation();
+    //deselectAssociation();
     setIsInitialLoad(true);
-    setIsAssociationPanelOpen(false);
+    //setIsAssociationPanelOpen(false);
     setTimeout(() => {
       clearData();
     }, 500);
   };
 
-  useEffect(() => {
-    if (isAssociationPanelOpen && props.associations) {
-      if (isInitialLoad) {
-        setFullAssociations(
-          props.associations.map(assoc => ({
-            association_id: assoc.association_id,
-            association_name: assoc.association_name,
-            association_type: assoc.association_type,
-            short_description: assoc.short_description,
-            portrait: assoc.portrait,
-            details: {
-              aliases: "",
-              case_sensitive: true,
-              extended_description: "",
-            },
-          }))
-        );
-      }
-      if (currentStory && currentAssociationID) {
-        const thisAssociation = props.associations.find(assoc => assoc.association_id === currentAssociationID);
-        if (thisAssociation) {
-          setName(UCWords(thisAssociation.association_name));
-          setImageURL(thisAssociation.portrait);
-        }
-      }
-    }
-  }, [isAssociationPanelOpen, props.associations, isInitialLoad]);
+  // useEffect(() => {
+  //   if (isAssociationPanelOpen && props.associations) {
+  //     if (isInitialLoad) {
+  //       setFullAssociations(
+  //         props.associations.map(assoc => ({
+  //           association_id: assoc.association_id,
+  //           association_name: assoc.association_name,
+  //           association_type: assoc.association_type,
+  //           short_description: assoc.short_description,
+  //           portrait: assoc.portrait,
+  //           details: {
+  //             aliases: "",
+  //             case_sensitive: true,
+  //             extended_description: "",
+  //           },
+  //         }))
+  //       );
+  //     }
+  //     if (currentStory && currentAssociationID) {
+  //       const thisAssociation = props.associations.find(assoc => assoc.association_id === currentAssociationID);
+  //       if (thisAssociation) {
+  //         setName(UCWords(thisAssociation.association_name));
+  //         setImageURL(thisAssociation.portrait);
+  //       }
+  //     }
+  //   }
+  // }, [isAssociationPanelOpen, props.associations, isInitialLoad]);
 
-  useEffect(() => {
-    const fetchAssociationDetails = async () => {
-      if (!currentStory || !currentAssociationID || !isInitialLoad || !fullAssociations) return;
-      try {
-        setIsLoaderVisible(true);
-        const response = await fetch(`/api/stories/${currentStory.story_id}/associations/${currentAssociationID}`);
-        if (!response.ok) throw response;
-        const association = await response.json() as Association;
-        setFullAssociations(fullAssociations.map(assoc => {
-          if (assoc.association_id === currentAssociationID) {
-            return association;
-          }
-          return assoc;
-        }));
-        setDescription(association.short_description);
-        setCaseSensitive(association.details.case_sensitive);
-        setAliases(association.details.aliases);
-        setBackground(association.details.extended_description);
-        setExclusionList([association.association_name, ...association.details.aliases.split(',')]);
-      } catch (error: unknown) {
-        console.error(`error fetching association details: ${error}`);
-      } finally {
-        setIsLoaderVisible(false);
-        setIsInitialLoad(false);
-      }
-    };
+  // useEffect(() => {
+  //   const fetchAssociationDetails = async () => {
+  //     if (!currentStory || !currentAssociationID || !isInitialLoad || !fullAssociations) return;
+  //     try {
+  //       setIsLoaderVisible(true);
+  //       const response = await fetch(`/api/stories/${currentStory.story_id}/associations/${currentAssociationID}`);
+  //       if (!response.ok) throw response;
+  //       const association = await response.json() as Association;
+  //       setFullAssociations(fullAssociations.map(assoc => {
+  //         if (assoc.association_id === currentAssociationID) {
+  //           return association;
+  //         }
+  //         return assoc;
+  //       }));
+  //       setDescription(association.short_description);
+  //       setCaseSensitive(association.details.case_sensitive);
+  //       setAliases(association.details.aliases);
+  //       setBackground(association.details.extended_description);
+  //       setExclusionList([association.association_name, ...association.details.aliases.split(',')]);
+  //     } catch (error: unknown) {
+  //       console.error(`error fetching association details: ${error}`);
+  //     } finally {
+  //       setIsLoaderVisible(false);
+  //       setIsInitialLoad(false);
+  //     }
+  //   };
 
-    if (isAssociationPanelOpen) {
-      fetchAssociationDetails();
-    }
-  }, [isAssociationPanelOpen, currentAssociationID, currentStory, isInitialLoad, fullAssociations]);
+  //   if (isAssociationPanelOpen) {
+  //     fetchAssociationDetails();
+  //   }
+  // }, [isAssociationPanelOpen, currentAssociationID, currentStory, isInitialLoad, fullAssociations]);
 
-  const onAssociationEdit = (newValue: string | boolean, id: string) => {
-    if (!currentAssociationID || !fullAssociations || isInitialLoad) return;
+  // const onAssociationEdit = (newValue: string | boolean, id: string) => {
+  //   if (!currentAssociationID || !fullAssociations || isInitialLoad) return;
 
-    setFullAssociations(prev => prev ?
-      prev?.map(assoc => {
-        if (assoc.association_id === currentAssociationID) {
-          const updatedAssociation = { ...assoc };
-          let saveRequired = false;
+  //   setFullAssociations(prev => prev ?
+  //     prev?.map(assoc => {
+  //       if (assoc.association_id === currentAssociationID) {
+  //         const updatedAssociation = { ...assoc };
+  //         let saveRequired = false;
 
-          switch (id) {
-            case "case":
-              if (typeof newValue === "boolean" && updatedAssociation.details.case_sensitive !== newValue) {
-                updatedAssociation.details.case_sensitive = newValue;
-                saveRequired = true;
-              }
-              break;
-            case "description":
-              if (typeof newValue === "string" && updatedAssociation.short_description !== newValue) {
-                updatedAssociation.short_description = newValue.trim();
-                saveRequired = true;
-              }
-              break;
-            case "background":
-              if (typeof newValue === "string" && updatedAssociation.details.extended_description !== newValue) {
-                updatedAssociation.details.extended_description = newValue.trim();
-                saveRequired = true;
-              }
-              break;
-            case "aliases":
-              if (typeof newValue === "string" && updatedAssociation.details.aliases !== newValue) {
-                updatedAssociation.details.aliases = newValue.trim();
-                saveRequired = true;
-              }
-              break;
-            case "portrait":
-              if (typeof newValue === "string" && updatedAssociation.portrait !== newValue) {
-                updatedAssociation.portrait = newValue;
-                saveRequired = true;
-              }
-              break;
-          }
+  //         switch (id) {
+  //           case "case":
+  //             if (typeof newValue === "boolean" && updatedAssociation.details.case_sensitive !== newValue) {
+  //               updatedAssociation.details.case_sensitive = newValue;
+  //               saveRequired = true;
+  //             }
+  //             break;
+  //           case "description":
+  //             if (typeof newValue === "string" && updatedAssociation.short_description !== newValue) {
+  //               updatedAssociation.short_description = newValue.trim();
+  //               saveRequired = true;
+  //             }
+  //             break;
+  //           case "background":
+  //             if (typeof newValue === "string" && updatedAssociation.details.extended_description !== newValue) {
+  //               updatedAssociation.details.extended_description = newValue.trim();
+  //               saveRequired = true;
+  //             }
+  //             break;
+  //           case "aliases":
+  //             if (typeof newValue === "string" && updatedAssociation.details.aliases !== newValue) {
+  //               updatedAssociation.details.aliases = newValue.trim();
+  //               saveRequired = true;
+  //             }
+  //             break;
+  //           case "portrait":
+  //             if (typeof newValue === "string" && updatedAssociation.portrait !== newValue) {
+  //               updatedAssociation.portrait = newValue;
+  //               saveRequired = true;
+  //             }
+  //             break;
+  //         }
 
-          if (saveRequired) {
-            props.onEditCallback(updatedAssociation);
-          }
+  //         if (saveRequired) {
+  //           props.onEditCallback(updatedAssociation);
+  //         }
 
-          return updatedAssociation;
-        }
+  //         return updatedAssociation;
+  //       }
 
-        return assoc;
-      }) : prev
-    );
-  };
+  //       return assoc;
+  //     }) : prev
+  //   );
+  // };
 
-  const processImage = (acceptedFiles: File[]) => {
-    if (!currentAssociationID || !currentStory) {
-      return;
-    }
-    const thisAssociation = fullAssociations?.find((assoc: Association) => { return assoc.association_id === currentAssociationID });
-    if (!thisAssociation) return;
-    acceptedFiles.forEach((file) => {
-      const reader = new FileReader();
-      reader.onabort = () => console.log("file reading was aborted");
-      reader.onerror = () => console.log("file reading has failed");
-      reader.onload = () => {
-        const formData = new FormData();
-        formData.append("file", file);
-        fetch(
-          "/api/stories/" +
-          currentStory.story_id +
-          "/associations/" +
-          thisAssociation.association_id +
-          "/upload?type=" +
-          thisAssociation.association_type,
-          { credentials: "include", method: "PUT", body: formData }
-        )
-          .then((response) => {
-            if (response.ok) {
-              return response.json();
-            }
-            throw new Error("Fetch problem image upload " + response.status);
-          })
-          .then((data) => {
-            setImageURL(data.url + "?date=" + Date.now());
-            onAssociationEdit(data.url, "portrait");
-          })
-          .catch((error) => console.error(error));
-      };
-      reader.readAsArrayBuffer(file);
-    });
-  };
+  // const processImage = (acceptedFiles: File[]) => {
+  //   if (!currentAssociationID || !currentStory) {
+  //     return;
+  //   }
+  //   const thisAssociation = fullAssociations?.find((assoc: Association) => { return assoc.association_id === currentAssociationID });
+  //   if (!thisAssociation) return;
+  //   acceptedFiles.forEach((file) => {
+  //     const reader = new FileReader();
+  //     reader.onabort = () => console.log("file reading was aborted");
+  //     reader.onerror = () => console.log("file reading has failed");
+  //     reader.onload = () => {
+  //       const formData = new FormData();
+  //       formData.append("file", file);
+  //       fetch(
+  //         "/api/stories/" +
+  //         currentStory.story_id +
+  //         "/associations/" +
+  //         thisAssociation.association_id +
+  //         "/upload?type=" +
+  //         thisAssociation.association_type,
+  //         { credentials: "include", method: "PUT", body: formData }
+  //       )
+  //         .then((response) => {
+  //           if (response.ok) {
+  //             return response.json();
+  //           }
+  //           throw new Error("Fetch problem image upload " + response.status);
+  //         })
+  //         .then((data) => {
+  //           setImageURL(data.url + "?date=" + Date.now());
+  //           onAssociationEdit(data.url, "portrait");
+  //         })
+  //         .catch((error) => console.error(error));
+  //     };
+  //     reader.readAsArrayBuffer(file);
+  //   });
+  // };
 
   useEffect(() => {
     if (bgEditorRef.current) {
@@ -290,21 +292,21 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
     clearData();
   }
 
-  const extractTextAndSave = (editorState: EditorState, type: string) => {
-    let textContent = "";
-    editorState.read(() => {
-      const root = $getRoot();
-      root.getChildren().forEach((node) => {
-        textContent += node.getTextContent();
-      });
-    });
-    onAssociationEdit(textContent, type);
-  }
+  // const extractTextAndSave = (editorState: EditorState, type: string) => {
+  //   let textContent = "";
+  //   editorState.read(() => {
+  //     const root = $getRoot();
+  //     root.getChildren().forEach((node) => {
+  //       textContent += node.getTextContent();
+  //     });
+  //   });
+  //   onAssociationEdit(textContent, type);
+  // }
 
   return (
     <Backdrop
       onClick={handleClose}
-      open={isAssociationPanelOpen}
+      open={false}
       className={styles.associationUIBG}
     >
       <div
@@ -317,7 +319,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
           <PortraitDropper
             imageURL={imageURL}
             name={name}
-            onComplete={processImage}
+          //onComplete={processImage}
           />
         </div>
         <div className={styles.column}>
@@ -328,7 +330,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
             <div className={styles.detailBubble}>
               Overview
               <div className={styles.docBG}>
-                <LexicalComposer initialConfig={{
+                {/* <LexicalComposer initialConfig={{
                   editable: false,
                   ...descriptionConfig,
                   editorState: (editor) => {
@@ -342,20 +344,20 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
                       const editor = descriptionEditorRef.current;
                       if (editor) {
                         const editorState = editor.getEditorState();
-                        extractTextAndSave(editorState, "description");
+                        //extractTextAndSave(editorState, "description");
                       }
                     }} />}
                     ErrorBoundary={LexicalErrorBoundary}
                   />
                   <HistoryPlugin />
-                  <AssociationDecoratorPlugin associations={props.associations} customLeftClick={onAssociationClick} exclusionList={exclusionList} />
-                </LexicalComposer>
+                  <AssociationDecoratorPlugin associations={props.associations} setProgrammaticChange={setProgrammaticChange} customLeftClick={onAssociationClick} exclusionList={exclusionList} />
+                </LexicalComposer> */}
               </div>
             </div>
             <div className={styles.detailBubble}>
               Background
               <div className={styles.docBG}>
-                <LexicalComposer initialConfig={{
+                {/* <LexicalComposer initialConfig={{
                   editable: false,
                   ...bgConfig,
                   editorState: (editor) => {
@@ -368,14 +370,14 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
                       const editor = bgEditorRef.current;
                       if (editor) {
                         const editorState = editor.getEditorState();
-                        extractTextAndSave(editorState, "background");
+                        //extractTextAndSave(editorState, "background");
                       }
                     }} />}
                     ErrorBoundary={LexicalErrorBoundary}
                   />
                   <HistoryPlugin />
-                  <AssociationDecoratorPlugin associations={props.associations} customLeftClick={onAssociationClick} />
-                </LexicalComposer>
+                  <AssociationDecoratorPlugin associations={props.associations} setProgrammaticChange={setProgrammaticChange} customLeftClick={onAssociationClick} />
+                </LexicalComposer> */}
               </div>
             </div>
             <div className={styles.associationForm}>
@@ -387,7 +389,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
                   setAliases(event.target.value);
                 }}
                 onBlur={(event) => {
-                  onAssociationEdit(event.target.value, "aliases");
+                  //onAssociationEdit(event.target.value, "aliases");
                 }}
                 sx={{
                   label: {
@@ -404,7 +406,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
                     <Switch
                       onChange={() => {
                         setCaseSensitive(!caseSensitive);
-                        onAssociationEdit(!caseSensitive, "case");
+                        //onAssociationEdit(!caseSensitive, "case");
                       }}
                       checked={caseSensitive || false}
                     />

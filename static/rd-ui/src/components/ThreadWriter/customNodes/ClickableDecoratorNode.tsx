@@ -1,7 +1,6 @@
 import { DecoratorNode, NodeKey } from "lexical";
 import { JSX } from "react";
-import { useAppNavigation } from "../../../hooks/useAppNavigation";
-import { useCurrentSelections } from "../../../hooks/useCurrentSelections";
+import { useSelections } from "../../../hooks/useSelections";
 import { AssociationTooltip } from "../../AssociationTooltip";
 
 export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
@@ -111,15 +110,15 @@ export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
 const ClickableDecorator = ({ name, id, shortDescription, associationType, portrait, classModifier, leftClickCallback }: {
     name: string, id: string, shortDescription: string, associationType: string, portrait: string, classModifier: string | undefined, leftClickCallback?: () => void
 }) => {
-    const { setIsAssociationPanelOpen } = useAppNavigation();
-    const { setCurrentAssociationID } = useCurrentSelections();
+    //const { setIsAssociationPanelOpen } = useAppNavigation();
+    //const { setCurrentAssociationID } = useSelections();
 
     const handleLeftClick = () => {
         if (leftClickCallback) {
             leftClickCallback();
         }
-        setCurrentAssociationID(id);
-        setIsAssociationPanelOpen(true);
+        //setCurrentAssociationID(id);
+        //setIsAssociationPanelOpen(true);
     }
 
     const handleRightClick = (event: React.MouseEvent) => {

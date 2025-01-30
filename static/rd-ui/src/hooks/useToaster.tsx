@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+// src/hooks/useToaster.ts
+import { useEffect, useCallback } from "react";
 import { AlertCommandType } from "../types/AlertToasts";
 import { useAlertContext } from "../contexts/alert";
 
@@ -6,21 +7,22 @@ export const useToaster = () => {
   const { alertState, clearAlert, setAlertState } = useAlertContext();
 
   useEffect(() => {
-    // Add any side-effects related to alertState changes here
+    // Handle side-effects related to alertState changes here
+    // For example, automatically clear alerts after a timeout
   }, [alertState]);
 
-  const handleFunc = () => {
-    if (alertState.callback) {
+  const handleFunc = useCallback(() => {
+    if (alertState?.callback) {
       switch (alertState.callback.type) {
         case AlertCommandType.subscribe:
-          //dispatch(setIsSubscriptionFormOpen(true));
-          console.log("Open subscription form"); // Replace with actual logic
+          // Implement the actual logic here
+          console.log("Open subscription form");
           break;
         default:
           break;
       }
     }
-  };
+  }, [alertState]);
 
   return { alertState, clearAlert, handleFunc, setAlertState };
 };

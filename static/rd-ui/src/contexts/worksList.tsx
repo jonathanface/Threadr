@@ -1,4 +1,4 @@
-import { createContext, useMemo, useState } from "react"
+import { createContext, useEffect, useMemo, useState } from "react"
 import { Series } from "../types/Series"
 import { Story } from "../types/Story"
 
@@ -17,6 +17,14 @@ export const WorksListContext = createContext<WorksList | undefined>(
 export const WorksListProvider: React.FC<{
     children: React.ReactNode;
 }> = ({ children }) => {
+
+    useEffect(() => {
+        console.log("WorksListProvider mounted");
+        return () => {
+            console.log("WorksListProvider unmounted");
+        };
+    }, []);
+
     const [seriesList, setSeriesList] = useState<Series[] | null>(null);
     const [storiesList, setStoriesList] = useState<Story[] | null>(null);
 
@@ -27,7 +35,7 @@ export const WorksListProvider: React.FC<{
             storiesList,
             setStoriesList,
         }),
-        [seriesList, storiesList] // Only recompute when these values change
+        [seriesList, storiesList]
     );
 
     return (

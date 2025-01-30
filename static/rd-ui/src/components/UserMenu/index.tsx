@@ -4,48 +4,27 @@ import { useContext, useState } from "react";
 import styles from "./user-menu.module.css";
 import { useLoader } from "../../hooks/useLoader";
 import { UserContext } from "../../contexts/user";
-import { useAppNavigation } from "../../hooks/useAppNavigation";
-import { useCurrentSelections } from "../../hooks/useCurrentSelections";
 
 export const UserMenu = () => {
   const userData = useContext(UserContext);
-  const { setIsLoaderVisible } = useLoader();
+  const { showLoader, hideLoader } = useLoader();
 
   const [isOpen, setIsOpen] = useState(false);
-  const { setIsLoginPanelOpen, setIsConfigPanelOpen, setIsSubscriptionFormOpen } = useAppNavigation();
-  const selectionsData = useCurrentSelections();
 
-  const signout = () => {
-    setIsLoaderVisible(false);
-    fetch("/logout", {
-      method: "DELETE",
-    })
-      .then((response) => {
-        if (response.ok) {
-          selectionsData.setCurrentStory(undefined);
-          selectionsData.setCurrentSeries(undefined);
-          userData?.setIsLoggedIn(true);
-          const history = window.history;
-          history.pushState({}, "", "/");
-          return;
-        }
-        throw new Error("Fetch problem logout " + response.status);
-      })
-      .catch((error) => {
-        console.error(error);
+  const signout = async () => {
+    showLoader();
+    try {
+      const response = await fetch("/logout", {
+        method: "DELETE",
       });
-  };
-
-  const subscribe = () => {
-    setIsSubscriptionFormOpen(true);
-  };
-
-  const showUserSettings = () => {
-    setIsConfigPanelOpen(true);
-  };
-
-  const showLoginPanel = () => {
-    setIsLoginPanelOpen(true);
+      if (!response.ok) {
+        throw new Error(`Unable to logout: ${response.status}`);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      hideLoader();
+    }
   };
 
   const displayComponent = userData?.isLoggedIn ? (
@@ -62,16 +41,16 @@ export const UserMenu = () => {
       </span>
       {isOpen && (
         <ul>
-          {userData?.userDetails?.subscription_id === "" && (
+          {/* {userData?.userDetails?.subscription_id === "" && (
             <li onClick={subscribe}>Subscribe</li>
           )}
-          <li onClick={showUserSettings}>Settings</li>
+          <li onClick={showUserSettings}>Settings</li> */}
           <li onClick={signout}>Signout</li>
         </ul>
       )}
     </span>
   ) : (
-    <a onClick={showLoginPanel}>Register / SignIn</a>
+    <a>Register / SignIn</a>
   );
 
   return <span className={styles.userMenu}>{displayComponent}</span>;

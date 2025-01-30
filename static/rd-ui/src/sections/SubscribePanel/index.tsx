@@ -10,7 +10,6 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import { StripeCardElementChangeEvent } from "@stripe/stripe-js";
-import { useAppNavigation } from "../../hooks/useAppNavigation";
 import { useToaster } from "../../hooks/useToaster";
 import { AlertToastType } from "../../types/AlertToasts";
 
@@ -37,17 +36,14 @@ export const SubscribePanel = () => {
     null
   );
   const [product, setProduct] = useState<Product | null>(null);
-
-  const { isSubscriptionFormOpen, setIsSubscriptionFormOpen } =
-    useAppNavigation();
   const { setAlertState } = useToaster();
 
   const stripe = useStripe();
   const elements = useElements();
 
-  const handleClose = useCallback(() => {
-    setIsSubscriptionFormOpen(false);
-  }, [setIsSubscriptionFormOpen]);
+  const handleClose = () => {
+    //setIsSubscriptionFormOpen(false);
+  };
 
   const confirmCard = async () => {
     setSubscribeError("");
@@ -200,19 +196,19 @@ export const SubscribePanel = () => {
       });
   };
 
-  useEffect(() => {
-    if (isSubscriptionFormOpen) {
-      if (!customerID.length) {
-        getOrCreateStripeCustomer();
-        getProducts();
-      }
-    }
-  }, [
-    isSubscriptionFormOpen,
-    customerID,
-    paymentMethod,
-    getOrCreateStripeCustomer,
-  ]);
+  // useEffect(() => {
+  //   if (isSubscriptionFormOpen) {
+  //     if (!customerID.length) {
+  //       getOrCreateStripeCustomer();
+  //       getProducts();
+  //     }
+  //   }
+  // }, [
+  //   isSubscriptionFormOpen,
+  //   customerID,
+  //   paymentMethod,
+  //   getOrCreateStripeCustomer,
+  // ]);
 
   const handleCardElementChange = (e: StripeCardElementChangeEvent) => {
     if (e.error) {
@@ -230,7 +226,7 @@ export const SubscribePanel = () => {
 
   return (
     <Dialog
-      open={isSubscriptionFormOpen}
+      open={false}
       maxWidth={"md"}
       fullWidth={true}
       onClose={handleClose}

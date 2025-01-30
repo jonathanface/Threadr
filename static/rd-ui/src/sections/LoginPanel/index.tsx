@@ -1,17 +1,15 @@
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import { useAppNavigation } from "../../hooks/useAppNavigation";
 
 export const LoginPanelModal = () => {
-  const { isLoginPanelOpen, setIsLoginPanelOpen } = useAppNavigation();
 
   const handleClose = () => {
-    setIsLoginPanelOpen(false);
+    //setIsLoginPanelOpen(false);
   };
 
   return (
-    <Dialog open={isLoginPanelOpen} onClose={handleClose}>
+    <Dialog open={false} onClose={handleClose}>
       <DialogTitle>Sigin Options</DialogTitle>
       <DialogContent>
         <p>

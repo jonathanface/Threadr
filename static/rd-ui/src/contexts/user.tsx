@@ -1,36 +1,41 @@
-import { createContext, useMemo, useState } from "react";
+// src/contexts/user.tsx
+import React, { createContext, useMemo, useState, ReactNode, useEffect } from "react";
 import { UserDetails } from "../types/User";
 
-export type UserContextType = {
-  isLoggedIn: boolean;
+
+interface UserContextType {
   userDetails: UserDetails | null;
-  setIsLoggedIn: React.Dispatch<React.SetStateAction<boolean>>;
   setUserDetails: React.Dispatch<React.SetStateAction<UserDetails | null>>;
-};
+  isLoggedIn: boolean;
+  setIsLoggedIn: React.Dispatch<React.SetStateAction<boolean>>;
+}
 
-// eslint-disable-next-line react-refresh/only-export-components
-export const UserContext = createContext<UserContextType | undefined>(
-  undefined
-);
+export const UserContext = createContext<UserContextType | undefined>(undefined);
 
-export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  console.log("UserProvider mounted");
+export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
-  const userValue: UserContextType = useMemo(
+  const userValue = useMemo(
     () => ({
       userDetails,
-      isLoggedIn,
       setUserDetails,
+      isLoggedIn,
       setIsLoggedIn,
     }),
     [userDetails, isLoggedIn]
   );
 
+  useEffect(() => {
+    console.log("UserProvider mounted");
+    return () => {
+      console.log("UserProvider unmounted");
+    };
+  }, []);
+
   return (
-    <UserContext.Provider value={userValue}>{children}</UserContext.Provider>
+    <UserContext.Provider value={userValue}>
+      {children}
+    </UserContext.Provider>
   );
 };

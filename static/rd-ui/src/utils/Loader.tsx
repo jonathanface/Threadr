@@ -3,12 +3,13 @@ import CircularProgress from "@mui/material/CircularProgress";
 import { useLoader } from "../hooks/useLoader";
 
 export const Loader = () => {
-  const { isLoaderVisible } = useLoader();
+  const { loadingCount } = useLoader();
+
+  if (loadingCount === 0) {
+    return null; // Don't render anything if not loading
+  }
   return (
-    <div
-      className="loading-screen"
-      style={{ visibility: isLoaderVisible ? "visible" : "hidden" }}
-    >
+    <div className="loading-screen">
       <Box className="progress-box" />
       <Box className="prog-anim-holder">
         <CircularProgress />

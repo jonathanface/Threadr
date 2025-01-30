@@ -1,4 +1,4 @@
-import { LexicalEditor, ParagraphNode, SerializedParagraphNode } from "lexical";
+import { EditorConfig, LexicalEditor, ParagraphNode, SerializedParagraphNode } from "lexical";
 
 export interface CustomSerializedParagraphNode extends SerializedParagraphNode {
     key_id: string;
@@ -57,5 +57,14 @@ export class CustomParagraphNode extends ParagraphNode {
 
     getKeyId(): string | null {
         return this.__key_id;
+    }
+
+    createDOM(config: EditorConfig): HTMLElement {
+        const element = super.createDOM(config); // Creates the default <p> element
+        const className = config.theme['custom-paragraph']; // Get the class from the theme
+        if (className) {
+            element.className = className; // Apply the custom class
+        }
+        return element;
     }
 }

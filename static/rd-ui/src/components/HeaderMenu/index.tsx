@@ -1,11 +1,11 @@
-import { useCurrentSelections } from "../../hooks/useCurrentSelections";
+
 import { UserMenu } from "..//UserMenu"
 
 import styles from "./headermenu.module.css";
 
 export const HeaderMenu = () => {
 
-  const { currentStory, currentSeries } = useCurrentSelections();
+  // const { currentStory, currentSeries } = useCurrentSelections();
 
   return (
     <header className={styles.header}>
@@ -16,8 +16,8 @@ export const HeaderMenu = () => {
           src="/img/logo_trans_scaled.png"
         />
         <span className={styles.storyInfo}>
-          <div>{currentStory?.title}</div>
-          <div className={styles.seriesInfo}>{currentSeries?.series_title}</div>
+          {/* <div>{currentStory?.title}</div> */}
+          {/* <div className={styles.seriesInfo}>{currentSeries?.series_title}</div> */}
         </span>
       </span>
       <UserMenu />

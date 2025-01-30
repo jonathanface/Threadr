@@ -6,7 +6,6 @@ import DialogTitle from "@mui/material/DialogTitle";
 import React, { useCallback, useEffect, useState } from "react";
 import { Autocomplete, TextField } from "@mui/material";
 import styles from "./createEditStoryPanel.module.css";
-import { useAppNavigation } from "../../hooks/useAppNavigation";
 import { useToaster } from "../../hooks/useToaster";
 import { AlertCommandType, AlertState, AlertToastType } from "../../types/AlertToasts";
 import { useLoader } from "../../hooks/useLoader";
@@ -39,7 +38,6 @@ interface CreateEditStoryPanelProps {
 }
 
 export const CreatEditStoryPanel = (props: CreateEditStoryPanelProps) => {
-  const { isCreatingStory, setIsCreatingStory, storyPreassignSeriesID } = useAppNavigation();
   const { setAlertState } = useToaster();
   const { setIsLoaderVisible } = useLoader();
 
@@ -97,7 +95,7 @@ export const CreatEditStoryPanel = (props: CreateEditStoryPanelProps) => {
   };
 
   const handleClose = () => {
-    setIsCreatingStory(false);
+    // setIsCreatingStory(false);
     resetForm();
   };
 
@@ -124,24 +122,24 @@ export const CreatEditStoryPanel = (props: CreateEditStoryPanelProps) => {
     }
   }, [imageURL, attachImageToForm]);
 
-  useEffect(() => {
-    if (isCreatingStory) {
-      getDefaultImage();
-    }
-    if (storyPreassignSeriesID !== "") {
-      setIsInASeries(true);
-    }
+  // useEffect(() => {
+  //   if (isCreatingStory) {
+  //     getDefaultImage();
+  //   }
+  //   if (storyPreassignSeriesID !== "") {
+  //     setIsInASeries(true);
+  //   }
 
-    setSeriesDisplayList(
-      props.seriesList?.map((entry) => {
-        return {
-          label: entry.series_title,
-          id: entry.series_id,
-          count: entry.stories.length,
-        };
-      }) || []
-    );
-  }, [isCreatingStory, props.seriesList, storyPreassignSeriesID]);
+  //   setSeriesDisplayList(
+  //     props.seriesList?.map((entry) => {
+  //       return {
+  //         label: entry.series_title,
+  //         id: entry.series_id,
+  //         count: entry.stories.length,
+  //       };
+  //     }) || []
+  //   );
+  // }, [isCreatingStory, props.seriesList, storyPreassignSeriesID]);
 
   useEffect(() => {
 
@@ -274,7 +272,7 @@ export const CreatEditStoryPanel = (props: CreateEditStoryPanelProps) => {
   };
 
   return (
-    <Dialog open={isCreatingStory} onClose={handleClose} className={styles.storyForm}>
+    <Dialog open={false} onClose={handleClose} className={styles.storyForm}>
       <DialogTitle>Create a Story</DialogTitle>
       <DialogContent>
         <div className={styles.content}>

@@ -1,14 +1,11 @@
+// src/hooks/useLoader.ts
 import { useContext } from "react";
-import { LoaderContext } from "../contexts/loader";
+import { LoaderContext, LoaderContextType } from "../contexts/loader";
 
-export const useLoader = () => {
-  const loaderContext = useContext(LoaderContext);
-  if (!loaderContext) {
-    throw new Error(
-      "LoaderContext must be used within a LoaderContext.Provider"
-    );
+export const useLoader = (): LoaderContextType => {
+  const context = useContext(LoaderContext);
+  if (!context) {
+    throw new Error('useLoader must be used within a LoaderProvider');
   }
-  const { isLoaderVisible, setIsLoaderVisible } = loaderContext;
-
-  return { isLoaderVisible, setIsLoaderVisible };
+  return context;
 };

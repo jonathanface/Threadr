@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { startTransition, useCallback, useEffect, useRef, useState } from 'react';
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -27,10 +27,16 @@ import { AssociationDecoratorPlugin } from './plugins/AssociationDecoratorPlugin
 import { ClickableDecoratorNode } from './customNodes/ClickableDecoratorNode';
 import { Association, SimplifiedAssociation } from '../../types/Associations';
 import { AssociationPanel } from '../AssociationPanel';
-import { useCurrentSelections } from '../../hooks/useCurrentSelections';
+import { SettingsMenu } from '../SettingsMenu';
+import { useSelections } from '../../hooks/useSelections';
+import { useFetchStoryBlocks } from '../../hooks/useFetchStoryBlocks';
+import { useFetchAssociations } from '../../hooks/useFetchAssociations';
+import { useEditorStateUpdater } from '../../hooks/useEditorStateUpdater';
+
+
 
 const theme = {
-  paragraph: styles.paragraph,
+  'custom-paragraph': styles.customParagraph,
   text: {
     bold: styles.bold,
     italic: styles.italic,
@@ -38,18 +44,6 @@ const theme = {
     strikethrough: styles.strikethrough,
   },
 };
-//{"children":[{"detail":0,"format":0,"mode":"normal","style":"","text":"bcd","type":"text","version":1}],"direction":"ltr","format":"","indent":0,"type":"custom-paragraph","version":1,"textFormat":0,"textStyle":"","key_id":"4b6b9b65-595b-4a98-9dbd-644a48a35e70"}
-const generateBlankLine = (): CustomSerializedParagraphNode => ({
-  children: [],
-  direction: "ltr",
-  format: "",
-  indent: 0,
-  textFormat: 0,
-  textStyle: "",
-  type: CustomParagraphNode.getType(),
-  version: 1,
-  key_id: uuidv4(),
-});
 
 const getParagraphIndexByKey = (editor: EditorState, key: string): number | null => {
   let result: number | null = null;
@@ -69,6 +63,7 @@ const getParagraphIndexByKey = (editor: EditorState, key: string): number | null
 };
 
 const getParagraphByCustomKey = (editor: EditorState, key: string): CustomParagraphNode | null => {
+  let foundNode: CustomParagraphNode | null = null;
   editor.read(() => {
     const root = $getRoot();
     const children = root.getChildren<ElementNode>();
@@ -76,12 +71,14 @@ const getParagraphByCustomKey = (editor: EditorState, key: string): CustomParagr
     for (let index = 0; index < children.length; index++) {
       const node = children[index] as CustomParagraphNode;
       if (node.getKeyId() === key) {
-        return node;
+        foundNode = node;
+        break;
       }
     }
   });
-  return null;
+  return foundNode;
 };
+
 
 const serializeWithChildren = (node: ElementNode): CustomSerializedParagraphNode => {
   if (!(node instanceof CustomParagraphNode)) {
@@ -150,8 +147,6 @@ const serializeWithChildren = (node: ElementNode): CustomSerializedParagraphNode
   return json;
 };
 
-
-
 const generateTextHash = (editor: LexicalEditor): string => {
   if (!editor) {
     console.error("Editor instance is not initialized.");
@@ -195,7 +190,9 @@ const generateTextHash = (editor: LexicalEditor): string => {
   return hash;
 };
 
+
 export const ThreadWriter = () => {
+
   const initialConfig = {
     namespace: 'ThreadWriterEditor',
     theme,
@@ -208,79 +205,35 @@ export const ThreadWriter = () => {
     },
   };
 
-  const { setAlertState } = useToaster();
-
+  // refs
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const editorRef = useRef<any>(null);
-  const [storyBlocks, setStoryBlocks] = useState<SerializedEditorState | null>(null);
-  const { setIsLoaderVisible } = useLoader();
+  const isProgrammaticChange = useRef(false);
   const previousNodeKeysRef = useRef<Set<string>>(new Set());
-  const previousTextHashRef = useRef<string | null>(null); // Stores the previous text state as a hash
+  const previousTextHashRef = useRef<string | null>(null);
   const pastedParagraphKeys = useRef(new Set<string>());
+  const isInitialLoad = useRef(true);
+
+  // hooks
+  const { setAlertState } = useToaster();
+  const { story, chapter } = useSelections();
+  const { showLoader, hideLoader } = useLoader();
+
+  // states
+  const [storyBlocks, setStoryBlocks] = useState<SerializedEditorState | null>(null);
   const [associations, setAssociations] = useState<SimplifiedAssociation[] | null>(null);
-  const { currentStory, currentChapter } = useCurrentSelections();
 
-  const getAllAssociations = useCallback(async () => {
-    if (!currentStory) return;
-    try {
-      const response = await fetch("/api/stories/" + currentStory.story_id + "/associations/thumbs");
-      if (!response.ok) throw response;
-      const associationsData = await response.json();
-      setAssociations(associationsData.map((association: SimplifiedAssociation) => {
-        if (association.association_name.trim().length) {
-          return association;
-        }
-      }));
-    } catch (error: unknown) {
-      console.error(`error retrieving associations: ${error}`);
-    }
-  }, [currentStory, currentStory?.story_id]);
-
-  const getBatchedStoryBlocks = useCallback(async (startKey: string) => {
-    if (!currentStory || !currentChapter) return;
-    try {
-      const response = await fetch(`/api/stories/${currentStory.story_id}/content?key=${startKey}&chapter=${currentChapter.id}`);
-      if (!response.ok) throw response;
-
-      const data = await response.json();
-      const nodeKeys = new Set<string>();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const remappedStoryBlocks = data.items?.map((item: { chunk: any; key_id: any }) => {
-        nodeKeys.add(item.key_id?.Value || '');
-        const fixed: CustomSerializedParagraphNode = item.chunk?.Value
-          ? JSON.parse(item.chunk.Value)
-          : generateBlankLine();
-        fixed.key_id = item.key_id?.Value || '';
-
-        if (fixed.type !== CustomParagraphNode.getType()) {
-          fixed.type = CustomParagraphNode.getType();
-        }
-        return fixed;
-      }) || [];
-      previousNodeKeysRef.current = nodeKeys;
-      setStoryBlocks({
-        root: {
-          children: remappedStoryBlocks,
-          type: "root",
-          version: 1,
-          direction: "ltr",
-          format: "",
-          indent: 0,
-        },
-      });
-    } catch (error: unknown) {
-      const response: Response = error as Response;
-      if (response.status === 404) {
-        editorRef.current.update(() => {
-          const newParagraph = new CustomParagraphNode(uuidv4());
-          const root = $getRoot();
-          root.append(newParagraph);
-        });
-        return;
-      }
-      console.error("Error retrieving story content:", error);
-    }
-  }, [currentStory, currentChapter]);
+  // Fetchers
+  const { getBatchedStoryBlocks } = useFetchStoryBlocks(
+    story?.story_id || '',
+    chapter?.id || '',
+    setStoryBlocks,
+    previousNodeKeysRef
+  );
+  const { getAllAssociations } = useFetchAssociations(
+    story?.story_id || '',
+    setAssociations
+  );
 
   const handleTabPress = () => {
     if (editorRef.current) {
@@ -339,13 +292,14 @@ export const ThreadWriter = () => {
     }
   }
 
+  // queue operations
   const queueParagraphOrderResync = () => {
-    if (!currentStory || !currentChapter) return;
+    if (!story || !chapter) return;
     editorRef.current.read(() => {
       const root = $getRoot();
       const paragraphs = root.getChildren().filter((node) => node.getType() === "custom-paragraph");
       const orderMap: BlockOrderMap = {
-        chapter_id: currentChapter.id,
+        chapter_id: chapter.id,
         blocks: []
       }
       paragraphs.forEach(paragraph => {
@@ -364,26 +318,26 @@ export const ThreadWriter = () => {
         orderList: orderMap,
         blocks: [],
         time: Date.now(),
-        storyID: currentStory.story_id,
-        chapterID: currentChapter.id,
+        storyID: story.story_id,
+        chapterID: chapter.id,
       });
     });
   }
 
   const queueParagraphForDeletion = (customKey: string) => {
-    if (!currentStory || !currentChapter) return;
+    if (!story || !chapter) return;
     const deleteBlock: DBOperationBlock = { key_id: customKey };
-    const storyID = currentStory.story_id;
-    const chapterID = currentChapter.id;
+    const storyID = story.story_id;
+    const chapterID = chapter.id;
     const op: DBOperation = { type: DBOperationType.delete, storyID, chapterID, blocks: [deleteBlock], time: Date.now() };
     DbOperationQueue.push(op);
   };
 
   const queueParagraphForSave = useCallback((customKey: string, order: string, content: SerializedElementNode<SerializedLexicalNode>) => {
-    if (!currentStory || !currentChapter) return;
+    if (!story || !chapter) return;
     const saveBlock: DBOperationBlock = { key_id: customKey, chunk: content, place: order };
-    const storyID = currentStory.story_id;
-    const chapterID = currentChapter.id;
+    const storyID = story.story_id;
+    const chapterID = chapter.id;
     const op: DBOperation = {
       type: DBOperationType.save,
       storyID,
@@ -392,46 +346,42 @@ export const ThreadWriter = () => {
       time: Date.now(),
     };
     DbOperationQueue.push(op);
-  }, [currentChapter?.id, currentStory?.story_id]);
+  }, [chapter?.id, story?.story_id]);
 
+  useEditorStateUpdater(editorRef, storyBlocks, isProgrammaticChange);
 
+  // Merged useEffect to handle both story and chapter changes
   useEffect(() => {
-    const retrieveData = async () => {
-      try {
-        setIsLoaderVisible(true);
-        await getBatchedStoryBlocks("");
-        await getAllAssociations();
-      } catch (error: unknown) {
-        console.error(`error retrieving story data ${error}`);
-      } finally {
-        setIsLoaderVisible(false);
+    if (story?.story_id && chapter?.id) {
+      console.log("Story or Chapter changed:", { story, chapter });
+      const fetchData = async () => {
+        if (isInitialLoad.current) {
+          console.log("Initial load: fetching story blocks and associations");
+          isProgrammaticChange.current = true; // Start programmatic change
+          await getBatchedStoryBlocks("");
+          await getAllAssociations();
+          isProgrammaticChange.current = false; // End programmatic change
+          isInitialLoad.current = false;
+        } else {
+          console.log("Chapter change: fetching new story blocks");
+          isProgrammaticChange.current = true; // Start programmatic change
+          previousNodeKeysRef.current.clear(); // Clear previous keys to prevent DELETEs
+          await getBatchedStoryBlocks("");
+          if (associations) {
+            //setAssociations([...associations]);
+          }
+          isProgrammaticChange.current = false; // End programmatic change
+        }
+      };
+      if (editorRef.current) {
+        const newHash = generateTextHash(editorRef.current);
+        previousTextHashRef.current = newHash;
       }
-    }
-    retrieveData();
-
-  }, [getAllAssociations, getBatchedStoryBlocks]);
-
-  useEffect(() => {
-    if (editorRef.current && storyBlocks) {
-      Promise.resolve().then(() => {
-        editorRef.current.update(() => {
-          const newEditorState = editorRef.current.parseEditorState({
-            ...storyBlocks,
-            root: {
-              ...storyBlocks.root,
-              children: storyBlocks.root.children.map((child) => {
-                if (child.type === "paragraph") {
-                  child.type = CustomParagraphNode.getType();
-                }
-                return child;
-              }),
-            },
-          });
-          editorRef.current.setEditorState(newEditorState);
-        });
+      startTransition(() => {
+        fetchData();
       });
     }
-  }, [storyBlocks]);
+  }, [story?.story_id, chapter?.id]);
 
   useEffect(() => {
     if (editorRef.current) {
@@ -441,7 +391,6 @@ export const ThreadWriter = () => {
           const replacement = new CustomParagraphNode(uuidv4());
           replacement.append(...node.getChildren());
           node.replace(replacement);
-          console.log(`Replaced ParagraphNode ${node.getKey()} with CustomParagraphNode`);
         }
       });
 
@@ -466,6 +415,7 @@ export const ThreadWriter = () => {
 
   useEffect(() => {
     if (editorRef.current) {
+      isProgrammaticChange.current = true;
       editorRef.current.update(() => {
         const root = $getRoot();
         const children = root.getChildren();
@@ -476,10 +426,10 @@ export const ThreadWriter = () => {
             const replacement = new CustomParagraphNode(uuidv4());
             replacement.append(...(child as ElementNode).getChildren<ElementNode>());
             child.replace(replacement);
-            console.log(`Replaced ParagraphNode ${child.getKey()} with CustomParagraphNode`);
           }
         });
       });
+      isProgrammaticChange.current = false;
     }
   }, []);
 
@@ -513,14 +463,12 @@ export const ThreadWriter = () => {
       }
     }, 5000);
     window.addEventListener("unload", () => {
-      // Final queue processing...
     });
-
     return () => {
       clearInterval(processInterval);
       window.removeEventListener("unload", () => { });
     };
-  }, [currentStory?.story_id, setAlertState]);
+  }, [story?.story_id, setAlertState]);
 
   useEffect(() => {
     if (editorRef.current) {
@@ -572,10 +520,16 @@ export const ThreadWriter = () => {
                     // Replace the first paragraph if the parent is empty
                     parent.append($createTextNode(paragraphText));
                     lastInsertedNode = parent; // Update reference
+                    const customKey = (parent as CustomParagraphNode).getKeyId();
+                    if (customKey)
+                      pastedParagraphKeys.current.add(customKey);
                   } else if (index === 0) {
                     // Insert text at the current selection for the first paragraph
                     selection.insertText(paragraphText);
                     lastInsertedNode = selection.anchor.getNode(); // Update reference
+                    const customKey = (parent as CustomParagraphNode).getKeyId()
+                    if (customKey)
+                      pastedParagraphKeys.current.add(customKey);
                   } else {
                     // Create and append new paragraphs for subsequent lines
                     const customKey = uuidv4();
@@ -609,7 +563,6 @@ export const ThreadWriter = () => {
                   } else {
                     root.append(paragraphNode); // Append the first paragraph directly to the root
                   }
-                  console.log("pushing2", customKey);
                   pastedParagraphKeys.current.add(customKey);
                   lastInsertedNode = paragraphNode; // Update reference
                 });
@@ -629,105 +582,77 @@ export const ThreadWriter = () => {
     }
   }, [editorRef.current, setAlertState]);
 
-  const onChangeHandler = (editorState: EditorState): void => {
-    const currentHash = generateTextHash(editorRef.current); // Get the current text hash
-    const previousHash = previousTextHashRef.current;
-
-    if (currentHash === previousHash) {
-      console.log("No text changes detected, skipping processing.");
+  const onChangeHandler = useCallback((editorState: EditorState) => {
+    if (isProgrammaticChange.current) {
+      console.log("Programmatic change detected, skipping onChange handling.");
       return;
     }
 
+    const currentHash = generateTextHash(editorRef.current);
+    const previousHash = previousTextHashRef.current;
+
+    console.log("Current Text Hash:", currentHash);
+    console.log("Previous Text Hash:", previousHash);
+
+    if (currentHash === previousHash) {
+      console.log("No content changes detected, skipping onChange handling.");
+      return;
+    }
     previousTextHashRef.current = currentHash;
 
-    const currentNodeKeys = new Set<string>();
-    const newParagraphKeys = new Set<string>();
-    let orderResyncRequired = false;
-
-    // Read current editor state
     editorState.read(() => {
       const root = $getRoot();
       const children = root.getChildren();
+      const currentNodeKeys = new Set<string>();
+      const newParagraphKeys = new Set<string>();
+      const paragraphsToSave: { key_id: string, order: string, content: SerializedElementNode<SerializedLexicalNode> }[] = [];
+      const paragraphsToDelete: string[] = [];
+      let orderResyncRequired = false;
 
-      const previousNodeKeys = previousNodeKeysRef.current;
-      const deletedKeys = new Set(previousNodeKeys);
-
-      children.forEach((node, nodeIndex) => {
+      children.forEach((node, index) => {
         if (node instanceof CustomParagraphNode) {
           const id = node.getKeyId();
           if (id) {
-            // Detect new paragraphs
-            if (!previousNodeKeys.has(id)) {
+            currentNodeKeys.add(id);
+            if (!previousNodeKeysRef.current.has(id)) {
               newParagraphKeys.add(id);
-              if (nodeIndex !== children.length - 1) {
+              if (index !== children.length - 1) {
                 orderResyncRequired = true;
               }
             }
-
-            // Track current node keys and remove from deletedKeys
-            currentNodeKeys.add(id);
-            deletedKeys.delete(id);
-            const selection = $getSelection();
-            const customParagraph = $isRangeSelection(selection)
-              ? selection.anchor.getNode().getParent()
-              : null;
-
-            const selectedNodeKey = customParagraph instanceof CustomParagraphNode ? customParagraph.getKeyId() : null;
-            if (pastedParagraphKeys.current.has(id) || newParagraphKeys.has(id) || id === selectedNodeKey) {
-              const textContent = node.getTextContent().trim();
-              if (textContent.length) {
-                const paragraphWithChildren = serializeWithChildren(node);
-                queueParagraphForSave(
-                  paragraphWithChildren.key_id,
-                  nodeIndex.toString(),
-                  paragraphWithChildren
-                );
-              }
-              pastedParagraphKeys.current.delete(id); // Clean up processed key
-            }
+            // Serialize and queue for saving
+            const serialized = serializeWithChildren(node);
+            paragraphsToSave.push({ key_id: serialized.key_id, order: index.toString(), content: serialized });
+            // Remove from previous keys
+            previousNodeKeysRef.current.delete(id);
           }
         }
       });
-      // Handle deleted nodes
-      deletedKeys.forEach((key) => {
-        queueParagraphForDeletion(key);
-        orderResyncRequired = true;
-      });
+
+      // Remaining keys in previousNodeKeysRef are to be deleted
+      const deletedKeys = Array.from(previousNodeKeysRef.current);
+      paragraphsToDelete.push(...deletedKeys);
+
+      // Reset previousNodeKeysRef to current keys
+      previousNodeKeysRef.current = currentNodeKeys;
+
+      // Queue deletions
+      paragraphsToDelete.forEach(key => queueParagraphForDeletion(key));
+
+      // Queue saves
+      paragraphsToSave.forEach(paragraph => queueParagraphForSave(paragraph.key_id, paragraph.order, paragraph.content));
+
+      // If order resync is required, queue it
+      if (orderResyncRequired) queueParagraphOrderResync();
     });
+  }, [queueParagraphForDeletion, queueParagraphForSave, queueParagraphOrderResync]);
 
-    // Apply updates for new paragraphs
-    if (newParagraphKeys.size > 0) {
-      editorRef.current.update(() => {
-        newParagraphKeys.forEach((key) => {
-          const node = getParagraphByCustomKey(editorRef.current, key);
-          if (node?.getTextContent().trim() === "") {
-            const tabTextNode = $createTextNode("\t");
-            node.append(tabTextNode);
-
-            const selection = $getSelection();
-            if ($isRangeSelection(selection)) {
-              selection.anchor.set(tabTextNode.getKey(), 1, "text");
-              selection.focus.set(tabTextNode.getKey(), 1, "text");
-            }
-          }
-        });
-      });
-    }
-
-    // Update reference with current keys
-    previousNodeKeysRef.current = currentNodeKeys;
-
-    // Resync order if needed
-    if (orderResyncRequired) {
-      queueParagraphOrderResync();
-    }
-  };
 
   const onAssociationEditCallback = useCallback(async (assoc: Association) => {
-    if (!currentStory) return;
+    if (!story) return;
     try {
-      setIsLoaderVisible(true);
-      const response = await fetch("/api/stories/" + currentStory.story_id + "/associations", {
+      showLoader();
+      const response = await fetch("/api/stories/" + story.story_id + "/associations", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -765,12 +690,12 @@ export const ThreadWriter = () => {
         })
         setAssociations(updatedAssociations);
       }
-      setIsLoaderVisible(false);
+      hideLoader();
     }
-  }, [currentStory?.story_id]);
+  }, [story?.story_id]);
 
   return (
-    <div className={styles.editorContainer}>
+    <div className={styles.outerWrapper}>
       <LexicalComposer
         initialConfig={{
           ...initialConfig,
@@ -780,15 +705,19 @@ export const ThreadWriter = () => {
         }}
       >
         <Toolbar />
-        <RichTextPlugin
-          contentEditable={<ContentEditable className={styles.editorInput} />}
-          placeholder={<div className={styles.placeholder}>Start typing...</div>}
-          ErrorBoundary={LexicalErrorBoundary}
-        />
-        <AssociationDecoratorPlugin associations={associations} scrollToTop={true} />
-        <OnChangePlugin onChange={onChangeHandler} />
-        <HistoryPlugin />
-        <AssociationPanel associations={associations} onEditCallback={onAssociationEditCallback} />
+        <div className={styles.editorRow}>
+          <div className={styles.editorArea}>
+            <RichTextPlugin
+              contentEditable={<ContentEditable className={styles.editorInput} />}
+              ErrorBoundary={LexicalErrorBoundary}
+            />
+            <AssociationDecoratorPlugin associations={associations} isProgrammaticChange={isProgrammaticChange} scrollToTop={true} />
+            <OnChangePlugin onChange={onChangeHandler} />
+            <HistoryPlugin />
+            <AssociationPanel associations={associations} onEditCallback={onAssociationEditCallback} />
+          </div>
+          <SettingsMenu />
+        </div>
       </LexicalComposer>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useMemo, useState } from "react";
 import { AlertState, AlertToastType } from "../types/AlertToasts";
 
 type AlertContextType = {
@@ -29,8 +29,17 @@ export const AlertProvider: React.FC<{ children: React.ReactNode }> = ({
     setAlertState(defaultState);
   };
 
+  const alertValue = useMemo(
+    () => ({
+      alertState,
+      setAlertState,
+      clearAlert,
+    }),
+    [alertState]
+  );
+
   return (
-    <AlertContext.Provider value={{ alertState, setAlertState, clearAlert }}>
+    <AlertContext.Provider value={alertValue}>
       {children}
     </AlertContext.Provider>
   );

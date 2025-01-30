@@ -9,7 +9,7 @@ import styles from "./story.module.css";
 import { IsStory, Story } from "../../types/Story";
 import { Series } from "../../types/Series";
 import { useLoader } from "../../hooks/useLoader";
-import { useAppNavigation } from "../../hooks/useAppNavigation";
+import { useNavigate } from "react-router-dom";
 
 interface StoryBoxProps {
   data: Story | Series;
@@ -21,30 +21,25 @@ interface StoryBoxProps {
 
 export const StoryBox = (props: StoryBoxProps) => {
   const { setIsLoaderVisible } = useLoader();
-  const { setIsEditingStory, setIsEditingSeries } = useAppNavigation();
 
   const [wasDeleted, setWasDeleted] = useState(false);
   const [isStoryLoaderVisible, setIsStoryLoaderVisible] = useState(true);
   const [isSeries, setIsSeries] = useState(false);
 
+  const navigate = useNavigate();
+
   const handleClick = async (storyID: string, chapterID: string) => {
-    const history = window.history;
-    history.pushState(
-      { storyID },
-      "clicked story",
-      "/story/" + storyID + "?chapter=" + chapterID
-    );
-    window.dispatchEvent(new Event("navigation"))
+    navigate(`/stories/${storyID}?chapter=${chapterID}`);
   };
 
   const editStory = (event: React.MouseEvent) => {
     event.stopPropagation();
-    setIsEditingStory(props.data as Story);
+    //setIsEditingStory(props.data as Story);
   };
 
   const editSeries = (event: React.MouseEvent) => {
     event.stopPropagation();
-    setIsEditingSeries(props.data as Series);
+    //setIsEditingSeries(props.data as Series);
   };
 
   const deleteSeries = async (
@@ -120,7 +115,7 @@ export const StoryBox = (props: StoryBoxProps) => {
     const seriesID = !IsStory(props.data) ? props.data.series_id : "";
     if (conf) {
       setIsLoaderVisible(true);
-      const url = "/api/stories/" + id + "?series=" + seriesID;
+      const url = `/api/stories/${id}?series=${seriesID}`;
       fetch(url, {
         credentials: "include",
         method: "DELETE",

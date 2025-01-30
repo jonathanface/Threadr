@@ -13,11 +13,11 @@ export const useWorksList = () => {
         );
     }
     const { seriesList, setSeriesList, storiesList, setStoriesList } = context
-    const { setIsLoaderVisible } = useLoader();
+    const { showLoader, hideLoader } = useLoader();
 
     const fetchSeries = async () => {
         try {
-            setIsLoaderVisible(true);
+            showLoader();
             const results = await fetch("/api/series", {
                 credentials: "include",
             });
@@ -34,13 +34,13 @@ export const useWorksList = () => {
             }
             return [];
         } finally {
-            setIsLoaderVisible(false);
+            hideLoader();
         }
     }
 
     const fetchStories = async (): Promise<Story[]> => {
         try {
-            setIsLoaderVisible(true);
+            showLoader();
             const results = await fetch("/api/stories", {
                 credentials: "include",
             });
@@ -57,7 +57,7 @@ export const useWorksList = () => {
             }
             return [];
         } finally {
-            setIsLoaderVisible(false);
+            hideLoader();
         }
     };
 

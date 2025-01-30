@@ -1,28 +1,40 @@
-import { createContext, useMemo, useState } from "react";
+// src/contexts/loader.tsx
+import React, { createContext, useMemo, useState, ReactNode, useEffect } from "react";
 
-export type LoaderContextType = {
-  isLoaderVisible: boolean;
-  setIsLoaderVisible: (visible: boolean) => void;
-};
+export interface LoaderContextType {
+  hideLoader: () => void;
+  showLoader: () => void;
+  loadingCount: number;
+}
 
-// eslint-disable-next-line react-refresh/only-export-components
-export const LoaderContext = createContext<LoaderContextType | undefined>(
-  undefined
-);
+export const LoaderContext = createContext<LoaderContextType | undefined>(undefined);
 
-export const LoaderProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  console.log("LoaderProvider mounted");
-  const [isLoaderVisible, setIsLoaderVisible] = useState(false);
+export const LoaderProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [loadingCount, setLoadingCount] = useState(0);
+
+  const showLoader = () => {
+    setLoadingCount((prevCount) => prevCount + 1);
+  }
+
+  const hideLoader = () => {
+    setLoadingCount((prevCount) => Math.max(prevCount - 1, 0));
+  };
 
   const loaderValue = useMemo(
     () => ({
-      isLoaderVisible,
-      setIsLoaderVisible,
+      showLoader,
+      hideLoader,
+      loadingCount
     }),
-    [isLoaderVisible]
+    [loadingCount]
   );
+
+  useEffect(() => {
+    console.log("LoaderProvider mounted");
+    return () => {
+      console.log("LoaderProvider unmounted");
+    };
+  }, []);
 
   return (
     <LoaderContext.Provider value={loaderValue}>

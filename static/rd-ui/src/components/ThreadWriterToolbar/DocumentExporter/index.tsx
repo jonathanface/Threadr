@@ -3,7 +3,7 @@ import { useState } from "react";
 import styles from './documentexporter.module.css';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { DocumentExportType } from "../../../types/DocumentExport";
-import { useCurrentSelections } from "../../../hooks/useCurrentSelections";
+import { useSelections } from "../../../hooks/useSelections";
 import { useAlertContext } from "../../../contexts/alert";
 import { AlertCommandType, AlertFunctionCall, AlertToastType } from "../../../types/AlertToasts";
 import Exporter from "../../../utils/Exporter";
@@ -12,12 +12,12 @@ import { useFetchUserData } from "../../../hooks/useFetchUserData";
 export const DocumentExporter = () => {
 
     const [isOpen, setIsOpen] = useState(false);
-    const { currentStory } = useCurrentSelections();
+    const { story } = useSelections();
     const { setAlertState } = useAlertContext();
     const { userDetails } = useFetchUserData();
 
     const exportDoc = async (type: DocumentExportType) => {
-        if (currentStory) {
+        if (story) {
             setAlertState({
                 title: "Conversion in progress",
                 message: "A download link will be provided when the process is complete.",
@@ -25,19 +25,19 @@ export const DocumentExporter = () => {
                 severity: AlertToastType.info,
             });
 
-            const exp = new Exporter(currentStory);
+            const exp = new Exporter(story);
 
             const htmlData = await exp.lexicalToHtml();
             try {
-                const response = await fetch("/api/stories/" + currentStory.story_id + "/export?type=" + type, {
+                const response = await fetch("/api/stories/" + story.story_id + "/export?type=" + type, {
                     method: "PUT",
                     headers: {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
                         html_by_chapter: htmlData,
-                        title: currentStory.title,
-                        storyID: currentStory.story_id,
+                        title: story.title,
+                        storyID: story.story_id,
                         type
                     }),
                 });
@@ -86,29 +86,31 @@ export const DocumentExporter = () => {
             }
         }
     };
-    console.log("user", userDetails);
     let altText = "Export document.";
     let disabled = false;
     if (!userDetails?.subscription_id.length) {
         altText += "\nThis feature is available to subscribers only"
         disabled = true;
     }
+
     return (
-        <div className={styles.exporter}>
+        <div
+            className={styles.exporter}
+            onMouseEnter={() => setIsOpen(true)}
+            onMouseLeave={() => setIsOpen(false)}
+            style={{ position: 'relative', display: 'inline-block' }} // Ensure positioning
+        >
             <Tooltip title={altText}>
                 <span>
                     <IconButton className={styles.parentButton} aria-label="export"
                         disabled={disabled}
-                        onClick={() => setIsOpen(!isOpen)}
-                        onMouseEnter={() => setIsOpen(true)}
-                        onMouseLeave={() => setIsOpen(false)}>
+                        onClick={() => setIsOpen(!isOpen)}>
                         <FileDownloadIcon fontSize="small" />
                     </IconButton>
                 </span>
             </Tooltip>
             {isOpen && (
-                <ul onMouseEnter={() => setIsOpen(true)}
-                    onMouseLeave={() => setIsOpen(false)}>
+                <ul>
                     <li onClick={() => exportDoc(DocumentExportType.pdf)}>PDF</li>
                     <li onClick={() => exportDoc(DocumentExportType.docx)}>DOCX</li>
                 </ul>
