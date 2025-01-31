@@ -181,7 +181,7 @@ func (d *DAO) createBlockTable(tableName string, tags *[]types.Tag) error {
 		AttributeDefinitions:   attributes,
 		BillingMode:            types.BillingModePayPerRequest,
 		GlobalSecondaryIndexes: gsiSettings,
-		Tags:                   tags,
+		Tags:                   *tags,
 	})
 	if err != nil {
 		return err
