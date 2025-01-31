@@ -434,15 +434,11 @@ export const ThreadWriter = () => {
   useEffect(() => {
     // this effect will wait for tables with previous statuses (stati?) of 501 (assets not ready yet)
     // are now deployed and you should synch all current data nodes with the cloud now
-    console.log("emit!")
     const handleSaveSuccess = (event: Event) => {
-      console.log("got success", previousTableStatus);
-      if (previousTableStatus === '501') {
-        const customEvent = event as CustomEvent<SaveSuccessPayload>;
-        const payload = customEvent.detail;
-        setPreviousTableStatus('ok');
-        queueAllParagraphsForSave(payload.storyID, payload.chapterID);
-      }
+      const customEvent = event as CustomEvent<SaveSuccessPayload>;
+      const payload = customEvent.detail;
+      setPreviousTableStatus('ok');
+      queueAllParagraphsForSave(payload.storyID, payload.chapterID);
     };
     dbEventEmitter.addEventListener('saveSuccess', handleSaveSuccess);
     return () => {

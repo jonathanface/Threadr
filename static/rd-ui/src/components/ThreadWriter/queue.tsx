@@ -53,14 +53,11 @@ const saveBlocksToServer = async (ops: DBOperationBlock[], storyID: string, chap
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(params),
         });
-        console.log("resp", response.status);
         if (!response.ok && response.status !== 501) {
             const error: APIError = { statusCode: response.status, statusText: response.statusText, retry: true };
             throw error;
         }
-        console.log("tablestatus:", tableStatus);
         if (tableStatus && tableStatus === '501') {
-            console.log("sending update");
             const payload: SaveSuccessPayload = { storyID, chapterID };
             emitSaveSuccess(payload);
         }

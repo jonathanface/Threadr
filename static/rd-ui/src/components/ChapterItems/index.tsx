@@ -8,6 +8,8 @@ import { Button, IconButton } from "@mui/material";
 import { useLoader } from "../../hooks/useLoader";
 import { AlertToastType } from "../../types/AlertToasts";
 import { useToaster } from "../../hooks/useToaster";
+import { DragDropContext, Droppable } from "@hello-pangea/dnd";
+import { DraggableTreeItem } from "./DraggableTreeItem";
 
 interface SettingsMenuProps {
     chapters: Chapter[];
@@ -138,6 +140,46 @@ export const ChapterItems = ({ chapters, closeFn }: SettingsMenuProps) => {
         }
     };
 
+    const onChapterDragEnd = async (result: any) => {
+        if (!result.destination || !result.source) return;
+        if (result.destination.index === result.source.index) return;
+        const newChapters = Array.from(story.chapters);
+        const [reorderedItem] = newChapters.splice(result.source.index, 1);
+        newChapters.splice(result.destination.index, 0, reorderedItem);
+        const updatedChapters = newChapters.map((vol: Chapter, idx: number) => {
+            return { ...vol, place: idx + 1 };
+        });
+        const newStory = { ...story };
+        newStory.chapters = updatedChapters;
+        setStory(newStory);
+
+        try {
+            showLoader();
+            const response = await fetch("/api/stories/" + story.story_id + "/chapters", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(updatedChapters),
+            });
+            if (!response.ok) {
+                console.error(response.body);
+                throw new Error("There was an error updating your chapters. Please report this.");
+            }
+        } catch (error: unknown) {
+            const message = (error as Error).message;
+            setAlertState({
+                title: "Error",
+                message,
+                severity: AlertToastType.error,
+                open: true,
+                timeout: 6000,
+            });
+        } finally {
+            hideLoader();
+        }
+    };
+
     return (
         <SimpleTreeView className={styles.parentView} onItemClick={handleNodeSelect}>
             <TreeItem itemId="chapters" label="Chapters" sx={{
@@ -148,18 +190,51 @@ export const ChapterItems = ({ chapters, closeFn }: SettingsMenuProps) => {
             }}>
                 <TreeItem key="chapters_add" title={"add new chapter"} label={
                     <Button size="medium" variant="text" startIcon={<PostAddIcon />}><span className={styles.newButtonLabel}>NEW</span></Button>
-                } itemId="chapters_add"></TreeItem>
-                {chapters.map((chap, idx) => <TreeItem data-id={chap.id} title={`Chapter ${idx + 1}: "${chap.title}"`} key={chap.id} itemId={chap.id} label={
-                    <span className={styles.chapterMenuItem}>{chap.title}
-                        <IconButton title="delete" aria-label="delete" size="small" onClick={(event) => { onDeleteChapterClick(event, chap.id, chap.title) }}>
-                            <DeleteOutlineIcon />
-                        </IconButton>
-                    </span>
-                } sx={{
-                    "& .MuiTreeItem-label": {
-                        fontSize: '0.8rem',
-                    }
-                }}></TreeItem>)}
+                } itemId="chapters_add" />
+                <DragDropContext onDragEnd={onChapterDragEnd}>
+                    <Droppable droppableId="droppable-chapters">
+                        {(provided) => (
+                            <div
+                                {...provided.droppableProps}
+                                ref={provided.innerRef}
+                                style={{ paddingLeft: '1rem' }} // Indent draggable items
+                            >
+                                {chapters
+                                    .sort((a, b) => a.place - b.place)
+                                    .map((chap, idx) => (
+                                        <DraggableTreeItem
+                                            key={chap.id}
+                                            draggableId={chap.id}
+                                            index={idx}
+                                            itemId={chap.id}
+                                            className={`${chap.id === chapter.id ? styles.activeChapter : ""}`}
+                                            label={
+                                                <span className={styles.chapterMenuItem}>
+                                                    {chap.title}
+                                                    <IconButton
+                                                        title="delete"
+                                                        aria-label="delete"
+                                                        size="small"
+                                                        onClick={(event) =>
+                                                            onDeleteChapterClick(event, chap.id, chap.title)
+                                                        }
+                                                    >
+                                                        <DeleteOutlineIcon />
+                                                    </IconButton>
+                                                </span>
+                                            }
+                                            sx={{
+                                                '& .MuiTreeItem-label': {
+                                                    fontSize: '0.8rem',
+                                                },
+                                            }}
+                                        />
+                                    ))}
+                                {provided.placeholder}
+                            </div>
+                        )}
+                    </Droppable>
+                </DragDropContext>
             </TreeItem>
             <TreeItem itemId="outline" label="Outline" disabled={true} sx={{
                 "& .MuiTreeItem-label": {

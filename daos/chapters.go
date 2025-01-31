@@ -131,23 +131,38 @@ func (d *DAO) CreateChapter(storyID string, chapter models.Chapter, email string
 		return models.Chapter{}, fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 	}
 
-	tags := []string{"Title=" + chapter.Title, "Author=" + email, "Series="}
+	tags := []types.Tag{
+		{
+			Key:   aws.String("Title"),
+			Value: aws.String(chapter.Title),
+		},
+		{
+			Key:   aws.String("Author"),
+			Value: aws.String(email),
+		},
+	}
 	story, err := d.GetStoryByID(email, storyID)
 	if err != nil {
 		return models.Chapter{}, err
 	}
-	tags = append(tags, "Story="+story.Title)
+	tags = append(tags, types.Tag{
+		Key:   aws.String("Story"),
+		Value: aws.String(story.Title),
+	})
 	if len(story.SeriesID) > 0 {
 		series, err := d.GetSeriesByID(email, story.SeriesID)
 		if err != nil {
 			return models.Chapter{}, err
 		}
-		tags = append(tags, "Series="+series.Title)
+		tags = append(tags, types.Tag{
+			Key:   aws.String("Series"),
+			Value: aws.String(series.Title),
+		})
 	}
 
 	tableName := storyID + "_" + chapter.ID + "_blocks-rollout"
 
-	if err = d.createBlockTable(tableName, nil); err != nil {
+	if err = d.createBlockTable(tableName, &tags); err != nil {
 		return models.Chapter{}, err
 	}
 	return newChapter, nil

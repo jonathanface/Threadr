@@ -75,9 +75,6 @@ export const DocumentEditorPage = () => {
     // Fetch Chapter
     useEffect(() => {
         if (!storyID) return;
-        if ((!chapterID || !chapterID.length) && story) {
-            setChapterID(story.chapters[0].id)
-        }
         const fetchChapter = async () => {
             try {
                 showLoader();
@@ -98,9 +95,15 @@ export const DocumentEditorPage = () => {
     }, [storyID, chapterID]);
 
     useEffect(() => {
-        if (searchParams.get('chapter')) {
-            setChapterID(searchParams.get('chapter'));
+        const chapterID = searchParams.get('chapter');
+        if ((!chapterID || !chapterID.length) && story) {
+            setChapterID(story.chapters[0].id)
+            console.log("defaulting to", story.chapters[0].id);
+            var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?chapter=' + story.chapters[0].id;
+            window.history.pushState({ path: newurl }, '', newurl);
+            return;
         }
+        setChapterID(chapterID);
     }, [searchParams.get('chapter')]);
     return (
         <ThreadWriter />
