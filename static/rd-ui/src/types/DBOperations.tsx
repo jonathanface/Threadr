@@ -1,5 +1,6 @@
 import { SerializedElementNode, SerializedLexicalNode } from "lexical";
 import { BlockOrderMap } from "./Document";
+import { Dispatch, SetStateAction } from "react";
 
 export interface DocumentBlocksForServer {
   story_id: string;
@@ -26,4 +27,5 @@ export interface DBOperation {
   time: number;
   blocks: DBOperationBlock[];
   orderList?: BlockOrderMap;
+  tableStatus?: string;
 }

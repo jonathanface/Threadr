@@ -32,6 +32,7 @@ import { useSelections } from '../../hooks/useSelections';
 import { useFetchStoryBlocks } from '../../hooks/useFetchStoryBlocks';
 import { useFetchAssociations } from '../../hooks/useFetchAssociations';
 import { useEditorStateUpdater } from '../../hooks/useEditorStateUpdater';
+import { dbEventEmitter, SaveSuccessPayload } from '../../utils/EventEmitter';
 
 
 
@@ -45,7 +46,7 @@ const theme = {
   },
 };
 
-const getParagraphIndexByKey = (editor: EditorState, key: string): number | null => {
+export const getParagraphIndexByKey = (editor: EditorState, key: string): number | null => {
   let result: number | null = null;
   editor.read(() => {
     const root = $getRoot();
@@ -80,7 +81,7 @@ const getParagraphByCustomKey = (editor: EditorState, key: string): CustomParagr
 };
 
 
-const serializeWithChildren = (node: ElementNode): CustomSerializedParagraphNode => {
+export const SerializeWithChildren = (node: ElementNode): CustomSerializedParagraphNode => {
   if (!(node instanceof CustomParagraphNode)) {
     throw new Error("Node is not an instance of CustomParagraphNode");
   }
@@ -111,7 +112,7 @@ const serializeWithChildren = (node: ElementNode): CustomSerializedParagraphNode
         } as SerializedTextNode);
         bufferText = ""; // Clear the buffer
       }
-      mergedChildren.push(serializeWithChildren(child as ElementNode)); // Recursively serialize child element
+      mergedChildren.push(SerializeWithChildren(child as ElementNode)); // Recursively serialize child element
     } else {
       // If it's an unsupported node, flush buffer and skip
       if (bufferText) {
@@ -224,7 +225,7 @@ export const ThreadWriter = () => {
   const [associations, setAssociations] = useState<SimplifiedAssociation[] | null>(null);
 
   // Fetchers
-  const { getBatchedStoryBlocks } = useFetchStoryBlocks(
+  const { getBatchedStoryBlocks, previousTableStatus, setPreviousTableStatus } = useFetchStoryBlocks(
     story?.story_id || '',
     chapter?.id || '',
     setStoryBlocks,
@@ -338,17 +339,116 @@ export const ThreadWriter = () => {
     const saveBlock: DBOperationBlock = { key_id: customKey, chunk: content, place: order };
     const storyID = story.story_id;
     const chapterID = chapter.id;
+    console.log("status", previousTableStatus)
     const op: DBOperation = {
       type: DBOperationType.save,
       storyID,
       chapterID,
       blocks: [saveBlock],
       time: Date.now(),
+      tableStatus: previousTableStatus
     };
     DbOperationQueue.push(op);
   }, [chapter?.id, story?.story_id]);
 
+  const queueAllParagraphsForSave = (storyID: string, chapterID: string) => {
+    if (!editorRef || !editorRef.current) {
+      console.warn("ThreadWriter - Editor, story, or chapter is not available.");
+      return;
+    }
+
+    const orderMap: BlockOrderMap = {
+      chapter_id: chapterID,
+      blocks: []
+    }
+
+    console.log("starging queue all")
+    editorRef.current.read(() => {
+      const root = $getRoot();
+      const paragraphs = root.getChildren().filter(
+        (node) => node instanceof CustomParagraphNode
+      ) as CustomParagraphNode[];
+
+      paragraphs.forEach((paragraph, index) => {
+        const key_id = paragraph.getKeyId();
+        if (!key_id) {
+          console.warn(`ThreadWriter - Paragraph at index ${index} is missing a key_id.`);
+          return;
+        }
+
+        // Serialize the paragraph
+        const serialized = SerializeWithChildren(paragraph);
+        if (!serialized) {
+          console.warn(`ThreadWriter - Failed to serialize paragraph with key_id: ${key_id}`);
+          return;
+        }
+
+        // Create a save operation block
+        const saveBlock: DBOperationBlock = {
+          key_id,
+          chunk: serialized,
+          place: index.toString(), // Assuming 'place' represents the order
+        };
+
+        // Create a save operation
+        const saveOperation: DBOperation = {
+          type: DBOperationType.save,
+          storyID: storyID,
+          chapterID: chapterID,
+          blocks: [saveBlock],
+          time: Date.now(),
+        };
+
+        // Enqueue the save operation
+        DbOperationQueue.push(saveOperation);
+        orderMap.blocks.push({ key_id, place: index.toString() });
+
+      });
+
+      DbOperationQueue.push({
+        type: DBOperationType.syncOrder,
+        orderList: orderMap,
+        blocks: [],
+        time: Date.now(),
+        storyID: storyID,
+        chapterID: chapterID,
+      });
+
+      ProcessDBQueue();
+      setAlertState({
+        title: "Chapter ready",
+        message:
+          "Your chapter assets are complete and your content was saved",
+        severity: AlertToastType.success,
+        open: true,
+        timeout: 6000,
+      });
+
+
+    });
+  };
+
+
   useEditorStateUpdater(editorRef, storyBlocks, isProgrammaticChange);
+
+  useEffect(() => {
+    // this effect will wait for tables with previous statuses (stati?) of 501 (assets not ready yet)
+    // are now deployed and you should synch all current data nodes with the cloud now
+    console.log("emit!")
+    const handleSaveSuccess = (event: Event) => {
+      console.log("got success", previousTableStatus);
+      if (previousTableStatus === '501') {
+        const customEvent = event as CustomEvent<SaveSuccessPayload>;
+        const payload = customEvent.detail;
+        setPreviousTableStatus('ok');
+        queueAllParagraphsForSave(payload.storyID, payload.chapterID);
+      }
+    };
+    dbEventEmitter.addEventListener('saveSuccess', handleSaveSuccess);
+    return () => {
+      dbEventEmitter.removeEventListener('saveSuccess', handleSaveSuccess);
+    }
+  }, []);
 
   // Merged useEffect to handle both story and chapter changes
   useEffect(() => {
@@ -403,7 +503,7 @@ export const ThreadWriter = () => {
             if (index !== null) {
               const id = node.getKeyId();
               if (id) {
-                queueParagraphForSave(id, index.toString(), serializeWithChildren(node));
+                queueParagraphForSave(id, index.toString(), SerializeWithChildren(node));
               }
             }
           });
@@ -591,9 +691,6 @@ export const ThreadWriter = () => {
     const currentHash = generateTextHash(editorRef.current);
     const previousHash = previousTextHashRef.current;
 
-    console.log("Current Text Hash:", currentHash);
-    console.log("Previous Text Hash:", previousHash);
-
     if (currentHash === previousHash) {
       console.log("No content changes detected, skipping onChange handling.");
       return;
@@ -621,7 +718,7 @@ export const ThreadWriter = () => {
               }
             }
             // Serialize and queue for saving
-            const serialized = serializeWithChildren(node);
+            const serialized = SerializeWithChildren(node);
             paragraphsToSave.push({ key_id: serialized.key_id, order: index.toString(), content: serialized });
             // Remove from previous keys
             previousNodeKeysRef.current.delete(id);

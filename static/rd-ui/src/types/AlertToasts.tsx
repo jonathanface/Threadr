@@ -25,7 +25,7 @@ export type AlertState = {
   severity: string;
   message: string;
   title: string;
-  timeout?: number;
+  timeout?: number | null;
   link?: { url: string; text: string };
   callback?: AlertFunctionCall;
 };

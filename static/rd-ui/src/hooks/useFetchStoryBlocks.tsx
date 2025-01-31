@@ -1,9 +1,11 @@
 // hooks/useFetchStoryBlocks.ts
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { SerializedEditorState } from 'lexical';
 import { useLoader } from './useLoader';
 import { CustomSerializedParagraphNode, CustomParagraphNode } from '../components/ThreadWriter/customNodes/CustomParagraphNode';
 import { v4 as uuidv4 } from 'uuid';
+import { useToaster } from './useToaster';
+import { AlertToastType } from '../types/AlertToasts';
 
 const generateBlankLine = (): CustomSerializedParagraphNode => ({
     children: [],
@@ -20,13 +22,15 @@ const generateBlankLine = (): CustomSerializedParagraphNode => ({
 export const useFetchStoryBlocks = (
     storyId: string,
     chapterId: string,
-    setStoryBlocks: (blocks: SerializedEditorState) => void,
-    previousNodeKeysRef: React.RefObject<Set<string>>
+    setStoryBlocks?: (blocks: SerializedEditorState) => void,
+    previousNodeKeysRef?: React.RefObject<Set<string>>
 ) => {
     const { showLoader, hideLoader } = useLoader();
+    const { setAlertState } = useToaster();
+    const [previousTableStatus, setPreviousTableStatus] = useState('ok');
 
     const getBatchedStoryBlocks = useCallback(async (startKey: string) => {
-        if (!storyId || !chapterId) return;
+        if (!storyId || !chapterId || !previousNodeKeysRef || !setStoryBlocks) return;
         try {
             showLoader();
             const response = await fetch(`/api/stories/${storyId}/content?key=${startKey}&chapter=${chapterId}`);
@@ -58,7 +62,20 @@ export const useFetchStoryBlocks = (
             });
         } catch (error: unknown) {
             const response: Response = error as Response;
-            if (response.status === 404) {
+            // the table is still being created
+            if (response.status === 501) {
+                setAlertState({
+                    title: "Chapter Being Created",
+                    message:
+                        "Your chapter is being created on our servers and will take a few minutes to complete. You can type, but nothing will be saved until the process is complete. You will be notified when everything's ready and your content saved.",
+                    severity: AlertToastType.warning,
+                    open: true,
+                    timeout: null
+                });
+                setPreviousTableStatus('501');
+            }
+            // Either the doc is blank or the table is still being created
+            if (response.status === 404 || response.status === 501) {
                 setStoryBlocks({
                     root: {
                         children: [generateBlankLine()],
@@ -77,5 +94,5 @@ export const useFetchStoryBlocks = (
         }
     }, [chapterId, setStoryBlocks, storyId, previousNodeKeysRef]);
 
-    return { getBatchedStoryBlocks };
+    return { getBatchedStoryBlocks, previousTableStatus, setPreviousTableStatus };
 };

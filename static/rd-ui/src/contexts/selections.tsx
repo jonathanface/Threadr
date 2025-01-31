@@ -13,13 +13,15 @@ type SelectionsContextType = {
     setSeries: (series: Series | undefined) => void;
     deselectSeries: () => void;
 
-    //   currentAssociationID: string | undefined;
-    //   setCurrentAssociationID: (id: string) => void;
-    //   deselectAssociation: () => void;
+    associationID: string | undefined;
+    setAssociationID: (id: string) => void;
+    deselectAssociation: () => void;
 
     chapter: Chapter | undefined;
     setChapter: (chapter: Chapter) => void;
     deselectChapter: () => void;
+
+    deselectAll: () => void;
 };
 
 export const SelectionsContext = createContext<SelectionsContextType | undefined>(
@@ -61,13 +63,20 @@ export const SelectionsProvider: React.FC<{
         setChapter(undefined);
     };
 
-    //   const [currentAssociationID, setCurrentAssociationID] = useState<string | undefined>(
-    //     undefined
-    //   );
+    const [associationID, setAssociationID] = useState<string | undefined>(
+        undefined
+    );
 
-    //   const deselectAssociation = () => {
-    //     setCurrentAssociationID(undefined);
-    //   }
+    const deselectAssociation = () => {
+        setAssociationID(undefined);
+    }
+
+    const deselectAll = () => {
+        deselectAssociation();
+        deselectChapter();
+        deselectStory();
+        deselectSeries();
+    }
 
     return (
         <SelectionsContext.Provider
@@ -84,9 +93,11 @@ export const SelectionsProvider: React.FC<{
                 setChapter,
                 deselectChapter,
 
-                // currentAssociationID,
-                // setCurrentAssociationID,
-                // deselectAssociation
+                associationID,
+                setAssociationID,
+                deselectAssociation,
+
+                deselectAll
             }}
         >
             {children}

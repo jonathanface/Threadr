@@ -11,15 +11,13 @@ import { useSelections } from "../../hooks/useSelections";
 
 export const SettingsMenu = () => {
     const navigate = useNavigate();
-    const { story, deselectChapter, deselectSeries, deselectStory } = useSelections();
+    const { story, deselectAll } = useSelections();
     const [isEditorMenuOpen, setIsEditorMenuOpen] = useState(false);
     if (!story) return;
 
     const closeDoc = () => {
         navigate(`/stories`);
-        deselectChapter();
-        deselectStory();
-        deselectSeries();
+        deselectAll();
     }
 
     return (

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import {
     $getRoot,
     ElementNode,
+    LexicalEditor,
     LexicalNode,
     TextNode,
 } from "lexical";
@@ -192,9 +193,6 @@ export const AssociationDecoratorPlugin = ({
         // Generate current text hash
         const currentHash = generateTextHash(editor);
         const previousHash = previousTextHashRef.current;
-
-        console.log("AssociationPlugin - Current Text Hash:", currentHash);
-        console.log("AssociationPlugin - Previous Text Hash:", previousHash);
 
         if (currentHash === previousHash) {
             console.log("AssociationPlugin - No content changes detected, skipping association processing.");

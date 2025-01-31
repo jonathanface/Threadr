@@ -1,6 +1,7 @@
 import { APIError } from "../../types/API";
 import { DBOperation, DBOperationBlock, DBOperationType, DocumentBlocksForServer } from "../../types/DBOperations";
 import { BlockOrderMap } from "../../types/Document";
+import { DeleteSuccessPayload, emitDeleteSuccess, emitSaveSuccess, emitSyncOrderSuccess, SaveSuccessPayload, SyncOrderSuccessPayload } from "../../utils/EventEmitter";
 
 export const DbOperationQueue: DBOperation[] = [];
 
@@ -40,7 +41,7 @@ const filterAndReduceDBOperations = (
     return toRun;
 };
 
-const saveBlocksToServer = async (ops: DBOperationBlock[], storyID: string, chapterID: string) => {
+const saveBlocksToServer = async (ops: DBOperationBlock[], storyID: string, chapterID: string, tableStatus?: string) => {
     try {
         const params: DocumentBlocksForServer = {
             story_id: storyID,
@@ -52,17 +53,24 @@ const saveBlocksToServer = async (ops: DBOperationBlock[], storyID: string, chap
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(params),
         });
-        if (!response.ok) {
+        console.log("resp", response.status);
+        if (!response.ok && response.status !== 501) {
             const error: APIError = { statusCode: response.status, statusText: response.statusText, retry: true };
             throw error;
         }
-        return await response.json();
+        console.log("tablestatus:", tableStatus);
+        if (tableStatus && tableStatus === '501') {
+            console.log("sending update");
+            const payload: SaveSuccessPayload = { storyID, chapterID };
+            emitSaveSuccess(payload);
+        }
+
     } catch (error: unknown) {
         console.error("ERROR SAVING BLOCK:", error);
     }
 };
 
-const deleteBlocksFromServer = async (ops: DBOperationBlock[], storyID: string, chapterID: string) => {
+const deleteBlocksFromServer = async (ops: DBOperationBlock[], storyID: string, chapterID: string, tableStatus?: string) => {
     try {
         const params: DocumentBlocksForServer = {
             story_id: storyID,
@@ -77,7 +85,7 @@ const deleteBlocksFromServer = async (ops: DBOperationBlock[], storyID: string, 
             body: JSON.stringify(params),
         });
 
-        if (!response.ok) {
+        if (!response.ok && response.status !== 501) {
             const error: APIError = {
                 statusCode: response.status,
                 statusText: response.statusText,
@@ -85,13 +93,16 @@ const deleteBlocksFromServer = async (ops: DBOperationBlock[], storyID: string, 
             };
             throw error;
         }
-        return await response.json();
+        if (tableStatus && tableStatus === '501') {
+            const payload: DeleteSuccessPayload = { storyID, chapterID };
+            emitDeleteSuccess(payload);
+        }
     } catch (error: unknown) {
         console.error("ERROR DELETING BLOCK:", error);
     }
 };
 
-const syncBlockOrderMap = async (blockList: BlockOrderMap, storyID: string, chapterID: string) => {
+const syncBlockOrderMap = async (blockList: BlockOrderMap, storyID: string, chapterID: string, tableStatus?: string) => {
     try {
         const params: BlockOrderMap = {
             chapter_id: chapterID,
@@ -104,13 +115,18 @@ const syncBlockOrderMap = async (blockList: BlockOrderMap, storyID: string, chap
             },
             body: JSON.stringify(params),
         });
-        if (!response.ok) {
+        if (!response.ok && response.status !== 501) {
             const error: APIError = {
                 statusCode: response.status,
                 statusText: response.statusText,
                 retry: true,
             };
             throw error;
+        }
+        if (tableStatus && tableStatus === '501') {
+            console.log("signal success")
+            const payload: SyncOrderSuccessPayload = { storyID, chapterID };
+            emitSyncOrderSuccess(payload);
         }
     } catch (error: unknown) {
         console.error("ERROR ORDERING BLOCKS: ", error);
@@ -129,7 +145,7 @@ export const ProcessDBQueue = async () => {
                 const minifiedBlocks = filterAndReduceDBOperations(DbOperationQueue, op.type, i);
                 console.log(`minimized queue to ${minifiedBlocks.length} items`)
                 try {
-                    await saveBlocksToServer(minifiedBlocks, op.storyID, op.chapterID);
+                    await saveBlocksToServer(minifiedBlocks, op.storyID, op.chapterID, op.tableStatus);
                     dbQueueRetryCount = 0;
                 } catch (error: unknown) {
                     const apiError = error as APIError;
@@ -144,7 +160,7 @@ export const ProcessDBQueue = async () => {
             case DBOperationType.delete: {
                 const minifiedBlocks = filterAndReduceDBOperations(DbOperationQueue, op.type, i);
                 try {
-                    await deleteBlocksFromServer(minifiedBlocks, op.storyID, op.chapterID);
+                    await deleteBlocksFromServer(minifiedBlocks, op.storyID, op.chapterID, op.tableStatus);
                     dbQueueRetryCount = 0;
                 } catch (error: unknown) {
                     const apiError = error as APIError;
@@ -159,7 +175,7 @@ export const ProcessDBQueue = async () => {
             case DBOperationType.syncOrder: {
                 try {
                     if (op.orderList) {
-                        await syncBlockOrderMap(op.orderList, op.storyID, op.chapterID);
+                        await syncBlockOrderMap(op.orderList, op.storyID, op.chapterID, op.tableStatus);
                         DbOperationQueue.splice(i, 1);
                         dbQueueRetryCount = 0;
                     }

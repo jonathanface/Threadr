@@ -8,7 +8,7 @@ export const Toaster = () => {
 
   const splitByNewline = alertState.message.split("\n");
 
-  const timeout = alertState.timeout ? alertState.timeout : 5000;
+  const timeout = alertState.timeout !== undefined ? alertState.timeout : 5000;
 
   return (
     <Snackbar

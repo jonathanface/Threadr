@@ -1,1 +1,9 @@
-.chapterItem {}
+.newButtonLabel {
+    margin-top: 7px;
+}
+
+.chapterMenuItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
