@@ -1,5 +1,4 @@
 .exporter {
-    margin-left: auto;
     text-align: left;
     z-index: 50;
 }
@@ -50,8 +49,4 @@
 
 .exporter ul li:hover {
     background-color: #fff;
-}
-
-.exporter .parentButton {
-    margin-left: auto;
 }

@@ -135,16 +135,16 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusNotFound, "Unable to locate series")
 		return
 	}
-	if len(strings.TrimSpace(r.FormValue("title"))) > 0 {
-		series.Title = strings.TrimSpace(r.FormValue("title"))
+	if len(strings.TrimSpace(r.FormValue("series_title"))) > 0 {
+		series.Title = strings.TrimSpace(r.FormValue("series_title"))
 		if series.Title == "" {
 			RespondWithError(w, http.StatusBadRequest, "Series name cannot be blank")
 			return
 		}
 	}
 
-	if len(strings.TrimSpace(r.FormValue("description"))) > 0 {
-		series.Description = strings.TrimSpace(r.FormValue("description"))
+	if len(strings.TrimSpace(r.FormValue("series_description"))) > 0 {
+		series.Description = strings.TrimSpace(r.FormValue("series_description"))
 	}
 
 	storiesJSON := r.FormValue("stories")

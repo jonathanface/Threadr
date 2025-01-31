@@ -9,7 +9,6 @@ import { SplashPage } from "./sections/SplashPage";
 import { StoryAndSeriesListing } from "./sections/StoryAndSeriesListing";
 import { SubscribePanel } from "./sections/SubscribePanel";
 import { useFetchUserData } from "./hooks/useFetchUserData";
-import { useWorksList } from "./hooks/useWorksList";
 import { HeaderMenu } from "./components/HeaderMenu";
 import { Navigate, Route, Routes } from "react-router-dom";
 
@@ -17,7 +16,6 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_KEY ?? "");
 
 export const Docter = memo(() => {
   const { isLoggedIn, userLoading } = useFetchUserData();
-  const { seriesList, setSeriesList, storiesList, setStoriesList } = useWorksList();
   useEffect(() => {
     console.log("Docter mounted");
     return () => {
@@ -47,7 +45,7 @@ export const Docter = memo(() => {
             path="/stories"
             element={
               isLoggedIn ? (
-                <StoryAndSeriesListing seriesList={seriesList} setSeriesList={setSeriesList} storiesList={storiesList} setStoriesList={setStoriesList} />
+                <StoryAndSeriesListing />
               ) : (
                 <Navigate to="/" replace />
               )

@@ -10,17 +10,15 @@ import { IsStory, Story } from "../../types/Story";
 import { Series } from "../../types/Series";
 import { useLoader } from "../../hooks/useLoader";
 import { useNavigate } from "react-router-dom";
+import { useWorksList } from "../../hooks/useWorksList";
 
 interface StoryBoxProps {
-  data: Story | Series;
-  seriesList: Series[] | null;
-  storiesList: Story[] | null;
-  setSeriesList: (series: Series[]) => void;
-  setStoriesList: (stories: Story[]) => void;
+  itemData: Story | Series;
 }
 
 export const StoryBox = (props: StoryBoxProps) => {
-  const { setIsLoaderVisible } = useLoader();
+  const { showLoader, hideLoader } = useLoader();
+  const { seriesList, storiesList, setSeriesList, setStoriesList } = useWorksList();
 
   const [wasDeleted, setWasDeleted] = useState(false);
   const [isStoryLoaderVisible, setIsStoryLoaderVisible] = useState(true);
@@ -54,8 +52,8 @@ export const StoryBox = (props: StoryBoxProps) => {
       "? Any volumes assigned to it will be converted to standalone stories.";
     const conf = window.confirm(confirmText);
     if (conf) {
-      setIsLoaderVisible(true);
       try {
+        showLoader();
         const url = "/api/series/" + id;
         const response = await fetch(url, {
           credentials: "include",
@@ -70,28 +68,28 @@ export const StoryBox = (props: StoryBoxProps) => {
         }
 
         setWasDeleted(true);
-        const foundSeriesIndex = props.seriesList?.findIndex(
+        const foundSeriesIndex = seriesList?.findIndex(
           (srs) => srs.series_id === id
         );
-        if (props.storiesList && props.seriesList && foundSeriesIndex && foundSeriesIndex !== -1) {
-          const newStandaloneList = [...props.storiesList];
-          props.seriesList[foundSeriesIndex].stories.forEach((story) => {
+        if (storiesList && seriesList && foundSeriesIndex && foundSeriesIndex !== -1) {
+          const newStandaloneList = [...storiesList];
+          seriesList[foundSeriesIndex].stories.forEach((story) => {
             const newStory = { ...story };
             delete newStory.series_id;
             newStandaloneList.push(newStory);
           });
-          props.setStoriesList(newStandaloneList);
+          setStoriesList(newStandaloneList);
 
-          const newSeriesList = [...props.seriesList];
+          const newSeriesList = [...seriesList];
           newSeriesList.splice(foundSeriesIndex, 1);
-          props.setSeriesList(newSeriesList);
+          setSeriesList(newSeriesList);
         }
       } catch (error) {
         console.error("Error fetching data: ", error);
         //const errorData = error.response ? JSON.parse(error.message) : {};
 
       } finally {
-        setIsLoaderVisible(false);
+        hideLoader();
       }
     }
   };
@@ -100,21 +98,21 @@ export const StoryBox = (props: StoryBoxProps) => {
     event.stopPropagation();
 
     const confirmText =
-      (IsStory(props.data)
+      (IsStory(props.itemData)
         ? "Delete story " + title + "?"
         : "Delete " +
         title +
         " from your series " +
-        props.data.series_title +
+        props.itemData.series_title +
         "?") +
-      (!IsStory(props.data) && props.data.stories.length === 1
+      (!IsStory(props.itemData) && props.itemData.stories.length === 1
         ? "\n\nThere are no other titles in this series, so deleting it will also remove the series."
         : "");
 
     const conf = window.confirm(confirmText);
-    const seriesID = !IsStory(props.data) ? props.data.series_id : "";
+    const seriesID = !IsStory(props.itemData) ? props.itemData.series_id : "";
     if (conf) {
-      setIsLoaderVisible(true);
+      showLoader();
       const url = `/api/stories/${id}?series=${seriesID}`;
       fetch(url, {
         credentials: "include",
@@ -126,35 +124,35 @@ export const StoryBox = (props: StoryBoxProps) => {
         if (response.ok) {
           setWasDeleted(true);
         }
-        setIsLoaderVisible(false);
+        hideLoader();
       });
     }
   };
 
-  const id = !IsStory(props.data) ? props.data.series_id : props.data.story_id;
-  const title = !IsStory(props.data)
-    ? props.data.series_title
-    : props.data.title;
-  const description = !IsStory(props.data)
-    ? props.data.series_description
-    : props.data.description;
+  const id = !IsStory(props.itemData) ? props.itemData.series_id : props.itemData.story_id;
+  const title = !IsStory(props.itemData)
+    ? props.itemData.series_title
+    : props.itemData.title;
+  const description = !IsStory(props.itemData)
+    ? props.itemData.series_description
+    : props.itemData.description;
   const editHoverText = "Edit " + title;
   const deleteHoverText = "Delete " + title;
 
   useEffect(() => {
-    if (!IsStory(props.data)) {
+    if (!IsStory(props.itemData)) {
       setIsSeries(true);
     } else {
       setIsSeries(false);
     }
-  }, [props.data]);
+  }, [props.itemData]);
 
   return !wasDeleted ? (
     <button
       className={styles.docButton}
       onClick={() => {
-        if (IsStory(props.data)) {
-          handleClick(props.data.story_id, props.data.chapters[0].id);
+        if (IsStory(props.itemData)) {
+          handleClick(props.itemData.story_id, props.itemData.chapters[0].id);
         }
       }}
     >
@@ -169,8 +167,8 @@ export const StoryBox = (props: StoryBoxProps) => {
       </div>
       <div className={styles.storyBubble}>
         <img
-          className={!IsStory(props.data) ? styles.seriesImage : ""}
-          src={props.data.image_url}
+          className={!IsStory(props.itemData) ? styles.seriesImage : ""}
+          src={props.itemData.image_url}
           alt={title}
           onLoad={() => {
             setIsStoryLoaderVisible(false);
@@ -209,7 +207,7 @@ export const StoryBox = (props: StoryBoxProps) => {
               component="label"
               title={deleteHoverText}
               onClick={(event) => {
-                if (!IsStory(props.data)) {
+                if (!IsStory(props.itemData)) {
                   deleteSeries(event, id, title);
                 } else {
                   deleteStory(event, id, title);
@@ -233,8 +231,8 @@ export const StoryBox = (props: StoryBoxProps) => {
         <DetailsSlider
           key={id}
           id={id}
-          stories={!IsStory(props.data) ? props.data.stories : undefined}
-          chapters={IsStory(props.data) ? props.data.chapters : undefined}
+          stories={!IsStory(props.itemData) ? props.itemData.stories : undefined}
+          chapters={IsStory(props.itemData) ? props.itemData.chapters : undefined}
           onStoryClick={handleClick}
           setDeleted={setWasDeleted}
           isSeries={isSeries}

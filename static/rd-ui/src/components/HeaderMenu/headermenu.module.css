@@ -30,12 +30,28 @@ header .storyInfo {
     text-align: left;
     margin-top: 10px;
     color: #f0f0f0;
+    line-height: 1.5rem;
+}
+
+header .storyInfo input {
+    font-size: 1.5rem;
+    padding: 0;
+    margin: 0;
+    line-height: 1.5rem;
 }
 
 header .seriesInfo {
     font-size: 0.8rem;
+    line-height: 0.8rem;
     margin-top: 3px;
     color: #ccc;
+}
+
+header .seriesInfo input {
+    font-size: 0.8rem;
+    line-height: 0.8rem;
+    padding: 0;
+    margin: 0;
 }
 
 header .logoImage {

@@ -15,6 +15,10 @@ import FormatAlignRightIcon from '@mui/icons-material/FormatAlignRight';
 import FormatAlignJustifyIcon from '@mui/icons-material/FormatAlignJustify';
 import styles from "./toolbar.module.css";
 import { DocumentExporter } from "./DocumentExporter";
+import { EditableText } from "../EditableText";
+import { useSelections } from "../../hooks/useSelections";
+import { AlertToastType } from "../../types/AlertToasts";
+import { useToaster } from "../../hooks/useToaster";
 
 export const Toolbar = () => {
     const [editor] = useLexicalComposerContext();
@@ -23,6 +27,9 @@ export const Toolbar = () => {
     const [isUnderline, setIsUnderline] = useState(false);
     const [isStrikethrough, setIsStrikethrough] = useState(false);
     const [alignment, setAlignment] = useState<string | null>("left");
+
+    const { story, chapter, series, setChapter, setStory, setSeries } = useSelections();
+    const { setAlertState } = useToaster();
 
     const toggleTextFormat = (format: TextFormatType) => {
         editor.dispatchCommand(FORMAT_TEXT_COMMAND, format);
@@ -68,6 +75,56 @@ export const Toolbar = () => {
         return () => unsubscribe();
     }, [editor, alignmentMap]);
 
+    const onChapterTitleEdit = async (event: React.SyntheticEvent) => {
+        if (story && chapter) {
+            const target = event.target as HTMLInputElement;
+            if (target.value !== chapter.title && target.value.trim() !== "") {
+                const updatedChapter = { ...chapter };
+                updatedChapter.title = target.value;
+                try {
+                    const response = await fetch("/api/stories/" + story.story_id + "/chapters/" + chapter.id, {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(updatedChapter),
+                    });
+                    if (!response.ok) {
+                        console.error(response.body);
+                        throw new Error('There was an error updating your chapter. Please report this.');
+                    }
+                    setChapter(updatedChapter);
+                    const idx = story.chapters.findIndex(chap => { chapter.id === chap.id });
+                    if (idx !== -1) {
+                        const newStory = { ...story };
+                        const newChapters = [...newStory.chapters];
+                        newChapters[idx] = updatedChapter;
+                        newStory.chapters = newChapters;
+                        setStory(newStory);
+                        if (series) {
+                            const seriesIDX = series.stories.findIndex(story => story.story_id === story.story_id);
+                            if (seriesIDX !== -1) {
+                                const newStoriesList = { ...series.stories };
+                                newStoriesList[seriesIDX] = newStory;
+                                const newSeries = { ...series };
+                                newSeries.stories = newStoriesList;
+                                setSeries(newSeries);
+                            }
+                        }
+                    }
+                } catch (error: unknown) {
+                    setAlertState({
+                        title: "Error",
+                        message: (error as Error).message,
+                        severity: AlertToastType.error,
+                        open: true,
+                        timeout: 6000,
+                    });
+                }
+            }
+        }
+    };
+
     return (
         <div className={styles.toolbar}>
             {/* Text formatting buttons */}
@@ -109,8 +166,10 @@ export const Toolbar = () => {
             <IconButton className={alignment === 'justify' ? styles.active : ""} aria-label="justify" onClick={() => applyAlignment("justify")}>
                 <FormatAlignJustifyIcon fontSize="small" />
             </IconButton>
+            <span className={styles.chapterTitle}>
+                <EditableText textValue={chapter?.title ? chapter.title : "Missing Title"} onTextChange={onChapterTitleEdit} inputTextAlign="right" />
+            </span>
             <DocumentExporter />
-
         </div>
     );
 };
