@@ -38,7 +38,7 @@ type DaoInterface interface {
 	RemoveStoryFromSeries(email, storyID string, series models.Series) (models.Series, error)
 
 	// POSTs
-	CreateChapter(storyID string, chapter models.Chapter) (models.Chapter, error)
+	CreateChapter(storyID string, chapter models.Chapter, email string) (models.Chapter, error)
 	CreateStory(email string, story models.Story, newSeriesTitle string) (storyID string, err error)
 	CreateUser(email string) error
 

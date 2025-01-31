@@ -176,7 +176,7 @@ func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (
 }
 
 func (d *DAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) (err error) {
-	tableName := storyID + "_" + storyBlocks.ChapterID + "_blocks"
+	tableName := storyID + "_" + storyBlocks.ChapterID + "_blocks-rollout"
 	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(storyBlocks.Blocks); i += d.writeBatchSize {
 		end := i + d.writeBatchSize
@@ -357,8 +357,6 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 		"created_at":  &types.AttributeValueMemberN{Value: now},
 		"image_url":   &types.AttributeValueMemberS{Value: story.ImageURL},
 	}
-
-	fmt.Println("series", story.SeriesID)
 
 	if story.SeriesID != "" {
 		intPlace := strconv.Itoa(story.Place)

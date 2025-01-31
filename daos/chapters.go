@@ -64,7 +64,7 @@ func (d *DAO) GetChapterByID(chapterID string) (chapter *models.Chapter, err err
 
 func (d *DAO) GetChapterParagraphs(storyID, chapterID string, startKey *map[string]types.AttributeValue) (*models.BlocksData, error) {
 	var blocks models.BlocksData
-	tableName := storyID + "_" + chapterID + "_blocks"
+	tableName := storyID + "_" + chapterID + "_blocks-rollout"
 	queryInput := &dynamodb.QueryInput{
 		TableName:              aws.String(tableName),
 		IndexName:              aws.String("story_id-place-index"),
@@ -114,7 +114,7 @@ func (d *DAO) GetChapterParagraphs(storyID, chapterID string, startKey *map[stri
 	return &blocks, nil
 }
 
-func (d *DAO) CreateChapter(storyID string, chapter models.Chapter) (newChapter models.Chapter, err error) {
+func (d *DAO) CreateChapter(storyID string, chapter models.Chapter, email string) (newChapter models.Chapter, err error) {
 	newChapter = chapter
 	var chapTwi types.TransactWriteItem
 	if chapTwi, err = d.generateStoryChapterTransaction(storyID, chapter.ID, chapter.Title, chapter.Place); err != nil {
@@ -131,8 +131,23 @@ func (d *DAO) CreateChapter(storyID string, chapter models.Chapter) (newChapter 
 		return models.Chapter{}, fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 	}
 
-	tableName := storyID + "_" + chapter.ID + "_blocks"
-	if err = d.createBlockTable(tableName); err != nil {
+	tags := []string{"Title=" + chapter.Title, "Author=" + email, "Series="}
+	story, err := d.GetStoryByID(email, storyID)
+	if err != nil {
+		return models.Chapter{}, err
+	}
+	tags = append(tags, "Story="+story.Title)
+	if len(story.SeriesID) > 0 {
+		series, err := d.GetSeriesByID(email, story.SeriesID)
+		if err != nil {
+			return models.Chapter{}, err
+		}
+		tags = append(tags, "Series="+series.Title)
+	}
+
+	tableName := storyID + "_" + chapter.ID + "_blocks-rollout"
+
+	if err = d.createBlockTable(tableName, nil); err != nil {
 		return models.Chapter{}, err
 	}
 	return newChapter, nil
@@ -160,7 +175,7 @@ func (d *DAO) EditChapter(storyID string, chapter models.Chapter) (updatedChapte
 }
 
 func (d *DAO) DeleteChapterParagraphs(storyID string, storyBlocks *models.StoryBlocks) (err error) {
-	tableName := storyID + "_" + storyBlocks.ChapterID + "_blocks"
+	tableName := storyID + "_" + storyBlocks.ChapterID + "_blocks-rollout"
 
 	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(storyBlocks.Blocks); i += d.writeBatchSize {
@@ -244,7 +259,7 @@ func (d *DAO) DeleteChapters(storyID string, chapters []models.Chapter) (err err
 			// Add the transaction write item to the list of transaction write items.
 			writeItemsInput.TransactItems[i] = writeItem
 
-			tableName := storyID + "_" + item.ID + "_blocks"
+			tableName := storyID + "_" + item.ID + "_blocks-rollout"
 
 			deleteTableInput := &dynamodb.DeleteTableInput{
 				TableName: aws.String(tableName),
@@ -268,7 +283,7 @@ func (d *DAO) DeleteChapters(storyID string, chapters []models.Chapter) (err err
 
 func (d *DAO) GetBlockCountByChapter(email, storyID, chapterID string) (count int, err error) {
 
-	tableName := storyID + "_" + chapterID + "_blocks"
+	tableName := storyID + "_" + chapterID + "_blocks-rollout"
 
 	blockScanInput := &dynamodb.ScanInput{
 		TableName:        aws.String(tableName),

@@ -172,7 +172,12 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		dao        daos.DaoInterface
 		ok         bool
 		newChapter models.Chapter
+		email      string
 	)
+	if email, err = getUserEmail(r); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story ID")
 		return
@@ -197,7 +202,7 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		chapter.Place = 1
 	}
 
-	if newChapter, err = dao.CreateChapter(storyID, chapter); err != nil {
+	if newChapter, err = dao.CreateChapter(storyID, chapter, email); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
@@ -401,7 +406,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	chap.ID = firstChapterID
 	chap.Title = "Chapter 1"
 	chap.Place = 1
-	newChapter, err := dao.CreateChapter(story.ID, chap)
+	newChapter, err := dao.CreateChapter(story.ID, chap, email)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return

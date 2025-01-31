@@ -128,7 +128,7 @@ func (d *DAO) CheckForSuspendedStories(email string) (bool, error) {
 	return false, nil
 }
 
-func (d *DAO) createBlockTable(tableName string) error {
+func (d *DAO) createBlockTable(tableName string, tags *[]types.Tag) error {
 	partitionKey := aws.String("key_id")
 	gsiPartKey := aws.String("story_id")
 	gsiSortKey := aws.String("place")
@@ -181,6 +181,7 @@ func (d *DAO) createBlockTable(tableName string) error {
 		AttributeDefinitions:   attributes,
 		BillingMode:            types.BillingModePayPerRequest,
 		GlobalSecondaryIndexes: gsiSettings,
+		Tags:                   tags,
 	})
 	if err != nil {
 		return err
