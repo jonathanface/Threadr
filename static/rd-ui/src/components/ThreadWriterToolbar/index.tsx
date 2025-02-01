@@ -28,7 +28,7 @@ export const Toolbar = () => {
     const [isStrikethrough, setIsStrikethrough] = useState(false);
     const [alignment, setAlignment] = useState<string | null>("left");
 
-    const { story, chapter, series, setChapter, setStory, setSeries } = useSelections();
+    const { story, chapter, setChapter, propagateChapterUpdates } = useSelections();
     const { setAlertState } = useToaster();
 
     const toggleTextFormat = (format: TextFormatType) => {
@@ -94,24 +94,7 @@ export const Toolbar = () => {
                         throw new Error('There was an error updating your chapter. Please report this.');
                     }
                     setChapter(updatedChapter);
-                    const idx = story.chapters.findIndex(chap => { chapter.id === chap.id });
-                    if (idx !== -1) {
-                        const newStory = { ...story };
-                        const newChapters = [...newStory.chapters];
-                        newChapters[idx] = updatedChapter;
-                        newStory.chapters = newChapters;
-                        setStory(newStory);
-                        if (series) {
-                            const seriesIDX = series.stories.findIndex(story => story.story_id === story.story_id);
-                            if (seriesIDX !== -1) {
-                                const newStoriesList = { ...series.stories };
-                                newStoriesList[seriesIDX] = newStory;
-                                const newSeries = { ...series };
-                                newSeries.stories = newStoriesList;
-                                setSeries(newSeries);
-                            }
-                        }
-                    }
+                    propagateChapterUpdates(updatedChapter);
                 } catch (error: unknown) {
                     setAlertState({
                         title: "Error",

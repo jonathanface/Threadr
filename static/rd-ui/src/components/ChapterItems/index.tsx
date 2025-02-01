@@ -149,9 +149,6 @@ export const ChapterItems = ({ chapters, closeFn }: SettingsMenuProps) => {
         const updatedChapters = newChapters.map((vol: Chapter, idx: number) => {
             return { ...vol, place: idx + 1 };
         });
-        const newStory = { ...story };
-        newStory.chapters = updatedChapters;
-        setStory(newStory);
 
         try {
             showLoader();
@@ -166,6 +163,9 @@ export const ChapterItems = ({ chapters, closeFn }: SettingsMenuProps) => {
                 console.error(response.body);
                 throw new Error("There was an error updating your chapters. Please report this.");
             }
+            const newStory = { ...story };
+            newStory.chapters = updatedChapters;
+            setStory(newStory);
         } catch (error: unknown) {
             const message = (error as Error).message;
             setAlertState({

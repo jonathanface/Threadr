@@ -2,7 +2,6 @@
 import { useLoader } from "../../hooks/useLoader";
 import { useSelections } from "../../hooks/useSelections";
 import { useToaster } from "../../hooks/useToaster";
-import { useWorksList } from "../../hooks/useWorksList";
 import { AlertToastType } from "../../types/AlertToasts";
 import { Story } from "../../types/Story";
 import { UserMenu } from "..//UserMenu"
@@ -12,8 +11,7 @@ import styles from "./headermenu.module.css";
 
 export const HeaderMenu = () => {
 
-  const { story, series, setStory, setSeries } = useSelections();
-  const { storiesList, seriesList, setStoriesList, setSeriesList } = useWorksList();
+  const { story, series, setStory, setSeries, propagateStoryUpdates, propagateSeriesUpdates } = useSelections();
   const { setAlertState } = useToaster();
   const { showLoader, hideLoader } = useLoader();
 
@@ -40,36 +38,7 @@ export const HeaderMenu = () => {
             throw new Error('There was an error updating your story title. Please report this.')
           }
           setStory(updatedStory);
-          if (storiesList) {
-            const storyListIDX = storiesList.findIndex(listItem => listItem.story_id === story.story_id);
-            if (storyListIDX !== -1) {
-              const newList = [...storiesList];
-              newList[storyListIDX] = updatedStory;
-              setStoriesList(newList);
-            }
-          }
-          if (series) {
-            const idx = series.stories.findIndex(listItem => listItem.story_id === story.story_id);
-            if (idx !== -1) {
-              const newStoriesList = { ...series.stories };
-              newStoriesList[idx] = updatedStory;
-              const newSeries = { ...series };
-              newSeries.stories = newStoriesList;
-              setSeries(newSeries);
-            }
-            if (seriesList) {
-              const seriesListIDX = seriesList.findIndex(listItem => listItem.series_id === series.series_id);
-              if (seriesListIDX !== -1) {
-                const newList = [...seriesList];
-                const listSeriesEntry = newList[seriesListIDX];
-                const listSeriesEntriesIDX = listSeriesEntry.stories.findIndex(listItem => listItem.story_id === updatedStory.story_id);
-                if (listSeriesEntriesIDX !== -1) {
-                  newList[seriesListIDX].stories[listSeriesEntriesIDX] = updatedStory;
-                  setSeriesList(newList)
-                }
-              }
-            }
-          }
+          propagateStoryUpdates(updatedStory);
         } catch (error) {
           setAlertState({
             title: "Error",
@@ -116,14 +85,7 @@ export const HeaderMenu = () => {
             throw new Error('There was an error updating your series title. Please report this.')
           }
           setSeries(updatedSeries);
-          if (seriesList) {
-            const seriesListIDX = seriesList.findIndex(listItem => listItem.series_id === updatedSeries.series_id);
-            if (seriesListIDX !== -1) {
-              const newList = [...seriesList];
-              newList[seriesListIDX] = updatedSeries;
-              setSeriesList(newList);
-            }
-          }
+          propagateSeriesUpdates(updatedSeries)
         } catch (error) {
           setAlertState({
             title: "Error",
