@@ -1,4 +1,4 @@
-//build: GOOS=linux GOARCH=arm64 go build -tags lambda.norpc -o bootstrap main.go
+//build: GOARCH=arm64 GOOS=linux go build -o bootstrap main.go
 //zip: zip dataTransform.zip bootstrap
 
 package main
