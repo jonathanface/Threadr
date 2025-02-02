@@ -17,20 +17,21 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <ErrorBoundary>
     <BrowserRouter>
-      <UserProvider>
-        <SelectionsProvider>
+      <LoaderProvider>
+        <AlertProvider>
+          <UserProvider>
+            <SelectionsProvider>
+              <WorksListProvider>
 
-          <WorksListProvider>
-            <LoaderProvider>
-              <AlertProvider>
                 <Toaster />
                 <Loader />
                 <Docter />
-              </AlertProvider>
-            </LoaderProvider>
-          </WorksListProvider>
-        </SelectionsProvider>
-      </UserProvider>
+
+              </WorksListProvider>
+            </SelectionsProvider>
+          </UserProvider>
+        </AlertProvider>
+      </LoaderProvider>
     </BrowserRouter>
   </ErrorBoundary>
 );

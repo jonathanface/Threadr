@@ -11,6 +11,7 @@ import { SubscribePanel } from "./sections/SubscribePanel";
 import { useFetchUserData } from "./hooks/useFetchUserData";
 import { HeaderMenu } from "./components/HeaderMenu";
 import { Navigate, Route, Routes } from "react-router-dom";
+import { LoginPanelModal } from "./sections/LoginPanel";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_KEY ?? "");
 
@@ -59,10 +60,20 @@ export const Docter = memo(() => {
               <SplashPage />
             )}
           />
+          <Route
+            path="/signin"
+            element={
+              isLoggedIn ? (
+                <Navigate to="/stories" replace />
+              ) : (
+                <LoginPanelModal />
+              )
+            }
+          />
         </Routes>
+
         {/* <CreatEditStoryPanel seriesList={seriesList} setSeriesList={setSeriesList} storiesList={storiesList} setStoriesList={setStoriesList} />
-        <ConfigPanelModal />
-        <LoginPanelModal /> */}
+        <ConfigPanelModal />*/}
       </main>
       <Elements stripe={stripePromise}>
         <SubscribePanel />

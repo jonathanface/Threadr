@@ -4,28 +4,39 @@ import { useContext, useState } from "react";
 import styles from "./user-menu.module.css";
 import { useLoader } from "../../hooks/useLoader";
 import { UserContext } from "../../contexts/user";
+import { useNavigate } from "react-router-dom";
+import { useFetchUserData } from "../../hooks/useFetchUserData";
 
 export const UserMenu = () => {
   const userData = useContext(UserContext);
   const { showLoader, hideLoader } = useLoader();
+  const { setIsLoggedIn } = useFetchUserData();
+  const navigate = useNavigate();
 
   const [isOpen, setIsOpen] = useState(false);
 
   const signout = async () => {
     showLoader();
     try {
-      const response = await fetch("/logout", {
+      const response = await fetch("/auth/logout", {
         method: "DELETE",
       });
-      if (!response.ok) {
+      if (!response.ok && response.status !== 307) {
         throw new Error(`Unable to logout: ${response.status}`);
       }
+      console.log("logged out");
+      setIsLoggedIn(false);
+      navigate('/');
     } catch (error) {
       console.error(error);
     } finally {
       hideLoader();
     }
   };
+
+  const showLoginPanel = () => {
+    navigate('/signin')
+  }
 
   const displayComponent = userData?.isLoggedIn ? (
     <span
@@ -50,7 +61,7 @@ export const UserMenu = () => {
       )}
     </span>
   ) : (
-    <a>Register / SignIn</a>
+    <a onClick={showLoginPanel}>Register / SignIn</a>
   );
 
   return <span className={styles.userMenu}>{displayComponent}</span>;

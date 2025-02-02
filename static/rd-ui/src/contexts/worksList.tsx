@@ -1,6 +1,8 @@
 import { createContext, useEffect, useMemo, useState } from "react";
 import { Series } from "../types/Series";
 import { Story } from "../types/Story";
+import { useFetchUserData } from "../hooks/useFetchUserData";
+import { useLoader } from "../hooks/useLoader";
 
 type WorksList = {
     seriesList: Series[] | null;
@@ -14,6 +16,8 @@ export const WorksListContext = createContext<WorksList | undefined>(undefined);
 export const WorksListProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [seriesList, setSeriesList] = useState<Series[] | null>(null);
     const [storiesList, setStoriesList] = useState<Story[] | null>(null);
+    const { isLoggedIn } = useFetchUserData();
+    const { showLoader, hideLoader } = useLoader();
 
     // Fetch function for series and stories
     const fetchSeries = async (): Promise<Series[]> => {
@@ -36,16 +40,20 @@ export const WorksListProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         // Fetch both series and stories when the provider mounts.
         const loadData = async () => {
             try {
+                showLoader();
                 const [series, stories] = await Promise.all([fetchSeries(), fetchStories()]);
                 setSeriesList(series);
                 setStoriesList(stories);
             } catch (error) {
                 console.error("Error loading works list data:", error);
+            } finally {
+                hideLoader();
             }
         };
-
-        loadData();
-    }, []);
+        if (isLoggedIn) {
+            loadData();
+        }
+    }, [isLoggedIn]);
 
     // Log mounting for debugging
     useEffect(() => {
