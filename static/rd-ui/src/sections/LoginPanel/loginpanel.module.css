@@ -1,0 +1,22 @@
+.loginPanel {
+    padding: 2rem;
+    max-width: 500px;
+    margin: 3rem auto;
+    color: #ddd;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 2px 2px 2px #1a1a1a;
+    text-align: center;
+}
+
+.loginPanel .option {
+    margin-bottom: 1.5rem;
+}
+
+.loginPanel .option img {
+    box-shadow: 2px 2px 2px #1a1a1a;
+}
+
+.loginPanel .option img:hover {
+    opacity: 0.8;
+}
