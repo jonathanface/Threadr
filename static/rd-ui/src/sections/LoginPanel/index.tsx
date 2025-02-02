@@ -1,15 +1,17 @@
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
+import { useNavigate } from "react-router-dom";
 
 export const LoginPanelModal = () => {
 
-  const handleClose = () => {
-    //setIsLoginPanelOpen(false);
-  };
+  const navigate = useNavigate();
 
+  const handleClose = () => {
+    navigate('/');
+  };
   return (
-    <Dialog open={false} onClose={handleClose}>
+    <Dialog open={true} onClose={handleClose}>
       <DialogTitle>Sigin Options</DialogTitle>
       <DialogContent>
         <p>

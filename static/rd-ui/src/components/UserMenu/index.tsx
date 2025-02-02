@@ -21,10 +21,9 @@ export const UserMenu = () => {
       const response = await fetch("/auth/logout", {
         method: "DELETE",
       });
-      if (!response.ok && response.status !== 307) {
+      if (!response.ok) {
         throw new Error(`Unable to logout: ${response.status}`);
       }
-      console.log("logged out");
       setIsLoggedIn(false);
       navigate('/');
     } catch (error) {

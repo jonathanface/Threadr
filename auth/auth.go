@@ -161,5 +161,5 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	api.RespondWithJson(w, http.StatusTemporaryRedirect, nil)
+	api.RespondWithJson(w, http.StatusOK, nil)
 }
