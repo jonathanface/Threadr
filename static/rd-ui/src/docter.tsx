@@ -12,6 +12,8 @@ import { useFetchUserData } from "./hooks/useFetchUserData";
 import { HeaderMenu } from "./components/HeaderMenu";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { LoginPanel } from "./sections/LoginPanel";
+import { ConfigPanel } from "./sections/UserConfigPanel";
+import { CreateEditStoryPanel } from "./sections/CreateEditStoryPanel";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_KEY ?? "");
 
@@ -67,6 +69,26 @@ export const Docter = memo(() => {
                 <Navigate to="/stories" replace />
               ) : (
                 <LoginPanel />
+              )
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              isLoggedIn ? (
+                <ConfigPanel />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+          <Route
+            path="/stories/new"
+            element={
+              isLoggedIn ? (
+                <CreateEditStoryPanel />
+              ) : (
+                <Navigate to="/" replace />
               )
             }
           />

@@ -63,8 +63,10 @@ export const StoryBox = (props: StoryBoxProps) => {
           },
         });
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(JSON.stringify(errorData));
+          if (response.status !== 501) {
+            const errorData = await response.json();
+            throw new Error(JSON.stringify(errorData));
+          }
         }
 
         setWasDeleted(true);
@@ -85,16 +87,14 @@ export const StoryBox = (props: StoryBoxProps) => {
           setSeriesList(newSeriesList);
         }
       } catch (error) {
-        console.error("Error fetching data: ", error);
-        //const errorData = error.response ? JSON.parse(error.message) : {};
-
+        console.error(`Error deleting series: ${error}`);
       } finally {
         hideLoader();
       }
     }
   };
 
-  const deleteStory = (event: React.MouseEvent, id: string, title: string) => {
+  const deleteStory = async (event: React.MouseEvent, id: string, title: string) => {
     event.stopPropagation();
 
     const confirmText =
@@ -112,20 +112,28 @@ export const StoryBox = (props: StoryBoxProps) => {
     const conf = window.confirm(confirmText);
     const seriesID = !IsStory(props.itemData) ? props.itemData.series_id : "";
     if (conf) {
-      showLoader();
-      const url = `/api/stories/${id}?series=${seriesID}`;
-      fetch(url, {
-        credentials: "include",
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }).then((response) => {
-        if (response.ok) {
-          setWasDeleted(true);
+      try {
+        showLoader();
+        const url = `/api/stories/${id}?series=${seriesID}`;
+        const response = await fetch(url, {
+          credentials: "include",
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        if (!response.ok) {
+          if (response.status !== 501) {
+            const errorData = await response.json();
+            throw new Error(JSON.stringify(errorData));
+          }
         }
+        setWasDeleted(true);
+      } catch (error) {
+        console.error(`Error deleting story ${error}`);
+      } finally {
         hideLoader();
-      });
+      }
     }
   };
 

@@ -1,76 +1,92 @@
+.storyForm {
+    padding: 1rem;
+    max-width: 800px;
+    margin: 3rem auto;
+    color: #ddd;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 2px 2px 2px #1a1a1a;
+}
+
+.storyForm .header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.storyForm .header h5 {
+    margin-top: 6px;
+}
+
+.storyForm .header button {
+    color: #ddd;
+}
+
+.storyForm .header button:hover {
+    color: #333;
+}
+
 .storyForm .content {
     display: flex;
+    flex-wrap: wrap;
 }
 
-.storyForm .column {
-    flex: 1;
+.storyForm .content .fieldRow {
+    margin-bottom: 20px;
 }
 
-.storyForm .column p,
-.storyForm .seriesBox p {
-    margin-top: 0px;
-}
-
-.storyForm .column.left {
-    width: 200px;
+.storyForm .content .left {
+    width: 300px;
     margin-right: 10px;
 }
 
-.storyForm .column.right {
-    padding: 10px;
-    padding-top: 0px;
-    text-align: center;
-}
-
-.storyForm .column.right label {
+.storyForm .content .right {
+    flex-grow: 1;
     text-align: left;
-    display: block;
 }
 
-.storyForm .column.right input {
-    font-size: 1rem;
-    padding: 10px;
-    border-radius: 10px;
-    box-shadow: 0.5px 0.5px 1px 0.5px #333;
-    border: none;
+.storyForm .content .right label {
+    width: 100px;
 }
 
-.storyForm .column.right textarea {
-    display: block;
+.storyForm .content .right input[type="text"],
+.storyForm .content .right textarea {
     width: 100%;
-    height: 150px;
-    line-height: 1.5em;
-    font-family: inherit;
-    resize: none;
-    border-radius: 10px;
-    box-shadow: 0.5px 0.5px 1px 0.5px #333;
-    border: none;
-    padding: 10px;
+    outline: none;
+    border-radius: 5px;
+    padding: 20px;
+    font-size: 1rem;
+    color: #ddd;
+    box-sizing: border-box;
+    background-color: #4F6464;
+    border: 1px solid #ddd;
+    box-shadow: 2px 2px 2px #1a1a1a;
 }
 
-.storyForm .seriesBox {
-    padding: 8px;
-}
-
-.storyForm .seriesBox>div {
-    margin-bottom: 10px;
-}
-
-.storyForm .seriesBox input[type="checkbox"] {
+.storyForm .content .right input[type="checkbox"] {
     margin-right: 10px;
+    vertical-align: middle;
 }
 
-@media only screen and (max-width: 600px) {
-    .storyForm .content {
-        flex-direction: column;
-    }
+.storyForm .content .right textarea {
+    height: 170px;
+    resize: none;
+}
 
-    .storyForm .column.left {
-        margin: 0 auto;
-        margin-bottom: 10px;
-    }
+.storyForm .controls {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
 
-    .storyForm .column.right input {
-        width: 100%;
-    }
+.storyForm .controls button {
+    color: #DDD;
+    font-size: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 15px;
+}
+
+.storyForm .controls button:hover {
+    color: #F0F0F0;
+    border: 1px solid #F0F0F0;
 }

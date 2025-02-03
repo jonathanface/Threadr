@@ -34,7 +34,11 @@ export const UserMenu = () => {
   };
 
   const showLoginPanel = () => {
-    navigate('/signin')
+    navigate('/signin');
+  }
+
+  const showSettingsPanel = () => {
+    navigate('/settings');
   }
 
   const displayComponent = userData?.isLoggedIn ? (
@@ -53,8 +57,8 @@ export const UserMenu = () => {
         <ul>
           {/* {userData?.userDetails?.subscription_id === "" && (
             <li onClick={subscribe}>Subscribe</li>
-          )}
-          <li onClick={showUserSettings}>Settings</li> */}
+          )}*/}
+          <li onClick={showSettingsPanel}>Settings</li>
           <li onClick={signout}>Signout</li>
         </ul>
       )}

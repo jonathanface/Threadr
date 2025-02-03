@@ -1,0 +1,12 @@
+.configPanel {
+    padding: 3rem;
+    max-width: 500px;
+    margin: 3rem auto;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 2;
+    box-shadow: 2px 2px 2px #1a1a1a;
+    text-align: center;
+    color: #ddd;
+    position: relative;
+}

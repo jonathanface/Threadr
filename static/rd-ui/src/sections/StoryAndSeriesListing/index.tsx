@@ -9,11 +9,13 @@ import { useToaster } from "../../hooks/useToaster";
 import { AlertToastType } from "../../types/AlertToasts";
 import { UserContext } from "../../contexts/user";
 import { useWorksList } from "../../hooks/useWorksList";
+import { useNavigate } from "react-router-dom";
 
 
 export const StoryAndSeriesListing = () => {
   const userData = useContext(UserContext);
   const { setAlertState } = useToaster();
+  const navigate = useNavigate();
 
   const { seriesList, storiesList } = useWorksList();
 
@@ -42,7 +44,7 @@ export const StoryAndSeriesListing = () => {
   ]);
 
   const createNewStory = () => {
-    // setIsCreatingStory(true);
+    navigate('/stories/new');
   };
 
   // If there are works, we prepare our series and stories components.

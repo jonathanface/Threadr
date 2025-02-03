@@ -1,5 +1,5 @@
 // src/contexts/loader.tsx
-import React, { createContext, useMemo, useState, ReactNode, useEffect } from "react";
+import React, { createContext, useMemo, useState, ReactNode, useEffect, useCallback } from "react";
 
 export interface LoaderContextType {
   hideLoader: () => void;
@@ -12,13 +12,13 @@ export const LoaderContext = createContext<LoaderContextType | undefined>(undefi
 export const LoaderProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [loadingCount, setLoadingCount] = useState(0);
 
-  const showLoader = () => {
+  const showLoader = useCallback(() => {
     setLoadingCount((prevCount) => prevCount + 1);
-  }
+  }, []);
 
-  const hideLoader = () => {
+  const hideLoader = useCallback(() => {
     setLoadingCount((prevCount) => Math.max(prevCount - 1, 0));
-  };
+  }, []);
 
   const loaderValue = useMemo(
     () => ({
@@ -26,7 +26,7 @@ export const LoaderProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       hideLoader,
       loadingCount
     }),
-    [loadingCount]
+    [showLoader, hideLoader, loadingCount]
   );
 
   useEffect(() => {

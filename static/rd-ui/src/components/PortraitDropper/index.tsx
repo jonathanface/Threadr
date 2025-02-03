@@ -5,7 +5,7 @@ import { AlertToastType } from "../../types/AlertToasts";
 import { useToaster } from "../../hooks/useToaster";
 
 interface PortraitDropperProps {
-  imageURL: string;
+  imageURL: string | null;
   name: string;
   onImageLoaded?: () => void;
   onComplete?: (files: File[]) => void;
@@ -62,7 +62,7 @@ export const PortraitDropper = (props: PortraitDropperProps) => {
     <div className={styles.portraitDropper}>
       <figure className={styles.portrait}>
         <span {...getRootProps()}>
-          <img src={imageURL} onLoad={onImageLoaded} alt={name} title={name} />
+          <img src={imageURL ? imageURL : undefined} onLoad={onImageLoaded} alt={name} title={name} />
           <figcaption>
             Drop an image over the picture to update, or click on it.
             <input {...getInputProps()} />

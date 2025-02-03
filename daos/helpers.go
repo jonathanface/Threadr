@@ -484,100 +484,6 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(email string) error {
 func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 
-	// Delete chapters
-	chapterScanInput := &dynamodb.ScanInput{
-		TableName:        aws.String("chapters"),
-		FilterExpression: aws.String("attribute_not_exists(deleted_at) AND story_id = :sid"),
-		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":sid": &types.AttributeValueMemberS{Value: storyID},
-		},
-		Select: types.SelectAllAttributes,
-	}
-	chapterOut, err := d.DynamoClient.Scan(context.TODO(), chapterScanInput)
-	if err != nil {
-		return err
-	}
-
-	chapterCount := 0
-	for _, item := range chapterOut.Items {
-		// Delete associated tables
-		chapterID := item["chapter_id"].(*types.AttributeValueMemberS).Value
-		oldTableName := storyID + "_" + chapterID + "_blocks"
-		chapterStatus, err := d.CheckTableStatus(oldTableName)
-		if err != nil {
-			return err
-		}
-		if chapterStatus != "ACTIVE" {
-			time.Sleep(1 * time.Second)
-			go d.SoftDeleteStory(email, storyID, automated)
-			return nil
-		}
-		deleteTableInput := &dynamodb.DeleteTableInput{
-			TableName: aws.String(oldTableName),
-		}
-
-		fmt.Println("backing up", oldTableName+"-backup-"+time.Now().Format("2006-01-02-15-04-05"))
-
-		// Create the BackupTableInput
-		input := &dynamodb.CreateBackupInput{
-			TableName:  aws.String(oldTableName),
-			BackupName: aws.String(oldTableName + "-backup-" + time.Now().Format("2006-01-02-15-04-05")),
-		}
-
-		// Create the backup
-		buResponse, err := d.DynamoClient.CreateBackup(context.TODO(), input)
-		if err != nil {
-			fmt.Printf("Failed to create backup for table %s, %v", oldTableName, err)
-			return err
-		}
-
-		err = d.checkBackupStatus(*buResponse.BackupDetails.BackupArn)
-		if err != nil {
-			return err
-		}
-
-		for numRetries := 0; numRetries < d.maxRetries; numRetries++ {
-			var deletionOutput *dynamodb.DeleteTableOutput
-			if deletionOutput, err = d.DynamoClient.DeleteTable(context.Background(), deleteTableInput); err != nil {
-				if opErr, ok := err.(*smithy.OperationError); ok {
-					var useErr *types.ResourceInUseException
-					if errors.As(opErr.Unwrap(), &useErr) {
-						delay := time.Duration((1 << uint(numRetries)) * (2 * time.Second))
-						if numRetries < d.maxRetries-1 {
-							fmt.Println("retrying block table deletion in", delay)
-							time.Sleep(delay)
-							continue
-						} else {
-							return err
-						}
-					}
-				}
-			}
-			fmt.Println("deletion output", deletionOutput)
-			break
-		}
-		chapterCount++
-
-		chapterKey := map[string]types.AttributeValue{
-			"chapter_id": &types.AttributeValueMemberS{Value: chapterID},
-			"story_id":   &types.AttributeValueMemberS{Value: storyID},
-		}
-		chapterUpdateInput := &dynamodb.UpdateItemInput{
-			TableName:        aws.String("chapters"),
-			Key:              chapterKey,
-			UpdateExpression: aws.String("set deleted_at = :n, automated_deletion = :a, bup_arn = :barn"),
-			ExpressionAttributeValues: map[string]types.AttributeValue{
-				":n":    &types.AttributeValueMemberN{Value: now},
-				":a":    &types.AttributeValueMemberBOOL{Value: automated},
-				":barn": &types.AttributeValueMemberS{Value: *buResponse.BackupDetails.BackupArn},
-			},
-		}
-		_, err = d.DynamoClient.UpdateItem(context.Background(), chapterUpdateInput)
-		if err != nil {
-			return err
-		}
-	}
-
 	story, err := d.GetStoryByID(email, storyID)
 	if err != nil {
 		return err
@@ -683,6 +589,100 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 			if err != nil {
 				return err
 			}
+		}
+	}
+
+	// Delete chapters
+	chapterScanInput := &dynamodb.ScanInput{
+		TableName:        aws.String("chapters"),
+		FilterExpression: aws.String("attribute_not_exists(deleted_at) AND story_id = :sid"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":sid": &types.AttributeValueMemberS{Value: storyID},
+		},
+		Select: types.SelectAllAttributes,
+	}
+	chapterOut, err := d.DynamoClient.Scan(context.TODO(), chapterScanInput)
+	if err != nil {
+		return err
+	}
+
+	chapterCount := 0
+	for _, item := range chapterOut.Items {
+		// Delete associated tables
+		chapterID := item["chapter_id"].(*types.AttributeValueMemberS).Value
+		oldTableName := storyID + "_" + chapterID + "_blocks"
+		chapterStatus, err := d.CheckTableStatus(oldTableName)
+		if err != nil {
+			return err
+		}
+		if chapterStatus != "ACTIVE" {
+			time.Sleep(1 * time.Second)
+			go d.SoftDeleteStory(email, storyID, automated)
+			return nil
+		}
+		deleteTableInput := &dynamodb.DeleteTableInput{
+			TableName: aws.String(oldTableName),
+		}
+
+		fmt.Println("backing up", oldTableName+"-backup-"+time.Now().Format("2006-01-02-15-04-05"))
+
+		// Create the BackupTableInput
+		input := &dynamodb.CreateBackupInput{
+			TableName:  aws.String(oldTableName),
+			BackupName: aws.String(oldTableName + "-backup-" + time.Now().Format("2006-01-02-15-04-05")),
+		}
+
+		// Create the backup
+		buResponse, err := d.DynamoClient.CreateBackup(context.TODO(), input)
+		if err != nil {
+			fmt.Printf("Failed to create backup for table %s, %v", oldTableName, err)
+			return err
+		}
+
+		err = d.checkBackupStatus(*buResponse.BackupDetails.BackupArn)
+		if err != nil {
+			return err
+		}
+
+		for numRetries := 0; numRetries < d.maxRetries; numRetries++ {
+			var deletionOutput *dynamodb.DeleteTableOutput
+			if deletionOutput, err = d.DynamoClient.DeleteTable(context.Background(), deleteTableInput); err != nil {
+				if opErr, ok := err.(*smithy.OperationError); ok {
+					var useErr *types.ResourceInUseException
+					if errors.As(opErr.Unwrap(), &useErr) {
+						delay := time.Duration((1 << uint(numRetries)) * (2 * time.Second))
+						if numRetries < d.maxRetries-1 {
+							fmt.Println("retrying block table deletion in", delay)
+							time.Sleep(delay)
+							continue
+						} else {
+							return err
+						}
+					}
+				}
+			}
+			fmt.Println("deletion output", deletionOutput)
+			break
+		}
+		chapterCount++
+
+		chapterKey := map[string]types.AttributeValue{
+			"chapter_id": &types.AttributeValueMemberS{Value: chapterID},
+			"story_id":   &types.AttributeValueMemberS{Value: storyID},
+		}
+		chapterUpdateInput := &dynamodb.UpdateItemInput{
+			TableName:        aws.String("chapters"),
+			Key:              chapterKey,
+			UpdateExpression: aws.String("set deleted_at = :n, automated_deletion = :a, bup_arn = :barn"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":n":    &types.AttributeValueMemberN{Value: now},
+				":a":    &types.AttributeValueMemberBOOL{Value: automated},
+				":barn": &types.AttributeValueMemberS{Value: *buResponse.BackupDetails.BackupArn},
+			},
+		}
+		_, err = d.DynamoClient.UpdateItem(context.Background(), chapterUpdateInput)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
