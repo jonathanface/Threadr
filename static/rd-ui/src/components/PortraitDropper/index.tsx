@@ -28,7 +28,6 @@ export const PortraitDropper = (props: PortraitDropperProps) => {
     (acceptedFiles: File[]) => {
       const droppedFile = acceptedFiles[0];
       if (droppedFile.type) {
-        console.log("type", droppedFile.type);
         if (!acceptedFileTypes.includes(droppedFile.type.split("image/")[1])) {
           setAlertState({
             title: "Cannot upload file",

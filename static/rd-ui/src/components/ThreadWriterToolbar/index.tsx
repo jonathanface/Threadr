@@ -150,7 +150,7 @@ export const Toolbar = () => {
                 <FormatAlignJustifyIcon fontSize="small" />
             </IconButton>
             <span className={styles.chapterTitle}>
-                <EditableText textValue={chapter?.title ? chapter.title : "Missing Title"} onTextChange={onChapterTitleEdit} inputTextAlign="right" />
+                <EditableText textValue={chapter?.title ? chapter.title : ""} onTextChange={onChapterTitleEdit} inputTextAlign="right" />
             </span>
             <DocumentExporter />
         </div>

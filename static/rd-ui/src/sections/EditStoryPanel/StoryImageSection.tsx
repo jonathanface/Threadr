@@ -1,6 +1,6 @@
 import { Box } from "@mui/material";
 import { PortraitDropper } from "../../components/PortraitDropper";
-import styles from "./createEditStoryPanel.module.css";
+import styles from "./editStoryPanel.module.css";
 
 interface StoryImageSectionProps {
     imageURL: string | null;

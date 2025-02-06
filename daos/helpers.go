@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -686,6 +687,14 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 		}
 	}
 	return nil
+}
+
+var tagValueSanitizer = regexp.MustCompile(`[^a-zA-Z0-9 \-_]+`)
+
+// sanitizeTagValue removes disallowed characters from a tag value.
+func sanitizeTagValue(input string) string {
+	// Replace all disallowed characters with an empty string (i.e., remove them)
+	return tagValueSanitizer.ReplaceAllString(input, "")
 }
 
 func (d *DAO) hardDeleteStory(email, storyID string) error {

@@ -13,7 +13,8 @@ import { HeaderMenu } from "./components/HeaderMenu";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { LoginPanel } from "./sections/LoginPanel";
 import { ConfigPanel } from "./sections/UserConfigPanel";
-import { CreateEditStoryPanel } from "./sections/CreateEditStoryPanel";
+import { EditStoryPanel } from "./sections/EditStoryPanel";
+import { CreateStorySlideshow } from "./sections/CreateStorySlideshow";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_KEY ?? "");
 
@@ -86,16 +87,33 @@ export const Docter = memo(() => {
             path="/stories/new"
             element={
               isLoggedIn ? (
-                <CreateEditStoryPanel />
+                <CreateStorySlideshow />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+          <Route
+            path="/stories/:storyID/edit"
+            element={
+              isLoggedIn ? (
+                <EditStoryPanel />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+          <Route
+            path="/series/:seriesID/edit"
+            element={
+              isLoggedIn ? (
+                <EditStoryPanel />
               ) : (
                 <Navigate to="/" replace />
               )
             }
           />
         </Routes>
-
-        {/* <CreatEditStoryPanel seriesList={seriesList} setSeriesList={setSeriesList} storiesList={storiesList} setStoriesList={setStoriesList} />
-        <ConfigPanelModal />*/}
       </main>
       <Elements stripe={stripePromise}>
         <SubscribePanel />

@@ -10,13 +10,16 @@ import { AlertCommandType, AlertState, AlertToastType } from "../../types/AlertT
 import { useLoader } from "../../hooks/useLoader";
 import { APIError } from "../../types/API";
 import { useWorksList } from "../../hooks/useWorksList";
-import { useMatch, useNavigate } from "react-router-dom";
-import styles from "./createEditStoryPanel.module.css";
+import { useMatch, useNavigate, useParams } from "react-router-dom";
+import styles from "./editStoryPanel.module.css";
 import { StoryImageSection } from "./StoryImageSection";
 import { SeriesSelectionOptions, StoryDetailsSection } from "./StoryDetailsSection";
 import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
+import CloseIcon from '@mui/icons-material/Close';
+import { Story } from "../../types/Story";
+import { Series } from "../../types/Series";
 
-interface CreateStoryForm {
+interface EditStoryForm {
   [key: string]: string | undefined | File | number;
   title?: string;
   description?: string;
@@ -26,7 +29,7 @@ interface CreateStoryForm {
   series_place?: number;
 }
 
-export const CreateEditStoryPanel = () => {
+export const EditStoryPanel = () => {
   const { setAlertState } = useToaster();
   const { showLoader, hideLoader } = useLoader();
   const { seriesList, storiesList, setSeriesList, setStoriesList } = useWorksList();
@@ -35,10 +38,14 @@ export const CreateEditStoryPanel = () => {
   const [imageName, setImageName] = useState("Loading...");
   const [isInASeries, setIsInASeries] = useState(false);
   const [seriesDisplayList, setSeriesDisplayList] = useState<SeriesSelectionOptions[]>([]);
-  const [storyForm, setStoryForm] = useState<CreateStoryForm>({});
+  const [storyForm, setStoryForm] = useState<EditStoryForm>({});
   const defaultImageFetchedRef = useRef(false);
-  const match = useMatch("/stories/:lastPart");
+  const matchCreateNew = useMatch("/stories/new");
+  const matchEditExisting = useMatch("/stories/:storyID/edit");
   const navigate = useNavigate();
+  const { storyID } = useParams<{ storyID: string }>();
+  const [editingStory, setEditingStory] = useState<Story | null>(null);
+  const [memberOfSeries, setMemberOfSeries] = useState<Series | null>(null);
 
   // ---------------------------
   // Image and Blob Handlers
@@ -76,7 +83,8 @@ export const CreateEditStoryPanel = () => {
 
   const randomImageURL = "https://picsum.photos/300";
   const defaultImageURL = "img/icons/story_standalone_icon.jpg";
-  const lastPart = match?.params.lastPart;
+  const lastPartCreate = matchCreateNew?.params;
+  const lastPartEdit = matchEditExisting?.params
 
   const getDefaultImageURL = useCallback(async () => {
     try {
@@ -98,10 +106,30 @@ export const CreateEditStoryPanel = () => {
       const url = await getDefaultImageURL();
       setImageURL(url);
     };
-    if (lastPart === "new" && !defaultImageFetchedRef.current) {
+
+    if (lastPartCreate && !defaultImageFetchedRef.current) {
       defaultImageFetchedRef.current = true;
       generateImageURL();
+    } else if (lastPartEdit && storyID && storyID.length) {
+      const foundStory = storiesList?.find(story => story.story_id === storyID);
+      console.log("found", foundStory);
+      if (foundStory) {
+        setEditingStory(foundStory);
+        setImageURL(foundStory.image_url);
+        setImageName(foundStory.title);
+        setStoryForm((prev) => ({ ...prev, title: foundStory.title, description: foundStory.description }));
+        if (foundStory.series_id) {
+          const foundSeries = seriesList?.find(series => series.series_id === storyForm.series_id);
+          if (foundSeries) {
+            setMemberOfSeries(foundSeries);
+            setIsInASeries(true);
+            const foundStoryIDX = foundSeries.stories.findIndex(story => story.story_id === foundStory.story_id);
+            setStoryForm((prev) => ({ ...prev, series_id: foundSeries.series_id, series_title: foundSeries.series_title, series_place: foundStoryIDX }));
+          }
+        }
+      }
     }
+
     setSeriesDisplayList(
       seriesList ? seriesList.map((entry) => {
         return {
@@ -111,7 +139,7 @@ export const CreateEditStoryPanel = () => {
         };
       }) : []
     );
-  }, [lastPart, getDefaultImageURL, seriesList]);
+  }, [lastPartCreate, lastPartEdit, getDefaultImageURL, seriesList]);
 
   // Effect to attach image to form—but only if we haven't already attached it.
   useEffect(() => {
@@ -307,9 +335,9 @@ export const CreateEditStoryPanel = () => {
     <Box className={styles.storyForm} >
       <Box className={styles.header}>
         <IconButton onClick={handleBack} sx={{ mr: 1 }}>
-          <ArrowBackIosIcon />
+          {!editingStory ? <ArrowBackIosIcon /> : <CloseIcon />}
         </IconButton>
-        <Typography variant="h5">Create a Story</Typography>
+        <Typography variant="h5">{!editingStory ? "Create a Story" : `Edit ${editingStory.title}`}</Typography>
       </Box>
       <Box className={styles.content}>
         <StoryImageSection
@@ -322,6 +350,8 @@ export const CreateEditStoryPanel = () => {
           onTitleChange={handleTitleChange}
           onDescriptionChange={handleDescriptionChange}
           isInASeries={isInASeries}
+          memberOfSeries={memberOfSeries || undefined}
+          editingStory={editingStory || undefined}
           seriesDisplayList={seriesDisplayList}
           seriesList={seriesList}
           onToggleSeries={handleToggleSeries}
@@ -330,7 +360,7 @@ export const CreateEditStoryPanel = () => {
         />
       </Box>
       <Box className={styles.controls}>
-        <Button onClick={handleSubmit}>Create</Button>
+        <Button onClick={handleSubmit}>{!editingStory ? "Create" : "Save"}</Button>
       </Box>
     </Box>
   );

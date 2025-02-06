@@ -1,7 +1,8 @@
 import { Autocomplete, Box, TextField } from "@mui/material";
-import styles from "./createEditStoryPanel.module.css";
+import styles from "./editStoryPanel.module.css";
 import { useState } from "react";
 import { Series } from "../../types/Series";
+import { Story } from "../../types/Story";
 
 export interface SeriesSelectionOptions {
     label: string;
@@ -13,6 +14,8 @@ interface StoryDetailsSectionProps {
     onTitleChange: (value: string) => void;
     onDescriptionChange: (value: string) => void;
     isInASeries: boolean;
+    memberOfSeries?: Series;
+    editingStory?: Story;
     seriesDisplayList: SeriesSelectionOptions[];
     seriesList: Series[] | null; // adjust type as needed
     onToggleSeries: () => void;
@@ -23,6 +26,8 @@ export const StoryDetailsSection: React.FC<StoryDetailsSectionProps> = ({
     onTitleChange,
     onDescriptionChange,
     isInASeries,
+    memberOfSeries,
+    editingStory,
     seriesDisplayList,
     seriesList,
     onToggleSeries,
@@ -42,14 +47,15 @@ export const StoryDetailsSection: React.FC<StoryDetailsSectionProps> = ({
     return (
         <Box className={styles.right}>
             <div className={styles.fieldRow}>
-                <label htmlFor="create-story-title">Title:</label>
+                <label htmlFor="story-title">Title:</label>
                 <TextField sx={{
                     fieldset: { border: 'none' }
-                }} onChange={(e) => { onTitleChange(e.target.value) }} />
+                }} value={editingStory?.title || ""} onChange={(e) => { onTitleChange(e.target.value) }} />
             </div>
             <div className={styles.fieldRow}>
-                <label htmlFor="create-story-description">Description:</label>
+                <label htmlFor="story-description">Description:</label>
                 <textarea
+                    value={editingStory?.description || ""}
                     spellCheck="false"
                     id="create-story-description"
                     onChange={(event) => onDescriptionChange(event.target.value)}
@@ -58,11 +64,11 @@ export const StoryDetailsSection: React.FC<StoryDetailsSectionProps> = ({
             <div className={styles.fieldRow}>
                 <input
                     type="checkbox"
-                    id="create-story-is-in-series"
+                    id="story-is-in-series"
                     checked={isInASeries}
                     onChange={onToggleSeries}
                 />
-                <label htmlFor="create-story-is-in-series">This is part of a series</label>
+                <label htmlFor="story-is-in-series">This is part of a series</label>
                 {isInASeries && (
                     <Autocomplete
                         value={seriesTitle}

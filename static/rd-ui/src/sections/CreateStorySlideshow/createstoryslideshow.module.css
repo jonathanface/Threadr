@@ -1,0 +1,93 @@
+.slideshowParent {
+    margin: 0 auto;
+    margin-top: 3rem;
+    margin-bottom: 3rem;
+    width: 50%;
+    border: 1px solid #ddd;
+    border-radius: 15px;
+    padding: 3rem;
+    padding-top: 1rem;
+    background-color: #ddd;
+}
+
+.slideshowParent .formContainer {
+    padding: 2rem;
+}
+
+.slideshowParent .formContainer .portraitWrapper {
+    max-width: 200px;
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+.slideshowParent .finalProduct {
+    width: 200px;
+    flex: 0 0 auto;
+    text-align: left;
+    font-size: 0.8rem;
+    color: #00000082;
+    padding-top: 2rem;
+}
+
+.slideshowParent .finalTitle,
+.slideshowParent .finalImage,
+.slideshowParent .finalDescription,
+.slideshowParent .finalSeries {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    vertical-align: top;
+}
+
+.slideshowParent .formContainer input[type="text"],
+.slideshowParent .formContainer textarea {
+    width: 100%;
+    outline: none;
+    border-radius: 5px;
+    padding: 20px;
+    font-size: 1rem;
+    color: #333;
+    box-sizing: border-box;
+    background-color: #FFF;
+    border: 1px solid #ddd;
+    box-shadow: 2px 2px 2px #8e8e8e;
+}
+
+.slideshowParent .header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2rem;
+    margin-left: -3rem;
+    margin-top: -1rem;
+}
+
+.slideshowParent .finalTitle {
+    width: 100%;
+}
+
+.slideshowParent .finalImage {
+    max-width: 100px;
+    margin: 0px 5px 5px 0px;
+    border-radius: 5px;
+    border: 1px solid #333;
+}
+
+.slideshowParent .finalDescription {
+    width: 100px;
+    max-height: 200px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    font-size: 0.8rem;
+}
+
+.slideshowParent .finalSeries {
+    font-size: 0.7rem;
+}
+
+.slideshowParent .finalProduct .hasText {
+    opacity: 1;
+}
+
+.slideshowParent .editWindow {
+    flex: 1;
+    text-align: left;
+}

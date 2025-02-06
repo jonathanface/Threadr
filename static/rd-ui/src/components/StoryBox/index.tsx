@@ -30,14 +30,14 @@ export const StoryBox = (props: StoryBoxProps) => {
     navigate(`/stories/${storyID}?chapter=${chapterID}`);
   };
 
-  const editStory = (event: React.MouseEvent) => {
+  const editStory = (event: React.MouseEvent, storyID: string) => {
     event.stopPropagation();
-    //setIsEditingStory(props.data as Story);
+    navigate(`/stories/${storyID}/edit`)
   };
 
-  const editSeries = (event: React.MouseEvent) => {
+  const editSeries = (event: React.MouseEvent, seriesID: string) => {
     event.stopPropagation();
-    //setIsEditingSeries(props.data as Series);
+    navigate(`/series/${seriesID}/edit`)
   };
 
   const deleteSeries = async (
@@ -192,9 +192,9 @@ export const StoryBox = (props: StoryBoxProps) => {
               title={editHoverText}
               onClick={(event) => {
                 if (isSeries) {
-                  editSeries(event);
+                  editSeries(event, (props.itemData as Series).series_id);
                 } else {
-                  editStory(event);
+                  editStory(event, (props.itemData as Story).story_id);
                 }
               }}
             >

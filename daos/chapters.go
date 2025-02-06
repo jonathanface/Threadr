@@ -134,11 +134,11 @@ func (d *DAO) CreateChapter(storyID string, chapter models.Chapter, email string
 	tags := []types.Tag{
 		{
 			Key:   aws.String("Title"),
-			Value: aws.String(chapter.Title),
+			Value: aws.String(sanitizeTagValue(chapter.Title)),
 		},
 		{
 			Key:   aws.String("Author"),
-			Value: aws.String(email),
+			Value: aws.String(sanitizeTagValue(email)),
 		},
 	}
 	story, err := d.GetStoryByID(email, storyID)
@@ -147,7 +147,7 @@ func (d *DAO) CreateChapter(storyID string, chapter models.Chapter, email string
 	}
 	tags = append(tags, types.Tag{
 		Key:   aws.String("Story"),
-		Value: aws.String(story.Title),
+		Value: aws.String(sanitizeTagValue(story.Title)),
 	})
 	if len(story.SeriesID) > 0 {
 		series, err := d.GetSeriesByID(email, story.SeriesID)
@@ -156,7 +156,7 @@ func (d *DAO) CreateChapter(storyID string, chapter models.Chapter, email string
 		}
 		tags = append(tags, types.Tag{
 			Key:   aws.String("Series"),
-			Value: aws.String(series.Title),
+			Value: aws.String(sanitizeTagValue(series.Title)),
 		})
 	}
 
