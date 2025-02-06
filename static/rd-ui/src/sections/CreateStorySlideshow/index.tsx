@@ -1,5 +1,5 @@
 import { Box, Button, createTheme, IconButton, Step, StepLabel, Stepper, ThemeProvider, Typography } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styles from './createstoryslideshow.module.css'
 import { TitleStep } from "./TitleStep";
 import { ImageStep } from "./ImageStep";
@@ -13,18 +13,20 @@ import { Story } from "../../types/Story";
 import { Series } from "../../types/Series";
 import { useToaster } from "../../hooks/useToaster";
 import { AlertCommandType, AlertToastType } from "../../types/AlertToasts";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import CloseIcon from '@mui/icons-material/Close';
 
 const steps = ['Title', 'Image', 'Description', 'Series'];
 
 interface CreateStoryForm {
     [key: string]: string | undefined | File | number;
+    story_id?: string;
     title?: string;
     description?: string;
     series_id?: string;
     series_title?: string;
     image?: File;
+    image_url?: string;
     series_place?: number;
 }
 
@@ -51,9 +53,11 @@ export const CreateStorySlideshow = () => {
     const [tempDescription, setTempDescription] = useState("")
     const [tempSeries, setTempSeries] = useState<SelectedSeries | undefined>(undefined);
     const { seriesList, setSeriesList, storiesList, setStoriesList } = useWorksList();
-    const { propagateSeriesUpdates } = useSelections();
+    const { propagateSeriesUpdates, propagateStoryUpdates } = useSelections();
     const { setAlertState } = useToaster();
     const navigate = useNavigate();
+    const { storyID } = useParams<{ storyID: string }>();
+    const storedSeriesID = useRef("")
 
     const handleSeriesChange = (value: string, seriesId?: string) => {
         setTempSeries({
@@ -61,6 +65,56 @@ export const CreateStorySlideshow = () => {
             series_title: value
         })
     };
+
+    useEffect(() => {
+        if (!storyID || !storyID.length) return;
+        const fetchStory = async () => {
+            try {
+                showLoader();
+                const response = await fetch(`/api/stories/${storyID}`);
+                if (!response.ok) throw new Error('Story not found');
+                const data = await response.json() as Story;
+
+                console.log("setting story from index", data);
+                const editingStoryBuild: CreateStoryForm = {
+                    story_id: data.story_id,
+                    title: data.title,
+                    description: data.description,
+                    series_id: data.series_id,
+                    image_url: data.image_url,
+                    series_place: data.place
+                }
+                setTempTitle(data.title);
+                setTempImageURL(data.image_url);
+                setTempDescription(data.description);
+                if (data.series_id) {
+                    storedSeriesID.current = data.series_id;
+                    const seriesResponse = await fetch(`/api/series/${data.series_id}`);
+                    if (!seriesResponse.ok) throw new Error('Series not found');
+                    const seriesData = await response.json() as Series;
+                    editingStoryBuild.series_title = seriesData.series_title;
+                    setTempSeries({
+                        series_id: seriesData.series_id,
+                        series_title: seriesData.series_title
+                    });
+                }
+                setStoryBuild(editingStoryBuild);
+            } catch (err) {
+                console.error(err);
+                setAlertState({
+                    title: "Error retrieving data",
+                    message:
+                        "We are experiencing difficulty retrieving some or all of your data",
+                    severity: AlertToastType.error,
+                    open: true,
+                    timeout: 6000,
+                });
+            } finally {
+                hideLoader();
+            }
+        };
+        fetchStory();
+    }, [storyID]);
 
     const isStepOptional = (step: number) => {
         return step === 1 || step === 2;
@@ -88,6 +142,88 @@ export const CreateStorySlideshow = () => {
         return formData;
     }
 
+    const editStory = async () => {
+        if (!storyBuild.title || !storyBuild.title.trim().length) {
+            setWarning("You have to specify a title.");
+            return;
+        }
+
+        if (storyBuild.series_id && storyBuild.series_id.length && storyBuild.series_id !== storedSeriesID.current) {
+            // we have moved this story a new series
+            const foundSeries = seriesList?.find((srs) => srs.series_id === storyBuild.series_id);
+            if (foundSeries) {
+                storyBuild.series_place = foundSeries.stories.length ? foundSeries.stories.length : 1;
+            }
+        } else if (!storyBuild.series_id && storyBuild.series_title) {
+            // we are creating a new series
+            const foundSeries = seriesList?.find((srs) => srs.series_title === storyBuild.series_title);
+            if (foundSeries) {
+                storyBuild.series_id = foundSeries.series_id;
+                storyBuild.series_place = foundSeries.stories.length ? foundSeries.stories.length : 1;
+            } else {
+                storyBuild.series_place = 1;
+            }
+        } else if (!storyBuild.series_id && storedSeriesID.current.length) {
+            // we have removed this story from a series...
+        }
+
+        try {
+            showLoader();
+            const response = await fetch(`/api/stories/${storyID}/details`, {
+                credentials: "include",
+                method: "PUT",
+                body: buildFormData(storyBuild),
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                const error: Error = new Error(JSON.stringify(errorData));
+                error.message = response.statusText;
+                error.name = response.status.toString();
+                throw error;
+            }
+            const updatedStory = await response.json() as Story;
+            if (updatedStory.series_id) {
+                const newSeries: Series = {
+                    series_id: updatedStory.series_id,
+                    series_title: storyBuild.series_title || "New Series",
+                    series_description: "",
+                    stories: [updatedStory],
+                    image_url: "/img/icons/story_series_icon.jpg"
+                }
+                if (seriesList) {
+                    const foundSeriesIndex = seriesList?.findIndex((srs) => srs.series_id === updatedStory.series_id);
+                    if (foundSeriesIndex !== undefined && foundSeriesIndex !== -1) {
+                        const updatedSeries = { ...seriesList[foundSeriesIndex] };
+                        propagateSeriesUpdates(updatedSeries, updatedStory);
+                    } else {
+                        setSeriesList([...seriesList, newSeries]);
+                    }
+                } else {
+                    setSeriesList([newSeries]);
+                }
+            }
+            propagateStoryUpdates(updatedStory);
+            setAlertState({
+                title: "Story edit success",
+                message: "",
+                severity: AlertToastType.success,
+                open: true
+            });
+            navigate(`/stories/`);
+        } catch (error: any) {
+            console.error(error);
+            setAlertState({
+                title: "Error editing story",
+                severity: AlertToastType.error,
+                message: "Please try again later or contact support.",
+                open: true,
+            });
+        } finally {
+            hideLoader();
+        }
+
+    }
+
     const saveNewStory = async () => {
         if (!storyBuild.title || !storyBuild.title.trim().length) {
             setWarning("You have to specify a title.");
@@ -99,14 +235,13 @@ export const CreateStorySlideshow = () => {
                 storyBuild.series_place = foundSeries.stories.length ? foundSeries.stories.length : 1;
             }
         } else if (storyBuild.series_title) {
-            const foundSeries = seriesList?.find((srs) => srs.series_title === storyBuild.series_id);
+            const foundSeries = seriesList?.find((srs) => srs.series_title === storyBuild.series_title);
             if (foundSeries) {
                 storyBuild.series_id = foundSeries.series_id;
                 storyBuild.series_place = foundSeries.stories.length ? foundSeries.stories.length : 1;
             } else {
                 storyBuild.series_place = 1;
             }
-
         }
         try {
             showLoader();
@@ -198,7 +333,7 @@ export const CreateStorySlideshow = () => {
             setStoryBuild((prev) => ({ ...prev, series_id: tempSeries.series_id, series_title: tempSeries.series_title }));
         }
         if (activeStep === 4) {
-            saveNewStory();
+            storyID ? editStory() : saveNewStory();
         }
         setWarning("");
         let newSkipped = skipped;
@@ -378,7 +513,7 @@ export const CreateStorySlideshow = () => {
                     <Box sx={{ display: 'flex' }}>
                         <Box className={styles.finalProduct}>
                             <Typography variant="subtitle1" className={`${styles.finalTitle} ${storyBuild.title && storyBuild.title.trim().length > 0 ? styles.hasText : ''}`}>{`${storyBuild.title}`}</Typography>
-                            <img className={`${styles.finalImage} ${storyBuild.image ? styles.hasText : ''}`} src={tempImageURL} />
+                            <img className={`${styles.finalImage} ${storyBuild.image || storyBuild.image_url ? styles.hasText : ''}`} src={tempImageURL} />
                             <Typography variant="body2" className={`${styles.finalDescription} ${storyBuild.description && storyBuild.description.trim().length > 0 ? styles.hasText : ''}`}>{storyBuild.description}</Typography>
                             <Typography variant="body2" className={`${styles.finalSeries} ${storyBuild.series_title && storyBuild.series_title.trim().length > 0 ? styles.hasText : ''}`}><b>Series: </b>{storyBuild.series_title}</Typography>
                         </Box>
@@ -392,7 +527,7 @@ export const CreateStorySlideshow = () => {
                                             ? <DescriptionStep theme={textfieldTheme} text={tempDescription} onChange={(e) => setTempDescription(e.target.value)} />
                                             : activeStep === 3 ? <SeriesStep theme={textfieldTheme} onSeriesChange={handleSeriesChange} />
                                                 : activeStep === 4 ?
-                                                    <VerificationStep onBack={handleBack} onReset={handleReset} /> : ""
+                                                    <VerificationStep isEditing={storyID ? true : false} onBack={handleBack} onReset={handleReset} /> : ""
                             }
                             <Box sx={{ color: '#8e0000' }}>{warning}</Box>
                         </Box>

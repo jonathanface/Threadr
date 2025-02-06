@@ -97,7 +97,7 @@ export const Docter = memo(() => {
             path="/stories/:storyID/edit"
             element={
               isLoggedIn ? (
-                <EditStoryPanel />
+                <CreateStorySlideshow />
               ) : (
                 <Navigate to="/" replace />
               )
