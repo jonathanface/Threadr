@@ -1,4 +1,4 @@
-import { Box, Typography } from "@mui/material"
+import { Box, CircularProgress, Typography } from "@mui/material"
 import styles from './createstoryslideshow.module.css';
 import { PortraitDropper } from "../../components/PortraitDropper";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -16,6 +16,7 @@ export const ImageStep = (props: ImageStepProps) => {
     const [imageURL, setImageURL] = useState(defaultImageURL)
     const { showLoader, hideLoader } = useLoader();
     const defaultImageFetchedRef = useRef(false);
+    const [isStoryLoaderVisible, setIsStoryLoaderVisible] = useState(true);
 
     const getDefaultImageURL = useCallback(async () => {
         try {
@@ -50,16 +51,28 @@ export const ImageStep = (props: ImageStepProps) => {
         generateImageURL();
     }, [getDefaultImageURL, defaultImageFetchedRef.current]);
 
-
+    const onImageLoad = () => {
+        setIsStoryLoaderVisible(false);
+    }
 
     return (
         <Box className={styles.formContainer}>
             <Typography>You may upload an image to represent your story, or use a stock one like this.</Typography>
             <div className={styles.portraitWrapper}>
+                <div
+                    className="loading-screen"
+                    style={{ visibility: isStoryLoaderVisible ? "visible" : "hidden" }}
+                >
+                    <Box className="progress-box" />
+                    <Box className="prog-anim-holder">
+                        <CircularProgress />
+                    </Box>
+                </div>
                 <PortraitDropper
                     imageURL={imageURL}
                     name={props.title}
                     onComplete={props.onComplete}
+                    onImageLoaded={onImageLoad}
                 />
             </div>
         </Box>

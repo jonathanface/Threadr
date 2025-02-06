@@ -49,19 +49,13 @@ export const PortraitDropper = (props: PortraitDropperProps) => {
     [props, setAlertState]
   );
 
-  const onImageLoaded = () => {
-    if (props.onImageLoaded) {
-      props.onImageLoaded();
-    }
-  };
-
   const { getRootProps, getInputProps } = useDropzone({ onDrop });
 
   return (
     <div className={styles.portraitDropper}>
       <figure className={styles.portrait}>
         <span {...getRootProps()}>
-          <img src={imageURL ? imageURL : undefined} onLoad={onImageLoaded} alt={name} title={name} />
+          <img src={imageURL ? imageURL : undefined} onLoad={props.onImageLoaded ? props.onImageLoaded : undefined} alt={name} title={name} />
           <figcaption>
             Drop an image over the picture to update, or click on it.
             <input {...getInputProps()} />
