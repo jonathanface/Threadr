@@ -1,5 +1,5 @@
-import { Box, Button, Typography } from "@mui/material";
-import styles from './createstoryslideshow.module.css';
+import { Box, Typography } from "@mui/material";
+import styles from './createeditstoryslideshow.module.css';
 
 interface VerificationStepProps {
     onBack: () => void;

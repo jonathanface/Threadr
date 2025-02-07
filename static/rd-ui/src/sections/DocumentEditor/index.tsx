@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ThreadWriter } from "../../components/ThreadWriter";
 import { useLoader } from "../../hooks/useLoader";
 import { useParams, useSearchParams } from 'react-router-dom';
@@ -14,18 +14,17 @@ export const DocumentEditorPage = () => {
     const { setAlertState } = useToaster();
     const { storyID } = useParams<{ storyID: string }>();
     const [searchParams] = useSearchParams();
-    const chapterIDQuery = searchParams.get('chapter');
-    const [chapterID, setChapterID] = useState(chapterIDQuery);
+    const [chapterID, setChapterID] = useState(searchParams.get('chapter'));
     const { story, setStory, setSeries, setChapter } = useSelections();
 
-    const fetchError: AlertState = {
+    const fetchError: AlertState = useMemo(() => ({
         title: "Error retrieving data",
         message:
             "We are experiencing difficulty retrieving some or all of your data",
         severity: AlertToastType.error,
         open: true,
         timeout: 6000,
-    }
+    }), []);
 
     // Fetch Story
     useEffect(() => {
@@ -48,7 +47,7 @@ export const DocumentEditorPage = () => {
         };
 
         fetchStory();
-    }, [storyID]);
+    }, [storyID, fetchError, hideLoader, showLoader, setStory, setAlertState]);
 
     // Fetch Series
     useEffect(() => {
@@ -70,7 +69,7 @@ export const DocumentEditorPage = () => {
         };
 
         fetchSeries();
-    }, [story]);
+    }, [story, fetchError, setAlertState, setSeries, showLoader, hideLoader]);
 
     // Fetch Chapter
     useEffect(() => {
@@ -92,19 +91,18 @@ export const DocumentEditorPage = () => {
         if (chapterID) {
             fetchChapter();
         }
-    }, [storyID, chapterID]);
+    }, [storyID, chapterID, fetchError, showLoader, setAlertState, setChapter, hideLoader]);
 
     useEffect(() => {
-        const chapterID = searchParams.get('chapter');
         if ((!chapterID || !chapterID.length) && story) {
             setChapterID(story.chapters[0].id)
             console.log("defaulting to", story.chapters[0].id);
-            var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?chapter=' + story.chapters[0].id;
+            const newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?chapter=' + story.chapters[0].id;
             window.history.pushState({ path: newurl }, '', newurl);
             return;
         }
         setChapterID(chapterID);
-    }, [searchParams.get('chapter')]);
+    }, [chapterID, searchParams, story]);
     return (
         <ThreadWriter />
     );

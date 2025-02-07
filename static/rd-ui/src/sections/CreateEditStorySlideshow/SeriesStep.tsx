@@ -1,5 +1,5 @@
 import { Autocomplete, Box, TextField, Theme, ThemeProvider, Typography } from '@mui/material';
-import styles from './createstoryslideshow.module.css';
+import styles from './createeditstoryslideshow.module.css';
 import { useWorksList } from '../../hooks/useWorksList';
 import { useEffect, useState } from 'react';
 import { Series } from '../../types/Series';
@@ -19,7 +19,7 @@ export const SeriesStep = (props: SeriesSelectionProps) => {
 
     const { seriesList } = useWorksList();
     const [seriesOptions, setSeriesOptions] = useState<SeriesSelectionOptions[]>([])
-    const [seriesTitle, setSeriesTitle] = useState("");
+    const [seriesTitle] = useState("");
 
     useEffect(() => {
         if (seriesList) {
@@ -55,10 +55,11 @@ export const SeriesStep = (props: SeriesSelectionProps) => {
                     onInputChange={(event: React.SyntheticEvent, value: string) => {
                         // Find a matching series if it exists.
                         const foundSeries = seriesList?.find(
-                            (srs: any) => srs.series_title.toLowerCase() === value.toLowerCase()
+                            (srs: Series) => srs.series_title.toLowerCase() === value.toLowerCase()
                         );
                         handleSeriesChange(value, foundSeries);
                     }}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     onChange={(event: React.SyntheticEvent, value: any) => {
                         if (value && value.id && value.label) {
                             props.onSeriesChange(value.label, value.id);

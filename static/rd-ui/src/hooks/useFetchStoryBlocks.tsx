@@ -36,6 +36,7 @@ export const useFetchStoryBlocks = (
             const response = await fetch(`/api/stories/${storyId}/content?key=${startKey}&chapter=${chapterId}`);
             if (!response.ok) throw response;
             const data = await response.json();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const remappedStoryBlocks = data.items?.map((item: { chunk: any; key_id: any }) => {
                 const key = item.key_id?.Value || '';
                 previousNodeKeysRef.current.add(key);
@@ -92,7 +93,7 @@ export const useFetchStoryBlocks = (
         } finally {
             hideLoader();
         }
-    }, [chapterId, setStoryBlocks, storyId, previousNodeKeysRef]);
+    }, [chapterId, setStoryBlocks, storyId, previousNodeKeysRef, showLoader, hideLoader, setAlertState]);
 
     return { getBatchedStoryBlocks, previousTableStatus, setPreviousTableStatus };
 };

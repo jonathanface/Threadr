@@ -37,10 +37,12 @@ export default class Exporter {
       nodes: [CustomParagraphNode, ClickableDecoratorNode], // Register custom nodes
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const storyData: any = await this.getFullStory(this.story.story_id);
     const chapters: returnHTML[] = [];
 
     for (const chapter of storyData.chapters_with_contents) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const chapterBlocks = chapter.blocks?.items.map((paragraph: { chunk: any; key_id: any }) => {
         const fixed: CustomSerializedParagraphNode = paragraph.chunk.Value
           ? JSON.parse(paragraph.chunk.Value)
@@ -104,19 +106,15 @@ export default class Exporter {
     return chapters;
   };
 
-
-  getFullStory = (storyID: string) => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const response = await fetch("/api/stories/" + storyID + "/full");
-        if (!response.ok) {
-          reject(`SERVER ERROR FETCHING FULL STORY: ${response.body}`);
-        }
-        resolve(response.json());
-      } catch (e) {
-        console.log("Wtf err full", e);
-        reject(`ERROR FETCHING FULL STORY: ${e}`);
+  getFullStory = async (storyID: string) => {
+    try {
+      const response = await fetch("/api/stories/" + storyID + "/full");
+      if (!response.ok) {
+        throw new Error(`SERVER ERROR FETCHING FULL STORY: ${response.body}`);
       }
-    });
+      return await response.json();
+    } catch (e) {
+      console.error(`ERROR FETCHING FULL STORY: ${e}`);
+    }
   };
 }

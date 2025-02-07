@@ -1,6 +1,6 @@
 import { Box, Button, createTheme, IconButton, Step, StepLabel, Stepper, ThemeProvider, Typography } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
-import styles from './createstoryslideshow.module.css'
+import styles from './createeditstoryslideshow.module.css'
 import { TitleStep } from "./TitleStep";
 import { ImageStep } from "./ImageStep";
 import { useLoader } from "../../hooks/useLoader";
@@ -35,7 +35,7 @@ interface SelectedSeries {
     series_title: string;
 }
 
-export const CreateStorySlideshow = () => {
+export const CreateEditStorySlideshow = () => {
     const [activeStep, setActiveStep] = useState(0);
     const [skipped, setSkipped] = useState(new Set<number>());
     const [storyBuild, setStoryBuild] = useState<CreateStoryForm>({
@@ -114,7 +114,7 @@ export const CreateStorySlideshow = () => {
             }
         };
         fetchStory();
-    }, [storyID]);
+    }, [storyID, showLoader, hideLoader, setAlertState]);
 
     const isStepOptional = (step: number) => {
         return step === 1 || step === 2;
@@ -127,7 +127,7 @@ export const CreateStorySlideshow = () => {
     const buildFormData = (buildObj: CreateStoryForm): FormData => {
         const formData = new FormData();
         for (const key in buildObj) {
-            if (buildObj.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(buildObj, key)) {
                 const value = buildObj[key];
                 if (value === undefined) continue;
                 if (typeof value === "string" || typeof value === "number") {
@@ -210,7 +210,7 @@ export const CreateStorySlideshow = () => {
                 open: true
             });
             navigate(`/stories/`);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
             setAlertState({
                 title: "Error editing story",
@@ -250,13 +250,7 @@ export const CreateStorySlideshow = () => {
                 method: "POST",
                 body: buildFormData(storyBuild),
             });
-            if (!response.ok) {
-                const errorData = await response.json();
-                const error: Error = new Error(JSON.stringify(errorData));
-                error.message = response.statusText;
-                error.name = response.status.toString();
-                throw error;
-            }
+            if (!response.ok) throw response;
             const newStory = await response.json() as Story;
             if (newStory.series_id) {
                 const newSeries: Series = {
@@ -289,9 +283,10 @@ export const CreateStorySlideshow = () => {
                 open: true
             });
             navigate(`/stories/${newStory.story_id}`);
-        } catch (error: any) {
-            console.error(error);
-            if (error.name === "401") {
+        } catch (error: unknown) {
+            const fetchError = error as Response;
+            console.error(fetchError.statusText);
+            if (fetchError.status === 401) {
                 setAlertState({
                     title: "Insufficient subscription",
                     severity: AlertToastType.warning,
@@ -333,7 +328,11 @@ export const CreateStorySlideshow = () => {
             setStoryBuild((prev) => ({ ...prev, series_id: tempSeries.series_id, series_title: tempSeries.series_title }));
         }
         if (activeStep === 4) {
-            storyID ? editStory() : saveNewStory();
+            if (storyID) {
+                editStory();
+            } else {
+                saveNewStory();
+            }
         }
         setWarning("");
         let newSkipped = skipped;

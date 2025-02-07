@@ -4,7 +4,7 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
-import { $createTextNode, $isRangeSelection, $isTextNode, KEY_TAB_COMMAND, LexicalEditor, ParagraphNode, PASTE_COMMAND, SerializedEditorState, SerializedElementNode, SerializedLexicalNode, SerializedTextNode, TextNode } from 'lexical';
+import { $createTextNode, $isRangeSelection, $isTextNode, KEY_TAB_COMMAND, ParagraphNode, PASTE_COMMAND, SerializedEditorState, SerializedElementNode, SerializedLexicalNode } from 'lexical';
 import {
   $getRoot,
   $getSelection,
@@ -16,10 +16,10 @@ import LexicalErrorBoundary from '@lexical/react/LexicalErrorBoundary';
 import styles from "./threadwriter.module.css";
 import { Toolbar } from '../ThreadWriterToolbar';
 import { useLoader } from '../../hooks/useLoader';
-import { DbOperationQueue, ProcessDBQueue } from './queue';
+import { ProcessDBQueue } from './queue';
 import { DBOperation, DBOperationBlock, DBOperationType } from '../../types/DBOperations';
 import { v4 as uuidv4 } from 'uuid';
-import { CustomParagraphNode, CustomSerializedParagraphNode } from './customNodes/CustomParagraphNode';
+import { CustomParagraphNode } from './customNodes/CustomParagraphNode';
 import { BlockOrderMap } from '../../types/Document';
 import { useToaster } from '../../hooks/useToaster';
 import { AlertToastType } from '../../types/AlertToasts';
@@ -33,7 +33,8 @@ import { useFetchStoryBlocks } from '../../hooks/useFetchStoryBlocks';
 import { useFetchAssociations } from '../../hooks/useFetchAssociations';
 import { useEditorStateUpdater } from '../../hooks/useEditorStateUpdater';
 import { dbEventEmitter, SaveSuccessPayload } from '../../utils/EventEmitter';
-
+import { DbOperationQueue, generateTextHash } from '../../constants/constants';
+import { getParagraphIndexByKey, serializeWithChildren } from '../../utils/helpers';
 
 
 const theme = {
@@ -45,152 +46,6 @@ const theme = {
     strikethrough: styles.strikethrough,
   },
 };
-
-export const getParagraphIndexByKey = (editor: EditorState, key: string): number | null => {
-  let result: number | null = null;
-  editor.read(() => {
-    const root = $getRoot();
-    const children = root.getChildren<ElementNode>();
-
-    for (let index = 0; index < children.length; index++) {
-      const node = children[index];
-      if (node.getType() === CustomParagraphNode.getType() && node.getKey() === key) {
-        result = index;
-        break;
-      }
-    }
-  });
-  return result;
-};
-
-const getParagraphByCustomKey = (editor: EditorState, key: string): CustomParagraphNode | null => {
-  let foundNode: CustomParagraphNode | null = null;
-  editor.read(() => {
-    const root = $getRoot();
-    const children = root.getChildren<ElementNode>();
-
-    for (let index = 0; index < children.length; index++) {
-      const node = children[index] as CustomParagraphNode;
-      if (node.getKeyId() === key) {
-        foundNode = node;
-        break;
-      }
-    }
-  });
-  return foundNode;
-};
-
-
-export const SerializeWithChildren = (node: ElementNode): CustomSerializedParagraphNode => {
-  if (!(node instanceof CustomParagraphNode)) {
-    throw new Error("Node is not an instance of CustomParagraphNode");
-  }
-
-  const json = node.exportJSON() as CustomSerializedParagraphNode;
-
-  const children = node.getChildren();
-  const mergedChildren: SerializedLexicalNode[] = [];
-
-  let bufferText = ""; // Buffer to accumulate text from `clickable-decorator` and `text` nodes
-
-  children.forEach((child) => {
-    if (child.getType() === "clickable-decorator" || $isTextNode(child)) {
-      // Accumulate text from both `clickable-decorator` and `text` nodes
-      bufferText += child.getTextContent();
-    } else if ($isElementNode(child)) {
-      // Serialize nested child elements
-      if (bufferText) {
-        // If there's buffered text, create a text node for it
-        mergedChildren.push({
-          type: "text",
-          version: 1,
-          text: bufferText,
-          format: 0,
-          style: "",
-          mode: "normal",
-          detail: 0,
-        } as SerializedTextNode);
-        bufferText = ""; // Clear the buffer
-      }
-      mergedChildren.push(SerializeWithChildren(child as ElementNode)); // Recursively serialize child element
-    } else {
-      // If it's an unsupported node, flush buffer and skip
-      if (bufferText) {
-        mergedChildren.push({
-          type: "text",
-          version: 1,
-          text: bufferText,
-          format: 0,
-          style: "",
-          mode: "normal",
-          detail: 0,
-        } as SerializedTextNode);
-        bufferText = ""; // Clear the buffer
-      }
-    }
-  });
-
-  // Add any remaining buffered text as a final text node
-  if (bufferText) {
-    mergedChildren.push({
-      type: "text",
-      version: 1,
-      text: bufferText,
-      format: 0,
-      style: "",
-      mode: "normal",
-      detail: 0,
-    } as SerializedTextNode);
-  }
-
-  json.children = mergedChildren;
-
-  return json;
-};
-
-const generateTextHash = (editor: LexicalEditor): string => {
-  if (!editor) {
-    console.error("Editor instance is not initialized.");
-    return "";
-  }
-  let hash = "";
-
-  editor.getEditorState().read(() => {
-    const root = $getRoot();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const traverseNode = (node: any) => {
-      if (typeof node.getKey !== 'function') {
-        console.error('Node is missing getKey method:', node);
-        return;
-      }
-      const nodeKey = node.getKey();
-      const nodeType = node.getType();
-      const textContent = node.getTextContent();
-
-      // Include formatting attributes (e.g., bold, italic)
-      const formatAttributes =
-        node instanceof TextNode
-          ? JSON.stringify({
-            format: node.getFormat(), // Bitmask for bold, italic, underline, etc.
-            style: node.getStyle(), // Inline styles (e.g., font size, color)
-          })
-          : "";
-
-      // Include node's serialized data in the hash
-      hash += `${nodeKey}:${nodeType}:${textContent}:${formatAttributes};`;
-
-      // Recursively process children (if any)
-      if (node.getChildren) {
-        node.getChildren().forEach(traverseNode);
-      }
-    };
-
-    traverseNode(root);
-  });
-
-  return hash;
-};
-
 
 export const ThreadWriter = () => {
 
@@ -294,7 +149,7 @@ export const ThreadWriter = () => {
   }
 
   // queue operations
-  const queueParagraphOrderResync = () => {
+  const queueParagraphOrderResync = useCallback(() => {
     if (!story || !chapter) return;
     editorRef.current.read(() => {
       const root = $getRoot();
@@ -323,23 +178,22 @@ export const ThreadWriter = () => {
         chapterID: chapter.id,
       });
     });
-  }
+  }, [chapter, story]);
 
-  const queueParagraphForDeletion = (customKey: string) => {
+  const queueParagraphForDeletion = useCallback((customKey: string) => {
     if (!story || !chapter) return;
     const deleteBlock: DBOperationBlock = { key_id: customKey };
     const storyID = story.story_id;
     const chapterID = chapter.id;
     const op: DBOperation = { type: DBOperationType.delete, storyID, chapterID, blocks: [deleteBlock], time: Date.now() };
     DbOperationQueue.push(op);
-  };
+  }, [chapter, story]);
 
   const queueParagraphForSave = useCallback((customKey: string, order: string, content: SerializedElementNode<SerializedLexicalNode>) => {
     if (!story || !chapter) return;
     const saveBlock: DBOperationBlock = { key_id: customKey, chunk: content, place: order };
     const storyID = story.story_id;
     const chapterID = chapter.id;
-    console.log("status", previousTableStatus)
     const op: DBOperation = {
       type: DBOperationType.save,
       storyID,
@@ -349,9 +203,9 @@ export const ThreadWriter = () => {
       tableStatus: previousTableStatus
     };
     DbOperationQueue.push(op);
-  }, [chapter?.id, story?.story_id]);
+  }, [chapter, previousTableStatus, story]);
 
-  const queueAllParagraphsForSave = (storyID: string, chapterID: string) => {
+  const queueAllParagraphsForSave = useCallback((storyID: string, chapterID: string) => {
     if (!editorRef || !editorRef.current) {
       console.warn("ThreadWriter - Editor, story, or chapter is not available.");
       return;
@@ -377,7 +231,7 @@ export const ThreadWriter = () => {
         }
 
         // Serialize the paragraph
-        const serialized = SerializeWithChildren(paragraph);
+        const serialized = serializeWithChildren(paragraph);
         if (!serialized) {
           console.warn(`ThreadWriter - Failed to serialize paragraph with key_id: ${key_id}`);
           return;
@@ -426,7 +280,7 @@ export const ThreadWriter = () => {
 
 
     });
-  };
+  }, [setAlertState]);
 
 
   useEditorStateUpdater(editorRef, storyBlocks, isProgrammaticChange);
@@ -444,7 +298,7 @@ export const ThreadWriter = () => {
     return () => {
       dbEventEmitter.removeEventListener('saveSuccess', handleSaveSuccess);
     }
-  }, []);
+  }, [queueAllParagraphsForSave, setPreviousTableStatus]);
 
   // Merged useEffect to handle both story and chapter changes
   useEffect(() => {
@@ -456,6 +310,8 @@ export const ThreadWriter = () => {
           isProgrammaticChange.current = true; // Start programmatic change
           await getBatchedStoryBlocks("");
           await getAllAssociations();
+          const newHash = generateTextHash(editorRef.current);
+          previousTextHashRef.current = newHash;
           isProgrammaticChange.current = false; // End programmatic change
           isInitialLoad.current = false;
         } else {
@@ -463,21 +319,17 @@ export const ThreadWriter = () => {
           isProgrammaticChange.current = true; // Start programmatic change
           previousNodeKeysRef.current.clear(); // Clear previous keys to prevent DELETEs
           await getBatchedStoryBlocks("");
-          if (associations) {
-            //setAssociations([...associations]);
-          }
           isProgrammaticChange.current = false; // End programmatic change
         }
       };
-      if (editorRef.current) {
-        const newHash = generateTextHash(editorRef.current);
-        previousTextHashRef.current = newHash;
-      }
+
+
+
       startTransition(() => {
         fetchData();
       });
     }
-  }, [story?.story_id, chapter?.id]);
+  }, [story?.story_id, chapter?.id, story, chapter, getAllAssociations, getBatchedStoryBlocks]);
 
   useEffect(() => {
     if (editorRef.current) {
@@ -499,7 +351,7 @@ export const ThreadWriter = () => {
             if (index !== null) {
               const id = node.getKeyId();
               if (id) {
-                queueParagraphForSave(id, index.toString(), SerializeWithChildren(node));
+                queueParagraphForSave(id, index.toString(), serializeWithChildren(node));
               }
             }
           });
@@ -515,7 +367,6 @@ export const ThreadWriter = () => {
       editorRef.current.update(() => {
         const root = $getRoot();
         const children = root.getChildren();
-
         children.forEach((child) => {
           if (child.getType() === "paragraph" && !(child instanceof CustomParagraphNode)) {
             console.error(`Existing ParagraphNode found: ${child.getKey()}`);
@@ -676,7 +527,7 @@ export const ThreadWriter = () => {
         removeListener();
       };
     }
-  }, [editorRef.current, setAlertState]);
+  }, [setAlertState]);
 
   const onChangeHandler = useCallback((editorState: EditorState) => {
     if (isProgrammaticChange.current) {
@@ -707,16 +558,20 @@ export const ThreadWriter = () => {
           const id = node.getKeyId();
           if (id) {
             currentNodeKeys.add(id);
+
             if (!previousNodeKeysRef.current.has(id)) {
               newParagraphKeys.add(id);
               if (index !== children.length - 1) {
                 orderResyncRequired = true;
               }
             }
-            // Serialize and queue for saving
-            const serialized = SerializeWithChildren(node);
-            paragraphsToSave.push({ key_id: serialized.key_id, order: index.toString(), content: serialized });
-            // Remove from previous keys
+            const selection = $getSelection();
+            const customParagraph = $isRangeSelection(selection) ? selection.anchor.getNode().getParent() : null;
+            const selectedNodeKey = customParagraph instanceof CustomParagraphNode ? customParagraph.getKeyId() : null;
+            if (pastedParagraphKeys.current.has(id) || newParagraphKeys.has(id) || id === selectedNodeKey) {
+              const serialized = serializeWithChildren(node);
+              paragraphsToSave.push({ key_id: serialized.key_id, order: index.toString(), content: serialized });
+            }
             previousNodeKeysRef.current.delete(id);
           }
         }
@@ -785,7 +640,7 @@ export const ThreadWriter = () => {
       }
       hideLoader();
     }
-  }, [story?.story_id]);
+  }, [associations, story, hideLoader, showLoader, setAlertState]);
 
   return (
     <div className={styles.outerWrapper}>

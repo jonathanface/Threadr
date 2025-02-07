@@ -11,14 +11,12 @@ export const useEditorStateUpdater = (
     useEffect(() => {
         if (editorRef.current && storyBlocks) {
             isProgrammaticChange.current = true;
-            if (editorRef.current) {
-                const editor = editorRef.current;
-                editor.update(() => {
-                    const newEditorState = editor.parseEditorState(storyBlocks);
-                    editor.setEditorState(newEditorState);
-                    editorRef.current = editor;
-                })
-            }
+            const editor = editorRef.current;
+            editor.update(() => {
+                const newEditorState = editor.parseEditorState(storyBlocks);
+                editor.setEditorState(newEditorState);
+                editorRef.current = editor;
+            })
             isProgrammaticChange.current = false;
         }
     }, [storyBlocks, editorRef, isProgrammaticChange]);

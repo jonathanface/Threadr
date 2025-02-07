@@ -13,10 +13,9 @@ import { DraggableTreeItem } from "./DraggableTreeItem";
 
 interface SettingsMenuProps {
     chapters: Chapter[];
-    closeFn: (close: Boolean) => void;
 }
 
-export const ChapterItems = ({ chapters, closeFn }: SettingsMenuProps) => {
+export const ChapterItems = ({ chapters }: SettingsMenuProps) => {
 
     const { story, chapter, setChapter, setStory, series, setSeries } = useSelections();
     const { showLoader, hideLoader } = useLoader();
@@ -24,7 +23,7 @@ export const ChapterItems = ({ chapters, closeFn }: SettingsMenuProps) => {
     if (!chapter || !story) return;
 
     const updateChapterParameter = (chapterID: string) => {
-        var newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?chapter=' + chapterID;
+        const newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?chapter=' + chapterID;
         window.history.pushState({ path: newurl }, '', newurl);
     }
 
@@ -93,7 +92,7 @@ export const ChapterItems = ({ chapters, closeFn }: SettingsMenuProps) => {
         }
     };
 
-    const onDeleteChapterClick = async (event: React.MouseEvent, chapterIDToDelete: string, chapterTitle: String) => {
+    const onDeleteChapterClick = async (event: React.MouseEvent, chapterIDToDelete: string, chapterTitle: string) => {
         event.stopPropagation();
         if (story.chapters.length === 1) {
             setAlertState({
@@ -140,6 +139,7 @@ export const ChapterItems = ({ chapters, closeFn }: SettingsMenuProps) => {
         }
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const onChapterDragEnd = async (result: any) => {
         if (!result.destination || !result.source) return;
         if (result.destination.index === result.source.index) return;

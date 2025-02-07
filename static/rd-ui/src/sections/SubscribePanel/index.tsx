@@ -12,6 +12,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import { StripeCardElementChangeEvent } from "@stripe/stripe-js";
 import { useToaster } from "../../hooks/useToaster";
 import { AlertToastType } from "../../types/AlertToasts";
+import { useNavigate } from "react-router-dom";
 
 interface PaymentMethod {
   id: string;
@@ -40,10 +41,11 @@ export const SubscribePanel = () => {
 
   const stripe = useStripe();
   const elements = useElements();
+  const navigate = useNavigate();
 
-  const handleClose = () => {
-    //setIsSubscriptionFormOpen(false);
-  };
+  const handleClose = useCallback(() => {
+    navigate(-1);
+  }, [navigate]);
 
   const confirmCard = async () => {
     setSubscribeError("");
@@ -196,19 +198,16 @@ export const SubscribePanel = () => {
       });
   };
 
-  // useEffect(() => {
-  //   if (isSubscriptionFormOpen) {
-  //     if (!customerID.length) {
-  //       getOrCreateStripeCustomer();
-  //       getProducts();
-  //     }
-  //   }
-  // }, [
-  //   isSubscriptionFormOpen,
-  //   customerID,
-  //   paymentMethod,
-  //   getOrCreateStripeCustomer,
-  // ]);
+  useEffect(() => {
+    if (!customerID.length) {
+      getOrCreateStripeCustomer();
+      getProducts();
+    }
+  }, [
+    customerID,
+    paymentMethod,
+    getOrCreateStripeCustomer,
+  ]);
 
   const handleCardElementChange = (e: StripeCardElementChangeEvent) => {
     if (e.error) {

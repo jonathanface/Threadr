@@ -1,5 +1,5 @@
-import { Box, createTheme, TextField, Theme, ThemeProvider, Typography } from "@mui/material";
-import styles from './createstoryslideshow.module.css';
+import { Box, TextField, Theme, ThemeProvider, Typography } from "@mui/material";
+import styles from './createeditstoryslideshow.module.css';
 import { ChangeEvent } from "react";
 
 interface DescriptionStepProps {

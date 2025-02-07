@@ -4,7 +4,7 @@ import styles from './editabletext.module.css';
 
 interface EditableTextProps {
     textValue: string;
-    onTextChange: Function;
+    onTextChange: (event: React.SyntheticEvent) => Promise<void>;
     inputTextAlign?: string;
 }
 export const EditableText = (props: EditableTextProps) => {

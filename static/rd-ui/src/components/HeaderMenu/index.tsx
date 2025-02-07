@@ -23,6 +23,7 @@ export const HeaderMenu = () => {
         updatedStory.title = target.value;
         const formData = new FormData();
         Object.keys(updatedStory).forEach((key) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const value = (updatedStory as any)[key];
           formData.append(key, value !== undefined && value !== null ? String(value) : "");
         });
@@ -63,6 +64,7 @@ export const HeaderMenu = () => {
 
         const formData = new FormData();
         Object.keys(updatedSeries).forEach((key) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const value = (updatedSeries as Record<string, any>)[key];
           // If the value is an object or an array, JSON.stringify it
           if (typeof value === "object" && value !== null) {

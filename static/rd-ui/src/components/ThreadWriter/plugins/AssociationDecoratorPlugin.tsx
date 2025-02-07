@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef } from "react";
 import {
     $getRoot,
     ElementNode,
-    LexicalEditor,
     LexicalNode,
     TextNode,
 } from "lexical";
@@ -12,34 +11,11 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import { ClickableDecoratorNode } from "../customNodes/ClickableDecoratorNode";
 import { SimplifiedAssociation } from "../../../types/Associations";
 import styles from "../threadwriter.module.css";
+import { generateTextHash } from "../../../constants/constants";
 
 // Utility to escape RegExp special characters
 const escapeRegExp = (string: string) => {
     return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-};
-
-// Function to generate a text hash based on editor content
-const generateTextHash = (editor: LexicalEditor): string => {
-    let hash = "";
-
-    editor.getEditorState().read(() => {
-        const root = $getRoot();
-        const traverseNode = (node: LexicalNode) => {
-            if (node instanceof TextNode) {
-                const textContent = node.getTextContent();
-                const formatAttributes = JSON.stringify({
-                    format: node.getFormat(), // Bitmask for bold, italic, etc.
-                    style: node.getStyle(),   // Inline styles like color, font-size
-                });
-                hash += `${node.getKey()}:${node.getType()}:${textContent}:${formatAttributes};`;
-            } else if (node instanceof ElementNode) {
-                node.getChildren().forEach(traverseNode);
-            }
-        };
-        root.getChildren().forEach(traverseNode);
-    });
-
-    return hash;
 };
 
 export const AssociationDecoratorPlugin = ({
@@ -56,10 +32,7 @@ export const AssociationDecoratorPlugin = ({
     scrollToTop?: boolean;
 }) => {
     const [editor] = useLexicalComposerContext();
-
-    // Ref to store the previous text hash
-    const previousTextHashRef = useRef<string | null>(null);
-
+    const previousHashRef = useRef<string | null>(null);
     // Memoized association processing function
     const processAssociations = useCallback(
         (associations: SimplifiedAssociation[], rootNode: ElementNode, exclusionList?: string[]): void => {
@@ -142,12 +115,12 @@ export const AssociationDecoratorPlugin = ({
                 });
             });
         },
-        [customLeftClick, exclusionList]
+        [customLeftClick]
     );
 
     // Process associations when associations prop changes (e.g., initial load)
     useEffect(() => {
-        if (associations && associations.length && editor) {
+        if (associations && associations.length && editor && previousHashRef) {
             // Avoid processing during programmatic changes
             if (isProgrammaticChange?.current) {
                 console.log("AssociationPlugin - Programmatic change in progress, skipping association processing on prop change.");
@@ -170,20 +143,20 @@ export const AssociationDecoratorPlugin = ({
                             contentEditableDiv.scrollTop = 0;
                         }
                     }
+
+                    previousHashRef.current = generateTextHash(editor);
+                    if (isProgrammaticChange) {
+                        isProgrammaticChange.current = false;
+                    }
                 });
             } catch (error) {
                 console.error(`AssociationPlugin - Error processing associations on prop change: ${error}`);
-            } finally {
-                // Reset the programmatic change flag
-                if (isProgrammaticChange) {
-                    isProgrammaticChange.current = false;
-                }
             }
         }
-    }, [associations, editor, processAssociations, exclusionList, scrollToTop, isProgrammaticChange]);
+    }, [associations, editor, processAssociations, exclusionList, scrollToTop, previousHashRef, isProgrammaticChange]);
 
     // Listener function for user-initiated editor updates
-    const handleUserEditorUpdate = useCallback(({ editorState }: { editorState: any }) => {
+    const handleUserEditorUpdate = useCallback(() => {
         if (isProgrammaticChange?.current) {
             // If a programmatic change is in progress, skip processing
             console.warn("AssociationPlugin - Skipping user-initiated update due to ongoing programmatic change.");
@@ -192,7 +165,7 @@ export const AssociationDecoratorPlugin = ({
 
         // Generate current text hash
         const currentHash = generateTextHash(editor);
-        const previousHash = previousTextHashRef.current;
+        const previousHash = previousHashRef.current;
 
         if (currentHash === previousHash) {
             console.log("AssociationPlugin - No content changes detected, skipping association processing.");
@@ -200,7 +173,7 @@ export const AssociationDecoratorPlugin = ({
         }
 
         // Update the previous hash
-        previousTextHashRef.current = currentHash;
+        previousHashRef.current = currentHash;
 
         try {
             // Indicate that a programmatic change is starting
@@ -222,7 +195,6 @@ export const AssociationDecoratorPlugin = ({
         } catch (error) {
             console.error(`AssociationPlugin - Error processing associations on user update: ${error}`);
         } finally {
-            // Reset the programmatic change flag
             if (isProgrammaticChange) {
                 isProgrammaticChange.current = false;
             }

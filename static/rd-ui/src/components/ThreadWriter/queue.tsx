@@ -1,9 +1,8 @@
+import { DbOperationQueue } from "../../constants/constants";
 import { APIError } from "../../types/API";
 import { DBOperation, DBOperationBlock, DBOperationType, DocumentBlocksForServer } from "../../types/DBOperations";
 import { BlockOrderMap } from "../../types/Document";
 import { DeleteSuccessPayload, emitDeleteSuccess, emitSaveSuccess, emitSyncOrderSuccess, SaveSuccessPayload, SyncOrderSuccessPayload } from "../../utils/EventEmitter";
-
-export const DbOperationQueue: DBOperation[] = [];
 
 let dbQueueRetryCount = 0;
 

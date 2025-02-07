@@ -1,5 +1,5 @@
 import { Box, CircularProgress, Typography } from "@mui/material"
-import styles from './createstoryslideshow.module.css';
+import styles from './createeditstoryslideshow.module.css';
 import { PortraitDropper } from "../../components/PortraitDropper";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLoader } from "../../hooks/useLoader";
@@ -26,7 +26,7 @@ export const ImageStep = (props: ImageStepProps) => {
                 const response = await fetch(randomImageURL);
                 if (!response.ok) throw new Error(response.statusText);
                 const data = await response.blob();
-                let metadata = {
+                const metadata = {
                     type: 'image/jpeg'
                 };
                 const file = new File([data], "temp.jpg", metadata);
@@ -41,7 +41,7 @@ export const ImageStep = (props: ImageStepProps) => {
         } finally {
             hideLoader();
         }
-    }, [showLoader, hideLoader]);
+    }, [showLoader, hideLoader, imageURL, props]);
 
     useEffect(() => {
         const generateImageURL = async () => {
@@ -49,7 +49,7 @@ export const ImageStep = (props: ImageStepProps) => {
             setImageURL(url);
         };
         generateImageURL();
-    }, [getDefaultImageURL, defaultImageFetchedRef.current]);
+    }, [getDefaultImageURL]);
 
     const onImageLoad = () => {
         setIsStoryLoaderVisible(false);

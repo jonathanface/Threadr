@@ -6,11 +6,12 @@ import CircularProgress from "@mui/material/CircularProgress";
 import { useEffect, useState } from "react";
 import { DetailsSlider } from "./DetailsSlider";
 import styles from "./story.module.css";
-import { IsStory, Story } from "../../types/Story";
+import { Story } from "../../types/Story";
 import { Series } from "../../types/Series";
 import { useLoader } from "../../hooks/useLoader";
 import { useNavigate } from "react-router-dom";
 import { useWorksList } from "../../hooks/useWorksList";
+import { isStory } from "../../utils/helpers";
 
 interface StoryBoxProps {
   itemData: Story | Series;
@@ -98,19 +99,19 @@ export const StoryBox = (props: StoryBoxProps) => {
     event.stopPropagation();
 
     const confirmText =
-      (IsStory(props.itemData)
+      (isStory(props.itemData)
         ? "Delete story " + title + "?"
         : "Delete " +
         title +
         " from your series " +
         props.itemData.series_title +
         "?") +
-      (!IsStory(props.itemData) && props.itemData.stories.length === 1
+      (!isStory(props.itemData) && props.itemData.stories.length === 1
         ? "\n\nThere are no other titles in this series, so deleting it will also remove the series."
         : "");
 
     const conf = window.confirm(confirmText);
-    const seriesID = !IsStory(props.itemData) ? props.itemData.series_id : "";
+    const seriesID = !isStory(props.itemData) ? props.itemData.series_id : "";
     if (conf) {
       try {
         showLoader();
@@ -137,18 +138,18 @@ export const StoryBox = (props: StoryBoxProps) => {
     }
   };
 
-  const id = !IsStory(props.itemData) ? props.itemData.series_id : props.itemData.story_id;
-  const title = !IsStory(props.itemData)
+  const id = !isStory(props.itemData) ? props.itemData.series_id : props.itemData.story_id;
+  const title = !isStory(props.itemData)
     ? props.itemData.series_title
     : props.itemData.title;
-  const description = !IsStory(props.itemData)
+  const description = !isStory(props.itemData)
     ? props.itemData.series_description
     : props.itemData.description;
   const editHoverText = "Edit " + title;
   const deleteHoverText = "Delete " + title;
 
   useEffect(() => {
-    if (!IsStory(props.itemData)) {
+    if (!isStory(props.itemData)) {
       setIsSeries(true);
     } else {
       setIsSeries(false);
@@ -159,7 +160,7 @@ export const StoryBox = (props: StoryBoxProps) => {
     <button
       className={styles.docButton}
       onClick={() => {
-        if (IsStory(props.itemData)) {
+        if (isStory(props.itemData)) {
           handleClick(props.itemData.story_id, props.itemData.chapters[0].id);
         }
       }}
@@ -175,7 +176,7 @@ export const StoryBox = (props: StoryBoxProps) => {
       </div>
       <div className={styles.storyBubble}>
         <img
-          className={!IsStory(props.itemData) ? styles.seriesImage : ""}
+          className={!isStory(props.itemData) ? styles.seriesImage : ""}
           src={props.itemData.image_url}
           alt={title}
           onLoad={() => {
@@ -215,7 +216,7 @@ export const StoryBox = (props: StoryBoxProps) => {
               component="label"
               title={deleteHoverText}
               onClick={(event) => {
-                if (!IsStory(props.itemData)) {
+                if (!isStory(props.itemData)) {
                   deleteSeries(event, id, title);
                 } else {
                   deleteStory(event, id, title);
@@ -239,8 +240,8 @@ export const StoryBox = (props: StoryBoxProps) => {
         <DetailsSlider
           key={id}
           id={id}
-          stories={!IsStory(props.itemData) ? props.itemData.stories : undefined}
-          chapters={IsStory(props.itemData) ? props.itemData.chapters : undefined}
+          stories={!isStory(props.itemData) ? props.itemData.stories : undefined}
+          chapters={isStory(props.itemData) ? props.itemData.chapters : undefined}
           onStoryClick={handleClick}
           setDeleted={setWasDeleted}
           isSeries={isSeries}

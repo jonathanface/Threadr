@@ -12,7 +12,8 @@ export type DBEventTypes =
 export interface SaveSuccessPayload {
     storyID: string;
     chapterID: string;
-    response?: any; // Replace 'any' with the actual response type
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    response?: any;
 }
 
 export interface SaveErrorPayload {
@@ -24,6 +25,7 @@ export interface SaveErrorPayload {
 export interface DeleteSuccessPayload {
     storyID: string;
     chapterID: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     response?: any;
 }
 
@@ -36,6 +38,7 @@ export interface DeleteErrorPayload {
 export interface SyncOrderSuccessPayload {
     storyID: string;
     chapterID: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     response?: any;
 }
 

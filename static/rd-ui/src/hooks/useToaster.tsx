@@ -1,10 +1,14 @@
 // src/hooks/useToaster.ts
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useContext } from "react";
 import { AlertCommandType } from "../types/AlertToasts";
-import { useAlertContext } from "../contexts/alert";
+import { AlertContext } from "../contexts/alert";
 
 export const useToaster = () => {
-  const { alertState, clearAlert, setAlertState } = useAlertContext();
+  const context = useContext(AlertContext);
+  if (!context) {
+    throw new Error("alertContext must be used within an AlertProvider");
+  }
+  const { alertState, clearAlert, setAlertState } = context;
 
   useEffect(() => {
     // Handle side-effects related to alertState changes here

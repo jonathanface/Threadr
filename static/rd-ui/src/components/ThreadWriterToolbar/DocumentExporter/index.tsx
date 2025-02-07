@@ -4,16 +4,16 @@ import styles from './documentexporter.module.css';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { DocumentExportType } from "../../../types/DocumentExport";
 import { useSelections } from "../../../hooks/useSelections";
-import { useAlertContext } from "../../../contexts/alert";
 import { AlertCommandType, AlertFunctionCall, AlertToastType } from "../../../types/AlertToasts";
 import Exporter from "../../../utils/Exporter";
 import { useFetchUserData } from "../../../hooks/useFetchUserData";
+import { useToaster } from "../../../hooks/useToaster";
 
 export const DocumentExporter = () => {
 
     const [isOpen, setIsOpen] = useState(false);
     const { story } = useSelections();
-    const { setAlertState } = useAlertContext();
+    const { setAlertState } = useToaster();
     const { userDetails } = useFetchUserData();
 
     const exportDoc = async (type: DocumentExportType) => {
