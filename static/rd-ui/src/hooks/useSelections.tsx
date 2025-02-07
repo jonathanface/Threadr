@@ -58,6 +58,8 @@ export const useSelections = () => {
                 newStoriesList[storiesListIDX] = updatedStory;
                 setStoriesList(newStoriesList);
             }
+        } else {
+            setStoriesList([updatedStory]);
         }
 
         if (series) {
