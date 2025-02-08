@@ -1,25 +1,25 @@
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Box, FormControlLabel, FormGroup, IconButton, Switch, Typography } from "@mui/material";
 import { useLoader } from "../../hooks/useLoader";
 import { AlertLink, AlertToastType } from "../../types/AlertToasts";
 import { useToaster } from "../../hooks/useToaster";
-import { UserContext } from "../../contexts/user";
 import styles from './configpanel.module.css';
 import CloseIcon from "@mui/icons-material/Close";
 import { useNavigate } from "react-router-dom";
+import { UserDetails } from "../../types/User";
+import { useFetchUserData } from "../../hooks/useFetchUserData";
 
 export const ConfigPanel = () => {
-  const userData = useContext(UserContext);
+  const { userDetails, setUserDetails } = useFetchUserData();
   const { showLoader, hideLoader } = useLoader();
   const { setAlertState } = useToaster();
 
-  const [isCustomer, setIsCustomer] = useState(true);
+  const [isCustomer, setIsCustomer] = useState(false);
   const [isRenewing, setIsRenewing] = useState(false);
   const [toggleLabel, setToggleLabel] = useState("Subscribe");
   const navigate = useNavigate();
 
 
-  // Function to initiate a new subscription.
   const subscribe = () => {
     // Replace this with your subscription form handling logic if needed.
     console.log("Subscribe function called");
@@ -31,7 +31,7 @@ export const ConfigPanel = () => {
 
   // Function to toggle auto-renewal on the user's subscription.
   const toggleSubscriptionRenewal = async () => {
-    if (!userData?.userDetails) return;
+    if (!userDetails) return;
     try {
       showLoader();
       const response = await fetch("/api/user", {
@@ -40,7 +40,7 @@ export const ConfigPanel = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ renewing: !userData.userDetails.renewing }),
+        body: JSON.stringify({ renewing: !userDetails.renewing }),
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -48,9 +48,8 @@ export const ConfigPanel = () => {
         error.message = response.statusText;
         throw error;
       }
-      const json = await response.json();
-      console.log("User settings updated", json);
-      // Optionally update your user context here if needed.
+      const json: UserDetails = await response.json();
+      setUserDetails({ ...json });
     } catch (error: unknown) {
       console.error(`Error updating subscription settings: ${error}`);
       const alertLink: AlertLink = {
@@ -71,18 +70,18 @@ export const ConfigPanel = () => {
     }
   };
 
-  // Update component state based on user details.
   useEffect(() => {
-    if (!userData?.userDetails) return;
-    if (!userData.userDetails.subscription_id.length) {
+    if (!userDetails) return;
+    setIsCustomer(userDetails.customer_id.length ? true : false);
+
+    if (!userDetails.customer_id.length || !userDetails.subscription_id.length) {
       setIsRenewing(false);
-      setIsCustomer(false);
       setToggleLabel("Subscribe");
-    } else if (isCustomer) {
-      setIsRenewing(userData.userDetails.renewing);
+    } else {
+      setIsRenewing(userDetails.renewing);
       setToggleLabel("Auto-Renew Subscription");
     }
-  }, [userData?.userDetails, isCustomer]);
+  }, [userDetails]);
 
   return (
     <Box className={styles.configPanel}>

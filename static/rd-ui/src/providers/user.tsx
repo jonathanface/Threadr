@@ -40,7 +40,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             userDetails,
             isLoggedIn,
             userLoading,
-
+            setUserDetails,
             setIsLoggedIn
         }),
         [userDetails, isLoggedIn, userLoading, setIsLoggedIn]

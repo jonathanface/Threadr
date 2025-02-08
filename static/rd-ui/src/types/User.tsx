@@ -5,6 +5,7 @@ export interface UserDetails {
   subscription_id: string;
   customer_id: string;
   admin?: boolean;
+  expired?: boolean;
 }
 
 export interface User {
