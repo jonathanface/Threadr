@@ -518,7 +518,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 		if err != nil {
 			return err
 		}
-		if len(series.Stories)-1 <= 0 {
+		if len(series.Stories) == 0 {
 			storyOrSeriesID = seriesID
 			seriesKey := map[string]types.AttributeValue{
 				"series_id": &types.AttributeValueMemberS{Value: seriesID},

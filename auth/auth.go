@@ -107,7 +107,6 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		info.CustomerID = fullDetails.CustomerID
 		info.SubscriptionID = fullDetails.SubscriptionID
 	}
-
 	toJSON, err := json.Marshal(info)
 	if err != nil {
 		api.RespondWithError(w, http.StatusBadGateway, err.Error())
@@ -125,7 +124,6 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, sess.Values["referrer"].(string), http.StatusTemporaryRedirect)
-
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {

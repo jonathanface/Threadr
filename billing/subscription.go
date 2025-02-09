@@ -118,17 +118,20 @@ func UpdateSubscription(subscriptionID, paymentMethodID, priceID string) (*strin
 	return &stripeSubscription.ID, nil
 }
 
-func CheckSubscriptionIsActive(user models.UserInfo) (bool, error) {
+func CheckSubscriptionIsActive(user models.UserInfo) (bool, *stripe.Error) {
 	stripe.Key = os.Getenv("STRIPE_SECRET")
 	if stripe.Key == "" {
-		return false, fmt.Errorf("missing stripe key")
+		return false, &stripe.Error{HTTPStatusCode: http.StatusInternalServerError, Msg: "unable to load stripe secret"}
 	}
 	var c *stripe.Customer
 	params := &stripe.CustomerParams{}
 	params.AddExpand("subscriptions")
 	c, err := customer.Get(user.CustomerID, params)
 	if err != nil {
-		return false, err
+		if _, ok := err.(*stripe.Error); ok {
+			return false, &stripe.Error{HTTPStatusCode: http.StatusBadGateway, Msg: "unable to cast response to stripe.Error"}
+		}
+		return false, err.(*stripe.Error)
 	}
 	activeSubscription := false
 	if c.Subscriptions != nil {
@@ -139,7 +142,7 @@ func CheckSubscriptionIsActive(user models.UserInfo) (bool, error) {
 			}
 		}
 	} else {
-		return false, fmt.Errorf("no subscription found")
+		return false, &stripe.Error{HTTPStatusCode: http.StatusNotFound, Msg: "unable to find subscription"}
 	}
 	return activeSubscription, nil
 }

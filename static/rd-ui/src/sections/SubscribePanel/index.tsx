@@ -13,6 +13,8 @@ import { StripeCardElementChangeEvent } from "@stripe/stripe-js";
 import { useToaster } from "../../hooks/useToaster";
 import { AlertToastType } from "../../types/AlertToasts";
 import { useNavigate } from "react-router-dom";
+import { useLoader } from "../../hooks/useLoader";
+import { useFetchUserData } from "../../hooks/useFetchUserData";
 
 interface PaymentMethod {
   id: string;
@@ -31,13 +33,14 @@ interface Product {
 }
 
 export const SubscribePanel = () => {
-  const [customerID, setCustomerID] = useState("");
+  const { userDetails, setUserDetails } = useFetchUserData();
   const [subscribeError, setSubscribeError] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(
     null
   );
   const [product, setProduct] = useState<Product | null>(null);
   const { setAlertState } = useToaster();
+  const { showLoader, hideLoader } = useLoader();
 
   const stripe = useStripe();
   const elements = useElements();
@@ -53,13 +56,14 @@ export const SubscribePanel = () => {
       if (!stripe || !elements) {
         throw new Error("stripe is not available");
       }
+      showLoader();
       const response = await fetch("/billing/card", {
         credentials: "include",
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ id: customerID }),
+        body: JSON.stringify({ id: userDetails?.customer_id }),
       });
       if (!response.ok) {
         throw new Error("Fetch problem create customer " + response.status);
@@ -98,7 +102,7 @@ export const SubscribePanel = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            customer_id: customerID,
+            customer_id: userDetails?.customer_id,
             payment_method_id: paymentMethod.id,
           }),
         });
@@ -110,11 +114,14 @@ export const SubscribePanel = () => {
       }
     } catch (error: unknown) {
       setSubscribeError((error as Error).message);
+    } finally {
+      hideLoader();
     }
   };
 
-  const getOrCreateStripeCustomer = useCallback(async () => {
+  const createStripeCustomer = useCallback(async () => {
     try {
+      showLoader();
       const response = await fetch("/billing/customer", {
         credentials: "include",
         method: "POST",
@@ -128,7 +135,6 @@ export const SubscribePanel = () => {
       }
       const json = await response.json();
       if (json && json.id) {
-        setCustomerID(json.id);
         if (json.payment_methods && json.payment_methods.length) {
           const defaultPayment = json.payment_methods.filter(
             (method: PaymentMethod) => method.is_default === true
@@ -137,12 +143,15 @@ export const SubscribePanel = () => {
             setPaymentMethod(defaultPayment[0]);
           }
         }
+        if (userDetails) setUserDetails({ ...userDetails, user_id: json.id });
       }
     } catch (error) {
       handleClose();
       console.error("ERROR", error);
+    } finally {
+      hideLoader();
     }
-  }, [setCustomerID, setPaymentMethod, handleClose]);
+  }, [setPaymentMethod, handleClose]);
 
   const subscribe = async () => {
     if (!paymentMethod || !product) {
@@ -157,7 +166,7 @@ export const SubscribePanel = () => {
         },
         body: JSON.stringify({
           payment_method_id: paymentMethod.id,
-          customer_id: customerID,
+          customer_id: userDetails?.customer_id,
           price_id: product.price_id,
         }),
       });
@@ -183,30 +192,38 @@ export const SubscribePanel = () => {
     }
   };
 
-  const getProducts = () => {
-    fetch("/billing/products", {
-      credentials: "include",
-    })
-      .then((response) => {
-        if (response.ok) {
-          return response.json();
-        }
-        throw new Error("Fetch problem getting products " + response.status);
-      })
-      .then((data) => {
-        setProduct(data[0]);
+  const getProducts = async () => {
+    try {
+      showLoader();
+      const response = await fetch("/billing/products", {
+        credentials: "include",
       });
+      if (!response.ok) {
+        throw new Error(response.statusText);
+      }
+      const data = await response.json();
+      setProduct(data[0]);
+    } catch (error) {
+      console.error("ERR GETTING PRODUCTS", error);
+    } finally {
+      hideLoader();
+    }
   };
 
   useEffect(() => {
-    if (!customerID.length) {
-      getOrCreateStripeCustomer();
-      getProducts();
+    if (userDetails) {
+      const fetchStripeInfo = async () => {
+        if (!userDetails.customer_id.length) {
+          await createStripeCustomer();
+        }
+        getProducts();
+      };
+      fetchStripeInfo();
     }
   }, [
-    customerID,
+    userDetails,
     paymentMethod,
-    getOrCreateStripeCustomer,
+    createStripeCustomer,
   ]);
 
   const handleCardElementChange = (e: StripeCardElementChangeEvent) => {
@@ -225,7 +242,7 @@ export const SubscribePanel = () => {
 
   return (
     <Dialog
-      open={false}
+      open={true}
       maxWidth={"md"}
       fullWidth={true}
       onClose={handleClose}

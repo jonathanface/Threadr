@@ -34,7 +34,6 @@ func GetCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c, err := customer.Get(user.CustomerID, nil)
-	log.Println("c", c)
 	if err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return

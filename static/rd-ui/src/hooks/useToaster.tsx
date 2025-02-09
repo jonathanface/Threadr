@@ -2,6 +2,7 @@
 import { useEffect, useCallback, useContext } from "react";
 import { AlertCommandType } from "../types/AlertToasts";
 import { AlertContext } from "../contexts/alert";
+import { useNavigate } from "react-router-dom";
 
 export const useToaster = () => {
   const context = useContext(AlertContext);
@@ -9,6 +10,7 @@ export const useToaster = () => {
     throw new Error("alertContext must be used within an AlertProvider");
   }
   const { alertState, clearAlert, setAlertState } = context;
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Handle side-effects related to alertState changes here
@@ -19,8 +21,7 @@ export const useToaster = () => {
     if (alertState?.callback) {
       switch (alertState.callback.type) {
         case AlertCommandType.subscribe:
-          // Implement the actual logic here
-          console.log("Open subscription form");
+          navigate('/subscribe');
           break;
         default:
           break;

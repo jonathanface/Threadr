@@ -15,17 +15,39 @@ import { LoginPanel } from "./sections/LoginPanel";
 import { ConfigPanel } from "./sections/UserConfigPanel";
 import { CreateEditStorySlideshow } from "./sections/CreateEditStorySlideshow";
 import { EditSeries } from "./sections/EditSeries";
+import { useToaster } from "./hooks/useToaster";
+import { AlertCommandType, AlertFunctionCall, AlertToastType } from "./types/AlertToasts";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_KEY ?? "");
 
 export const Docter = memo(() => {
-  const { isLoggedIn, userLoading } = useFetchUserData();
+  const { setAlertState } = useToaster();
+  const { isLoggedIn, userLoading, userDetails } = useFetchUserData();
+
   useEffect(() => {
     console.log("Docter mounted");
     return () => {
       console.log("Docter unmounted");
     };
   }, []);
+
+  useEffect(() => {
+    if (userDetails?.expired) {
+      const subscribeFunc: AlertFunctionCall = {
+        type: AlertCommandType.subscribe,
+        text: "subscribe",
+      };
+      setAlertState({
+        title: "Your account has expired",
+        message: "All except your first-created story has been archived and will be retained for 30 days before permanent deletion. If you wish to renew your subscription, click below.",
+        open: true,
+        severity: AlertToastType.warning,
+        timeout: null,
+        callback: subscribeFunc,
+      });
+    }
+  }, [userDetails]);
+
   if (userLoading) {
     return <div />;
   }

@@ -43,7 +43,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setUserDetails,
             setIsLoggedIn
         }),
-        [userDetails, isLoggedIn, userLoading, setIsLoggedIn]
+        [userDetails, setUserDetails, isLoggedIn, userLoading, setIsLoggedIn]
     );
 
     useEffect(() => {

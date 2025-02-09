@@ -23,12 +23,16 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type contextKey string
+
 const (
 	staticFilesDir = "static/rd-ui/dist"
 	servicePath    = "/api"
 	billingPath    = "/billing"
 	authPath       = "/auth"
 )
+const daoKey contextKey = "dao"
+const isSuspendedKey contextKey = "isSuspended"
 
 var dao *daos.DAO
 
@@ -40,7 +44,7 @@ func looseMiddleware(next http.Handler) http.Handler {
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(time.Second*5))
 		defer cancel()
-		ctx = context.WithValue(ctx, "dao", dao)
+		ctx = context.WithValue(ctx, daoKey, dao)
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})
@@ -64,7 +68,7 @@ func billingMiddleware(next http.Handler) http.Handler {
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(time.Second*5))
 		defer cancel()
-		ctx = context.WithValue(ctx, "dao", dao)
+		ctx = context.WithValue(ctx, daoKey, dao)
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})
@@ -92,15 +96,14 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		if userDetails.SubscriptionID != "" || userDetails.Expired {
-			isActive, err := billing.CheckSubscriptionIsActive(*userDetails)
-			if err != nil {
-				// hack
-				if err.Error() != "no subscription found" {
-					api.RespondWithError(w, http.StatusBadGateway, err.Error())
-					return
+			isActive, stripeErr := billing.CheckSubscriptionIsActive(*userDetails)
+			if stripeErr != nil {
+				if stripeErr.HTTPStatusCode == http.StatusNotFound {
+					isActive = false
 				}
 			}
 			if !isActive {
+				// blank out the user's previous subscription/customer id
 				user.Expired = true
 				// account is no longer active
 				user.SubscriptionID = ""
@@ -136,7 +139,6 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 				}
 				// I need to somehow notify the client here
 			} else {
-
 				suspended, err := dao.CheckForSuspendedStories(user.Email)
 				if err != nil {
 					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -198,8 +200,8 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 		// 15 sec timeout
 		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(time.Second*5))
 		defer cancel()
-		ctx = context.WithValue(ctx, "dao", dao)
-		ctx = context.WithValue(ctx, "isSuspended", user.Expired)
+		ctx = context.WithValue(ctx, daoKey, dao)
+		ctx = context.WithValue(ctx, isSuspendedKey, user.Expired)
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})
