@@ -15,6 +15,7 @@ import { useToaster } from "../../hooks/useToaster";
 import { AlertCommandType, AlertToastType } from "../../types/AlertToasts";
 import { useNavigate, useParams } from "react-router-dom";
 import CloseIcon from '@mui/icons-material/Close';
+import { useFetchUserData } from "../../hooks/useFetchUserData";
 
 const steps = ['Title', 'Image', 'Description', 'Series'];
 
@@ -58,6 +59,7 @@ export const CreateEditStorySlideshow = () => {
     const navigate = useNavigate();
     const { storyID } = useParams<{ storyID: string }>();
     const storedSeriesID = useRef("")
+    const { userDetails } = useFetchUserData();
 
     const handleSeriesChange = (value: string, seriesId?: string) => {
         setTempSeries({
@@ -65,6 +67,34 @@ export const CreateEditStorySlideshow = () => {
             series_title: value
         })
     };
+
+    const showInsufficientSubscriptionWarning = () => {
+        setAlertState({
+            title: "Insufficient subscription",
+            severity: AlertToastType.warning,
+            message: "Non-subscribers are limited to just one story. You may click the link below if you want to subscribe.",
+            open: true,
+            callback: {
+                type: AlertCommandType.subscribe,
+                text: "subscribe",
+            }
+        });
+    }
+
+    useEffect(() => {
+        if (!seriesList && !storiesList) return;
+        if (!userDetails) return;
+        if (!userDetails.subscription_id.length || userDetails.expired) {
+            const seriesWithEntries = seriesList?.some(series => series.stories.length);
+            if (seriesWithEntries || storiesList?.length) {
+                showInsufficientSubscriptionWarning();
+                handleClose();
+                return;
+            }
+        }
+    }, [seriesList, storiesList, userDetails])
+
+
 
     useEffect(() => {
         if (!storyID || !storyID.length) return;
@@ -117,7 +147,7 @@ export const CreateEditStorySlideshow = () => {
     }, [storyID, showLoader, hideLoader, setAlertState]);
 
     const isStepOptional = (step: number) => {
-        return step === 1 || step === 4;
+        return step === 3;
     };
 
     const isStepSkipped = (step: number) => {
@@ -287,16 +317,7 @@ export const CreateEditStorySlideshow = () => {
             const fetchError = error as Response;
             console.error(fetchError.statusText);
             if (fetchError.status === 401) {
-                setAlertState({
-                    title: "Insufficient subscription",
-                    severity: AlertToastType.warning,
-                    message: "Non-subscribers are limited to just one story. You may click the link below if you want to subscribe.",
-                    open: true,
-                    callback: {
-                        type: AlertCommandType.subscribe,
-                        text: "subscribe",
-                    }
-                });
+                showInsufficientSubscriptionWarning();
             } else {
                 setAlertState({
                     title: "Error creating story",
@@ -312,6 +333,10 @@ export const CreateEditStorySlideshow = () => {
 
     const handleNext = () => {
         if (activeStep === 0 && !tempTitle.trim().length) {
+            setWarning("Sorry, this step is required.")
+            return;
+        }
+        if (activeStep === 2 && !tempDescription.trim().length) {
             setWarning("Sorry, this step is required.")
             return;
         }
@@ -484,8 +509,8 @@ export const CreateEditStorySlideshow = () => {
         }
     });
 
-    return (
-        <Box className={styles.slideshowParent}>
+    return userDetails && userDetails.subscription_id.length && !userDetails.expired ? (
+        <Box className={styles.slideshowParent} >
             <Box className={styles.header}>
                 <IconButton onClick={handleClose} sx={{ mr: 1 }}>
                     <CloseIcon />
@@ -556,5 +581,7 @@ export const CreateEditStorySlideshow = () => {
                 </>
             </ThemeProvider>
         </Box >
-    )
+    ) : (
+        <div />
+    );
 }

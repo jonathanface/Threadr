@@ -42,6 +42,8 @@ export const SubscribePanel = () => {
   const stripe = useStripe();
   const elements = useElements();
   const navigate = useNavigate();
+  const [buttonLabel, setButtonLabel] = useState("UPDATE");
+  const [subtitle, setSubtitle] = useState("");
 
   const handleClose = useCallback(() => {
     setSubscribeError("");
@@ -101,6 +103,9 @@ export const SubscribePanel = () => {
             `Error updating customer payment details: ${setPaymentResults.statusText}`
           );
         }
+        setButtonLabel("CONFIRM");
+        setSubtitle("")
+
       }
     } catch (error: any) {
       console.error(error);
@@ -147,7 +152,9 @@ export const SubscribePanel = () => {
 
   const subscribe = async () => {
     if (!paymentMethod || !product) return;
+    setSubscribeError("");
     try {
+      showLoader();
       const response = await fetch("/billing/subscribe", {
         credentials: "include",
         method: "POST",
@@ -159,25 +166,34 @@ export const SubscribePanel = () => {
         }),
       });
       if (!response.ok) {
-        throw new Error(`Error subscribing: ${response.statusText}`);
+        throw response;
       }
       const json = await response.json();
       setAlertState({
         title: "Welcome",
         message:
           "Your subscription is active until " +
-          json.period_end +
+          new Date(json.period_end).toLocaleString() +
           " and will automatically renew. If you had previously subscribed, any suspended stories will be restored in the next 30 minutes.",
         severity: AlertToastType.success,
         timeout: 10000,
         open: true,
       });
+      if (userDetails) setUserDetails({ ...userDetails, renewing: true, expired: false, subscription_id: json.subscription_id });
       handleClose();
     } catch (error) {
-      console.error(error);
+      console.error(`Error creating subscription: ${(error as Response).statusText}`);
+      if ((error as Response).status === 409) {
+        setSubscribeError(
+          "You appear to already have an active subscription. Please contact support@docter.io if this is an error."
+        );
+        return;
+      }
       setSubscribeError(
         "There was an error creating your subscription. Please try again later."
       );
+    } finally {
+      hideLoader();
     }
   };
 
@@ -192,6 +208,7 @@ export const SubscribePanel = () => {
       }
       const data = await response.json();
       setProduct(data[0]);
+      setSubtitle(data[0].description);
     } catch (error) {
       setSubscribeError(
         "We are unable to process subscriptions at this time. Please try again later."
@@ -250,7 +267,7 @@ export const SubscribePanel = () => {
             {product.name}
           </Typography>
           <Typography variant="h6" className={styles.productDescription}>
-            {product.description}
+            {subtitle}
           </Typography>
           {!paymentMethod ? (
             <Box sx={{ mt: 2, mb: 2 }}>
@@ -276,7 +293,7 @@ export const SubscribePanel = () => {
             </Typography>
           )}
           <Box sx={{ display: "flex", justifyContent: "flex-end", marginTop: 2 }}>
-            <Button onClick={subscribe}>Update</Button>
+            <Button onClick={subscribe}>{buttonLabel}</Button>
           </Box>
         </Box>
       ) : (

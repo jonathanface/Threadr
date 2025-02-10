@@ -28,5 +28,6 @@
 }
 
 .subscribePanel .error {
-  color: #481818;
+  color: #FFF;
+  font-weight: bold;
 }

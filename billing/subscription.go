@@ -44,6 +44,17 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 	customerID := requestBody["customer_id"]
 	priceID := requestBody["price_id"]
 
+	// make sure we don't have a subscription already
+	isActive, stripeErr := CheckSubscriptionIsActive(user)
+	if stripeErr != nil {
+		api.RespondWithError(w, http.StatusInternalServerError, stripeErr.Msg)
+		return
+	}
+	if isActive {
+		api.RespondWithError(w, http.StatusConflict, "duplicate subscription")
+		return
+	}
+
 	sb, err := CreateSubscription(customerID, priceID, paymentMethodID)
 	if err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -63,7 +74,12 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 	results.SubscriptionID = sb.ID
 	results.PeriodStart = time.Unix(sb.CurrentPeriodStart, 0)
 	results.PeriodEnd = time.Unix(sb.CurrentPeriodEnd, 0)
-	err = dao.AddStripeData(&user.Email, &sb.ID, &sb.Customer.ID)
+	user.SubscriptionID = sb.ID
+	user.CustomerID = sb.Customer.ID
+	user.Expired = false
+	user.Renewing = true
+
+	err = dao.UpdateUser(user)
 	if err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
