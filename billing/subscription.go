@@ -2,6 +2,7 @@ package billing
 
 import (
 	"RichDocter/api"
+	ctxkey "RichDocter/ctxkeys"
 	"RichDocter/daos"
 	"RichDocter/models"
 	"RichDocter/sessions"
@@ -53,7 +54,7 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		dao daos.DaoInterface
 		ok  bool
 	)
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		api.RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}

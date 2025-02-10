@@ -2,6 +2,7 @@ package billing
 
 import (
 	"RichDocter/api"
+	ctxkey "RichDocter/ctxkeys"
 	"RichDocter/daos"
 	"RichDocter/models"
 	"RichDocter/sessions"
@@ -97,7 +98,7 @@ func CreateCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		dao daos.DaoInterface
 		ok  bool
 	)
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		api.RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
@@ -120,7 +121,7 @@ func CreateCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		user.CustomerID = customerID
 		toJSON, err := json.Marshal(user)
 		if err != nil {
-			api.RespondWithError(w, http.StatusBadGateway, err.Error())
+			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		session, _ := sessions.Get(r, "token")

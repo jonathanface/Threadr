@@ -1,20 +1,19 @@
-import { useCallback, useEffect, useState } from "react";
-import styles from "./subscribePanel.module.css";
-
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Box,
+  Button,
+  IconButton,
+  Typography,
+} from "@mui/material";
 import { CardElement, useElements, useStripe } from "@stripe/react-stripe-js";
-
-import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
-import DialogTitle from "@mui/material/DialogTitle";
 import { StripeCardElementChangeEvent } from "@stripe/stripe-js";
 import { useToaster } from "../../hooks/useToaster";
 import { AlertToastType } from "../../types/AlertToasts";
 import { useNavigate } from "react-router-dom";
 import { useLoader } from "../../hooks/useLoader";
 import { useFetchUserData } from "../../hooks/useFetchUserData";
+import styles from "./subscribePanel.module.css";
+import CloseIcon from "@mui/icons-material/Close";
 
 interface PaymentMethod {
   id: string;
@@ -35,85 +34,79 @@ interface Product {
 export const SubscribePanel = () => {
   const { userDetails, setUserDetails } = useFetchUserData();
   const [subscribeError, setSubscribeError] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(
-    null
-  );
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   const [product, setProduct] = useState<Product | null>(null);
   const { setAlertState } = useToaster();
   const { showLoader, hideLoader } = useLoader();
-
+  const hasFetchedStripeInfo = useRef(false);
   const stripe = useStripe();
   const elements = useElements();
   const navigate = useNavigate();
 
   const handleClose = useCallback(() => {
-    navigate(-1);
+    setSubscribeError("");
+    navigate('/stories');
   }, [navigate]);
 
   const confirmCard = async () => {
+    if (!userDetails) return;
     setSubscribeError("");
     try {
       if (!stripe || !elements) {
-        throw new Error("stripe is not available");
+        throw new Error("Stripe is not available");
       }
       showLoader();
       const response = await fetch("/billing/card", {
         credentials: "include",
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ id: userDetails?.customer_id }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: userDetails.customer_id }),
       });
       if (!response.ok) {
-        throw new Error("Fetch problem create customer " + response.status);
+        throw new Error(`Error confirming card: ${response.statusText}`);
       }
-
       const cardElement = elements.getElement(CardElement);
       if (!cardElement) {
-        throw new Error("card element not found");
+        throw new Error("Card element not found");
       }
-      // Create a payment method and handle the result
-      const { paymentMethod, error } = await stripe.createPaymentMethod({
-        //customerID: json.customerID,
-        type: "card",
-        card: cardElement,
-      });
+      const { paymentMethod: stripePaymentMethod, error } =
+        await stripe.createPaymentMethod({
+          type: "card",
+          card: cardElement,
+        });
       if (error) {
         throw new Error(error.message);
       }
-
       if (
-        paymentMethod.id &&
-        paymentMethod.card?.brand &&
-        paymentMethod.card?.last4
+        stripePaymentMethod.id &&
+        stripePaymentMethod.card?.brand &&
+        stripePaymentMethod.card?.last4
       ) {
         setPaymentMethod({
-          id: paymentMethod.id,
-          brand: paymentMethod.card?.brand
-            ? paymentMethod.card.brand
-            : "Unknown",
-          last_four: paymentMethod.card?.last4,
+          id: stripePaymentMethod.id,
+          brand: stripePaymentMethod.card.brand || "Unknown",
+          last_four: stripePaymentMethod.card.last4,
         });
         const setPaymentResults = await fetch("/billing/customer", {
           credentials: "include",
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            customer_id: userDetails?.customer_id,
-            payment_method_id: paymentMethod.id,
+            customer_id: userDetails.customer_id,
+            payment_method_id: stripePaymentMethod.id,
           }),
         });
         if (!setPaymentResults.ok) {
           throw new Error(
-            "Fetch problem update customer " + setPaymentResults.status
+            `Error updating customer payment details: ${setPaymentResults.statusText}`
           );
         }
       }
-    } catch (error: unknown) {
-      setSubscribeError((error as Error).message);
+    } catch (error: any) {
+      console.error(error);
+      setSubscribeError(
+        "There was an error updating your payment method. Please try again later."
+      );
     } finally {
       hideLoader();
     }
@@ -125,13 +118,10 @@ export const SubscribePanel = () => {
       const response = await fetch("/billing/customer", {
         credentials: "include",
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
       });
-
       if (!response.ok) {
-        throw new Error("Fetch problem create customer " + response.status);
+        throw new Error(`Error creating customer: ${response.statusText}`);
       }
       const json = await response.json();
       if (json && json.id) {
@@ -143,27 +133,25 @@ export const SubscribePanel = () => {
             setPaymentMethod(defaultPayment[0]);
           }
         }
-        if (userDetails) setUserDetails({ ...userDetails, user_id: json.id });
+        if (userDetails) setUserDetails({ ...userDetails, customer_id: json.id });
       }
     } catch (error) {
-      handleClose();
-      console.error("ERROR", error);
+      setSubscribeError(
+        "There was an error registering you with our payment service. Please try again later."
+      );
+      console.error(error);
     } finally {
       hideLoader();
     }
-  }, [setPaymentMethod, handleClose]);
+  }, [setPaymentMethod, handleClose, userDetails, setUserDetails, showLoader, hideLoader]);
 
   const subscribe = async () => {
-    if (!paymentMethod || !product) {
-      return;
-    }
+    if (!paymentMethod || !product) return;
     try {
       const response = await fetch("/billing/subscribe", {
         credentials: "include",
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           payment_method_id: paymentMethod.id,
           customer_id: userDetails?.customer_id,
@@ -171,10 +159,9 @@ export const SubscribePanel = () => {
         }),
       });
       if (!response.ok) {
-        throw new Error("Fetch problem create subscription " + response.status);
+        throw new Error(`Error subscribing: ${response.statusText}`);
       }
       const json = await response.json();
-
       setAlertState({
         title: "Welcome",
         message:
@@ -188,7 +175,9 @@ export const SubscribePanel = () => {
       handleClose();
     } catch (error) {
       console.error(error);
-      handleClose();
+      setSubscribeError(
+        "There was an error creating your subscription. Please try again later."
+      );
     }
   };
 
@@ -204,27 +193,27 @@ export const SubscribePanel = () => {
       const data = await response.json();
       setProduct(data[0]);
     } catch (error) {
-      console.error("ERR GETTING PRODUCTS", error);
+      setSubscribeError(
+        "We are unable to process subscriptions at this time. Please try again later."
+      );
+      console.error(error);
     } finally {
       hideLoader();
     }
   };
 
   useEffect(() => {
-    if (userDetails) {
+    if (userDetails && !hasFetchedStripeInfo.current) {
       const fetchStripeInfo = async () => {
         if (!userDetails.customer_id.length) {
           await createStripeCustomer();
         }
         getProducts();
+        hasFetchedStripeInfo.current = true;
       };
       fetchStripeInfo();
     }
-  }, [
-    userDetails,
-    paymentMethod,
-    createStripeCustomer,
-  ]);
+  }, [userDetails, createStripeCustomer]);
 
   const handleCardElementChange = (e: StripeCardElementChangeEvent) => {
     if (e.error) {
@@ -239,57 +228,68 @@ export const SubscribePanel = () => {
     setPaymentMethod(null);
     confirmCard();
   };
-
   return (
-    <Dialog
-      open={true}
-      maxWidth={"md"}
-      fullWidth={true}
-      onClose={handleClose}
-      className={styles.subscribe}
+    <Box
+      className={styles.subscribePanel}
     >
+      <IconButton
+        onClick={handleClose}
+        sx={{
+          position: "absolute",
+          top: 8,
+          right: 8,
+        }}
+        aria-label="close"
+      >
+        <CloseIcon />
+      </IconButton>
+
       {product ? (
-        <div>
-          <DialogTitle>{product.name}</DialogTitle>
-          <DialogContent>
-            <div className={styles.productDescription}>
-              {product.description}
-            </div>
-            {!paymentMethod ? (
+        <Box>
+          <Typography variant="h5" sx={{ mb: 2 }}>
+            {product.name}
+          </Typography>
+          <Typography variant="h6" className={styles.productDescription}>
+            {product.description}
+          </Typography>
+          {!paymentMethod ? (
+            <Box sx={{ mt: 2, mb: 2 }}>
               <CardElement
                 className={styles.stripeCardInput}
-                onChange={(e) => handleCardElementChange(e)}
+                onChange={handleCardElementChange}
               />
-            ) : (
-              <DialogContentText>
-                <span>{product.description}</span>
-                <br />
-                <span>
-                  Subscribe with{" "}
-                  {paymentMethod.brand.toUpperCase() +
-                    " ending in " +
-                    paymentMethod.last_four}
-                </span>
-                <span className={styles.changePaymentButton}>
-                  <Button onClick={updatePaymentMethod}>change</Button>
-                </span>
-              </DialogContentText>
-            )}
-            {subscribeError && <div>{subscribeError}</div>}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleClose}>Cancel</Button>
-            <Button onClick={subscribe}>Subscribe</Button>
-          </DialogActions>
-        </div>
+            </Box>
+          ) : (
+            <Box sx={{ mt: 2, mb: 2 }}>
+              <Typography variant="body2">
+                Subscribe with {paymentMethod.brand.toUpperCase()} ending in{" "}
+                {paymentMethod.last_four}
+              </Typography>
+              <Button onClick={updatePaymentMethod} variant="outlined" sx={{ mt: 1 }}>
+                Change Payment Method
+              </Button>
+            </Box>
+          )}
+          {subscribeError && (
+            <Typography variant="body2" className={styles.error}>
+              {subscribeError}
+            </Typography>
+          )}
+          <Box sx={{ display: "flex", justifyContent: "flex-end", marginTop: 2 }}>
+            <Button onClick={subscribe}>Update</Button>
+          </Box>
+        </Box>
       ) : (
-        <div>
-          <h2>
-            Unable to process subscriptions at this time. Please try again
-            later.
-          </h2>
-        </div>
-      )}
-    </Dialog>
+        <Box sx={{ p: 2 }}>
+          <Typography variant="h6" align="center">
+            {subscribeError}
+          </Typography>
+        </Box>
+      )
+      }
+    </Box >
+
   );
 };
+
+export default SubscribePanel;

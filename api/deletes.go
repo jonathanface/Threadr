@@ -1,6 +1,7 @@
 package api
 
 import (
+	ctxkey "RichDocter/ctxkeys"
 	"RichDocter/daos"
 	"RichDocter/models"
 	"encoding/json"
@@ -33,7 +34,7 @@ func DeleteBlocksFromStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
@@ -81,7 +82,7 @@ func DeleteAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
@@ -126,7 +127,7 @@ func DeleteChaptersEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
@@ -171,7 +172,7 @@ func DeleteStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
@@ -213,7 +214,7 @@ func DeleteSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}

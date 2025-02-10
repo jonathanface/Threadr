@@ -1,6 +1,7 @@
 package api
 
 import (
+	ctxkey "RichDocter/ctxkeys"
 	"RichDocter/daos"
 	"RichDocter/models"
 	"bytes"
@@ -56,7 +57,7 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing analysis type")
 		return
 	}
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
@@ -186,7 +187,7 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing story ID")
 		return
 	}
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
@@ -250,7 +251,7 @@ func CreateAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 			associations[idx].ID = uuid.New().String()
 		}
 	}
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
@@ -341,7 +342,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}

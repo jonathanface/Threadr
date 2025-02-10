@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Box, FormControlLabel, FormGroup, IconButton, Switch, Typography } from "@mui/material";
+import { Box, Button, FormControlLabel, FormGroup, IconButton, Switch, Typography } from "@mui/material";
 import { useLoader } from "../../hooks/useLoader";
 import { AlertLink, AlertToastType } from "../../types/AlertToasts";
 import { useToaster } from "../../hooks/useToaster";
@@ -21,15 +21,13 @@ export const ConfigPanel = () => {
 
 
   const subscribe = () => {
-    // Replace this with your subscription form handling logic if needed.
-    console.log("Subscribe function called");
+    navigate('/subscribe');
   };
 
   const handleClose = () => {
-    navigate("/")
+    navigate("/stories")
   }
 
-  // Function to toggle auto-renewal on the user's subscription.
   const toggleSubscriptionRenewal = async () => {
     if (!userDetails) return;
     try {
@@ -43,10 +41,12 @@ export const ConfigPanel = () => {
         body: JSON.stringify({ renewing: !userDetails.renewing }),
       });
       if (!response.ok) {
-        const errorData = await response.json();
-        const error = new Error(JSON.stringify(errorData));
-        error.message = response.statusText;
-        throw error;
+        if (response.status === 303) {
+          console.error(response.statusText);
+          navigate('/subscribe');
+          return;
+        }
+        throw new Error(response.statusText);
       }
       const json: UserDetails = await response.json();
       setUserDetails({ ...json });
@@ -72,6 +72,7 @@ export const ConfigPanel = () => {
 
   useEffect(() => {
     if (!userDetails) return;
+    console.log("wtf", userDetails);
     setIsCustomer(userDetails.customer_id.length ? true : false);
 
     if (!userDetails.customer_id.length || !userDetails.subscription_id.length) {
@@ -101,17 +102,25 @@ export const ConfigPanel = () => {
       </Typography>
       <Box component="form">
         <FormGroup>
-          <FormControlLabel
-            control={
-              <Switch
-                onChange={() =>
-                  !isCustomer ? subscribe() : toggleSubscriptionRenewal()
-                }
-                checked={isRenewing}
-              />
-            }
-            label={toggleLabel}
-          />
+          {!isCustomer ? (
+            // When the user is not a customer, show the Signup button with an explanatory blurb.
+            <Box display="flex" alignItems="center">
+              <Button onClick={subscribe} variant="contained">
+                Subscribe
+              </Button>
+              <Typography variant="body2" sx={{ ml: 2 }}>
+                Subscribe and gain access to premium features.
+              </Typography>
+            </Box>
+          ) : (
+            // When the user is a customer, show the switch for auto-renewal.
+            <FormControlLabel
+              control={
+                <Switch onChange={toggleSubscriptionRenewal} checked={isRenewing} />
+              }
+              label={toggleLabel}
+            />
+          )}
         </FormGroup>
       </Box>
     </Box>

@@ -1,6 +1,7 @@
 package api
 
 import (
+	ctxkey "RichDocter/ctxkeys"
 	"RichDocter/daos"
 	"RichDocter/models"
 	"RichDocter/sessions"
@@ -37,7 +38,7 @@ func ChapterDetailsEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing chapter id")
 		return
 	}
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
@@ -75,7 +76,7 @@ func StoryBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing chapter ID")
 		return
 	}
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
@@ -128,7 +129,7 @@ func FullStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing story id")
 		return
 	}
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
@@ -187,7 +188,7 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
@@ -231,7 +232,7 @@ func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
@@ -288,7 +289,7 @@ func AssociationDetailsEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing association id")
 		return
 	}
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
@@ -329,7 +330,7 @@ func AllAssociationThumbnailsByStoryEndPoint(w http.ResponseWriter, r *http.Requ
 		RespondWithError(w, http.StatusBadRequest, "Missing story id")
 		return
 	}
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
@@ -366,7 +367,7 @@ func SingleSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
@@ -406,7 +407,7 @@ func AllSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
@@ -452,7 +453,7 @@ func AllSeriesVolumesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing series name")
 		return
 	}
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
@@ -502,14 +503,13 @@ func GetUserData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var wasSuspended, ok bool
-	if wasSuspended, ok = r.Context().Value("isSuspended").(bool); !ok {
-		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve suspension notifier from context")
-		return
+	if wasSuspended, ok = r.Context().Value(ctxkey.IsSuspended).(bool); !ok {
+		wasSuspended = false
 	}
 	user.Expired = wasSuspended
 	var dao daos.DaoInterface
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
-		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
+		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve daokey from context")
 		return
 	}
 	details, err := dao.GetUserDetails(user.Email)

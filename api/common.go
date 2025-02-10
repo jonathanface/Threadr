@@ -49,17 +49,17 @@ func getUserEmail(r *http.Request) (string, error) {
 	return user.Email, nil
 }
 
-func checkUserAdminStatus(r *http.Request) (string, error) {
-	token, err := sessions.Get(r, "token")
-	if err != nil || token.IsNew {
-		return "", errors.New("unable to retrieve token")
-	}
-	user := models.UserInfo{}
-	if err = json.Unmarshal(token.Values["token_data"].([]byte), &user); err != nil {
-		return "", err
-	}
-	return user.Email, nil
-}
+// func checkUserAdminStatus(r *http.Request) (string, error) {
+// 	token, err := sessions.Get(r, "token")
+// 	if err != nil || token.IsNew {
+// 		return "", errors.New("unable to retrieve token")
+// 	}
+// 	user := models.UserInfo{}
+// 	if err = json.Unmarshal(token.Values["token_data"].([]byte), &user); err != nil {
+// 		return "", err
+// 	}
+// 	return user.Email, nil
+// }
 
 func RespondWithError(w http.ResponseWriter, code int, msg string) {
 	RespondWithJson(w, code, map[string]string{"error": msg})

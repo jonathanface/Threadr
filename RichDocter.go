@@ -4,6 +4,7 @@ import (
 	"RichDocter/api"
 	"RichDocter/auth"
 	"RichDocter/billing"
+	ctxkey "RichDocter/ctxkeys"
 	"RichDocter/daos"
 	"RichDocter/models"
 	"RichDocter/sessions"
@@ -23,16 +24,12 @@ import (
 	"github.com/joho/godotenv"
 )
 
-type contextKey string
-
 const (
 	staticFilesDir = "static/rd-ui/dist"
 	servicePath    = "/api"
 	billingPath    = "/billing"
 	authPath       = "/auth"
 )
-const daoKey contextKey = "dao"
-const isSuspendedKey contextKey = "isSuspended"
 
 var dao *daos.DAO
 
@@ -44,7 +41,7 @@ func looseMiddleware(next http.Handler) http.Handler {
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(time.Second*5))
 		defer cancel()
-		ctx = context.WithValue(ctx, daoKey, dao)
+		ctx = context.WithValue(ctx, ctxkey.DAO, dao)
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})
@@ -68,7 +65,7 @@ func billingMiddleware(next http.Handler) http.Handler {
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(time.Second*5))
 		defer cancel()
-		ctx = context.WithValue(ctx, daoKey, dao)
+		ctx = context.WithValue(ctx, ctxkey.DAO, dao)
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})
@@ -200,8 +197,8 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 		// 15 sec timeout
 		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(time.Second*5))
 		defer cancel()
-		ctx = context.WithValue(ctx, daoKey, dao)
-		ctx = context.WithValue(ctx, isSuspendedKey, user.Expired)
+		ctx = context.WithValue(ctx, ctxkey.DAO, dao)
+		ctx = context.WithValue(ctx, ctxkey.IsSuspended, user.Expired)
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})

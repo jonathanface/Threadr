@@ -2,6 +2,7 @@ package auth
 
 import (
 	"RichDocter/api"
+	ctxkey "RichDocter/ctxkeys"
 	"RichDocter/daos"
 	"RichDocter/models"
 	"RichDocter/sessions"
@@ -86,7 +87,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		ok          bool
 		fullDetails *models.UserInfo
 	)
-	if dao, ok = r.Context().Value("dao").(daos.DaoInterface); !ok {
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		api.RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}

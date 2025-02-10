@@ -1,11 +1,32 @@
-.subscribe .changePaymentButton {
-  margin-left: 10px;
+.subscribePanel {
+  padding: 3rem;
+  max-width: 500px;
+  margin: 3rem auto;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 2px 2px 2px #1a1a1a;
+  text-align: center;
+  color: #ddd;
+  position: relative;
 }
-.subscribe .productDescription {
-  margin-bottom: 20px;
-}
-.subscribe .stripeCardInput {
+
+.subscribePanel .stripeCardInput {
   padding: 10px;
   border: 1px solid gray;
-  border-radius: 15px;
+  border-radius: 10px;
+  background-color: #ddd;
+  color: #ddd;
+  box-shadow: 2px 2px 2px #1a1a1a;
+}
+
+.subscribePanel button {
+  color: #fff;
+}
+
+.subscribePanel button:hover {
+  color: #ddd;
+}
+
+.subscribePanel .error {
+  color: #481818;
 }

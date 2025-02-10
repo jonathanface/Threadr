@@ -117,7 +117,7 @@ export const CreateEditStorySlideshow = () => {
     }, [storyID, showLoader, hideLoader, setAlertState]);
 
     const isStepOptional = (step: number) => {
-        return step === 1 || step === 2;
+        return step === 1 || step === 4;
     };
 
     const isStepSkipped = (step: number) => {
