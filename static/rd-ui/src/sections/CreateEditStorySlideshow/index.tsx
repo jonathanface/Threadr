@@ -1,5 +1,5 @@
 import { Box, Button, createTheme, IconButton, Step, StepLabel, Stepper, ThemeProvider, Typography } from "@mui/material";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import styles from './createeditstoryslideshow.module.css'
 import { TitleStep } from "./TitleStep";
 import { ImageStep } from "./ImageStep";
@@ -68,7 +68,7 @@ export const CreateEditStorySlideshow = () => {
         })
     };
 
-    const showInsufficientSubscriptionWarning = () => {
+    const showInsufficientSubscriptionWarning = useCallback(() => {
         setAlertState({
             title: "Insufficient subscription",
             severity: AlertToastType.warning,
@@ -79,7 +79,12 @@ export const CreateEditStorySlideshow = () => {
                 text: "subscribe",
             }
         });
-    }
+    }, [setAlertState]);
+
+    const handleClose = useCallback(() => {
+        handleReset();
+        navigate('/stories');
+    }, [navigate]);
 
     useEffect(() => {
         if (!seriesList && !storiesList) return;
@@ -92,7 +97,7 @@ export const CreateEditStorySlideshow = () => {
                 return;
             }
         }
-    }, [seriesList, storiesList, userDetails])
+    }, [seriesList, storiesList, userDetails, showInsufficientSubscriptionWarning, handleClose])
 
 
 
@@ -172,7 +177,7 @@ export const CreateEditStorySlideshow = () => {
         return formData;
     }
 
-    const editStory = async () => {
+    const editStory = useCallback(async () => {
         if (!storyBuild.title || !storyBuild.title.trim().length) {
             setWarning("You have to specify a title.");
             return;
@@ -251,8 +256,7 @@ export const CreateEditStorySlideshow = () => {
         } finally {
             hideLoader();
         }
-
-    }
+    }, [hideLoader, navigate, propagateSeriesUpdates, propagateStoryUpdates, seriesList, setAlertState, setSeriesList, showLoader, storyBuild, storyID]);
 
     const saveNewStory = async () => {
         if (!storyBuild.title || !storyBuild.title.trim().length) {
@@ -368,11 +372,6 @@ export const CreateEditStorySlideshow = () => {
         setActiveStep((prevActiveStep) => prevActiveStep + 1);
         setSkipped(newSkipped);
     };
-
-    const handleClose = () => {
-        handleReset();
-        navigate('/stories');
-    }
 
     const handleBack = () => {
         switch (activeStep) {

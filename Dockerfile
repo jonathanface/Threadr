@@ -1,12 +1,13 @@
 FROM node:19-bullseye AS frontend-builder
 ARG VITE_STRIPE_KEY
+ARG VITE_MODE
 WORKDIR /app
 COPY ./static/rd-ui/package*.json ./
 RUN npm install
 COPY ./static/rd-ui/src ./src
 COPY ./static/rd-ui/public ./public
 COPY ./static/rd-ui/tsconfig.json ./
-COPY ./static/rd-ui/webpack.config.js ./
+COPY ./static/rd-ui/vite.config.ts ./
 RUN npm run build
 
 FROM golang:1.21.2 AS backend-builder

@@ -1,5 +1,5 @@
 // src/hooks/useToaster.ts
-import { useEffect, useCallback, useContext } from "react";
+import { useCallback, useContext } from "react";
 import { AlertCommandType } from "../types/AlertToasts";
 import { AlertContext } from "../contexts/alert";
 import { useNavigate } from "react-router-dom";
@@ -12,11 +12,6 @@ export const useToaster = () => {
   const { alertState, clearAlert, setAlertState } = context;
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Handle side-effects related to alertState changes here
-    // For example, automatically clear alerts after a timeout
-  }, [alertState]);
-
   const handleFunc = useCallback(() => {
     if (alertState?.callback) {
       switch (alertState.callback.type) {
@@ -27,7 +22,7 @@ export const useToaster = () => {
           break;
       }
     }
-  }, [alertState]);
+  }, [alertState, navigate]);
 
   return { alertState, clearAlert, handleFunc, setAlertState };
 };

@@ -46,7 +46,7 @@ export const Docter = memo(() => {
         callback: subscribeFunc,
       });
     }
-  }, [userDetails]);
+  }, [userDetails, setAlertState]);
 
   if (userLoading) {
     return <div />;

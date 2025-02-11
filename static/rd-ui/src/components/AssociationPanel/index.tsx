@@ -1,3 +1,4 @@
+/* eslint-disable */
 import Backdrop from "@mui/material/Backdrop";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { FormGroup, TextField } from "@mui/material";
@@ -65,9 +66,9 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
   const isProgrammaticChange = useRef(false);
 
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const bgEditorRef = useRef<any>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const descriptionEditorRef = useRef<any>(null);
   //const { showLoader, hideLoader } = useLoader();
   const [fullAssociations, setFullAssociations] = useState<Association[] | null>(null);

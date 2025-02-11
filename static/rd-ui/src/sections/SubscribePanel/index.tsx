@@ -107,7 +107,7 @@ export const SubscribePanel = () => {
         setSubtitle("")
 
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       setSubscribeError(
         "There was an error updating your payment method. Please try again later."
@@ -148,7 +148,7 @@ export const SubscribePanel = () => {
     } finally {
       hideLoader();
     }
-  }, [setPaymentMethod, handleClose, userDetails, setUserDetails, showLoader, hideLoader]);
+  }, [setPaymentMethod, userDetails, setUserDetails, showLoader, hideLoader]);
 
   const subscribe = async () => {
     if (!paymentMethod || !product) return;
@@ -197,7 +197,7 @@ export const SubscribePanel = () => {
     }
   };
 
-  const getProducts = async () => {
+  const getProducts = useCallback(async () => {
     try {
       showLoader();
       const response = await fetch("/billing/products", {
@@ -217,7 +217,7 @@ export const SubscribePanel = () => {
     } finally {
       hideLoader();
     }
-  };
+  }, [showLoader, hideLoader]);
 
   useEffect(() => {
     if (userDetails && !hasFetchedStripeInfo.current) {
@@ -230,7 +230,7 @@ export const SubscribePanel = () => {
       };
       fetchStripeInfo();
     }
-  }, [userDetails, createStripeCustomer]);
+  }, [userDetails, createStripeCustomer, getProducts]);
 
   const handleCardElementChange = (e: StripeCardElementChangeEvent) => {
     if (e.error) {
