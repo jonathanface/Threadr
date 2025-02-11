@@ -13,7 +13,7 @@ RichDocter
 richdocter.zip
 richdocter
 dist
-
+vite.config.js
 coverage/
 
 # Test binary, build with `go test -c`
