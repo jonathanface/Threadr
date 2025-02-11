@@ -5,6 +5,7 @@ WORKDIR /app
 COPY ./static/rd-ui/package*.json ./
 RUN npm install
 COPY ./static/rd-ui/src ./src
+COPY ./static/rd-ui/index.html ./
 COPY ./static/rd-ui/public ./public
 COPY ./static/rd-ui/tsconfig.json ./
 COPY ./static/rd-ui/tsconfig.app.json ./
