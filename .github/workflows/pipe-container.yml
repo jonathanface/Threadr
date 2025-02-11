@@ -81,6 +81,7 @@ jobs:
       ECS_CLUSTER: ${{ github.ref == 'refs/heads/production' && secrets.AWS_ECS_CLUSTER || secrets.AWS_ECS_CLUSTER_STAGING }}
       ECS_TASK_DEFINITION: ${{ github.ref == 'refs/heads/production' && '.aws/aws_ecs_task.json' || '.aws/aws_ecs_task_staging.json' }}
       CONTAINER_NAME: ${{ github.ref == 'refs/heads/production' && 'rd-prod' || 'rd-staging' }}
+      IMAGE: ${{ needs.build.outputs.IMAGE }}
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -92,6 +93,10 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Debug IMAGE variable
+        run: echo "IMAGE ${IMAGE}"
+
 
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
