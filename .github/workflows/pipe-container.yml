@@ -70,7 +70,7 @@ jobs:
             --build-arg MODE=${{ env.MODE }} \
             --build-arg OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
-          echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" >> $GITHUB_ENV
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" >> $GITHUB_OUTPUT
 
   deploy:
     name: Deploy
@@ -81,7 +81,8 @@ jobs:
       ECS_CLUSTER: ${{ github.ref == 'refs/heads/production' && secrets.AWS_ECS_CLUSTER || secrets.AWS_ECS_CLUSTER_STAGING }}
       ECS_TASK_DEFINITION: ${{ github.ref == 'refs/heads/production' && '.aws/aws_ecs_task.json' || '.aws/aws_ecs_task_staging.json' }}
       CONTAINER_NAME: ${{ github.ref == 'refs/heads/production' && 'rd-prod' || 'rd-staging' }}
-      IMAGE: ${{ needs.build.outputs.IMAGE }}
+      IMAGE: ${{ needs.build.outputs.image }}
+  
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -95,8 +96,9 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Debug IMAGE variable
-        run: echo "IMAGE ${IMAGE}"
-
+        run: |
+          echo "IMAGE: $IMAGE"  # Print the IMAGE environment variable
+          echo "IMAGE (as env.IMAGE): ${{ env.IMAGE }}"
 
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
