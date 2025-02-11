@@ -1,5 +1,5 @@
 FROM node:19-bullseye AS frontend-builder
-ARG REACT_APP_STRIPE_KEY
+ARG VITE_STRIPE_KEY
 WORKDIR /app
 COPY ./static/rd-ui/package*.json ./
 RUN npm install
@@ -13,15 +13,15 @@ FROM golang:1.21.2 AS backend-builder
 # Install wkhtmltox dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        fontconfig \
-        libjpeg62-turbo \
-        libx11-6 \
-        libxcb1 \
-        libxext6 \
-        libxrender1 \
-        xfonts-75dpi \
-        xfonts-base \
-        pandoc \
+    fontconfig \
+    libjpeg62-turbo \
+    libx11-6 \
+    libxcb1 \
+    libxext6 \
+    libxrender1 \
+    xfonts-75dpi \
+    xfonts-base \
+    pandoc \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -72,6 +72,8 @@ ARG STRIPE_KEY
 ENV STRIPE_KEY=$STRIPE_KEY
 ARG STRIPE_SECRET
 ENV STRIPE_SECRET=$STRIPE_SECRET
+ARG MODE
+ENV MODE=$MODE
 ARG OPENAI_API_KEY
 ENV OPENAI_API_KEY=$OPENAI_API_KEY
 

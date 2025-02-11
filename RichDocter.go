@@ -219,7 +219,6 @@ func main() {
 
 	rtr := mux.NewRouter()
 	rtr.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("health ok")
 		w.WriteHeader(http.StatusOK)
 	}).Methods("GET", "OPTIONS")
 
