@@ -52,7 +52,7 @@ export const SeriesStep = (props: SeriesSelectionProps) => {
                     }}
 
                     value={seriesTitle}
-                    onInputChange={(event: React.SyntheticEvent, value: string) => {
+                    onInputChange={(_event: React.SyntheticEvent, value: string) => {
                         // Find a matching series if it exists.
                         const foundSeries = seriesList?.find(
                             (srs: Series) => srs.series_title.toLowerCase() === value.toLowerCase()
@@ -60,7 +60,7 @@ export const SeriesStep = (props: SeriesSelectionProps) => {
                         handleSeriesChange(value, foundSeries);
                     }}
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    onChange={(event: React.SyntheticEvent, value: any) => {
+                    onChange={(_event: React.SyntheticEvent, value: any) => {
                         if (value && value.id && value.label) {
                             props.onSeriesChange(value.label, value.id);
                         }

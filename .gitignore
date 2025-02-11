@@ -5,7 +5,7 @@ richdocter
 *.so
 *.dylib
 .env
-
+.tmp
 config.json
 bundle.js
 application

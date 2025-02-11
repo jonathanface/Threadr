@@ -55,7 +55,7 @@ export const SettingsMenu = () => {
                     sx={{ width: 250 }}
                     role="presentation"
                     component="section">
-                    <ChapterItems chapters={story.chapters} closeFn={() => { setIsEditorMenuOpen(false) }} />
+                    <ChapterItems chapters={story.chapters} />
                 </Box>
             </Drawer>
         </div>
