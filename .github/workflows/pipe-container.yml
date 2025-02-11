@@ -70,7 +70,7 @@ jobs:
             --build-arg MODE=${{ env.MODE }} \
             --build-arg OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" >> $GITHUB_ENV
+          echo "IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" >> $GITHUB_ENV
 
   deploy:
     name: Deploy
@@ -80,8 +80,7 @@ jobs:
       ECS_SERVICE: ${{ github.ref == 'refs/heads/production' && secrets.AWS_ECS_SERVICE || secrets.AWS_ECS_SERVICE_STAGING }}
       ECS_CLUSTER: ${{ github.ref == 'refs/heads/production' && secrets.AWS_ECS_CLUSTER || secrets.AWS_ECS_CLUSTER_STAGING }}
       ECS_TASK_DEFINITION: ${{ github.ref == 'refs/heads/production' && '.aws/aws_ecs_task.json' || '.aws/aws_ecs_task_staging.json' }}
-      CONTAINER_NAME: ${{ github.ref == 'refs/heads/production' && 'rd-prod' || 'rd-staging'}}
-      IMAGE: ${{ needs.build.outputs.image }}
+      CONTAINER_NAME: ${{ github.ref == 'refs/heads/production' && 'rd-prod' || 'rd-staging' }}
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -100,7 +99,7 @@ jobs:
         with:
           task-definition: ${{ env.ECS_TASK_DEFINITION }}
           container-name: ${{ env.CONTAINER_NAME }}
-          image: ${{ env.IMAGE }} 
+          image: ${{ env.IMAGE }}  # Directly use env.IMAGE here
 
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
@@ -109,4 +108,3 @@ jobs:
           service: ${{ env.ECS_SERVICE }}
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
-
