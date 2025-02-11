@@ -87,6 +87,7 @@ COPY ./go.mod ./go.mod
 COPY ./go.sum ./go.sum
 COPY ./api ./api
 COPY ./converters ./converters
+COPY ./ctxkeys ./ctxkeys
 COPY ./models ./models
 COPY ./auth ./auth
 COPY ./billing ./billing
