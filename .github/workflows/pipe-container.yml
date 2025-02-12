@@ -16,12 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ECS_SERVICE: ${{ github.ref == 'refs/heads/production' && secrets.AWS_ECS_SERVICE || secrets.AWS_ECS_SERVICE_STAGING }}
-      ECS_CLUSTER: ${{ github.ref == 'refs/heads/production' && secrets.AWS_ECS_CLUSTER || secrets.AWS_ECS_CLUSTER_STAGING }}
-      ECS_TASK_DEFINITION: ${{ github.ref == 'refs/heads/production' && '.aws/aws_ecs_task.json' || '.aws/aws_ecs_task_staging.json' }}
       STRIPE_KEY: ${{ github.ref == 'refs/heads/production' && secrets.STRIPE_KEY || secrets.STRIPE_KEY_STAGING }}
       STRIPE_SECRET: ${{ github.ref == 'refs/heads/production' && secrets.STRIPE_SECRET || secrets.STRIPE_SECRET_STAGING }}
       MODE: ${{ github.ref_name }}
-      CONTAINER_NAME: ${{ github.ref == 'refs/heads/production' && 'rd-prod' || 'rd-staging' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
