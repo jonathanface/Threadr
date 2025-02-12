@@ -108,7 +108,8 @@ jobs:
           name: image
 
       - name: Extract image name
-        run: echo "IMAGE=$(cat image.txt)" >> $GITHUB_ENV 
+        run: echo "IMAGE=$(cat image.txt)" >> $GITHUB_ENV \
+             echo "wtf $IMAGE"
 
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
