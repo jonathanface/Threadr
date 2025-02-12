@@ -11,6 +11,14 @@ env:
   ECR_REPOSITORY: richdocter
 
 jobs:
+  check_branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check branch
+        if: github.base_ref == 'production' && github.head_ref != 'staging'
+        run: |
+          echo "ERROR: You can only merge to production from staging."
+          exit 1
   build:
     name: Build
     runs-on: ubuntu-latest
