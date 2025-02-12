@@ -14,8 +14,6 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    outputs:
-      image: ${{ steps.build-image.outputs.image }}
     env:
       ECS_SERVICE: ${{ github.ref == 'refs/heads/production' && secrets.AWS_ECS_SERVICE || secrets.AWS_ECS_SERVICE_STAGING }}
       ECS_CLUSTER: ${{ github.ref == 'refs/heads/production' && secrets.AWS_ECS_CLUSTER || secrets.AWS_ECS_CLUSTER_STAGING }}
@@ -34,7 +32,6 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-          mask-aws-account-id: 'false'
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -71,8 +68,17 @@ jobs:
             --build-arg MODE=${{ env.MODE }} \
             --build-arg OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+        
+      - name: Save image info to file
+        run: |
           IMAGE_BASE64=$(echo -n "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" | base64 -w 0)
-          echo "image=$IMAGE_BASE64" >> $GITHUB_OUTPUT  # Set image output as base64-encoded
+          echo "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" > image.txt
+  
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: image
+          path: image.txt
 
   deploy:
     name: Deploy
@@ -91,17 +97,18 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-          mask-aws-account-id: 'false'
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Decode IMAGE from base64
-        run: |
-          # Decode the base64 image tag
-          IMAGE_DECODED=$(echo "${{ needs.build.outputs.image }}" | base64 --decode)
-          echo "Decoded image: $IMAGE_DECODED"  # Print the decoded image
+      - name: Download image artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: image
+
+      - name: Extract image name
+        run: echo "IMAGE=$(cat image.txt)" >> $GITHUB_ENV 
 
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
@@ -109,7 +116,7 @@ jobs:
         with:
           task-definition: ${{ env.ECS_TASK_DEFINITION }}
           container-name: ${{ env.CONTAINER_NAME }}
-          image: ${{ needs.build.outputs.image }}
+          image: ${{env.IMAGE }}
 
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
