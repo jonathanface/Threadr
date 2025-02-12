@@ -12,7 +12,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/joho/godotenv"
-	"github.com/stretchr/testify/mock"
 )
 
 const (
@@ -46,6 +45,67 @@ type dynamoDBClient interface {
 	RestoreTableFromBackup(context.Context, *dynamodb.RestoreTableFromBackupInput, ...func(*dynamodb.Options)) (*dynamodb.RestoreTableFromBackupOutput, error)
 }
 
+type dynamoClient struct {
+	// The real AWS DynamoDB client
+	client *dynamodb.Client
+}
+
+func (d *dynamoClient) DeleteItem(ctx context.Context, input *dynamodb.DeleteItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DeleteItemOutput, error) {
+	return d.client.DeleteItem(ctx, input, optFns...)
+}
+
+func (d *dynamoClient) DescribeTable(ctx context.Context, input *dynamodb.DescribeTableInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DescribeTableOutput, error) {
+	return d.client.DescribeTable(ctx, input, optFns...)
+}
+
+func (d *dynamoClient) CreateTable(ctx context.Context, input *dynamodb.CreateTableInput, optFns ...func(*dynamodb.Options)) (*dynamodb.CreateTableOutput, error) {
+	return d.client.CreateTable(ctx, input, optFns...)
+}
+
+func (d *dynamoClient) CreateBackup(ctx context.Context, input *dynamodb.CreateBackupInput, optFns ...func(*dynamodb.Options)) (*dynamodb.CreateBackupOutput, error) {
+	return d.client.CreateBackup(ctx, input, optFns...)
+}
+
+func (d *dynamoClient) PutItem(ctx context.Context, input *dynamodb.PutItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error) {
+	return d.client.PutItem(ctx, input, optFns...)
+}
+
+func (d *dynamoClient) Query(ctx context.Context, input *dynamodb.QueryInput, optFns ...func(*dynamodb.Options)) (*dynamodb.QueryOutput, error) {
+	return d.client.Query(ctx, input, optFns...)
+}
+
+func (d *dynamoClient) Scan(ctx context.Context, input *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+	return d.client.Scan(ctx, input, optFns...)
+}
+
+func (d *dynamoClient) UpdateItem(ctx context.Context, input *dynamodb.UpdateItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.UpdateItemOutput, error) {
+	return d.client.UpdateItem(ctx, input, optFns...)
+}
+
+func (d *dynamoClient) DescribeBackup(ctx context.Context, input *dynamodb.DescribeBackupInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DescribeBackupOutput, error) {
+	return d.client.DescribeBackup(ctx, input, optFns...)
+}
+
+func (d *dynamoClient) TransactWriteItems(ctx context.Context, input *dynamodb.TransactWriteItemsInput, optFns ...func(*dynamodb.Options)) (*dynamodb.TransactWriteItemsOutput, error) {
+	return d.client.TransactWriteItems(ctx, input, optFns...)
+}
+
+func (d *dynamoClient) DeleteTable(ctx context.Context, input *dynamodb.DeleteTableInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DeleteTableOutput, error) {
+	return d.client.DeleteTable(ctx, input, optFns...)
+}
+
+func (d *dynamoClient) UpdateContinuousBackups(ctx context.Context, input *dynamodb.UpdateContinuousBackupsInput, optFns ...func(*dynamodb.Options)) (*dynamodb.UpdateContinuousBackupsOutput, error) {
+	return d.client.UpdateContinuousBackups(ctx, input, optFns...)
+}
+
+func (d *dynamoClient) RestoreTableFromBackup(ctx context.Context, input *dynamodb.RestoreTableFromBackupInput, optFns ...func(*dynamodb.Options)) (*dynamodb.RestoreTableFromBackupOutput, error) {
+	return d.client.RestoreTableFromBackup(ctx, input, optFns...)
+}
+
+func NewDynamoClient(client *dynamodb.Client) *dynamoClient {
+	return &dynamoClient{client: client}
+}
+
 type DAO struct {
 	DynamoClient   dynamoDBClient
 	s3Client       *s3.Client
@@ -54,85 +114,7 @@ type DAO struct {
 	writeBatchSize int
 }
 
-type MockDynamoDBClient struct {
-	mock.Mock
-}
-
-func (m *MockDynamoDBClient) DeleteItem(ctx context.Context, input *dynamodb.DeleteItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DeleteItemOutput, error) {
-	args := m.Called(ctx, input, optFns)
-	return args.Get(0).(*dynamodb.DeleteItemOutput), args.Error(1)
-}
-
-func (m *MockDynamoDBClient) DescribeTable(ctx context.Context, input *dynamodb.DescribeTableInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DescribeTableOutput, error) {
-	args := m.Called(ctx, input, optFns)
-	return args.Get(0).(*dynamodb.DescribeTableOutput), args.Error(1)
-}
-
-func (m *MockDynamoDBClient) CreateTable(ctx context.Context, input *dynamodb.CreateTableInput, optFns ...func(*dynamodb.Options)) (*dynamodb.CreateTableOutput, error) {
-	args := m.Called(ctx, input, optFns)
-	return args.Get(0).(*dynamodb.CreateTableOutput), args.Error(1)
-}
-
-func (m *MockDynamoDBClient) DeleteTable(ctx context.Context, input *dynamodb.DeleteTableInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DeleteTableOutput, error) {
-	args := m.Called(ctx, input, optFns)
-	return args.Get(0).(*dynamodb.DeleteTableOutput), args.Error(1)
-}
-
-func (m *MockDynamoDBClient) PutItem(ctx context.Context, input *dynamodb.PutItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error) {
-	args := m.Called(ctx, input, optFns)
-	return args.Get(0).(*dynamodb.PutItemOutput), args.Error(1)
-}
-
-func (m *MockDynamoDBClient) Query(ctx context.Context, input *dynamodb.QueryInput, optFns ...func(*dynamodb.Options)) (*dynamodb.QueryOutput, error) {
-	args := m.Called(ctx, input, optFns)
-	return args.Get(0).(*dynamodb.QueryOutput), args.Error(1)
-}
-func (m *MockDynamoDBClient) Scan(ctx context.Context, input *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
-	args := m.Called(ctx, input, optFns)
-	return args.Get(0).(*dynamodb.ScanOutput), args.Error(1)
-}
-
-func (m *MockDynamoDBClient) TransactWriteItems(ctx context.Context, input *dynamodb.TransactWriteItemsInput, optFns ...func(*dynamodb.Options)) (*dynamodb.TransactWriteItemsOutput, error) {
-	args := m.Called(ctx, input, optFns)
-	return args.Get(0).(*dynamodb.TransactWriteItemsOutput), args.Error(1)
-}
-
-func (m *MockDynamoDBClient) DescribeBackup(ctx context.Context, input *dynamodb.DescribeBackupInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DescribeBackupOutput, error) {
-	args := m.Called(ctx, input, optFns)
-	return args.Get(0).(*dynamodb.DescribeBackupOutput), args.Error(1)
-}
-
-func (m *MockDynamoDBClient) UpdateItem(ctx context.Context, params *dynamodb.UpdateItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.UpdateItemOutput, error) {
-	args := m.Called(ctx, params, optFns)
-	return args.Get(0).(*dynamodb.UpdateItemOutput), args.Error(1)
-}
-
-func (m *MockDynamoDBClient) UpdateContinuousBackups(ctx context.Context, input *dynamodb.UpdateContinuousBackupsInput, optFns ...func(*dynamodb.Options)) (*dynamodb.UpdateContinuousBackupsOutput, error) {
-	args := m.Called(ctx, input, optFns)
-	return args.Get(0).(*dynamodb.UpdateContinuousBackupsOutput), args.Error(1)
-}
-
-func (m *MockDynamoDBClient) RestoreTableFromBackup(ctx context.Context, input *dynamodb.RestoreTableFromBackupInput, optFns ...func(*dynamodb.Options)) (*dynamodb.RestoreTableFromBackupOutput, error) {
-	args := m.Called(ctx, input, optFns)
-	return args.Get(0).(*dynamodb.RestoreTableFromBackupOutput), args.Error(1)
-}
-
-func (m *MockDynamoDBClient) CreateBackup(ctx context.Context, input *dynamodb.CreateBackupInput, optFns ...func(*dynamodb.Options)) (*dynamodb.CreateBackupOutput, error) {
-	args := m.Called(ctx, input, optFns)
-	return args.Get(0).(*dynamodb.CreateBackupOutput), args.Error(1)
-}
-
-func NewMock() *DAO {
-
-	mockDB := new(MockDynamoDBClient)
-	return &DAO{
-		DynamoClient: mockDB,
-		// s3Client:       s3.NewFromConfig(awsCfg),
-		maxRetries:     1,
-		capacity:       10,
-		writeBatchSize: DYNAMO_WRITE_BATCH_SIZE,
-	}
-}
+var _ DaoInterface = (*DAO)(nil)
 
 func NewDAO() *DAO {
 	var (
@@ -141,7 +123,7 @@ func NewDAO() *DAO {
 		maxAWSRetries              int
 		blockTableMinWriteCapacity int
 	)
-	if os.Getenv("APP_MODE") != "PRODUCTION" {
+	if os.Getenv("MODE") != "PRODUCTION" {
 		if err = godotenv.Load(); err != nil {
 			log.Fatal("Error loading .env file")
 		}
@@ -160,8 +142,9 @@ func NewDAO() *DAO {
 		panic(fmt.Sprintf("Error parsing env data: %s", err.Error()))
 	}
 	awsCfg.RetryMaxAttempts = maxAWSRetries
+	realClient := dynamodb.NewFromConfig(awsCfg)
 	return &DAO{
-		DynamoClient:   dynamodb.NewFromConfig(awsCfg),
+		DynamoClient:   NewDynamoClient(realClient),
 		s3Client:       s3.NewFromConfig(awsCfg),
 		maxRetries:     maxAWSRetries,
 		capacity:       blockTableMinWriteCapacity,

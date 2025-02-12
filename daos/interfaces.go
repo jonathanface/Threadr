@@ -3,6 +3,7 @@ package daos
 import (
 	"RichDocter/models"
 
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
@@ -29,7 +30,7 @@ type DaoInterface interface {
 	ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) error
 	WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) error
 	WriteAssociations(email, storyOrSeriesID string, associations []*models.Association) error
-	UpdateAssociationPortraitEntryInDB(email, storyOrSeriesID, associationName, url string) error
+	UpdateAssociationPortraitEntryInDB(email, storyOrSeriesID, associationID, url string) error
 	AddCustomerID(email, customerID *string) error
 	AddStripeData(email, subscriptionID, customerID *string) error
 	EditStory(email string, story models.Story) (models.Story, error)
@@ -57,4 +58,5 @@ type DaoInterface interface {
 	GetTotalCreatedStories(email string) (int, error)
 	CheckForSuspendedStories(email string) (bool, error)
 	CheckTableStatus(tableName string) (string, error)
+	awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsInput) (err error, awsError models.AwsError)
 }

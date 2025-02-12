@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	if os.Getenv("APP_MODE") != "PRODUCTION" {
+	if os.Getenv("MODE") != "PRODUCTION" {
 		if err := godotenv.Load(); err != nil {
 			log.Println("Error loading .env file for session store")
 		}

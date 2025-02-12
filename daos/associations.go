@@ -14,7 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-func (d *DAO) WriteAssociations(email, storyOrSeriesID string, associations []*models.Association) (err error) {
+func (d DAO) WriteAssociations(email, storyOrSeriesID string, associations []*models.Association) (err error) {
 	if len(associations) == 0 {
 		return fmt.Errorf("empty associations array")
 	}

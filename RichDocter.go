@@ -31,7 +31,7 @@ const (
 	authPath       = "/auth"
 )
 
-var dao *daos.DAO
+var dao daos.DaoInterface
 
 func looseMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -205,7 +205,7 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
-	if os.Getenv("APP_MODE") != "PRODUCTION" {
+	if os.Getenv("MODE") != "PRODUCTION" {
 		if err := godotenv.Load(); err != nil {
 			log.Fatal("Error loading .env file")
 		}
