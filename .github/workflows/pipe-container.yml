@@ -34,7 +34,6 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-          mask-aws-account-id: 'false'
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -71,7 +70,8 @@ jobs:
             --build-arg MODE=${{ env.MODE }} \
             --build-arg OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" >> $GITHUB_OUTPUT
+          IMAGE_BASE64=$(echo -n "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" | base64)
+          echo "image=$IMAGE_BASE64" >> $GITHUB_OUTPUT 
 
   deploy:
     name: Deploy
@@ -95,10 +95,11 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Debug IMAGE variable
+      - name: Decode IMAGE from base64
         run: |
-          echo "IMAGE: $IMAGE"  # Print the IMAGE environment variable
-          echo "IMAGE (as env.IMAGE): ${{ needs.build.outputs.image }}"
+          # Decode the base64 image tag
+          IMAGE_DECODED=$(echo "${{ needs.build.outputs.image }}" | base64 --decode)
+          echo "Decoded image: $IMAGE_DECODED"  # Print the decoded image
 
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
