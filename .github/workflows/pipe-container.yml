@@ -85,7 +85,7 @@ jobs:
       ECS_SERVICE: ${{ github.ref == 'refs/heads/production' && secrets.AWS_ECS_SERVICE || secrets.AWS_ECS_SERVICE_STAGING }}
       ECS_CLUSTER: ${{ github.ref == 'refs/heads/production' && secrets.AWS_ECS_CLUSTER || secrets.AWS_ECS_CLUSTER_STAGING }}
       ECS_TASK_DEFINITION: ${{ github.ref == 'refs/heads/production' && '.aws/aws_ecs_task.json' || '.aws/aws_ecs_task_staging.json' }}
-      CONTAINER_NAME: ${{ github.ref == 'refs/heads/production' && 'rd-prod' || 'rd-staging' }}
+      CONTAINER_NAME: ${{ github.ref == 'refs/heads/production' && 'richdocter' || 'web-container' }}
   
     steps:
       - name: Checkout
