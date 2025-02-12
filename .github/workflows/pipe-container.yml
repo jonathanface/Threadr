@@ -85,51 +85,53 @@ jobs:
           name: image
           path: image.txt
 
-  # deploy:
-  #   name: Deploy
-  #   runs-on: ubuntu-latest
-  #   needs: build
-  #   env:
-  #     ECS_SERVICE: ${{ github.ref == 'refs/heads/production' && secrets.AWS_ECS_SERVICE || secrets.AWS_ECS_SERVICE_STAGING }}
-  #     ECS_CLUSTER: ${{ github.ref == 'refs/heads/production' && secrets.AWS_ECS_CLUSTER || secrets.AWS_ECS_CLUSTER_STAGING }}
-  #     ECS_TASK_DEFINITION: ${{ github.ref == 'refs/heads/production' && '.aws/aws_ecs_task.json' || '.aws/aws_ecs_task_staging.json' }}
-  #     CONTAINER_NAME: ${{ github.ref == 'refs/heads/production' && 'richdocter' || 'web-container' }}
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: build
+    env:
+      ECS_SERVICE: ${{ github.ref == 'refs/heads/production' && secrets.AWS_ECS_SERVICE || secrets.AWS_ECS_SERVICE_STAGING }}
+      ECS_CLUSTER: ${{ github.ref == 'refs/heads/production' && secrets.AWS_ECS_CLUSTER || secrets.AWS_ECS_CLUSTER_STAGING }}
+      ECS_TASK_DEFINITION: ${{ github.ref == 'refs/heads/production' && '.aws/aws_ecs_task.json' || '.aws/aws_ecs_task_staging.json' }}
+      CONTAINER_NAME: ${{ github.ref == 'refs/heads/production' && 'richdocter' || 'web-container' }}
   
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  #     - name: Configure AWS credentials
-  #       uses: aws-actions/configure-aws-credentials@v4
-  #       with:
-  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  #         aws-region: ${{ secrets.AWS_REGION }}
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: image
 
-  #     - name: Login to Amazon ECR
-  #       id: login-ecr
-  #       uses: aws-actions/amazon-ecr-login@v1
+      - name: Extract image name
+        run: |
+          echo "IMAGE=$(cat image.txt)" >> $GITHUB_ENV
+          echo "RECEIVED---------------------------------------------- $(cat image.txt)"
 
-  #     - name: Download image artifact
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         name: image
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-  #     - name: Extract image name
-  #       run: echo "IMAGE=$(cat image.txt)" >> $GITHUB_ENV
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
 
-  #     - name: Fill in the new image ID in the Amazon ECS task definition
-  #       id: task-def
-  #       uses: aws-actions/amazon-ecs-render-task-definition@v1
-  #       with:
-  #         task-definition: ${{ env.ECS_TASK_DEFINITION }}
-  #         container-name: ${{ env.CONTAINER_NAME }}
-  #         image: ${{env.IMAGE }}
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ env.ECS_TASK_DEFINITION }}
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{env.IMAGE }}
 
-  #     - name: Deploy Amazon ECS task definition
-  #       uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-  #       with:
-  #         task-definition: ${{ steps.task-def.outputs.task-definition }}
-  #         service: ${{ env.ECS_SERVICE }}
-  #         cluster: ${{ env.ECS_CLUSTER }}
-  #         wait-for-service-stability: true
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
