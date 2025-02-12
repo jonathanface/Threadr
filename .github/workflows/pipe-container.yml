@@ -12,7 +12,7 @@ env:
 
 jobs:
   check_branch:
-    name: Protect production from non-staging branch merges
+    name: Safeguard production branch
     runs-on: ubuntu-latest
     steps:
       - name: Check branch
@@ -74,6 +74,7 @@ jobs:
             --build-arg MODE=${{ env.MODE }} \
             --build-arg OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+          echo "WTF----------------------------------------------------------------------- $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}"
         
       - name: Save image info to file
         run: echo "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" > image.txt
@@ -115,9 +116,7 @@ jobs:
           name: image
 
       - name: Extract image name
-        run: echo "IMAGE=$(cat image.txt)" >> $GITHUB_ENV \
-            "WTF----------------------------------------------------------------------- $(cat image.txt)"
-        
+        run: echo "IMAGE=$(cat image.txt)" >> $GITHUB_ENV
 
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
