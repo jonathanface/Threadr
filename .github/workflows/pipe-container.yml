@@ -70,8 +70,7 @@ jobs:
             --build-arg MODE=${{ env.MODE }} \
             --build-arg OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
-          IMAGE_BASE64=`echo -n $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }} | base64 -w 0`
-          echo "image=$IMAGE_BASE64" >> $GITHUB_OUTPUT
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" >> $GITHUB_OUTPUT
 
   deploy:
     name: Deploy
@@ -107,7 +106,7 @@ jobs:
         with:
           task-definition: ${{ env.ECS_TASK_DEFINITION }}
           container-name: ${{ env.CONTAINER_NAME }}
-          image: ${{ env.IMAGE }}  # Directly use env.IMAGE here
+          image: ${{ env.IMAGE }} 
 
       - name: Deploy Amazon ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
