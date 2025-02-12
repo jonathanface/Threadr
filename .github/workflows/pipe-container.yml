@@ -71,7 +71,7 @@ jobs:
             --build-arg OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
           IMAGE_BASE64=$(echo -n "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" | base64)
-          echo "image=$IMAGE_BASE64" >> $GITHUB_OUTPUT 
+          echo "image=$IMAGE_BASE64" >> $GITHUB_OUTPUT  # Set image output as base64-encoded
 
   deploy:
     name: Deploy
