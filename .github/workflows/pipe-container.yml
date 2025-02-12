@@ -12,6 +12,7 @@ env:
 
 jobs:
   check_branch:
+    name: Protect production from non-staging branch merges
     runs-on: ubuntu-latest
     steps:
       - name: Check branch
@@ -75,9 +76,7 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
         
       - name: Save image info to file
-        run: |
-          IMAGE_BASE64=$(echo -n "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" | base64 -w 0)
-          echo "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" > image.txt
+        run: echo "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" > image.txt
   
       - name: Upload image artifact #have to store image as an artifact b/c github flags the output as a secret and skips it
         uses: actions/upload-artifact@v4
@@ -116,7 +115,9 @@ jobs:
           name: image
 
       - name: Extract image name
-        run: echo "IMAGE=$(cat image.txt)" >> $GITHUB_ENV
+        run: echo "IMAGE=$(cat image.txt)" >> $GITHUB_ENV \
+            "WTF----------------------------------------------------------------------- $(cat image.txt)"
+        
 
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
