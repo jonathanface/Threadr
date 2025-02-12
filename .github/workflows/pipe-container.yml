@@ -74,10 +74,11 @@ jobs:
             --build-arg MODE=${{ env.MODE }} \
             --build-arg OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
-          echo "WTF----------------------------------------------------------------------- $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}"
-        
+
       - name: Save image info to file
-        run: echo "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" > image.txt
+        run: |
+          echo "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" > image.txt
+          echo "WTF----------------------------------------------------------------------- $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}"
   
       - name: Upload image artifact #have to store image as an artifact b/c github flags the output as a secret and skips it
         uses: actions/upload-artifact@v4
