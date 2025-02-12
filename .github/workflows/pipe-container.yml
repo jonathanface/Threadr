@@ -75,7 +75,7 @@ jobs:
           echo "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" > image.txt
   
       - name: Upload image artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: image
           path: image.txt
@@ -103,7 +103,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Download image artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: image
 
