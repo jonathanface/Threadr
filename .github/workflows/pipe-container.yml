@@ -46,10 +46,12 @@ jobs:
       STRIPE_KEY: ${{ github.ref == 'refs/heads/production' && secrets.STRIPE_KEY || secrets.STRIPE_KEY_STAGING }}
       STRIPE_SECRET: ${{ github.ref == 'refs/heads/production' && secrets.STRIPE_SECRET || secrets.STRIPE_SECRET_STAGING }}
       MODE: ${{ github.ref_name }}
-      run: |
-          echo "app mode is set to ${{github.ref_name}}"
-    
+
     steps:
+      - name: Check vars
+        run: |
+          echo "app mode is set to ${{github.ref_name}}"
+
       - name: Checkout
         uses: actions/checkout@v4
 
