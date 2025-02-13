@@ -18,7 +18,7 @@ import (
 
 func (d *DAO) GetAllStories(email string) (stories []*models.Story, err error) {
 	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
-		TableName:        aws.String("stories"),
+		TableName:        aws.String("stories" + GetTableSuffix()),
 		FilterExpression: aws.String("author=:eml AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
@@ -49,7 +49,7 @@ func (d *DAO) GetAllStories(email string) (stories []*models.Story, err error) {
 
 func (d *DAO) GetAllStandalone(email string, adminRequest bool) (stories []models.Story, err error) {
 	input := &dynamodb.ScanInput{
-		TableName:        aws.String("stories"),
+		TableName:        aws.String("stories" + GetTableSuffix()),
 		FilterExpression: aws.String("author=:eml AND attribute_not_exists(series_id) AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
@@ -85,7 +85,7 @@ func (d *DAO) GetStoryByID(email, storyID string) (story *models.Story, err erro
 		return story, err
 	}
 	scanInput := &dynamodb.ScanInput{
-		TableName:        aws.String("stories"),
+		TableName:        aws.String("stories" + GetTableSuffix()),
 		FilterExpression: aws.String("author=:eml AND story_id=:s AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
@@ -98,7 +98,7 @@ func (d *DAO) GetStoryByID(email, storyID string) (story *models.Story, err erro
 	}
 	if userDetails.Admin {
 		scanInput = &dynamodb.ScanInput{
-			TableName:        aws.String("stories"),
+			TableName:        aws.String("stories" + GetTableSuffix()),
 			FilterExpression: aws.String("story_id=:s AND attribute_not_exists(deleted_at)"),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
 				":s": &types.AttributeValueMemberS{Value: storyID},
@@ -125,7 +125,7 @@ func (d *DAO) GetStoryByID(email, storyID string) (story *models.Story, err erro
 }
 
 func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (err error) {
-	tableName := storyID + "_" + storyBlocks.ChapterID + "_blocks"
+	tableName := storyID + "_" + storyBlocks.ChapterID + "_blocks" + GetTableSuffix()
 	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(storyBlocks.Blocks); i += d.writeBatchSize {
 		end := i + d.writeBatchSize
@@ -176,7 +176,7 @@ func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (
 }
 
 func (d *DAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) (err error) {
-	tableName := storyID + "_" + storyBlocks.ChapterID + "_blocks-rollout"
+	tableName := storyID + "_" + storyBlocks.ChapterID + "_blocks" + GetTableSuffix()
 	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(storyBlocks.Blocks); i += d.writeBatchSize {
 		end := i + d.writeBatchSize
@@ -266,7 +266,7 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 						"author":    &types.AttributeValueMemberS{Value: email},
 					}
 					seriesUpdateInput := &dynamodb.PutItemInput{
-						TableName: aws.String("series"),
+						TableName: aws.String("series" + GetTableSuffix()),
 						Item:      seriesItem,
 					}
 					_, err = d.DynamoClient.PutItem(context.Background(), seriesUpdateInput)
@@ -305,7 +305,7 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 						"author":    &types.AttributeValueMemberS{Value: email},
 					}
 					seriesUpdateInput := &dynamodb.PutItemInput{
-						TableName: aws.String("series"),
+						TableName: aws.String("series" + GetTableSuffix()),
 						Item:      seriesItem,
 					}
 					_, err = d.DynamoClient.PutItem(context.Background(), seriesUpdateInput)
@@ -336,7 +336,7 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 	}
 
 	storyUpdateInput := &dynamodb.PutItemInput{
-		TableName: aws.String("stories"),
+		TableName: aws.String("stories" + GetTableSuffix()),
 		Item:      item,
 	}
 	_, err = d.DynamoClient.PutItem(context.Background(), storyUpdateInput)
@@ -365,7 +365,7 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 	}
 	twi := types.TransactWriteItem{
 		Put: &types.Put{
-			TableName:           aws.String("stories"),
+			TableName:           aws.String("stories" + GetTableSuffix()),
 			Item:                attributes,
 			ConditionExpression: aws.String("attribute_not_exists(story_id)"),
 		},
@@ -383,7 +383,7 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 	if story.SeriesID != "" {
 		twii = &dynamodb.TransactWriteItemsInput{}
 		params := &dynamodb.ScanInput{
-			TableName:        aws.String("series"),
+			TableName:        aws.String("series" + GetTableSuffix()),
 			FilterExpression: aws.String("series_id=:sid"),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
 				":sid": &types.AttributeValueMemberS{Value: story.SeriesID},
@@ -406,7 +406,7 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 			}
 			seriesTwi := types.TransactWriteItem{
 				Put: &types.Put{
-					TableName:           aws.String("series"),
+					TableName:           aws.String("series" + GetTableSuffix()),
 					Item:                attributes,
 					ConditionExpression: aws.String("attribute_not_exists(series_id)"),
 				},
@@ -417,7 +417,7 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 
 		updateStoryTwi := types.TransactWriteItem{
 			Update: &types.Update{
-				TableName: aws.String("stories"),
+				TableName: aws.String("stories" + GetTableSuffix()),
 				Key: map[string]types.AttributeValue{
 					"story_id": &types.AttributeValueMemberS{Value: story.ID},
 					"author":   &types.AttributeValueMemberS{Value: email},
@@ -443,7 +443,7 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 
 func (d *DAO) GetStoryCountByUser(email string) (count int, err error) {
 	storyScanInput := &dynamodb.ScanInput{
-		TableName:        aws.String("stories"),
+		TableName:        aws.String("stories" + GetTableSuffix()),
 		FilterExpression: aws.String("author = :eml AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},

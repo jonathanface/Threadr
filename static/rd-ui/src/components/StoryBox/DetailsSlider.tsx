@@ -49,6 +49,9 @@ export const DetailsSlider = (props: DetailsSliderProps) => {
               <div>Volumes:</div>
               <ul>
                 {stories.map((entry) => {
+
+                  // todo if there are no chapters should fire off a req to make one
+                  if (!entry.chapters.length) return;
                   const firstChapter = entry.chapters[0].id;
                   return (
                     <li

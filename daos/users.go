@@ -24,7 +24,7 @@ func (d *DAO) CreateUser(email string) error {
 	}
 	twi := types.TransactWriteItem{
 		Put: &types.Put{
-			TableName:           aws.String("users"),
+			TableName:           aws.String("users" + GetTableSuffix()),
 			Item:                attributes,
 			ConditionExpression: aws.String("attribute_not_exists(email)"),
 		},
@@ -43,7 +43,7 @@ func (d *DAO) CreateUser(email string) error {
 
 func (d *DAO) GetUserDetails(email string) (user *models.UserInfo, err error) {
 	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
-		TableName:        aws.String("users"),
+		TableName:        aws.String("users" + GetTableSuffix()),
 		FilterExpression: aws.String("email=:eml AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
@@ -66,7 +66,7 @@ func (d *DAO) GetUserDetails(email string) (user *models.UserInfo, err error) {
 func (d *DAO) UpsertUser(email string) (err error) {
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	input := &dynamodb.UpdateItemInput{
-		TableName: aws.String("users"),
+		TableName: aws.String("users" + GetTableSuffix()),
 		Key: map[string]types.AttributeValue{
 			"email": &types.AttributeValueMemberS{Value: email},
 		},
@@ -92,7 +92,7 @@ func (d *DAO) UpsertUser(email string) (err error) {
 func (d *DAO) UpdateUser(user models.UserInfo) (err error) {
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	input := &dynamodb.UpdateItemInput{
-		TableName: aws.String("users"),
+		TableName: aws.String("users" + GetTableSuffix()),
 		Key: map[string]types.AttributeValue{
 			"email": &types.AttributeValueMemberS{Value: user.Email},
 		},
@@ -132,7 +132,7 @@ func (d *DAO) AddCustomerID(email, customerID *string) error {
 		"email": &types.AttributeValueMemberS{Value: *email},
 	}
 	updateInput := &dynamodb.UpdateItemInput{
-		TableName:        aws.String("users"),
+		TableName:        aws.String("users" + GetTableSuffix()),
 		Key:              key,
 		UpdateExpression: aws.String("set customer_id=:b"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
