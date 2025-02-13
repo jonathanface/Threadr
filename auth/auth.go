@@ -25,7 +25,8 @@ import (
 )
 
 func init() {
-	if models.AppMode(strings.ToLower(os.Getenv("MODE"))) != models.ModeProduction {
+	currentMode := models.AppMode(strings.ToLower(os.Getenv("MODE")))
+	if currentMode != models.ModeProduction && currentMode != models.ModeStaging {
 		if err := godotenv.Load(); err != nil {
 			log.Println("Error loading .env file for the auth service")
 		}

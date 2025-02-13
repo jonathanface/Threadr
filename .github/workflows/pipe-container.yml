@@ -97,7 +97,6 @@ jobs:
             --build-arg MODE=${{ env.MODE }} \
             --build-arg OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
-          echo "WTF----------------------------------------------------------------------- $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}"
           echo "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" > image.txt
 
       - name: Upload image artifact #have to store image as an artifact b/c github flags the output as a secret and skips it
@@ -128,7 +127,6 @@ jobs:
       - name: Extract image name
         run: |
           echo "IMAGE=$(cat image.txt)" >> $GITHUB_ENV
-          echo "RECEIVED---------------------------------------------- $(cat image.txt)"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
