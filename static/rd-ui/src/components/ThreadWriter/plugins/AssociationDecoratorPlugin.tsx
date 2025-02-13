@@ -22,12 +22,14 @@ export const AssociationDecoratorPlugin = ({
     associations,
     isProgrammaticChange,
     customLeftClick,
+    customRightClick,
     exclusionList,
     scrollToTop
 }: {
     associations: SimplifiedAssociation[] | null;
     isProgrammaticChange?: React.RefObject<boolean>;
     customLeftClick?: () => void | undefined;
+    customRightClick?: (value: string) => void | undefined;
     exclusionList?: string[];
     scrollToTop?: boolean;
 }) => {
@@ -99,7 +101,8 @@ export const AssociationDecoratorPlugin = ({
                                 association.association_type,
                                 association.portrait,
                                 undefined,
-                                customLeftClick
+                                customLeftClick,
+                                customRightClick
                             );
                             textNode.insertBefore(decoratorNode);
 

@@ -1,7 +1,7 @@
 import { AssociationTooltip } from "../../AssociationTooltip";
 
-export const ClickableDecorator = ({ name, id, shortDescription, associationType, portrait, classModifier, leftClickCallback }: {
-    name: string, id: string, shortDescription: string, associationType: string, portrait: string, classModifier: string | undefined, leftClickCallback?: () => void
+export const ClickableDecorator = ({ name, id, shortDescription, associationType, portrait, classModifier, leftClickCallback, rightClickCallback }: {
+    name: string, id: string, shortDescription: string, associationType: string, portrait: string, classModifier: string | undefined, leftClickCallback?: () => void, rightClickCallback?: (value: string) => void
 }) => {
     //const { setIsAssociationPanelOpen } = useAppNavigation();
     //const { setCurrentAssociationID } = useSelections();
@@ -16,6 +16,9 @@ export const ClickableDecorator = ({ name, id, shortDescription, associationType
 
     const handleRightClick = (event: React.MouseEvent) => {
         event.preventDefault();
+        if (rightClickCallback) {
+            rightClickCallback(name);
+        }
         alert(`Right-clicked: ${name}, ${id}`);
     }
 

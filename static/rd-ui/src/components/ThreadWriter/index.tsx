@@ -25,7 +25,7 @@ import { useToaster } from '../../hooks/useToaster';
 import { AlertToastType } from '../../types/AlertToasts';
 import { AssociationDecoratorPlugin } from './plugins/AssociationDecoratorPlugin';
 import { ClickableDecoratorNode } from './customNodes/ClickableDecoratorNode';
-import { Association, SimplifiedAssociation } from '../../types/Associations';
+import { Association, AssociationType, SimplifiedAssociation } from '../../types/Associations';
 import { AssociationPanel } from '../AssociationPanel';
 import { SettingsMenu } from '../SettingsMenu';
 import { useSelections } from '../../hooks/useSelections';
@@ -35,6 +35,8 @@ import { useEditorStateUpdater } from '../../hooks/useEditorStateUpdater';
 import { dbEventEmitter, SaveSuccessPayload } from '../../utils/EventEmitter';
 import { DbOperationQueue, generateTextHash } from '../../constants/constants';
 import { getParagraphIndexByKey, serializeWithChildren } from '../../utils/helpers';
+import { ContextMenu, ContextMenuProps } from '../ContextMenu';
+import LexicalRightClickPlugin, { RightClickData } from './plugins/ContextMenuPlugin';
 
 
 const theme = {
@@ -78,6 +80,14 @@ export const ThreadWriter = () => {
   // states
   const [storyBlocks, setStoryBlocks] = useState<SerializedEditorState | null>(null);
   const [associations, setAssociations] = useState<SimplifiedAssociation[] | null>(null);
+  const defaultContextData: ContextMenuProps = {
+    visible: false,
+    name: "",
+    x: 0,
+    y: 0,
+    items: []
+  }
+  const [contextMenuData, setContextMenuData] = useState<ContextMenuProps>(defaultContextData);
 
   // Fetchers
   const { getBatchedStoryBlocks, previousTableStatus, setPreviousTableStatus } = useFetchStoryBlocks(
@@ -90,6 +100,118 @@ export const ThreadWriter = () => {
     story?.story_id || '',
     setAssociations
   );
+
+  const getSelectedText = () => {
+    let selectedText = '';
+    // Update the editor state to read the current selection.
+    editorRef.current.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        // getTextContent() returns the selected text.
+        selectedText = selection.getTextContent();
+      }
+    });
+    return selectedText;
+  };
+
+  const handleTextCopy = () => {
+    const text = getSelectedText();
+    navigator.clipboard.writeText(text).then(
+      () => {
+        /* Resolved - text copied to clipboard successfully */
+      },
+      () => {
+        console.error("Failed to copy");
+        /* Rejected - text failed to copy to the clipboard */
+      }
+    );
+    setContextMenuData(defaultContextData);
+  };
+
+  const saveAssociationsToServer = async (associations: SimplifiedAssociation[]) => {
+    if (!story?.story_id) return;
+    try {
+      showLoader();
+      const response = await fetch("/api/stories/" + story.story_id + "/associations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(associations),
+      });
+      if (!response.ok) {
+        throw response;
+      }
+      return await response.json();
+    } catch (error: unknown) {
+      console.error(error);
+      setAlertState({
+        title: "Error saving association",
+        message: "There was an error saving your association. Please try again later.",
+        severity: AlertToastType.error,
+        open: true,
+        timeout: 6000,
+      });
+    } finally {
+      hideLoader();
+    }
+  };
+
+  const handleMenuItemClick = async (event: React.MouseEvent, type: AssociationType) => {
+    setContextMenuData(defaultContextData);
+    const text = getSelectedText();
+    if (text.length) {
+      // check if !contains
+      const newAssociation: SimplifiedAssociation = {
+        association_name: text,
+        association_type: type,
+        association_id: "",
+        short_description: "",
+        portrait: "",
+        aliases: "",
+        case_sensitive: true
+      }
+      const storedAssociation = await saveAssociationsToServer([newAssociation]);
+      if (storedAssociation) {
+        newAssociation.portrait = storedAssociation[0].portrait;
+        newAssociation.association_id = storedAssociation[0].association_id;
+        associations ? setAssociations([...associations, newAssociation]) : setAssociations([newAssociation]);
+      }
+    }
+  };
+
+  const selectedContextMenuItems = [
+    { name: "Copy", command: handleTextCopy },
+    {
+      name: "Create Association",
+      subItems: [
+        {
+          name: "Character",
+          command: (event: React.MouseEvent) => {
+            handleMenuItemClick(event, AssociationType.character);
+          },
+        },
+        {
+          name: "Place",
+          command: (event: React.MouseEvent) => {
+            handleMenuItemClick(event, AssociationType.place);
+          },
+        },
+        {
+          name: "Event",
+          command: (event: React.MouseEvent) => {
+            handleMenuItemClick(event, AssociationType.event);
+          },
+        },
+        {
+          name: "Item",
+          command: (event: React.MouseEvent) => {
+            handleMenuItemClick(event, AssociationType.item);
+          },
+        },
+      ],
+    },
+  ];
 
   const handleTabPress = () => {
     if (editorRef.current) {
@@ -642,6 +764,22 @@ export const ThreadWriter = () => {
     }
   }, [associations, story, hideLoader, showLoader, setAlertState]);
 
+  const handleRightClick = (data: RightClickData) => {
+    const contextData: ContextMenuProps = {
+      name: data.text,
+      visible: true,
+      y: data.y,
+      x: data.x,
+      items: selectedContextMenuItems
+    }
+    setContextMenuData(contextData);
+  }
+
+  if (!story || !story.story_id || !chapter || !chapter.id) {
+    console.warn("Story and chapter not loaded yet.");
+    return;
+  }
+
   return (
     <div className={styles.outerWrapper}>
       <LexicalComposer
@@ -662,7 +800,9 @@ export const ThreadWriter = () => {
             <AssociationDecoratorPlugin associations={associations} isProgrammaticChange={isProgrammaticChange} scrollToTop={true} />
             <OnChangePlugin onChange={onChangeHandler} />
             <HistoryPlugin />
+            <LexicalRightClickPlugin onRightClick={handleRightClick} />
             <AssociationPanel associations={associations} onEditCallback={onAssociationEditCallback} />
+            <ContextMenu name={contextMenuData.name} visible={contextMenuData.visible} x={contextMenuData.x} y={contextMenuData.y} items={contextMenuData.items} />
           </div>
           <SettingsMenu />
         </div>

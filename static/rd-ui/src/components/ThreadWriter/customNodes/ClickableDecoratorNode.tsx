@@ -10,16 +10,17 @@ export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
     private associationType: string;
     private portrait: string;
     private customLeftClick?: () => void;
+    private customRightClick?: (value: string) => void;
 
     static getType(): string {
         return "clickable-decorator";
     }
 
     static clone(node: ClickableDecoratorNode): ClickableDecoratorNode {
-        return new ClickableDecoratorNode(node.name, node.id, node.shortDescription, node.associationType, node.portrait, node.classModifier, node.customLeftClick, node.__key);
+        return new ClickableDecoratorNode(node.name, node.id, node.shortDescription, node.associationType, node.portrait, node.classModifier, node.customLeftClick, node.customRightClick, node.__key);
     }
 
-    constructor(text: string, id: string, description: string, associationType: string, portrait: string, classModifier?: string, customLeftClick?: () => void, key?: NodeKey,) {
+    constructor(text: string, id: string, description: string, associationType: string, portrait: string, classModifier?: string, customLeftClick?: () => void, customRightClick?: (value: string) => void, key?: NodeKey,) {
         super(key);
         this.name = text;
         this.id = id;
@@ -28,6 +29,7 @@ export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
         this.associationType = associationType;
         this.portrait = portrait ? portrait : "";
         this.customLeftClick = customLeftClick;
+        this.customRightClick = customRightClick;
     }
 
     static importJSON(serializedNode: {
@@ -98,6 +100,7 @@ export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
             portrait={this.portrait}
             classModifier={this.classModifier}
             leftClickCallback={this.customLeftClick}
+            rightClickCallback={this.customRightClick}
         />
     }
 

@@ -3,7 +3,7 @@ import { MenuItem } from "./MenuItem";
 import styles from "./custom-context.module.css";
 import { MenuItemEntry } from "../../types/MenuItemEntry";
 
-interface ContextMenuProps {
+export interface ContextMenuProps {
   name: string;
   visible: boolean;
   y: number;
@@ -36,7 +36,7 @@ export const ContextMenu = (props: ContextMenuProps) => {
       }
       setVisible(props.visible);
     }
-  }, [props.visible, props.y, props.x, visible]);
+  }, [props]);
 
   return (
     <div className={styles.customContext} style={inlineStyle}>
