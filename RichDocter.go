@@ -205,7 +205,7 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
-	if os.Getenv("MODE") != "PRODUCTION" {
+	if models.AppMode(strings.ToLower(os.Getenv("MODE"))) != models.ModeProduction {
 		if err := godotenv.Load(); err != nil {
 			log.Fatal("Error loading .env file")
 		}

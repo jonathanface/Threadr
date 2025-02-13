@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -24,7 +25,7 @@ import (
 )
 
 func init() {
-	if os.Getenv("MODE") != "PRODUCTION" {
+	if models.AppMode(strings.ToLower(os.Getenv("MODE"))) != models.ModeProduction {
 		if err := godotenv.Load(); err != nil {
 			log.Println("Error loading .env file for the auth service")
 		}

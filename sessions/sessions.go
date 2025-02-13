@@ -1,16 +1,18 @@
 package sessions
 
 import (
+	"RichDocter/models"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	gsessions "github.com/gorilla/sessions"
 	"github.com/joho/godotenv"
 )
 
 func init() {
-	if os.Getenv("MODE") != "PRODUCTION" {
+	if models.AppMode(strings.ToLower(os.Getenv("MODE"))) != models.ModeProduction {
 		if err := godotenv.Load(); err != nil {
 			log.Println("Error loading .env file for session store")
 		}

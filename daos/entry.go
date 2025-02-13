@@ -1,11 +1,13 @@
 package daos
 
 import (
+	"RichDocter/models"
 	"context"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -123,7 +125,7 @@ func NewDAO() *DAO {
 		maxAWSRetries              int
 		blockTableMinWriteCapacity int
 	)
-	if os.Getenv("MODE") != "PRODUCTION" {
+	if models.AppMode(strings.ToLower(os.Getenv("MODE"))) != models.ModeProduction {
 		if err = godotenv.Load(); err != nil {
 			log.Fatal("Error loading .env file")
 		}
