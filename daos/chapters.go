@@ -18,7 +18,7 @@ import (
 
 func (d *DAO) GetChaptersByStoryID(storyID string) (chapters []models.Chapter, err error) {
 	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
-		TableName:        aws.String("chapters"),
+		TableName:        aws.String("chapters" + GetTableSuffix()),
 		FilterExpression: aws.String("story_id=:sid AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":sid": &types.AttributeValueMemberS{Value: storyID},
@@ -41,7 +41,7 @@ func (d *DAO) GetChaptersByStoryID(storyID string) (chapters []models.Chapter, e
 
 func (d *DAO) GetChapterByID(chapterID string) (chapter *models.Chapter, err error) {
 	scanInput := &dynamodb.ScanInput{
-		TableName:        aws.String("chapters"),
+		TableName:        aws.String("chapters" + GetTableSuffix()),
 		FilterExpression: aws.String("chapter_id=:cid AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":cid": &types.AttributeValueMemberS{Value: chapterID},
@@ -64,7 +64,7 @@ func (d *DAO) GetChapterByID(chapterID string) (chapter *models.Chapter, err err
 
 func (d *DAO) GetChapterParagraphs(storyID, chapterID string, startKey *map[string]types.AttributeValue) (*models.BlocksData, error) {
 	var blocks models.BlocksData
-	tableName := storyID + "_" + chapterID + "_blocks-rollout"
+	tableName := storyID + "_" + chapterID + "_blocks" + GetTableSuffix()
 	queryInput := &dynamodb.QueryInput{
 		TableName:              aws.String(tableName),
 		IndexName:              aws.String("story_id-place-index"),
@@ -160,7 +160,7 @@ func (d *DAO) CreateChapter(storyID string, chapter models.Chapter, email string
 		})
 	}
 
-	tableName := storyID + "_" + chapter.ID + "_blocks-rollout"
+	tableName := storyID + "_" + chapter.ID + "_blocks" + GetTableSuffix()
 
 	if err = d.createBlockTable(tableName, &tags); err != nil {
 		return models.Chapter{}, err
@@ -179,7 +179,7 @@ func (d *DAO) EditChapter(storyID string, chapter models.Chapter) (updatedChapte
 	}
 	updatedChapter = chapter
 	chapterUpdateInput := &dynamodb.PutItemInput{
-		TableName: aws.String("chapters"),
+		TableName: aws.String("chapters" + GetTableSuffix()),
 		Item:      item,
 	}
 	_, err = d.DynamoClient.PutItem(context.Background(), chapterUpdateInput)
@@ -190,7 +190,7 @@ func (d *DAO) EditChapter(storyID string, chapter models.Chapter) (updatedChapte
 }
 
 func (d *DAO) DeleteChapterParagraphs(storyID string, storyBlocks *models.StoryBlocks) (err error) {
-	tableName := storyID + "_" + storyBlocks.ChapterID + "_blocks-rollout"
+	tableName := storyID + "_" + storyBlocks.ChapterID + "_blocks"
 
 	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(storyBlocks.Blocks); i += d.writeBatchSize {
@@ -216,7 +216,7 @@ func (d *DAO) DeleteChapterParagraphs(storyID string, storyBlocks *models.StoryB
 			// Create a delete input for the item.
 			deleteInput := &types.Delete{
 				Key:       key,
-				TableName: aws.String(tableName),
+				TableName: aws.String(tableName + GetTableSuffix()),
 			}
 			// Create a transaction write item for the update operation.
 			writeItem := types.TransactWriteItem{
@@ -263,7 +263,7 @@ func (d *DAO) DeleteChapters(storyID string, chapters []models.Chapter) (err err
 			// Create a delete input for the item.
 			deleteInput := &types.Delete{
 				Key:       key,
-				TableName: aws.String("chapters"),
+				TableName: aws.String("chapters" + GetTableSuffix()),
 			}
 
 			// Create a transaction write item for the update operation.
@@ -274,10 +274,10 @@ func (d *DAO) DeleteChapters(storyID string, chapters []models.Chapter) (err err
 			// Add the transaction write item to the list of transaction write items.
 			writeItemsInput.TransactItems[i] = writeItem
 
-			tableName := storyID + "_" + item.ID + "_blocks-rollout"
+			tableName := storyID + "_" + item.ID + "_blocks"
 
 			deleteTableInput := &dynamodb.DeleteTableInput{
-				TableName: aws.String(tableName),
+				TableName: aws.String(tableName + GetTableSuffix()),
 			}
 
 			// Delete the table
@@ -298,10 +298,10 @@ func (d *DAO) DeleteChapters(storyID string, chapters []models.Chapter) (err err
 
 func (d *DAO) GetBlockCountByChapter(email, storyID, chapterID string) (count int, err error) {
 
-	tableName := storyID + "_" + chapterID + "_blocks-rollout"
+	tableName := storyID + "_" + chapterID + "_blocks"
 
 	blockScanInput := &dynamodb.ScanInput{
-		TableName:        aws.String(tableName),
+		TableName:        aws.String(tableName + GetTableSuffix()),
 		FilterExpression: aws.String("author = :eml AND attribute_not_exists('deleted_at')"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},

@@ -20,7 +20,7 @@ func (d *DAO) GetSeriesByID(email, seriesID string) (series *models.Series, err 
 		return series, err
 	}
 	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
-		TableName:        aws.String("series"),
+		TableName:        aws.String("series" + GetTableSuffix()),
 		FilterExpression: aws.String("author=:eml AND series_id=:s AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
@@ -54,7 +54,7 @@ func (d *DAO) GetSeriesByID(email, seriesID string) (series *models.Series, err 
 
 func (d *DAO) GetAllSeriesWithStories(email string, adminRequest bool) (series []models.Series, err error) {
 	scanInput := &dynamodb.ScanInput{
-		TableName:        aws.String("series"),
+		TableName:        aws.String("series" + GetTableSuffix()),
 		FilterExpression: aws.String("author=:eml AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{
@@ -89,7 +89,7 @@ func (d *DAO) GetAllSeriesWithStories(email string, adminRequest bool) (series [
 
 func (d *DAO) GetSeriesVolumes(email, seriesID string) (volumes []*models.Story, err error) {
 	queryInput := &dynamodb.QueryInput{
-		TableName:              aws.String("stories"),
+		TableName:              aws.String("stories" + GetTableSuffix()),
 		IndexName:              aws.String("series_id-place-index"),
 		KeyConditionExpression: aws.String("series_id = :sid AND place > :p"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -147,7 +147,7 @@ func (d *DAO) EditSeries(email string, series models.Series) (updatedSeries mode
 			"author":   &types.AttributeValueMemberS{Value: email},
 		}
 		storyUpdateInput := &dynamodb.UpdateItemInput{
-			TableName:        aws.String("stories"),
+			TableName:        aws.String("stories" + GetTableSuffix()),
 			Key:              key,
 			UpdateExpression: aws.String("set place = :p"),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -161,7 +161,7 @@ func (d *DAO) EditSeries(email string, series models.Series) (updatedSeries mode
 	}
 
 	seriesUpdateInput := &dynamodb.PutItemInput{
-		TableName: aws.String("series"),
+		TableName: aws.String("series" + GetTableSuffix()),
 		Item:      item,
 	}
 	_, err = d.DynamoClient.PutItem(context.Background(), seriesUpdateInput)
@@ -179,7 +179,7 @@ func (d *DAO) RemoveStoryFromSeries(email, storyID string, series models.Series)
 	}
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	storyUpdateInput := &dynamodb.UpdateItemInput{
-		TableName:        aws.String("stories"),
+		TableName:        aws.String("stories" + GetTableSuffix()),
 		Key:              storyKey,
 		UpdateExpression: aws.String("set modified_at = :n REMOVE series_id"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -210,7 +210,7 @@ func (d *DAO) DeleteSeries(email string, series models.Series) error {
 		}
 		now := strconv.FormatInt(time.Now().Unix(), 10)
 		storyUpdateInput := &dynamodb.UpdateItemInput{
-			TableName:        aws.String("stories"),
+			TableName:        aws.String("stories" + GetTableSuffix()),
 			Key:              storyKey,
 			UpdateExpression: aws.String("set modified_at = :n REMOVE series_id"),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -228,7 +228,7 @@ func (d *DAO) DeleteSeries(email string, series models.Series) error {
 	}
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	seriesUpdateInput := &dynamodb.UpdateItemInput{
-		TableName:        aws.String("series"),
+		TableName:        aws.String("series" + GetTableSuffix()),
 		Key:              seriesKey,
 		UpdateExpression: aws.String("set deleted_at = :n"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
