@@ -1,16 +1,10 @@
 package daos
 
 import (
-	"RichDocter/models"
 	"context"
-	"fmt"
 	"log"
-	"os"
-	"strconv"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/joho/godotenv"
 )
 
 type MockDAO struct {
@@ -144,22 +138,8 @@ func (m *MockDynamoClient) RestoreTableFromBackup(ctx context.Context, input *dy
 }
 
 func NewMockDAO() *MockDAO {
-	var (
-		err                        error
-		maxAWSRetries              int
-		blockTableMinWriteCapacity int
-	)
-	if models.AppMode(strings.ToLower(os.Getenv("MODE"))) != models.ModeProduction {
-		if err = godotenv.Load("../.env"); err != nil {
-			log.Fatal("Error loading .env file", err)
-		}
-	}
-	if maxAWSRetries, err = strconv.Atoi(os.Getenv("AWS_MAX_RETRIES")); err != nil {
-		panic(fmt.Sprintf("Error parsing env data: %s", err.Error()))
-	}
-	if blockTableMinWriteCapacity, err = strconv.Atoi(os.Getenv("AWS_BLOCKTABLE_MIN_WRITE_CAPACITY")); err != nil {
-		panic(fmt.Sprintf("Error parsing env data: %s", err.Error()))
-	}
+	maxAWSRetries := 10
+	blockTableMinWriteCapacity := 10
 	mockClient := &MockDynamoClient{}
 	return &MockDAO{
 		DAO: &DAO{
