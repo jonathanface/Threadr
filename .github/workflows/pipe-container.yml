@@ -45,9 +45,9 @@ jobs:
       ECS_SERVICE: ${{ github.ref == 'refs/heads/production' && secrets.AWS_ECS_SERVICE || secrets.AWS_ECS_SERVICE_STAGING }}
       STRIPE_KEY: ${{ github.ref == 'refs/heads/production' && secrets.STRIPE_KEY || secrets.STRIPE_KEY_STAGING }}
       STRIPE_SECRET: ${{ github.ref == 'refs/heads/production' && secrets.STRIPE_SECRET || secrets.STRIPE_SECRET_STAGING }}
-      GOOGLE_REDIRECT: ${{ github.ref == 'refs/heads/production' && format('https://{0}{1}', secrets.ROOT_URL, secrets.GOOGLE_OAUTH_REDIRECT_PATH) || format('{0}/{1}', secrets.ROOT_URL_STAGING, secrets.GOOGLE_OAUTH_REDIRECT_PATH) }}
-      AMAZON_REDIRECT: ${{ github.ref == 'refs/heads/production' && format('https://{0}{1}', secrets.ROOT_URL, secrets.AMAZON_OAUTH_REDIRECT_PATH) || format('{0}/{1}', secrets.ROOT_URL_STAGING, secrets.AMAZON_OAUTH_REDIRECT_PATH) }}
-      MSN_REDIRECT: ${{ github.ref == 'refs/heads/production' && format('https://{0}{1}', secrets.ROOT_URL, secrets.MSN_OAUTH_REDIRECT_PATH) || format('{0}/{1}', secrets.ROOT_URL_STAGING, secrets.MSN_OAUTH_REDIRECT_PATH) }}
+      GOOGLE_REDIRECT: ${{ github.ref == 'refs/heads/production' && format('{0}{1}', secrets.ROOT_URL, secrets.GOOGLE_OAUTH_REDIRECT_PATH) || format('{0}{1}', secrets.ROOT_URL_STAGING, secrets.GOOGLE_OAUTH_REDIRECT_PATH) }}
+      AMAZON_REDIRECT: ${{ github.ref == 'refs/heads/production' && format('{0}{1}', secrets.ROOT_URL, secrets.AMAZON_OAUTH_REDIRECT_PATH) || format('{0}{1}', secrets.ROOT_URL_STAGING, secrets.AMAZON_OAUTH_REDIRECT_PATH) }}
+      MSN_REDIRECT: ${{ github.ref == 'refs/heads/production' && format('{0}{1}', secrets.ROOT_URL, secrets.MSN_OAUTH_REDIRECT_PATH) || format('{0}{1}', secrets.ROOT_URL_STAGING, secrets.MSN_OAUTH_REDIRECT_PATH) }}
       MODE: ${{ github.ref_name }}
 
     steps:
