@@ -19,7 +19,6 @@ require (
 	github.com/markbates/goth v1.80.0
 	github.com/microcosm-cc/bluemonday v1.0.24
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
-	github.com/stretchr/testify v1.9.0
 	github.com/stripe/stripe-go/v72 v72.122.0
 )
 
@@ -42,18 +41,14 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.14.10 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.19.0 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/markbates/going v1.0.0 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/stretchr/objx v0.5.2 // indirect
-	golang.org/x/net v0.23.0 // indirect
+	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/oauth2 v0.17.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
