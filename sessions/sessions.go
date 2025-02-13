@@ -2,7 +2,6 @@ package sessions
 
 import (
 	"RichDocter/models"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -13,8 +12,6 @@ import (
 )
 
 func init() {
-	fmt.Println("wtf mode", os.Getenv("MODE"))
-	fmt.Println("to appmode", models.AppMode(strings.ToLower(os.Getenv("MODE"))))
 	currentMode := models.AppMode(strings.ToLower(os.Getenv("MODE")))
 	if currentMode != models.ModeProduction && currentMode != models.ModeStaging {
 		if err := godotenv.Load(); err != nil {
