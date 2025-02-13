@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -282,6 +283,19 @@ func main() {
 	apiRtr.HandleFunc("/stories/{story}", api.DeleteStoryEndpoint).Methods("DELETE", "OPTIONS")
 	apiRtr.HandleFunc("/series/{seriesID}", api.DeleteSeriesEndpoint).Methods("DELETE", "OPTIONS")
 
-	http.Handle("/", rtr)
-	log.Fatal(http.ListenAndServe(port, nil))
+	rtr.PathPrefix("/").Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Build the absolute path to the requested file.
+		requestedPath := filepath.Join(staticFilesDir, r.URL.Path)
+		// Check if the file exists and is not a directory.
+		info, err := os.Stat(requestedPath)
+		if err != nil || info.IsDir() {
+			// Fallback to index.html for client-side routing.
+			http.ServeFile(w, r, filepath.Join(staticFilesDir, "index.html"))
+			return
+		}
+		// Otherwise, serve the file.
+		http.FileServer(http.Dir(staticFilesDir)).ServeHTTP(w, r)
+	}))
+
+	log.Fatal(http.ListenAndServe(port, rtr))
 }
