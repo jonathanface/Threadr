@@ -2,6 +2,7 @@ package sessions
 
 import (
 	"RichDocter/models"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -12,6 +13,8 @@ import (
 )
 
 func init() {
+	fmt.Println("wtf mode", os.Getenv("MODE"))
+	fmt.Println("to appmode", models.AppMode(strings.ToLower(os.Getenv("MODE"))))
 	if models.AppMode(strings.ToLower(os.Getenv("MODE"))) != models.ModeProduction {
 		if err := godotenv.Load(); err != nil {
 			log.Println("Error loading .env file for session store")
