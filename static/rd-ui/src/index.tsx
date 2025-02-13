@@ -46,7 +46,7 @@ const App = (
   </ErrorBoundary >
 );
 
-const content = mode === 'stage' ? (
+const content = mode === 'staging' ? (
   <AuthProvider {...cognitoAuthConfig}>
     <AuthRunner>{App}</AuthRunner>
   </AuthProvider>
