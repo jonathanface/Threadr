@@ -36,7 +36,7 @@ import { dbEventEmitter, SaveSuccessPayload } from '../../utils/EventEmitter';
 import { DbOperationQueue, generateTextHash } from '../../constants/constants';
 import { getParagraphIndexByKey, serializeWithChildren } from '../../utils/helpers';
 import { ContextMenu, ContextMenuProps } from '../ContextMenu';
-import LexicalRightClickPlugin, { RightClickData } from './plugins/ContextMenuPlugin';
+import DocumentClickPlugin, { ClickData } from './plugins/DocumentClickPlugin';
 
 
 const theme = {
@@ -71,6 +71,7 @@ export const ThreadWriter = () => {
   const previousTextHashRef = useRef<string | null>(null);
   const pastedParagraphKeys = useRef(new Set<string>());
   const isInitialLoad = useRef(true);
+  const selectedAssociation = useRef('');
 
   // hooks
   const { setAlertState } = useToaster();
@@ -175,10 +176,58 @@ export const ThreadWriter = () => {
       if (storedAssociation) {
         newAssociation.portrait = storedAssociation[0].portrait;
         newAssociation.association_id = storedAssociation[0].association_id;
-        associations ? setAssociations([...associations, newAssociation]) : setAssociations([newAssociation]);
+        if (associations) {
+          setAssociations([...associations, newAssociation]);
+        } else {
+          setAssociations([newAssociation]);
+        }
       }
     }
   };
+
+  const deleteAssociationsFromServer = async (associations: SimplifiedAssociation[]) => {
+    if (!story) return;
+    try {
+      showLoader();
+      const response = await fetch("/api/stories/" + story.story_id + "/associations", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(associations),
+      });
+      if (!response.ok) {
+        throw response;
+      }
+    } catch (error: unknown) {
+      console.error(`Error deleting association: ${(error as Response).statusText}`)
+    } finally {
+      hideLoader();
+    }
+  };
+
+
+  const handleDeleteAssociationClick = async () => {
+    setContextMenuData(defaultContextData);
+    if (selectedAssociation.current.length && associations) {
+      const ind = associations.findIndex((assoc) => {
+        return assoc.association_id === selectedAssociation.current;
+      });
+      selectedAssociation.current = '';
+      const deleteMe = associations[ind];
+      const newAssociations = [...associations];
+      newAssociations.splice(ind, 1);
+      setAssociations(newAssociations);
+      await deleteAssociationsFromServer([deleteMe]);
+    }
+  };
+
+  const associationContextMenuItems = [
+    {
+      name: "Delete Association",
+      command: handleDeleteAssociationClick,
+    },
+  ];
 
   const selectedContextMenuItems = [
     { name: "Copy", command: handleTextCopy },
@@ -764,13 +813,34 @@ export const ThreadWriter = () => {
     }
   }, [associations, story, hideLoader, showLoader, setAlertState]);
 
-  const handleRightClick = (data: RightClickData) => {
+  const handleDocumentLeftClick = () => {
+    setContextMenuData(defaultContextData);
+  }
+
+  const handleDocumentRightClick = (data: ClickData) => {
     const contextData: ContextMenuProps = {
-      name: data.text,
+      name: data.text ? data.text : "",
       visible: true,
       y: data.y,
       x: data.x,
       items: selectedContextMenuItems
+    }
+    setContextMenuData(contextData);
+  }
+
+  const handleAssociationLeftClick = () => {
+
+  }
+
+  const handleAssociationRightClick = (data: ClickData) => {
+    if (!data.id) return;
+    selectedAssociation.current = data.id;
+    const contextData: ContextMenuProps = {
+      name: data.text ? data.text : "",
+      visible: true,
+      y: data.y,
+      x: data.x,
+      items: associationContextMenuItems
     }
     setContextMenuData(contextData);
   }
@@ -797,10 +867,10 @@ export const ThreadWriter = () => {
               contentEditable={<ContentEditable className={styles.editorInput} />}
               ErrorBoundary={LexicalErrorBoundary}
             />
-            <AssociationDecoratorPlugin associations={associations} isProgrammaticChange={isProgrammaticChange} scrollToTop={true} />
+            <AssociationDecoratorPlugin associations={associations} isProgrammaticChange={isProgrammaticChange} scrollToTop={true} customLeftClick={handleAssociationLeftClick} customRightClick={handleAssociationRightClick} />
             <OnChangePlugin onChange={onChangeHandler} />
             <HistoryPlugin />
-            <LexicalRightClickPlugin onRightClick={handleRightClick} />
+            <DocumentClickPlugin onLeftClick={handleDocumentLeftClick} onRightClick={handleDocumentRightClick} />
             <AssociationPanel associations={associations} onEditCallback={onAssociationEditCallback} />
             <ContextMenu name={contextMenuData.name} visible={contextMenuData.visible} x={contextMenuData.x} y={contextMenuData.y} items={contextMenuData.items} />
           </div>

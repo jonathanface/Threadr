@@ -12,6 +12,7 @@ import { ClickableDecoratorNode } from "../customNodes/ClickableDecoratorNode";
 import { SimplifiedAssociation } from "../../../types/Associations";
 import styles from "../threadwriter.module.css";
 import { generateTextHash } from "../../../constants/constants";
+import { ClickData } from "./DocumentClickPlugin";
 
 // Utility to escape RegExp special characters
 const escapeRegExp = (string: string) => {
@@ -29,12 +30,50 @@ export const AssociationDecoratorPlugin = ({
     associations: SimplifiedAssociation[] | null;
     isProgrammaticChange?: React.RefObject<boolean>;
     customLeftClick?: () => void | undefined;
-    customRightClick?: (value: string) => void | undefined;
+    customRightClick?: (value: ClickData) => void | undefined;
     exclusionList?: string[];
     scrollToTop?: boolean;
 }) => {
     const [editor] = useLexicalComposerContext();
     const previousHashRef = useRef<string | null>(null);
+
+    const getAllDescendants = useCallback((node: LexicalNode): LexicalNode[] => {
+        const descendants: LexicalNode[] = [];
+        if (node instanceof ElementNode) {
+            for (const child of node.getChildren()) {
+                descendants.push(child);
+                descendants.push(...getAllDescendants(child));
+            }
+        }
+        return descendants;
+    }, []);
+
+
+    const cleanupObsoleteDecorators = useCallback((
+        root: ElementNode,
+        currentAssociations: SimplifiedAssociation[]
+    ): void => {
+
+        // Build a set of current association IDs.
+        const currentAssociationIds = new Set(
+            currentAssociations.map((assoc) => assoc.association_id)
+        );
+
+        // Traverse all descendants of the root.
+        getAllDescendants(root).forEach((node) => {
+            if (node instanceof ClickableDecoratorNode) {
+                const nodeAssocId = node.getAssociationId(); // Make sure your node exposes this method.
+                if (!currentAssociationIds.has(nodeAssocId)) {
+                    // This decorator's association no longer exists.
+                    // Replace the decorator node with a plain text node containing the same text.
+                    const textContent = node.getTextContent();
+                    const replacement = new TextNode(textContent);
+                    node.replace(replacement);
+                }
+            }
+        });
+    }, [getAllDescendants]);
+
     // Memoized association processing function
     const processAssociations = useCallback(
         (associations: SimplifiedAssociation[], rootNode: ElementNode, exclusionList?: string[]): void => {
@@ -118,12 +157,12 @@ export const AssociationDecoratorPlugin = ({
                 });
             });
         },
-        [customLeftClick]
+        [customLeftClick, customRightClick]
     );
 
     // Process associations when associations prop changes (e.g., initial load)
     useEffect(() => {
-        if (associations && associations.length && editor && previousHashRef) {
+        if (associations && editor && previousHashRef) {
             // Avoid processing during programmatic changes
             if (isProgrammaticChange?.current) {
                 console.log("AssociationPlugin - Programmatic change in progress, skipping association processing on prop change.");
@@ -137,7 +176,9 @@ export const AssociationDecoratorPlugin = ({
                 }
 
                 editor.update(() => {
+                    console.log("AssociationPlugin - Associations processed on associations prop change.", JSON.stringify(associations));
                     const root = $getRoot();
+                    cleanupObsoleteDecorators(root, associations);
                     processAssociations(associations, root, exclusionList);
                     console.log("AssociationPlugin - Associations processed on associations prop change.");
                     if (scrollToTop) {
@@ -156,7 +197,7 @@ export const AssociationDecoratorPlugin = ({
                 console.error(`AssociationPlugin - Error processing associations on prop change: ${error}`);
             }
         }
-    }, [associations, editor, processAssociations, exclusionList, scrollToTop, previousHashRef, isProgrammaticChange]);
+    }, [associations, editor, processAssociations, exclusionList, scrollToTop, previousHashRef, isProgrammaticChange, cleanupObsoleteDecorators]);
 
     // Listener function for user-initiated editor updates
     const handleUserEditorUpdate = useCallback(() => {

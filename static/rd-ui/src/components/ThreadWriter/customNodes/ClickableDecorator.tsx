@@ -1,25 +1,26 @@
 import { AssociationTooltip } from "../../AssociationTooltip";
+import { ClickData } from "../plugins/DocumentClickPlugin";
 
 export const ClickableDecorator = ({ name, id, shortDescription, associationType, portrait, classModifier, leftClickCallback, rightClickCallback }: {
-    name: string, id: string, shortDescription: string, associationType: string, portrait: string, classModifier: string | undefined, leftClickCallback?: () => void, rightClickCallback?: (value: string) => void
+    name: string, id: string, shortDescription: string, associationType: string, portrait: string, classModifier: string | undefined, leftClickCallback?: () => void, rightClickCallback?: (value: ClickData) => void
 }) => {
-    //const { setIsAssociationPanelOpen } = useAppNavigation();
-    //const { setCurrentAssociationID } = useSelections();
 
     const handleLeftClick = () => {
         if (leftClickCallback) {
             leftClickCallback();
         }
-        //setCurrentAssociationID(id);
-        //setIsAssociationPanelOpen(true);
     }
 
     const handleRightClick = (event: React.MouseEvent) => {
         event.preventDefault();
         if (rightClickCallback) {
-            rightClickCallback(name);
+            rightClickCallback({
+                id,
+                text: name,
+                x: event.pageX,
+                y: event.pageY,
+            });
         }
-        alert(`Right-clicked: ${name}, ${id}`);
     }
 
     const className = !classModifier ? "highlight " + associationType : "highlight " + associationType + "-" + classModifier;
