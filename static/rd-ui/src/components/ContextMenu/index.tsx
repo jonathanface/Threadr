@@ -36,7 +36,7 @@ export const ContextMenu = (props: ContextMenuProps) => {
       }
       setVisible(props.visible);
     }
-  }, [props]);
+  }, [props, visible]);
 
   return (
     <div className={styles.customContext} style={inlineStyle}>

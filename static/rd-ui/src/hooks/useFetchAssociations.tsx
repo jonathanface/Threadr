@@ -20,7 +20,7 @@ export const useFetchAssociations = (
                 associationsData.filter((association: SimplifiedAssociation) => association.association_name.trim().length)
             );
         } catch (error: unknown) {
-            console.error(`Error retrieving associations: ${error}`);
+            console.error(`Error retrieving associations: ${(error as Response).statusText}`);
         } finally {
             hideLoader();
         }
