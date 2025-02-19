@@ -130,35 +130,20 @@ footer {
   opacity: 0.8;
 }
 
-.highlight.character {
+.character {
   color: green;
 }
 
-.highlight.character-association-ui {
-  color: #57bf57;
-}
 
-.highlight.place {
+.place {
   color: blue;
 }
 
-.highlight.place-association-ui {
-  color: #a8a8f0;
-}
-
-.highlight.event {
+.event {
   color: red;
 }
 
-.highlight.event-association-ui {
-  color: #5b0303;
-}
-
-.highlight.item {
-  color: orange;
-}
-
-.highlight.item-association-ui {
+.item {
   color: orange;
 }
 

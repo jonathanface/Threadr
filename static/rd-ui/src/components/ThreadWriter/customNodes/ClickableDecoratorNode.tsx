@@ -10,7 +10,7 @@ export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
     private classModifier?: string | undefined;
     private associationType: string;
     private portrait: string;
-    private customLeftClick?: () => void;
+    private customLeftClick?: (value: ClickData) => void;
     private customRightClick?: (value: ClickData) => void;
 
     public getAssociationId(): string {
@@ -25,7 +25,7 @@ export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
         return new ClickableDecoratorNode(node.name, node.id, node.shortDescription, node.associationType, node.portrait, node.classModifier, node.customLeftClick, node.customRightClick, node.__key);
     }
 
-    constructor(text: string, id: string, description: string, associationType: string, portrait: string, classModifier?: string, customLeftClick?: () => void, customRightClick?: (value: ClickData) => void, key?: NodeKey,) {
+    constructor(text: string, id: string, description: string, associationType: string, portrait: string, classModifier?: string, customLeftClick?: (value: ClickData) => void, customRightClick?: (value: ClickData) => void, key?: NodeKey,) {
         super(key);
         this.name = text;
         this.id = id;
@@ -83,8 +83,6 @@ export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
     createDOM(): HTMLElement {
         const element = document.createElement("span");
         element.style.cursor = "pointer";
-        element.style.textDecoration = "underline";
-        element.style.color = "blue";
         return element;
     }
 
@@ -107,6 +105,18 @@ export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
             leftClickCallback={this.customLeftClick}
             rightClickCallback={this.customRightClick}
         />
+    }
+
+    public getName(): string {
+        return this.name;
+    }
+
+    public getShortDescription(): string {
+        return this.shortDescription;
+    }
+
+    public getPortrait(): string {
+        return this.portrait;
     }
 
     getTextContent(): string {

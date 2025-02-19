@@ -2,6 +2,7 @@ import { createContext } from "react";
 import { Story } from "../types/Story";
 import { Series } from "../types/Series";
 import { Chapter } from "../types/Chapter";
+import { SimplifiedAssociation } from "../types/Associations";
 
 
 type SelectionsContextType = {
@@ -13,8 +14,8 @@ type SelectionsContextType = {
     setSeries: (series: Series | undefined) => void;
     deselectSeries: () => void;
 
-    associationID: string | undefined;
-    setAssociationID: (id: string) => void;
+    association: SimplifiedAssociation | undefined;
+    setAssociation: (assoc: SimplifiedAssociation) => void;
     deselectAssociation: () => void;
 
     chapter: Chapter | undefined;

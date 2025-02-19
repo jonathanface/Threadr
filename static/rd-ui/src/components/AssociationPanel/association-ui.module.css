@@ -1,120 +1,95 @@
-.associationUIBG {
-  z-index: 60;
+.associationPanel .associationHeader {
+  padding: 20px;
 }
 
-.editorInput {
-  outline: none;
-}
-
-.paragraph {
-  margin: 0;
-  padding: 0;
+.associationPanel .associationHeader .associationName {
   text-align: left;
-  outline: none !important;
-  border: none !important;
-}
-
-.associationUIContainer {
-  width: 80%;
-  height: 80%;
-  background-color: #445c66;
-  border-radius: 15px;
-  filter: drop-shadow(4px 4px 4px #1a1a1a);
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  overflow: hidden;
-  overflow-y: scroll;
-  color: #bbb;
-  padding: 10px;
-}
-
-.associationUIContainer h1 {
-  font-size: 1.5em;
+  font-size: 1.1rem;
+  width: 100%;
+  line-break: anywhere;
   font-weight: normal;
-  display: inline;
-  margin-right: 5px;
-  margin-top: 0.67em;
-  margin-bottom: 0.67em;
+  letter-spacing: 1.1px;
+  font-weight: bold;
 }
 
-.associationUIContainer .inlineEditableText {
-  text-overflow: ellipsis;
-  margin-top: 0.67em;
-  margin-bottom: 0.67em;
+.associationPanel .associationHeader .associationName .type {
+  font-weight: bold;
 }
 
-.associationUIContainer .multilineEditableText {
-  line-height: 1.5em;
-  outline: none;
+.associationPanel .associationPortrait {
+  text-align: center;
 }
 
-.associationUIContainer .column {
-  display: flex;
-  flex-direction: column;
-  flex-basis: 100%;
-  flex: 1;
+.associationPanel .associationDetails {
+  margin: 10px;
 }
 
-.associationUIContainer .associationDetails {
-  text-align: left;
-  width: 90%;
+.associationPanel .detailBubble h4 {
+  margin: 0;
 }
 
-.associationUIContainer .associationDetails .detailBubble {
-  margin-top: 10px;
-  margin-bottom: 20px;
+.associationPanel .detailBubble .activeLabel {
+  color: #1976d2;
+  transition: color 300ms linear;
 }
 
-.associationUIContainer .associationDetails .detailBubble .docBG {
-  border: 1px solid #000;
-  color: #bbb;
+.associationPanel .detailBubble .inactiveLabel {
+  color: inherit;
+  transition: color 300ms linear;
+}
+
+.associationPanel .editorInput {
+  border: 1px dotted #333;
+  color: #333;
   border-radius: 10px;
   max-height: 300px;
   overflow-y: auto;
   padding: 15px;
+  background-color: #F9F9F9;
+  margin-bottom: 20px;
+  outline: none;
+  font-size: 0.9rem;
 }
 
-@media only screen and (max-width: 600px) {
-  .associationUIContainer h1 {
-    font-size: 1em;
-  }
+.associationPanel .editorInput.activeField {
+  border: 1px dashed #333;
+  background-color: #DBDBDB;
+  transition: background-color 300ms linear;
+}
 
-  .associationUIContainer .inlineEditableText {
-    font-size: 1em;
-    width: 60%;
-  }
+.associationPanel .editorInput.inactiveField {
+  background-color: #F9F9F9;
+  transition: background-color 300ms linear;
+}
 
-  .associationUIContainer .portrait {
-    margin-bottom: 0;
-    font-size: 0.8rem;
-  }
+.associationPanel .textInput {
+  border: 1px dotted #333;
+  outline: none;
+  border-radius: 10px;
+  background-color: #F9F9F9;
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  margin-top: 40px;
+}
 
-  .associationUIContainer .portrait img {
-    width: 100%;
-  }
+.associationPanel .remainingChars {
+  font-size: 0.7rem;
+  margin-top: -1rem;
+  text-align: right;
+}
 
-  .associationUIContainer {
-    flex-direction: column;
-    flex-wrap: nowrap;
-  }
+.associationPanel .remainingChars .exceeded {
+  color: red;
+}
 
-  .associationUIContainer .column {
-    flex-direction: row;
-  }
+.associationPanel .textInput.activeField {
+  border: 1px dashed #333;
+  background-color: #DBDBDB;
+  transition: background-color 300ms linear;
+}
 
-  .associationUIContainer .associationDetails {
-    width: 100%;
-  }
-
-  .associationUIContainer .associationDetails .detailBubble {
-    margin-right: 10px;
-    margin-left: 10px;
-  }
-
-  .associationUIContainer .associationForm {
-    margin-left: 10px;
-    margin-right: 10px;
-    padding: 15px;
-  }
+.associationPanel .textInput.inactiveField {
+  background-color: #F9F9F9;
+  transition: background-color 300ms linear;
 }

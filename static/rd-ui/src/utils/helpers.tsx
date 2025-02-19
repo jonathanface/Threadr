@@ -1,4 +1,4 @@
-import { $getRoot, $isElementNode, $isTextNode, EditorState, ElementNode, SerializedLexicalNode, SerializedTextNode } from "lexical";
+import { $getRoot, $isElementNode, $isTextNode, ElementNode, LexicalEditor, SerializedLexicalNode, SerializedTextNode } from "lexical";
 import { Story } from "../types/Story";
 import { CustomParagraphNode, CustomSerializedParagraphNode } from "../components/ThreadWriter/customNodes/CustomParagraphNode";
 
@@ -19,8 +19,9 @@ export const isStory = (obj: any): obj is Story => {
     );
 };
 
-export const getParagraphIndexByKey = (editor: EditorState, key: string): number | null => {
+export const getParagraphIndexByKey = (editor: LexicalEditor | null, key: string): number | null => {
     let result: number | null = null;
+    if (!editor) return null;
     editor.read(() => {
         const root = $getRoot();
         const children = root.getChildren<ElementNode>();

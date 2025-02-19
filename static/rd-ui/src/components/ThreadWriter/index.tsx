@@ -4,7 +4,7 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
-import { $createTextNode, $isRangeSelection, $isTextNode, KEY_TAB_COMMAND, ParagraphNode, PASTE_COMMAND, SerializedEditorState, SerializedElementNode, SerializedLexicalNode } from 'lexical';
+import { $createTextNode, $isRangeSelection, $isTextNode, KEY_TAB_COMMAND, LexicalEditor, ParagraphNode, PASTE_COMMAND, SerializedEditorState, SerializedElementNode, SerializedLexicalNode } from 'lexical';
 import {
   $getRoot,
   $getSelection,
@@ -64,14 +64,13 @@ export const ThreadWriter = () => {
   };
 
   // refs
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<LexicalEditor>(null);
   const isProgrammaticChange = useRef(false);
   const previousNodeKeysRef = useRef<Set<string>>(new Set());
   const previousTextHashRef = useRef<string | null>(null);
   const pastedParagraphKeys = useRef(new Set<string>());
   const isInitialLoad = useRef(true);
-  const selectedAssociation = useRef('');
+  const selectedAssociation = useRef<string | null>(null);
 
   // hooks
   const { setAlertState } = useToaster();
@@ -89,6 +88,7 @@ export const ThreadWriter = () => {
     items: []
   }
   const [contextMenuData, setContextMenuData] = useState<ContextMenuProps>(defaultContextData);
+  const [isAssociationPanelOpen, setIsAssociationPanelOpen] = useState(false);
 
   // Fetchers
   const { getBatchedStoryBlocks, previousTableStatus, setPreviousTableStatus } = useFetchStoryBlocks(
@@ -105,7 +105,7 @@ export const ThreadWriter = () => {
   const getSelectedText = () => {
     let selectedText = '';
     // Update the editor state to read the current selection.
-    editorRef.current.update(() => {
+    editorRef.current?.update(() => {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
         // getTextContent() returns the selected text.
@@ -209,7 +209,7 @@ export const ThreadWriter = () => {
 
   const handleDeleteAssociationClick = async () => {
     setContextMenuData(defaultContextData);
-    if (selectedAssociation.current.length && associations) {
+    if (selectedAssociation.current?.length && associations) {
       const ind = associations.findIndex((assoc) => {
         return assoc.association_id === selectedAssociation.current;
       });
@@ -321,7 +321,7 @@ export const ThreadWriter = () => {
 
   // queue operations
   const queueParagraphOrderResync = useCallback(() => {
-    if (!story || !chapter) return;
+    if (!story || !chapter || !editorRef.current) return;
     editorRef.current.read(() => {
       const root = $getRoot();
       const paragraphs = root.getChildren().filter((node) => node.getType() === "custom-paragraph");
@@ -476,7 +476,7 @@ export const ThreadWriter = () => {
     if (story?.story_id && chapter?.id) {
       console.log("Story or Chapter changed:", { story, chapter });
       const fetchData = async () => {
-        if (isInitialLoad.current) {
+        if (isInitialLoad.current && editorRef.current) {
           console.log("Initial load: fetching story blocks and associations");
           isProgrammaticChange.current = true; // Start programmatic change
           await getBatchedStoryBlocks("");
@@ -517,7 +517,7 @@ export const ThreadWriter = () => {
       editorRef.current.registerNodeTransform(CustomParagraphNode, (node: CustomParagraphNode) => {
         if (node.getTextContent().trim() === "") {
           // Prevent redundant replacement of already empty nodes
-          editorRef.current.update(() => {
+          editorRef.current?.update(() => {
             const index = getParagraphIndexByKey(editorRef.current, node.getKey());
             if (index !== null) {
               const id = node.getKeyId();
@@ -615,7 +615,7 @@ export const ThreadWriter = () => {
               console.log(`Large paste operation detected. Total paragraphs: ${paragraphs.length}`);
             }
 
-            editorRef.current.update(() => {
+            editorRef.current?.update(() => {
               const selection = $getSelection();
 
               if ($isRangeSelection(selection)) {
@@ -701,11 +701,12 @@ export const ThreadWriter = () => {
   }, [setAlertState]);
 
   const onChangeHandler = useCallback((editorState: EditorState) => {
+    // TO-DO Formatting changes not detected
     if (isProgrammaticChange.current) {
       console.log("Programmatic change detected, skipping onChange handling.");
       return;
     }
-
+    if (!editorRef.current) return;
     const currentHash = generateTextHash(editorRef.current);
     const previousHash = previousTextHashRef.current;
 
@@ -792,8 +793,9 @@ export const ThreadWriter = () => {
         timeout: 6000,
       });
     } finally {
-      if (associations) {
-        const updatedAssociations = associations?.map((storedAssociation) => {
+      setAssociations((prevAssociations) => {
+        if (!prevAssociations) return prevAssociations;
+        return prevAssociations.map((storedAssociation) => {
           if (storedAssociation.association_id === assoc.association_id) {
             return {
               association_id: assoc.association_id,
@@ -802,16 +804,15 @@ export const ThreadWriter = () => {
               short_description: assoc.short_description,
               portrait: assoc.portrait,
               aliases: assoc.details.aliases,
-              case_sensitive: assoc.details.case_sensitive
-            }
+              case_sensitive: assoc.details.case_sensitive,
+            };
           }
           return storedAssociation;
-        })
-        setAssociations(updatedAssociations);
-      }
+        });
+      });
       hideLoader();
     }
-  }, [associations, story, hideLoader, showLoader, setAlertState]);
+  }, [story, hideLoader, showLoader, setAlertState]);
 
   const handleDocumentLeftClick = () => {
     setContextMenuData(defaultContextData);
@@ -828,8 +829,10 @@ export const ThreadWriter = () => {
     setContextMenuData(contextData);
   }
 
-  const handleAssociationLeftClick = () => {
-
+  const handleAssociationLeftClick = (data: ClickData) => {
+    if (!data.id) return;
+    selectedAssociation.current = data.id;
+    setIsAssociationPanelOpen(true);
   }
 
   const handleAssociationRightClick = (data: ClickData) => {
@@ -871,7 +874,7 @@ export const ThreadWriter = () => {
             <OnChangePlugin onChange={onChangeHandler} />
             <HistoryPlugin />
             <DocumentClickPlugin onLeftClick={handleDocumentLeftClick} onRightClick={handleDocumentRightClick} />
-            <AssociationPanel associations={associations} onEditCallback={onAssociationEditCallback} />
+            <AssociationPanel associations={associations} onEditCallback={onAssociationEditCallback} isAssociationPanelOpen={isAssociationPanelOpen} setIsAssociationPanelOpen={setIsAssociationPanelOpen} selectedAssociationID={selectedAssociation.current} />
             <ContextMenu name={contextMenuData.name} visible={contextMenuData.visible} x={contextMenuData.x} y={contextMenuData.y} items={contextMenuData.items} />
           </div>
           <SettingsMenu />

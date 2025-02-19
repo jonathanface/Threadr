@@ -1,434 +1,401 @@
-// /* eslint-disable */
-// import Backdrop from "@mui/material/Backdrop";
-// import React, { useCallback, useEffect, useRef, useState } from "react";
-// import { FormGroup, TextField } from "@mui/material";
-// import FormControlLabel from "@mui/material/FormControlLabel";
-// import Switch from "@mui/material/Switch";
-// import { PortraitDropper } from "../PortraitDropper";
-// import styles from "./association-ui.module.css";
-// import { UCWords } from "../ThreadWriter/utilities";
-// import { Association, SimplifiedAssociation } from "../../types/Associations";
-// import { useSelections } from "../../hooks/useSelections";
-// import { LexicalComposer } from "@lexical/react/LexicalComposer";
-// import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
-// import { ContentEditable } from "@lexical/react/LexicalContentEditable";
-// import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
-// import { AssociationDecoratorPlugin } from "../ThreadWriter/plugins/AssociationDecoratorPlugin";
-// import { ClickableDecoratorNode } from "../ThreadWriter/customNodes/ClickableDecoratorNode";
-// import { $createParagraphNode, $createTextNode, $getRoot, EditorState } from "lexical";
-// import { useLoader } from "../../hooks/useLoader";
-// import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
-
-// interface AssociationProps {
-//   associations: SimplifiedAssociation[] | null;
-//   onEditCallback: (association: Association) => void;
-// }
-// const theme = {
-//   paragraph: styles.paragraph,
-//   text: {
-//     bold: styles.bold,
-//     italic: styles.italic,
-//     underline: styles.underline,
-//     strikethrough: styles.strikethrough,
-//   },
-// };
-// const descriptionConfig = {
-//   namespace: 'DescriptionEditor',
-//   theme,
-//   nodes: [
-//     ClickableDecoratorNode
-//   ],
-//   onError: (error: Error) => {
-//     console.error('BG error:', error);
-//   }
-// }
-// const bgConfig = {
-//   namespace: 'BackgroundEditor',
-//   theme,
-//   nodes: [
-//     ClickableDecoratorNode
-//   ],
-//   onError: (error: Error) => {
-//     console.error('BG error:', error);
-//   }
-// }
-
-// export const AssociationPanel: React.FC<AssociationProps> = (props) => {
-//   const [caseSensitive, setCaseSensitive] = useState(false);
-//   const [name, setName] = useState("");
-//   const [aliases, setAliases] = useState("");
-//   const [imageURL, setImageURL] = useState(
-//     "/img/default_association_portrait.jpg"
-//   );
-//   const [description, setDescription] = useState('');
-//   const [background, setBackground] = useState('');
-//   const { story } = useSelections();
-//   const isProgrammaticChange = useRef(false);
-
-
-
-//   const bgEditorRef = useRef<any>(null);
-
-//   const descriptionEditorRef = useRef<any>(null);
-//   //const { showLoader, hideLoader } = useLoader();
-//   const [fullAssociations, setFullAssociations] = useState<Association[] | null>(null);
-//   const [exclusionList, setExclusionList] = useState<string[]>([]);
-//   const [isInitialLoad, setIsInitialLoad] = useState(true);
-
-//   const setProgrammaticChange = useCallback((value: boolean) => {
-//     isProgrammaticChange.current = value;
-//   }, []);
-
-//   const clearData = () => {
-//     setCaseSensitive(false);
-//     setName("");
-//     setAliases("");
-//     setImageURL("/img/default_association_portrait.jpg");
-//     setDescription('');
-//     setBackground('');
-//     bgEditorRef.current.update(() => {
-//       $getRoot().clear();
-//     });
-//     descriptionEditorRef.current.update(() => {
-//       $getRoot().clear();
-//     });
-//   }
-
-//   const handleClose = () => {
-//     //deselectAssociation();
-//     setIsInitialLoad(true);
-//     //setIsAssociationPanelOpen(false);
-//     setTimeout(() => {
-//       clearData();
-//     }, 500);
-//   };
-
-//   // useEffect(() => {
-//   //   if (isAssociationPanelOpen && props.associations) {
-//   //     if (isInitialLoad) {
-//   //       setFullAssociations(
-//   //         props.associations.map(assoc => ({
-//   //           association_id: assoc.association_id,
-//   //           association_name: assoc.association_name,
-//   //           association_type: assoc.association_type,
-//   //           short_description: assoc.short_description,
-//   //           portrait: assoc.portrait,
-//   //           details: {
-//   //             aliases: "",
-//   //             case_sensitive: true,
-//   //             extended_description: "",
-//   //           },
-//   //         }))
-//   //       );
-//   //     }
-//   //     if (currentStory && currentAssociationID) {
-//   //       const thisAssociation = props.associations.find(assoc => assoc.association_id === currentAssociationID);
-//   //       if (thisAssociation) {
-//   //         setName(UCWords(thisAssociation.association_name));
-//   //         setImageURL(thisAssociation.portrait);
-//   //       }
-//   //     }
-//   //   }
-//   // }, [isAssociationPanelOpen, props.associations, isInitialLoad]);
-
-//   // useEffect(() => {
-//   //   const fetchAssociationDetails = async () => {
-//   //     if (!currentStory || !currentAssociationID || !isInitialLoad || !fullAssociations) return;
-//   //     try {
-//   //       setIsLoaderVisible(true);
-//   //       const response = await fetch(`/api/stories/${currentStory.story_id}/associations/${currentAssociationID}`);
-//   //       if (!response.ok) throw response;
-//   //       const association = await response.json() as Association;
-//   //       setFullAssociations(fullAssociations.map(assoc => {
-//   //         if (assoc.association_id === currentAssociationID) {
-//   //           return association;
-//   //         }
-//   //         return assoc;
-//   //       }));
-//   //       setDescription(association.short_description);
-//   //       setCaseSensitive(association.details.case_sensitive);
-//   //       setAliases(association.details.aliases);
-//   //       setBackground(association.details.extended_description);
-//   //       setExclusionList([association.association_name, ...association.details.aliases.split(',')]);
-//   //     } catch (error: unknown) {
-//   //       console.error(`error fetching association details: ${error}`);
-//   //     } finally {
-//   //       setIsLoaderVisible(false);
-//   //       setIsInitialLoad(false);
-//   //     }
-//   //   };
-
-//   //   if (isAssociationPanelOpen) {
-//   //     fetchAssociationDetails();
-//   //   }
-//   // }, [isAssociationPanelOpen, currentAssociationID, currentStory, isInitialLoad, fullAssociations]);
-
-//   // const onAssociationEdit = (newValue: string | boolean, id: string) => {
-//   //   if (!currentAssociationID || !fullAssociations || isInitialLoad) return;
-
-//   //   setFullAssociations(prev => prev ?
-//   //     prev?.map(assoc => {
-//   //       if (assoc.association_id === currentAssociationID) {
-//   //         const updatedAssociation = { ...assoc };
-//   //         let saveRequired = false;
-
-//   //         switch (id) {
-//   //           case "case":
-//   //             if (typeof newValue === "boolean" && updatedAssociation.details.case_sensitive !== newValue) {
-//   //               updatedAssociation.details.case_sensitive = newValue;
-//   //               saveRequired = true;
-//   //             }
-//   //             break;
-//   //           case "description":
-//   //             if (typeof newValue === "string" && updatedAssociation.short_description !== newValue) {
-//   //               updatedAssociation.short_description = newValue.trim();
-//   //               saveRequired = true;
-//   //             }
-//   //             break;
-//   //           case "background":
-//   //             if (typeof newValue === "string" && updatedAssociation.details.extended_description !== newValue) {
-//   //               updatedAssociation.details.extended_description = newValue.trim();
-//   //               saveRequired = true;
-//   //             }
-//   //             break;
-//   //           case "aliases":
-//   //             if (typeof newValue === "string" && updatedAssociation.details.aliases !== newValue) {
-//   //               updatedAssociation.details.aliases = newValue.trim();
-//   //               saveRequired = true;
-//   //             }
-//   //             break;
-//   //           case "portrait":
-//   //             if (typeof newValue === "string" && updatedAssociation.portrait !== newValue) {
-//   //               updatedAssociation.portrait = newValue;
-//   //               saveRequired = true;
-//   //             }
-//   //             break;
-//   //         }
-
-//   //         if (saveRequired) {
-//   //           props.onEditCallback(updatedAssociation);
-//   //         }
-
-//   //         return updatedAssociation;
-//   //       }
-
-//   //       return assoc;
-//   //     }) : prev
-//   //   );
-//   // };
-
-//   // const processImage = (acceptedFiles: File[]) => {
-//   //   if (!currentAssociationID || !currentStory) {
-//   //     return;
-//   //   }
-//   //   const thisAssociation = fullAssociations?.find((assoc: Association) => { return assoc.association_id === currentAssociationID });
-//   //   if (!thisAssociation) return;
-//   //   acceptedFiles.forEach((file) => {
-//   //     const reader = new FileReader();
-//   //     reader.onabort = () => console.log("file reading was aborted");
-//   //     reader.onerror = () => console.log("file reading has failed");
-//   //     reader.onload = () => {
-//   //       const formData = new FormData();
-//   //       formData.append("file", file);
-//   //       fetch(
-//   //         "/api/stories/" +
-//   //         currentStory.story_id +
-//   //         "/associations/" +
-//   //         thisAssociation.association_id +
-//   //         "/upload?type=" +
-//   //         thisAssociation.association_type,
-//   //         { credentials: "include", method: "PUT", body: formData }
-//   //       )
-//   //         .then((response) => {
-//   //           if (response.ok) {
-//   //             return response.json();
-//   //           }
-//   //           throw new Error("Fetch problem image upload " + response.status);
-//   //         })
-//   //         .then((data) => {
-//   //           setImageURL(data.url + "?date=" + Date.now());
-//   //           onAssociationEdit(data.url, "portrait");
-//   //         })
-//   //         .catch((error) => console.error(error));
-//   //     };
-//   //     reader.readAsArrayBuffer(file);
-//   //   });
-//   // };
-
-//   useEffect(() => {
-//     if (bgEditorRef.current) {
-//       bgEditorRef.current.setEditable(!isInitialLoad);
-//       bgEditorRef.current.update(() => {
-//         const root = $getRoot();
-//         root.clear();
-//         const paragraphs = background.split("\n");
-//         paragraphs.forEach((paragraphText) => {
-//           const paragraphNode = $createParagraphNode();
-//           const formattedText = paragraphText.replace(/\t/g, "    ");
-//           const textNode = $createTextNode(formattedText);
-//           paragraphNode.append(textNode);
-//           root.append(paragraphNode);
-//         });
-//       });
-//     }
-//     if (descriptionEditorRef.current) {
-//       descriptionEditorRef.current.setEditable(!isInitialLoad);
-//       descriptionEditorRef.current.update(() => {
-//         const root = $getRoot();
-//         root.clear();
-//         const paragraphs = description.split("\n");
-//         paragraphs.forEach((paragraphText) => {
-//           const paragraphNode = $createParagraphNode();
-//           const formattedText = paragraphText.replace(/\t/g, "    ");
-//           const textNode = $createTextNode(formattedText);
-//           paragraphNode.append(textNode);
-//           root.append(paragraphNode);
-//         });
-//       });
-//     }
-//   }, [bgEditorRef.current, background, descriptionEditorRef, description]);
-
-//   const onAssociationClick = () => {
-//     setIsInitialLoad(true);
-//     clearData();
-//   }
-
-//   // const extractTextAndSave = (editorState: EditorState, type: string) => {
-//   //   let textContent = "";
-//   //   editorState.read(() => {
-//   //     const root = $getRoot();
-//   //     root.getChildren().forEach((node) => {
-//   //       textContent += node.getTextContent();
-//   //     });
-//   //   });
-//   //   onAssociationEdit(textContent, type);
-//   // }
-
-//   return (
-//     <Backdrop
-//       onClick={handleClose}
-//       open={false}
-//       className={styles.associationUIBG}
-//     >
-//       <div
-//         className={styles.associationUIContainer}
-//         onClick={(e) => {
-//           e.stopPropagation();
-//         }}
-//       >
-//         <div className={styles.column}>
-//           <PortraitDropper
-//             imageURL={imageURL}
-//             name={name}
-//           //onComplete={processImage}
-//           />
-//         </div>
-//         <div className={styles.column}>
-//           <div className={styles.associationDetails}>
-//             <div>
-//               <h1>{name}</h1>
-//             </div>
-//             <div className={styles.detailBubble}>
-//               Overview
-//               <div className={styles.docBG}>
-//                 {/* <LexicalComposer initialConfig={{
-//                   editable: false,
-//                   ...descriptionConfig,
-//                   editorState: (editor) => {
-//                     descriptionEditorRef.current = editor;
-//                   },
-
-//                 }}>
-//                   <RichTextPlugin
-//                     contentEditable={<ContentEditable className={styles.editorInput} onBlur={() => {
-//                       if (isInitialLoad) return;
-//                       const editor = descriptionEditorRef.current;
-//                       if (editor) {
-//                         const editorState = editor.getEditorState();
-//                         //extractTextAndSave(editorState, "description");
-//                       }
-//                     }} />}
-//                     ErrorBoundary={LexicalErrorBoundary}
-//                   />
-//                   <HistoryPlugin />
-//                   <AssociationDecoratorPlugin associations={props.associations} setProgrammaticChange={setProgrammaticChange} customLeftClick={onAssociationClick} exclusionList={exclusionList} />
-//                 </LexicalComposer> */}
-//               </div>
-//             </div>
-//             <div className={styles.detailBubble}>
-//               Background
-//               <div className={styles.docBG}>
-//                 {/* <LexicalComposer initialConfig={{
-//                   editable: false,
-//                   ...bgConfig,
-//                   editorState: (editor) => {
-//                     bgEditorRef.current = editor;
-//                   },
-//                 }}>
-//                   <RichTextPlugin
-//                     contentEditable={<ContentEditable className={styles.editorInput} onBlur={() => {
-//                       if (isInitialLoad) return;
-//                       const editor = bgEditorRef.current;
-//                       if (editor) {
-//                         const editorState = editor.getEditorState();
-//                         //extractTextAndSave(editorState, "background");
-//                       }
-//                     }} />}
-//                     ErrorBoundary={LexicalErrorBoundary}
-//                   />
-//                   <HistoryPlugin />
-//                   <AssociationDecoratorPlugin associations={props.associations} setProgrammaticChange={setProgrammaticChange} customLeftClick={onAssociationClick} />
-//                 </LexicalComposer> */}
-//               </div>
-//             </div>
-//             <div className={styles.associationForm}>
-//               <TextField
-//                 label="Aliases (comma separated)"
-//                 type="search"
-//                 value={aliases}
-//                 onChange={(event) => {
-//                   setAliases(event.target.value);
-//                 }}
-//                 onBlur={(event) => {
-//                   //onAssociationEdit(event.target.value, "aliases");
-//                 }}
-//                 sx={{
-//                   label: {
-//                     color: "#F0F0F0",
-//                   },
-//                   input: {
-//                     color: "#bbb",
-//                   },
-//                 }}
-//               />
-//               <FormGroup>
-//                 <FormControlLabel
-//                   control={
-//                     <Switch
-//                       onChange={() => {
-//                         setCaseSensitive(!caseSensitive);
-//                         //onAssociationEdit(!caseSensitive, "case");
-//                       }}
-//                       checked={caseSensitive || false}
-//                     />
-//                   }
-//                   label="Case-Sensitive"
-//                 />
-//               </FormGroup>
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-//     </Backdrop>
-//   );
-// };
-
+import { Box, CircularProgress, Drawer, FormControlLabel, Switch, TextField } from "@mui/material";
 import { Association, SimplifiedAssociation } from "../../types/Associations";
+import { ClickableDecoratorNode } from "../ThreadWriter/customNodes/ClickableDecoratorNode";
+import styles from './association-ui.module.css'
+import { PortraitDropper } from "../PortraitDropper";
+import { useEffect, useRef, useState } from "react";
+import { useSelections } from "../../hooks/useSelections";
+import { LexicalComposer } from "@lexical/react/LexicalComposer";
+import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
+import { ContentEditable } from "@lexical/react/LexicalContentEditable";
+import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
+import { AssociationDecoratorPlugin } from "../ThreadWriter/plugins/AssociationDecoratorPlugin";
+import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
+import { $createParagraphNode, $createTextNode, $getRoot, EditorState, LexicalEditor } from "lexical";
+import { ClickData } from "../ThreadWriter/plugins/DocumentClickPlugin";
+import { CharacterLimitPlugin } from "@lexical/react/LexicalCharacterLimitPlugin";
+import { OverflowNode } from "@lexical/overflow";
+import { UCWords } from "../ThreadWriter/utilities";
 
 interface AssociationProps {
   associations: SimplifiedAssociation[] | null;
   onEditCallback: (association: Association) => void;
+  isAssociationPanelOpen: boolean;
+  setIsAssociationPanelOpen: (is: boolean) => void;
+  selectedAssociationID: string | null;
 }
-export const AssociationPanel: React.FC<AssociationProps> = () => {
-  return (<div />);
+const theme = {
+  paragraph: styles.paragraph,
+  text: {
+    bold: styles.bold,
+    italic: styles.italic,
+    underline: styles.underline,
+    strikethrough: styles.strikethrough,
+  },
+};
+const descriptionConfig = {
+  namespace: 'DescriptionEditor',
+  theme,
+  nodes: [
+    ClickableDecoratorNode,
+    OverflowNode
+  ],
+  onError: (error: Error) => {
+    console.error('BG error:', error);
+  }
 }
+const bgConfig = {
+  namespace: 'BackgroundEditor',
+  theme,
+  nodes: [
+    ClickableDecoratorNode
+  ],
+  onError: (error: Error) => {
+    console.error('BG error:', error);
+  }
+}
+
+export const AssociationPanel: React.FC<AssociationProps> = (props) => {
+  const defaultImageURL = useRef("/img/default_association_portrait.jpg");
+  const [selectedAssociation, setSelectedAssociation] = useState<Association | null>(null);
+  const [isAssociationLoaderVisible, setIsAssociationLoaderVisible] = useState(true);
+  const bgEditorRef = useRef<LexicalEditor>(null);
+  const descriptionEditorRef = useRef<LexicalEditor>(null);
+  const isProgrammaticChange = useRef(false);
+  const initialAssociation = useRef<Association | null>(null);
+  const exclusionList = useRef<string[]>([]);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [aliases, setAliases] = useState('');
+  const [isDescriptionActive, setIsDescriptionActive] = useState(false);
+  const [isBackgroundActive, setIsBackgroundActive] = useState(false);
+  const [isAliasesActive, setIsAliasesActive] = useState(false);
+  const [selectedAssociationID, setSelectedAssociationID] = useState(props.selectedAssociationID);
+  const { story } = useSelections();
+
+
+  const clearData = () => {
+    initialAssociation.current = null;
+    setSelectedAssociation(null);
+    setSelectedAssociationID(null);
+    setAliases("");
+    bgEditorRef.current?.update(() => {
+      $getRoot().clear();
+    });
+    descriptionEditorRef.current?.update(() => {
+      $getRoot().clear();
+    });
+  }
+
+  useEffect(() => {
+    const fetchAssociationDetails = async () => {
+      if (props.selectedAssociationID) setSelectedAssociationID(props.selectedAssociationID);
+      setSelectedAssociationID(props.selectedAssociationID);
+      if (!story || !isInitialLoad || !props.selectedAssociationID?.length) return;
+      try {
+        setIsAssociationLoaderVisible(true);
+        const response = await fetch(`/api/stories/${story.story_id}/associations/${selectedAssociationID ? selectedAssociationID : props.selectedAssociationID}`);
+        if (!response.ok) throw response;
+        const serverAssociation = await response.json() as Association;
+        initialAssociation.current = JSON.parse(JSON.stringify(serverAssociation));
+        setSelectedAssociation(serverAssociation);
+        setAliases(serverAssociation.details.aliases);
+        exclusionList.current = [serverAssociation.association_name, ...serverAssociation.details.aliases.split(',')];
+      } catch (error: unknown) {
+        console.error(`error fetching association details: ${error}`);
+      } finally {
+        setIsAssociationLoaderVisible(false)
+        setIsInitialLoad(false);
+      }
+    };
+    if (props.isAssociationPanelOpen && props.selectedAssociationID) fetchAssociationDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.selectedAssociationID, story, isInitialLoad, props.isAssociationPanelOpen]);
+
+  useEffect(() => {
+    if (bgEditorRef.current) {
+      bgEditorRef.current.setEditable(!isInitialLoad);
+      bgEditorRef.current.update(() => {
+        const root = $getRoot();
+        root.clear();
+        const paragraphs = selectedAssociation?.details?.extended_description.split("\n");
+        paragraphs?.forEach((paragraphText) => {
+          const paragraphNode = $createParagraphNode();
+          const formattedText = paragraphText.replace(/\t/g, "    ");
+          const textNode = $createTextNode(formattedText);
+          paragraphNode.append(textNode);
+          root.append(paragraphNode);
+        });
+      });
+    }
+    if (descriptionEditorRef.current) {
+      descriptionEditorRef.current.setEditable(!isInitialLoad);
+      descriptionEditorRef.current.update(() => {
+        const root = $getRoot();
+        root.clear();
+        const paragraphs = selectedAssociation?.short_description.split("\n");
+        paragraphs?.forEach((paragraphText) => {
+          const paragraphNode = $createParagraphNode();
+          const formattedText = paragraphText.replace(/\t/g, "    ");
+          const textNode = $createTextNode(formattedText);
+          paragraphNode.append(textNode);
+          root.append(paragraphNode);
+        });
+      });
+    }
+  }, [selectedAssociation, descriptionEditorRef, isInitialLoad]);
+
+  const saveEdits = () => {
+    if (!selectedAssociationID || isInitialLoad || !selectedAssociation?.details) return;
+    if (JSON.stringify(selectedAssociation) !== JSON.stringify(initialAssociation.current)) {
+      props.onEditCallback(selectedAssociation);
+    }
+  };
+
+  const handleClose = () => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    saveEdits();
+    setIsInitialLoad(true);
+    props.setIsAssociationPanelOpen(false);
+    setTimeout(() => {
+      clearData();
+    }, 500);
+  }
+
+  const onAssociationClick = (value: ClickData) => {
+    if (!value.id) return;
+    saveEdits();
+    setIsInitialLoad(true);
+    clearData();
+    setSelectedAssociationID(value.id);
+  }
+
+
+
+  const extractTextAndUpdate = (editorState: EditorState, type: string) => {
+    if (!selectedAssociation) return;
+    let textContent = "";
+    editorState.read(() => {
+      const root = $getRoot();
+      root.getChildren().forEach((node) => {
+        textContent += node.getTextContent();
+      });
+    });
+    let currentValue = "";
+    if (type === "background") {
+      currentValue = selectedAssociation.details.extended_description;
+    } else if (type === "description") {
+      currentValue = selectedAssociation.short_description;
+    }
+
+    // Only update if the text actually changed (trim to ignore insignificant whitespace)
+    if (textContent.trim() === currentValue.trim()) {
+      return;
+    }
+    const updatedAssociation = { ...selectedAssociation };
+    if (type === "background") {
+      updatedAssociation.details.extended_description = textContent;
+    } else if (type === "description") {
+      updatedAssociation.short_description = textContent;
+    }
+    setSelectedAssociation(updatedAssociation);
+  }
+
+  const processImage = (acceptedFiles: File[]) => {
+    if (!selectedAssociationID || !story || !selectedAssociation) {
+      return;
+    }
+    acceptedFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onabort = () => console.log("file reading was aborted");
+      reader.onerror = () => console.log("file reading has failed");
+      reader.onload = async () => {
+        try {
+          setIsAssociationLoaderVisible(true);
+          const formData = new FormData();
+          formData.append("file", file);
+          const response = await fetch(
+            "/api/stories/" +
+            story.story_id +
+            "/associations/" +
+            selectedAssociation.association_id +
+            "/upload?type=" +
+            selectedAssociation.association_type,
+            { credentials: "include", method: "PUT", body: formData }
+          );
+          if (!response.ok) throw response;
+          const json = await response.json();
+          const updatedAssociation = { ...selectedAssociation };
+          const newImageURL = json.url + "?date=" + Date.now();
+          updatedAssociation.portrait = newImageURL;
+          setSelectedAssociation(updatedAssociation);
+        } catch (error: unknown) {
+          console.error(error);
+        } finally {
+          setIsAssociationLoaderVisible(false);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
+  return (
+    <Drawer anchor={"right"} PaperProps={{
+      style: {
+        width: '500px',
+      },
+
+    }} open={props.isAssociationPanelOpen} onClose={handleClose} className={styles.associationPanel}>
+      <Box
+        role="presentation"
+        component="section">
+        <div
+          className="loading-screen"
+          style={{ visibility: isAssociationLoaderVisible ? "visible" : "hidden" }}
+        >
+          <Box className="progress-box" />
+          <Box className="prog-anim-holder">
+            <CircularProgress />
+          </Box>
+        </div>
+        <div className={styles.associationHeader}>
+          <h2 className={styles.associationName}>
+            <span className={`${styles.type} ${selectedAssociation?.association_type ? selectedAssociation.association_type : ""}`}>{UCWords(selectedAssociation?.association_type ? selectedAssociation.association_type : "")}: </span>
+            {selectedAssociation?.association_name}
+          </h2>
+          <PortraitDropper
+            className={styles.associationPortrait}
+            imageURL={selectedAssociation?.portrait ? selectedAssociation.portrait : defaultImageURL.current}
+            name={selectedAssociation ? selectedAssociation.association_name : ""}
+            onComplete={processImage}
+            hideLabel={true}
+          />
+        </div>
+        <div className={styles.associationDetails}>
+          <div className={styles.detailBubble}>
+            <h4 className={`${isDescriptionActive ? styles.activeLabel : styles.inactiveLabel}`}>Summary</h4>
+            <div className={styles.docTextArea}>
+              <LexicalComposer initialConfig={{
+                editable: false,
+                ...descriptionConfig,
+                editorState: (editor) => {
+                  descriptionEditorRef.current = editor;
+                },
+
+              }}>
+                <RichTextPlugin
+                  contentEditable={
+                    <ContentEditable className={`${styles.editorInput} ${isDescriptionActive ? styles.activeField : styles.inactiveField}`}
+                      onFocus={() => setIsDescriptionActive(true)}
+                      onBlur={() => {
+                        setIsDescriptionActive(false);
+                        if (isInitialLoad) return;
+                        const editor = descriptionEditorRef.current;
+                        if (editor) {
+                          const editorState = editor.getEditorState();
+                          extractTextAndUpdate(editorState, "description");
+                        }
+                      }}
+                    />
+                  }
+                  ErrorBoundary={LexicalErrorBoundary}
+                />
+                <HistoryPlugin />
+                <CharacterLimitPlugin charset="UTF-8" maxLength={200} renderer={(obj) => {
+                  return <div className={styles.remainingChars}>Remaining characters: <span className={`${styles.value} ${obj.remainingCharacters < 0 ? styles.exceeded : ""}`}>{obj.remainingCharacters}</span></div>
+                }} />
+                <AssociationDecoratorPlugin associations={props.associations} isProgrammaticChange={isProgrammaticChange} customLeftClick={onAssociationClick} exclusionList={exclusionList.current} />
+              </LexicalComposer>
+            </div>
+          </div>
+          <div className={styles.detailBubble}>
+            <h4 className={`${isBackgroundActive ? styles.activeLabel : styles.inactiveLabel}`}>Background</h4>
+            <div className={styles.docTextArea}>
+              <LexicalComposer initialConfig={{
+                editable: false,
+                ...bgConfig,
+                editorState: (editor) => {
+                  bgEditorRef.current = editor;
+                },
+              }}>
+                <RichTextPlugin
+                  contentEditable={
+                    <ContentEditable className={`${styles.editorInput} ${isBackgroundActive ? styles.activeField : styles.inactiveField}`}
+                      onFocus={() => setIsBackgroundActive(true)}
+                      onBlur={() => {
+                        setIsBackgroundActive(false);
+                        if (isInitialLoad) return;
+                        const editor = bgEditorRef.current;
+                        if (editor) {
+                          const editorState = editor.getEditorState();
+                          extractTextAndUpdate(editorState, "background");
+                        }
+                      }}
+                    />
+                  }
+                  ErrorBoundary={LexicalErrorBoundary}
+                />
+                <HistoryPlugin />
+                <AssociationDecoratorPlugin associations={props.associations} isProgrammaticChange={isProgrammaticChange} customLeftClick={onAssociationClick} />
+              </LexicalComposer>
+            </div>
+          </div>
+          <div className={styles.associationForm}>
+            <TextField
+              label="Aliases (comma separated)"
+              type="search"
+              variant="filled"
+              slotProps={{
+                input: {
+                  disableUnderline: true
+                }
+              }}
+              value={aliases}
+              className={`${styles.textInput} ${isAliasesActive ? styles.activeField : styles.inactiveField}`}
+              onChange={(event) => {
+                setAliases(event.target.value)
+              }}
+              onFocus={() => setIsAliasesActive(true)}
+              onBlur={(event) => {
+                setIsAliasesActive(false);
+                if (!selectedAssociation) return;
+                if (selectedAssociation.details.aliases === event.target.value) return;
+                const updatedAssociation = { ...selectedAssociation };
+                updatedAssociation.details.aliases = event.target.value;
+                setSelectedAssociation(updatedAssociation);
+              }}
+              sx={{
+                label: {
+                  color: "#333",
+                },
+                "& .MuiFilledInput-root": {
+                  backgroundColor: "transparent"
+                },
+                input: {
+                  color: "#333",
+                  backgroundColor: "transparent"
+                },
+                "& fieldset": { border: 'none' },
+              }}
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  onChange={() => {
+                    if (!selectedAssociation) return;
+                    const updatedAssociation = { ...selectedAssociation };
+                    updatedAssociation.details.case_sensitive = !selectedAssociation?.details.case_sensitive;
+                    setSelectedAssociation(updatedAssociation);
+                  }}
+                  checked={selectedAssociation?.details.case_sensitive || false}
+                />
+              }
+              label="Case-Sensitive"
+            />
+          </div>
+        </div>
+      </Box>
+    </Drawer>
+  );
+};

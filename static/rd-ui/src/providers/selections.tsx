@@ -3,6 +3,7 @@ import { SelectionsContext } from "../contexts/selections";
 import { Chapter } from "../types/Chapter";
 import { Series } from "../types/Series";
 import { Story } from "../types/Story";
+import { SimplifiedAssociation } from "../types/Associations";
 
 export const SelectionsProvider: React.FC<{
     children: React.ReactNode;
@@ -38,12 +39,12 @@ export const SelectionsProvider: React.FC<{
         setChapter(undefined);
     };
 
-    const [associationID, setAssociationID] = useState<string | undefined>(
+    const [association, setAssociation] = useState<SimplifiedAssociation | undefined>(
         undefined
     );
 
     const deselectAssociation = () => {
-        setAssociationID(undefined);
+        setAssociation(undefined);
     }
 
     const deselectAll = () => {
@@ -68,8 +69,8 @@ export const SelectionsProvider: React.FC<{
                 setChapter,
                 deselectChapter,
 
-                associationID,
-                setAssociationID,
+                association,
+                setAssociation,
                 deselectAssociation,
 
                 deselectAll

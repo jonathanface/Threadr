@@ -29,7 +29,7 @@ export const AssociationDecoratorPlugin = ({
 }: {
     associations: SimplifiedAssociation[] | null;
     isProgrammaticChange?: React.RefObject<boolean>;
-    customLeftClick?: () => void | undefined;
+    customLeftClick?: (value: ClickData) => void | undefined;
     customRightClick?: (value: ClickData) => void | undefined;
     exclusionList?: string[];
     scrollToTop?: boolean;
@@ -53,26 +53,39 @@ export const AssociationDecoratorPlugin = ({
         root: ElementNode,
         currentAssociations: SimplifiedAssociation[]
     ): void => {
+        // Create a map from association id to association data for quick lookup.
+        const currentAssociationMap = new Map<string, SimplifiedAssociation>();
+        currentAssociations.forEach(assoc => {
+            currentAssociationMap.set(assoc.association_id, assoc);
+        });
 
-        // Build a set of current association IDs.
-        const currentAssociationIds = new Set(
-            currentAssociations.map((assoc) => assoc.association_id)
-        );
-
-        // Traverse all descendants of the root.
         getAllDescendants(root).forEach((node) => {
             if (node instanceof ClickableDecoratorNode) {
-                const nodeAssocId = node.getAssociationId(); // Make sure your node exposes this method.
-                if (!currentAssociationIds.has(nodeAssocId)) {
-                    // This decorator's association no longer exists.
-                    // Replace the decorator node with a plain text node containing the same text.
+                const nodeAssocId = node.getAssociationId();
+                const currentAssoc = currentAssociationMap.get(nodeAssocId);
+
+                // If the association no longer exists, remove the decorator.
+                if (!currentAssoc) {
                     const textContent = node.getTextContent();
                     const replacement = new TextNode(textContent);
                     node.replace(replacement);
+                } else {
+                    // Check if any of the key properties have changed.
+                    if (
+                        node.getName() !== currentAssoc.association_name ||
+                        node.getShortDescription() !== currentAssoc.short_description ||
+                        node.getPortrait() !== currentAssoc.portrait
+                    ) {
+                        // The decorator's data is stale. Remove it so it can be re-created.
+                        const textContent = node.getTextContent();
+                        const replacement = new TextNode(textContent);
+                        node.replace(replacement);
+                    }
                 }
             }
         });
     }, [getAllDescendants]);
+
 
     // Memoized association processing function
     const processAssociations = useCallback(
@@ -165,7 +178,7 @@ export const AssociationDecoratorPlugin = ({
         if (associations && editor && previousHashRef) {
             // Avoid processing during programmatic changes
             if (isProgrammaticChange?.current) {
-                console.log("AssociationPlugin - Programmatic change in progress, skipping association processing on prop change.");
+                //console.log("AssociationPlugin - Programmatic change in progress, skipping association processing on prop change.");
                 return;
             }
 
@@ -176,11 +189,11 @@ export const AssociationDecoratorPlugin = ({
                 }
 
                 editor.update(() => {
-                    console.log("AssociationPlugin - Associations processed on associations prop change.", JSON.stringify(associations));
+                    //console.log("AssociationPlugin - Associations processed on associations prop change.", JSON.stringify(associations));
                     const root = $getRoot();
                     cleanupObsoleteDecorators(root, associations);
                     processAssociations(associations, root, exclusionList);
-                    console.log("AssociationPlugin - Associations processed on associations prop change.");
+                    //console.log("AssociationPlugin - Associations processed on associations prop change.");
                     if (scrollToTop) {
                         const contentEditableDiv = document.querySelector(`.${styles.editorInput}`);
                         if (contentEditableDiv) {
@@ -212,7 +225,7 @@ export const AssociationDecoratorPlugin = ({
         const previousHash = previousHashRef.current;
 
         if (currentHash === previousHash) {
-            console.log("AssociationPlugin - No content changes detected, skipping association processing.");
+            //console.log("AssociationPlugin - No content changes detected, skipping association processing.");
             return;
         }
 
@@ -228,7 +241,7 @@ export const AssociationDecoratorPlugin = ({
             editor.update(() => {
                 const root = $getRoot();
                 processAssociations(associations!, root, exclusionList);
-                console.log("AssociationPlugin - Associations processed on user-initiated update.");
+                //console.log("AssociationPlugin - Associations processed on user-initiated update.");
                 if (scrollToTop) {
                     const contentEditableDiv = document.querySelector(`.${styles.editorInput}`);
                     if (contentEditableDiv) {

@@ -14,6 +14,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
+const (
+	MAX_SHORT_DESCRIPTION_LENGTH = 200
+)
+
 func (d DAO) WriteAssociations(email, storyOrSeriesID string, associations []*models.Association) (err error) {
 	if len(associations) == 0 {
 		return fmt.Errorf("empty associations array")
@@ -57,6 +61,9 @@ func (d DAO) WriteAssociations(email, storyOrSeriesID string, associations []*mo
 				}
 			}
 			shortDescription := item.ShortDescription
+			if len(item.ShortDescription) > MAX_SHORT_DESCRIPTION_LENGTH {
+				shortDescription = item.ShortDescription[:MAX_SHORT_DESCRIPTION_LENGTH]
+			}
 			extendedDescription := item.Details.ExtendedDescription
 			associations[i].Portrait = imgFile
 			// Create a key for the item.
@@ -350,8 +357,8 @@ func (d *DAO) GetStoryOrSeriesAssociationThumbnails(email, storyID string, needD
 		return associations, err
 	}
 	for i, v := range associations {
-		if len(v.ShortDescription) > 100 {
-			associations[i].ShortDescription = v.ShortDescription[:100] + "..."
+		if len(v.ShortDescription) > MAX_SHORT_DESCRIPTION_LENGTH {
+			associations[i].ShortDescription = v.ShortDescription[:MAX_SHORT_DESCRIPTION_LENGTH]
 		}
 	}
 	return associations, nil
