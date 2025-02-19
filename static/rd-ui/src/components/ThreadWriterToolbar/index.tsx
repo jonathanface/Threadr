@@ -100,8 +100,7 @@ export const Toolbar = () => {
                         title: "Error",
                         message: (error as Error).message,
                         severity: AlertToastType.error,
-                        open: true,
-                        timeout: 6000,
+                        open: true
                     });
                 }
             }

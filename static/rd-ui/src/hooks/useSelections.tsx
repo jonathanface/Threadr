@@ -13,7 +13,7 @@ export const useSelections = () => {
     if (!context) {
         throw new Error("useSelectionsContext must be used within a SelectionsProvider");
     }
-    const { story, deselectStory, setStory, series, deselectSeries, setSeries, chapter, setChapter, deselectChapter, associationID, setAssociationID, deselectAssociation, deselectAll } = context;
+    const { story, deselectStory, setStory, series, deselectSeries, setSeries, chapter, setChapter, deselectChapter, association, setAssociation, deselectAssociation, deselectAll } = context;
 
     const propagateChapterUpdates = (updatedChapter: Chapter) => {
         if (story) {
@@ -88,8 +88,8 @@ export const useSelections = () => {
         setChapter,
         deselectChapter,
 
-        associationID,
-        setAssociationID,
+        association,
+        setAssociation,
         deselectAssociation,
 
         deselectAll,

@@ -1,4 +1,4 @@
-import { $getRoot, $isElementNode, $isTextNode, EditorState, ElementNode, SerializedLexicalNode, SerializedTextNode } from "lexical";
+import { $getRoot, $isElementNode, $isTextNode, ElementNode, LexicalEditor, SerializedLexicalNode, SerializedTextNode } from "lexical";
 import { Story } from "../types/Story";
 import { CustomParagraphNode, CustomSerializedParagraphNode } from "../components/ThreadWriter/customNodes/CustomParagraphNode";
 
@@ -19,8 +19,9 @@ export const isStory = (obj: any): obj is Story => {
     );
 };
 
-export const getParagraphIndexByKey = (editor: EditorState, key: string): number | null => {
+export const getParagraphIndexByKey = (editor: LexicalEditor | null, key: string): number | null => {
     let result: number | null = null;
+    if (!editor) return null;
     editor.read(() => {
         const root = $getRoot();
         const children = root.getChildren<ElementNode>();
@@ -42,63 +43,81 @@ export const serializeWithChildren = (node: ElementNode): CustomSerializedParagr
     }
 
     const json = node.exportJSON() as CustomSerializedParagraphNode;
-
     const children = node.getChildren();
     const mergedChildren: SerializedLexicalNode[] = [];
 
-    let bufferText = ""; // Buffer to accumulate text from `clickable-decorator` and `text` nodes
+    // Buffer to hold text and its formatting details
+    let bufferedTextData: {
+        text: string;
+        format: number;
+        style: string;
+        detail: number;
+    } | null = null;
+
+    const flushBuffer = () => {
+        if (bufferedTextData) {
+            mergedChildren.push({
+                type: "text",
+                version: 1,
+                text: bufferedTextData.text,
+                format: bufferedTextData.format,
+                style: bufferedTextData.style,
+                mode: "normal",
+                detail: bufferedTextData.detail,
+            } as SerializedTextNode);
+            bufferedTextData = null;
+        }
+    };
 
     children.forEach((child) => {
         if (child.getType() === "clickable-decorator" || $isTextNode(child)) {
-            // Accumulate text from both `clickable-decorator` and `text` nodes
-            bufferText += child.getTextContent();
+            // Extract formatting info if available.
+            let childData = {
+                text: child.getTextContent(),
+                format: 0,
+                style: "",
+                detail: 0,
+            };
+
+            if ($isTextNode(child)) {
+                childData = {
+                    text: child.getTextContent(),
+                    format: child.getFormat(),
+                    style: child.getStyle(),
+                    detail: child.getDetail(),
+                };
+            }
+
+            if (!bufferedTextData) {
+                // Initialize the buffer with this node's data
+                bufferedTextData = { ...childData };
+            } else {
+                // If formatting matches, merge the text; otherwise, flush the buffer
+                if (
+                    bufferedTextData.format === childData.format &&
+                    bufferedTextData.style === childData.style &&
+                    bufferedTextData.detail === childData.detail
+                ) {
+                    bufferedTextData.text += childData.text;
+                } else {
+                    flushBuffer();
+                    bufferedTextData = { ...childData };
+                }
+            }
         } else if ($isElementNode(child)) {
-            // Serialize nested child elements
-            if (bufferText) {
-                // If there's buffered text, create a text node for it
-                mergedChildren.push({
-                    type: "text",
-                    version: 1,
-                    text: bufferText,
-                    format: 0,
-                    style: "",
-                    mode: "normal",
-                    detail: 0,
-                } as SerializedTextNode);
-                bufferText = ""; // Clear the buffer
-            }
-            mergedChildren.push(serializeWithChildren(child as ElementNode)); // Recursively serialize child element
+            flushBuffer();
+            // Recursively serialize child elements
+            mergedChildren.push(serializeWithChildren(child as ElementNode));
         } else {
-            // If it's an unsupported node, flush buffer and skip
-            if (bufferText) {
-                mergedChildren.push({
-                    type: "text",
-                    version: 1,
-                    text: bufferText,
-                    format: 0,
-                    style: "",
-                    mode: "normal",
-                    detail: 0,
-                } as SerializedTextNode);
-                bufferText = ""; // Clear the buffer
-            }
+            flushBuffer();
+            // For unsupported nodes, you might simply ignore them or handle them differently.
         }
     });
 
-    // Add any remaining buffered text as a final text node
-    if (bufferText) {
-        mergedChildren.push({
-            type: "text",
-            version: 1,
-            text: bufferText,
-            format: 0,
-            style: "",
-            mode: "normal",
-            detail: 0,
-        } as SerializedTextNode);
-    }
+    // Flush any remaining buffered text
+    flushBuffer();
 
     json.children = mergedChildren;
-
     return json;
 };
+

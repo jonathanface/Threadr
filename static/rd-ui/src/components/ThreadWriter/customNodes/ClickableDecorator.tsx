@@ -2,12 +2,17 @@ import { AssociationTooltip } from "../../AssociationTooltip";
 import { ClickData } from "../plugins/DocumentClickPlugin";
 
 export const ClickableDecorator = ({ name, id, shortDescription, associationType, portrait, classModifier, leftClickCallback, rightClickCallback }: {
-    name: string, id: string, shortDescription: string, associationType: string, portrait: string, classModifier: string | undefined, leftClickCallback?: () => void, rightClickCallback?: (value: ClickData) => void
+    name: string, id: string, shortDescription: string, associationType: string, portrait: string, classModifier: string | undefined, leftClickCallback?: (value: ClickData) => void, rightClickCallback?: (value: ClickData) => void
 }) => {
 
-    const handleLeftClick = () => {
+    const handleLeftClick = (event: React.MouseEvent) => {
         if (leftClickCallback) {
-            leftClickCallback();
+            leftClickCallback({
+                id,
+                text: name,
+                x: event.pageX,
+                y: event.pageY
+            });
         }
     }
 
@@ -26,7 +31,7 @@ export const ClickableDecorator = ({ name, id, shortDescription, associationType
     const className = !classModifier ? "highlight " + associationType : "highlight " + associationType + "-" + classModifier;
     return (
         <span
-            style={{ cursor: "pointer", textDecoration: "underline", color: "blue" }}
+            style={{ cursor: "pointer" }}
             onClick={handleLeftClick} onContextMenu={handleRightClick}
         >
             <AssociationTooltip
@@ -34,8 +39,10 @@ export const ClickableDecorator = ({ name, id, shortDescription, associationType
                 description={shortDescription}
                 portrait={portrait}>
                 <span
-                    onClick={() => {
-                        handleLeftClick();
+                    onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleLeftClick(e);
                     }}
                     onMouseDown={(e) => e.preventDefault()}
                     onContextMenu={(e) => {

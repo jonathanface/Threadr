@@ -7,8 +7,10 @@ import { useToaster } from "../../hooks/useToaster";
 interface PortraitDropperProps {
   imageURL: string | null;
   name: string;
+  className?: string;
   onImageLoaded?: () => void;
   onComplete?: (files: File[]) => void;
+  hideLabel?: boolean;
 }
 
 const acceptedFileTypes = ["png", "jpg", "jpeg", "gif"];
@@ -52,14 +54,16 @@ export const PortraitDropper = (props: PortraitDropperProps) => {
   const { getRootProps, getInputProps } = useDropzone({ onDrop });
 
   return (
-    <div className={styles.portraitDropper}>
+    <div className={`${styles.portraitDropper} ${props.className ? props.className : ""}`}>
       <figure className={styles.portrait}>
         <span {...getRootProps()}>
           <img src={imageURL ? imageURL : undefined} onLoad={props.onImageLoaded ? props.onImageLoaded : undefined} alt={name} title={name} />
-          <figcaption>
-            Drop an image over the picture to update, or click on it.
-            <input {...getInputProps()} />
-          </figcaption>
+          {!props.hideLabel ?
+            <figcaption>
+              Drop an image over the picture to update, or click on it.
+              <input {...getInputProps()} />
+            </figcaption>
+            : ""}
         </span>
       </figure>
     </div>

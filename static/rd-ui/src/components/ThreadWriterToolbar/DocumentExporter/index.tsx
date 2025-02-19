@@ -52,7 +52,7 @@ export const DocumentExporter = () => {
                             message: "Free accounts are unable to export their stories.",
                             open: true,
                             severity: AlertToastType.warning,
-                            timeout: 6000,
+                            timeout: null,
                             callback: subscribeFunc,
                         });
                         return;
@@ -72,7 +72,7 @@ export const DocumentExporter = () => {
                     open: true,
                     severity: AlertToastType.success,
                     link: alertLink,
-                    timeout: undefined,
+                    timeout: null
                 });
             } catch (error) {
                 console.error(error);

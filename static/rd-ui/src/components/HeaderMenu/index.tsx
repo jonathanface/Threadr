@@ -45,8 +45,7 @@ export const HeaderMenu = () => {
             title: "Error",
             message: (error as Error).message,
             severity: AlertToastType.error,
-            open: true,
-            timeout: 6000,
+            open: true
           });
         } finally {
           hideLoader();
@@ -93,8 +92,7 @@ export const HeaderMenu = () => {
             title: "Error",
             message: (error as Error).message,
             severity: AlertToastType.error,
-            open: true,
-            timeout: 6000,
+            open: true
           });
         } finally {
           hideLoader();
