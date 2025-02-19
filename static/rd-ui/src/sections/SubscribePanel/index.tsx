@@ -151,7 +151,7 @@ export const SubscribePanel = () => {
   }, [setPaymentMethod, userDetails, setUserDetails, showLoader, hideLoader]);
 
   const subscribe = async () => {
-    if (!paymentMethod || !product) return;
+    if (!paymentMethod || !product || !userDetails) return;
     setSubscribeError("");
     try {
       showLoader();
@@ -161,7 +161,7 @@ export const SubscribePanel = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           payment_method_id: paymentMethod.id,
-          customer_id: userDetails?.customer_id,
+          customer_id: userDetails.customer_id,
           price_id: product.price_id,
         }),
       });
@@ -169,14 +169,13 @@ export const SubscribePanel = () => {
         throw response;
       }
       const json = await response.json();
+      const expiry = new Date(json.period_end).toLocaleString();
       setAlertState({
         title: "Welcome",
         message:
-          "Your subscription is active until " +
-          new Date(json.period_end).toLocaleString() +
-          " and will automatically renew. If you had previously subscribed, any suspended stories will be restored in the next 30 minutes.",
+          `Your subscription is active until ${expiry} and will automatically renew. If you had previously subscribed, any suspended stories will be restored in the next 30 minutes.`,
         severity: AlertToastType.success,
-        timeout: 10000,
+        timeout: null,
         open: true,
       });
       if (userDetails) setUserDetails({ ...userDetails, renewing: true, expired: false, subscription_id: json.subscription_id });
