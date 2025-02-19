@@ -11,7 +11,7 @@ import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { AssociationDecoratorPlugin } from "../ThreadWriter/plugins/AssociationDecoratorPlugin";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
-import { $createParagraphNode, $createTextNode, $getRoot, $getSelection, EditorState, LexicalEditor } from "lexical";
+import { $createParagraphNode, $createTextNode, $getRoot, EditorState, LexicalEditor } from "lexical";
 import { ClickData } from "../ThreadWriter/plugins/DocumentClickPlugin";
 import { CharacterLimitPlugin } from "@lexical/react/LexicalCharacterLimitPlugin";
 import { OverflowNode } from "@lexical/overflow";
@@ -174,6 +174,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
 
   const extractTextAndUpdate = (editorState: EditorState, type: string) => {
     if (!selectedAssociation) return;
+    isProgrammaticChange.current = true;
     let textContent = "";
     editorState.read(() => {
       const root = $getRoot();
@@ -199,7 +200,10 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
     } else if (type === "description") {
       updatedAssociation.short_description = textContent;
     }
-    setSelectedAssociation(updatedAssociation);
+    if (JSON.stringify(updatedAssociation) !== JSON.stringify(selectedAssociation)) {
+      setSelectedAssociation(updatedAssociation);
+    }
+    isProgrammaticChange.current = false;
   };
 
 
@@ -338,7 +342,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
                   ErrorBoundary={LexicalErrorBoundary}
                 />
                 <HistoryPlugin />
-                <AssociationDecoratorPlugin associations={props.associations} isProgrammaticChange={isProgrammaticChange} customLeftClick={onAssociationClick} />
+                <AssociationDecoratorPlugin associations={props.associations} isProgrammaticChange={isProgrammaticChange} customLeftClick={onAssociationClick} exclusionList={exclusionList.current} />
               </LexicalComposer>
             </div>
           </div>

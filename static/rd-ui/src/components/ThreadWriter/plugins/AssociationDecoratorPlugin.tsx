@@ -188,7 +188,7 @@ export const AssociationDecoratorPlugin = ({
                 }
 
                 editor.update(() => {
-                    //console.log("AssociationPlugin - Associations processed on associations prop change.", JSON.stringify(exclusionList));
+                    //console.log("AssociationPlugin - Associations processed on associations prop change.", JSON.stringify(exclusionList), associations);
                     const root = $getRoot();
                     cleanupObsoleteDecorators(root, associations);
                     processAssociations(associations, root, exclusionList);
@@ -240,7 +240,7 @@ export const AssociationDecoratorPlugin = ({
             editor.update(() => {
                 const root = $getRoot();
                 processAssociations(associations!, root, exclusionList);
-                //console.log("AssociationPlugin - Associations processed on user-initiated update.");
+                // console.log("AssociationPlugin - Associations processed on user-initiated update.");
                 if (scrollToTop) {
                     const contentEditableDiv = document.querySelector(`.${styles.editorInput}`);
                     if (contentEditableDiv) {
