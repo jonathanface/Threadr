@@ -392,6 +392,9 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(email string) error {
 			return err
 		}
 		for _, chapter := range chapters {
+			if len(chapter.BackupARN) == 0 {
+				continue
+			}
 			oldTableName := story.ID + "_" + chapter.ID + "_blocks"
 			_, err := d.DynamoClient.RestoreTableFromBackup(context.TODO(), &dynamodb.RestoreTableFromBackupInput{
 				BackupArn:       aws.String(chapter.BackupARN),

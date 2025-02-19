@@ -35,8 +35,6 @@ type StoryBlocks struct {
 
 type AssociationDetails struct {
 	ExtendedDescription string `json:"extended_description" dynamodbav:"extended_description"`
-	CaseSensitive       bool   `json:"case_sensitive" dynamodbav:"case_sensitive"`
-	Aliases             string `json:"aliases" dynamodbav:"aliases"`
 }
 
 type Association struct {
@@ -46,6 +44,8 @@ type Association struct {
 	Portrait         string             `json:"portrait" dynamodbav:"portrait"`
 	ShortDescription string             `json:"short_description" dynamodbav:"short_description"`
 	Details          AssociationDetails `json:"details"`
+	CaseSensitive    bool               `json:"case_sensitive" dynamodbav:"case_sensitive"`
+	Aliases          string             `json:"aliases" dynamodbav:"aliases"`
 }
 
 type SimplifiedAssociation struct {

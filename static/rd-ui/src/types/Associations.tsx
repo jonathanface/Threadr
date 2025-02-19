@@ -18,6 +18,8 @@ export interface Association {
   short_description: string;
   portrait: string;
   details: AssociationDetails;
+  aliases: string;
+  case_sensitive: boolean;
 }
 
 export interface SimplifiedAssociation {

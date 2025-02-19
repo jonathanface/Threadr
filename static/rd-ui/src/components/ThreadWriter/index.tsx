@@ -157,7 +157,7 @@ export const ThreadWriter = () => {
     }
   };
 
-   
+
   const handleMenuItemClick = async (_event: React.MouseEvent, type: AssociationType) => {
     setContextMenuData(defaultContextData);
     const text = getSelectedText();
@@ -807,8 +807,8 @@ export const ThreadWriter = () => {
               association_type: assoc.association_type,
               short_description: assoc.short_description,
               portrait: assoc.portrait,
-              aliases: assoc.details.aliases,
-              case_sensitive: assoc.details.case_sensitive,
+              aliases: assoc.aliases,
+              case_sensitive: assoc.case_sensitive,
             };
           }
           return storedAssociation;
