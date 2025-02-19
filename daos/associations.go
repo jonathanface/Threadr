@@ -75,7 +75,7 @@ func (d DAO) WriteAssociations(email, storyOrSeriesID string, associations []*mo
 			updateInput := &types.Update{
 				TableName:        aws.String("associations" + GetTableSuffix()),
 				Key:              key,
-				UpdateExpression: aws.String("set association_name=:nm, author=:eml, created_at=if_not_exists(created_at,:t), last_updated=:t, association_type=:at, portrait=:p, short_description=:sd"),
+				UpdateExpression: aws.String("set association_name=:nm, author=:eml, created_at=if_not_exists(created_at,:t), last_updated=:t, association_type=:at, portrait=:p, short_description=:sd, case_sensitive=:c, aliases=:al"),
 				ExpressionAttributeValues: map[string]types.AttributeValue{
 					":nm":  &types.AttributeValueMemberS{Value: item.Name},
 					":eml": &types.AttributeValueMemberS{Value: email},
@@ -83,18 +83,18 @@ func (d DAO) WriteAssociations(email, storyOrSeriesID string, associations []*mo
 					":at":  &types.AttributeValueMemberS{Value: item.Type},
 					":p":   &types.AttributeValueMemberS{Value: imgFile},
 					":sd":  &types.AttributeValueMemberS{Value: shortDescription},
+					":c":   &types.AttributeValueMemberBOOL{Value: item.Details.CaseSensitive},
+					":al":  &types.AttributeValueMemberS{Value: item.Details.Aliases},
 				},
 			}
 
 			updateDetailsInput := &types.Update{
 				TableName:        aws.String("association_details" + GetTableSuffix()),
 				Key:              key,
-				UpdateExpression: aws.String("set author=:eml, case_sensitive=:c, extended_description=:ed, aliases=:al"),
+				UpdateExpression: aws.String("set author=:eml, extended_description=:ed"),
 				ExpressionAttributeValues: map[string]types.AttributeValue{
 					":eml": &types.AttributeValueMemberS{Value: email},
-					":c":   &types.AttributeValueMemberBOOL{Value: item.Details.CaseSensitive},
 					":ed":  &types.AttributeValueMemberS{Value: extendedDescription},
-					":al":  &types.AttributeValueMemberS{Value: item.Details.Aliases},
 				},
 			}
 
