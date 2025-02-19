@@ -157,7 +157,8 @@ export const ThreadWriter = () => {
     }
   };
 
-  const handleMenuItemClick = async (event: React.MouseEvent, type: AssociationType) => {
+   
+  const handleMenuItemClick = async (_event: React.MouseEvent, type: AssociationType) => {
     setContextMenuData(defaultContextData);
     const text = getSelectedText();
     if (text.length) {
