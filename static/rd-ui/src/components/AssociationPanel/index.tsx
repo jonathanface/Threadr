@@ -11,7 +11,7 @@ import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { AssociationDecoratorPlugin } from "../ThreadWriter/plugins/AssociationDecoratorPlugin";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
-import { $createParagraphNode, $createTextNode, $getRoot, EditorState, LexicalEditor } from "lexical";
+import { $createParagraphNode, $createTextNode, $getRoot, $getSelection, EditorState, LexicalEditor } from "lexical";
 import { ClickData } from "../ThreadWriter/plugins/DocumentClickPlugin";
 import { CharacterLimitPlugin } from "@lexical/react/LexicalCharacterLimitPlugin";
 import { OverflowNode } from "@lexical/overflow";
@@ -99,7 +99,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
         initialAssociation.current = JSON.parse(JSON.stringify(serverAssociation));
         setSelectedAssociation(serverAssociation);
         setAliases(serverAssociation.aliases);
-        exclusionList.current = [serverAssociation.association_name, ...serverAssociation.details.aliases.split(',')];
+        exclusionList.current = [serverAssociation.association_name, ...serverAssociation.aliases.split(',')];
         console.log("got", exclusionList);
       } catch (error: unknown) {
         console.error(`error fetching association details: ${error}`);
@@ -172,16 +172,15 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
     setSelectedAssociationID(value.id);
   }
 
-
-
   const extractTextAndUpdate = (editorState: EditorState, type: string) => {
     if (!selectedAssociation) return;
     let textContent = "";
     editorState.read(() => {
       const root = $getRoot();
-      root.getChildren().forEach((node) => {
-        textContent += node.getTextContent();
-      });
+      // Assume each child is a paragraph node.
+      textContent = root.getChildren()
+        .map((node) => node.getTextContent())
+        .join("\n");
     });
     let currentValue = "";
     if (type === "background") {
@@ -201,7 +200,8 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
       updatedAssociation.short_description = textContent;
     }
     setSelectedAssociation(updatedAssociation);
-  }
+  };
+
 
   const processImage = (acceptedFiles: File[]) => {
     if (!selectedAssociationID || !story || !selectedAssociation) {
@@ -361,9 +361,9 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
               onBlur={(event) => {
                 setIsAliasesActive(false);
                 if (!selectedAssociation) return;
-                if (selectedAssociation.details.aliases === event.target.value) return;
+                if (selectedAssociation.aliases === event.target.value) return;
                 const updatedAssociation = { ...selectedAssociation };
-                updatedAssociation.details.aliases = event.target.value;
+                updatedAssociation.aliases = event.target.value;
                 setSelectedAssociation(updatedAssociation);
               }}
               sx={{
@@ -386,10 +386,10 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
                   onChange={() => {
                     if (!selectedAssociation) return;
                     const updatedAssociation = { ...selectedAssociation };
-                    updatedAssociation.details.case_sensitive = !selectedAssociation?.details.case_sensitive;
+                    updatedAssociation.case_sensitive = !selectedAssociation?.case_sensitive;
                     setSelectedAssociation(updatedAssociation);
                   }}
-                  checked={selectedAssociation?.details.case_sensitive || false}
+                  checked={selectedAssociation?.case_sensitive || false}
                 />
               }
               label="Case-Sensitive"

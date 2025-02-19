@@ -91,7 +91,6 @@ export const AssociationDecoratorPlugin = ({
     const processAssociations = useCallback(
         (associations: SimplifiedAssociation[], rootNode: ElementNode, exclusionList?: string[]): void => {
             if (!associations.length) return;
-
             const textNodes: TextNode[] = [];
             const traverse = (node: LexicalNode) => {
                 if (node instanceof TextNode) {
@@ -109,8 +108,8 @@ export const AssociationDecoratorPlugin = ({
                         ? association.aliases.split(",").map(alias => alias.trim())
                         : [];
                     aliases.sort((a, b) => b.length - a.length); // Match longer aliases first
-                    const namesToMatch = [...aliases, association.association_name.trim()];
 
+                    const namesToMatch = [...aliases, association.association_name.trim()];
                     for (const name of namesToMatch) {
                         if (exclusionList?.includes(name)) {
                             continue;
@@ -189,7 +188,7 @@ export const AssociationDecoratorPlugin = ({
                 }
 
                 editor.update(() => {
-                    //console.log("AssociationPlugin - Associations processed on associations prop change.", JSON.stringify(associations));
+                    //console.log("AssociationPlugin - Associations processed on associations prop change.", JSON.stringify(exclusionList));
                     const root = $getRoot();
                     cleanupObsoleteDecorators(root, associations);
                     processAssociations(associations, root, exclusionList);
