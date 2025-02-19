@@ -83,8 +83,8 @@ func (d DAO) WriteAssociations(email, storyOrSeriesID string, associations []*mo
 					":at":  &types.AttributeValueMemberS{Value: item.Type},
 					":p":   &types.AttributeValueMemberS{Value: imgFile},
 					":sd":  &types.AttributeValueMemberS{Value: shortDescription},
-					":c":   &types.AttributeValueMemberBOOL{Value: item.Details.CaseSensitive},
-					":al":  &types.AttributeValueMemberS{Value: item.Details.Aliases},
+					":c":   &types.AttributeValueMemberBOOL{Value: item.CaseSensitive},
+					":al":  &types.AttributeValueMemberS{Value: item.Aliases},
 				},
 			}
 

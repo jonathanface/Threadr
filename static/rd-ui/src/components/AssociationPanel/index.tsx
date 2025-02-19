@@ -98,8 +98,9 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
         const serverAssociation = await response.json() as Association;
         initialAssociation.current = JSON.parse(JSON.stringify(serverAssociation));
         setSelectedAssociation(serverAssociation);
-        setAliases(serverAssociation.details.aliases);
+        setAliases(serverAssociation.aliases);
         exclusionList.current = [serverAssociation.association_name, ...serverAssociation.details.aliases.split(',')];
+        console.log("got", exclusionList);
       } catch (error: unknown) {
         console.error(`error fetching association details: ${error}`);
       } finally {
