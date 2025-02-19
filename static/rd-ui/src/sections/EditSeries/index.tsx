@@ -69,8 +69,7 @@ export const EditSeries = () => {
                     message:
                         "We are experiencing difficulty retrieving some or all of your data",
                     severity: AlertToastType.error,
-                    open: true,
-                    timeout: 6000,
+                    open: true
                 });
             } finally {
                 hideLoader();
@@ -82,7 +81,6 @@ export const EditSeries = () => {
     const seriesFormMessage: AlertState = {
         title: "Cannot edit series",
         message: "",
-        timeout: 6000,
         open: true,
         severity: AlertToastType.error,
         link: undefined,

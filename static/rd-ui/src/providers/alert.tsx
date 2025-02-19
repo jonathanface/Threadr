@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { AlertState, AlertToastType } from "../types/AlertToasts";
 import { AlertContext } from "../contexts/alert";
 
@@ -15,9 +15,15 @@ export const AlertProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
     const [alertState, setAlertState] = useState<AlertState>(defaultState);
 
-    const clearAlert = () => {
-        setAlertState(defaultState);
-    };
+    const clearAlert = useCallback(() => {
+        setAlertState({
+            ...alertState,
+            open: false
+        });
+        setTimeout(() => {
+            setAlertState(defaultState);
+        }, 500);
+    }, [alertState]);
 
     const alertValue = useMemo(
         () => ({
@@ -25,7 +31,7 @@ export const AlertProvider: React.FC<{ children: React.ReactNode }> = ({
             setAlertState,
             clearAlert,
         }),
-        [alertState]
+        [alertState, clearAlert]
     );
 
     return (

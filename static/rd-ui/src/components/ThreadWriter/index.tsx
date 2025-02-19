@@ -150,8 +150,7 @@ export const ThreadWriter = () => {
         title: "Error saving association",
         message: "There was an error saving your association. Please try again later.",
         severity: AlertToastType.error,
-        open: true,
-        timeout: 6000,
+        open: true
       });
     } finally {
       hideLoader();
@@ -320,6 +319,22 @@ export const ThreadWriter = () => {
   }
 
   // queue operations
+  const runQueue = useCallback(async () => {
+    try {
+      await ProcessDBQueue();
+    } catch (error) {
+      console.error((error as Error).message);
+      setAlertState({
+        title: "Unable to sync",
+        message:
+          "We are experiencing difficulty contacting the server. We'll keep attempting to save your work as long as you leave this window open, however we suggest you save a local copy of your current work.",
+        severity: AlertToastType.error,
+        open: true,
+        timeout: null
+      });
+    }
+  }, [setAlertState]);
+
   const queueParagraphOrderResync = useCallback(() => {
     if (!story || !chapter || !editorRef.current) return;
     editorRef.current.read(() => {
@@ -439,19 +454,21 @@ export const ThreadWriter = () => {
         chapterID: chapterID,
       });
 
-      ProcessDBQueue();
+      try {
+        runQueue();
+      } catch (error) {
+        console.error("error from db queue", error);
+      }
       setAlertState({
         title: "Chapter ready",
         message:
           "Your chapter assets are complete and your content was saved",
         severity: AlertToastType.success,
         open: true,
-        timeout: 6000,
+        timeout: 10000,
       });
-
-
     });
-  }, [setAlertState]);
+  }, [setAlertState, runQueue]);
 
 
   useEditorStateUpdater(editorRef, storyBlocks, isProgrammaticChange);
@@ -566,19 +583,7 @@ export const ThreadWriter = () => {
 
   useEffect(() => {
     const processInterval = setInterval(() => {
-      try {
-        ProcessDBQueue();
-      } catch (error: unknown) {
-        console.error((error as Error).message);
-        setAlertState({
-          title: "Unable to sync",
-          message:
-            "We are experiencing difficulty contacting the server. We'll keep attempting to save your work as long as you leave this window open, however we suggest you save a local copy of your current work.",
-          severity: AlertToastType.error,
-          open: true,
-          timeout: 6000,
-        });
-      }
+      runQueue();
     }, 5000);
     window.addEventListener("unload", () => {
     });
@@ -586,7 +591,7 @@ export const ThreadWriter = () => {
       clearInterval(processInterval);
       window.removeEventListener("unload", () => { });
     };
-  }, [story?.story_id, setAlertState]);
+  }, [story?.story_id, setAlertState, runQueue]);
 
   useEffect(() => {
     if (editorRef.current) {
@@ -701,7 +706,6 @@ export const ThreadWriter = () => {
   }, [setAlertState]);
 
   const onChangeHandler = useCallback((editorState: EditorState) => {
-    // TO-DO Formatting changes not detected
     if (isProgrammaticChange.current) {
       console.log("Programmatic change detected, skipping onChange handling.");
       return;
@@ -789,8 +793,7 @@ export const ThreadWriter = () => {
         message:
           "We are unable to save your association. Please try again later.",
         severity: AlertToastType.error,
-        open: true,
-        timeout: 6000,
+        open: true
       });
     } finally {
       setAssociations((prevAssociations) => {

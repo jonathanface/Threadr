@@ -32,7 +32,7 @@ export const StoryAndSeriesListing = () => {
           "...but you haven't created any stories yet. Hit the big plus button to make one.",
         open: true,
         severity: AlertToastType.info,
-        timeout: undefined,
+        timeout: null,
       });
     }
   }, [

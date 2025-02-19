@@ -141,8 +141,7 @@ export const CreateEditStorySlideshow = () => {
                     message:
                         "We are experiencing difficulty retrieving some or all of your data",
                     severity: AlertToastType.error,
-                    open: true,
-                    timeout: 6000,
+                    open: true
                 });
             } finally {
                 hideLoader();

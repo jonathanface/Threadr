@@ -84,8 +84,7 @@ export const ChapterItems = ({ chapters }: SettingsMenuProps) => {
                 title: "Problem",
                 message: "An error occurred creating your chapter.",
                 severity: AlertToastType.info,
-                open: true,
-                timeout: 6000,
+                open: true
             });
         } finally {
             hideLoader();
@@ -99,8 +98,7 @@ export const ChapterItems = ({ chapters }: SettingsMenuProps) => {
                 title: "Nope",
                 message: "You cannot delete a story's only chapter.",
                 severity: AlertToastType.info,
-                open: true,
-                timeout: 6000,
+                open: true
             });
             return;
         }
@@ -173,7 +171,6 @@ export const ChapterItems = ({ chapters }: SettingsMenuProps) => {
                 message,
                 severity: AlertToastType.error,
                 open: true,
-                timeout: 6000,
             });
         } finally {
             hideLoader();
