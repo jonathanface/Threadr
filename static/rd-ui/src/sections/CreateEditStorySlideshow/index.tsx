@@ -534,6 +534,7 @@ export const CreateEditStorySlideshow = () => {
                 <>
                     <Box sx={{ display: 'flex' }}>
                         <Box className={styles.finalProduct}>
+                            <Typography variant="subtitle2" className={`${styles.finalTitle} ${styles.headerTitle} ${storyBuild.title && storyBuild.title.trim().length > 0 ? styles.hasText : ''}`}>Your Story So Far</Typography>
                             <Typography variant="subtitle1" className={`${styles.finalTitle} ${storyBuild.title && storyBuild.title.trim().length > 0 ? styles.hasText : ''}`}>{`${storyBuild.title}`}</Typography>
                             <img className={`${styles.finalImage} ${storyBuild.image || storyBuild.image_url ? styles.hasText : ''}`} src={tempImageURL} />
                             <Typography variant="body2" className={`${styles.finalDescription} ${storyBuild.description && storyBuild.description.trim().length > 0 ? styles.hasText : ''}`}>{storyBuild.description}</Typography>

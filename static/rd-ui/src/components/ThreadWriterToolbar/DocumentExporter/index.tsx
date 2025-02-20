@@ -89,22 +89,22 @@ export const DocumentExporter = () => {
     let altText = "Export document.";
     let disabled = false;
     if (!userDetails?.subscription_id.length) {
-        altText += "\nThis feature is available to subscribers only"
+        altText += "\nExporting documents is only available to subscribers"
         disabled = true;
     }
 
     return (
         <div
             className={styles.exporter}
-            onMouseEnter={() => setIsOpen(true)}
-            onMouseLeave={() => setIsOpen(false)}
+            onMouseEnter={() => !disabled ? setIsOpen(true) : null}
+            onMouseLeave={() => !disabled ? setIsOpen(false) : null}
             style={{ position: 'relative', display: 'inline-block' }} // Ensure positioning
         >
-            <Tooltip title={altText}>
+            <Tooltip title={altText} placement="top">
                 <span>
                     <IconButton className={styles.parentButton} aria-label="export"
                         disabled={disabled}
-                        onClick={() => setIsOpen(!isOpen)}>
+                        onClick={() => !disabled ? setIsOpen(!isOpen) : null}>
                         <FileDownloadIcon fontSize="small" />
                     </IconButton>
                 </span>
