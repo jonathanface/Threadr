@@ -1,4 +1,4 @@
-import { Box, Button, createTheme, IconButton, Step, StepLabel, Stepper, ThemeProvider, Typography } from "@mui/material";
+import { Box, Button, createTheme, IconButton, MobileStepper, Step, StepLabel, Stepper, ThemeProvider, Typography, useMediaQuery } from "@mui/material";
 import { useCallback, useEffect, useRef, useState } from "react";
 import styles from './createeditstoryslideshow.module.css'
 import { TitleStep } from "./TitleStep";
@@ -16,10 +16,11 @@ import { AlertToastType } from "../../types/AlertToasts";
 import { useNavigate, useParams } from "react-router-dom";
 import CloseIcon from '@mui/icons-material/Close';
 import { useFetchUserData } from "../../hooks/useFetchUserData";
+import { KeyboardArrowLeft, KeyboardArrowRight } from "@mui/icons-material";
 
 const steps = ['Title', 'Image', 'Description', 'Series'];
 
-interface CreateStoryForm {
+export interface CreateStoryForm {
     [key: string]: string | undefined | File | number;
     story_id?: string;
     title?: string;
@@ -517,6 +518,55 @@ export const CreateEditStorySlideshow = () => {
         }
     });
 
+    const isMobile = useMediaQuery(textfieldTheme.breakpoints.down('sm'));
+    const DynamicStepper = isMobile ?
+        <MobileStepper
+            variant="text"
+            steps={steps.length}
+            position="static"
+            activeStep={activeStep}
+            nextButton={
+                <Button
+                    size="small"
+                    onClick={handleNext}
+                    disabled={activeStep === steps.length - 1}
+                >
+                    Next
+                    {stepIconTheme.direction === 'rtl' ? (
+                        <KeyboardArrowLeft />
+                    ) : (
+                        <KeyboardArrowRight />
+                    )}
+                </Button>
+            }
+            backButton={
+                <Button size="small" onClick={handleBack} disabled={activeStep === 0}>
+                    {stepIconTheme.direction === 'rtl' ? (
+                        <KeyboardArrowRight />
+                    ) : (
+                        <KeyboardArrowLeft />
+                    )}
+                    Back
+                </Button>
+            }
+        /> :
+        <Stepper activeStep={activeStep}>
+            {steps.map((label, index) => {
+                const stepProps: { completed?: boolean } = {};
+                const labelProps: {
+                    optional?: React.ReactNode;
+                } = {};
+                if (isStepSkipped(index)) {
+                    stepProps.completed = false;
+                }
+                return (
+                    <Step key={label} {...stepProps}>
+                        <StepLabel {...labelProps}>{label}</StepLabel>
+                    </Step>
+                );
+            })}
+        </Stepper>;
+
     return userDetails && userDetails.subscription_id.length && !userDetails.expired ? (
         <Box className={styles.slideshowParent} >
             <Box className={styles.header}>
@@ -525,24 +575,9 @@ export const CreateEditStorySlideshow = () => {
                 </IconButton>
             </Box>
             <ThemeProvider theme={stepIconTheme}>
-                <Stepper activeStep={activeStep}>
-                    {steps.map((label, index) => {
-                        const stepProps: { completed?: boolean } = {};
-                        const labelProps: {
-                            optional?: React.ReactNode;
-                        } = {};
-                        if (isStepSkipped(index)) {
-                            stepProps.completed = false;
-                        }
-                        return (
-                            <Step key={label} {...stepProps}>
-                                <StepLabel {...labelProps}>{label}</StepLabel>
-                            </Step>
-                        );
-                    })}
-                </Stepper>
+                {DynamicStepper}
                 <>
-                    <Box sx={{ display: 'flex' }}>
+                    <Box className={styles.mainContent}>
                         <Box className={styles.finalProduct}>
                             <Typography variant="subtitle2" className={`${styles.finalTitle} ${styles.headerTitle} ${storyBuild.title && storyBuild.title.trim().length > 0 ? styles.hasText : ''}`}>Your Story So Far</Typography>
                             <Typography variant="subtitle1" className={`${styles.finalTitle} ${storyBuild.title && storyBuild.title.trim().length > 0 ? styles.hasText : ''}`}>{`${storyBuild.title}`}</Typography>
@@ -560,9 +595,9 @@ export const CreateEditStorySlideshow = () => {
                                             ? <DescriptionStep theme={textfieldTheme} text={tempDescription} onChange={(e) => setTempDescription(e.target.value)} />
                                             : activeStep === 3 ? <SeriesStep theme={textfieldTheme} preselected={tempSeries} onSeriesChange={handleSeriesChange} />
                                                 : activeStep === 4 ?
-                                                    <VerificationStep isEditing={storyID ? true : false} onBack={handleBack} onReset={handleReset} /> : ""
+                                                    <VerificationStep isMobile={isMobile} isEditing={storyID ? true : false} tempImageURL={tempImageURL} storyBuild={storyBuild} onBack={handleBack} onReset={handleReset} /> : ""
                             }
-                            <Box sx={{ color: '#8e0000' }}>{warning}</Box>
+                            <Box className={styles.errorMsg}>{warning}</Box>
                         </Box>
                     </Box>
                     <Box sx={{ display: 'flex', flexDirection: 'row', pt: 2 }}>

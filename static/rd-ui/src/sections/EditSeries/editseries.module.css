@@ -127,16 +127,18 @@
 }
 
 @media only screen and (max-width: 600px) {
-    .editSeriesModal .content {
+    .editSeriesContainer .content {
         flex-direction: column;
     }
 
-    .editSeriesModal .column.left {
-        margin: 0 auto;
-        margin-bottom: 10px;
+    .editSeriesContainer .column.left {
+        width: 100%;
     }
 
-    .editSeriesModal .column.right input {
+    .editSeriesContainer input[type="text"],
+    .editSeriesContainer textarea {
         width: 100%;
+        font-size: 0.9rem;
+        padding: 10px;
     }
 }

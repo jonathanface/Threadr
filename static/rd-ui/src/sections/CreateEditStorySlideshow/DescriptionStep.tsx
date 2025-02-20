@@ -73,7 +73,7 @@ export const DescriptionStep = (props: DescriptionStepProps) => {
             <Box className={styles.formContainer}>
                 <Typography sx={{ mb: 2 }}>Enter a brief description of your story</Typography>
                 <TextField inputProps={{
-                }} minRows={4} maxRows={10} multiline sx={{ width: '300px', padding: '0' }} placeholder={defaultText} value={props.text || ""} onChange={props.onChange} />
+                }} minRows={4} maxRows={10} multiline className={styles.descriptionField} placeholder={defaultText} value={props.text || ""} onChange={props.onChange} />
             </Box>
         </ThemeProvider>
     );

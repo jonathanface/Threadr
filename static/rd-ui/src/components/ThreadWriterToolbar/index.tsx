@@ -19,6 +19,7 @@ import { EditableText } from "../EditableText";
 import { useSelections } from "../../hooks/useSelections";
 import { AlertToastType } from "../../types/AlertToasts";
 import { useToaster } from "../../hooks/useToaster";
+import { useMediaQuery } from "@mui/material";
 
 export const Toolbar = () => {
     const [editor] = useLexicalComposerContext();
@@ -107,51 +108,58 @@ export const Toolbar = () => {
         }
     };
 
+    const isMobile = useMediaQuery("(max-width: 600px)");
+    const direction = isMobile ? 'left' : 'right';
+
     return (
         <div className={styles.toolbar}>
             {/* Text formatting buttons */}
-            <button
-                className={isBold ? styles.active : ""}
-                onClick={() => toggleTextFormat("bold")}
-            >
-                <b>B</b>
-            </button>
-            <button
-                className={isItalic ? styles.active : ""}
-                onClick={() => toggleTextFormat("italic")}
-            >
-                <i>I</i>
-            </button>
-            <button
-                className={isUnderline ? styles.active : ""}
-                onClick={() => toggleTextFormat("underline")}
-            >
-                <u>U</u>
-            </button>
-            <button
-                className={isStrikethrough ? styles.active : ""}
-                onClick={() => toggleTextFormat("strikethrough")}
-            >
-                <s>S</s>
-            </button>
+            <div className={styles.buttonContainer}>
+                <button
+                    className={isBold ? styles.active : ""}
+                    onClick={() => toggleTextFormat("bold")}
+                >
+                    <b>B</b>
+                </button>
+                <button
+                    className={isItalic ? styles.active : ""}
+                    onClick={() => toggleTextFormat("italic")}
+                >
+                    <i>I</i>
+                </button>
+                <button
+                    className={isUnderline ? styles.active : ""}
+                    onClick={() => toggleTextFormat("underline")}
+                >
+                    <u>U</u>
+                </button>
+                <button
+                    className={isStrikethrough ? styles.active : ""}
+                    onClick={() => toggleTextFormat("strikethrough")}
+                >
+                    <s>S</s>
+                </button>
 
-            {/* Alignment buttons */}
-            <IconButton className={alignment === 'left' ? styles.active : ""} aria-label="left" onClick={() => applyAlignment("left")}>
-                <FormatAlignLeftIcon fontSize="small" />
-            </IconButton>
-            <IconButton className={alignment === 'center' ? styles.active : ""} aria-label="center" onClick={() => applyAlignment("center")}>
-                <FormatAlignCenterIcon fontSize="small" />
-            </IconButton>
-            <IconButton className={alignment === 'right' ? styles.active : ""} aria-label="right" onClick={() => applyAlignment("right")}>
-                <FormatAlignRightIcon fontSize="small" />
-            </IconButton>
-            <IconButton className={alignment === 'justify' ? styles.active : ""} aria-label="justify" onClick={() => applyAlignment("justify")}>
-                <FormatAlignJustifyIcon fontSize="small" />
-            </IconButton>
-            <span className={styles.chapterTitle}>
-                <EditableText textValue={chapter?.title ? chapter.title : ""} onTextChange={onChapterTitleEdit} inputTextAlign="right" />
-            </span>
-            <DocumentExporter />
+                {/* Alignment buttons */}
+                <IconButton className={alignment === 'left' ? styles.active : ""} aria-label="left" onClick={() => applyAlignment("left")}>
+                    <FormatAlignLeftIcon fontSize="small" />
+                </IconButton>
+                <IconButton className={alignment === 'center' ? styles.active : ""} aria-label="center" onClick={() => applyAlignment("center")}>
+                    <FormatAlignCenterIcon fontSize="small" />
+                </IconButton>
+                <IconButton className={alignment === 'right' ? styles.active : ""} aria-label="right" onClick={() => applyAlignment("right")}>
+                    <FormatAlignRightIcon fontSize="small" />
+                </IconButton>
+                <IconButton className={alignment === 'justify' ? styles.active : ""} aria-label="justify" onClick={() => applyAlignment("justify")}>
+                    <FormatAlignJustifyIcon fontSize="small" />
+                </IconButton>
+            </div>
+            <div className={styles.extraButtons}>
+                <span className={styles.chapterTitle}>
+                    <EditableText textValue={chapter?.title ? chapter.title : ""} onTextChange={onChapterTitleEdit} inputTextAlign={direction} />
+                </span>
+                <DocumentExporter />
+            </div>
         </div>
     );
 };

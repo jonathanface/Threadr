@@ -121,3 +121,19 @@ ol {
 li {
   margin-bottom: 4px;
 }
+
+@media only screen and (max-width: 600px) {
+  .editorRow {
+    margin-top: 0px;
+    width: 100%;
+  }
+
+  .editorArea {
+    width: 85%;
+    margin-right: 0;
+  }
+
+  .editorInput {
+    padding: 10px;
+  }
+}

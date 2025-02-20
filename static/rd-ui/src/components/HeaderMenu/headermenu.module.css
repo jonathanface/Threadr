@@ -59,3 +59,22 @@ header .logoImage {
     height: 50px;
     margin-right: 20px;
 }
+
+@media only screen and (max-width: 600px) {
+    header .storyInfo {
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+
+    header .seriesInfo {
+        font-size: 0.8rem;
+    }
+
+    header .logoImage {
+        margin-right: 0;
+    }
+
+    header .leftPane {
+        margin-right: 50px;
+    }
+}

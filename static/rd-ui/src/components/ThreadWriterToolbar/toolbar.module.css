@@ -13,6 +13,12 @@
     align-items: center;
 }
 
+.toolbar .buttonContainer {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
 .toolbar button {
     background: #f4f4f4;
     border: 1px solid #ccc;
@@ -36,11 +42,42 @@
 }
 
 .toolbar .chapterTitle {
-    margin-left: auto;
     font-size: 1.4rem;
     margin-right: 10px;
 }
 
 .toolbar .chapterTitle input {
     font-size: 1.4rem;
+}
+
+.toolbar .extraButtons {
+    margin-left: auto;
+}
+
+@media only screen and (max-width: 600px) {
+    .toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+        margin: 10px;
+        border-radius: 10px;
+        padding: 15px;
+    }
+
+    .toolbar .extraButtons {
+        display: flex;
+        width: 100%;
+        justify-content: space-between;
+        margin-top: 5px;
+    }
+
+    .toolbar button {
+        font-size: 0.8rem;
+        width: 20px;
+        height: 20px;
+        padding: 0px;
+    }
+
+    .toolbar .chapterTitle {
+        font-size: 1rem;
+    }
 }
