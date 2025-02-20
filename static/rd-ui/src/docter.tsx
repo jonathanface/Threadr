@@ -143,6 +143,16 @@ export const Docter = memo(() => {
             }
           />
           <Route
+            path="/series/:seriesID/add"
+            element={
+              isLoggedIn ? (
+                <CreateEditStorySlideshow />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+          <Route
             path="/series/:seriesID/edit"
             element={
               isLoggedIn ? (

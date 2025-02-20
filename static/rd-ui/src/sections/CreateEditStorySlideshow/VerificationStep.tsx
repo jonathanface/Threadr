@@ -17,8 +17,6 @@ export const VerificationStep = (props: VerificationStepProps) => {
                     "Otherwise, go back and make changes."
                 }
             </Typography>
-
-
         </Box>
     );
 }

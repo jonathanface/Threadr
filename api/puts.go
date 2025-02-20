@@ -167,10 +167,23 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		for idx, fromForm := range stories {
+			exists := false
 			for storedIdx, storedStory := range series.Stories {
 				if storedStory.ID == fromForm.ID {
+					// an existing story was changed
 					storyCopy := stories[idx]
 					series.Stories[storedIdx] = &storyCopy
+					exists = true
+				}
+			}
+			if !exists {
+				// new story was added
+				fromForm.SeriesID = seriesID
+				series.Stories = append(series.Stories, &fromForm)
+				_, err = dao.EditStory(email, fromForm)
+				if err != nil {
+					RespondWithError(w, http.StatusInternalServerError, err.Error())
+					return
 				}
 			}
 		}
