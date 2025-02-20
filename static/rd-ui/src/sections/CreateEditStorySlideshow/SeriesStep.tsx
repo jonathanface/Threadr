@@ -34,7 +34,6 @@ export const SeriesStep = (props: SeriesSelectionProps) => {
     }, [seriesList]);
 
     const handleSeriesChange = (text: string, foundSeries?: Series) => {
-        console.log("wtf", text, foundSeries)
         if (foundSeries) {
             props.onSeriesChange(foundSeries.series_title, foundSeries.series_id);
         } else {

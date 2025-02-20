@@ -38,13 +38,30 @@ export const Docter = memo(() => {
         text: "subscribe",
       };
       setAlertState({
-        title: "Your account has expired",
+        title: "Subscription Expired",
         message: "All except your first-created story has been archived and will be retained for 30 days before permanent deletion. If you wish to renew your subscription, click below.",
         open: true,
         severity: AlertToastType.warning,
         timeout: null,
         callback: subscribeFunc,
       });
+    } else if (userDetails && userDetails.expires_at && !userDetails.renewing) {
+      const now = Math.floor(Date.now() / 1000);
+      const twentyFourHoursFromNow = now + 24 * 60 * 60;
+      if (parseInt(userDetails.expires_at) >= now && parseInt(userDetails.expires_at) <= twentyFourHoursFromNow) {
+        const renewFunc: AlertFunctionCall = {
+          type: AlertCommandType.renew,
+          text: "renew",
+        };
+        setAlertState({
+          title: "Subscription Expiring",
+          message: `Your subscription will expire at ${new Date(parseInt(userDetails.expires_at) * 1000).toLocaleString()}, and any extra stories you've created will be removed, so you may want to back them up now.\n\nIf you wish to renew your subscription, click below.`,
+          open: true,
+          severity: AlertToastType.warning,
+          timeout: null,
+          callback: renewFunc,
+        });
+      }
     }
   }, [userDetails, setAlertState]);
 

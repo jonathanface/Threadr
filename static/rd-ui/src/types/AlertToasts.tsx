@@ -7,6 +7,7 @@ export enum AlertToastType {
 
 export enum AlertCommandType {
   subscribe = "subscribe",
+  renew = "renew"
 }
 
 export interface AlertLink {

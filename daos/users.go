@@ -54,6 +54,7 @@ func (d *DAO) GetUserDetails(email string) (user *models.UserInfo, err error) {
 	}
 
 	userFromMap := []models.UserInfo{}
+
 	if err = attributevalue.UnmarshalListOfMaps(out.Items, &userFromMap); err != nil {
 		return user, err
 	}
@@ -97,13 +98,14 @@ func (d *DAO) UpdateUser(user models.UserInfo) (err error) {
 			"email": &types.AttributeValueMemberS{Value: user.Email},
 		},
 		ReturnValues:     types.ReturnValueUpdatedNew,
-		UpdateExpression: aws.String("set last_accessed=:t, customer_id=:cid, subscription_id=:sid, expired=:e, renewing=:r"),
+		UpdateExpression: aws.String("set last_accessed=:t, customer_id=:cid, subscription_id=:sid, expired=:e, renewing=:r, expires_at=:ea"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":t":   &types.AttributeValueMemberN{Value: now},
 			":sid": &types.AttributeValueMemberS{Value: user.SubscriptionID},
 			":cid": &types.AttributeValueMemberS{Value: user.CustomerID},
 			":r":   &types.AttributeValueMemberBOOL{Value: user.Renewing},
 			":e":   &types.AttributeValueMemberBOOL{Value: user.Expired},
+			":ea":  &types.AttributeValueMemberN{Value: user.ExpiresAt},
 		},
 	}
 	var out *dynamodb.UpdateItemOutput

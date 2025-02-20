@@ -2,7 +2,6 @@ package daos
 
 import (
 	"context"
-	"log"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 )
@@ -107,7 +106,6 @@ func (m *MockDynamoClient) DescribeBackup(ctx context.Context, input *dynamodb.D
 // TransactWriteItems
 func (m *MockDynamoClient) TransactWriteItems(ctx context.Context, input *dynamodb.TransactWriteItemsInput, optFns ...func(*dynamodb.Options)) (*dynamodb.TransactWriteItemsOutput, error) {
 	if m.MockTransactWriteItems != nil {
-		log.Println("WTF")
 		return m.MockTransactWriteItems(ctx, input, optFns...)
 	}
 	return &dynamodb.TransactWriteItemsOutput{}, nil
