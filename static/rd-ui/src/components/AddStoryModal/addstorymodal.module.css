@@ -1,0 +1,14 @@
+.addStoryItem {
+    border: 1px solid #333;
+    margin-bottom: 10px;
+    border-radius: 15px;
+}
+
+.addStoryItem .avatar {
+    border: 1px solid #333;
+}
+
+.triggerButton {
+    font-size: 0.7rem;
+    margin-left: 10px;
+}
