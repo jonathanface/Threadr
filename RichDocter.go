@@ -10,10 +10,8 @@ import (
 	"RichDocter/sessions"
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -93,102 +91,12 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 			api.RespondWithError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		if userDetails.SubscriptionID != "" || userDetails.Expired {
-			isActive, stripeErr := billing.CheckSubscriptionIsActive(*userDetails)
-			if stripeErr != nil {
-				if stripeErr.HTTPStatusCode == http.StatusNotFound {
-					isActive = false
-				}
-			}
-			if !isActive {
-				// blank out the user's previous subscription/customer id
-				user.Expired = true
-				// account is no longer active
-				user.SubscriptionID = ""
-				err = dao.UpdateUser(user)
-				if err != nil {
-					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-					return
-				}
 
-				storiesCount, err := dao.GetTotalCreatedStories(user.Email)
-				if err != nil {
-					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-					return
-				}
-				if storiesCount > 1 {
-					// soft delete all but the earliest created story
-					stories, err := dao.GetAllStories(user.Email)
-					if err != nil {
-						api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-						return
-					}
-					go func() {
-						for idx, story := range stories {
-							if idx > 0 {
-								err = dao.SoftDeleteStory(user.Email, story.ID, true)
-								if err != nil {
-									fmt.Println(err.Error())
-								}
-							}
-
-						}
-					}()
-				}
-				// I need to somehow notify the client here
-			} else {
-				suspended, err := dao.CheckForSuspendedStories(user.Email)
-				if err != nil {
-					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-					return
-				}
-				if suspended {
-					userDetails.Expired = false
-					err = dao.RestoreAutomaticallyDeletedStories(user.Email)
-					if err != nil {
-						api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-						return
-					}
-				}
-			}
-		}
-
-		if userDetails.SubscriptionID == "" {
-			if r.Method == "POST" && (strings.HasSuffix(r.URL.Path, "/stories") ||
-				strings.HasSuffix(r.URL.Path, "/analyze") ||
-				strings.HasSuffix(r.URL.Path, "/propose")) ||
+		if userDetails.SubscriptionID == "" || userDetails.Expired {
+			if r.Method == "POST" && (strings.HasSuffix(r.URL.Path, "/analyze") || strings.HasSuffix(r.URL.Path, "/propose")) ||
 				r.Method == "PUT" && strings.HasSuffix(r.URL.Path, "/export") {
-
-				stories, err := dao.GetTotalCreatedStories(user.Email)
-				if err != nil {
-					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-					return
-				}
-				if stories >= 1 {
-					api.RespondWithError(w, http.StatusUnauthorized, "insufficient subscription")
-					return
-				}
-			}
-			if r.Method == "POST" && strings.HasSuffix(r.URL.Path, "/associations") {
-				var storyID string
-				if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
-					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-					return
-				}
-				storyOrSeriesID := storyID
-				if storyOrSeriesID, err = dao.IsStoryInASeries(user.Email, storyID); err != nil {
-					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-					return
-				}
-				associations, err := dao.GetStoryOrSeriesAssociationThumbnails(user.Email, storyOrSeriesID, false)
-				if err != nil {
-					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-					return
-				}
-				if len(associations) >= api.MAX_UNSUBSCRIBED_ASSOCIATION_LIMIT {
-					api.RespondWithError(w, http.StatusUnauthorized, "insufficient subscription")
-					return
-				}
+				api.RespondWithError(w, http.StatusUnauthorized, "insufficient subscription")
+				return
 			}
 		}
 		if err = dao.UpsertUser(user.Email); err != nil {

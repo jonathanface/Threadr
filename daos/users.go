@@ -64,6 +64,9 @@ func (d *DAO) GetUserDetails(email string) (user *models.UserInfo, err error) {
 	return &userFromMap[0], nil
 }
 
+/**
+ * Either create a user, or update user with last login time
+**/
 func (d *DAO) UpsertUser(email string) (err error) {
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	input := &dynamodb.UpdateItemInput{
