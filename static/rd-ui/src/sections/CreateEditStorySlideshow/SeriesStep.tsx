@@ -37,7 +37,7 @@ export const SeriesStep = (props: SeriesSelectionProps) => {
                 }
             }))
         }
-    }, [seriesList]);
+    }, [seriesList, props.preselected?.series_id]);
 
     const handleSeriesChange = (text: string, foundSeries?: Series) => {
         if (foundSeries) {
