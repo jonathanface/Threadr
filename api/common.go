@@ -23,6 +23,7 @@ import (
 	"github.com/stripe/stripe-go/v72/customer"
 	"github.com/stripe/stripe-go/v72/paymentmethod"
 	"github.com/stripe/stripe-go/v72/sub"
+	"github.com/stripe/stripe-go/v72/subitem"
 )
 
 const (
@@ -108,6 +109,102 @@ func processAWSError(opErr *smithy.OperationError) (err models.AwsStatusResponse
 		}
 	}
 	return err
+}
+
+func checkSubscriptionIsActive(user models.UserInfo) (bool, *stripe.Error) {
+	stripe.Key = os.Getenv("STRIPE_SECRET")
+	if stripe.Key == "" {
+		return false, &stripe.Error{HTTPStatusCode: http.StatusInternalServerError, Msg: "unable to load stripe secret"}
+	}
+	var c *stripe.Customer
+	params := &stripe.CustomerParams{}
+	params.AddExpand("subscriptions")
+	c, err := customer.Get(user.CustomerID, params)
+	if err != nil {
+		if _, ok := err.(*stripe.Error); ok {
+			return false, &stripe.Error{HTTPStatusCode: http.StatusBadGateway, Msg: "unable to cast response to stripe.Error"}
+		}
+		return false, err.(*stripe.Error)
+	}
+
+	activeSubscription := false
+	if c.Subscriptions != nil {
+		for _, item := range c.Subscriptions.Data {
+			if item.Status == stripe.SubscriptionStatusActive {
+				activeSubscription = true
+				break
+			}
+		}
+	} else {
+		return false, &stripe.Error{HTTPStatusCode: http.StatusNotFound, Msg: "unable to find subscription"}
+	}
+	return activeSubscription, nil
+}
+
+func checkSubscriptionIsExpiring(user models.UserInfo) (bool, *stripe.Error) {
+	stripe.Key = os.Getenv("STRIPE_SECRET")
+	if stripe.Key == "" {
+		return false, &stripe.Error{HTTPStatusCode: http.StatusInternalServerError, Msg: "unable to load stripe secret"}
+	}
+	var c *stripe.Customer
+	params := &stripe.CustomerParams{}
+	params.AddExpand("subscriptions")
+	c, err := customer.Get(user.CustomerID, params)
+	if err != nil {
+		if _, ok := err.(*stripe.Error); ok {
+			return false, &stripe.Error{HTTPStatusCode: http.StatusBadGateway, Msg: "unable to cast response to stripe.Error"}
+		}
+		return false, err.(*stripe.Error)
+	}
+
+	isExpiring := false
+	if c.Subscriptions != nil {
+		for _, item := range c.Subscriptions.Data {
+			fmt.Println("sub", item.CancelAtPeriodEnd)
+
+			if item.CancelAtPeriodEnd {
+				isExpiring = true
+				break
+			}
+		}
+	} else {
+		return false, &stripe.Error{HTTPStatusCode: http.StatusNotFound, Msg: "unable to find subscription"}
+	}
+	return isExpiring, nil
+}
+
+func updateSubscription(subscriptionID, paymentMethodID, priceID string) (*stripe.Subscription, error) {
+	subItemParams := &stripe.SubscriptionItemListParams{
+		Subscription: &subscriptionID,
+	}
+	i := subitem.List(subItemParams)
+	var si *stripe.SubscriptionItem
+	for i.Next() {
+		si = i.SubscriptionItem()
+		break
+	}
+	if si == nil {
+		return nil, fmt.Errorf("no subscription items found for subscription %v", subscriptionID)
+	}
+
+	subscriptionParams := &stripe.SubscriptionParams{
+		CancelAtPeriodEnd: stripe.Bool(false),
+		ProrationBehavior: stripe.String(string(stripe.SubscriptionProrationBehaviorCreateProrations)),
+		Items: []*stripe.SubscriptionItemsParams{
+			{
+				ID:    &si.ID,
+				Price: &priceID,
+			},
+		},
+		DefaultPaymentMethod: &paymentMethodID,
+	}
+
+	stripeSubscription, err := sub.Update(subscriptionID, subscriptionParams)
+	if err != nil {
+		return nil, err
+	}
+
+	return stripeSubscription, nil
 }
 
 func createSubscription(customerID string, priceID string, paymentMethodID string) (*stripe.Subscription, error) {
@@ -217,19 +314,19 @@ func scaleDownImage(file io.Reader, maxWidth uint) (*bytes.Buffer, string, error
 	return buf, format, err
 }
 
-func cancelSubscription(subscriptionID string) error {
+func cancelSubscription(subscriptionID string) (*stripe.Subscription, error) {
 	stripe.Key = os.Getenv("STRIPE_SECRET")
 	if stripe.Key == "" {
-		return fmt.Errorf("missing stripe secret")
+		return nil, fmt.Errorf("missing stripe secret")
 	}
 	cancel := true
 	subscriptionParams := &stripe.SubscriptionParams{
 		CancelAtPeriodEnd: &cancel,
 	}
 
-	_, err := sub.Update(subscriptionID, subscriptionParams)
+	sub, err := sub.Update(subscriptionID, subscriptionParams)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return sub, nil
 }

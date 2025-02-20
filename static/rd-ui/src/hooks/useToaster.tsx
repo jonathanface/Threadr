@@ -18,6 +18,9 @@ export const useToaster = () => {
         case AlertCommandType.subscribe:
           navigate('/subscribe');
           break;
+        case AlertCommandType.renew:
+          navigate('/settings');
+          break;
         default:
           break;
       }

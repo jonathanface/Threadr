@@ -6,6 +6,7 @@ export interface UserDetails {
   customer_id: string;
   admin?: boolean;
   expired?: boolean;
+  expires_at?: string;
 }
 
 export interface User {

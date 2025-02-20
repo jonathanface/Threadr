@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -82,18 +83,20 @@ func UpdateUserEndpoint(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 		}
-		sub, err := createSubscription(user.CustomerID, priceID, defaultPaymentID)
+		sub, err := updateSubscription(user.SubscriptionID, defaultPaymentID, priceID)
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		user.SubscriptionID = sub.ID
+		user.ExpiresAt = strconv.FormatInt(sub.CancelAt, 10)
 	} else if user.Renewing && !passedUser.Renewing {
-		err = cancelSubscription(user.SubscriptionID)
+		sub, err := cancelSubscription(user.SubscriptionID)
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+		user.ExpiresAt = strconv.FormatInt(sub.CancelAt, 10)
 	}
 	user.Renewing = passedUser.Renewing
 	if err = dao.UpdateUser(*user); err != nil {

@@ -72,9 +72,7 @@ export const ConfigPanel = () => {
 
   useEffect(() => {
     if (!userDetails) return;
-    console.log("wtf", userDetails);
     setIsCustomer(userDetails.customer_id.length ? true : false);
-
     if (!userDetails.customer_id.length || !userDetails.subscription_id.length) {
       setIsRenewing(false);
       setToggleLabel("Subscribe");

@@ -55,10 +55,25 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sb, err := CreateSubscription(customerID, priceID, paymentMethodID)
-	if err != nil {
-		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+	isExpiring, stripeErr := CheckSubscriptionIsExpiring(user)
+	if stripeErr != nil {
+		api.RespondWithError(w, http.StatusInternalServerError, stripeErr.Msg)
 		return
+	}
+
+	var subscription *stripe.Subscription
+	if isExpiring {
+		subscription, err = UpdateSubscription(user.SubscriptionID, paymentMethodID, priceID)
+		if err != nil {
+			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	} else {
+		subscription, err = CreateSubscription(customerID, priceID, paymentMethodID)
+		if err != nil {
+			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 
 	var (
@@ -71,11 +86,11 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	results := models.SubscriptionResults{}
-	results.SubscriptionID = sb.ID
-	results.PeriodStart = time.Unix(sb.CurrentPeriodStart, 0)
-	results.PeriodEnd = time.Unix(sb.CurrentPeriodEnd, 0)
-	user.SubscriptionID = sb.ID
-	user.CustomerID = sb.Customer.ID
+	results.SubscriptionID = subscription.ID
+	results.PeriodStart = time.Unix(subscription.CurrentPeriodStart, 0)
+	results.PeriodEnd = time.Unix(subscription.CurrentPeriodEnd, 0)
+	user.SubscriptionID = results.SubscriptionID
+	user.CustomerID = subscription.Customer.ID
 	user.Expired = false
 	user.Renewing = true
 
@@ -101,7 +116,7 @@ func CreateSubscription(customerID string, priceID string, paymentMethodID strin
 	return sub.New(subscriptionParams)
 }
 
-func UpdateSubscription(subscriptionID, paymentMethodID, priceID string) (*string, error) {
+func UpdateSubscription(subscriptionID, paymentMethodID, priceID string) (*stripe.Subscription, error) {
 	subItemParams := &stripe.SubscriptionItemListParams{
 		Subscription: &subscriptionID,
 	}
@@ -132,7 +147,7 @@ func UpdateSubscription(subscriptionID, paymentMethodID, priceID string) (*strin
 		return nil, err
 	}
 
-	return &stripeSubscription.ID, nil
+	return stripeSubscription, nil
 }
 
 func CheckSubscriptionIsActive(user models.UserInfo) (bool, *stripe.Error) {
@@ -150,6 +165,7 @@ func CheckSubscriptionIsActive(user models.UserInfo) (bool, *stripe.Error) {
 		}
 		return false, err.(*stripe.Error)
 	}
+
 	activeSubscription := false
 	if c.Subscriptions != nil {
 		for _, item := range c.Subscriptions.Data {
@@ -162,4 +178,34 @@ func CheckSubscriptionIsActive(user models.UserInfo) (bool, *stripe.Error) {
 		return false, &stripe.Error{HTTPStatusCode: http.StatusNotFound, Msg: "unable to find subscription"}
 	}
 	return activeSubscription, nil
+}
+
+func CheckSubscriptionIsExpiring(user models.UserInfo) (bool, *stripe.Error) {
+	stripe.Key = os.Getenv("STRIPE_SECRET")
+	if stripe.Key == "" {
+		return false, &stripe.Error{HTTPStatusCode: http.StatusInternalServerError, Msg: "unable to load stripe secret"}
+	}
+	var c *stripe.Customer
+	params := &stripe.CustomerParams{}
+	params.AddExpand("subscriptions")
+	c, err := customer.Get(user.CustomerID, params)
+	if err != nil {
+		if _, ok := err.(*stripe.Error); ok {
+			return false, &stripe.Error{HTTPStatusCode: http.StatusBadGateway, Msg: "unable to cast response to stripe.Error"}
+		}
+		return false, err.(*stripe.Error)
+	}
+
+	isExpiring := false
+	if c.Subscriptions != nil {
+		for _, item := range c.Subscriptions.Data {
+			if item.CancelAtPeriodEnd {
+				isExpiring = true
+				break
+			}
+		}
+	} else {
+		return false, &stripe.Error{HTTPStatusCode: http.StatusNotFound, Msg: "unable to find subscription"}
+	}
+	return isExpiring, nil
 }

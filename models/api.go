@@ -110,6 +110,7 @@ type UserInfo struct {
 	Expired        bool   `json:"expired" dynamodbav:"expired"`
 	Renewing       bool   `json:"renewing" dynamodbav:"renewing"`
 	AuthType       string `json:"auth_type"`
+	ExpiresAt      string `json:"expires_at" dynamodbav:"expires_at"`
 }
 
 type Answer struct {
