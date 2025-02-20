@@ -12,7 +12,7 @@ import { useSelections } from "../../hooks/useSelections";
 import { Story } from "../../types/Story";
 import { Series } from "../../types/Series";
 import { useToaster } from "../../hooks/useToaster";
-import { AlertCommandType, AlertToastType } from "../../types/AlertToasts";
+import { AlertToastType } from "../../types/AlertToasts";
 import { useNavigate, useParams } from "react-router-dom";
 import CloseIcon from '@mui/icons-material/Close';
 import { useFetchUserData } from "../../hooks/useFetchUserData";
@@ -156,6 +156,7 @@ export const CreateEditStorySlideshow = () => {
             }
         };
         fetchSeries();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [seriesID, showLoader, hideLoader, setAlertState]);
 
     const isStepOptional = (step: number) => {

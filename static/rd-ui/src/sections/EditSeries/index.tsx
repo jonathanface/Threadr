@@ -53,7 +53,7 @@ export const EditSeries = () => {
                     !seriesBuild.stories || !seriesBuild.stories.some((s) => s.story_id === story.story_id)
             );
         }
-    }, [storiesList]);
+    }, [seriesBuild.stories, storiesList]);
 
     useEffect(() => {
         if (!seriesID || !seriesID.length) return;
