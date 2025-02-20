@@ -4,9 +4,17 @@
     margin: 3rem auto;
     border: 1px solid #ddd;
     border-radius: 8px;
-    box-shadow: 2;
     box-shadow: 2px 2px 2px #1a1a1a;
     text-align: center;
     color: #ddd;
     position: relative;
+}
+
+@media only screen and (max-width: 600px) {
+    .configPanel {
+        max-width: none;
+        margin: 1rem;
+        padding: 1rem;
+        padding-top: 3rem;
+    }
 }

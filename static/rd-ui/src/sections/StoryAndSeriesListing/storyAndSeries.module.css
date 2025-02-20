@@ -44,14 +44,11 @@
 }
 
 @media only screen and (max-width: 600px) {
-  .listingPage .iconBox {
-    flex-direction: column;
+  .createStoryButton {
+    width: 100%;
   }
 
-  .listingPage .iconBox button:not(.docButton) {
-    max-width: none;
-    margin: 0 auto;
-    margin-bottom: 10px;
-    height: auto;
+  .listingPage .iconBox {
+    flex-direction: column;
   }
 }

@@ -2,3 +2,22 @@
     margin-left: auto;
     color: #F0F0F0;
 }
+
+.editableParent .editField input {
+    display: inline;
+    color: #F0F0F0;
+    padding: 0;
+    margin: 0;
+    border: 1px dotted #333;
+}
+
+@media only screen and (max-width: 600px) {
+    .editableParent {
+        font-size: 0.8rem;
+        margin-left: 0;
+    }
+
+    .editableParent .editField input {
+        font-size: 0.8rem;
+    }
+}

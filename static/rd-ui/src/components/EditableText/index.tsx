@@ -44,18 +44,13 @@ export const EditableText = (props: EditableTextProps) => {
                 textValue
             ) : (
                 <TextField
+                    className={styles.editField}
                     autoFocus
                     slotProps={{
                         htmlInput:
                         {
                             style: {
                                 textAlign: inputAlignment,
-                                display: "inline",
-                                color: "#F0F0F0",
-                                padding: 0,
-                                margin: 0,
-                                border: "1px dotted #333"
-                                //fieldSizing: 'content'
                             }
                         }
                     }}

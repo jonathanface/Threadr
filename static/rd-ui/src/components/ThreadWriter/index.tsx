@@ -27,7 +27,7 @@ import { AssociationDecoratorPlugin } from './plugins/AssociationDecoratorPlugin
 import { ClickableDecoratorNode } from './customNodes/ClickableDecoratorNode';
 import { Association, AssociationType, SimplifiedAssociation } from '../../types/Associations';
 import { AssociationPanel } from '../AssociationPanel';
-import { SettingsMenu } from '../SettingsMenu';
+import { StorySettingsMenu } from '../StorySettingsMenu';
 import { useSelections } from '../../hooks/useSelections';
 import { useFetchStoryBlocks } from '../../hooks/useFetchStoryBlocks';
 import { useFetchAssociations } from '../../hooks/useFetchAssociations';
@@ -881,7 +881,7 @@ export const ThreadWriter = () => {
             <AssociationPanel associations={associations} onEditCallback={onAssociationEditCallback} isAssociationPanelOpen={isAssociationPanelOpen} setIsAssociationPanelOpen={setIsAssociationPanelOpen} selectedAssociationID={selectedAssociation.current} />
             <ContextMenu name={contextMenuData.name} visible={contextMenuData.visible} x={contextMenuData.x} y={contextMenuData.y} items={contextMenuData.items} />
           </div>
-          <SettingsMenu />
+          <StorySettingsMenu />
         </div>
       </LexicalComposer>
     </div>

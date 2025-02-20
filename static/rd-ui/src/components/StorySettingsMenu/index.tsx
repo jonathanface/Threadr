@@ -9,7 +9,7 @@ import { useState } from "react";
 import { useSelections } from "../../hooks/useSelections";
 
 
-export const SettingsMenu = () => {
+export const StorySettingsMenu = () => {
     const navigate = useNavigate();
     const { story, deselectAll } = useSelections();
     const [isEditorMenuOpen, setIsEditorMenuOpen] = useState(false);
