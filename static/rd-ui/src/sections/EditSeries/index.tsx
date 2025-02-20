@@ -287,7 +287,6 @@ export const EditSeries = () => {
                         <label htmlFor="edit-series-title">Title:</label>
                         <input
                             defaultValue={seriesBuild.series_title}
-                            key={seriesBuild.series_title}
                             type="text"
                             id="edit-series-title"
                             onKeyUp={(event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -302,7 +301,6 @@ export const EditSeries = () => {
                         <label htmlFor="edit-series-description">Description:</label>
                         <textarea
                             defaultValue={seriesBuild.series_description}
-                            key={seriesBuild.series_description}
                             spellCheck="false"
                             id="edit-series-description"
                             onChange={(event) => {
@@ -324,7 +322,7 @@ export const EditSeries = () => {
                         aria-label="add story"
                         sx={{ padding: 0 }}
                         onClick={addStory}
-                        title="Add"
+                        title={`Add a new story to ${seriesBuild.series_title}`}
                     >
                         <AddIcon sx={{ fontSize: 24, color: "#000", marginLeft: 1 }} />
                     </IconButton>

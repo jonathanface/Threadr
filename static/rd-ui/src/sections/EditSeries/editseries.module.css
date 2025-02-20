@@ -1,5 +1,5 @@
 .editSeriesContainer {
-    background-color: #ddd;
+    background-color: #f9f9f9;
     margin: auto;
     max-width: 800px;
     padding: 2rem;
@@ -82,8 +82,8 @@
     box-sizing: initial;
 }
 
-.editSeriesModal .addStory>svg {
-    font-size: 1.2em !important;
+.editSeriesContainer .addStory {
+    margin-left: 10px;
 }
 
 .editSeriesVolumes>div {
