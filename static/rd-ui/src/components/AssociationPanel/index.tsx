@@ -1,4 +1,4 @@
-import { Box, CircularProgress, Drawer, FormControlLabel, Switch, TextField } from "@mui/material";
+import { Box, CircularProgress, Drawer, FormControlLabel, IconButton, Switch, TextField } from "@mui/material";
 import { Association, SimplifiedAssociation } from "../../types/Associations";
 import { ClickableDecoratorNode } from "../ThreadWriter/customNodes/ClickableDecoratorNode";
 import styles from './association-ui.module.css'
@@ -16,6 +16,7 @@ import { ClickData } from "../ThreadWriter/plugins/DocumentClickPlugin";
 import { CharacterLimitPlugin } from "@lexical/react/LexicalCharacterLimitPlugin";
 import { OverflowNode } from "@lexical/overflow";
 import { UCWords } from "../ThreadWriter/utilities";
+import CloseIcon from '@mui/icons-material/Close';
 
 interface AssociationProps {
   associations: SimplifiedAssociation[] | null;
@@ -246,12 +247,12 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
   };
 
   return (
-    <Drawer anchor={"right"} PaperProps={{
-      style: {
-        width: '500px',
-      },
-
-    }} open={props.isAssociationPanelOpen} onClose={handleClose} className={styles.associationPanel}>
+    <Drawer anchor={"right"} open={props.isAssociationPanelOpen} onClose={handleClose} className={styles.associationPanel}>
+      <Box className={styles.header}>
+        <IconButton onClick={handleClose} sx={{ mr: 1 }}>
+          <CloseIcon />
+        </IconButton>
+      </Box>
       <Box
         role="presentation"
         component="section">
