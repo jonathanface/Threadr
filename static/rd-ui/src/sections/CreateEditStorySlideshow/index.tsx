@@ -15,7 +15,6 @@ import { useToaster } from "../../hooks/useToaster";
 import { AlertToastType } from "../../types/AlertToasts";
 import { useNavigate, useParams } from "react-router-dom";
 import CloseIcon from '@mui/icons-material/Close';
-import { useFetchUserData } from "../../hooks/useFetchUserData";
 import { KeyboardArrowLeft, KeyboardArrowRight } from "@mui/icons-material";
 
 const steps = ['Title', 'Image', 'Description', 'Series'];
@@ -61,7 +60,6 @@ export const CreateEditStorySlideshow = () => {
     const { storyID } = useParams<{ storyID: string }>();
     const { seriesID } = useParams<{ seriesID: string }>();
     const storedSeriesID = useRef("")
-    const { userDetails } = useFetchUserData();
 
     const handleSeriesChange = (value: string, seriesId?: string) => {
         setTempSeries({
