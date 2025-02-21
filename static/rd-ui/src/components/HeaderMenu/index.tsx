@@ -112,9 +112,12 @@ export const HeaderMenu = () => {
           />
         </a>
         <span className={styles.storyInfo}>
-          <EditableText textValue={story?.title ? story.title : ""} onTextChange={onStoryTitleEdit} />
-          <div className={styles.seriesInfo}>
-            <EditableText textValue={series?.series_title ? series.series_title : ""} onTextChange={onSeriesTitleEdit} />
+          <img alt={story?.title} src={story?.image_url} />
+          <div className={styles.storyData}>
+            <EditableText textValue={story?.title ? story.title : ""} onTextChange={onStoryTitleEdit} />
+            <div className={styles.seriesInfo}>
+              <EditableText textValue={series?.series_title ? series.series_title : ""} onTextChange={onSeriesTitleEdit} />
+            </div>
           </div>
         </span>
       </span>

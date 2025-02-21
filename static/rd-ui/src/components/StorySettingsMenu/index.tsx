@@ -25,13 +25,6 @@ export const StorySettingsMenu = () => {
             <Paper
                 className={styles.sideMenu}
                 elevation={3}
-                sx={{
-                    width: 32,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    py: 2,
-                }}
             >
                 <Tooltip title="Close this Document" placement="right">
                     <IconButton onClick={closeDoc}>

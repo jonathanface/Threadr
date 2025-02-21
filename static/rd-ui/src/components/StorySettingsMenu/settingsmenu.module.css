@@ -5,4 +5,10 @@
     padding: 5px;
     position: fixed;
     font-family: "Segoe Print";
+    width: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 200px;
+    box-sizing: border-box;
 }
