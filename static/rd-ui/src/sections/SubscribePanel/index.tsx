@@ -47,7 +47,7 @@ export const SubscribePanel = () => {
 
   const handleClose = useCallback(() => {
     setSubscribeError("");
-    navigate('/stories');
+    navigate(-1);
   }, [navigate]);
 
   const confirmCard = async () => {

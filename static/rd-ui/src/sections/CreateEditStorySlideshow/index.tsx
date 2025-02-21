@@ -84,7 +84,6 @@ export const CreateEditStorySlideshow = () => {
                 if (!response.ok) throw new Error('Story not found');
                 const data = await response.json() as Story;
 
-                console.log("setting story from index", data);
                 const editingStoryBuild: CreateStoryForm = {
                     story_id: data.story_id,
                     title: data.title,
@@ -100,7 +99,7 @@ export const CreateEditStorySlideshow = () => {
                     storedSeriesID.current = data.series_id;
                     const seriesResponse = await fetch(`/api/series/${data.series_id}`);
                     if (!seriesResponse.ok) throw new Error('Series not found');
-                    const seriesData = await response.json() as Series;
+                    const seriesData = await seriesResponse.json() as Series;
                     editingStoryBuild.series_title = seriesData.series_title;
                     setTempSeries({
                         series_id: seriesData.series_id,
@@ -473,8 +472,6 @@ export const CreateEditStorySlideshow = () => {
         });
     };
 
-
-
     const stepIconTheme = createTheme({
         components: {
             // Name of the component
@@ -567,7 +564,7 @@ export const CreateEditStorySlideshow = () => {
             })}
         </Stepper>;
 
-    return userDetails && userDetails.subscription_id.length && !userDetails.expired ? (
+    return (
         <Box className={styles.slideshowParent} >
             <Box className={styles.header}>
                 <IconButton onClick={handleClose} sx={{ mr: 1 }}>
@@ -625,7 +622,5 @@ export const CreateEditStorySlideshow = () => {
                 </>
             </ThemeProvider>
         </Box >
-    ) : (
-        <div />
     );
 }
