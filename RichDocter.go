@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -103,11 +104,29 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+
+		// see if the user's a subscriber, and the subscription has expired
+		if len(userDetails.SubscriptionID) > 0 && !userDetails.Renewing {
+			i, err := strconv.ParseInt(userDetails.ExpiresAt, 10, 64)
+			if err != nil {
+				api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			t := time.Unix(i, 0)
+			if t.Before(time.Now()) {
+				userDetails.Expired = true
+				userDetails.SubscriptionID = ""
+				err = dao.UpdateUser(*userDetails)
+				if err != nil {
+					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+					return
+				}
+			}
+		}
 		// 15 sec timeout
 		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(time.Second*5))
 		defer cancel()
 		ctx = context.WithValue(ctx, ctxkey.DAO, dao)
-		ctx = context.WithValue(ctx, ctxkey.IsSuspended, user.Expired)
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})

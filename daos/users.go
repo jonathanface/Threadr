@@ -61,23 +61,7 @@ func (d *DAO) GetUserDetails(email string) (user *models.UserInfo, err error) {
 	if len(userFromMap) == 0 {
 		return user, fmt.Errorf("no user found")
 	}
-	extractedUser := userFromMap[0]
-	if len(extractedUser.SubscriptionID) > 0 && !extractedUser.Renewing {
-		i, err := strconv.ParseInt(extractedUser.ExpiresAt, 10, 64)
-		if err != nil {
-			return user, err
-		}
-		t := time.Unix(i, 0)
-		if t.Before(time.Now()) {
-			extractedUser.Expired = true
-			extractedUser.SubscriptionID = ""
-			err = d.UpdateUser(extractedUser)
-			if err != nil {
-				return user, err
-			}
-		}
-	}
-	return &extractedUser, nil
+	return &userFromMap[0], nil
 }
 
 /**
