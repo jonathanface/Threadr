@@ -238,7 +238,6 @@ export const StoryBox = (props: StoryBoxProps) => {
           </span>
         </div>
         <DetailsSlider
-          key={id}
           id={id}
           stories={!isStory(props.itemData) ? props.itemData.stories : undefined}
           chapters={isStory(props.itemData) ? props.itemData.chapters : undefined}

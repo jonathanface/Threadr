@@ -25,7 +25,7 @@ export const ConfigPanel = () => {
   };
 
   const handleClose = () => {
-    navigate("/stories")
+    navigate(-1)
   }
 
   const toggleSubscriptionRenewal = async () => {

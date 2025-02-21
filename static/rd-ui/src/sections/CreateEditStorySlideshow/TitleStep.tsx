@@ -9,7 +9,6 @@ interface TitleStepProps {
 }
 
 const randomBookTitle = () => {
-    console.log("gening")
     const vowels = ["A", "E", "I", "O", "U"];
     const articles = ["The", "A", "An"];
     const adjectives = [
