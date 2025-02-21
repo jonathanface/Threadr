@@ -17,6 +17,7 @@
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+    align-items: center;
 }
 
 .toolbar button {
@@ -52,6 +53,8 @@
 
 .toolbar .extraButtons {
     margin-left: auto;
+    display: flex;
+    align-items: center;
 }
 
 @media only screen and (max-width: 600px) {

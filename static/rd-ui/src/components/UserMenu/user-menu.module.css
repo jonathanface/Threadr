@@ -1,7 +1,8 @@
 .userMenu {
   z-index: 100;
-  margin-left: -75px;
-  margin-top: -40px;
+  margin-left: -45px;
+  display: flex;
+  align-items: center;
 }
 
 .userMenu>a {
@@ -54,8 +55,8 @@
   font-size: 0.8rem;
   padding: 0;
   margin: 0;
-  margin-top: 5px;
-  position: relative;
+  position: absolute;
+  top: 35px;
   z-index: 150;
   margin-left: -75px;
   background: #515d57;

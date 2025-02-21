@@ -10,6 +10,7 @@
   margin: 0 auto;
   margin-top: 20px;
   margin-bottom: 20px;
+  box-sizing: border-box;
 }
 
 /* Editor area is allowed to expand; margin-right for spacing if desired */
@@ -42,7 +43,6 @@
   padding: 1in;
   border: 2px solid #333;
   border-radius: 4px;
-  min-height: 200px;
   background-color: #fff;
   box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
   outline: none;
@@ -50,6 +50,8 @@
   overflow: auto;
   border-radius: 5px;
   outline: none !important;
+  box-sizing: border-box;
+  min-height: 279mm;
 }
 
 .editorInput>p {
@@ -124,16 +126,18 @@ li {
 
 @media only screen and (max-width: 600px) {
   .editorRow {
-    margin-top: 0px;
-    width: 100%;
+    margin: 10px;
+    margin-top: 15px;
+
   }
 
   .editorArea {
-    width: 85%;
+    width: calc(100% - 40px);
     margin-right: 0;
   }
 
   .editorInput {
     padding: 10px;
+    min-height: 200px;
   }
 }
