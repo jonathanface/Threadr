@@ -93,18 +93,6 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		if userDetails.SubscriptionID == "" || userDetails.Expired {
-			if r.Method == "POST" && (strings.HasSuffix(r.URL.Path, "/analyze") || strings.HasSuffix(r.URL.Path, "/propose")) ||
-				r.Method == "PUT" && strings.HasSuffix(r.URL.Path, "/export") {
-				api.RespondWithError(w, http.StatusUnauthorized, "insufficient subscription")
-				return
-			}
-		}
-		if err = dao.UpsertUser(user.Email); err != nil {
-			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-
 		// see if the user's a subscriber, and the subscription has expired
 		if len(userDetails.SubscriptionID) > 0 && !userDetails.Renewing {
 			i, err := strconv.ParseInt(userDetails.ExpiresAt, 10, 64)
@@ -123,6 +111,19 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 				}
 			}
 		}
+
+		if userDetails.SubscriptionID == "" || userDetails.Expired {
+			if r.Method == "POST" && (strings.HasSuffix(r.URL.Path, "/analyze") || strings.HasSuffix(r.URL.Path, "/propose")) ||
+				r.Method == "PUT" && strings.HasSuffix(r.URL.Path, "/export") {
+				api.RespondWithError(w, http.StatusUnauthorized, "insufficient subscription")
+				return
+			}
+		}
+		if err = dao.UpsertUser(user.Email); err != nil {
+			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
 		// 15 sec timeout
 		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(time.Second*5))
 		defer cancel()
