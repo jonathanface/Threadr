@@ -61,7 +61,6 @@ export const CreateEditStorySlideshow = () => {
     const { storyID } = useParams<{ storyID: string }>();
     const { seriesID } = useParams<{ seriesID: string }>();
     const storedSeriesID = useRef("")
-    const { userDetails } = useFetchUserData();
 
     const handleSeriesChange = (value: string, seriesId?: string) => {
         setTempSeries({
