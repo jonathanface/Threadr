@@ -17,3 +17,5 @@
   font-size: 0.8rem;
   text-align: center;
 }
+
+@media only screen and (max-width: 600px) {}

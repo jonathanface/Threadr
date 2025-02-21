@@ -1,3 +1,7 @@
+.associationPanel {
+  width: 500px;
+}
+
 .associationPanel .associationHeader {
   padding: 20px;
 }
@@ -92,4 +96,10 @@
 .associationPanel .textInput.inactiveField {
   background-color: #F9F9F9;
   transition: background-color 300ms linear;
+}
+
+@media only screen and (max-width: 600px) {
+  .associationPanel {
+    width: 100%;
+  }
 }
