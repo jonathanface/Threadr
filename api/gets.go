@@ -502,11 +502,7 @@ func GetUserData(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	var wasSuspended, ok bool
-	if wasSuspended, ok = r.Context().Value(ctxkey.IsSuspended).(bool); !ok {
-		wasSuspended = false
-	}
-	user.Expired = wasSuspended
+	var ok bool
 	var dao daos.DaoInterface
 	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve daokey from context")
@@ -521,5 +517,6 @@ func GetUserData(w http.ResponseWriter, r *http.Request) {
 	user.Renewing = details.Renewing
 	user.SubscriptionID = details.SubscriptionID
 	user.ExpiresAt = details.ExpiresAt
+	user.Expired = details.Expired
 	RespondWithJson(w, http.StatusOK, user)
 }
