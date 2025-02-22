@@ -9,11 +9,13 @@
 }
 
 .editSeriesContainer .header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 2rem;
-    margin-left: -2rem;
-    margin-top: -2rem;
+    text-align: right;
+}
+
+.editSeriesContainer .header .closer {
+    position: relative;
+    left: 2rem;
+    top: -2rem;
 }
 
 .editSeriesContainer input[type="text"],
@@ -92,18 +94,21 @@
 
 .editSeriesVolumes>div {
     margin: 10px;
+    margin-left: 0px;
+    margin-right: 0px;
     display: flex;
     align-items: center;
     justify-content: space-between;
 }
 
-.editSeriesVolumes>div:hover {
+.editSeriesVolumes .dragHandle {
     cursor: grab;
-    color: #151515;
+    width: 15px;
 }
 
 .editSeriesVolumes .storyButtons {
     margin-left: auto;
+    white-space: nowrap;
 }
 
 .editSeriesVolumes .storyButtons svg {
@@ -122,9 +127,11 @@
     border: 1px solid #333;
 }
 
-.editSeriesVolumes span {
+.editSeriesVolumes>div>span {
     margin-left: 10px;
 }
+
+.editSeriesVolumes .editSeriesStory {}
 
 @media only screen and (max-width: 600px) {
     .editSeriesContainer .content {

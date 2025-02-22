@@ -25,12 +25,13 @@ export const VerificationStep = (props: VerificationStepProps) => {
                     "Otherwise, go back and make changes."
                 }
             </Typography>
-            <Box className={styles.finalProductMobile}>
-                <Typography variant="subtitle1" className={`${styles.finalTitle} ${storyBuild.title} ${styles.hasText}`}>{`${storyBuild.title}`}</Typography>
-                <img className={`${styles.finalImage} ${storyBuild.image} ${styles.hasText}`} src={props.tempImageURL} />
-                <Typography variant="body2" className={`${styles.finalDescription} ${styles.hasText}`}>{storyBuild.description}</Typography>
-                <Typography variant="body2" className={`${styles.finalSeries} ${storyBuild.series_id && storyBuild.series_id.trim().length > 0 ? styles.hasText : ''}`}><b>Series: </b>{storyBuild.series_title}</Typography>
-            </Box>
+            {props.isMobile ?
+                <Box className={styles.finalProductMobile}>
+                    <Typography variant="subtitle1" className={`${styles.finalTitle} ${storyBuild.title} ${styles.hasText}`}>{`${storyBuild.title}`}</Typography>
+                    <img className={`${styles.finalImage} ${storyBuild.image} ${styles.hasText}`} src={props.tempImageURL} />
+                    <Typography variant="body2" className={`${styles.finalDescription} ${styles.hasText}`}>{storyBuild.description}</Typography>
+                    <Typography variant="body2" className={`${styles.finalSeries} ${storyBuild.series_id && storyBuild.series_id.trim().length > 0 ? styles.hasText : ''}`}><b>Series: </b>{storyBuild.series_title}</Typography>
+                </Box> : ""}
         </Box>
     );
 }

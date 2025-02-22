@@ -30,6 +30,24 @@ export const SplashPage = () => {
       <div className={styles.blurb}>
         <span className={styles.column}>
           <figure>
+            <img src="./img/exporting.jpg" alt="easy document conversion" />
+          </figure>
+        </span>
+        <span className={styles.column}>
+          <h2>Begin with Brilliance, End with Excellence.</h2>
+          <div>
+            In the digital age, adaptability is not just an advantage—it's a
+            necessity. Craft your content with precision and flair, and when
+            you're ready, export it with ease into the formats that
+            professionals love: PDF, DOCX, and, coming soon, EPUB. Create
+            documents compatible with Word and other popular document editors
+            with just two clicks.
+          </div>
+        </span>
+      </div>
+      <div className={styles.blurb}>
+        <span className={styles.column}>
+          <figure>
             <img src="./img/crafting.jpg" alt="crafting worlds" />
           </figure>
         </span>
@@ -52,7 +70,7 @@ export const SplashPage = () => {
         </span>
       </div>
       <div className={styles.blurb}>
-        <span className={styles.column + " " + styles.leftText}>
+        <span className={styles.column}>
           <h2>Assisted Writing with Artifical Intelligence</h2>
           <div>
             <ul>
@@ -71,7 +89,7 @@ export const SplashPage = () => {
             </ul>
           </div>
         </span>
-        <span className={styles.column}>
+        <span className={styles.column + ' ' + styles.leftText}>
           <figure>
             <img src="./img/docter.jpg" alt="AI Enhanced" />
           </figure>
@@ -83,7 +101,7 @@ export const SplashPage = () => {
             <img src="./img/characters.jpg" alt="character backstories" />
           </figure>
         </span>
-        <span className={styles.column + " " + styles.leftText}>
+        <span className={styles.column}>
           <h2>Character Backstories at Your Fingertips</h2>
           <div>
             <ul>
@@ -121,24 +139,6 @@ export const SplashPage = () => {
           <figure>
             <img src="./img/lore.jpg" alt="diving deep into lore" />
           </figure>
-        </span>
-      </div>
-      <div className={styles.blurb}>
-        <span className={styles.column}>
-          <figure>
-            <img src="./img/exporting.jpg" alt="easy document conversion" />
-          </figure>
-        </span>
-        <span className={styles.column + " " + styles.leftText}>
-          <h2>Begin with Brilliance, End with Excellence.</h2>
-          <div>
-            In the digital age, adaptability is not just an advantage—it's a
-            necessity. Craft your content with precision and flair, and when
-            you're ready, export it with ease into the formats that
-            professionals love: PDF, DOCX, and, coming soon, EPUB. Create
-            documents compatible with Word and other popular document editors
-            with just two clicks.
-          </div>
         </span>
       </div>
     </div>
