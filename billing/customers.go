@@ -8,7 +8,6 @@ import (
 	"RichDocter/sessions"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
@@ -54,6 +53,7 @@ func CreateCardIntentEndpoint(w http.ResponseWriter, r *http.Request) {
 		api.RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
+
 	secret, err := createCardIntent(customer.Id)
 	if err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -267,6 +267,5 @@ func createCustomer(email string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	log.Println("created new customer", c)
 	return c.ID, nil
 }
