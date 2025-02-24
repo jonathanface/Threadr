@@ -178,7 +178,7 @@ export const StoryBox = (props: StoryBoxProps) => {
       <div className={styles.storyBubble}>
         <img
           className={!isStory(props.itemData) ? styles.seriesImage : ""}
-          src={props.itemData.image_url ? props.itemData.image_url : '/img/icons/story_series_icon.jpg'}
+          src={imageURL}
           alt={title}
           onLoad={() => {
             setIsStoryLoaderVisible(false);
