@@ -131,6 +131,7 @@ export const StoryBox = (props: StoryBoxProps) => {
         }
         setWasDeleted(true);
       } catch (error) {
+        setWasDeleted(true);
         console.error(`Error deleting story ${error}`);
       } finally {
         hideLoader();

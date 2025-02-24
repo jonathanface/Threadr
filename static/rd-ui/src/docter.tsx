@@ -17,6 +17,7 @@ import { CreateEditStorySlideshow } from "./sections/CreateEditStorySlideshow";
 import { EditSeries } from "./sections/EditSeries";
 import { useToaster } from "./hooks/useToaster";
 import { AlertCommandType, AlertFunctionCall, AlertToastType } from "./types/AlertToasts";
+import { CreateOrEditStory } from "./sections/CreateOrEditStory";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_KEY ?? "");
 
@@ -126,7 +127,7 @@ export const Docter = memo(() => {
             path="/stories/new"
             element={
               isLoggedIn ? (
-                <CreateEditStorySlideshow />
+                <CreateOrEditStory />
               ) : (
                 <Navigate to="/" replace />
               )
@@ -136,7 +137,7 @@ export const Docter = memo(() => {
             path="/stories/:storyID/edit"
             element={
               isLoggedIn ? (
-                <CreateEditStorySlideshow />
+                <CreateOrEditStory />
               ) : (
                 <Navigate to="/" replace />
               )

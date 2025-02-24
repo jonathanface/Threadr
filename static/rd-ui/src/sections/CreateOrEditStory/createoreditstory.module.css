@@ -1,0 +1,56 @@
+.storyCreateHeaderText {
+    color: #F9F9F9;
+    padding-top: 20px;
+}
+
+.storyContainer {
+    display: flex;
+    flex-wrap: nowrap !important;
+    gap: 20px;
+    padding: 20px;
+    background-color: #F9F9F9;
+    max-width: 800px;
+    margin: 20px auto;
+    border: 1px solid #333;
+    border-radius: 15px;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Left panel (Form) styles */
+.storyForm {
+    flex-basis: 70%;
+    padding: 16px;
+    background-color: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+}
+
+.portraitWrapper {
+    width: 200px;
+    height: 200px;
+    margin: 20px auto;
+    position: relative;
+}
+
+/* Right panel (Preview) styles */
+.previewCard {
+    flex-basis: 30%;
+    padding: 16px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Title preview styling */
+.previewTitle {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+/* Description preview styling */
+.previewDescription {
+    font-size: 1rem;
+    color: #666;
+    margin-top: 8px;
+}
