@@ -4,9 +4,6 @@
 }
 
 .storyContainer {
-    display: flex;
-    flex-wrap: nowrap !important;
-    gap: 20px;
     padding: 20px;
     background-color: #F9F9F9;
     max-width: 800px;
@@ -14,6 +11,20 @@
     border: 1px solid #333;
     border-radius: 15px;
     box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.storyContainer .leftPanel {
+    display: flex;
+    flex-wrap: nowrap !important;
+    gap: 20px;
+}
+
+.storyContainer .header {
+    width: 100%;
+    text-align: right;
+    position: relative;
+    left: 1.5rem;
+    top: -1rem;
 }
 
 /* Left panel (Form) styles */

@@ -1,4 +1,4 @@
-import { Autocomplete, Box, Button, Card, CardContent, CardMedia, Chip, CircularProgress, Grid2, TextField, Typography } from '@mui/material';
+import { Autocomplete, Box, Button, Card, CardContent, CardMedia, Chip, CircularProgress, Grid2, IconButton, TextField, Typography } from '@mui/material';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import styles from './createoreditstory.module.css'
 import { PortraitDropper } from '../../components/PortraitDropper';
@@ -10,6 +10,7 @@ import { Story } from '../../types/Story';
 import { Series } from '../../types/Series';
 import { useToaster } from '../../hooks/useToaster';
 import { AlertToastType } from '../../types/AlertToasts';
+import CloseIcon from '@mui/icons-material/Close';
 
 interface AvailableSeries {
     series_id?: string;
@@ -364,99 +365,111 @@ export const CreateOrEditStory: React.FC = () => {
 
     const buttonLabel = storyID && storyID.length ? "Edit Story" : "Submit Story";
     const buttonFunction = storyID && storyID.length ? editStory : saveNewStory;
+    const bigTitle = storyID && storyID.length ? "Edit a Story" : "Create a Story"
+
+    const handleClose = () => {
+        navigate(-1);
+    }
 
     return (
         <>
-            <Typography className={styles.storyCreateHeaderText} variant="h5">Creating a Story</Typography>
-            <Grid2 container spacing={3} className={styles.storyContainer}>
-                {/* Form Section */}
-                <Grid2 className={styles.storyForm}>
-                    <TextField
-                        label="Title"
-                        fullWidth
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        margin="normal"
-                    />
-                    <TextField
-                        label="Description"
-                        fullWidth
-                        multiline
-                        rows={4}
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        margin="normal"
-                    />
-                    <div className={styles.portraitWrapper}>
-                        <div
-                            className="loading-screen"
-                            style={{ visibility: isStoryLoaderVisible ? "visible" : "hidden" }}
-                        >
-                            <Box className="progress-box" />
-                            <Box className="prog-anim-holder">
-                                <CircularProgress />
-                            </Box>
-                        </div>
-                        <PortraitDropper
-                            imageURL={imageURL}
-                            name={title}
-                            onComplete={processImage}
-                            onImageLoaded={onImageLoad}
-                            hideLabel={true}
+            <Typography className={styles.storyCreateHeaderText} variant="h5">{bigTitle}</Typography>
+            <Box className={styles.storyContainer}>
+                <Box className={styles.header}>
+                    <IconButton onClick={handleClose} sx={{ mr: 1 }}>
+                        <CloseIcon />
+                    </IconButton>
+                </Box>
+                <Grid2 container spacing={3} className={styles.leftPanel}>
+                    {/* Form Section */}
+                    <Grid2 className={styles.storyForm}>
+                        <TextField
+                            label="Title"
+                            fullWidth
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            margin="normal"
                         />
-                    </div>
-                    <Autocomplete
-                        options={availableSeries}
-                        getOptionLabel={(option) => option.series_name}
-                        value={selectedSeries}
-                        onInputChange={(_event: React.SyntheticEvent, value: string) => {
-                            // Find a matching series if it exists.
-                            const foundSeries = seriesList?.find(
-                                (srs: Series) => srs.series_title.toLowerCase() === value.toLowerCase()
-                            );
-                            if (foundSeries) {
-                                setSelectedSeries({
-                                    series_name: foundSeries.series_title,
-                                    series_id: foundSeries.series_id
-                                });
-                            } else {
-                                if (value.length) {
-                                    setSelectedSeries({
-                                        series_name: value
-                                    });
-                                }
-                            }
-                        }}
-                        onChange={(event, newValue) => setSelectedSeries(newValue)}
-                        renderInput={(params) => <TextField {...params} label="Assign to Series (optional)" margin="normal" />}
-                    />
-                    <Button variant="contained" color="primary" style={{ marginTop: 16 }} onClick={buttonFunction}>{buttonLabel}</Button>
-                </Grid2>
-
-                {/* Preview Section */}
-                <Grid2 className={styles.previewCard}>
-                    <Card>
-                        {imagePreview && (
-                            <CardMedia
-                                component="img"
-                                alt="Story image preview"
-                                height="200"
-                                image={imagePreview}
-                                title="Story Image"
+                        <TextField
+                            label="Description"
+                            fullWidth
+                            multiline
+                            rows={4}
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            margin="normal"
+                        />
+                        <div className={styles.portraitWrapper}>
+                            <div
+                                className="loading-screen"
+                                style={{ visibility: isStoryLoaderVisible ? "visible" : "hidden" }}
+                            >
+                                <Box className="progress-box" />
+                                <Box className="prog-anim-holder">
+                                    <CircularProgress />
+                                </Box>
+                            </div>
+                            <PortraitDropper
+                                imageURL={imageURL}
+                                name={title}
+                                onComplete={processImage}
+                                onImageLoaded={onImageLoad}
+                                hideLabel={true}
                             />
-                        )}
-                        <CardContent>
-                            <Typography className={styles.previewTitle} variant="h5">{title || 'Story Title'}</Typography>
-                            <Typography className={styles.previewDescription} variant="body2" color="textSecondary">
-                                {description || 'Story description will appear here.'}
-                            </Typography>
-                            {selectedSeries && (
-                                <Chip label={selectedSeries.series_name} style={{ marginTop: 8 }} />
+                        </div>
+                        <Autocomplete
+                            options={availableSeries}
+                            getOptionLabel={(option) => option.series_name}
+                            value={selectedSeries}
+                            onInputChange={(_event: React.SyntheticEvent, value: string) => {
+                                // Find a matching series if it exists.
+                                const foundSeries = seriesList?.find(
+                                    (srs: Series) => srs.series_title.toLowerCase() === value.toLowerCase()
+                                );
+                                if (foundSeries) {
+                                    setSelectedSeries({
+                                        series_name: foundSeries.series_title,
+                                        series_id: foundSeries.series_id
+                                    });
+                                } else {
+                                    if (value.length) {
+                                        setSelectedSeries({
+                                            series_name: value
+                                        });
+                                    }
+                                }
+                            }}
+                            onChange={(event, newValue) => setSelectedSeries(newValue)}
+                            renderInput={(params) => <TextField {...params} label="Assign to Series (optional)" margin="normal" />}
+                        />
+                        <Button variant="contained" color="primary" style={{ marginTop: 16 }} onClick={buttonFunction}>{buttonLabel}</Button>
+                    </Grid2>
+
+                    {/* Preview Section */}
+                    <Grid2 className={styles.previewCard}>
+                        <Card>
+                            {imagePreview && (
+                                <CardMedia
+                                    component="img"
+                                    alt="Story image preview"
+                                    height="200"
+                                    image={imagePreview}
+                                    title="Story Image"
+                                />
                             )}
-                        </CardContent>
-                    </Card>
-                </Grid2>
-            </Grid2 >
+                            <CardContent>
+                                <Typography className={styles.previewTitle} variant="h5">{title || 'Story Title'}</Typography>
+                                <Typography className={styles.previewDescription} variant="body2" color="textSecondary">
+                                    {description || 'Story description will appear here.'}
+                                </Typography>
+                                {selectedSeries && (
+                                    <Chip label={selectedSeries.series_name} style={{ marginTop: 8 }} />
+                                )}
+                            </CardContent>
+                        </Card>
+                    </Grid2>
+                </Grid2 >
+            </Box>
         </>
     );
 };
