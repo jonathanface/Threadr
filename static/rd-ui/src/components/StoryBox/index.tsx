@@ -156,6 +156,7 @@ export const StoryBox = (props: StoryBoxProps) => {
     }
   }, [props.itemData]);
 
+  const imageURL = props.itemData.image_url ? props.itemData.image_url : props.itemData.series_id ? '/img/icons/story_series_icon.jpg' : '/img/icons/story_standalone_icon.jpg'
   return !wasDeleted ? (
     <button
       className={styles.docButton}
@@ -177,7 +178,7 @@ export const StoryBox = (props: StoryBoxProps) => {
       <div className={styles.storyBubble}>
         <img
           className={!isStory(props.itemData) ? styles.seriesImage : ""}
-          src={props.itemData.image_url}
+          src={props.itemData.image_url ? props.itemData.image_url : '/img/icons/story_series_icon.jpg'}
           alt={title}
           onLoad={() => {
             setIsStoryLoaderVisible(false);
