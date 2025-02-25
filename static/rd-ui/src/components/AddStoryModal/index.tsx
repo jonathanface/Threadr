@@ -20,7 +20,7 @@ export const AddStoryModal: React.FC<AddStoryModalProps> = ({
     if (!seriesID) return;
     return (
         <>
-            <Button className={styles.triggerButton} size="small" onClick={() => setIsAddStoryModalOpen(true)}>Add New</Button>
+            <Button className={styles.triggerButton} size="small" onClick={() => setIsAddStoryModalOpen(true)}>Add Story</Button>
             <Dialog open={isAddStoryModalOpen} onClose={() => setIsAddStoryModalOpen(false)} fullWidth maxWidth="sm">
                 <DialogTitle>Select a Story to Add</DialogTitle>
                 <DialogContent>
@@ -41,14 +41,16 @@ export const AddStoryModal: React.FC<AddStoryModalProps> = ({
                                     <ListItemText primary={story.title} secondary={story.description} />
                                 </ListItemButton>
                             ))}
+                            <hr />
                             <ListItemButton
                                 onClick={() => {
                                     setIsAddStoryModalOpen(false);
                                     navigate(`/series/${seriesID}/add`);
                                 }}
                             >
+
                                 <ListItemText
-                                    primary="Create New Story"
+                                    primary="Create New"
                                     secondary="Click here to create a new story for this series"
                                 />
                             </ListItemButton>

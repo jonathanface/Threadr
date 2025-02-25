@@ -8,7 +8,7 @@ interface PortraitDropperProps {
   imageURL: string | null;
   name: string;
   className?: string;
-  onImageLoaded?: () => void;
+  onImageLoaded?: (event: React.SyntheticEvent<HTMLImageElement, Event>) => void;
   onComplete?: (files: File[]) => void;
   hideLabel?: boolean;
 }
@@ -63,7 +63,7 @@ export const PortraitDropper = (props: PortraitDropperProps) => {
               Drop an image over the picture to update, or click on it.
               <input {...getInputProps()} />
             </figcaption>
-            : ""}
+            : <input {...getInputProps()} />}
         </span>
       </figure>
     </div>

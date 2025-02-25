@@ -86,12 +86,11 @@ export const DocumentExporter = () => {
             }
         }
     };
-    let altText = "Export document.";
     let disabled = false;
     if (!userDetails?.subscription_id.length) {
-        altText += "\nExporting documents is only available to subscribers"
         disabled = true;
     }
+    const altText = !userDetails?.subscription_id.length ? "Exporting documents is only available to subscribers" : "Export document";
 
     return (
         <div

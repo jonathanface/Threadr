@@ -1,0 +1,55 @@
+.seriesBoxContainer {
+    max-width: 300px;
+    background: none;
+    border: none;
+    color: #eaeaea;
+    filter: drop-shadow(2px 2px 2px #1a1a1a);
+    letter-spacing: 1.5px;
+    text-align: center;
+    margin-right: 20px;
+    margin-bottom: 20px;
+    min-width: 300px;
+    min-height: 300px;
+}
+
+.seriesBoxContainer .seriesBubble {
+    position: relative;
+    overflow: hidden;
+}
+
+.seriesBoxContainer img {
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(2px 2px 2px #1a1a1a);
+    vertical-align: top;
+    max-height: 100%;
+    border-radius: 20px;
+}
+
+.seriesBoxContainer img.seriesImage {
+    cursor: initial;
+}
+
+.seriesBoxContainer .seriesLabel {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    padding: 10px;
+    border-radius: 10px;
+    background: #282828;
+    opacity: 0.9;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    width: 80%;
+    margin: 0 auto;
+}
+
+.seriesBoxContainer .seriesLabel .title {
+    margin-right: 15px;
+    font-size: 0.8rem;
+}
+
+.seriesBoxContainer .seriesLabel .buttons {
+    white-space: nowrap;
+}

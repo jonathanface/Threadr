@@ -1,24 +1,31 @@
 import { useEffect, useState } from "react";
-import styles from "./story.module.css";
+import styles from "./details.module.css";
 import { Story } from "../../types/Story";
 import { Chapter } from "../../types/Chapter";
+import { Avatar, AvatarGroup } from "@mui/material";
 
 interface DetailsSliderProps {
   id: string;
+  visible: boolean;
   stories?: Story[];
   chapters?: Chapter[];
   isSeries: boolean;
   title: string;
   description: string;
-  onStoryClick: (storyID: string, chapterID: string) => void;
+  onStoryClick?: (event: React.MouseEvent, storyID: string) => void;
   setDeleted: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export const DetailsSlider = (props: DetailsSliderProps) => {
+export const StoryOrSeriesDetailsSlider = (props: DetailsSliderProps) => {
   const [stories, setStories] = useState(props.stories);
   const [isSeries, setIsSeries] = useState(props.isSeries);
   const [, setTitle] = useState(props.title);
+  const [isVisible, setIsVisible] = useState(false);
   const [description, setDescription] = useState(props.description);
+
+  useEffect(() => {
+    setIsVisible(props.visible);
+  }, [props.visible]);
 
   useEffect(() => {
     setTitle(props.title);
@@ -40,39 +47,27 @@ export const DetailsSlider = (props: DetailsSliderProps) => {
   }, [props.stories, props.title, props.description, props.isSeries]);
 
   return (
-    <div className={styles.detailsSlider}>
+    <div className={`${styles.detailsSlider} ${isVisible ? styles.visible : ""}`}>
       <div className={styles.detailsDescription}>{description}</div>
       <div className={styles.seriesListing}>
         {isSeries ? (
           stories && stories.length ? (
             <div>
-              <div>Volumes:</div>
-              <ul>
-                {stories.map((entry) => {
+              <AvatarGroup max={4} total={props.stories ? props.stories.length : 0} className={styles.avatars}>
+                {
+                  props.stories?.map((story, index) => (
+                    <Avatar
+                      onClick={(event) => props.onStoryClick ? props.onStoryClick(event, story.story_id) : null}
+                      title={story.title}
+                      alt={story.title}
+                      className={styles.avatar}
+                      key={index}
+                      src={story.image_url}
+                    />
+                  ))
+                }
+              </AvatarGroup>
 
-                  // todo if there are no chapters should fire off a req to make one
-                  if (!entry.chapters.length) return;
-                  const firstChapter = entry.chapters[0].id;
-                  return (
-                    <li
-                      key={entry.story_id}
-                      title={entry.description}
-                      onClick={() =>
-                        props.onStoryClick(entry.story_id, firstChapter)
-                      }
-                    >
-                      <span>
-                        <img
-                          className={styles.seriesStoryThumbnail}
-                          src={entry.image_url}
-                          alt={entry.title}
-                        />
-                        {entry.title}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
             </div>
           ) : (
             "No stories assigned."

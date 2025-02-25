@@ -13,10 +13,10 @@ import { HeaderMenu } from "./components/HeaderMenu";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { LoginPanel } from "./sections/LoginPanel";
 import { ConfigPanel } from "./sections/UserConfigPanel";
-import { CreateEditStorySlideshow } from "./sections/CreateEditStorySlideshow";
 import { EditSeries } from "./sections/EditSeries";
 import { useToaster } from "./hooks/useToaster";
 import { AlertCommandType, AlertFunctionCall, AlertToastType } from "./types/AlertToasts";
+import { CreateOrEditStory } from "./sections/CreateOrEditStory";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_KEY ?? "");
 
@@ -126,7 +126,7 @@ export const Docter = memo(() => {
             path="/stories/new"
             element={
               isLoggedIn ? (
-                <CreateEditStorySlideshow />
+                <CreateOrEditStory />
               ) : (
                 <Navigate to="/" replace />
               )
@@ -136,7 +136,7 @@ export const Docter = memo(() => {
             path="/stories/:storyID/edit"
             element={
               isLoggedIn ? (
-                <CreateEditStorySlideshow />
+                <CreateOrEditStory />
               ) : (
                 <Navigate to="/" replace />
               )
@@ -146,7 +146,7 @@ export const Docter = memo(() => {
             path="/series/:seriesID/add"
             element={
               isLoggedIn ? (
-                <CreateEditStorySlideshow />
+                <CreateOrEditStory />
               ) : (
                 <Navigate to="/" replace />
               )

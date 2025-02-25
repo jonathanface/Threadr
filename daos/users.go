@@ -95,21 +95,26 @@ func (d *DAO) UpsertUser(email string) (err error) {
 
 func (d *DAO) UpdateUser(user models.UserInfo) (err error) {
 	now := strconv.FormatInt(time.Now().Unix(), 10)
+	queryString := "set last_accessed=:t, customer_id=:cid, subscription_id=:sid, expired=:e, renewing=:r"
+	attributes := map[string]types.AttributeValue{
+		":t":   &types.AttributeValueMemberN{Value: now},
+		":sid": &types.AttributeValueMemberS{Value: user.SubscriptionID},
+		":cid": &types.AttributeValueMemberS{Value: user.CustomerID},
+		":r":   &types.AttributeValueMemberBOOL{Value: user.Renewing},
+		":e":   &types.AttributeValueMemberBOOL{Value: user.Expired},
+	}
+	if len(user.ExpiresAt) > 0 {
+		queryString += ", expires_at=:ea"
+		attributes[":ea"] = &types.AttributeValueMemberN{Value: user.ExpiresAt}
+	}
 	input := &dynamodb.UpdateItemInput{
 		TableName: aws.String("users" + GetTableSuffix()),
 		Key: map[string]types.AttributeValue{
 			"email": &types.AttributeValueMemberS{Value: user.Email},
 		},
-		ReturnValues:     types.ReturnValueUpdatedNew,
-		UpdateExpression: aws.String("set last_accessed=:t, customer_id=:cid, subscription_id=:sid, expired=:e, renewing=:r, expires_at=:ea"),
-		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":t":   &types.AttributeValueMemberN{Value: now},
-			":sid": &types.AttributeValueMemberS{Value: user.SubscriptionID},
-			":cid": &types.AttributeValueMemberS{Value: user.CustomerID},
-			":r":   &types.AttributeValueMemberBOOL{Value: user.Renewing},
-			":e":   &types.AttributeValueMemberBOOL{Value: user.Expired},
-			":ea":  &types.AttributeValueMemberN{Value: user.ExpiresAt},
-		},
+		ReturnValues:              types.ReturnValueUpdatedNew,
+		UpdateExpression:          aws.String(queryString),
+		ExpressionAttributeValues: attributes,
 	}
 	var out *dynamodb.UpdateItemOutput
 	if out, err = d.DynamoClient.UpdateItem(context.TODO(), input); err != nil {

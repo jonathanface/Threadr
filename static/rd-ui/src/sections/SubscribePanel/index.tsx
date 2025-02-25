@@ -173,7 +173,7 @@ export const SubscribePanel = () => {
       setAlertState({
         title: "Welcome",
         message:
-          `Your subscription is active until ${expiry} and will automatically renew. If you had previously subscribed, any suspended stories will be restored in the next 30 minutes.`,
+          `Your subscription is active until ${expiry} and will automatically renew.`,
         severity: AlertToastType.success,
         timeout: null,
         open: true,

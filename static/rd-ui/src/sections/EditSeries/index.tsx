@@ -16,6 +16,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { PortraitDropper } from "../../components/PortraitDropper";
 import CloseIcon from '@mui/icons-material/Close';
 import { AddStoryModal } from "../../components/AddStoryModal";
+import { ImportExport } from "@mui/icons-material";
 
 interface EditSeriesForm {
     [key: string]: string | undefined | File | number | Story[];
@@ -36,7 +37,7 @@ export const EditSeries = () => {
     const { setAlertState } = useToaster();
     const navigate = useNavigate();
     const { seriesID } = useParams<{ seriesID: string }>();
-    const availableStories = useRef<Story[]>([]);
+    const [availableStories, setAvailableStories] = useState<Story[]>([])
 
     const [seriesBuild, setSeriesBuild] = useState<EditSeriesForm>({
         series_title: "",
@@ -48,10 +49,10 @@ export const EditSeries = () => {
 
     useEffect(() => {
         if (storiesList) {
-            availableStories.current = storiesList.filter(
+            setAvailableStories(storiesList.filter(
                 (story) =>
                     !seriesBuild.stories || !seriesBuild.stories.some((s) => s.story_id === story.story_id)
-            );
+            ));
         }
     }, [seriesBuild.stories, storiesList]);
 
@@ -68,7 +69,7 @@ export const EditSeries = () => {
                     series_title: data.series_title,
                     series_description: data.series_description,
                     stories: data.stories,
-                    image_url: data.image_url,
+                    image_url: data.image_url.length ? data.image_url : '/img/icons/story_series_icon.jpg'
                 }
 
                 setSeriesBuild(editingSeriesBuild);
@@ -104,7 +105,7 @@ export const EditSeries = () => {
 
     const handleClose = () => {
         resetForm();
-        navigate('/stories');
+        navigate(-1);
     };
 
     const processImage = (acceptedFiles: File[]) => {
@@ -257,20 +258,8 @@ export const EditSeries = () => {
 
     const editStory = (event: React.MouseEvent, storyID: string) => {
         event.stopPropagation();
-        if (seriesBuild.stories) {
-            const selected = seriesBuild.stories.find((entry) => entry.story_id === storyID);
-            if (selected) {
-                const newStory: Story = {
-                    story_id: storyID,
-                    title: selected.title,
-                    description: selected.description,
-                    series_id: selected.series_id,
-                    image_url: selected.image_url,
-                    chapters: selected.chapters,
-                };
-                propagateStoryUpdates(newStory);
-            }
-        }
+        event.preventDefault();
+        navigate(`/stories/${storyID}/edit`)
     };
 
     const handleSelectStory = (story: Story) => {
@@ -283,7 +272,7 @@ export const EditSeries = () => {
     return (
         <Box className={styles.editSeriesContainer}>
             <Box className={styles.header}>
-                <IconButton onClick={handleClose} sx={{ mr: 1 }}>
+                <IconButton onClick={handleClose} className={styles.closer}>
                     <CloseIcon />
                 </IconButton>
             </Box>
@@ -332,14 +321,7 @@ export const EditSeries = () => {
             </Box>
             <Box sx={{ marginTop: 2 }}>
                 <hr />
-                <Typography variant="h6">
-                    Volumes
-                    <AddStoryModal
-                        seriesID={seriesID}
-                        availableStories={availableStories.current}
-                        onSelectStory={handleSelectStory}
-                    />
-                </Typography>
+                <Typography variant="h6">Stories</Typography>
                 <DragDropContext onDragEnd={onDragEnd}>
                     <Droppable droppableId="droppable">
                         {(provided) => (
@@ -356,9 +338,13 @@ export const EditSeries = () => {
                                                     className={styles.editSeriesVolumes}
                                                     ref={provided.innerRef}
                                                     {...provided.draggableProps}
-                                                    {...provided.dragHandleProps}
                                                 >
                                                     <Box>
+                                                        <Box {...provided.dragHandleProps}>
+                                                            <IconButton className={styles.dragHandle} >
+                                                                <ImportExport />
+                                                            </IconButton>
+                                                        </Box>
                                                         <span className={styles.seriesIcon}>
                                                             <img src={entry.image_url} alt={entry.title} />
                                                         </span>
@@ -404,6 +390,11 @@ export const EditSeries = () => {
                 </DragDropContext>
             </Box>
             <Box sx={{ display: "flex", justifyContent: "flex-end", marginTop: 2 }}>
+                <AddStoryModal
+                    seriesID={seriesID}
+                    availableStories={availableStories}
+                    onSelectStory={handleSelectStory}
+                />
                 <Button onClick={handleSubmit}>Update</Button>
             </Box>
         </Box>
