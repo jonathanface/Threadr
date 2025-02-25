@@ -468,7 +468,7 @@ export const CreateOrEditStory: React.FC = () => {
                                     }
                                 }
                             }}
-                            onChange={(event, newValue) => setSelectedSeries(newValue)}
+                            onChange={(_event, newValue) => setSelectedSeries(newValue)}
                             renderInput={(params) => <TextField {...params} label="Assign to Series (optional)" margin="normal" />}
                         />
                         <Button variant="contained" color="primary" style={{ marginTop: 16 }} onClick={buttonFunction}>{buttonLabel}</Button>
