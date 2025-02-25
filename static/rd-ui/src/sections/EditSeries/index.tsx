@@ -37,7 +37,7 @@ export const EditSeries = () => {
     const { setAlertState } = useToaster();
     const navigate = useNavigate();
     const { seriesID } = useParams<{ seriesID: string }>();
-    const availableStories = useRef<Story[]>([]);
+    const [availableStories, setAvailableStories] = useState<Story[]>([])
 
     const [seriesBuild, setSeriesBuild] = useState<EditSeriesForm>({
         series_title: "",
@@ -49,10 +49,10 @@ export const EditSeries = () => {
 
     useEffect(() => {
         if (storiesList) {
-            availableStories.current = storiesList.filter(
+            setAvailableStories(storiesList.filter(
                 (story) =>
                     !seriesBuild.stories || !seriesBuild.stories.some((s) => s.story_id === story.story_id)
-            );
+            ));
         }
     }, [seriesBuild.stories, storiesList]);
 
@@ -321,14 +321,7 @@ export const EditSeries = () => {
             </Box>
             <Box sx={{ marginTop: 2 }}>
                 <hr />
-                <Typography variant="h6">
-                    Stories
-                    <AddStoryModal
-                        seriesID={seriesID}
-                        availableStories={availableStories.current}
-                        onSelectStory={handleSelectStory}
-                    />
-                </Typography>
+                <Typography variant="h6">Stories</Typography>
                 <DragDropContext onDragEnd={onDragEnd}>
                     <Droppable droppableId="droppable">
                         {(provided) => (
@@ -397,6 +390,11 @@ export const EditSeries = () => {
                 </DragDropContext>
             </Box>
             <Box sx={{ display: "flex", justifyContent: "flex-end", marginTop: 2 }}>
+                <AddStoryModal
+                    seriesID={seriesID}
+                    availableStories={availableStories}
+                    onSelectStory={handleSelectStory}
+                />
                 <Button onClick={handleSubmit}>Update</Button>
             </Box>
         </Box>

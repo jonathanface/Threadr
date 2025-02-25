@@ -13,7 +13,6 @@ import { HeaderMenu } from "./components/HeaderMenu";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { LoginPanel } from "./sections/LoginPanel";
 import { ConfigPanel } from "./sections/UserConfigPanel";
-import { CreateEditStorySlideshow } from "./sections/CreateEditStorySlideshow";
 import { EditSeries } from "./sections/EditSeries";
 import { useToaster } from "./hooks/useToaster";
 import { AlertCommandType, AlertFunctionCall, AlertToastType } from "./types/AlertToasts";
@@ -147,7 +146,7 @@ export const Docter = memo(() => {
             path="/series/:seriesID/add"
             element={
               isLoggedIn ? (
-                <CreateEditStorySlideshow />
+                <CreateOrEditStory />
               ) : (
                 <Navigate to="/" replace />
               )

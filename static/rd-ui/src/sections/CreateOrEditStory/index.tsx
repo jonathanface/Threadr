@@ -43,6 +43,7 @@ export const CreateOrEditStory: React.FC = () => {
     const initialSeriesID = useRef("");
 
     const { storyID } = useParams<{ storyID: string }>();
+    const { seriesID } = useParams<{ seriesID: string }>();
 
     const { seriesList, setSeriesList, storiesList, setStoriesList } = useWorksList();
     const { propagateSeriesUpdates } = useSelections();
@@ -357,6 +358,34 @@ export const CreateOrEditStory: React.FC = () => {
         };
         fetchStory();
     }, [storyID, showLoader, hideLoader, setAlertState]);
+
+    useEffect(() => {
+        if (!seriesID || !seriesID.length) return;
+        const fetchSeries = async () => {
+            try {
+                showLoader();
+                const response = await fetch(`/api/series/${seriesID}`);
+                if (!response.ok) throw new Error('Series not found');
+                const data = await response.json() as Series;
+                setSelectedSeries({
+                    series_id: seriesID,
+                    series_name: data.series_title
+                });
+            } catch (err) {
+                console.error(err);
+                setAlertState({
+                    title: "Error retrieving data",
+                    message:
+                        "We are experiencing difficulty retrieving some or all of your data",
+                    severity: AlertToastType.error,
+                    open: true
+                });
+            } finally {
+                hideLoader();
+            }
+        };
+        fetchSeries();
+    }, [seriesID, showLoader, hideLoader, setAlertState]);
 
     const onImageLoad = (event: React.SyntheticEvent<HTMLImageElement, Event>) => {
         setImagePreview(event.currentTarget.src);
