@@ -69,7 +69,7 @@ export const EditSeries = () => {
                     series_title: data.series_title,
                     series_description: data.series_description,
                     stories: data.stories,
-                    image_url: data.image_url,
+                    image_url: data.image_url.length ? data.image_url : '/img/icons/story_series_icon.jpg'
                 }
 
                 setSeriesBuild(editingSeriesBuild);

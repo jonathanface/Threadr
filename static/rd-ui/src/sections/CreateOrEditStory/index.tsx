@@ -363,9 +363,9 @@ export const CreateOrEditStory: React.FC = () => {
         setIsStoryLoaderVisible(false);
     }
 
-    const buttonLabel = storyID && storyID.length ? "Edit Story" : "Submit Story";
+    const buttonLabel = storyID && storyID.length ? "Update" : "Create";
     const buttonFunction = storyID && storyID.length ? editStory : saveNewStory;
-    const bigTitle = storyID && storyID.length ? "Edit a Story" : "Create a Story"
+    const bigTitle = storyID && storyID.length ? "Update a Story" : "Create a Story"
 
     const handleClose = () => {
         navigate(-1);

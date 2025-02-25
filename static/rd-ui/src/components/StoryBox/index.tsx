@@ -3,32 +3,29 @@ import EditIcon from "@mui/icons-material/Edit";
 import { IconButton } from "@mui/material";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
-import { useEffect, useState } from "react";
-import { DetailsSlider } from "./DetailsSlider";
+import { useState } from "react";
+import { StoryOrSeriesDetailsSlider } from "../StoryOrSeriesDetailsSlider";
 import styles from "./story.module.css";
 import { Story } from "../../types/Story";
-import { Series } from "../../types/Series";
 import { useLoader } from "../../hooks/useLoader";
 import { useNavigate } from "react-router-dom";
-import { useWorksList } from "../../hooks/useWorksList";
-import { isStory } from "../../utils/helpers";
 
 interface StoryBoxProps {
-  itemData: Story | Series;
+  story: Story;
 }
 
 export const StoryBox = (props: StoryBoxProps) => {
   const { showLoader, hideLoader } = useLoader();
-  const { seriesList, storiesList, setSeriesList, setStoriesList } = useWorksList();
 
   const [wasDeleted, setWasDeleted] = useState(false);
+  const [isSliderVisible, setIsSliderVisible] = useState(false);
   const [isStoryLoaderVisible, setIsStoryLoaderVisible] = useState(true);
-  const [isSeries, setIsSeries] = useState(false);
 
   const navigate = useNavigate();
 
-  const handleClick = async (storyID: string, chapterID: string) => {
-    navigate(`/stories/${storyID}?chapter=${chapterID}`);
+  const handleClick = async (event: React.MouseEvent, storyID: string) => {
+    event.preventDefault();
+    navigate(`/stories/${storyID}`);
   };
 
   const editStory = (event: React.MouseEvent, storyID: string) => {
@@ -36,86 +33,17 @@ export const StoryBox = (props: StoryBoxProps) => {
     navigate(`/stories/${storyID}/edit`)
   };
 
-  const editSeries = (event: React.MouseEvent, seriesID: string) => {
-    event.stopPropagation();
-    navigate(`/series/${seriesID}/edit`)
-  };
-
-  const deleteSeries = async (
-    event: React.MouseEvent,
-    id: string,
-    title: string
-  ) => {
-    event.stopPropagation();
-    const confirmText =
-      "Delete series " +
-      title +
-      "? Any volumes assigned to it will be converted to standalone stories.";
-    const conf = window.confirm(confirmText);
-    if (conf) {
-      try {
-        showLoader();
-        const url = "/api/series/" + id;
-        const response = await fetch(url, {
-          credentials: "include",
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-        if (!response.ok) {
-          if (response.status !== 501) {
-            const errorData = await response.json();
-            throw new Error(JSON.stringify(errorData));
-          }
-        }
-
-        setWasDeleted(true);
-        const foundSeriesIndex = seriesList?.findIndex(
-          (srs) => srs.series_id === id
-        );
-        if (storiesList && seriesList && foundSeriesIndex && foundSeriesIndex !== -1) {
-          const newStandaloneList = [...storiesList];
-          seriesList[foundSeriesIndex].stories.forEach((story) => {
-            const newStory = { ...story };
-            delete newStory.series_id;
-            newStandaloneList.push(newStory);
-          });
-          setStoriesList(newStandaloneList);
-
-          const newSeriesList = [...seriesList];
-          newSeriesList.splice(foundSeriesIndex, 1);
-          setSeriesList(newSeriesList);
-        }
-      } catch (error) {
-        console.error(`Error deleting series: ${error}`);
-      } finally {
-        hideLoader();
-      }
-    }
-  };
-
   const deleteStory = async (event: React.MouseEvent, id: string, title: string) => {
     event.stopPropagation();
 
-    const confirmText =
-      (isStory(props.itemData)
-        ? "Delete story " + title + "?"
-        : "Delete " +
-        title +
-        " from your series " +
-        props.itemData.series_title +
-        "?") +
-      (!isStory(props.itemData) && props.itemData.stories.length === 1
-        ? "\n\nThere are no other titles in this series, so deleting it will also remove the series."
-        : "");
+    const confirmText = "Delete story " + title + "?";
 
     const conf = window.confirm(confirmText);
-    const seriesID = !isStory(props.itemData) ? props.itemData.series_id : "";
+
     if (conf) {
       try {
         showLoader();
-        const url = `/api/stories/${id}?series=${seriesID}`;
+        const url = `/api/stories/${id}`;
         const response = await fetch(url, {
           credentials: "include",
           method: "DELETE",
@@ -139,32 +67,29 @@ export const StoryBox = (props: StoryBoxProps) => {
     }
   };
 
-  const id = !isStory(props.itemData) ? props.itemData.series_id : props.itemData.story_id;
-  const title = !isStory(props.itemData)
-    ? props.itemData.series_title
-    : props.itemData.title;
-  const description = !isStory(props.itemData)
-    ? props.itemData.series_description
-    : props.itemData.description;
+  const showSlider = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    setIsSliderVisible(true);
+  }
+  const hideSlider = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    setIsSliderVisible(false);
+  }
+
+  const id = props.story.story_id;
+  const title = props.story.title;
+  const description = props.story.description;
   const editHoverText = "Edit " + title;
   const deleteHoverText = "Delete " + title;
 
-  useEffect(() => {
-    if (!isStory(props.itemData)) {
-      setIsSeries(true);
-    } else {
-      setIsSeries(false);
-    }
-  }, [props.itemData]);
-
-  const imageURL = props.itemData.image_url ? props.itemData.image_url : props.itemData.series_id ? '/img/icons/story_series_icon.jpg' : '/img/icons/story_standalone_icon.jpg'
+  const imageURL = props.story.image_url ? props.story.image_url : '/img/icons/story_standalone_icon.jpg'
   return !wasDeleted ? (
     <button
-      className={styles.docButton}
-      onClick={() => {
-        if (isStory(props.itemData)) {
-          handleClick(props.itemData.story_id, props.itemData.chapters[0].id);
-        }
+      onMouseOver={showSlider}
+      onMouseOut={hideSlider}
+      className={styles.storyBoxContainer}
+      onClick={(event) => {
+        handleClick(event, props.story.story_id,);
       }}
     >
       <div
@@ -178,7 +103,6 @@ export const StoryBox = (props: StoryBoxProps) => {
       </div>
       <div className={styles.storyBubble}>
         <img
-          className={!isStory(props.itemData) ? styles.seriesImage : ""}
           src={imageURL}
           alt={title}
           onLoad={() => {
@@ -194,11 +118,7 @@ export const StoryBox = (props: StoryBoxProps) => {
               component="label"
               title={editHoverText}
               onClick={(event) => {
-                if (isSeries) {
-                  editSeries(event, (props.itemData as Series).series_id);
-                } else {
-                  editStory(event, (props.itemData as Story).story_id);
-                }
+                editStory(event, props.story.story_id);
               }}
             >
               <EditIcon
@@ -218,11 +138,7 @@ export const StoryBox = (props: StoryBoxProps) => {
               component="label"
               title={deleteHoverText}
               onClick={(event) => {
-                if (!isStory(props.itemData)) {
-                  deleteSeries(event, id, title);
-                } else {
-                  deleteStory(event, id, title);
-                }
+                deleteStory(event, id, title);
               }}
             >
               <DeleteIcon
@@ -239,19 +155,16 @@ export const StoryBox = (props: StoryBoxProps) => {
             </IconButton>
           </span>
         </div>
-        <DetailsSlider
+        <StoryOrSeriesDetailsSlider
           id={id}
-          stories={!isStory(props.itemData) ? props.itemData.stories : undefined}
-          chapters={isStory(props.itemData) ? props.itemData.chapters : undefined}
+          visible={isSliderVisible}
           onStoryClick={handleClick}
           setDeleted={setWasDeleted}
-          isSeries={isSeries}
+          isSeries={false}
           title={title}
           description={description}
         />
       </div>
     </button>
-  ) : (
-    ""
-  );
+  ) : "";
 };

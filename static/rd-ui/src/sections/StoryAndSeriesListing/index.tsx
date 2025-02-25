@@ -10,6 +10,7 @@ import { AlertToastType } from "../../types/AlertToasts";
 import { UserContext } from "../../contexts/user";
 import { useWorksList } from "../../hooks/useWorksList";
 import { useNavigate } from "react-router-dom";
+import { SeriesBox } from "../../components/SeriesBox";
 
 
 export const StoryAndSeriesListing = () => {
@@ -49,11 +50,11 @@ export const StoryAndSeriesListing = () => {
 
   // If there are works, we prepare our series and stories components.
   const seriesComponents = seriesList?.map((series: Series) => {
-    return <StoryBox key={series.series_id} itemData={series} />;
+    return <SeriesBox key={series.series_id} series={series} />;
   });
 
   const storyComponents = storiesList?.map((story: Story) => {
-    return <StoryBox key={story.story_id} itemData={story} />;
+    return <StoryBox key={story.story_id} story={story} />;
   });
 
   let content = <div />;
