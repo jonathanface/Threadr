@@ -10,11 +10,13 @@
     margin-bottom: 20px;
     min-width: 300px;
     min-height: 300px;
+
 }
 
 .seriesBoxContainer .seriesBubble {
     position: relative;
     overflow: hidden;
+    cursor: pointer;
 }
 
 .seriesBoxContainer img {
