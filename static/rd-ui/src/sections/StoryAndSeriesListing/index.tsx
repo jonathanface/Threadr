@@ -11,6 +11,7 @@ import { UserContext } from "../../contexts/user";
 import { useWorksList } from "../../hooks/useWorksList";
 import { useNavigate } from "react-router-dom";
 import { SeriesBox } from "../../components/SeriesBox";
+import { useSelections } from "../../hooks/useSelections";
 
 
 export const StoryAndSeriesListing = () => {
@@ -19,6 +20,7 @@ export const StoryAndSeriesListing = () => {
   const navigate = useNavigate();
 
   const { seriesList, storiesList } = useWorksList();
+  const { deselectAll } = useSelections();
 
   useEffect(() => {
     if (
@@ -36,12 +38,14 @@ export const StoryAndSeriesListing = () => {
         timeout: null,
       });
     }
+    deselectAll();
   }, [
     storiesList,
     seriesList,
     storiesList?.length,
     seriesList?.length,
     setAlertState,
+    deselectAll
   ]);
 
   const createNewStory = () => {

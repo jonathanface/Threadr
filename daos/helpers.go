@@ -29,6 +29,20 @@ func GetTableSuffix() string {
 	return ""
 }
 
+var awsPrefixPattern = regexp.MustCompile(`(?i)aws:`)
+var disallowedTagChars = regexp.MustCompile(`[^A-Za-z0-9 +\-\=\.\_\:\/@]`)
+
+// CleanDynamoTagString removes all characters that are disallowed in a DynamoDB tag key/value.
+func CleanDynamoTagString(input string) string {
+	withoutAws := awsPrefixPattern.ReplaceAllString(input, "")
+
+	// Step 2: Remove all disallowed characters.
+	cleaned := disallowedTagChars.ReplaceAllString(withoutAws, "")
+
+	// Optionally, trim leading/trailing spaces (if desired)
+	return strings.TrimSpace(cleaned)
+}
+
 func (d *DAO) awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsInput) (err error, awsError models.AwsError) {
 	if writeItemsInput == nil {
 		return fmt.Errorf("writeItemsInput is nil"), awsError
@@ -732,14 +746,6 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 		return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 	}
 	return nil
-}
-
-var tagValueSanitizer = regexp.MustCompile(`[^a-zA-Z0-9 \-_]+`)
-
-// sanitizeTagValue removes disallowed characters from a tag value.
-func sanitizeTagValue(input string) string {
-	// Replace all disallowed characters with an empty string (i.e., remove them)
-	return tagValueSanitizer.ReplaceAllString(input, "")
 }
 
 func (d *DAO) hardDeleteStory(email, storyID string) error {

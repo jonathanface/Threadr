@@ -110,7 +110,7 @@ export const StoryBox = (props: StoryBoxProps) => {
           }}
         />
         <div className={styles.storyLabel}>
-          <span className={styles.title}>{title}</span>
+          <div className={styles.title} title={title}>{title}</div>
           <span className={styles.buttons}>
             <IconButton
               aria-label="edit story"
