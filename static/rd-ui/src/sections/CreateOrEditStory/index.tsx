@@ -29,7 +29,7 @@ interface CreateOrEditStoryForm {
     series_place?: number;
 }
 
-// Allowed characters: letters, digits, spaces, plus + - = . _ : / @
+//eslint-disable-next-line
 const allowedPattern = /^[A-Za-z0-9 +\-\=\.\_\:\,\'\"\/@]*$/;
 const isValidTitle = (value: string) => {
     // 1. Max length: 256 characters
@@ -101,7 +101,7 @@ export const CreateOrEditStory: React.FC = () => {
         if (!isValidTitle(title)) {
             setAlertState({
                 title: "Invalid Title",
-                message: "A story title must be less than 256 characters and may only contain letters, numbers, spaces, and the following characters: + - = . _ : / @ , \' \"",
+                message: `A story title must be less than 256 characters and may only contain letters, numbers, spaces, and the following characters: + - = . _ : / @ , ' "`,
                 severity: AlertToastType.error,
                 open: true
             });
@@ -214,7 +214,7 @@ export const CreateOrEditStory: React.FC = () => {
         if (!isValidTitle(title)) {
             setAlertState({
                 title: "Invalid Title",
-                message: "A story title must be less than 256 characters and may only contain letters, numbers, spaces, and the following characters: + - = . _ : / @ , \' \"",
+                message: `A story title must be less than 256 characters and may only contain letters, numbers, spaces, and the following characters: + - = . _ : / @ , ' "`,
                 severity: AlertToastType.error,
                 open: true
             });

@@ -45,6 +45,7 @@ export const StoryAndSeriesListing = () => {
     storiesList?.length,
     seriesList?.length,
     setAlertState,
+    deselectAll
   ]);
 
   const createNewStory = () => {
