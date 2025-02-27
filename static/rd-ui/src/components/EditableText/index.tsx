@@ -39,18 +39,19 @@ export const EditableText = (props: EditableTextProps) => {
     };
 
     return (
-        <span className={styles.editableParent} onClick={onDblClick}>
+        <div className={styles.editableParent} title={"Double-click to edit"} onClick={onDblClick}>
             {!isEditing ? (
                 textValue
             ) : (
                 <TextField
-                    className={styles.editField}
                     autoFocus
+                    className={styles.editField}
                     slotProps={{
                         htmlInput:
                         {
                             style: {
                                 textAlign: inputAlignment,
+                                width: '100%'
                             }
                         }
                     }}
@@ -62,6 +63,6 @@ export const EditableText = (props: EditableTextProps) => {
                     defaultValue={textValue}
                 />
             )}
-        </span>
+        </div>
     );
 };

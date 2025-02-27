@@ -38,7 +38,6 @@
 
 .portraitWrapper {
     width: 200px;
-    height: 200px;
     margin: 20px auto;
     position: relative;
 }
@@ -54,9 +53,13 @@
 
 /* Title preview styling */
 .previewTitle {
-    font-size: 1.5rem;
-    font-weight: bold;
-    margin-top: 8px;
+    margin-top: 8px !important;
+    margin-bottom: 8px !important;
+    font-size: 1rem !important;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 /* Description preview styling */
@@ -64,4 +67,8 @@
     font-size: 1rem;
     color: #666;
     margin-top: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 10;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }

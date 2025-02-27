@@ -13,7 +13,7 @@ interface DetailsSliderProps {
   title: string;
   description: string;
   onStoryClick?: (event: React.MouseEvent, storyID: string) => void;
-  onShowMoreClick: (event: React.MouseEvent) => void;
+  onShowMoreClick?: (event: React.MouseEvent) => void;
   setDeleted: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
@@ -56,7 +56,7 @@ export const StoryOrSeriesDetailsSlider = (props: DetailsSliderProps) => {
             <div>
               <AvatarGroup renderSurplus={(surplus) => {
 
-                return <span className={styles.moreClicker} title="Click for more" onClick={(event) => props.onShowMoreClick(event)}>+{surplus.toString()[0]}</span>;
+                return <span className={styles.moreClicker} title="Click for more" onClick={(event) => { props.onShowMoreClick ? props.onShowMoreClick(event) : null }}>+{surplus.toString()[0]}</span>;
               }
               } max={4} total={props.stories ? props.stories.length : 0} className={styles.avatars}>
                 {

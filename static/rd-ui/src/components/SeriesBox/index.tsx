@@ -112,7 +112,7 @@ export const SeriesBox: React.FC<SeriesBoxProps> = ({ series }) => {
     const imageURL = series.image_url ? series.image_url : '/img/icons/story_series_icon.jpg';
 
     return !wasDeleted ? (
-        <button className={styles.seriesBoxContainer}
+        <div className={styles.seriesBoxContainer}
             onMouseOver={showDetailsSlider}
             onMouseOut={hideDetailsSlider}
         >
@@ -199,6 +199,6 @@ export const SeriesBox: React.FC<SeriesBoxProps> = ({ series }) => {
                 onStoryClick={handleStoryClick}
                 onClose={() => { setIsListSliderVisible(false) }}
             />
-        </button>
+        </div>
     ) : "";
 };

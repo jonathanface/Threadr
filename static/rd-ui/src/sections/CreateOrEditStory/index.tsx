@@ -29,6 +29,18 @@ interface CreateOrEditStoryForm {
     series_place?: number;
 }
 
+// Allowed characters: letters, digits, spaces, plus + - = . _ : / @
+const allowedPattern = /^[A-Za-z0-9 +\-\=\.\_\:\,\'\"\/@]*$/;
+const isValidTitle = (value: string) => {
+    // 1. Max length: 256 characters
+    if (value.length > 256) return false;
+    if (value.startsWith('aws:')) return false;
+
+    // 2. Check allowed characters
+    return allowedPattern.test(value);
+}
+
+
 export const CreateOrEditStory: React.FC = () => {
     const randomImageURL = "https://picsum.photos/300";
     const defaultImageURL = "img/icons/story_standalone_icon.jpg";
@@ -86,6 +98,15 @@ export const CreateOrEditStory: React.FC = () => {
             });
             return;
         }
+        if (!isValidTitle(title)) {
+            setAlertState({
+                title: "Invalid Title",
+                message: "A story title must be less than 256 characters and may only contain letters, numbers, spaces, and the following characters: + - = . _ : / @ , \' \"",
+                severity: AlertToastType.error,
+                open: true
+            });
+            return;
+        }
         if (!description.trim().length) {
             setAlertState({
                 title: "A brief description is required",
@@ -98,8 +119,8 @@ export const CreateOrEditStory: React.FC = () => {
 
         const formData: CreateOrEditStoryForm = {};
         formData.story_id = storyID;
-        formData.description = description;
-        formData.title = title;
+        formData.description = description.trim();
+        formData.title = title.trim();
         formData.image = tempImageFile.current;
 
         if (selectedSeries && selectedSeries.series_id?.length && selectedSeries.series_id !== initialSeriesID.current) {
@@ -107,7 +128,7 @@ export const CreateOrEditStory: React.FC = () => {
             const foundSeries = seriesList?.find((srs) => srs.series_id === selectedSeries.series_id);
             if (foundSeries) {
                 formData.series_id = foundSeries.series_id;
-                formData.series_name = foundSeries.series_title;
+                formData.series_name = foundSeries.series_title.trim();
                 formData.series_place = foundSeries.stories.length ? foundSeries.stories.length : 1;
             }
         } else if (selectedSeries && !selectedSeries.series_id) {
@@ -190,6 +211,15 @@ export const CreateOrEditStory: React.FC = () => {
             });
             return;
         }
+        if (!isValidTitle(title)) {
+            setAlertState({
+                title: "Invalid Title",
+                message: "A story title must be less than 256 characters and may only contain letters, numbers, spaces, and the following characters: + - = . _ : / @ , \' \"",
+                severity: AlertToastType.error,
+                open: true
+            });
+            return;
+        }
         if (!description.trim().length) {
             setAlertState({
                 title: "A brief description is required",
@@ -200,8 +230,8 @@ export const CreateOrEditStory: React.FC = () => {
             return;
         }
         const formData: CreateOrEditStoryForm = {};
-        formData.description = description;
-        formData.title = title;
+        formData.description = description.trim();
+        formData.title = title.trim();
         formData.image = tempImageFile.current;
 
         if (selectedSeries?.series_id) {
@@ -210,12 +240,13 @@ export const CreateOrEditStory: React.FC = () => {
             if (foundSeries) {
                 formData.series_place = foundSeries.stories.length ? foundSeries.stories.length : 1;
             }
-        } else if (formData.series_title) {
+        } else if (selectedSeries?.series_name) {
             const foundSeries = seriesList?.find((srs) => srs.series_title === formData.series_title);
             if (foundSeries) {
                 formData.series_id = foundSeries.series_id;
                 formData.series_place = foundSeries.stories.length ? foundSeries.stories.length : 1;
             } else {
+                formData.series_title = selectedSeries?.series_name.trim();
                 formData.series_place = 1;
             }
         }
@@ -420,7 +451,7 @@ export const CreateOrEditStory: React.FC = () => {
                             margin="normal"
                         />
                         <TextField
-                            label="Description"
+                            label="Write a brief summary of your story"
                             fullWidth
                             multiline
                             rows={4}
@@ -443,7 +474,6 @@ export const CreateOrEditStory: React.FC = () => {
                                 name={title}
                                 onComplete={processImage}
                                 onImageLoaded={onImageLoad}
-                                hideLabel={true}
                             />
                         </div>
                         <Autocomplete
