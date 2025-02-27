@@ -1,0 +1,72 @@
+.detailsSlider {
+    filter: none;
+    border-radius: 10px;
+    border: 1px solid #000;
+    top: 100%;
+    position: absolute;
+    transition: all 0.2s ease-in-out;
+    background: #1e1e20;
+    height: 300px;
+    width: 100%;
+    z-index: 30;
+    padding: 10px;
+    box-sizing: border-box;
+    text-align: left;
+    overflow-x: hidden;
+    overflow-y: auto;
+    cursor: default;
+    visibility: hidden;
+    opacity: 0;
+}
+
+.detailsSlider .header {
+    text-align: right;
+}
+
+.detailsSlider .header .closer {
+    position: relative;
+    left: 0.5rem;
+    top: -0.5rem;
+    color: #F9f9f9;
+}
+
+.detailsSlider .header .closer:hover {
+    opacity: 0.8;
+}
+
+.detailsSlider.visible {
+    margin-top: -300px;
+    opacity: 1;
+    visibility: visible;
+}
+
+.detailsSlider .avatars {
+    justify-content: space-evenly;
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: space-evenly;
+    width: 100%;
+    /* Optional: add padding or a background to improve readability */
+    padding: 5px;
+    text-align: center;
+}
+
+.detailsSlider .avatar:hover {
+    opacity: 0.8;
+    cursor: pointer;
+}
+
+.detailsSlider .storyItem {
+    color: #F9F9F9;
+}
+
+.detailsSlider .storyItem:hover {
+    background-color: #333;
+}
+
+.detailsSlider .storyItemText {
+    color: #D7D7D7;
+}

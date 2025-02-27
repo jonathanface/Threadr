@@ -17,6 +17,7 @@
     cursor: default;
     visibility: hidden;
     opacity: 0;
+    cursor: pointer;
 }
 
 .detailsSlider .detailsTitle {
@@ -89,7 +90,8 @@
     text-align: center;
 }
 
-.detailsSlider .avatar:hover {
+.detailsSlider .avatar:hover,
+.detailsSlider .moreClicker:hover {
     opacity: 0.8;
     cursor: pointer;
 }

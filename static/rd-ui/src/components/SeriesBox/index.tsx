@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLoader } from '../../hooks/useLoader';
 import { useWorksList } from '../../hooks/useWorksList';
 import { StoryOrSeriesDetailsSlider } from '../StoryOrSeriesDetailsSlider';
+import { StoryListSlider } from '../StoryListSlider';
 
 interface SeriesBoxProps {
     series: Series;
@@ -19,7 +20,8 @@ export const SeriesBox: React.FC<SeriesBoxProps> = ({ series }) => {
 
     const [isSeriesLoaderVisible, setIsSeriesLoaderVisible] = useState(false);
     const [wasDeleted, setWasDeleted] = useState(false);
-    const [isSliderVisible, setIsSliderVisible] = useState(false);
+    const [isDetailsSliderVisible, setIsDetailsSliderVisible] = useState(false);
+    const [isListSliderVisible, setIsListSliderVisible] = useState(false);
     const { showLoader, hideLoader } = useLoader();
     const { seriesList, storiesList, setSeriesList, setStoriesList } = useWorksList();
     const navigate = useNavigate();
@@ -88,21 +90,31 @@ export const SeriesBox: React.FC<SeriesBoxProps> = ({ series }) => {
         }
     };
 
-    const showSlider = (event: React.MouseEvent) => {
+    const showDetailsSlider = (event: React.MouseEvent) => {
         event.stopPropagation();
-        setIsSliderVisible(true);
+        if (!isListSliderVisible) {
+            setIsDetailsSliderVisible(true);
+        }
     }
-    const hideSlider = (event: React.MouseEvent) => {
+    const hideDetailsSlider = (event: React.MouseEvent) => {
         event.stopPropagation();
-        setIsSliderVisible(false);
+        setIsDetailsSliderVisible(false);
+    }
+
+    const showListSlider = (event: React.MouseEvent) => {
+        event.stopPropagation();
+        if (!isListSliderVisible && isDetailsSliderVisible) {
+            setIsDetailsSliderVisible(false);
+        }
+        setIsListSliderVisible(true);
     }
 
     const imageURL = series.image_url ? series.image_url : '/img/icons/story_series_icon.jpg';
 
     return !wasDeleted ? (
         <button className={styles.seriesBoxContainer}
-            onMouseOver={showSlider}
-            onMouseOut={hideSlider}
+            onMouseOver={showDetailsSlider}
+            onMouseOut={hideDetailsSlider}
         >
             <div
                 className="loading-screen"
@@ -170,8 +182,9 @@ export const SeriesBox: React.FC<SeriesBoxProps> = ({ series }) => {
                 </div>
             </div>
             <StoryOrSeriesDetailsSlider
+                onShowMoreClick={showListSlider}
                 id={series.series_id}
-                visible={isSliderVisible}
+                visible={isDetailsSliderVisible}
                 stories={series.stories}
                 chapters={undefined}
                 setDeleted={setWasDeleted}
@@ -179,6 +192,12 @@ export const SeriesBox: React.FC<SeriesBoxProps> = ({ series }) => {
                 isSeries={true}
                 title={series.series_title}
                 description={series.series_description}
+            />
+            <StoryListSlider
+                series={series}
+                visible={isListSliderVisible}
+                onStoryClick={handleStoryClick}
+                onClose={() => { setIsListSliderVisible(false) }}
             />
         </button>
     ) : "";
