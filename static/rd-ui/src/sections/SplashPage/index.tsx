@@ -33,7 +33,7 @@ export const SplashPage = () => {
             <img src="./img/exporting.jpg" alt="easy document conversion" />
           </figure>
         </span>
-        <span className={styles.column}>
+        <span className={styles.column + " " + styles.leftText}>
           <h2>Begin with Brilliance, End with Excellence.</h2>
           <div>
             In the digital age, adaptability is not just an advantage—it's a
@@ -46,11 +46,6 @@ export const SplashPage = () => {
         </span>
       </div>
       <div className={styles.blurb}>
-        <span className={styles.column}>
-          <figure>
-            <img src="./img/crafting.jpg" alt="crafting worlds" />
-          </figure>
-        </span>
         <span className={styles.column + " " + styles.leftText}>
           <h2>Craft Characters, Build Worlds, Tell Stories</h2>
           <div>
@@ -68,30 +63,9 @@ export const SplashPage = () => {
             </ul>
           </div>
         </span>
-      </div>
-      <div className={styles.blurb}>
         <span className={styles.column}>
-          <h2>Assisted Writing with Artifical Intelligence</h2>
-          <div>
-            <ul>
-              <li>
-                Our AI story analyzer, The Docter, will read your chapters on
-                the fly and provide meaningful feedback.
-              </li>
-              <li>
-                On request, The Docter will provide suggestions or prompts about
-                what to write next.
-              </li>
-              <li>
-                Tagged characters, places, or events can be reviewed and
-                suggestions made to add greater depth.
-              </li>
-            </ul>
-          </div>
-        </span>
-        <span className={styles.column + ' ' + styles.leftText}>
           <figure>
-            <img src="./img/docter.jpg" alt="AI Enhanced" />
+            <img src="./img/crafting.jpg" alt="crafting worlds" />
           </figure>
         </span>
       </div>
@@ -101,7 +75,7 @@ export const SplashPage = () => {
             <img src="./img/characters.jpg" alt="character backstories" />
           </figure>
         </span>
-        <span className={styles.column}>
+        <span className={styles.column + ' ' + styles.leftText}>
           <h2>Character Backstories at Your Fingertips</h2>
           <div>
             <ul>
