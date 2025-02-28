@@ -126,6 +126,7 @@ func (d *DAO) GetStoryByID(email, storyID string) (story *models.Story, err erro
 		chap := models.Chapter{}
 		chap.Place = 1
 		chap.Title = "Chapter 1"
+		chap.ID = uuid.New().String()
 		chap.StoryID = storyID
 		chapter, err := d.CreateChapter(storyID, chap, email)
 		if err != nil {
