@@ -121,6 +121,18 @@ func (d *DAO) GetStoryByID(email, storyID string) (story *models.Story, err erro
 	if err != nil {
 		return
 	}
+	if len(storyFromMap[0].Chapters) == 0 {
+		// somehow there are no chapters for this story, so create one
+		chap := models.Chapter{}
+		chap.Place = 1
+		chap.Title = "Chapter 1"
+		chap.StoryID = storyID
+		chapter, err := d.CreateChapter(storyID, chap, email)
+		if err != nil {
+			return story, err
+		}
+		storyFromMap[0].Chapters = append(storyFromMap[0].Chapters, chapter)
+	}
 	return &storyFromMap[0], nil
 }
 
