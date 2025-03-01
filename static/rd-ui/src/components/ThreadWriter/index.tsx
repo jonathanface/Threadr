@@ -506,16 +506,21 @@ export const ThreadWriter = () => {
 
         // **Step 1: Use caret position to find exact text offset**
         let range: Range | null = null;
-        if (document.caretPositionFromPoint) {
-          const caretPos = document.caretPositionFromPoint(touch.clientX, touch.clientY);
+        const doc = document as unknown as {
+          caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
+          caretRangeFromPoint?: (x: number, y: number) => Range | null;
+        } & Document;
+
+        if (doc.caretPositionFromPoint) {
+          const caretPos = doc.caretPositionFromPoint(touch.clientX, touch.clientY);
           if (caretPos) {
             range = document.createRange();
             range.setStart(caretPos.offsetNode, caretPos.offset);
             range.setEnd(caretPos.offsetNode, caretPos.offset);
             charOffset = caretPos.offset;
           }
-        } else if (document.caretRangeFromPoint) {
-          range = document.caretRangeFromPoint(touch.clientX, touch.clientY);
+        } else if (doc.caretRangeFromPoint) {
+          range = doc.caretRangeFromPoint(touch.clientX, touch.clientY);
           if (range) {
             charOffset = range.startOffset;
           }
@@ -531,7 +536,7 @@ export const ThreadWriter = () => {
             }
           }
         }
-
+        console.log("offset", charOffset)
         // **Step 3: Set cursor exactly where the user tapped**
         if (closestTextNode && $isTextNode(closestTextNode)) {
           const newSelection = $createRangeSelection();
@@ -893,9 +898,6 @@ export const ThreadWriter = () => {
 
   const handleDocumentLeftClick = () => {
     setContextMenuData(defaultContextData);
-    if (editorRef.current) {
-      editorRef.current.focus();
-    }
   }
 
   const handleDocumentRightClick = (data: ClickData) => {
