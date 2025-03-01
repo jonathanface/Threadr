@@ -50,6 +50,10 @@ export const useSelections = () => {
         }
     }
 
+    /**
+     * Updates an edited stories entry in the storiesList
+     * @param {Story} updatedStory 
+     */
     const propagateStoryUpdates = (updatedStory: Story) => {
         if (storiesList) {
             const storiesListIDX = storiesList.findIndex(listItem => listItem.story_id === updatedStory.story_id);

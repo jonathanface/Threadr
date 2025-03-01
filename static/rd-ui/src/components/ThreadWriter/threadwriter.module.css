@@ -37,6 +37,9 @@
 
 /* General editor styling */
 .editorInput {
+  pointer-events: auto;
+  user-select: text;
+  -webkit-user-select: text;
   font-family: Arial, sans-serif;
   font-size: 16px;
   color: #333;
