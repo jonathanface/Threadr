@@ -58,7 +58,7 @@ export const CreateOrEditStory: React.FC = () => {
     const { seriesID } = useParams<{ seriesID: string }>();
 
     const { seriesList, setSeriesList, storiesList, setStoriesList } = useWorksList();
-    const { propagateSeriesUpdates } = useSelections();
+    const { propagateSeriesUpdates, propagateStoryUpdates } = useSelections();
     const { showLoader, hideLoader } = useLoader();
     const { setAlertState } = useToaster();
     const navigate = useNavigate();
@@ -181,6 +181,7 @@ export const CreateOrEditStory: React.FC = () => {
                     }
                 }
             }
+            propagateStoryUpdates(updatedStory);
             setAlertState({
                 title: "Story edit success",
                 message: "",
@@ -199,7 +200,7 @@ export const CreateOrEditStory: React.FC = () => {
         } finally {
             hideLoader();
         }
-    }, [description, selectedSeries, setStoriesList, storiesList, title, hideLoader, navigate, propagateSeriesUpdates, seriesList, setAlertState, setSeriesList, showLoader, storyID]);
+    }, [description, selectedSeries, setStoriesList, storiesList, title, hideLoader, navigate, propagateSeriesUpdates, propagateStoryUpdates, seriesList, setAlertState, setSeriesList, showLoader, storyID]);
 
     const saveNewStory = async () => {
         if (!title.trim().length) {

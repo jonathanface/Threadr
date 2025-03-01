@@ -21,6 +21,18 @@ export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
         return "clickable-decorator";
     }
 
+    isInline(): boolean {
+        return true; // ✅ Tells Lexical that this is inline text, preventing over-processing
+    }
+
+    isIsolated(): boolean {
+        return false; // ✅ Prevents Lexical from treating it as a separate block
+    }
+
+    isSegmented(): boolean {
+        return false; // ✅ Allows the cursor to move through normally
+    }
+
     static clone(node: ClickableDecoratorNode): ClickableDecoratorNode {
         return new ClickableDecoratorNode(node.name, node.id, node.shortDescription, node.associationType, node.portrait, node.classModifier, node.customLeftClick, node.customRightClick, node.__key);
     }

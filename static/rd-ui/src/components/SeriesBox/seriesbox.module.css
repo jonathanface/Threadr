@@ -58,3 +58,12 @@
 .seriesBoxContainer .seriesLabel .buttons {
     white-space: nowrap;
 }
+
+@media only screen and (max-width: 600px) {
+    .seriesBoxContainer {
+        min-width: 0;
+        width: 100%;
+        margin: 0 auto;
+        margin-bottom: 20px;
+    }
+}
