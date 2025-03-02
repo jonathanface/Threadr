@@ -898,6 +898,9 @@ export const ThreadWriter = () => {
 
   const handleDocumentLeftClick = () => {
     setContextMenuData(defaultContextData);
+    if (editorRef.current) {
+      editorRef.current.focus();
+    }
   }
 
   const handleDocumentRightClick = (data: ClickData) => {
