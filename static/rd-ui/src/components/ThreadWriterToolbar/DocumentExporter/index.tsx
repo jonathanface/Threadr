@@ -18,16 +18,21 @@ export const DocumentExporter = () => {
 
     const exportDoc = async (type: DocumentExportType) => {
         if (story) {
-            setAlertState({
-                title: "Conversion in progress",
-                message: "A download link will be provided when the process is complete.",
-                open: true,
-                severity: AlertToastType.info,
-            });
-
             const exp = new Exporter(story);
-
-            const htmlData = await exp.lexicalToHtml();
+            let htmlData;
+            try {
+                htmlData = await exp.lexicalToHtml();
+            } catch (error) {
+                console.error(`error from lexicalToHTML: ${error}`);
+                setAlertState({
+                    title: "Error",
+                    message:
+                        "Unable to export your document at this time. Please try again later, or contact support@richdocter.io.",
+                    open: true,
+                    severity: AlertToastType.error,
+                });
+                return;
+            }
             try {
                 const response = await fetch("/api/stories/" + story.story_id + "/export?type=" + type, {
                     method: "PUT",
@@ -90,7 +95,7 @@ export const DocumentExporter = () => {
     if (!userDetails?.subscription_id.length) {
         disabled = true;
     }
-    const altText = !userDetails?.subscription_id.length ? "Exporting documents is only available to subscribers" : "Export document";
+    const altText = !userDetails?.subscription_id.length ? "Exporting stories is only available to subscribers" : "Export story";
 
     return (
         <div

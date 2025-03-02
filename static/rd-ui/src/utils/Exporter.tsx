@@ -38,73 +38,77 @@ export default class Exporter {
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const storyData: any = await this.getFullStory(this.story.story_id);
-    const chapters: returnHTML[] = [];
+    try {
+      const storyData: any = await this.getFullStory(this.story.story_id);
+      const chapters: returnHTML[] = [];
 
-    for (const chapter of storyData.chapters_with_contents) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const chapterBlocks = chapter.blocks?.items.map((paragraph: { chunk: any; key_id: any }) => {
-        const fixed: CustomSerializedParagraphNode = paragraph.chunk.Value
-          ? JSON.parse(paragraph.chunk.Value)
-          : this.generateBlankLine(); // Use blank line if missing
-        fixed.key_id = paragraph.key_id.Value;
+      for (const chapter of storyData.chapters_with_contents) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const chapterBlocks = chapter.blocks?.items.map((paragraph: { chunk: any; key_id: any }) => {
+          const fixed: CustomSerializedParagraphNode = paragraph.chunk.Value
+            ? JSON.parse(paragraph.chunk.Value)
+            : this.generateBlankLine(); // Use blank line if missing
+          fixed.key_id = paragraph.key_id.Value;
 
-        if (fixed.type !== CustomParagraphNode.getType()) {
-          fixed.type = CustomParagraphNode.getType();
+          if (fixed.type !== CustomParagraphNode.getType()) {
+            fixed.type = CustomParagraphNode.getType();
+          }
+          return fixed;
+        });
+
+        if (chapterBlocks) {
+          const rootDoc: SerializedEditorState<SerializedLexicalNode> = {
+            root: {
+              children: chapterBlocks,
+              type: "root",
+              version: 1,
+              direction: "ltr",
+              format: "",
+              indent: 0,
+            },
+          };
+
+          // Update the editor state for this chapter
+          editor.update(() => {
+            editor.setEditorState(editor.parseEditorState(rootDoc));
+          });
+
+          // Generate HTML for this chapter
+          const chapterHtml = await editor.read(() => {
+            const root = $getRoot();
+            return root
+              .getChildren()
+              .map((node) => {
+                const { element } = node.exportDOM(editor);
+
+                if (element instanceof HTMLElement) {
+                  return element.outerHTML;
+                }
+                if (element instanceof Text) {
+                  return element.textContent;
+                }
+                if (element instanceof DocumentFragment) {
+                  const tempDiv = document.createElement("div");
+                  tempDiv.appendChild(element.cloneNode(true));
+                  return tempDiv.innerHTML;
+                }
+                return "";
+              })
+              .join("");
+          });
+
+          chapters.push({
+            chapter: chapter.chapter.title,
+            html: chapterHtml
+          });
         }
-        return fixed;
-      });
-
-      if (chapterBlocks) {
-        const rootDoc: SerializedEditorState<SerializedLexicalNode> = {
-          root: {
-            children: chapterBlocks,
-            type: "root",
-            version: 1,
-            direction: "ltr",
-            format: "",
-            indent: 0,
-          },
-        };
-
-        // Update the editor state for this chapter
-        editor.update(() => {
-          editor.setEditorState(editor.parseEditorState(rootDoc));
-        });
-
-        // Generate HTML for this chapter
-        const chapterHtml = await editor.read(() => {
-          const root = $getRoot();
-          return root
-            .getChildren()
-            .map((node) => {
-              const { element } = node.exportDOM(editor);
-
-              if (element instanceof HTMLElement) {
-                return element.outerHTML;
-              }
-              if (element instanceof Text) {
-                return element.textContent;
-              }
-              if (element instanceof DocumentFragment) {
-                const tempDiv = document.createElement("div");
-                tempDiv.appendChild(element.cloneNode(true));
-                return tempDiv.innerHTML;
-              }
-              return "";
-            })
-            .join("");
-        });
-
-        chapters.push({
-          chapter: chapter.chapter.title,
-          html: chapterHtml
-        });
       }
-    }
 
-    return chapters;
-  };
+      return chapters;
+    } catch (error) {
+      throw error;
+    };
+  }
 
   getFullStory = async (storyID: string) => {
     try {
@@ -114,7 +118,7 @@ export default class Exporter {
       }
       return await response.json();
     } catch (e) {
-      console.error(`ERROR FETCHING FULL STORY: ${e}`);
+      throw (e);
     }
   };
 }
