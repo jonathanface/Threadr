@@ -896,26 +896,95 @@ export const ThreadWriter = () => {
     }
   }, [story, hideLoader, showLoader, setAlertState]);
 
-  const handleDocumentLeftClick = () => {
+  const handleDocumentLeftClick = (event: MouseEvent | TouchEvent) => {
     setContextMenuData(defaultContextData);
-    if (editorRef.current) {
-      editorRef.current.focus();
+    if (!editorRef.current) return;
 
-      editorRef.current.update(() => {
-        let selection = $getSelection();
-        if (!$isRangeSelection(selection)) {
-          const root = $getRoot();
-          const firstNode = root.getFirstChild();
-          if (firstNode && firstNode.getType() === "custom-paragraph") {
-            const newSelection = $createRangeSelection();
-            newSelection.anchor.set(firstNode.getKey(), 0, "text");
-            newSelection.focus.set(firstNode.getKey(), 0, "text");
-            $setSelection(newSelection);
+    editorRef.current.focus();
+
+    // Use setTimeout to ensure selection updates after browser processing
+    setTimeout(() => {
+      console.log("timeout")
+      editorRef.current?.update(() => {
+        const selection = $getSelection();
+        console.log("sel", selection, $isRangeSelection(selection))
+        // If there's already a valid selection, do nothing.
+        if ($isRangeSelection(selection)) {
+          //return;
+        }
+
+        let clientX, clientY;
+        if (event instanceof MouseEvent) {
+          clientX = event.clientX;
+          clientY = event.clientY;
+        } else {
+          clientX = event.touches[0].clientX;
+          clientY = event.touches[0].clientY;
+        }
+        console.log("x,y", clientX, clientY)
+
+        const root = $getRoot();
+        let closestTextNode: LexicalNode | null = null;
+        let charOffset = 0;
+
+        // Get all text nodes
+        const textNodes: LexicalNode[] = [];
+        const traverseNodes = (node: LexicalNode) => {
+          if ($isTextNode(node)) {
+            textNodes.push(node);
+          } else if ($isElementNode(node)) {
+            node.getChildren().forEach(traverseNodes);
+          }
+        };
+        root.getChildren().forEach(traverseNodes);
+
+        // **Find exact text offset using caret position**
+        let range: Range | null = null;
+        const doc = document as unknown as {
+          caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
+          caretRangeFromPoint?: (x: number, y: number) => Range | null;
+        } & Document;
+
+        if (doc.caretPositionFromPoint) {
+          const caretPos = doc.caretPositionFromPoint(clientX, clientY);
+          if (caretPos) {
+            range = document.createRange();
+            range.setStart(caretPos.offsetNode, caretPos.offset);
+            range.setEnd(caretPos.offsetNode, caretPos.offset);
+            charOffset = caretPos.offset;
+          }
+        } else if (doc.caretRangeFromPoint) {
+          range = doc.caretRangeFromPoint(clientX, clientY);
+          if (range) {
+            charOffset = range.startOffset;
           }
         }
+
+        console.log("range", range);
+
+        // **Find the closest text node based on the caret range**
+        if (range) {
+          for (const node of textNodes) {
+            const domNode = editorRef.current?.getElementByKey(node.getKey());
+            if (domNode && domNode.contains(range.startContainer)) {
+              closestTextNode = node;
+              break;
+            }
+          }
+        }
+        console.log("closest node", closestTextNode)
+        // **Set cursor exactly where the user tapped**
+        if (closestTextNode && $isTextNode(closestTextNode)) {
+          console.log("setting pos", charOffset);
+          const newSelection = $createRangeSelection();
+          newSelection.anchor.set(closestTextNode.getKey(), charOffset, "text");
+          newSelection.focus.set(closestTextNode.getKey(), charOffset, "text");
+          $setSelection(newSelection);
+        }
       });
-    }
+    }, 0); // Small delay allows browser to finish handling the event
   };
+
 
   const handleDocumentRightClick = (data: ClickData) => {
     const contextData: ContextMenuProps = {
