@@ -11,7 +11,7 @@ export interface ClickData {
 
 interface DocumentClickPluginProps {
     onRightClick: (data: ClickData) => void;
-    onLeftClick: () => void;
+    onLeftClick: (event: MouseEvent | TouchEvent) => void;
 }
 
 export default function DocumentClickPlugin(props: DocumentClickPluginProps) {
@@ -48,13 +48,14 @@ export default function DocumentClickPlugin(props: DocumentClickPluginProps) {
 
         const handleLeftClick = (event: MouseEvent) => {
             event.preventDefault();
-            props.onLeftClick();
+            props.onLeftClick(event);
         };
 
         const handleTouchStart = (event: TouchEvent) => {
             const touch = event.touches[0];
             touchStartX.current = touch.clientX;
             touchStartY.current = touch.clientY;
+            props.onLeftClick(event);
 
             longPressTimer.current = setTimeout(() => {
                 const selectedText = getSelectedText();
