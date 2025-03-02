@@ -900,8 +900,22 @@ export const ThreadWriter = () => {
     setContextMenuData(defaultContextData);
     if (editorRef.current) {
       editorRef.current.focus();
+
+      editorRef.current.update(() => {
+        let selection = $getSelection();
+        if (!$isRangeSelection(selection)) {
+          const root = $getRoot();
+          const firstNode = root.getFirstChild();
+          if (firstNode && firstNode.getType() === "custom-paragraph") {
+            const newSelection = $createRangeSelection();
+            newSelection.anchor.set(firstNode.getKey(), 0, "text");
+            newSelection.focus.set(firstNode.getKey(), 0, "text");
+            $setSelection(newSelection);
+          }
+        }
+      });
     }
-  }
+  };
 
   const handleDocumentRightClick = (data: ClickData) => {
     const contextData: ContextMenuProps = {

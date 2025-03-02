@@ -1,6 +1,6 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getSelection, $isRangeSelection } from 'lexical';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 export interface ClickData {
     id?: string;
@@ -11,19 +11,20 @@ export interface ClickData {
 
 interface DocumentClickPluginProps {
     onRightClick: (data: ClickData) => void;
-    onLeftClick: (data: ClickData) => void;
+    onLeftClick: () => void;
 }
 
 export default function DocumentClickPlugin(props: DocumentClickPluginProps) {
     const [editor] = useLexicalComposerContext();
+    const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+    const touchStartX = useRef<number>(0);
+    const touchStartY = useRef<number>(0);
 
     const getSelectedText = useCallback(() => {
         let selectedText = '';
-        // Update the editor state to read the current selection.
         editor.update(() => {
             const selection = $getSelection();
             if ($isRangeSelection(selection)) {
-                // getTextContent() returns the selected text.
                 selectedText = selection.getTextContent();
             }
         });
@@ -31,12 +32,10 @@ export default function DocumentClickPlugin(props: DocumentClickPluginProps) {
     }, [editor]);
 
     useEffect(() => {
-        // Get the editor's root DOM element
         const rootElement = editor.getRootElement();
-        if (!rootElement) return; // Ensure it's mounted
+        if (!rootElement) return;
 
         const handleContextMenu = (event: MouseEvent) => {
-            // Prevent the default browser context menu (optional)
             event.preventDefault();
             const selectedText = getSelectedText();
             if (!selectedText.length) return;
@@ -44,28 +43,56 @@ export default function DocumentClickPlugin(props: DocumentClickPluginProps) {
                 x: event.clientX,
                 y: event.clientY,
                 text: selectedText
-            })
+            });
         };
 
         const handleLeftClick = (event: MouseEvent) => {
             event.preventDefault();
-            props.onLeftClick({
-                x: event.clientX,
-                y: event.clientY,
-            })
-        }
+            props.onLeftClick();
+        };
 
-        // Attach the event listener
+        const handleTouchStart = (event: TouchEvent) => {
+            const touch = event.touches[0];
+            touchStartX.current = touch.clientX;
+            touchStartY.current = touch.clientY;
+
+            longPressTimer.current = setTimeout(() => {
+                const selectedText = getSelectedText();
+                if (!selectedText.length) return;
+                props.onRightClick({
+                    x: touch.clientX,
+                    y: touch.clientY,
+                    text: selectedText
+                });
+            }, 500); // Long press duration (500ms)
+        };
+
+        const handleTouchEnd = () => {
+            if (longPressTimer.current) {
+                clearTimeout(longPressTimer.current);
+            }
+        };
+
+        const handleTouchCancel = () => {
+            if (longPressTimer.current) {
+                clearTimeout(longPressTimer.current);
+            }
+        };
+
         rootElement.addEventListener('contextmenu', handleContextMenu);
         rootElement.addEventListener('click', handleLeftClick);
+        rootElement.addEventListener('touchstart', handleTouchStart);
+        rootElement.addEventListener('touchend', handleTouchEnd);
+        rootElement.addEventListener('touchcancel', handleTouchCancel);
 
-        // Clean up on unmount
         return () => {
             rootElement.removeEventListener('contextmenu', handleContextMenu);
             rootElement.removeEventListener('click', handleLeftClick);
+            rootElement.removeEventListener('touchstart', handleTouchStart);
+            rootElement.removeEventListener('touchend', handleTouchEnd);
+            rootElement.removeEventListener('touchcancel', handleTouchCancel);
         };
     }, [editor, getSelectedText, props]);
-
 
     return null;
 }
