@@ -51,7 +51,7 @@ export const Docter = memo(() => {
       if (parseInt(userDetails.expires_at) >= now && parseInt(userDetails.expires_at) <= twentyFourHoursFromNow) {
         const renewFunc: AlertFunctionCall = {
           type: AlertCommandType.renew,
-          text: "renew",
+          text: "Renew",
         };
         setAlertState({
           title: "Subscription Expiring",
