@@ -112,12 +112,17 @@ export const ConfigPanel = () => {
             </Box>
           ) : (
             // When the user is a customer, show the switch for auto-renewal.
-            <FormControlLabel
-              control={
-                <Switch onChange={toggleSubscriptionRenewal} checked={isRenewing} />
-              }
-              label={toggleLabel}
-            />
+            <Box className={styles.renewControls}>
+              <FormControlLabel
+                control={
+                  <Switch onChange={toggleSubscriptionRenewal} checked={isRenewing} />
+                }
+                label={toggleLabel}
+              />
+              <Button size="small" onClick={subscribe} variant="contained">
+                Change Payment Method
+              </Button>
+            </Box>
           )}
         </FormGroup>
       </Box>
