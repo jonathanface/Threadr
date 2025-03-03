@@ -164,7 +164,6 @@ export const CreateOrEditStory: React.FC = () => {
                     const foundSeriesIndex = seriesList?.findIndex((srs) => srs.series_id === updatedStory.series_id);
                     if (foundSeriesIndex !== undefined && foundSeriesIndex !== -1) {
                         const updatedSeries = { ...seriesList[foundSeriesIndex] };
-                        console.log("wtf", updatedSeries);
                         updatedSeries.stories.push(updatedStory);
                         propagateSeriesUpdates(updatedSeries, updatedStory);
                     } else {
@@ -174,14 +173,12 @@ export const CreateOrEditStory: React.FC = () => {
                     setSeriesList([newSeries]);
                 }
                 if (storiesList) {
-                    const foundStory = storiesList.find(story => story.story_id === updatedStory.story_id);
-                    if (foundStory) {
-                        const updatedStoriesList = storiesList.filter(story => story.story_id !== foundStory.story_id);
-                        setStoriesList(updatedStoriesList);
-                    }
+                    propagateStoryUpdates(updatedStory);
+                    const updatedStoriesList = storiesList.filter(story => story.story_id !== updatedStory.story_id);
+                    setStoriesList(updatedStoriesList);
                 }
             }
-            propagateStoryUpdates(updatedStory);
+
             setAlertState({
                 title: "Story edit success",
                 message: "",

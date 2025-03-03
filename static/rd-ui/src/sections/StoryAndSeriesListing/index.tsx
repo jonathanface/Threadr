@@ -72,7 +72,6 @@ export const StoryAndSeriesListing = () => {
   }
 
   return (
-
     <div className={styles.listingPage}>
       <div className={styles.btnContainer}></div>
       {userData?.isLoggedIn ? (
