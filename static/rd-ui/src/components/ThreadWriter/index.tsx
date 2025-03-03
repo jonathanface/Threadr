@@ -904,10 +904,8 @@ export const ThreadWriter = () => {
 
     // Use setTimeout to ensure selection updates after browser processing
     setTimeout(() => {
-      console.log("timeout")
       editorRef.current?.update(() => {
         const selection = $getSelection();
-        console.log("sel", selection, $isRangeSelection(selection))
         // If there's already a valid selection, do nothing.
         if ($isRangeSelection(selection)) {
           //return;
@@ -921,7 +919,6 @@ export const ThreadWriter = () => {
           clientX = event.touches[0].clientX;
           clientY = event.touches[0].clientY;
         }
-        console.log("x,y", clientX, clientY)
 
         const root = $getRoot();
         let closestTextNode: LexicalNode | null = null;
@@ -960,8 +957,6 @@ export const ThreadWriter = () => {
           }
         }
 
-        console.log("range", range);
-
         // **Find the closest text node based on the caret range**
         if (range) {
           for (const node of textNodes) {
@@ -972,10 +967,8 @@ export const ThreadWriter = () => {
             }
           }
         }
-        console.log("closest node", closestTextNode)
         // **Set cursor exactly where the user tapped**
         if (closestTextNode && $isTextNode(closestTextNode)) {
-          console.log("setting pos", charOffset);
           const newSelection = $createRangeSelection();
           newSelection.anchor.set(closestTextNode.getKey(), charOffset, "text");
           newSelection.focus.set(closestTextNode.getKey(), charOffset, "text");
