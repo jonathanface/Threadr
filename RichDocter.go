@@ -113,8 +113,8 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 		}
 
 		if userDetails.SubscriptionID == "" || userDetails.Expired {
-			if r.Method == "POST" && (strings.HasSuffix(r.URL.Path, "/analyze") || strings.HasSuffix(r.URL.Path, "/propose")) ||
-				r.Method == "PUT" && strings.HasSuffix(r.URL.Path, "/export") {
+			if r.Method == "POST" && (strings.HasSuffix(r.URL.Path, "/analyze") || strings.HasSuffix(r.URL.Path, "/propose") || strings.HasSuffix(r.URL.Path, "/outline")) ||
+				r.Method == "PUT" && (strings.HasSuffix(r.URL.Path, "/export") || strings.HasSuffix(r.URL.Path, "/outline")) {
 				api.RespondWithError(w, http.StatusUnauthorized, "insufficient subscription")
 				return
 			}
@@ -190,6 +190,7 @@ func main() {
 	apiRtr.HandleFunc("/stories/{storyID}/chapter", api.CreateStoryChapterEndpoint).Methods("POST", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/chapter/{chapterID}/analyze/{type}", api.AnalyzeChapterEndpoint).Methods("POST", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/associations", api.CreateAssociationsEndpoint).Methods("POST", "OPTIONS")
+	apiRtr.HandleFunc("/outline", api.CreateOutlineEndpoint).Methods("POST", "OPTIONS")
 
 	// PUTs
 	apiRtr.HandleFunc("/stories/{story}", api.WriteBlocksToStoryEndpoint).Methods("PUT", "OPTIONS")
@@ -203,6 +204,7 @@ func main() {
 	apiRtr.HandleFunc("/series/{seriesID}", api.EditSeriesEndpoint).Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/series/{seriesID}/story/{storyID}", api.RemoveStoryFromSeriesEndpoint).Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/user", api.UpdateUserEndpoint).Methods("PUT", "OPTIONS")
+	apiRtr.HandleFunc("/outline", api.UpdateOutlineEndpoint).Methods("PUT", "OPTIONS")
 
 	// DELETEs
 	apiRtr.HandleFunc("/stories/{storyID}/block", api.DeleteBlocksFromStoryEndpoint).Methods("DELETE", "OPTIONS")

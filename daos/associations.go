@@ -111,7 +111,7 @@ func (d DAO) WriteAssociations(email, storyOrSeriesID string, associations []*mo
 			writeItemsDetailsInput.TransactItems[i] = writeDetailsItem
 		}
 		var awsErr models.AwsError
-		err, awsErr = d.awsWriteTransaction(writeItemsInput)
+		awsErr, err = d.awsWriteTransaction(writeItemsInput)
 		if err != nil {
 			return err
 		}
@@ -119,7 +119,7 @@ func (d DAO) WriteAssociations(email, storyOrSeriesID string, associations []*mo
 			return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 		}
 
-		err, awsErr := d.awsWriteTransaction(writeItemsDetailsInput)
+		awsErr, err := d.awsWriteTransaction(writeItemsDetailsInput)
 		if err != nil {
 			return err
 		}
@@ -223,7 +223,7 @@ func (d *DAO) DeleteAssociations(email, storyID string, associations []*models.A
 			writeItemsDetailsInput.TransactItems[i] = writeDetailsItem
 		}
 		var awsErr models.AwsError
-		err, awsErr = d.awsWriteTransaction(writeItemsInput)
+		awsErr, err = d.awsWriteTransaction(writeItemsInput)
 		if err != nil {
 			return err
 		}
@@ -231,7 +231,7 @@ func (d *DAO) DeleteAssociations(email, storyID string, associations []*models.A
 			return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 		}
 
-		err, awsErr := d.awsWriteTransaction(writeItemsDetailsInput)
+		awsErr, err := d.awsWriteTransaction(writeItemsDetailsInput)
 		if err != nil {
 			return err
 		}

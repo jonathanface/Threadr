@@ -21,6 +21,116 @@ import (
 	"github.com/aws/smithy-go"
 )
 
+func GenerateStoryOutlineSections(typeOf models.OutlineType) []models.OutlineSection {
+	var sections []models.OutlineSection
+	switch typeOf {
+	case models.ThreeAct:
+		sections = append(sections, models.OutlineSection{
+			Place:       0,
+			Header:      "Setup",
+			Description: "Introduces the protagonist, world, and central conflict. Generally the first 25% of the book.",
+		})
+		sections = append(sections, models.OutlineSection{
+			Place:       1,
+			Header:      "Confrontation",
+			Description: "Obstacles escalate, character development deepens, and stakes rise. Around 50% of the book should be here.",
+		})
+		sections = append(sections, models.OutlineSection{
+			Place:       2,
+			Header:      "Resolution",
+			Description: "Climax and aftermath of the conflict. 25%.",
+		})
+	case models.FiveAct:
+		sections = append(sections, models.OutlineSection{
+			Place:       0,
+			Header:      "Exposition",
+			Description: "Introduction to the world and protagonist.",
+		})
+		sections = append(sections, models.OutlineSection{
+			Place:       1,
+			Header:      "Rising Action",
+			Description: "Conflict builds, characters react to new challenges.",
+		})
+		sections = append(sections, models.OutlineSection{
+			Place:       2,
+			Header:      "Climax",
+			Description: "The turning point, the moment of greatest tension.",
+		})
+		sections = append(sections, models.OutlineSection{
+			Place:       3,
+			Header:      "Falling Action",
+			Description: "The consequences of the climax play out.",
+		})
+		sections = append(sections, models.OutlineSection{
+			Place:       4,
+			Header:      "Resolution",
+			Description: "Loose ends are tied up, and the story concludes.",
+		})
+	case models.HeroJourney:
+		sections = append(sections, models.OutlineSection{
+			Place:       0,
+			Header:      "Ordinary World",
+			Description: "The hero’s starting point.",
+		})
+		sections = append(sections, models.OutlineSection{
+			Place:       1,
+			Header:      "Call to Adventure",
+			Description: "An inciting event disrupts their world.",
+		})
+		sections = append(sections, models.OutlineSection{
+			Place:       2,
+			Header:      "Refusal of the Call",
+			Description: "The hero hesitates.",
+		})
+		sections = append(sections, models.OutlineSection{
+			Place:       3,
+			Header:      "Meeting the Mentor",
+			Description: "A guide offers wisdom.",
+		})
+		sections = append(sections, models.OutlineSection{
+			Place:       4,
+			Header:      "Crossing the Threshold",
+			Description: "The hero commits to the journey.",
+		})
+		sections = append(sections, models.OutlineSection{
+			Place:       5,
+			Header:      "Tests, Allies, and Enemies",
+			Description: "Encounters shape their path.",
+		})
+		sections = append(sections, models.OutlineSection{
+			Place:       6,
+			Header:      "Approach to the Innermost Cave",
+			Description: "The hero faces their deepest challenge.",
+		})
+		sections = append(sections, models.OutlineSection{
+			Place:       7,
+			Header:      "The Ordeal",
+			Description: "A life-changing trial or event.",
+		})
+		sections = append(sections, models.OutlineSection{
+			Place:       8,
+			Header:      "The Reward",
+			Description: "Victory comes with insight or a gift.",
+		})
+		sections = append(sections, models.OutlineSection{
+			Place:       9,
+			Header:      "The Road Back",
+			Description: "The hero must return home.",
+		})
+		sections = append(sections, models.OutlineSection{
+			Place:       10,
+			Header:      "Resurrection",
+			Description: "A final test or transformation.",
+		})
+		sections = append(sections, models.OutlineSection{
+			Place:       11,
+			Header:      "Return with the Elixir",
+			Description: "The hero brings change back to the world.",
+		})
+	}
+	return sections
+}
+
 func GetTableSuffix() string {
 	currentMode := models.AppMode(strings.ToLower(os.Getenv("MODE")))
 	if currentMode != models.ModeProduction {
@@ -43,52 +153,71 @@ func CleanDynamoTagString(input string) string {
 	return strings.TrimSpace(cleaned)
 }
 
-func (d *DAO) awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsInput) (err error, awsError models.AwsError) {
-	if writeItemsInput == nil {
-		return fmt.Errorf("writeItemsInput is nil"), awsError
+func (d *DAO) awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsInput) (awsError models.AwsError, err error) {
+	if writeItemsInput == nil || len(writeItemsInput.TransactItems) == 0 {
+		return awsError, fmt.Errorf("writeItemsInput is nil or empty")
 	}
-	maxItemsPerSecond := d.capacity / 2
 
-	for numRetries := 0; numRetries < d.maxRetries; numRetries++ {
-		if _, err := d.DynamoClient.TransactWriteItems(context.Background(), writeItemsInput); err == nil {
-			return nil, awsError
-		} else if opErr, ok := err.(*smithy.OperationError); ok {
+	maxItemsPerSecond := d.capacity / 2
+	maxTransactions := 100 // AWS limit for TransactWriteItems
+
+	// **Step 1: Split into chunks of 100 (AWS limit)**
+	for i := 0; i < len(writeItemsInput.TransactItems); i += maxTransactions {
+		end := i + maxTransactions
+		if end > len(writeItemsInput.TransactItems) {
+			end = len(writeItemsInput.TransactItems)
+		}
+
+		chunk := &dynamodb.TransactWriteItemsInput{
+			TransactItems: writeItemsInput.TransactItems[i:end],
+		}
+
+		// **Step 2: Retry logic with exponential backoff**
+		for numRetries := 0; numRetries < d.maxRetries; numRetries++ {
+			_, err := d.DynamoClient.TransactWriteItems(context.Background(), chunk)
+			if err == nil {
+				break // Success, continue to next chunk
+			}
+
+			// Handle AWS transaction-specific errors
 			var txnErr *types.TransactionCanceledException
-			if errors.As(opErr.Unwrap(), &txnErr) && txnErr.CancellationReasons != nil {
+			if errors.As(err, &txnErr) && txnErr.CancellationReasons != nil {
 				for _, reason := range txnErr.CancellationReasons {
 					if *reason.Code == "ConditionalCheckFailed" {
 						awsError.ErrorType = *reason.Code
 						awsError.Code = txnErr.ErrorCode()
 						awsError.Text = *reason.Message
-						return nil, awsError
+						return awsError, nil
 					}
-					// For other types of cancellation reasons, we retry.
+
+					// Handle retryable errors
 					if *reason.Code == "TransactionConflict" ||
 						*reason.Code == "CapacityExceededException" ||
 						*reason.Code == "ResourceInUseException" {
+
+						// Calculate delay for retry
 						var delay time.Duration
-						if reason.Code == aws.String("CapacityExceededException") {
+						if *reason.Code == "CapacityExceededException" {
 							delay = time.Duration(float64(time.Second) / float64(maxItemsPerSecond))
 						} else {
 							delay = time.Duration((1 << uint(numRetries)) * time.Millisecond)
 						}
+
 						time.Sleep(delay)
-						break
+						break // Retry loop
 					} else if *reason.Code != "None" {
 						awsError.ErrorType = *reason.Code
 						awsError.Code = txnErr.ErrorCode()
 						awsError.Text = *reason.Message
-						return nil, awsError
+						return awsError, nil
 					}
 				}
 			} else {
-				return err, models.AwsError{}
+				return models.AwsError{}, err
 			}
-		} else {
-			return err, models.AwsError{}
 		}
 	}
-	return fmt.Errorf("transaction cancelled after %d retries", d.maxRetries), models.AwsError{}
+	return awsError, nil
 }
 
 func (d *DAO) generateStoryChapterTransaction(storyID, chapterID, chapterTitle string, chapter int) (types.TransactWriteItem, error) {
@@ -737,8 +866,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 	transactions := &dynamodb.TransactWriteItemsInput{
 		TransactItems: transactItems,
 	}
-	err, awsErr := d.awsWriteTransaction((transactions))
-	fmt.Println("errors", err, awsErr)
+	awsErr, err := d.awsWriteTransaction((transactions))
 	if err != nil {
 		return err
 	}

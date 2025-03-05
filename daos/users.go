@@ -31,7 +31,7 @@ func (d *DAO) CreateUser(email string) error {
 	}
 
 	twii.TransactItems = append(twii.TransactItems, twi)
-	err, awsErr := d.awsWriteTransaction(twii)
+	awsErr, err := d.awsWriteTransaction(twii)
 	if err != nil {
 		return err
 	}
