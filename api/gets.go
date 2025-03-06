@@ -221,6 +221,52 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	RespondWithJson(w, http.StatusOK, story)
 }
 
+func StorySettingsEndPoint(w http.ResponseWriter, r *http.Request) {
+	var (
+		email   string
+		err     error
+		storyID string
+		dao     daos.DaoInterface
+		ok      bool
+	)
+	if email, err = getUserEmail(r); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
+		return
+	}
+	if storyID == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing story id")
+		return
+	}
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
+		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
+		return
+	}
+
+	storySettings, err := dao.GetStorySettingsByID(email, storyID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			RespondWithError(w, http.StatusNotFound, "settings not found")
+			return
+		}
+		if opErr, ok := err.(*smithy.OperationError); ok {
+			awsResponse := processAWSError(opErr)
+			if awsResponse.Code == 0 {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			RespondWithError(w, awsResponse.Code, awsResponse.Message)
+			return
+		}
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	RespondWithJson(w, http.StatusOK, storySettings)
+}
+
 func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		email string

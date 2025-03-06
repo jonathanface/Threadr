@@ -14,6 +14,7 @@ type DaoInterface interface {
 	GetAllSeriesWithStories(email string, adminRequest bool) ([]models.Series, error)
 	GetChaptersByStoryID(storyID string) ([]models.Chapter, error)
 	GetStoryByID(email string, storyID string) (*models.Story, error)
+	GetStorySettingsByID(email string, storyID string) (*models.StorySettings, error)
 	GetSeriesByID(email string, seriesID string) (*models.Series, error)
 	GetStoryCountByUser(email string) (int, error)
 	GetChapterParagraphs(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error)
@@ -35,6 +36,7 @@ type DaoInterface interface {
 	AddCustomerID(email, customerID *string) error
 	AddStripeData(email, subscriptionID, customerID *string) error
 	EditStory(email string, story models.Story) (models.Story, error)
+	UpdateStorySettings(email, storyID string, settings models.StorySettings) error
 	EditSeries(email string, series models.Series) (models.Series, error)
 	EditChapter(storyID string, chapter models.Chapter) (models.Chapter, error)
 	RemoveStoryFromSeries(email, storyID string, series models.Series) (models.Series, error)

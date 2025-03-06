@@ -27,7 +27,7 @@ import { AssociationDecoratorPlugin } from './plugins/AssociationDecoratorPlugin
 import { ClickableDecoratorNode } from './customNodes/ClickableDecoratorNode';
 import { Association, AssociationType, SimplifiedAssociation } from '../../types/Associations';
 import { AssociationPanel } from '../AssociationPanel';
-import { StorySettingsMenu } from '../StorySettingsMenu';
+import { DocumentMenu } from '../DocumentMenu';
 import { useSelections } from '../../hooks/useSelections';
 import { useFetchStoryBlocks } from '../../hooks/useFetchStoryBlocks';
 import { useAssociations } from '../../hooks/useAssociations';
@@ -37,7 +37,7 @@ import { DbOperationQueue, generateTextHash } from '../../constants/constants';
 import { getParagraphIndexByKey, serializeWithChildren } from '../../utils/helpers';
 import { ContextMenu, ContextMenuProps } from '../ContextMenu';
 import DocumentClickPlugin, { ClickData } from './plugins/DocumentClickPlugin';
-
+import { useDocumentSettings } from '../../hooks/useDocumentSettings';
 
 const theme = {
   'custom-paragraph': styles.customParagraph,
@@ -76,6 +76,7 @@ export const ThreadWriter = () => {
   const { setAlertState } = useToaster();
   const { story, chapter } = useSelections();
   const { showLoader, hideLoader } = useLoader();
+  const { documentSettings } = useDocumentSettings();
 
   // states
   const [storyBlocks, setStoryBlocks] = useState<SerializedEditorState | null>(null);
@@ -998,6 +999,7 @@ export const ThreadWriter = () => {
   }
 
   return (
+
     <div className={styles.outerWrapper}>
       <LexicalComposer
         initialConfig={{
@@ -1011,7 +1013,7 @@ export const ThreadWriter = () => {
         <div className={styles.editorRow}>
           <div className={styles.editorArea}>
             <RichTextPlugin
-              contentEditable={<ContentEditable className={styles.editorInput} />}
+              contentEditable={<ContentEditable className={styles.editorInput} spellCheck={documentSettings?.spellcheck} />}
               ErrorBoundary={LexicalErrorBoundary}
             />
             <AssociationDecoratorPlugin isProgrammaticChange={isProgrammaticChange} scrollToTop={true} customLeftClick={handleAssociationLeftClick} customRightClick={handleAssociationRightClick} />
@@ -1021,7 +1023,7 @@ export const ThreadWriter = () => {
             <AssociationPanel onEditCallback={onAssociationEditCallback} isAssociationPanelOpen={isAssociationPanelOpen} setIsAssociationPanelOpen={setIsAssociationPanelOpen} selectedAssociationID={selectedAssociation.current} />
             <ContextMenu name={contextMenuData.name} visible={contextMenuData.visible} x={contextMenuData.x} y={contextMenuData.y} items={contextMenuData.items} />
           </div>
-          <StorySettingsMenu onAssociationClick={handleAssociationLeftClick} />
+          <DocumentMenu onAssociationClick={handleAssociationLeftClick} />
         </div>
       </LexicalComposer>
     </div>

@@ -3,6 +3,7 @@ package daos
 import (
 	"RichDocter/models"
 	"context"
+	"database/sql"
 	"fmt"
 	"net/url"
 	"sort"
@@ -77,6 +78,34 @@ func (d *DAO) GetAllStandalone(email string, adminRequest bool) (stories []model
 	})
 
 	return stories, nil
+}
+
+func (d *DAO) GetStorySettingsByID(email, storyID string) (storySettings *models.StorySettings, err error) {
+	storyID, err = url.QueryUnescape(storyID)
+	if err != nil {
+		return storySettings, err
+	}
+	scanInput := &dynamodb.ScanInput{
+		TableName:        aws.String("story_settings" + GetTableSuffix()),
+		FilterExpression: aws.String("author=:eml AND story_id=:s AND attribute_not_exists(deleted_at)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":eml": &types.AttributeValueMemberS{Value: email},
+			":s":   &types.AttributeValueMemberS{Value: storyID},
+		},
+	}
+	out, err := d.DynamoClient.Scan(context.TODO(), scanInput)
+	if err != nil {
+		return storySettings, err
+	}
+
+	storySettingsFromMap := []models.StorySettings{}
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &storySettingsFromMap); err != nil {
+		return storySettings, err
+	}
+	if len(storySettingsFromMap) == 0 {
+		return storySettings, sql.ErrNoRows
+	}
+	return &storySettingsFromMap[0], nil
 }
 
 func (d *DAO) GetStoryByID(email, storyID string) (story *models.Story, err error) {
@@ -361,6 +390,46 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 		return updatedStory, err
 	}
 	return updatedStory, nil
+}
+
+func (d *DAO) UpdateStorySettings(email, storyID string, settings models.StorySettings) error {
+	tableName := "story_settings" + GetTableSuffix()
+	twii := &dynamodb.TransactWriteItemsInput{}
+	now := strconv.FormatInt(time.Now().Unix(), 10)
+
+	expressionValues := map[string]types.AttributeValue{
+		":spellcheck": &types.AttributeValueMemberBOOL{Value: settings.Spellcheck},
+		":updated_at": &types.AttributeValueMemberN{Value: now},
+	}
+
+	updateExpression := "SET #spellcheck = :spellcheck, #updated_at = :updated_at"
+	expressionAttributeNames := map[string]string{
+		"#spellcheck": "spellcheck",
+		"#updated_at": "updated_at",
+	}
+
+	twi := types.TransactWriteItem{
+		Update: &types.Update{
+			TableName: aws.String(tableName),
+			Key: map[string]types.AttributeValue{
+				"story_id": &types.AttributeValueMemberS{Value: storyID},
+				"author":   &types.AttributeValueMemberS{Value: email},
+			},
+			UpdateExpression:          aws.String(updateExpression),
+			ExpressionAttributeNames:  expressionAttributeNames,
+			ExpressionAttributeValues: expressionValues,
+		},
+	}
+	twii.TransactItems = append(twii.TransactItems, twi)
+
+	awsErr, err := d.awsWriteTransaction(twii)
+	if err != nil {
+		return err
+	}
+	if !awsErr.IsNil() {
+		return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
+	}
+	return nil
 }
 
 func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle string) (storyID string, err error) {

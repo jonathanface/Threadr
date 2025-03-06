@@ -290,7 +290,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
               }}>
                 <RichTextPlugin
                   contentEditable={
-                    <ContentEditable className={`${styles.editorInput} ${isDescriptionActive ? styles.activeField : styles.inactiveField}`}
+                    <ContentEditable spellCheck={false} className={`${styles.editorInput} ${isDescriptionActive ? styles.activeField : styles.inactiveField}`}
                       onFocus={() => setIsDescriptionActive(true)}
                       onBlur={() => {
                         setIsDescriptionActive(false);
@@ -325,7 +325,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
               }}>
                 <RichTextPlugin
                   contentEditable={
-                    <ContentEditable className={`${styles.editorInput} ${isBackgroundActive ? styles.activeField : styles.inactiveField}`}
+                    <ContentEditable spellCheck={false} className={`${styles.editorInput} ${isBackgroundActive ? styles.activeField : styles.inactiveField}`}
                       onFocus={() => setIsBackgroundActive(true)}
                       onBlur={() => {
                         setIsBackgroundActive(false);
