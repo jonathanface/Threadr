@@ -1,31 +1,31 @@
 import { SimpleTreeView, TreeItem } from "@mui/x-tree-view"
 import { Chapter } from "../../types/Chapter"
-import styles from "./chapteritems.module.css"
+import styles from "./flyoutmenuitems.module.css"
 import { useSelections } from "../../hooks/useSelections";
 import PostAddIcon from '@mui/icons-material/PostAdd';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import { Button, IconButton } from "@mui/material";
+import { Button } from "@mui/material";
 import { useLoader } from "../../hooks/useLoader";
 import { AlertToastType } from "../../types/AlertToasts";
 import { useToaster } from "../../hooks/useToaster";
-import { DragDropContext, Droppable } from "@hello-pangea/dnd";
-import { DraggableTreeItem } from "./DraggableTreeItem";
+import { DragDropContext, Droppable, DropResult } from "@hello-pangea/dnd";
+import { OutlineEditPanel } from "../OutlineEditPanel";
+import { ClickData } from "../ThreadWriter/plugins/DocumentClickPlugin";
+import { useFetchUserData } from "../../hooks/useFetchUserData";
+import { ChapterTreeItem } from "../ChapterTreeItem";
+import { UpdateChapterParameter } from "../ThreadWriter/utilities";
 
 interface SettingsMenuProps {
     chapters: Chapter[];
+    onAssociationClick: (data: ClickData) => void;
 }
 
-export const ChapterItems = ({ chapters }: SettingsMenuProps) => {
+export const FlyoutMenuItems = ({ chapters, onAssociationClick }: SettingsMenuProps) => {
 
     const { story, chapter, setChapter, setStory, series, setSeries } = useSelections();
     const { showLoader, hideLoader } = useLoader();
     const { setAlertState } = useToaster();
+    const { userDetails } = useFetchUserData();
     if (!chapter || !story) return;
-
-    const updateChapterParameter = (chapterID: string) => {
-        const newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?chapter=' + chapterID;
-        window.history.pushState({ path: newurl }, '', newurl);
-    }
 
     const handleNodeSelect = (_event: React.MouseEvent, selectedItemId: string) => {
 
@@ -36,7 +36,7 @@ export const ChapterItems = ({ chapters }: SettingsMenuProps) => {
         if (selectedItemId !== chapter.id) {
             const newChapter = chapters.find(chapter => chapter.id === selectedItemId);
             if (newChapter) {
-                updateChapterParameter(newChapter.id);
+                UpdateChapterParameter(newChapter.id);
                 setChapter(newChapter);
                 //closeFn(false);
             }
@@ -77,7 +77,7 @@ export const ChapterItems = ({ chapters }: SettingsMenuProps) => {
             }
             setStory(updatedSelectedStory);
             setChapter(json);
-            updateChapterParameter(json.id);
+            UpdateChapterParameter(json.id);
         } catch (error) {
             console.error(`Error creating chapter: ${error}`);
             setAlertState({
@@ -91,63 +91,27 @@ export const ChapterItems = ({ chapters }: SettingsMenuProps) => {
         }
     };
 
-    const onDeleteChapterClick = async (event: React.MouseEvent, chapterIDToDelete: string, chapterTitle: string) => {
-        event.stopPropagation();
-        if (story.chapters.length === 1) {
-            setAlertState({
-                title: "Nope",
-                message: "You cannot delete a story's only chapter.",
-                severity: AlertToastType.info,
-                open: true
-            });
+    const reorderChapters = async (results: DropResult) => {
+        const { source, destination } = results;
+
+        if (!destination) {
+            console.log("Dropped outside a valid drop target");
             return;
         }
-        const confirm = window.confirm("Delete " + chapterTitle + " from " + story.title + "?");
-        if (confirm) {
-            try {
-                showLoader();
-                const response = await fetch("/api/stories/" + story.story_id + "/chapter/" + chapterIDToDelete, {
-                    method: "DELETE",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                });
-                if (!response.ok && response.status !== 501) throw new Error(response.statusText);
-                const chapterIndex = chapters.findIndex((c) => c.id === chapterIDToDelete);
-                if (chapterIndex !== -1) {
-                    const newChapters = [...chapters];
-                    newChapters.splice(chapterIndex, 1);
-                    const newSelectedStory = { ...story };
-                    newSelectedStory.chapters = newChapters;
-                    chapters = newChapters;
-                    console.log("chaps", chapters);
-                    setStory(newSelectedStory);
-                    if (chapter.id === chapterIDToDelete) {
-                        const prevChapter = story.chapters[chapterIndex - 1];
-                        console.log("prevChapter", prevChapter.title);
-                        setChapter(prevChapter);
-                        updateChapterParameter(prevChapter.id);
-                    }
-                }
-            } catch (error) {
-                console.error(error);
-            } finally {
-                hideLoader();
-            }
+        if (!source) {
+            console.log("unknown source element");
+            return;
         }
-    };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const onChapterDragEnd = async (result: any) => {
-        if (!result.destination || !result.source) return;
-        if (result.destination.index === result.source.index) return;
         const newChapters = Array.from(story.chapters);
-        const [reorderedItem] = newChapters.splice(result.source.index, 1);
-        newChapters.splice(result.destination.index, 0, reorderedItem);
+        const [reorderedItem] = newChapters.splice(source.index, 1);
+        newChapters.splice(destination.index, 0, reorderedItem);
         const updatedChapters = newChapters.map((vol: Chapter, idx: number) => {
             return { ...vol, place: idx + 1 };
         });
-
+        const newStory = { ...story };
+        newStory.chapters = updatedChapters;
+        setStory(newStory);
         try {
             showLoader();
             const response = await fetch("/api/stories/" + story.story_id + "/chapters", {
@@ -161,9 +125,7 @@ export const ChapterItems = ({ chapters }: SettingsMenuProps) => {
                 console.error(response.body);
                 throw new Error("There was an error updating your chapters. Please report this.");
             }
-            const newStory = { ...story };
-            newStory.chapters = updatedChapters;
-            setStory(newStory);
+
         } catch (error: unknown) {
             const message = (error as Error).message;
             setAlertState({
@@ -175,7 +137,12 @@ export const ChapterItems = ({ chapters }: SettingsMenuProps) => {
         } finally {
             hideLoader();
         }
-    };
+    }
+
+    let isSubscriber = false;
+    if (!userDetails?.subscription_id.length) {
+        isSubscriber = true;
+    }
 
     return (
         <SimpleTreeView className={styles.parentView} onItemClick={handleNodeSelect}>
@@ -188,7 +155,7 @@ export const ChapterItems = ({ chapters }: SettingsMenuProps) => {
                 <TreeItem key="chapters_add" title={"add new chapter"} label={
                     <Button size="medium" variant="text" startIcon={<PostAddIcon />}><span className={styles.newButtonLabel}>NEW</span></Button>
                 } itemId="chapters_add" />
-                <DragDropContext onDragEnd={onChapterDragEnd}>
+                <DragDropContext onDragEnd={reorderChapters}>
                     <Droppable droppableId="droppable-chapters">
                         {(provided) => (
                             <div
@@ -198,47 +165,26 @@ export const ChapterItems = ({ chapters }: SettingsMenuProps) => {
                             >
                                 {chapters
                                     .sort((a, b) => a.place - b.place)
-                                    .map((chap, idx) => (
-                                        <DraggableTreeItem
-                                            key={chap.id}
-                                            draggableId={chap.id}
-                                            index={idx}
-                                            itemId={chap.id}
-                                            className={`${chap.id === chapter.id ? styles.activeChapter : ""}`}
-                                            label={
-                                                <span className={styles.chapterMenuItem}>
-                                                    {chap.title}
-                                                    <IconButton
-                                                        title="delete"
-                                                        aria-label="delete"
-                                                        size="small"
-                                                        onClick={(event) =>
-                                                            onDeleteChapterClick(event, chap.id, chap.title)
-                                                        }
-                                                    >
-                                                        <DeleteOutlineIcon />
-                                                    </IconButton>
-                                                </span>
-                                            }
-                                            sx={{
-                                                '& .MuiTreeItem-label': {
-                                                    fontSize: '0.8rem',
-                                                },
-                                            }}
-                                        />
-                                    ))}
+                                    .map((chap, idx) => {
+                                        const assignedSection = story.outline?.find(section => section.chapters?.includes(chap.id));
+                                        return <ChapterTreeItem index={idx} draggableId={chap.id} key={chap.id} chapter={chap} assignedSection={assignedSection} />
+                                    })}
                                 {provided.placeholder}
                             </div>
                         )}
                     </Droppable>
                 </DragDropContext>
             </TreeItem>
-            <TreeItem itemId="outline" label="Outline" disabled={true} sx={{
+            <TreeItem itemId="outline" label="Outline" disabled={isSubscriber} sx={{
                 "& .MuiTreeItem-label": {
                     fontFamily: "Segoe Print",
                     fontSize: '0.9rem'
                 }
-            }}></TreeItem>
+            }}>
+                {story?.outline?.map((section, idx) => (
+                    <OutlineEditPanel section={section} key={`outline-${idx}`} onAssociationClick={onAssociationClick} />
+                ))}
+            </TreeItem>
         </SimpleTreeView>
     );
 }

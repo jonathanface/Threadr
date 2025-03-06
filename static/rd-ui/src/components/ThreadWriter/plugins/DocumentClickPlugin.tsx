@@ -115,16 +115,24 @@ export default function DocumentClickPlugin(props: DocumentClickPluginProps) {
         if (!rootElement) return;
 
         const handleContextMenu = (event: MouseEvent) => {
-            event.preventDefault();
-            event.stopPropagation();
-            const selectedText = getSelectedText();
-            if (!selectedText.length) return;
-            props.onRightClick({
-                x: event.clientX,
-                y: event.clientY,
-                text: selectedText
-            });
+            const rootElement = editor.getRootElement();
+            if (!rootElement) return;
+
+            if (rootElement.contains(event.target as Node)) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const selectedText = getSelectedText();
+                if (!selectedText.length) return;
+
+                props.onRightClick({
+                    x: event.clientX,
+                    y: event.clientY,
+                    text: selectedText
+                });
+            }
         };
+
 
         const handleLeftClick = (event: MouseEvent) => {
             event.preventDefault();

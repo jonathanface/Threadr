@@ -1,0 +1,18 @@
+.chapterMenuItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.leftItems {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.outlineLabel {
+    font-size: 0.7rem !important;
+    height: 18px !important;
+    padding: 3px;
+}
