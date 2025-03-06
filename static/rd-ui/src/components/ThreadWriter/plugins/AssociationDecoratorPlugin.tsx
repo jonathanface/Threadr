@@ -13,6 +13,7 @@ import { SimplifiedAssociation } from "../../../types/Associations";
 import styles from "../threadwriter.module.css";
 import { generateTextHash } from "../../../constants/constants";
 import { ClickData } from "./DocumentClickPlugin";
+import { useAssociations } from "../../../hooks/useAssociations";
 
 // Utility to escape RegExp special characters
 const escapeRegExp = (string: string) => {
@@ -20,14 +21,12 @@ const escapeRegExp = (string: string) => {
 };
 
 export const AssociationDecoratorPlugin = ({
-    associations,
     isProgrammaticChange,
     customLeftClick,
     customRightClick,
     exclusionList,
     scrollToTop
 }: {
-    associations: SimplifiedAssociation[] | null;
     isProgrammaticChange?: React.RefObject<boolean>;
     customLeftClick?: (value: ClickData) => void | undefined;
     customRightClick?: (value: ClickData) => void | undefined;
@@ -36,6 +35,7 @@ export const AssociationDecoratorPlugin = ({
 }) => {
     const [editor] = useLexicalComposerContext();
     const previousHashRef = useRef<string | null>(null);
+    const { associations } = useAssociations();
 
     const getAllDescendants = useCallback((node: LexicalNode): LexicalNode[] => {
         const descendants: LexicalNode[] = [];
@@ -109,7 +109,7 @@ export const AssociationDecoratorPlugin = ({
                         : [];
                     aliases.sort((a, b) => b.length - a.length); // Match longer aliases first
 
-                    const namesToMatch = [...aliases, association.association_name.trim()];
+                    const namesToMatch = [association.association_name.trim(), ...aliases];
                     for (const name of namesToMatch) {
                         if (exclusionList?.includes(name)) {
                             continue;

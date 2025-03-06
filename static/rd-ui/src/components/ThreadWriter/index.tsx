@@ -30,7 +30,7 @@ import { AssociationPanel } from '../AssociationPanel';
 import { StorySettingsMenu } from '../StorySettingsMenu';
 import { useSelections } from '../../hooks/useSelections';
 import { useFetchStoryBlocks } from '../../hooks/useFetchStoryBlocks';
-import { useFetchAssociations } from '../../hooks/useFetchAssociations';
+import { useAssociations } from '../../hooks/useAssociations';
 import { useEditorStateUpdater } from '../../hooks/useEditorStateUpdater';
 import { dbEventEmitter, SaveSuccessPayload } from '../../utils/EventEmitter';
 import { DbOperationQueue, generateTextHash } from '../../constants/constants';
@@ -79,7 +79,6 @@ export const ThreadWriter = () => {
 
   // states
   const [storyBlocks, setStoryBlocks] = useState<SerializedEditorState | null>(null);
-  const [associations, setAssociations] = useState<SimplifiedAssociation[] | null>(null);
   const defaultContextData: ContextMenuProps = {
     visible: false,
     name: "",
@@ -97,10 +96,7 @@ export const ThreadWriter = () => {
     setStoryBlocks,
     previousNodeKeysRef
   );
-  const { getAllAssociations } = useFetchAssociations(
-    story?.story_id || '',
-    setAssociations
-  );
+  const { associations, setAssociations } = useAssociations();
 
   const getSelectedText = () => {
     let selectedText = '';
@@ -576,7 +572,6 @@ export const ThreadWriter = () => {
           console.log("Initial load: fetching story blocks and associations");
           isProgrammaticChange.current = true; // Start programmatic change
           await getBatchedStoryBlocks("");
-          await getAllAssociations();
           const newHash = generateTextHash(editorRef.current);
           previousTextHashRef.current = newHash;
           isProgrammaticChange.current = false; // End programmatic change
@@ -589,14 +584,12 @@ export const ThreadWriter = () => {
           isProgrammaticChange.current = false; // End programmatic change
         }
       };
-
-
-
       startTransition(() => {
         fetchData();
       });
     }
-  }, [story?.story_id, chapter?.id, story, chapter, getAllAssociations, getBatchedStoryBlocks]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [story?.story_id, chapter?.id, getBatchedStoryBlocks]);
 
   useEffect(() => {
     if (editorRef.current) {
@@ -875,26 +868,16 @@ export const ThreadWriter = () => {
         open: true
       });
     } finally {
-      setAssociations((prevAssociations) => {
-        if (!prevAssociations) return prevAssociations;
-        return prevAssociations.map((storedAssociation) => {
-          if (storedAssociation.association_id === assoc.association_id) {
-            return {
-              association_id: assoc.association_id,
-              association_name: assoc.association_name,
-              association_type: assoc.association_type,
-              short_description: assoc.short_description,
-              portrait: assoc.portrait,
-              aliases: assoc.aliases,
-              case_sensitive: assoc.case_sensitive,
-            };
-          }
-          return storedAssociation;
-        });
-      });
+      setAssociations((prevAssociations: SimplifiedAssociation[] = []) =>
+        prevAssociations.map((storedAssociation) =>
+          storedAssociation.association_id === assoc.association_id
+            ? { ...storedAssociation, ...assoc }
+            : storedAssociation
+        )
+      );
       hideLoader();
     }
-  }, [story, hideLoader, showLoader, setAlertState]);
+  }, [story, hideLoader, showLoader, setAlertState, setAssociations]);
 
   const handleDocumentLeftClick = (event: MouseEvent | TouchEvent) => {
     setContextMenuData(defaultContextData);
@@ -1031,14 +1014,14 @@ export const ThreadWriter = () => {
               contentEditable={<ContentEditable className={styles.editorInput} />}
               ErrorBoundary={LexicalErrorBoundary}
             />
-            <AssociationDecoratorPlugin associations={associations} isProgrammaticChange={isProgrammaticChange} scrollToTop={true} customLeftClick={handleAssociationLeftClick} customRightClick={handleAssociationRightClick} />
+            <AssociationDecoratorPlugin isProgrammaticChange={isProgrammaticChange} scrollToTop={true} customLeftClick={handleAssociationLeftClick} customRightClick={handleAssociationRightClick} />
             <OnChangePlugin onChange={onChangeHandler} />
             <HistoryPlugin />
             <DocumentClickPlugin onLeftClick={handleDocumentLeftClick} onRightClick={handleDocumentRightClick} />
-            <AssociationPanel associations={associations} onEditCallback={onAssociationEditCallback} isAssociationPanelOpen={isAssociationPanelOpen} setIsAssociationPanelOpen={setIsAssociationPanelOpen} selectedAssociationID={selectedAssociation.current} />
+            <AssociationPanel onEditCallback={onAssociationEditCallback} isAssociationPanelOpen={isAssociationPanelOpen} setIsAssociationPanelOpen={setIsAssociationPanelOpen} selectedAssociationID={selectedAssociation.current} />
             <ContextMenu name={contextMenuData.name} visible={contextMenuData.visible} x={contextMenuData.x} y={contextMenuData.y} items={contextMenuData.items} />
           </div>
-          <StorySettingsMenu />
+          <StorySettingsMenu onAssociationClick={handleAssociationLeftClick} />
         </div>
       </LexicalComposer>
     </div>

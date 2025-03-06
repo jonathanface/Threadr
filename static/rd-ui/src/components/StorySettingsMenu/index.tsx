@@ -1,5 +1,5 @@
 import { Box, Drawer, IconButton, Paper, Tooltip } from "@mui/material"
-import { ChapterItems } from "../ChapterItems";
+import { FlyoutMenuItems } from "../FlyoutMenuItems";
 import { Settings } from "@mui/icons-material";
 import styles from "./settingsmenu.module.css";
 import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered';
@@ -7,9 +7,12 @@ import CancelPresentationIcon from '@mui/icons-material/CancelPresentation';
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useSelections } from "../../hooks/useSelections";
+import { ClickData } from "../ThreadWriter/plugins/DocumentClickPlugin";
 
-
-export const StorySettingsMenu = () => {
+interface StorySettingsMenuProps {
+    onAssociationClick: (data: ClickData) => void;
+}
+export const StorySettingsMenu = (props: StorySettingsMenuProps) => {
     const navigate = useNavigate();
     const { story, deselectAll } = useSelections();
     const [isEditorMenuOpen, setIsEditorMenuOpen] = useState(false);
@@ -45,10 +48,10 @@ export const StorySettingsMenu = () => {
 
             <Drawer anchor={"right"} open={isEditorMenuOpen} onClose={() => { setIsEditorMenuOpen(false) }}>
                 <Box
-                    sx={{ width: 250 }}
+                    className={styles.flyoutMenu}
                     role="presentation"
                     component="section">
-                    <ChapterItems chapters={story.chapters} />
+                    <FlyoutMenuItems chapters={story.chapters} onAssociationClick={props.onAssociationClick} />
                 </Box>
             </Drawer>
         </div>

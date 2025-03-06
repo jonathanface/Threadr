@@ -1,5 +1,5 @@
 import { Box, CircularProgress, Drawer, FormControlLabel, IconButton, Switch, TextField } from "@mui/material";
-import { Association, SimplifiedAssociation } from "../../types/Associations";
+import { Association } from "../../types/Associations";
 import { ClickableDecoratorNode } from "../ThreadWriter/customNodes/ClickableDecoratorNode";
 import styles from './association-ui.module.css'
 import { PortraitDropper } from "../PortraitDropper";
@@ -19,7 +19,6 @@ import { UCWords } from "../ThreadWriter/utilities";
 import CloseIcon from '@mui/icons-material/Close';
 
 interface AssociationProps {
-  associations: SimplifiedAssociation[] | null;
   onEditCallback: (association: Association) => void;
   isAssociationPanelOpen: boolean;
   setIsAssociationPanelOpen: (is: boolean) => void;
@@ -42,7 +41,7 @@ const descriptionConfig = {
     OverflowNode
   ],
   onError: (error: Error) => {
-    console.error('BG error:', error);
+    console.error('descr error:', error);
   }
 }
 const bgConfig = {
@@ -72,7 +71,6 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
   const [isAliasesActive, setIsAliasesActive] = useState(false);
   const [selectedAssociationID, setSelectedAssociationID] = useState(props.selectedAssociationID);
   const { story } = useSelections();
-
 
   const clearData = () => {
     initialAssociation.current = null;
@@ -311,7 +309,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
                 <CharacterLimitPlugin charset="UTF-8" maxLength={200} renderer={(obj) => {
                   return <div className={styles.remainingChars}>Remaining characters: <span className={`${styles.value} ${obj.remainingCharacters < 0 ? styles.exceeded : ""}`}>{obj.remainingCharacters}</span></div>
                 }} />
-                <AssociationDecoratorPlugin associations={props.associations} isProgrammaticChange={isProgrammaticChange} customLeftClick={onAssociationClick} exclusionList={exclusionList.current} />
+                <AssociationDecoratorPlugin isProgrammaticChange={isProgrammaticChange} customLeftClick={onAssociationClick} exclusionList={exclusionList.current} />
               </LexicalComposer>
             </div>
           </div>
@@ -343,7 +341,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
                   ErrorBoundary={LexicalErrorBoundary}
                 />
                 <HistoryPlugin />
-                <AssociationDecoratorPlugin associations={props.associations} isProgrammaticChange={isProgrammaticChange} customLeftClick={onAssociationClick} exclusionList={exclusionList.current} />
+                <AssociationDecoratorPlugin isProgrammaticChange={isProgrammaticChange} customLeftClick={onAssociationClick} exclusionList={exclusionList.current} />
               </LexicalComposer>
             </div>
           </div>

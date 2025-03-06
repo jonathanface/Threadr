@@ -72,14 +72,15 @@ type ChapterWithContents struct {
 }
 
 type Story struct {
-	ID          string    `json:"story_id" dynamodbav:"story_id"`
-	CreatedAt   int       `json:"created_at" dynamodbav:"created_at"`
-	Title       string    `json:"title" dynamodbav:"title"`
-	Description string    `json:"description" dynamodbav:"description"`
-	SeriesID    string    `json:"series_id" dynamodbav:"series_id"`
-	Chapters    []Chapter `json:"chapters"`
-	Place       int       `json:"place"`
-	ImageURL    string    `json:"image_url" dynamodbav:"image_url"`
+	ID          string            `json:"story_id" dynamodbav:"story_id"`
+	CreatedAt   int               `json:"created_at" dynamodbav:"created_at"`
+	Title       string            `json:"title" dynamodbav:"title"`
+	Description string            `json:"description" dynamodbav:"description"`
+	SeriesID    string            `json:"series_id" dynamodbav:"series_id"`
+	Chapters    []Chapter         `json:"chapters"`
+	Outline     *[]OutlineSection `json:"outline"`
+	Place       int               `json:"place"`
+	ImageURL    string            `json:"image_url" dynamodbav:"image_url"`
 }
 type BlocksData struct {
 	LastEvaluated map[string]types.AttributeValue   `json:"last_evaluated_key"`
@@ -135,4 +136,26 @@ type DocumentExportRequest struct {
 	HtmlByChapter []HTMLData `json:"html_by_chapter"`
 	Type          string     `json:"type"`
 	Title         string     `json:"title"`
+}
+
+type OutlineType string
+
+const (
+	ThreeAct    OutlineType = "threeAct"
+	FiveAct     OutlineType = "fiveAct"
+	HeroJourney OutlineType = "heroJourney"
+)
+
+type OutlineSection struct {
+	Header      string   `json:"header"`
+	Description string   `json:"description"`
+	Text        string   `json:"text"`
+	Place       int      `json:"place"`
+	Chapters    []string `json:"chapters"`
+}
+
+type OutlineRequest struct {
+	StoryID  string           `json:"storyID"`
+	Type     OutlineType      `json:"type"`
+	Sections []OutlineSection `json:"sections"`
 }

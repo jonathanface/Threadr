@@ -12,3 +12,13 @@
     min-height: 200px;
     box-sizing: border-box;
 }
+
+.flyoutMenu {
+    width: 400px;
+}
+
+@media only screen and (max-width: 600px) {
+    .flyoutMenu {
+        width: 300px;
+    }
+}

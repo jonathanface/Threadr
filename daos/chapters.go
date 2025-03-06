@@ -123,7 +123,7 @@ func (d *DAO) CreateChapter(storyID string, chapter models.Chapter, email string
 
 	twii := &dynamodb.TransactWriteItemsInput{}
 	twii.TransactItems = append(twii.TransactItems, chapTwi)
-	err, awsErr := d.awsWriteTransaction(twii)
+	awsErr, err := d.awsWriteTransaction(twii)
 	if err != nil {
 		return models.Chapter{}, err
 	}
@@ -227,7 +227,7 @@ func (d *DAO) DeleteChapterParagraphs(storyID string, storyBlocks *models.StoryB
 			writeItemsInput.TransactItems[i] = writeItem
 		}
 
-		err, awsErr := d.awsWriteTransaction(writeItemsInput)
+		awsErr, err := d.awsWriteTransaction(writeItemsInput)
 		if err != nil {
 			return err
 		}
@@ -285,7 +285,7 @@ func (d *DAO) DeleteChapters(storyID string, chapters []models.Chapter) (err err
 				return
 			}
 		}
-		err, awsErr := d.awsWriteTransaction(writeItemsInput)
+		awsErr, err := d.awsWriteTransaction(writeItemsInput)
 		if err != nil {
 			return err
 		}

@@ -1,0 +1,51 @@
+.chapterAssignment {
+    padding: 4px;
+    border: 1px solid #333;
+    margin-right: 20px;
+    margin-top: 6px;
+    border-radius: 10px;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.title {
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+}
+
+.chapterList {
+    padding: 0;
+    gap: 0px;
+    display: flex;
+    flex-direction: column;
+}
+
+.warning {
+    color: gray;
+    text-align: center;
+}
+
+.listItem {
+    display: flex;
+    align-items: center;
+}
+
+.button {
+    padding: 0 !important;
+}
+
+.checkbox {
+    padding: 0 !important;
+    margin: 0 !important;
+    transform: scale(0.75);
+}
+
+.label {
+    margin-left: 4px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

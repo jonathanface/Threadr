@@ -134,6 +134,10 @@ func (d *DAO) GetStoryByID(email, storyID string) (story *models.Story, err erro
 		}
 		storyFromMap[0].Chapters = append(storyFromMap[0].Chapters, chapter)
 	}
+	storyFromMap[0].Outline, err = d.GetOutlineByStoryID(storyID)
+	if err != nil {
+		return
+	}
 	return &storyFromMap[0], nil
 }
 
@@ -177,7 +181,7 @@ func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (
 			// Add the transaction write item to the list of transaction write items.
 			writeItemsInput.TransactItems[i] = writeItem
 		}
-		err, awsErr := d.awsWriteTransaction(writeItemsInput)
+		awsErr, err := d.awsWriteTransaction(writeItemsInput)
 		if err != nil {
 			return err
 		}
@@ -229,7 +233,7 @@ func (d *DAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) (err 
 			// Add the transaction write item to the list of transaction write items.
 			writeItemsInput.TransactItems[i] = writeItem
 		}
-		err, awsErr := d.awsWriteTransaction(writeItemsInput)
+		awsErr, err := d.awsWriteTransaction(writeItemsInput)
 		if err != nil {
 			return err
 		}
@@ -385,7 +389,7 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 	}
 
 	twii.TransactItems = append(twii.TransactItems, twi)
-	err, awsErr := d.awsWriteTransaction(twii)
+	awsErr, err := d.awsWriteTransaction(twii)
 	if err != nil {
 		return "", err
 	}
@@ -443,7 +447,7 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 			},
 		}
 		twii.TransactItems = append(twii.TransactItems, updateStoryTwi)
-		err, awsErr = d.awsWriteTransaction(twii)
+		awsErr, err = d.awsWriteTransaction(twii)
 		if err != nil {
 			return "", err
 		}
