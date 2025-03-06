@@ -1,6 +1,6 @@
 import { TreeItem } from "@mui/x-tree-view";
 import { Outline, OutlineSection } from "../../types/Outline";
-import { Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import styles from './outlineeditpanel.module.css'
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ClickableDecoratorNode } from "../ThreadWriter/customNodes/ClickableDecoratorNode";
@@ -136,38 +136,40 @@ export const OutlineEditPanel = (props: OutlineEditProps) => {
 
     return (
         <TreeItem className={styles.header} label={props.section.header} itemId={props.section.place.toString()}>
-            <Typography variant="caption" className={styles.description}>{props.section.description}</Typography>
-            <LexicalComposer initialConfig={{
-                editable: false,
-                ...outlineConfig,
+            <Box className={styles.container}>
+                <Typography variant="caption" className={styles.description}>{props.section.description}</Typography>
+                <LexicalComposer initialConfig={{
+                    editable: false,
+                    ...outlineConfig,
 
-                editorState: (lexEditor: LexicalEditor) => {
-                    console.log("Lexical editor instance assigned");
-                    queueMicrotask(() => {
-                        editorRef.current = lexEditor;
-                        setEditorReady(true);  // triggers the useEffect
-                    });
-                },
-            }}>
-                <RichTextPlugin
-                    contentEditable={
-                        <ContentEditable spellCheck={false} className={`${styles.editorInput} ${isTextFieldActive ? styles.activeField : styles.inactiveField}`}
-                            onKeyDownCapture={(e) => e.stopPropagation()}
-                            onFocus={(e) => { e.stopPropagation(); setIsTextFieldActive(true) }}
-                            onBlur={() => {
-                                setIsTextFieldActive(false);
-                                if (editorRef.current) {
-                                    const editorState = editorRef.current.getEditorState();
-                                    extractTextAndUpdate(editorState);
-                                }
-                            }} />
-                    }
-                    ErrorBoundary={LexicalErrorBoundary}
-                />
-                <HistoryPlugin />
-                <AssociationDecoratorPlugin isProgrammaticChange={isProgrammaticChange} customLeftClick={props.onAssociationClick} />
-            </LexicalComposer>
-            <ChapterAssignmentPanel section={props.section} />
+                    editorState: (lexEditor: LexicalEditor) => {
+                        console.log("Lexical editor instance assigned");
+                        queueMicrotask(() => {
+                            editorRef.current = lexEditor;
+                            setEditorReady(true);  // triggers the useEffect
+                        });
+                    },
+                }}>
+                    <RichTextPlugin
+                        contentEditable={
+                            <ContentEditable spellCheck={false} className={`${styles.editorInput} ${isTextFieldActive ? styles.activeField : styles.inactiveField}`}
+                                onKeyDownCapture={(e) => e.stopPropagation()}
+                                onFocus={(e) => { e.stopPropagation(); setIsTextFieldActive(true) }}
+                                onBlur={() => {
+                                    setIsTextFieldActive(false);
+                                    if (editorRef.current) {
+                                        const editorState = editorRef.current.getEditorState();
+                                        extractTextAndUpdate(editorState);
+                                    }
+                                }} />
+                        }
+                        ErrorBoundary={LexicalErrorBoundary}
+                    />
+                    <HistoryPlugin />
+                    <AssociationDecoratorPlugin isProgrammaticChange={isProgrammaticChange} customLeftClick={props.onAssociationClick} />
+                </LexicalComposer>
+                <ChapterAssignmentPanel section={props.section} />
+            </Box>
         </TreeItem>
     );
 }
