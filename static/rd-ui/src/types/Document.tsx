@@ -67,3 +67,8 @@ export enum TextFormatType {
   underscore = "underscore",
   strikethrough = "strikethrough",
 }
+
+
+export interface DocumentSettings {
+  spellcheck: boolean;
+}

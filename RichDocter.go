@@ -176,6 +176,7 @@ func main() {
 	apiRtr.HandleFunc("/user", api.GetUserData).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/stories", api.AllStandaloneStoriesEndPoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}", api.StoryEndPoint).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/settings", api.StorySettingsEndPoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/full", api.FullStoryEndPoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/content", api.StoryBlocksEndPoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/associations/thumbs", api.AllAssociationThumbnailsByStoryEndPoint).Methods("GET", "OPTIONS")
@@ -194,6 +195,7 @@ func main() {
 
 	// PUTs
 	apiRtr.HandleFunc("/stories/{story}", api.WriteBlocksToStoryEndpoint).Methods("PUT", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/settings", api.EditStorySettingsEndPoint).Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{story}/details", api.EditStoryEndpoint).Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{story}/orderMap", api.RewriteBlockOrderEndpoint).Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{story}/associations", api.WriteAssocationsEndpoint).Methods("PUT", "OPTIONS")

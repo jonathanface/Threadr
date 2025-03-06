@@ -82,6 +82,10 @@ type Story struct {
 	Place       int               `json:"place"`
 	ImageURL    string            `json:"image_url" dynamodbav:"image_url"`
 }
+type StorySettings struct {
+	Spellcheck bool `json:"spellcheck" dynamodbav:"spellcheck"`
+}
+
 type BlocksData struct {
 	LastEvaluated map[string]types.AttributeValue   `json:"last_evaluated_key"`
 	ScannedCount  int32                             `json:"scanned_count"`

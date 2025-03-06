@@ -8,14 +8,17 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useSelections } from "../../hooks/useSelections";
 import { ClickData } from "../ThreadWriter/plugins/DocumentClickPlugin";
+import { DocumentSettingsModal } from "../DocumentSettingsModal";
 
-interface StorySettingsMenuProps {
+interface DocumentMenuProps {
     onAssociationClick: (data: ClickData) => void;
 }
-export const StorySettingsMenu = (props: StorySettingsMenuProps) => {
+export const DocumentMenu = (props: DocumentMenuProps) => {
     const navigate = useNavigate();
     const { story, deselectAll } = useSelections();
     const [isEditorMenuOpen, setIsEditorMenuOpen] = useState(false);
+    const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
+
     if (!story) return;
 
     const closeDoc = () => {
@@ -40,12 +43,12 @@ export const StorySettingsMenu = (props: StorySettingsMenuProps) => {
                     </IconButton>
                 </Tooltip>
                 <Tooltip title="Settings" placement="right">
-                    <IconButton disabled={true}>
+                    <IconButton onClick={() => { setIsSettingsMenuOpen(true) }}>
                         <Settings />
                     </IconButton>
                 </Tooltip>
             </Paper>
-
+            <DocumentSettingsModal open={isSettingsMenuOpen} setOpen={setIsSettingsMenuOpen} />
             <Drawer anchor={"right"} open={isEditorMenuOpen} onClose={() => { setIsEditorMenuOpen(false) }}>
                 <Box
                     className={styles.flyoutMenu}
