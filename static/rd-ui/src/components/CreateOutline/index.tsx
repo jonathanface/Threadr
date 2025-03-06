@@ -53,8 +53,12 @@ export const CreateOutline: React.FC = () => {
     }
 
     const promptOrShowPanel = () => {
-        const confirm = window.confirm("WARNING: choosing a new template on the following screen will overwrite any existing outline. Are you sure you want to proceed?");
-        if (confirm) setIsListOpen(true);
+        if (story?.outline) {
+            const confirm = window.confirm("WARNING: choosing a new template on the following screen will overwrite any existing outline. Are you sure you want to proceed?");
+            if (confirm) setIsListOpen(true);
+        } else {
+            setIsListOpen(true);
+        }
     }
 
     return (

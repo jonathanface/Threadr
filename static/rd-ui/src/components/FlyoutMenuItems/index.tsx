@@ -13,6 +13,7 @@ import { ClickData } from "../ThreadWriter/plugins/DocumentClickPlugin";
 import { useFetchUserData } from "../../hooks/useFetchUserData";
 import { ChapterTreeItem } from "../ChapterTreeItem";
 import { UpdateChapterParameter } from "../ThreadWriter/utilities";
+import { CreateOutline } from "../CreateOutline";
 
 interface SettingsMenuProps {
     chapters: Chapter[];
@@ -184,6 +185,9 @@ export const FlyoutMenuItems = ({ chapters, onAssociationClick }: SettingsMenuPr
                 {story?.outline?.map((section, idx) => (
                     <OutlineEditPanel section={section} key={`outline-${idx}`} onAssociationClick={onAssociationClick} />
                 ))}
+                <TreeItem key="outline-create" title="Create an Outline" label={
+                    <CreateOutline />
+                } itemId="outline-create" />
             </TreeItem>
         </SimpleTreeView>
     );
