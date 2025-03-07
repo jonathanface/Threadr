@@ -1,0 +1,1574 @@
+{
+    "last_evaluated_key": null,
+    "scanned_count": 0,
+    "items": [
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"It felt like April.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"a4fb8b7a-6113-4728-a673-c87cea841aa2\"}"
+            },
+            "key_id": {
+                "Value": "a4fb8b7a-6113-4728-a673-c87cea841aa2"
+            },
+            "place": {
+                "Value": "0"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tSlovenly patches of snow sprawled about the property here and there, but they were in full melt; water ran from them in streams down the gravel driveway, and the icicles hanging off the barn dripped a mad rhythm. The air had a sharp taste, like new life, and Seth's breath no longer came in hot blasts of steam.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"adbd5868-8c1a-4403-8b89-b92dba5856fb\"}"
+            },
+            "key_id": {
+                "Value": "adbd5868-8c1a-4403-8b89-b92dba5856fb"
+            },
+            "place": {
+                "Value": "1"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tHe was crouched on the upper floor of the barn, peering out through the hay-hatch at the three intruders in the dooryard below. They stood in a semicircle, sitting on their motorcycles, keeping furtive watch on the farmhouse and the crop fields. They had guns.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"201b9d30-08e9-4304-9513-540d53e2456a\"}"
+            },
+            "key_id": {
+                "Value": "201b9d30-08e9-4304-9513-540d53e2456a"
+            },
+            "place": {
+                "Value": "2"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tOnly a week ago they would never have made it up the driveway on motorcycles. The snow had been knee-high, but a sudden spike in temperature had melted the worst of it away. The quick change was what his father had always called the thaw in mildly ominous tones. \",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"8ed6ce5b-2e96-4155-855b-678fa9461287\"}"
+            },
+            "key_id": {
+                "Value": "8ed6ce5b-2e96-4155-855b-678fa9461287"
+            },
+            "place": {
+                "Value": "3"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tThe fresh weather had put him in the mind of riding his bike, or helping his father with the planting before school. He knew the sequence well; first the potatoes, then the barley, then the corn. Sugar beets in the small plot behind the house. Year in, year out, for as long as Seth could remember. For as long as he'd been alive, as his father had been alive. That was the way of things on the Walker farm.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"21e369d5-74fe-49de-bac7-10917cfd9c8a\"}"
+            },
+            "key_id": {
+                "Value": "21e369d5-74fe-49de-bac7-10917cfd9c8a"
+            },
+            "place": {
+                "Value": "4"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tThe corn never did well – it wasn't suited to Montana soil, or to Montana weather. Corn belonged in flatter places with longer summers, but Seth's father had always tried. The sad and emasculated stalks that struggled out of the furrows never seemed to dishearten him in the slightest. A farm isn't a farm without corn, William Walker had proclaimed, and that had been that.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"9a5d3d71-8fc2-409c-ad2e-8efe62527e84\"}"
+            },
+            "key_id": {
+                "Value": "9a5d3d71-8fc2-409c-ad2e-8efe62527e84"
+            },
+            "place": {
+                "Value": "5"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tRiding a bike on a breezy Spring morning, sowing barley behind the cultivator blades – Seth supposed he would soon lose track of all those seasonal associations. Already they seemed a little foreign, a little backwards, even – like planning your summer vacation in a September classroom. But he held on to them, for now, and as such felt dismay when he looked at last season's crops, bathed in frost and bent under the cold. They were hard gray husks gone to waste. Dead as his old man, dead as the whole farm. Dead as the whole world, for all he knew.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"8fdc87f3-bf34-4d53-83c8-e7ef26c766b5\"}"
+            },
+            "key_id": {
+                "Value": "8fdc87f3-bf34-4d53-83c8-e7ef26c766b5"
+            },
+            "place": {
+                "Value": "6"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tHe wanted to crane his head around and look at them now, but he didn't dare move. They might notice. Rapid, peripheral movement had a way of drawing a predator's eyes.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"135e7e75-b0e1-4110-806f-d03c43fe7b0d\"}"
+            },
+            "key_id": {
+                "Value": "135e7e75-b0e1-4110-806f-d03c43fe7b0d"
+            },
+            "place": {
+                "Value": "7"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tSeth was a thin boy, underfed and big-eyed. It had been a long while since he'd bathed, and his hair was too long and tangled with burrs. It was wheat-colored when it was clean and butterscotch-colored when it wasn't. Right now it was somewhere in between, because he'd tried scrubbing it out a few days before with rainwater and laundry detergent.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"a78fc22b-a0bf-4627-9971-9802f44d74bf\"}"
+            },
+            "key_id": {
+                "Value": "a78fc22b-a0bf-4627-9971-9802f44d74bf"
+            },
+            "place": {
+                "Value": "8"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tA cold rain had poured all yesterday, and now the sky was a deep and radiant blue. The grass around the farm was beginning to stir, stretching out after a long winter's sleep – perhaps looking about in astonishment. Soon, Seth supposed, the grass would shrug and get on with things – growing wild, choking the crops out of the fields, assuming command of the driveway.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"6193010c-ee59-4c95-ab0f-d0fef462d305\"}"
+            },
+            "key_id": {
+                "Value": "6193010c-ee59-4c95-ab0f-d0fef462d305"
+            },
+            "place": {
+                "Value": "9"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tNo one'll ever mow the lawn again, he thought, and that conjured up an image of the push mower in the back of the barn, resting silently beside stacked fertilizer bags. He'd siphoned out most of its fuel to start fires this winter, and during one long, frightening week in which a dozen dead had congregated outside, he'd unscrewed the lawnmower blade and used it to hack up an old pig trough for firewood.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"b5a7035e-40af-4574-b7b5-3b9db565536d\"}"
+            },
+            "key_id": {
+                "Value": "b5a7035e-40af-4574-b7b5-3b9db565536d"
+            },
+            "place": {
+                "Value": "10"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tEven if he replaced the gas and reattached the mower blade, what would be the point? There was no one left to admire a nice lawn, or to appreciate the smell of cut grass. Certainly not the dead. Seth didn't think the dead could smell much at all, because if they could, they'd surely scrub out the odor of rotten meat and evacuated bowels that hovered around them.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"ef5f65fe-8773-4813-b926-bab4ef1f75cb\"}"
+            },
+            "key_id": {
+                "Value": "ef5f65fe-8773-4813-b926-bab4ef1f75cb"
+            },
+            "place": {
+                "Value": "11"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tThe dead could hear just fine, though. A running lawnmower would draw every one of them in miles. Not to mention any passing survivor, who would no doubt turn a speculative eye upon a house with a neatly-trimmed lawn.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"7986aaf2-3843-4be1-a430-9c1fbe19be3b\"}"
+            },
+            "key_id": {
+                "Value": "7986aaf2-3843-4be1-a430-9c1fbe19be3b"
+            },
+            "place": {
+                "Value": "12"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tSurvivors were worse than the dead. While the latter seemed content to hunt the living, survivors would happily kill either. The few Seth had encountered had been violent and despicable, and now that the power was out and the cities overrun, they turned on one another for the dumbest reasons.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"31ccf0eb-6793-436b-a886-d4acc978fb08\"}"
+            },
+            "key_id": {
+                "Value": "31ccf0eb-6793-436b-a886-d4acc978fb08"
+            },
+            "place": {
+                "Value": "13"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tIn Bozeman he'd watched a man and a woman fight in the street over a kid's toy – a shiny red Tonka firetruck. After a brief and fairly ridiculous tug-of-war, the man had ripped it away and swung it at her, and when he overstepped and lost his balance, she'd bashed in his skull with a chunk of broken pavement. Then she'd stuck the toy under one arm, and as she walked away her eyes had passed over Seth, and she'd offered him a wan smile and a \\\"Good afternoon, dear\\\" before passing on by, the man in her wake bloody and unmoving.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"ea45f23d-7abb-47c7-a4e4-11d1722f4fe5\"}"
+            },
+            "key_id": {
+                "Value": "ea45f23d-7abb-47c7-a4e4-11d1722f4fe5"
+            },
+            "place": {
+                "Value": "14"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tHe thought about that as he watched the three intruders from his perch in the hayloft, gazing down on them through the hatch that overlooked the front yard. They were talking in hushed tones and throwing cautious – or maybe dimwitted – looks around the frost-streaked yard.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"65db69a7-6d1b-474a-b434-c1743eb1efa2\"}"
+            },
+            "key_id": {
+                "Value": "65db69a7-6d1b-474a-b434-c1743eb1efa2"
+            },
+            "place": {
+                "Value": "15"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tTwo of the men wore military gear – combat flak jackets and carbines slung to their chests. One of these two wore a battered cowboy hat on his head, and the other had hair sculpted in a meticulously stiff flattop. The third man wore a leather jacket and had a graying mane of perm-curled ringlets hanging past his shoulders – an aging rocker from some forgotten hair band.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"1df188b1-5b19-4d2a-9ce7-d3a034962b5c\"}"
+            },
+            "key_id": {
+                "Value": "1df188b1-5b19-4d2a-9ce7-d3a034962b5c"
+            },
+            "place": {
+                "Value": "16"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tTheir motorcycles were parked directly in front of the house and its window boxes of dead sunflowers. Cowboy Hat and Flattop had rode in on new-looking Hondas, but the rocker had a custom job – a three-wheeled monstrosity with unwieldy apehangers and a fiberglass canopy over the seat.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"6777c80e-2bb5-4257-b80b-5add1f3fe428\"}"
+            },
+            "key_id": {
+                "Value": "6777c80e-2bb5-4257-b80b-5add1f3fe428"
+            },
+            "place": {
+                "Value": "17"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tSeth thought they were stupid modes of transportation these days – the throaty chop-chop-chop of their engines were louder than any lawnmower could dream, and had announced their arrival minutes in advance. A quiet little Vespa, a horse, even a bicycle would have all made more sensible choices.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"75213544-db8a-4759-8345-a609cfd39440\"}"
+            },
+            "key_id": {
+                "Value": "75213544-db8a-4759-8345-a609cfd39440"
+            },
+            "place": {
+                "Value": "18"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tSeth had thought better of trying to use their old farm truck. Even if he'd known how to drive, its rattling pistons sounded like loose rocks sliding down a mountainside when it chugged up the driveway.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"3e4c4fd3-2da3-496c-985d-af380af96b9b\"}"
+            },
+            "key_id": {
+                "Value": "3e4c4fd3-2da3-496c-985d-af380af96b9b"
+            },
+            "place": {
+                "Value": "19"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tOne of the men – the one in the cowboy hat – gestured at the farmhouse. Rocker crossed his arms and shrugged. Flattop said nothing, but yawned mightily.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"5ee12a38-4496-452f-b769-d74e86074cae\"}"
+            },
+            "key_id": {
+                "Value": "5ee12a38-4496-452f-b769-d74e86074cae"
+            },
+            "place": {
+                "Value": "20"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tMore noises. More sound to echo across the fields and draw the dead on them all. Sound always had a way of carrying out here in farm country, and with the world gone quiet it was ever more apparent.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"df8a1111-bab4-4f35-810f-5fba9e928768\"}"
+            },
+            "key_id": {
+                "Value": "df8a1111-bab4-4f35-810f-5fba9e928768"
+            },
+            "place": {
+                "Value": "21"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tA profound silence had fallen over the land after the people had left it. There were no more cars to be heard chugging down the dirt road at the foot of the driveway. There were no more airplanes painting vapor trails across the sky. No more air conditioners thrumming in windows, no more dogs barking in the distance.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"73e229de-3981-4de2-afff-db44f76374a1\"}"
+            },
+            "key_id": {
+                "Value": "73e229de-3981-4de2-afff-db44f76374a1"
+            },
+            "place": {
+                "Value": "22"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tNot that dogs were gone entirely – they were around, but mostly feral. They didn't bark much anymore.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"94aac322-abf6-4872-92b9-573a6a7b1241\"}"
+            },
+            "key_id": {
+                "Value": "94aac322-abf6-4872-92b9-573a6a7b1241"
+            },
+            "place": {
+                "Value": "23"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tThe dead hadn't been much of a problem for months, when most of them had drifted off towards Bozeman, drawn by the fires and the sounds of gunfire. A good deal of them had frozen solid in the bitter Montana winter – Seth had come across them here and there, lying stiff and unresponsive on the ground. He wasn't positive, but he didn't think that freezing would actually kill them. He thought a lot of those same frozen bodies would be twitching by now, and would soon be dragging themselves to their feet as the days grew warmer.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"ab3daa6a-7208-4e32-a1a0-763e366db0d7\"}"
+            },
+            "key_id": {
+                "Value": "ab3daa6a-7208-4e32-a1a0-763e366db0d7"
+            },
+            "place": {
+                "Value": "24"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tWinter had been tense, with dad sick in bed and Melinda in a state of shock. The dead had been a constant presence at first, trickling in a few at a time, mere days after the school bus had stopped coming to the house. They'd been friends and neighbors and distant relations. The bald-headed salesman who'd sold them their tractor, his jawbone missing and his eyes weeping blood.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"7915b8fc-a155-4328-8aab-8c41b801a5f2\"}"
+            },
+            "key_id": {
+                "Value": "7915b8fc-a155-4328-8aab-8c41b801a5f2"
+            },
+            "place": {
+                "Value": "25"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tThey'd hidden from the dead in the back rooms of the house, keeping away from the big windows in the front, living on snack food and water from the bathroom sink. Water from the bathtub, after the pump had gone out.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"a1ce5cb6-a393-4751-a4ed-fff5c0a2bf66\"}"
+            },
+            "key_id": {
+                "Value": "a1ce5cb6-a393-4751-a4ed-fff5c0a2bf66"
+            },
+            "place": {
+                "Value": "26"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tWhen he looked out the window one morning and found the yard empty, he'd gathered the courage to venture outside. Brief little forays, at first – fetching fresh water from the hand pump outside, sneaking feed to the indignant, bellowing cow in the barn, or slinking down to the bottom of the driveway for a quick look around. He'd made one extended journey on snowshoes to the Johnson Farm down the road to scavenge butter tins and preserves from the root cellar under the house. He'd found Alan Johnson there, pinned under his overturned tractor and half-buried in snow, clawing at the sky and gibbering shapeless sounds. Seth had left him there, and for all he knew Al Johnson was still pinned under the block of the old Massey-Ferguson, his legs crushed and his guts spilled out and wound up around the gear shift.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"a30ee14e-0f65-413d-abce-b707827de1a7\"}"
+            },
+            "key_id": {
+                "Value": "a30ee14e-0f65-413d-abce-b707827de1a7"
+            },
+            "place": {
+                "Value": "27"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tBelow him, in the yard, the three men carried on their conversation, too quiet to overhear. Rocker picked his thumbnail with a Bowie knife, his face blank with disinterest while his companions bickered.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"17b44558-612c-4356-9b43-264f37b9a05d\"}"
+            },
+            "key_id": {
+                "Value": "17b44558-612c-4356-9b43-264f37b9a05d"
+            },
+            "place": {
+                "Value": "28"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tThe farm was pretty isolated, and other than Melinda he had seen only one other person up close since their father died, and that man had been a problem too. A smiling, grandfatherly problem in a banana-yellow raincoat and hat, the Gorton's Fisherman come to life. He'd come strolling up the driveway one morning, a jolly man who smiled and joked and then casually offered Seth $750,000 cash for Melinda, crisp bundled bills packaged up in a duffel bag with FIRST MONTANA BANK stenciled on the side.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"27165d54-fa69-43d1-883e-30ebd56bcf4f\"}"
+            },
+            "key_id": {
+                "Value": "27165d54-fa69-43d1-883e-30ebd56bcf4f"
+            },
+            "place": {
+                "Value": "29"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tSeth had shot him in the leg and the man had screamed and shuffled the Texas Two-Step back down the driveway, and three days later, on a scavenging trip to town, Seth had seen a dead man in a yellow slicker dragging one leg behind it.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"441c09a7-f729-4b87-a763-03e7edb9f773\"}"
+            },
+            "key_id": {
+                "Value": "441c09a7-f729-4b87-a763-03e7edb9f773"
+            },
+            "place": {
+                "Value": "30"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tNow, huddled in the hayloft and peering down at the intruders in the yard, he considered how he might handle these three living. He found himself wishing they were dead. It would be easier to deal with three dead than three living.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"6cbb54ee-624c-45f1-87f4-4bf323b05245\"}"
+            },
+            "key_id": {
+                "Value": "6cbb54ee-624c-45f1-87f4-4bf323b05245"
+            },
+            "place": {
+                "Value": "31"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tYou could shoot the dead and they would never shoot back, and never run for cover. It was hard to get them in the head, especially when they were coming at you, but Seth could manage it in a pinch. He had his dad's old gun, a .22 rimfire pistol, and a whole box of shells for it. In the old world it hadn't been good for much more than gophers, but Seth had learned that if you took your time and aimed just right, you could get them through the eye, and then they were dead. As in real dead. The kind of dead that didn't get back up and want to eat you.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"a1e58515-2b74-44f3-bcff-3e019b759d2e\"}"
+            },
+            "key_id": {
+                "Value": "a1e58515-2b74-44f3-bcff-3e019b759d2e"
+            },
+            "place": {
+                "Value": "32"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tStill, that was difficult and he'd only resorted to the pistol twice on the dead. Once had been in the Safeway supermarket in town, where he'd gone foraging and been surprised in the cereal aisle by a dapper little corpse in a neat bow tie and work apron.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"bca4d552-d8ab-4df3-bf75-0f220aeccd25\"}"
+            },
+            "key_id": {
+                "Value": "bca4d552-d8ab-4df3-bf75-0f220aeccd25"
+            },
+            "place": {
+                "Value": "33"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tThe other time had been on his father, after he'd died from the bites and came after him, his eyes rolled back to the whites, and his skull lolling back and forth like a bobblehead doll. He'd grabbed the pistol from the night table by the bed and fired off four shots in blind terror and missed every time. The last bullet had knocked an old family picture off the wall, and the sound of breaking glass had distracted his father. It gave Seth the opportunity to scramble around him and out the front door of the house. He'd slammed it shut and dragged a wheelbarrow full of cinder blocks in front of it. And ever since that day Seth and his sister had lived in the barn.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"61a144eb-7847-4f35-a196-dfdb30d441a9\"}"
+            },
+            "key_id": {
+                "Value": "61a144eb-7847-4f35-a196-dfdb30d441a9"
+            },
+            "place": {
+                "Value": "34"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tSeth thought that the rifles slung around the two men below would work a lot better than his old gopher pistol, if he could work out how to shoot them. He thought he could probably figure it out, even without any internet to look up how.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"6c0f46c8-8fe3-4a85-bfa3-6816db4d2f20\"}"
+            },
+            "key_id": {
+                "Value": "6c0f46c8-8fe3-4a85-bfa3-6816db4d2f20"
+            },
+            "place": {
+                "Value": "35"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tHe heard a rustling behind him, and half-turned long enough to shush Melinda, who was just waking up. She was seven years old, had hair like cornsilk, and had awful nightmares – she usually woke up afraid, calling out for him if he wasn't around.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"cadc6baf-2243-4228-9caf-2a9bda19f0cf\"}"
+            },
+            "key_id": {
+                "Value": "cadc6baf-2243-4228-9caf-2a9bda19f0cf"
+            },
+            "place": {
+                "Value": "36"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tBefore the world had ended she'd been a chubby girl, the sort that when you looked at her, you could sometimes see a fat lady peeking back at you from twenty or thirty years in the future. But when the food started to run out the two of them had gone skinny. Seth himself had never been especially large, but now his clothes floated around his slight frame like the billowing robes of a court magician.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"986eea90-b326-4a60-8bbb-cb6974c608a5\"}"
+            },
+            "key_id": {
+                "Value": "986eea90-b326-4a60-8bbb-cb6974c608a5"
+            },
+            "place": {
+                "Value": "37"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tThey'd slaughtered the old milk cow a week ago, and that had sustained them for awhile, but even the cold temperatures of early spring hadn't been enough to keep it from spoiling. Soon they'd have to think about planting if they wanted to get through the next winter.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"3750271d-0395-4585-8665-b7f03f05390a\"}"
+            },
+            "key_id": {
+                "Value": "3750271d-0395-4585-8665-b7f03f05390a"
+            },
+            "place": {
+                "Value": "38"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tMelinda got up from her bedroll at the back of the loft and crept up to join him, her hair dangling over her face in dirty locks. She put a hand on his shoulder and gave him a squeeze. She was used to this – waking up quietly, getting your bearings before you do or say much. It was a necessity these days.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"3c183a1e-988e-47d5-b3f3-474265086fbc\"}"
+            },
+            "key_id": {
+                "Value": "3c183a1e-988e-47d5-b3f3-474265086fbc"
+            },
+            "place": {
+                "Value": "39"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tThe three men below were still standing around, talking and drumming their fingers on the grips of their guns. Their voices had lifted as they relaxed, and Seth began to catch snatches of conversation.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"90e56c60-f4c0-4f14-8943-2ca4ef9f7d1c\"}"
+            },
+            "key_id": {
+                "Value": "90e56c60-f4c0-4f14-8943-2ca4ef9f7d1c"
+            },
+            "place": {
+                "Value": "40"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"It's the same as in Three Forks,\\\" Cowboy was saying. He was a tall, slight man with knobby forearms and a large, protruding Adam's apple that quivered when he spoke. He cradled the carbine in his arms in a loose and lackadaisical manner, slouching over his motorcycle seat. \\\"No one's home, all the food rotten. Let's go on into Bozeman.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"d01200a0-5c61-4818-82bf-33ff51c21498\"}"
+            },
+            "key_id": {
+                "Value": "d01200a0-5c61-4818-82bf-33ff51c21498"
+            },
+            "place": {
+                "Value": "41"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"Waste of time,\\\" Flattop said. He shook his head, the plateau of his hair rigid enough to balance a dinner tray. He stood stiff and upright, and his head made methodical left-to-right sweeps as he surveyed the property.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"2ef1ee2d-4687-40a6-985a-cd49dd729869\"}"
+            },
+            "key_id": {
+                "Value": "2ef1ee2d-4687-40a6-985a-cd49dd729869"
+            },
+            "place": {
+                "Value": "42"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tCowboy leaned forward, picked a wad of tobacco from his lower lip, and flicked it at the side of the house. A pinch of brown goop hit the wall and left a streak all the way to the ground. \\\"There'll be supermarkets there,\\\" he said.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"9716f0b0-f17b-4c71-8d4b-3854c664b1bf\"}"
+            },
+            "key_id": {
+                "Value": "9716f0b0-f17b-4c71-8d4b-3854c664b1bf"
+            },
+            "place": {
+                "Value": "43"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"No. The cities are dead. It'll be just like Butte, just like Missoula. Deaders and empty shelves, and everything worth taking, taken. Outskirts like this are clean – not much dead and not much living around to take what's left.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"44f5f420-0d75-4d2e-8c67-0d4173928725\"}"
+            },
+            "key_id": {
+                "Value": "44f5f420-0d75-4d2e-8c67-0d4173928725"
+            },
+            "place": {
+                "Value": "44"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"Should've gone north, like I said,\\\" Rocker said, and his tone had a touch of rebuke. \\\"There was an Air Force base up by Great Falls. Bet they got some good guns there. I say we turn around.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"c9b9238a-d95e-4501-9375-9e418a9a18c8\"}"
+            },
+            "key_id": {
+                "Value": "c9b9238a-d95e-4501-9375-9e418a9a18c8"
+            },
+            "place": {
+                "Value": "45"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"We need food, and we don't have time to turn around,\\\" Flattop said, and bobbed his head westward. He added, \\\"I still think something's behind us.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"641c356a-6618-41a4-b234-87579cb3cb6d\"}"
+            },
+            "key_id": {
+                "Value": "641c356a-6618-41a4-b234-87579cb3cb6d"
+            },
+            "place": {
+                "Value": "46"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"The dead, or the MPs?\\\" Rocker asked, with a sly smile. \\\"We haven't seen but two deaders in three days. And I'd say the Army's got bigger problems than you two AWOL dipshits.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"acd1b242-2ec4-4833-896e-1b7cf9dae005\"}"
+            },
+            "key_id": {
+                "Value": "acd1b242-2ec4-4833-896e-1b7cf9dae005"
+            },
+            "place": {
+                "Value": "47"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"Something's on our tails,\\\" Flattop said. \\\"I feel it, sometimes. Felt it this morning, when I was peeing.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"25ed5e39-bf41-4652-bb4e-ca2aa274c6b2\"}"
+            },
+            "key_id": {
+                "Value": "25ed5e39-bf41-4652-bb4e-ca2aa274c6b2"
+            },
+            "place": {
+                "Value": "48"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tRocker snorted. He had a long, horsey face that was perpetually glum. \\\"I feel a tingling too whenever I hold my dick. No one's chasing me.\\\" He threw his head back and chortled at his own joke, looking around for some imaginary audience, and Seth reflexively ducked backwards.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"eb77237f-16a4-4c47-b4f1-4a30f6da380c\"}"
+            },
+            "key_id": {
+                "Value": "eb77237f-16a4-4c47-b4f1-4a30f6da380c"
+            },
+            "place": {
+                "Value": "49"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tFlattop didn't answer, and Rocker continued. \\\"You know how long it's been since I had a Snickers bar? Three months. And Snickers are the finest goddamn candy bar man ever invented.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"56cfe443-10dd-4c23-a8a3-89bd4be25e0a\"}"
+            },
+            "key_id": {
+                "Value": "56cfe443-10dd-4c23-a8a3-89bd4be25e0a"
+            },
+            "place": {
+                "Value": "50"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tFlattop shrugged, unmoved. \\\"I don't think they'll have any candy here, a shitkicker house like this. Maybe some canned stuff though. We can check that barn too. Maybe some livestock still in there.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"829b79f1-2c89-45a8-af33-be4ee825a80c\"}"
+            },
+            "key_id": {
+                "Value": "829b79f1-2c89-45a8-af33-be4ee825a80c"
+            },
+            "place": {
+                "Value": "51"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"What I'd do for a Snickers, or even a Mars Bar. God Christ, anything with that fuckin nougat in it, you know?\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"028916c8-fdc6-4456-8457-a7a19fd2ea30\"}"
+            },
+            "key_id": {
+                "Value": "028916c8-fdc6-4456-8457-a7a19fd2ea30"
+            },
+            "place": {
+                "Value": "52"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tFlattop shook his head at that, brought a hand up to the grip of the carbine dangling at his chest. \\\"We'll clear the house, and if we find any candy-\\\" he made a sweeping, mocking flourish with the other hand \\\"-it's all yours.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"96f0affa-6117-4e87-9bfe-5ac2d8f6c3d4\"}"
+            },
+            "key_id": {
+                "Value": "96f0affa-6117-4e87-9bfe-5ac2d8f6c3d4"
+            },
+            "place": {
+                "Value": "53"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tHe lifted his rifle, and went to the stoop leading up to the front door. Cowboy got off his bike, followed, and shoved the wheelbarrow out of the way before pulling the door wide. Neither of them looked like they grasped its significance, and Seth's lip turned in a cruel little smile. His dad was still inside. His dad would be glad to see them.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"39a4d4c0-43dd-4d84-8dc6-d75d3d759c2c\"}"
+            },
+            "key_id": {
+                "Value": "39a4d4c0-43dd-4d84-8dc6-d75d3d759c2c"
+            },
+            "place": {
+                "Value": "54"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tHe'd been careful to keep out of sight, but still glimpsed his father from time to time, shuffling listlessly past the kitchen window, or banging on the walls when he sensed movement outside. He'd been quiet the past few weeks, and Seth wondered if he'd starved in there. He wasn't exactly sure if the dead even needed food. He'd surely watched them eat, but didn't know if that was due to hunger or some dumb, brutish instinct.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"e0636bcc-f292-487c-9fce-8eabc280b864\"}"
+            },
+            "key_id": {
+                "Value": "e0636bcc-f292-487c-9fce-8eabc280b864"
+            },
+            "place": {
+                "Value": "55"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tCowboy pushed his hat off the back of his head, where it hung over his back by a rawhide string. He and his companion moved inside with their rifles at their shoulders. Rocker, unarmed, stayed near the bikes, presumably to keep watch. He relaxed, unconcerned, picking his nails and throwing the occasional, mournful glance toward the road. Perhaps he was thinking of Snickers bars again.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"1ddd9de5-0328-4d84-86b8-8510cc6c162f\"}"
+            },
+            "key_id": {
+                "Value": "1ddd9de5-0328-4d84-86b8-8510cc6c162f"
+            },
+            "place": {
+                "Value": "56"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tSeth couldn't hear what they were saying from inside the house, but he heard them calling out. Probably warnings for any inhabitants. Good, he thought. Dad will know right where you are.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"e5789fdf-8a68-46e8-b587-bfedf212ff22\"}"
+            },
+            "key_id": {
+                "Value": "e5789fdf-8a68-46e8-b587-bfedf212ff22"
+            },
+            "place": {
+                "Value": "57"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tBelow, Rocker put a leg up on his trike's running board and leaned over to stretch.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"be27a50b-07fc-4303-b080-385a68f8c737\"}"
+            },
+            "key_id": {
+                "Value": "be27a50b-07fc-4303-b080-385a68f8c737"
+            },
+            "place": {
+                "Value": "58"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tMelinda tugged on his sleeve, began to whisper in his ear. \\\"Are they-\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"eb7e7920-2db4-4bf7-8c44-bdba2265639f\"}"
+            },
+            "key_id": {
+                "Value": "eb7e7920-2db4-4bf7-8c44-bdba2265639f"
+            },
+            "place": {
+                "Value": "59"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t A loud crash erupted from inside the house, followed closely by frightened yelling. Melinda's grip on Seth tightened, and he turned and clamped a hand over her mouth. In the yard, Rocker jumped to attention and looked warily at the house. A burst of automatic gunfire bap-bap-bap'd seconds later. There was another loud crash, then a high, keening wail.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"5037bc7c-818b-4d31-9c57-5555fa88e9fe\"}"
+            },
+            "key_id": {
+                "Value": "5037bc7c-818b-4d31-9c57-5555fa88e9fe"
+            },
+            "place": {
+                "Value": "60"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"Hey?\\\" Rocker called out. \\\"Boys? What's going on, hey?\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"816666ce-87eb-4b8d-b08d-1a0809518845\"}"
+            },
+            "key_id": {
+                "Value": "816666ce-87eb-4b8d-b08d-1a0809518845"
+            },
+            "place": {
+                "Value": "61"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t It seemed a funny exclamation to Seth. Hey wasn't a question, it was something you said when someone cut in line at the bank.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"e9cc9628-5661-4d61-8563-245ca91c4c1d\"}"
+            },
+            "key_id": {
+                "Value": "e9cc9628-5661-4d61-8563-245ca91c4c1d"
+            },
+            "place": {
+                "Value": "62"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tThe house fell silent; then Seth heard heavy panting – hoarse and raspy and loud enough to hear from his perch across the yard. There was a clatter of stumbling footsteps moving towards the door. Rocker fell into a fighting crouch, but Seth could've told him to save his energy. He could tell automatically that whoever was coming was alive. Something in the sound of the footsteps made it obvious, but if asked, he'd never have been able to articulate it – the cadence, maybe. Or the lightness.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"e6ac863c-4373-4ed3-a743-d05b9a065453\"}"
+            },
+            "key_id": {
+                "Value": "e6ac863c-4373-4ed3-a743-d05b9a065453"
+            },
+            "place": {
+                "Value": "63"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tThen Cowboy pushed through the door, both hands clutching at the side of his head, where a line of blood ran down past his neck. He made it two steps, faltered, and collapsed on the stoop. He drew his gangly knees up to his chest and stared. His hat was hanging askew; an earlobe hung by a thin sliver of cartilage.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"fd36b9ad-a444-4a48-a0c6-748085a12966\"}"
+            },
+            "key_id": {
+                "Value": "fd36b9ad-a444-4a48-a0c6-748085a12966"
+            },
+            "place": {
+                "Value": "64"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tRocker flicked an eye to the open door, saw that nothing else was about to barrel through it, and stood cautiously over his wounded companion. He looked down, offered a sympathetic smile, and brushed a lock of curled hair out of his face with a casualness that Seth thought must be maddening.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"73b95de0-5218-48ac-bed0-9b9997a4a5fe\"}"
+            },
+            "key_id": {
+                "Value": "73b95de0-5218-48ac-bed0-9b9997a4a5fe"
+            },
+            "place": {
+                "Value": "65"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tCowboy was still breathing hard. The enormous Adam's apple swelled with each gasp.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"348d641b-472d-4e2a-8df9-7c426616af2e\"}"
+            },
+            "key_id": {
+                "Value": "348d641b-472d-4e2a-8df9-7c426616af2e"
+            },
+            "place": {
+                "Value": "66"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"Got bit, huh?\\\" Rocker said, matter-of-fact.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"c03c552d-b559-4235-be50-111c059c2b50\"}"
+            },
+            "key_id": {
+                "Value": "c03c552d-b559-4235-be50-111c059c2b50"
+            },
+            "place": {
+                "Value": "67"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"Fucker bit me.\\\" Cowboy sounded quietly disgusted, like he'd just discovered a fly floating in his soup.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"bd4353ed-0b89-4702-9e65-ec46de8ee037\"}"
+            },
+            "key_id": {
+                "Value": "bd4353ed-0b89-4702-9e65-ec46de8ee037"
+            },
+            "place": {
+                "Value": "68"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"Yeah,\\\" Rocker said, gently. \\\"Did you get it?\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"5e3533bb-4389-4504-8659-4bd2c3fb10a1\"}"
+            },
+            "key_id": {
+                "Value": "5e3533bb-4389-4504-8659-4bd2c3fb10a1"
+            },
+            "place": {
+                "Value": "69"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tCowboy stared blankly at him, and began to scream. \\\"Fucking bit me! BIT ME. God-damn-it! Owwwwwww-\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"2b2a1956-f261-4b9d-a20f-2b9bdf032858\"}"
+            },
+            "key_id": {
+                "Value": "2b2a1956-f261-4b9d-a20f-2b9bdf032858"
+            },
+            "place": {
+                "Value": "70"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tRocker leaned in quickly, grabbed him by his shirt collar, and shook him. Cowboy kept screaming, twisting from side to side, until Rocker grabbed his head by the temples and forced him to gaze directly in the eyes – the way he might calm a panicky horse. Cowboy cut off immediately, stared back at Rocker.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"22211e81-a0e3-4311-8106-4af5e95bde95\"}"
+            },
+            "key_id": {
+                "Value": "22211e81-a0e3-4311-8106-4af5e95bde95"
+            },
+            "place": {
+                "Value": "71"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tA moment passed like that, and Rocker said severely, \\\"Quiet down, fuck-hole.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"aa9a3bc7-7937-4cbf-b457-dc7c3a514f44\"}"
+            },
+            "key_id": {
+                "Value": "aa9a3bc7-7937-4cbf-b457-dc7c3a514f44"
+            },
+            "place": {
+                "Value": "72"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tCowboy nodded slowly, still peering up at him, and Rocker released his grip.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"a5763bf4-8441-4ea8-bf13-37e2bf77245a\"}"
+            },
+            "key_id": {
+                "Value": "a5763bf4-8441-4ea8-bf13-37e2bf77245a"
+            },
+            "place": {
+                "Value": "73"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"Did you kill it? Is it still inside?\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"5313e0be-8c2f-4d73-baa3-04d2ddb15323\"}"
+            },
+            "key_id": {
+                "Value": "5313e0be-8c2f-4d73-baa3-04d2ddb15323"
+            },
+            "place": {
+                "Value": "74"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"No,\\\" he said, breathing hard. \\\"No, but- maybe Kev did, but I don't think so. It tore his throat out before I even got my rifle up.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"6393f915-b970-418a-8449-cc5bbae56603\"}"
+            },
+            "key_id": {
+                "Value": "6393f915-b970-418a-8449-cc5bbae56603"
+            },
+            "place": {
+                "Value": "75"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"Yeah?\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"9e6ea9a2-f338-4b0f-9f1e-59cba337ded6\"}"
+            },
+            "key_id": {
+                "Value": "9e6ea9a2-f338-4b0f-9f1e-59cba337ded6"
+            },
+            "place": {
+                "Value": "76"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"Yeah.\\\" Cowboy put a finger to his mangled ear and winced. \\\"It was in a closet, hiding like a goddamn kid. On me before I even saw it. I shoved it off and it went for Big Kev, and they tumbled into another room.\\\" He looked up and met Rocker's eyes. \\\"Tommy, Kev's dead – or he will be.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"49ebf8e1-5e34-4f8c-802f-edadcfb679ff\"}"
+            },
+            "key_id": {
+                "Value": "49ebf8e1-5e34-4f8c-802f-edadcfb679ff"
+            },
+            "place": {
+                "Value": "77"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tRocker – Tommy? – just shook his shaggy head. \\\"Yeah.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"686c0e63-0bba-4200-96f3-6093d1ebee9a\"}"
+            },
+            "key_id": {
+                "Value": "686c0e63-0bba-4200-96f3-6093d1ebee9a"
+            },
+            "place": {
+                "Value": "78"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"I don't know what to do,\\\" Cowboy said. He looked pained.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"64e96ba5-efe3-47a5-b4d6-94c7c78c403d\"}"
+            },
+            "key_id": {
+                "Value": "64e96ba5-efe3-47a5-b4d6-94c7c78c403d"
+            },
+            "place": {
+                "Value": "79"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"We made it all this way from Boise and you two idiots get killed by some fucking farmer.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"269bbad8-2a5b-4e45-a192-adcb5e1d9d42\"}"
+            },
+            "key_id": {
+                "Value": "269bbad8-2a5b-4e45-a192-adcb5e1d9d42"
+            },
+            "place": {
+                "Value": "80"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"Well, maybe I'll be alright,\\\" Cowboy said, still touching his wound and still wincing each time. \\\"Just took a chunk, and it came off clean. Maybe it wasn't deep enough.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"693bae59-d948-4dca-ad3b-3eb7ccdf8edf\"}"
+            },
+            "key_id": {
+                "Value": "693bae59-d948-4dca-ad3b-3eb7ccdf8edf"
+            },
+            "place": {
+                "Value": "81"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"Sorry, buddy. You know the rules.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"c91ddbef-1de9-453c-804e-2922255ec358\"}"
+            },
+            "key_id": {
+                "Value": "c91ddbef-1de9-453c-804e-2922255ec358"
+            },
+            "place": {
+                "Value": "82"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tCowboy made a cartoonish gulp and looked around in both directions. \\\"Come on. We brought you with us, didn't we? Kev didn't even want you, you know. I talked him into it.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"b0eafdb4-0385-4dea-9672-23c376c5c214\"}"
+            },
+            "key_id": {
+                "Value": "b0eafdb4-0385-4dea-9672-23c376c5c214"
+            },
+            "place": {
+                "Value": "83"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"Well, thanks, pal,\\\" Rocker said, and offered an apologetic smile.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"43285dce-5b8a-4b25-bdb1-ded37d481511\"}"
+            },
+            "key_id": {
+                "Value": "43285dce-5b8a-4b25-bdb1-ded37d481511"
+            },
+            "place": {
+                "Value": "84"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tCowboy lowered his eyes. \\\"I wanted to die in Wyoming.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"8c47cd0c-5e18-4554-bc5a-1b602191bfab\"}"
+            },
+            "key_id": {
+                "Value": "8c47cd0c-5e18-4554-bc5a-1b602191bfab"
+            },
+            "place": {
+                "Value": "85"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"You can't always get what you want. You know, like the Stones song?\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"ef9ed5ae-1a8e-4eff-a2d3-4949c3df9b52\"}"
+            },
+            "key_id": {
+                "Value": "ef9ed5ae-1a8e-4eff-a2d3-4949c3df9b52"
+            },
+            "place": {
+                "Value": "86"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"Hell.\\\" Cowboy shook his head.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"a836386d-956c-4f89-b0ca-f4cf1a187c76\"}"
+            },
+            "key_id": {
+                "Value": "a836386d-956c-4f89-b0ca-f4cf1a187c76"
+            },
+            "place": {
+                "Value": "87"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"You know once you're bit there's no cure. That's just how it is.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"93848aa5-923e-4550-8797-af108473952a\"}"
+            },
+            "key_id": {
+                "Value": "93848aa5-923e-4550-8797-af108473952a"
+            },
+            "place": {
+                "Value": "88"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"I guess so.\\\" His face fell, but brightened again almost instantly. \\\"Hey, tell you what. I got a candy bar in my saddle bag. It ain't a Snickers but it's chocolate. I didn't say nothing 'cause I thought Kev would take it away.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"0650eb4b-7380-4dd4-bb45-8e47bbad8d66\"}"
+            },
+            "key_id": {
+                "Value": "0650eb4b-7380-4dd4-bb45-8e47bbad8d66"
+            },
+            "place": {
+                "Value": "89"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"Yeah?\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"fbe880a9-d9b2-4882-8521-ee1a23446475\"}"
+            },
+            "key_id": {
+                "Value": "fbe880a9-d9b2-4882-8521-ee1a23446475"
+            },
+            "place": {
+                "Value": "90"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tCowboy's voice stopped trembling, and he adopted a magnanimous tone. \\\"I want you to have it, Tommy.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"2ec244b0-2ddd-483e-8310-d7d322bda5cd\"}"
+            },
+            "key_id": {
+                "Value": "2ec244b0-2ddd-483e-8310-d7d322bda5cd"
+            },
+            "place": {
+                "Value": "91"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"Yeah, thanks.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"84b5e8ae-47cb-482b-bd87-8815a39f40bf\"}"
+            },
+            "key_id": {
+                "Value": "84b5e8ae-47cb-482b-bd87-8815a39f40bf"
+            },
+            "place": {
+                "Value": "92"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"Just make it quick for me, okay? I don't wanna feel no pain. Put one right between my eyes.\\\" As he spoke, he unclipped his rifle from its sling and it fell into his arms. He held it up to Rocker with both hands, a supplicant kneeling before a ragged and weathered rock god.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"0a848d0f-18d1-406a-889e-4f3dce6930e8\"}"
+            },
+            "key_id": {
+                "Value": "0a848d0f-18d1-406a-889e-4f3dce6930e8"
+            },
+            "place": {
+                "Value": "93"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"Can't waste no more bullets, bud,\\\" Rocker said casually. He suddenly leaned in and snapped his Bowie knife across Cowboy's throat. Cowboy's eyes bulged and he pitched forward, falling on his rifle and bringing his hands to his neck. He stared up at Rocker, legs thrashing behind him, and wheezed something unintelligible. It sounded unflattering.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"22127173-ff62-48df-9c7e-a134b1972560\"}"
+            },
+            "key_id": {
+                "Value": "22127173-ff62-48df-9c7e-a134b1972560"
+            },
+            "place": {
+                "Value": "94"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tRocker just watched, impassive. \\\"Sorry, chief,\\\" he said quietly.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"7e3297c3-d9c7-434f-a21a-751c1e27e135\"}"
+            },
+            "key_id": {
+                "Value": "7e3297c3-d9c7-434f-a21a-751c1e27e135"
+            },
+            "place": {
+                "Value": "95"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tIn less than a minute Cowboy had stopped moving.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"d49c3c2d-a6ea-4c96-856c-4ac67e47d11b\"}"
+            },
+            "key_id": {
+                "Value": "d49c3c2d-a6ea-4c96-856c-4ac67e47d11b"
+            },
+            "place": {
+                "Value": "96"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tRocker stared a moment longer, then returned to the motorcycles. He rummaged around in one of them and came up with a candy bar. Seth thought it was a 3 Musketeers. He ate it ponderously, looking from the house to the bikes to Cowboy's body. Presently he walked back and nudged it with one of his boots. Cowboy didn't move, but Seth knew that he'd be twitching soon enough, once the bug got settled.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"22b461c0-36d9-45ca-8e9e-11c6e9bce4f8\"}"
+            },
+            "key_id": {
+                "Value": "22b461c0-36d9-45ca-8e9e-11c6e9bce4f8"
+            },
+            "place": {
+                "Value": "97"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tMelinda tapped his wrist, reminding Seth that he still held a hand over her mouth. He dropped it and she stayed quiet, but her eyes were wide and, he noted with some worry, a little glassy.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"6c3fc9a5-a6af-48e1-86f6-2e93f06ef6ec\"}"
+            },
+            "key_id": {
+                "Value": "6c3fc9a5-a6af-48e1-86f6-2e93f06ef6ec"
+            },
+            "place": {
+                "Value": "98"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tRocker abruptly straightened, turned, and started towards the barn. They both froze. Had he heard them? Seen them out of the corner of his eye? Seth moved slowly backwards, out of the morning light, and pulled his sister along with him.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"fa1b0c64-71bb-4d2b-a534-b41d7bf53754\"}"
+            },
+            "key_id": {
+                "Value": "fa1b0c64-71bb-4d2b-a534-b41d7bf53754"
+            },
+            "place": {
+                "Value": "99"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tThe swinging wooden doors were closed and barred from the inside, but Seth thought Rocker could get them open quickly enough if he really wanted to. He pushed Melinda behind a hay bale and crawled further back, away from the open hatch.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"ad4c3a9d-f854-4921-a267-dc7716d552d3\"}"
+            },
+            "key_id": {
+                "Value": "ad4c3a9d-f854-4921-a267-dc7716d552d3"
+            },
+            "place": {
+                "Value": "100"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tReaching the barn doors, Rocker tapped on it. \\\"Hello, hello, hello,\\\" he said, his voice rising in sing-song mockery. \\\"Anyone in there? Any pigs maybe? How about a cow?\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"f81f8afe-7d12-4b6e-b4ee-f68739562c64\"}"
+            },
+            "key_id": {
+                "Value": "f81f8afe-7d12-4b6e-b4ee-f68739562c64"
+            },
+            "place": {
+                "Value": "101"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tWhen no answer came, he said, \\\"Hell, I'll even eat any of you goddamn horses I find in there.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"2e954d99-6bc4-4fff-8b03-55cb2afe9d6d\"}"
+            },
+            "key_id": {
+                "Value": "2e954d99-6bc4-4fff-8b03-55cb2afe9d6d"
+            },
+            "place": {
+                "Value": "102"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tHe gave the doors a yank, found they wouldn't budge, and took a step back. His eyes studied the pitted wood, the old rusted hinges, and then roamed upwards, settling finally on the open hatch above.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"49ba2e64-0ed6-465c-a512-735e352bc329\"}"
+            },
+            "key_id": {
+                "Value": "49ba2e64-0ed6-465c-a512-735e352bc329"
+            },
+            "place": {
+                "Value": "103"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"Hello?\\\" he said again.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"46ceb317-7e1e-4a24-8096-d2f004cc1ff7\"}"
+            },
+            "key_id": {
+                "Value": "46ceb317-7e1e-4a24-8096-d2f004cc1ff7"
+            },
+            "place": {
+                "Value": "104"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tSeth thought about it, shrugged, and stepped into view.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"f6472033-5387-42e5-921d-01472b591bf5\"}"
+            },
+            "key_id": {
+                "Value": "f6472033-5387-42e5-921d-01472b591bf5"
+            },
+            "place": {
+                "Value": "105"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tRocker didn't scare easily. He didn't shout out or jump backwards or run for Cowboy's rifle. A slow, dull smile spread across his face. \\\"Holy shit,\\\" he said, sounding genuinely awed and maybe even pleased. He said it again: \\\"Holy shit.\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"d9a1af23-83ee-488b-b49e-450416d03e79\"}"
+            },
+            "key_id": {
+                "Value": "d9a1af23-83ee-488b-b49e-450416d03e79"
+            },
+            "place": {
+                "Value": "106"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"Hello,\\\" Seth said.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"7e8fb3ec-ac0f-481a-9d00-92b5bed2f25d\"}"
+            },
+            "key_id": {
+                "Value": "7e8fb3ec-ac0f-481a-9d00-92b5bed2f25d"
+            },
+            "place": {
+                "Value": "107"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tRocker nodded back at him, the foolish grin still on his face. \\\"Hey there, kid. You're about the first soul I've seen in a week, other than my partners back there. How you doing?\\\"\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"9429fe37-4257-4053-a653-2177499ba1d6\"}"
+            },
+            "key_id": {
+                "Value": "9429fe37-4257-4053-a653-2177499ba1d6"
+            },
+            "place": {
+                "Value": "108"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\\\"We're fine,\\\" Seth said, and shot him.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"139cb19e-4baa-41ad-9417-8f2bcc6f8145\"}"
+            },
+            "key_id": {
+                "Value": "139cb19e-4baa-41ad-9417-8f2bcc6f8145"
+            },
+            "place": {
+                "Value": "109"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\tPerfect shot. Right through the eye.\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":\"ltr\",\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"a4003463-213c-42a1-93c1-1263bf0504f4\"}"
+            },
+            "key_id": {
+                "Value": "a4003463-213c-42a1-93c1-1263bf0504f4"
+            },
+            "place": {
+                "Value": "110"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        },
+        {
+            "chunk": {
+                "Value": "{\"children\":[{\"type\":\"text\",\"version\":1,\"text\":\"\\t\",\"format\":0,\"style\":\"\",\"mode\":\"normal\",\"detail\":0}],\"direction\":null,\"format\":\"\",\"indent\":0,\"type\":\"custom-paragraph\",\"version\":1,\"textFormat\":0,\"textStyle\":\"\",\"key_id\":\"a6fbb2ee-fb36-43cd-b99b-a7833179a0b0\"}"
+            },
+            "key_id": {
+                "Value": "a6fbb2ee-fb36-43cd-b99b-a7833179a0b0"
+            },
+            "place": {
+                "Value": "111"
+            },
+            "story_id": {
+                "Value": "14d5a12b-492b-4df4-ae6c-a2f17af1618f"
+            }
+        }
+    ]
+}
