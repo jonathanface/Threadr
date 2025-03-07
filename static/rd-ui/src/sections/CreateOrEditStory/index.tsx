@@ -155,7 +155,7 @@ export const CreateOrEditStory: React.FC = () => {
             if (updatedStory.series_id) {
                 const newSeries: Series = {
                     series_id: updatedStory.series_id,
-                    series_title: formData.series_title || "New Series",
+                    series_title: formData.series_name as string || "New Series",
                     series_description: "",
                     stories: [updatedStory],
                     image_url: "/img/icons/story_series_icon.jpg"
