@@ -706,9 +706,10 @@ export const ThreadWriter = () => {
                 if (isParentEmpty) {
                   parent.clear();
                 }
-
+                console.log('check tabs');
                 paragraphs.forEach((paragraphText, index) => {
                   if (index > 0 && !paragraphText.startsWith("\t")) {
+                    console.log("prepend tab")
                     paragraphText = `\t${paragraphText}`;
                   }
 
@@ -1013,7 +1014,7 @@ export const ThreadWriter = () => {
         <div className={styles.editorRow}>
           <div className={styles.editorArea}>
             <RichTextPlugin
-              contentEditable={<ContentEditable className={styles.editorInput} spellCheck={documentSettings?.spellcheck} />}
+              contentEditable={<ContentEditable tabIndex={0} className={styles.editorInput} spellCheck={documentSettings?.spellcheck} />}
               ErrorBoundary={LexicalErrorBoundary}
             />
             <AssociationDecoratorPlugin isProgrammaticChange={isProgrammaticChange} scrollToTop={true} customLeftClick={handleAssociationLeftClick} customRightClick={handleAssociationRightClick} />
