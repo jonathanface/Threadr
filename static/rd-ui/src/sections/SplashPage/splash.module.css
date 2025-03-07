@@ -42,6 +42,7 @@
   font-size: 1.2rem;
   text-align: center;
   color: #F9F9F9;
+  padding-bottom: 20px;
 }
 
 .introText h4 {
@@ -69,7 +70,9 @@
 
 .loginBtn {
   text-align: center;
+  position: relative;
   margin-top: 40px;
+  z-index: 1;
 }
 
 .loginBtn>a {
@@ -88,6 +91,16 @@
 @media only screen and (max-width: 600px) {
   .demo {
     width: 100%;
+  }
+
+  .introText {
+    width: 90%;
+    padding: 20px;
+    font-size: 1rem;
+  }
+
+  .introText h4 {
+    font-size: 1.2rem;
   }
 
   .splash .blurb {

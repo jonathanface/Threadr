@@ -84,38 +84,31 @@ export const AssociationPanelDemo: React.FC<AssociationProps> = (props) => {
     });
   }
 
-  const fetchAssociationDetails = async () => {
-    console.log("try to fetch", selectedAssociationID);
-
-    if (!isInitialLoad) return;
-    try {
-      const selected = props.associations.find(ass => ass.association_id === selectedAssociationID) as Association;
-      console.log("Sel", selected);
-      setSelectedAssociation(selected);
-      setAliases(selected.aliases);
-      exclusionList.current = [selected.association_name, ...selected.aliases.split(',')];
-    } catch (error: unknown) {
-      console.error(`error fetching association details: ${error}`);
-    } finally {
-      setIsInitialLoad(false);
-    }
-  };
-
   useEffect(() => {
     if (props.isAssociationPanelOpen && props.selectedAssociationID) {
-      console.log("sel????", props.selectedAssociationID)
       setSelectedAssociationID(props.selectedAssociationID);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [props.selectedAssociationID, props.isAssociationPanelOpen]);
 
   useEffect(() => {
-    console.log("is initial", isInitialLoad, props.isAssociationPanelOpen, selectedAssociationID)
+    const fetchAssociationDetails = async () => {
+      if (!isInitialLoad) return;
+      try {
+        const selected = props.associations.find(ass => ass.association_id === selectedAssociationID) as Association;
+        setSelectedAssociation(selected);
+        setAliases(selected.aliases);
+        exclusionList.current = [selected.association_name, ...selected.aliases.split(',')];
+      } catch (error: unknown) {
+        console.error(`error fetching association details: ${error}`);
+      } finally {
+        setIsInitialLoad(false);
+      }
+    };
     if (props.isAssociationPanelOpen && isInitialLoad && selectedAssociationID !== null) {
-      console.log("selected", selectedAssociationID);
       fetchAssociationDetails();
     }
-  }, [isInitialLoad, selectedAssociationID, props.isAssociationPanelOpen])
+  }, [isInitialLoad, selectedAssociationID, props.isAssociationPanelOpen, props.associations])
 
   useEffect(() => {
     if (bgEditorRef.current) {
