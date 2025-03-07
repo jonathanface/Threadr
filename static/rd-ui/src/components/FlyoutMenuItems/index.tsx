@@ -14,6 +14,7 @@ import { useFetchUserData } from "../../hooks/useFetchUserData";
 import { ChapterTreeItem } from "../ChapterTreeItem";
 import { UpdateChapterParameter } from "../ThreadWriter/utilities";
 import { CreateOutline } from "../CreateOutline";
+import { useState } from "react";
 
 interface SettingsMenuProps {
     chapters: Chapter[];
@@ -26,6 +27,8 @@ export const FlyoutMenuItems = ({ chapters, onAssociationClick }: SettingsMenuPr
     const { showLoader, hideLoader } = useLoader();
     const { setAlertState } = useToaster();
     const { userDetails } = useFetchUserData();
+    const [expandedItems, setExpandedItems] = useState<string[]>([]);
+    const [remountToken, setRemountToken] = useState("0");
     if (!chapter || !story) return;
 
     const handleNodeSelect = (_event: React.MouseEvent, selectedItemId: string) => {
@@ -145,8 +148,28 @@ export const FlyoutMenuItems = ({ chapters, onAssociationClick }: SettingsMenuPr
         isSubscriber = true;
     }
 
+    const handleItemToggle = (_event: React.SyntheticEvent, newExpanded: string[]) => {
+        // Compare old vs. new
+        const newlyExpanded = newExpanded.filter((id) => !expandedItems.includes(id));
+        const newlyCollapsed = expandedItems.filter((id) => !newExpanded.includes(id));
+        if (newlyCollapsed.length === 1) {
+            if (newlyCollapsed[0] === 'outline') {
+                setExpandedItems([]);
+                return;
+            } else {
+                setExpandedItems(['outline']);
+                return;
+            }
+        }
+        setRemountToken((old) => (parseInt(old) + 1).toString());
+        setTimeout(() => { setExpandedItems(['outline', newlyExpanded[0]]) }, 50);;
+    };
+
+
+
     return (
-        <SimpleTreeView className={styles.parentView} onItemClick={handleNodeSelect}>
+        <SimpleTreeView expandedItems={expandedItems}
+            onExpandedItemsChange={handleItemToggle} className={styles.parentView} onItemClick={handleNodeSelect}>
             <TreeItem itemId="chapters" label="Chapters" sx={{
                 "& .MuiTreeItem-label": {
                     fontFamily: "Segoe Print",
@@ -183,7 +206,7 @@ export const FlyoutMenuItems = ({ chapters, onAssociationClick }: SettingsMenuPr
                 }
             }}>
                 {story?.outline?.map((section, idx) => (
-                    <OutlineEditPanel section={section} key={`outline-${idx}`} onAssociationClick={onAssociationClick} />
+                    <OutlineEditPanel key={`${idx}-${remountToken}`} section={section} onAssociationClick={onAssociationClick} />
                 ))}
                 <TreeItem key="outline-create" title="Create an Outline" label={
                     <CreateOutline />

@@ -119,7 +119,7 @@ export const OutlineEditPanel = (props: OutlineEditProps) => {
     };
 
     useEffect(() => {
-        if (!editorReady || !editorRef.current || hasInitialized.current) return;
+        if (!editorReady || !editorRef.current) return;
         editorRef.current.update(() => {
             const root = $getRoot();
             root.clear();
