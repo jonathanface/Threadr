@@ -14,7 +14,7 @@
 
 .editorInput.activeField {
     border: 1px dashed #333;
-    background-color: #DBDBDB;
+    background-color: #FFF;
     transition: background-color 300ms linear;
 }
 
