@@ -17,6 +17,7 @@ import { EditSeries } from "./sections/EditSeries";
 import { useToaster } from "./hooks/useToaster";
 import { AlertCommandType, AlertFunctionCall, AlertToastType } from "./types/AlertToasts";
 import { CreateOrEditStory } from "./sections/CreateOrEditStory";
+import { PaymentMethodPanel } from "./sections/paymentMethod";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_KEY ?? "");
 
@@ -168,6 +169,18 @@ export const Docter = memo(() => {
               isLoggedIn ? (
                 <Elements stripe={stripePromise}>
                   <SubscribePanel />
+                </Elements>
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+          <Route
+            path="/payment"
+            element={
+              isLoggedIn ? (
+                <Elements stripe={stripePromise}>
+                  <PaymentMethodPanel />
                 </Elements>
               ) : (
                 <Navigate to="/" replace />
