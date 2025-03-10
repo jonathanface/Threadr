@@ -699,6 +699,7 @@ export const ThreadWriterDemo = () => {
 
 
   const handleDocumentRightClick = (data: ClickData) => {
+    console.log("data", data);
     const contextData: ContextMenuProps = {
       name: data.text ? data.text : "",
       visible: true,
@@ -717,12 +718,17 @@ export const ThreadWriterDemo = () => {
 
   const handleAssociationRightClick = (data: ClickData) => {
     if (!data.id) return;
+    const rootElement = editorRef.current?.getRootElement();
+    if (!rootElement) return;
     selectedAssociation.current = data.id;
+    const containerRect = rootElement.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.getBoundingClientRect();
+    const xInContainer = containerRect ? data.x - containerRect.left : data.x;
+    const yInContainer = containerRect ? data.y - containerRect.top : data.y;
     const contextData: ContextMenuProps = {
       name: data.text ? data.text : "",
       visible: true,
-      y: data.y,
-      x: data.x,
+      y: yInContainer,
+      x: xInContainer,
       items: associationContextMenuItems
     }
     setContextMenuData(contextData);
