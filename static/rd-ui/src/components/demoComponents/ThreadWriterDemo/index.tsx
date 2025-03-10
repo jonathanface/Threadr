@@ -699,7 +699,6 @@ export const ThreadWriterDemo = () => {
 
 
   const handleDocumentRightClick = (data: ClickData) => {
-    console.log("data", data);
     const contextData: ContextMenuProps = {
       name: data.text ? data.text : "",
       visible: true,
