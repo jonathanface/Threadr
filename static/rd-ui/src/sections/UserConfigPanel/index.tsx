@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Box, Button, FormControlLabel, FormGroup, IconButton, Switch, Typography } from "@mui/material";
 import { useLoader } from "../../hooks/useLoader";
 import { AlertLink, AlertToastType } from "../../types/AlertToasts";
@@ -8,6 +8,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import { useNavigate } from "react-router-dom";
 import { UserDetails } from "../../types/User";
 import { useFetchUserData } from "../../hooks/useFetchUserData";
+import { PaymentMethod } from "../../types/PaymentMethod";
+import { UCWords } from "../../components/ThreadWriter/utilities";
 
 export const ConfigPanel = () => {
   const { userDetails, setUserDetails } = useFetchUserData();
@@ -16,12 +18,34 @@ export const ConfigPanel = () => {
 
   const [isCustomer, setIsCustomer] = useState(false);
   const [isRenewing, setIsRenewing] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   const [toggleLabel, setToggleLabel] = useState("Subscribe");
   const navigate = useNavigate();
 
+  const getExistingPaymentMethod = useCallback(async () => {
+    if (!userDetails) return;
+    try {
+      const response = await fetch("/billing/customer/payment", {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error(`${response.statusText}`);
+      }
+      const payment = await response.json();
+      setPaymentMethod({
+        id: payment.id,
+        brand: payment.brand || "Unknown",
+        last_four: payment.last_four,
+        expiry_month: payment.expiration_month,
+        expiry_year: payment.expiration_year
+      });
+    } catch (error) {
+      console.error(`Unable to retrieve payment method ${error}`);
+    }
+  }, [userDetails]);
 
   const subscribe = () => {
-    navigate('/subscribe');
+    navigate('/payment');
   };
 
   const handleClose = () => {
@@ -79,8 +103,11 @@ export const ConfigPanel = () => {
     } else {
       setIsRenewing(userDetails.renewing);
       setToggleLabel("Auto-Renew Subscription");
+      if (userDetails.renewing) {
+        getExistingPaymentMethod();
+      }
     }
-  }, [userDetails]);
+  }, [userDetails, getExistingPaymentMethod]);
 
   return (
     <Box className={styles.configPanel}>
@@ -113,12 +140,15 @@ export const ConfigPanel = () => {
           ) : (
             // When the user is a customer, show the switch for auto-renewal.
             <Box className={styles.renewControls}>
-              <FormControlLabel
-                control={
-                  <Switch onChange={toggleSubscriptionRenewal} checked={isRenewing} />
-                }
-                label={toggleLabel}
-              />
+              <Box>
+                <FormControlLabel
+                  control={
+                    <Switch onChange={toggleSubscriptionRenewal} checked={isRenewing} />
+                  }
+                  label={toggleLabel}
+                />
+                {isRenewing && paymentMethod ? <Box className={styles.paymentMethod}>Subscribed via {UCWords(paymentMethod?.brand)} ending in {paymentMethod?.last_four}</Box> : ""}
+              </Box>
               <Button size="small" onClick={subscribe} variant="contained">
                 Change Payment Method
               </Button>

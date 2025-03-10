@@ -41,6 +41,38 @@ func GetCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 	api.RespondWithJson(w, http.StatusOK, c)
 }
 
+func GetCustomerPaymentMethodEndpoint(w http.ResponseWriter, r *http.Request) {
+	stripe.Key = os.Getenv("STRIPE_SECRET")
+	if stripe.Key == "" {
+		api.RespondWithError(w, http.StatusNoContent, "missing stripe secret")
+		return
+	}
+	token, err := sessions.Get(r, "token")
+	if err != nil || token.IsNew {
+		api.RespondWithError(w, http.StatusNotFound, "cannot find token")
+		return
+	}
+	var user models.UserInfo
+	if err := json.Unmarshal(token.Values["token_data"].([]byte), &user); err != nil {
+		api.RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if len(user.SubscriptionID) == 0 {
+		api.RespondWithError(w, http.StatusBadRequest, "user not subscribed")
+		return
+	}
+	payment, err := getPaymentMethodsForCustomer(user.CustomerID)
+	if err != nil {
+		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if len(payment) == 0 {
+		api.RespondWithError(w, http.StatusNotFound, "no default payment method set")
+		return
+	}
+	api.RespondWithJson(w, http.StatusOK, payment[0])
+}
+
 func CreateCardIntentEndpoint(w http.ResponseWriter, r *http.Request) {
 	stripe.Key = os.Getenv("STRIPE_SECRET")
 	if stripe.Key == "" {
@@ -55,6 +87,7 @@ func CreateCardIntentEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	secret, err := createCardIntent(customer.Id)
+	fmt.Println("err", customer)
 	if err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return

@@ -6,7 +6,7 @@ import {
   Typography,
 } from "@mui/material";
 import { CardElement, useElements, useStripe } from "@stripe/react-stripe-js";
-import { StripeCardElementChangeEvent } from "@stripe/stripe-js";
+import { StripeCardElementChangeEvent, StripeError } from "@stripe/stripe-js";
 import { useToaster } from "../../hooks/useToaster";
 import { AlertToastType } from "../../types/AlertToasts";
 import { useNavigate } from "react-router-dom";
@@ -58,15 +58,6 @@ export const SubscribePanel = () => {
         throw new Error("Stripe is not available");
       }
       showLoader();
-      const response = await fetch("/billing/card", {
-        credentials: "include",
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: userDetails.customer_id }),
-      });
-      if (!response.ok) {
-        throw new Error(`Error confirming card: ${response.statusText}`);
-      }
       const cardElement = elements.getElement(CardElement);
       if (!cardElement) {
         throw new Error("Card element not found");
@@ -76,9 +67,7 @@ export const SubscribePanel = () => {
           type: "card",
           card: cardElement,
         });
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (error) throw error;
       if (
         stripePaymentMethod.id &&
         stripePaymentMethod.card?.brand &&
@@ -109,9 +98,19 @@ export const SubscribePanel = () => {
       }
     } catch (error: unknown) {
       console.error(error);
-      setSubscribeError(
-        "There was an error updating your payment method. Please try again later."
-      );
+      const stripeError = error as StripeError;
+      const defaultError = "There was an error updating your payment method. Please try again later.";
+      if (stripeError) {
+        setSubscribeError(stripeError.message || defaultError);
+      } else {
+        const apiError = error as Error;
+        if (apiError) {
+          setSubscribeError(apiError.message);
+        } else {
+          setSubscribeError(defaultError);
+        }
+      }
+
     } finally {
       hideLoader();
     }

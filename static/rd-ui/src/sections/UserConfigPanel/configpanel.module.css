@@ -16,6 +16,11 @@
     align-items: center;
 }
 
+.paymentMethod {
+    font-size: 0.7rem;
+    text-align: left;
+}
+
 @media only screen and (max-width: 600px) {
     .configPanel {
         max-width: none;
