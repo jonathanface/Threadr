@@ -126,10 +126,8 @@ export default function DocumentClickPlugin(props: DocumentClickPluginProps) {
                 if (!selectedText.length) return;
 
                 const containerRect = rootElement.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.getBoundingClientRect();
-                console.log("container", containerRect)
                 const xInContainer = containerRect ? event.clientX - containerRect.left : event.clientX;
                 const yInContainer = containerRect ? event.clientY - containerRect.top : event.clientY;
-                console.log("adj", xInContainer, yInContainer);
 
                 props.onRightClick({
                     x: xInContainer,
