@@ -22,7 +22,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { CustomParagraphNode } from './customNodes/CustomParagraphNode';
 import { BlockOrderMap } from '../../types/Document';
 import { useToaster } from '../../hooks/useToaster';
-import { AlertToastType } from '../../types/AlertToasts';
+import { AlertCommandType, AlertFunctionCall, AlertToastType } from '../../types/AlertToasts';
 import { AssociationDecoratorPlugin } from './plugins/AssociationDecoratorPlugin';
 import { ClickableDecoratorNode } from './customNodes/ClickableDecoratorNode';
 import { Association, AssociationType, SimplifiedAssociation } from '../../types/Associations';
@@ -143,12 +143,28 @@ export const ThreadWriter = () => {
       return await response.json();
     } catch (error: unknown) {
       console.error(error);
-      setAlertState({
-        title: "Error saving association",
-        message: "There was an error saving your association. Please try again later.",
-        severity: AlertToastType.error,
-        open: true
-      });
+      const apiError = error as Response;
+      if (apiError.status === 401) {
+        const subscribeFunc: AlertFunctionCall = {
+          type: AlertCommandType.subscribe,
+          text: "subscribe",
+        };
+        setAlertState({
+          title: "Insufficient subscription",
+          message: "Free accounts are limited to 5 associations per story.",
+          open: true,
+          severity: AlertToastType.warning,
+          timeout: null,
+          callback: subscribeFunc,
+        });
+      } else {
+        setAlertState({
+          title: "Error saving association",
+          message: "There was an error saving your association. Please try again later.",
+          severity: AlertToastType.error,
+          open: true
+        });
+      }
     } finally {
       hideLoader();
     }
@@ -706,10 +722,8 @@ export const ThreadWriter = () => {
                 if (isParentEmpty) {
                   parent.clear();
                 }
-                console.log('check tabs');
                 paragraphs.forEach((paragraphText, index) => {
                   if (index > 0 && !paragraphText.startsWith("\t")) {
-                    console.log("prepend tab")
                     paragraphText = `\t${paragraphText}`;
                   }
 

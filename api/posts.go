@@ -221,11 +221,12 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 
 func CreateAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
-		email   string
-		err     error
-		storyID string
-		dao     daos.DaoInterface
-		ok      bool
+		email        string
+		err          error
+		storyID      string
+		dao          daos.DaoInterface
+		ok           bool
+		isSubscriber bool
 	)
 	if email, err = getUserEmail(r); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -240,6 +241,37 @@ func CreateAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
+		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
+		return
+	}
+
+	if isSubscriber, ok = r.Context().Value(ctxkey.Subscriber).(bool); !ok {
+		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
+		return
+	}
+
+	if !isSubscriber {
+		existingAssoc, err := dao.GetStoryOrSeriesAssociationThumbnails(email, storyID)
+		if err != nil {
+			if opErr, ok := err.(*smithy.OperationError); ok {
+				awsResponse := processAWSError(opErr)
+				if awsResponse.Code == 0 {
+					RespondWithError(w, http.StatusInternalServerError, err.Error())
+					return
+				}
+				RespondWithError(w, awsResponse.Code, awsResponse.Message)
+				return
+			}
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		if len(existingAssoc) >= 5 {
+			RespondWithError(w, http.StatusUnauthorized, "insufficient subscription")
+			return
+		}
+	}
+
 	decoder := json.NewDecoder(r.Body)
 	associations := []*models.Association{}
 	if err = decoder.Decode(&associations); err != nil {
@@ -250,10 +282,6 @@ func CreateAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		if assoc.ID == "" {
 			associations[idx].ID = uuid.New().String()
 		}
-	}
-	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
-		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
-		return
 	}
 
 	var storyOrSeriesID string

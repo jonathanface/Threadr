@@ -380,7 +380,7 @@ func AllAssociationThumbnailsByStoryEndPoint(w http.ResponseWriter, r *http.Requ
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	associations, err := dao.GetStoryOrSeriesAssociationThumbnails(email, storyID, true)
+	associations, err := dao.GetStoryOrSeriesAssociationThumbnails(email, storyID)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)

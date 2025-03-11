@@ -18,7 +18,7 @@ type DaoInterface interface {
 	GetSeriesByID(email string, seriesID string) (*models.Series, error)
 	GetStoryCountByUser(email string) (int, error)
 	GetChapterParagraphs(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error)
-	GetStoryOrSeriesAssociationThumbnails(email, storyID string, needDetails bool) ([]*models.SimplifiedAssociation, error)
+	GetStoryOrSeriesAssociationThumbnails(email, storyID string) ([]*models.SimplifiedAssociation, error)
 	GetAssociationDetails(email, storyID, associationID string) (*models.Association, error)
 	GetSeriesVolumes(email string, seriesID string) ([]*models.Story, error)
 	GetUserDetails(email string) (*models.UserInfo, error)
