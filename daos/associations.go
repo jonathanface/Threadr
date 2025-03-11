@@ -312,7 +312,7 @@ func (d *DAO) GetAssociationDetails(email, storyID, associationID string) (*mode
 	return association, nil
 }
 
-func (d *DAO) GetStoryOrSeriesAssociationThumbnails(email, storyID string, needDetails bool) ([]*models.SimplifiedAssociation, error) {
+func (d *DAO) GetStoryOrSeriesAssociationThumbnails(email, storyID string) ([]*models.SimplifiedAssociation, error) {
 	var (
 		associations []*models.SimplifiedAssociation
 		err          error

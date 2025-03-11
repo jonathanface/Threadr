@@ -123,11 +123,16 @@ func accessControlMiddleware(next http.Handler) http.Handler {
 			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+		isSubscriber := false
+		if userDetails.SubscriptionID != "" && !userDetails.Expired {
+			isSubscriber = true
+		}
 
 		// 15 sec timeout
 		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(time.Second*5))
 		defer cancel()
 		ctx = context.WithValue(ctx, ctxkey.DAO, dao)
+		ctx = context.WithValue(ctx, ctxkey.Subscriber, isSubscriber)
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})

@@ -33,7 +33,7 @@ export const AssociationTooltip: React.FC<AssociationTooltipProps> = ({
               />
             </span>
             <span className={styles.column}>
-              {description || "Descriptive text goes here."}
+              {description || "Click on the association to add a description."}
             </span>
           </div>
         </div>
