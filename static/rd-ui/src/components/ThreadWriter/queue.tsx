@@ -127,14 +127,14 @@ const syncBlockOrderMap = async (blockList: BlockOrderMap, storyID: string, chap
 export const ProcessDBQueue = async () => {
     console.log(`executing DB queue, processing ${DbOperationQueue.length} items`);
     DbOperationQueue.sort((a, b) => a.time - b.time);
+    const opsToProcess = [...DbOperationQueue];
+    DbOperationQueue.length = 0;
     const retryArray: DBOperation[] = [];
     const i = 0;
-    while (i < DbOperationQueue.length) {
-        const op = DbOperationQueue[i];
+    for (const op of opsToProcess) {
         switch (op.type) {
             case DBOperationType.save: {
-                const currentOp = op;
-                const minifiedBlocks = filterAndReduceDBOperations(DbOperationQueue, op.type, i);
+                const minifiedBlocks = filterAndReduceDBOperations(opsToProcess, op.type, i);
                 console.log(`minimized queue to ${minifiedBlocks.length} items`)
                 try {
                     await saveBlocksToServer(minifiedBlocks, op.storyID, op.chapterID, op.tableStatus);
@@ -143,15 +143,14 @@ export const ProcessDBQueue = async () => {
                     const apiError = error as APIError;
                     if (apiError.retry) {
                         console.error("server response " + apiError.statusCode + ", retrying...");
-                        retryArray.push(currentOp);
+                        retryArray.push(op);
                         dbQueueRetryCount++;
                     }
                 }
                 break;
             }
             case DBOperationType.delete: {
-                const currentOp = op;
-                const minifiedBlocks = filterAndReduceDBOperations(DbOperationQueue, op.type, i);
+                const minifiedBlocks = filterAndReduceDBOperations(opsToProcess, op.type, i);
                 try {
                     await deleteBlocksFromServer(minifiedBlocks, op.storyID, op.chapterID, op.tableStatus);
                     dbQueueRetryCount = 0;
@@ -159,7 +158,7 @@ export const ProcessDBQueue = async () => {
                     const apiError = error as APIError;
                     if (apiError.retry) {
                         console.error("server response " + apiError.statusCode + ", retrying...");
-                        retryArray.push(currentOp);
+                        retryArray.push(op);
                         dbQueueRetryCount++;
                     }
                 }
@@ -178,8 +177,6 @@ export const ProcessDBQueue = async () => {
                         retryArray.push(DbOperationQueue[i]);
                         dbQueueRetryCount++;
                     }
-                } finally {
-                    DbOperationQueue.splice(i, 1);
                 }
             }
                 break;
