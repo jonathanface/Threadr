@@ -26,6 +26,10 @@
     align-items: center;
 }
 
+.detailsSlider .detailsDescription {
+    font-size: 0.7rem;
+}
+
 .detailsSlider .detailsTitle h4 {
     overflow: hidden;
     word-wrap: break-word;

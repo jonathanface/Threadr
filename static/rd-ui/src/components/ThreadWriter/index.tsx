@@ -663,6 +663,7 @@ export const ThreadWriter = () => {
         KEY_TAB_COMMAND,
         (event: KeyboardEvent) => {
           event.preventDefault();
+          event.stopPropagation();
           handleTabPress();
           return true;
         }, 1
@@ -907,7 +908,7 @@ export const ThreadWriter = () => {
         const selection = $getSelection();
         // If there's already a valid selection, do nothing.
         if ($isRangeSelection(selection)) {
-          //return;
+          return;
         }
 
         let clientX, clientY;
