@@ -4,7 +4,7 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
-import { $createRangeSelection, $createTextNode, $isRangeSelection, $isTextNode, $setSelection, KEY_TAB_COMMAND, LexicalEditor, LexicalNode, ParagraphNode, PASTE_COMMAND, SerializedEditorState, SerializedElementNode, SerializedLexicalNode } from 'lexical';
+import { $createRangeSelection, $createTextNode, $isRangeSelection, $isTextNode, $setSelection, COMMAND_PRIORITY_CRITICAL, KEY_ENTER_COMMAND, KEY_TAB_COMMAND, LexicalEditor, LexicalNode, ParagraphNode, PASTE_COMMAND, SerializedEditorState, SerializedElementNode, SerializedLexicalNode } from 'lexical';
 import {
   $getRoot,
   $getSelection,
@@ -171,7 +171,6 @@ export const ThreadWriter = () => {
     }
   };
 
-
   const handleMenuItemClick = async (_event: React.MouseEvent, type: AssociationType) => {
     setContextMenuData(defaultContextData);
     const text = getSelectedText();
@@ -275,6 +274,32 @@ export const ThreadWriter = () => {
       ],
     },
   ];
+
+  const handleEnterPress = () => {
+    editorRef.current?.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        // Get the top-level element (paragraph) that contains the current selection.
+        const currentParagraph = selection.anchor.getNode().getTopLevelElementOrThrow();
+
+        // Create a new CustomParagraphNode.
+        const newParagraph = new CustomParagraphNode(uuidv4());
+        // Insert the new paragraph immediately after the current paragraph.
+        currentParagraph.insertAfter(newParagraph);
+        let textNode = $createTextNode("");
+        if (documentSettings?.autotab) {
+          // Create a text node that starts with a tab.
+          textNode = $createTextNode("\t");
+        }
+        newParagraph.append(textNode);
+        // Set the selection to the new paragraph's text node after the tab.
+        const newSelection = $createRangeSelection();
+        newSelection.anchor.set(textNode.getKey(), 1, "text");
+        newSelection.focus.set(textNode.getKey(), 1, "text");
+        $setSelection(newSelection);
+      }
+    });
+  }
 
   const handleTabPress = () => {
     if (editorRef.current) {
@@ -654,7 +679,7 @@ export const ThreadWriter = () => {
         }
       });
     }
-  }, [queueParagraphForSave]);
+  }, [editorRef.current, queueParagraphForSave]);
 
   useEffect(() => {
     if (editorRef.current) {
@@ -673,21 +698,41 @@ export const ThreadWriter = () => {
       });
       isProgrammaticChange.current = false;
     }
-  }, []);
+  }, [editorRef.current]);
 
   useEffect(() => {
     if (editorRef.current) {
-      editorRef.current.registerCommand(
+      const removeTabPress = editorRef.current.registerCommand(
         KEY_TAB_COMMAND,
         (event: KeyboardEvent) => {
           event.preventDefault();
           event.stopPropagation();
           handleTabPress();
           return true;
-        }, 1
+        }, COMMAND_PRIORITY_CRITICAL
       );
+      return () => {
+        removeTabPress();
+      };
     }
-  }, []);
+  }, [editorRef.current]);
+
+  useEffect(() => {
+    if (editorRef.current) {
+      const removeEnterPress = editorRef.current.registerCommand(
+        KEY_ENTER_COMMAND,
+        (event: KeyboardEvent) => {
+          event.preventDefault();
+          event.stopPropagation();
+          handleEnterPress();
+          return true;
+        }, COMMAND_PRIORITY_CRITICAL
+      );
+      return () => {
+        removeEnterPress();
+      };
+    }
+  }, [editorRef.current]);
 
   useEffect(() => {
     const processInterval = setInterval(() => {
@@ -811,7 +856,7 @@ export const ThreadWriter = () => {
         removeListener();
       };
     }
-  }, [setAlertState]);
+  }, [setAlertState, editorRef.current]);
 
   const onChangeHandler = useCallback((editorState: EditorState) => {
     if (isProgrammaticChange.current) {
