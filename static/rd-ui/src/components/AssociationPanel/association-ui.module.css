@@ -2,6 +2,10 @@
   width: 500px;
 }
 
+.associationPanel .contentContainer {
+  width: 500px;
+}
+
 .associationPanel .associationHeader {
   padding: 20px;
 }

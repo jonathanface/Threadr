@@ -17,6 +17,7 @@ import { CharacterLimitPlugin } from "@lexical/react/LexicalCharacterLimitPlugin
 import { OverflowNode } from "@lexical/overflow";
 import { UCWords } from "../ThreadWriter/utilities";
 import CloseIcon from '@mui/icons-material/Close';
+import { TextTransformPlugin } from "../ThreadWriter/plugins/TextTransformPlugin";
 
 interface AssociationProps {
   onEditCallback: (association: Association) => void;
@@ -253,7 +254,8 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
       </Box>
       <Box
         role="presentation"
-        component="section">
+        component="section"
+        className={styles.contentContainer}>
         <div
           className="loading-screen"
           style={{ visibility: isAssociationLoaderVisible ? "visible" : "hidden" }}
@@ -306,6 +308,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
                   ErrorBoundary={LexicalErrorBoundary}
                 />
                 <HistoryPlugin />
+                <TextTransformPlugin />
                 <CharacterLimitPlugin charset="UTF-8" maxLength={200} renderer={(obj) => {
                   return <div className={styles.remainingChars}>Remaining characters: <span className={`${styles.value} ${obj.remainingCharacters < 0 ? styles.exceeded : ""}`}>{obj.remainingCharacters}</span></div>
                 }} />
@@ -341,6 +344,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
                   ErrorBoundary={LexicalErrorBoundary}
                 />
                 <HistoryPlugin />
+                <TextTransformPlugin />
                 <AssociationDecoratorPlugin isProgrammaticChange={isProgrammaticChange} customLeftClick={onAssociationClick} exclusionList={exclusionList.current} />
               </LexicalComposer>
             </div>

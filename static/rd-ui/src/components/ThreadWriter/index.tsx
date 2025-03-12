@@ -38,6 +38,7 @@ import { getParagraphIndexByKey, serializeWithChildren } from '../../utils/helpe
 import { ContextMenu, ContextMenuProps } from '../ContextMenu';
 import DocumentClickPlugin, { ClickData } from './plugins/DocumentClickPlugin';
 import { useDocumentSettings } from '../../hooks/useDocumentSettings';
+import { TextTransformPlugin } from './plugins/TextTransformPlugin';
 
 const theme = {
   'custom-paragraph': styles.customParagraph,
@@ -391,18 +392,35 @@ export const ThreadWriter = () => {
 
   const queueParagraphForSave = useCallback((customKey: string, order: string, content: SerializedElementNode<SerializedLexicalNode>) => {
     if (!story || !chapter) return;
-    const saveBlock: DBOperationBlock = { key_id: customKey, chunk: content, place: order };
-    const storyID = story.story_id;
-    const chapterID = chapter.id;
-    const op: DBOperation = {
-      type: DBOperationType.save,
-      storyID,
-      chapterID,
-      blocks: [saveBlock],
-      time: Date.now(),
-      tableStatus: previousTableStatus
-    };
-    DbOperationQueue.push(op);
+    // Check if there's an existing save operation for this paragraph
+    const existingOpIndex = DbOperationQueue.findIndex(op =>
+      op.type === DBOperationType.save &&
+      op.blocks.some(block => block.key_id === customKey)
+    );
+
+    if (existingOpIndex !== -1) {
+      // Update the existing operation
+      const existingOp = DbOperationQueue[existingOpIndex];
+      existingOp.blocks = existingOp.blocks.map(block =>
+        block.key_id === customKey ? { key_id: customKey, chunk: content, place: order } : block
+      );
+      // Optionally, update the timestamp so that the server knows this is a newer change
+      existingOp.time = Date.now();
+    } else {
+      // Otherwise, push a new operation
+      const saveBlock: DBOperationBlock = { key_id: customKey, chunk: content, place: order };
+      const storyID = story.story_id;
+      const chapterID = chapter.id;
+      const newOp: DBOperation = {
+        type: DBOperationType.save,
+        storyID,
+        chapterID,
+        blocks: [saveBlock],
+        time: Date.now(),
+        tableStatus: previousTableStatus
+      };
+      DbOperationQueue.push(newOp);
+    }
   }, [chapter, previousTableStatus, story]);
 
   const queueAllParagraphsForSave = useCallback((storyID: string, chapterID: string) => {
@@ -696,7 +714,8 @@ export const ThreadWriter = () => {
               .replace(/“/g, '"') // Left double quote
               .replace(/”/g, '"') // Right double quote
               .replace(/‘/g, "'") // Left single quote
-              .replace(/’/g, "'"); // Right single quote
+              .replace(/’/g, "'") // Right single quote
+              .replace(/--/g, "—"); // double-hyphen to em-dash
             const paragraphs = cleanedText.split("\n");
             if (paragraphs.length > 100) {
               const newAlert = {
@@ -1035,6 +1054,7 @@ export const ThreadWriter = () => {
             <AssociationDecoratorPlugin isProgrammaticChange={isProgrammaticChange} scrollToTop={true} customLeftClick={handleAssociationLeftClick} customRightClick={handleAssociationRightClick} />
             <OnChangePlugin onChange={onChangeHandler} />
             <HistoryPlugin />
+            <TextTransformPlugin />
             <DocumentClickPlugin onLeftClick={handleDocumentLeftClick} onRightClick={handleDocumentRightClick} />
             <AssociationPanel onEditCallback={onAssociationEditCallback} isAssociationPanelOpen={isAssociationPanelOpen} setIsAssociationPanelOpen={setIsAssociationPanelOpen} selectedAssociationID={selectedAssociation.current} />
             <ContextMenu name={contextMenuData.name} visible={contextMenuData.visible} x={contextMenuData.x} y={contextMenuData.y} items={contextMenuData.items} />
