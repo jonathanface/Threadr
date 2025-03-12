@@ -71,4 +71,5 @@ export enum TextFormatType {
 
 export interface DocumentSettings {
   spellcheck: boolean;
+  autotab: boolean;
 }

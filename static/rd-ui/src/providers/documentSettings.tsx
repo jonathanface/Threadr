@@ -4,7 +4,8 @@ import { DocumentSettings } from "../types/Document";
 import { DocumentSettingsContext } from "../contexts/documentSettings";
 
 const defaultSettings: DocumentSettings = {
-    spellcheck: true
+    spellcheck: true,
+    autotab: true
 }
 
 export const DocumentSettingsProvider: React.FC<{ storyID: string; children: React.ReactNode }> = ({ storyID, children }) => {

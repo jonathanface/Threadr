@@ -23,6 +23,14 @@ export const DocumentSettingsModal = ({ open, setOpen }: DocumentSettingsProps) 
         }
     };
 
+    const handleToggleAutotab = (event: ChangeEvent<HTMLInputElement>) => {
+        if (documentSettings) {
+            const newSettings = { ...documentSettings };
+            newSettings.autotab = event.target.checked;
+            saveDocumentSettings(newSettings);
+        }
+    };
+
     return (
         <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
             <DialogTitle>Document Settings</DialogTitle>
@@ -40,6 +48,20 @@ export const DocumentSettingsModal = ({ open, setOpen }: DocumentSettingsProps) 
                             />
                             <ListItemText
                                 primary="Spell Check"
+                                className={styles.label}
+                            />
+                        </ListItem>
+                        <ListItem key="spellcheck" className={styles.listItem}>
+                            <Checkbox
+                                edge="start"
+                                onChange={handleToggleAutotab}
+                                checked={documentSettings?.autotab}
+                                className={styles.checkbox}
+                                tabIndex={-1}
+                                disableRipple
+                            />
+                            <ListItemText
+                                primary="Auto-insert tab in new paragraphs"
                                 className={styles.label}
                             />
                         </ListItem>
