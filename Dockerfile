@@ -13,7 +13,7 @@ COPY ./static/rd-ui/tsconfig.node.json ./
 COPY ./static/rd-ui/vite.config.ts ./
 RUN npm run build
 
-FROM golang:1.23.0 AS backend-builder
+FROM golang:1.23.7 AS backend-builder
 # Install wkhtmltox dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
