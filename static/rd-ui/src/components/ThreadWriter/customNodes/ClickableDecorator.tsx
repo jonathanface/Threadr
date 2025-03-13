@@ -1,8 +1,8 @@
 import { AssociationTooltip } from "../../AssociationTooltip";
 import { ClickData } from "../plugins/DocumentClickPlugin";
 
-export const ClickableDecorator = ({ name, id, shortDescription, associationType, portrait, classModifier, leftClickCallback, rightClickCallback }: {
-    name: string, id: string, shortDescription: string, associationType: string, portrait: string, classModifier: string | undefined, leftClickCallback?: (value: ClickData) => void, rightClickCallback?: (value: ClickData) => void
+export const ClickableDecorator = ({ name, id, shortDescription, associationType, portrait, classModifier, format, leftClickCallback, rightClickCallback }: {
+    name: string, id: string, shortDescription: string, associationType: string, portrait: string, classModifier?: string, format: string, leftClickCallback?: (value: ClickData) => void, rightClickCallback?: (value: ClickData) => void
 }) => {
 
     const handleLeftClick = (event: React.MouseEvent) => {
@@ -28,7 +28,10 @@ export const ClickableDecorator = ({ name, id, shortDescription, associationType
         }
     }
 
-    const className = !classModifier ? "highlight " + associationType : "highlight " + associationType + "-" + classModifier;
+    const baseClass = !classModifier ? `highlight ${associationType}` : `highlight ${associationType}-${classModifier}`;
+    // If there's formatting info (like "bold italic"), append additional classes.
+    const formatClass = format ? format : "";
+    const combinedClass = `${baseClass} ${formatClass}`.trim();
     return (
         <span
             style={{ cursor: "pointer" }}
@@ -50,7 +53,7 @@ export const ClickableDecorator = ({ name, id, shortDescription, associationType
                         e.stopPropagation();
                         handleRightClick(e);
                     }}
-                    className={className}>
+                    className={combinedClass}>
                     {name}
                 </span>
             </AssociationTooltip>

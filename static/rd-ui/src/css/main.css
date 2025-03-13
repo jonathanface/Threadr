@@ -139,6 +139,22 @@ footer {
   color: blue;
 }
 
+.italic {
+  font-style: italic;
+}
+
+.bold {
+  font-weight: bold;
+}
+
+.strikethrough {
+  text-decoration: line-through;
+}
+
+.underscore {
+  text-decoration: underline;
+}
+
 .event {
   color: red;
 }

@@ -7,7 +7,8 @@ export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
     private name: string;
     private id: string;
     private shortDescription: string;
-    private classModifier?: string | undefined;
+    private classModifier?: string;
+    private format: string;
     private associationType: string;
     private portrait: string;
     private customLeftClick?: (value: ClickData) => void;
@@ -34,15 +35,16 @@ export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
     }
 
     static clone(node: ClickableDecoratorNode): ClickableDecoratorNode {
-        return new ClickableDecoratorNode(node.name, node.id, node.shortDescription, node.associationType, node.portrait, node.classModifier, node.customLeftClick, node.customRightClick, node.__key);
+        return new ClickableDecoratorNode(node.name, node.id, node.shortDescription, node.associationType, node.portrait, node.classModifier, node.format, node.customLeftClick, node.customRightClick, node.__key);
     }
 
-    constructor(text: string, id: string, description: string, associationType: string, portrait: string, classModifier?: string, customLeftClick?: (value: ClickData) => void, customRightClick?: (value: ClickData) => void, key?: NodeKey,) {
+    constructor(text: string, id: string, description: string, associationType: string, portrait: string, classModifier?: string, format: string = "", customLeftClick?: (value: ClickData) => void, customRightClick?: (value: ClickData) => void, key?: NodeKey,) {
         super(key);
         this.name = text;
         this.id = id;
         this.shortDescription = description ? description : "";
         this.classModifier = classModifier ? classModifier : "";
+        this.format = format;
         this.associationType = associationType;
         this.portrait = portrait ? portrait : "";
         this.customLeftClick = customLeftClick;
@@ -56,17 +58,19 @@ export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
         associationType: string;
         portrait: string;
         classModifier?: string;
+        format: string;
         type: string;
         version: number;
     }): ClickableDecoratorNode {
-        const { text, id, description, associationType, portrait, classModifier } = serializedNode;
+        const { text, id, description, associationType, portrait, classModifier, format } = serializedNode;
         return new ClickableDecoratorNode(
             text,
             id,
             description,
             associationType,
             portrait,
-            classModifier
+            classModifier,
+            format
         );
     }
 
@@ -79,6 +83,7 @@ export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
         associationType: string;
         portrait: string;
         classModifier?: string;
+        format: string;
     } {
         return {
             type: "clickable-decorator",
@@ -89,6 +94,7 @@ export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
             associationType: this.associationType,
             portrait: this.portrait,
             classModifier: this.classModifier,
+            format: this.format
         };
     }
 
@@ -114,6 +120,7 @@ export class ClickableDecoratorNode extends DecoratorNode<JSX.Element> {
             associationType={this.associationType}
             portrait={this.portrait}
             classModifier={this.classModifier}
+            format={this.format}
             leftClickCallback={this.customLeftClick}
             rightClickCallback={this.customRightClick}
         />

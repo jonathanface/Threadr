@@ -2,8 +2,14 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import {
+    $createRangeSelection,
     $getRoot,
+    $setSelection,
     ElementNode,
+    IS_BOLD,
+    IS_ITALIC,
+    IS_STRIKETHROUGH,
+    IS_UNDERLINE,
     LexicalNode,
     TextNode,
 } from "lexical";
@@ -14,6 +20,7 @@ import styles from "../threadwriter.module.css";
 import { generateTextHash } from "../../../constants/constants";
 import { ClickData } from "./DocumentClickPlugin";
 import { useAssociations } from "../../../hooks/useAssociations";
+import { TextFormatType } from "../../../types/Document";
 
 // Utility to escape RegExp special characters
 const escapeRegExp = (string: string) => {
@@ -100,7 +107,6 @@ export const AssociationDecoratorPlugin = ({
                 }
             };
             rootNode.getChildren().forEach(traverse);
-
             textNodes.forEach((textNode) => {
                 const textContent = textNode.getTextContent();
                 associations.forEach((association) => {
@@ -126,7 +132,25 @@ export const AssociationDecoratorPlugin = ({
 
                         while ((match = regex.exec(searchText)) !== null) {
                             const currentMatch = match;
-
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            const originalFormat: number = (textNode as any).getFormat ? (textNode as any).getFormat() : "";
+                            let formatting = "";
+                            if (originalFormat !== 0) {
+                                switch (originalFormat) {
+                                    case IS_ITALIC:
+                                        formatting = TextFormatType.italic;
+                                        break;
+                                    case IS_BOLD:
+                                        formatting = TextFormatType.bold;
+                                        break;
+                                    case IS_STRIKETHROUGH:
+                                        formatting = TextFormatType.strikethrough;
+                                        break;
+                                    case IS_UNDERLINE:
+                                        formatting = TextFormatType.underscore;
+                                        break;
+                                }
+                            }
                             const parent = textNode.getParent();
                             if (!(parent instanceof ElementNode)) return;
 
@@ -134,7 +158,7 @@ export const AssociationDecoratorPlugin = ({
                             const matchedText = textContent.slice(
                                 currentMatch.index,
                                 currentMatch.index + searchFor.length
-                            );
+                            ).trimEnd();
                             const afterMatch = textContent.slice(
                                 currentMatch.index + searchFor.length
                             );
@@ -151,16 +175,23 @@ export const AssociationDecoratorPlugin = ({
                                 association.association_type,
                                 association.portrait,
                                 undefined,
+                                formatting,
                                 customLeftClick,
                                 customRightClick
                             );
                             textNode.insertBefore(decoratorNode);
 
+                            const separator = new TextNode("");
+                            decoratorNode.insertAfter(separator);
+
                             if (afterMatch) {
                                 const afterNode = new TextNode(afterMatch);
                                 decoratorNode.insertAfter(afterNode);
+                                const newSelection = $createRangeSelection();
+                                newSelection.anchor.set(afterNode.getKey(), 0, "text");
+                                newSelection.focus.set(afterNode.getKey(), 0, "text");
+                                $setSelection(newSelection);
                             }
-
                             textNode.remove();
                             break; // Stop processing after the first match for this association
                         }
