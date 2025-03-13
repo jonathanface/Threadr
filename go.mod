@@ -1,6 +1,6 @@
 module RichDocter
 
-go 1.24.1
+go 1.24
 
 require (
 	github.com/SebastiaanKlippert/go-wkhtmltopdf v1.9.0
