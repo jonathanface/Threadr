@@ -33,7 +33,7 @@ func (d *DAO) GetOutlineByStoryID(storyID string) (*[]models.OutlineSection, err
 	// Check if no results were found
 	if len(result.Items) == 0 {
 		fmt.Println("No outline sections found for story_id:", storyID)
-		return nil, nil
+		return nil, fmt.Errorf("No outline sections found for story_id %s", storyID)
 	}
 
 	// Parse the response into OutlineSection models
