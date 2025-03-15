@@ -121,49 +121,6 @@ footer {
   flex-shrink: 0;
 }
 
-.highlight {
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.highlight:hover {
-  opacity: 0.8;
-}
-
-.character {
-  color: green;
-}
-
-
-.place {
-  color: blue;
-}
-
-.italic {
-  font-style: italic;
-}
-
-.bold {
-  font-weight: bold;
-}
-
-.strikethrough {
-  text-decoration: line-through;
-}
-
-.underscore {
-  text-decoration: underline;
-}
-
-.event {
-  color: red;
-}
-
-.item {
-  color: orange;
-}
-
-
 @media only screen and (max-width: 600px) {
   footer {
     padding-left: 0px;
@@ -173,6 +130,4 @@ footer {
   body {
     font-size: 16px;
   }
-
-
 }

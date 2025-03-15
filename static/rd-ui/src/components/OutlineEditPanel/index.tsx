@@ -3,7 +3,6 @@ import { Outline, OutlineSection } from "../../types/Outline";
 import { Box, Typography } from "@mui/material";
 import styles from './outlineeditpanel.module.css'
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
-import { ClickableDecoratorNode } from "../ThreadWriter/customNodes/ClickableDecoratorNode";
 import { $createParagraphNode, $createTextNode, $getRoot, EditorState, LexicalEditor } from "lexical";
 import { useEffect, useRef, useState } from "react";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
@@ -17,6 +16,7 @@ import { useLoader } from "../../hooks/useLoader";
 import { useToaster } from "../../hooks/useToaster";
 import { AlertToastType } from "../../types/AlertToasts";
 import { ChapterAssignmentPanel } from "../ChapterAssignmentPanel";
+import { AssociationInlineNode } from "../ThreadWriter/customNodes/AssociationInlineNode";
 
 interface OutlineEditProps {
     section: OutlineSection;
@@ -37,7 +37,7 @@ const outlineConfig = {
     namespace: 'OutlineEditor',
     theme,
     nodes: [
-        ClickableDecoratorNode
+        AssociationInlineNode
     ],
     onError: (error: Error) => {
         console.error('Editor error:', error);
