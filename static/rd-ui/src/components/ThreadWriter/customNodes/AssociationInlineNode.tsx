@@ -118,11 +118,11 @@ export class AssociationInlineNode extends TextNode {
         }
     }
 
-    canMergeWith(_other: LexicalNode): boolean {
+    canMergeWith(): boolean {
         return false;
     }
 
-    mergeWith(_other: LexicalNode): LexicalNode {
+    mergeWith(): LexicalNode {
         return this;
     }
 
@@ -147,7 +147,7 @@ export class AssociationInlineNode extends TextNode {
             const width = tooltip.getBoundingClientRect().width;
             const leftValue = event.clientX - width / 2;
             tooltip.style.left = leftValue.toString() + "px";
-            window.getComputedStyle(tooltip).opacity;
+            void window.getComputedStyle(tooltip).opacity;
             tooltip.classList.add(styles.show);
         });
         img.src = this.__portrait || "/img/default_association_portrait.jpg";
@@ -161,7 +161,7 @@ export class AssociationInlineNode extends TextNode {
 
     }
 
-    hideTooltip = (_event: MouseEvent) => {
+    hideTooltip = () => {
         if (tooltipElement) {
             tooltipElement.classList.remove(styles.show);
             setTimeout(() => {
@@ -238,6 +238,7 @@ export class AssociationInlineNode extends TextNode {
         return this.__decorator;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     updateDOM(prevNode: AssociationInlineNode, dom: HTMLElement, config: any): boolean {
         this.__decorator = dom;
         this.reactivate();
@@ -257,6 +258,7 @@ export class AssociationInlineNode extends TextNode {
         };
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     static importJSON(serializedNode: any): AssociationInlineNode {
         return $createAssociationInlineNode(
             serializedNode.text,
@@ -285,6 +287,7 @@ export function $createAssociationInlineNode(
     return new AssociationInlineNode(text, associationId, shortDescription, associationType, portrait, leftClickCallback, rightClickCallback, format);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function $isAssociationInlineNode(node: any): node is AssociationInlineNode {
     return node instanceof AssociationInlineNode;
 }

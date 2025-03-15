@@ -204,7 +204,7 @@ export const AssociationDecoratorPlugin = ({
                 });
             });
         },
-        [customLeftClick, customRightClick]
+        [customLeftClick, customRightClick, findObsoleteDecorators]
     );
 
     // Process associations when associations prop changes (e.g., initial load)
