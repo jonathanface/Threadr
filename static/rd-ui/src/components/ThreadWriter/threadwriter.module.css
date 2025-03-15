@@ -74,24 +74,7 @@
   outline: none !important;
 }
 
-/* Bold text */
-.bold {
-  font-weight: bold;
-}
 
-/* Italic text */
-.italic {
-  font-style: italic;
-}
-
-/* Underlined text */
-.underline {
-  text-decoration: underline;
-}
-
-.strikethrough {
-  text-decoration: line-through;
-}
 
 /* Links */
 a {
@@ -125,6 +108,24 @@ ol {
 
 li {
   margin-bottom: 4px;
+}
+
+.bold {
+  font-weight: bold;
+}
+
+/* Italic text */
+.italic {
+  font-style: italic;
+}
+
+/* Underlined text */
+.underline {
+  text-decoration: underline;
+}
+
+.strikethrough {
+  text-decoration: line-through;
 }
 
 @media only screen and (max-width: 600px) {

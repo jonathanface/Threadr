@@ -24,7 +24,6 @@ import { BlockOrderMap } from '../../types/Document';
 import { useToaster } from '../../hooks/useToaster';
 import { AlertCommandType, AlertFunctionCall, AlertToastType } from '../../types/AlertToasts';
 import { AssociationDecoratorPlugin } from './plugins/AssociationDecoratorPlugin';
-import { ClickableDecoratorNode } from './customNodes/ClickableDecoratorNode';
 import { Association, AssociationType, SimplifiedAssociation } from '../../types/Associations';
 import { AssociationPanel } from '../AssociationPanel';
 import { DocumentMenu } from '../DocumentMenu';
@@ -40,6 +39,7 @@ import DocumentClickPlugin, { ClickData } from './plugins/DocumentClickPlugin';
 import { useDocumentSettings } from '../../hooks/useDocumentSettings';
 import { TextTransformPlugin } from './plugins/TextTransformPlugin';
 import { useEditorCommands } from '../../hooks/useEditorCommands';
+import { AssociationInlineNode } from './customNodes/AssociationInlineNode';
 
 const theme = {
   'custom-paragraph': styles.customParagraph,
@@ -58,7 +58,7 @@ export const ThreadWriter = () => {
     theme,
     nodes: [
       CustomParagraphNode,
-      ClickableDecoratorNode
+      AssociationInlineNode
     ],
     onError: (error: Error) => {
       console.error('Lexical error:', error);

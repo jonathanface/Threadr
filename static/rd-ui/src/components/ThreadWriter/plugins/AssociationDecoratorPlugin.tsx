@@ -2,25 +2,21 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import {
+    $createPoint,
     $createRangeSelection,
     $getRoot,
     $setSelection,
     ElementNode,
-    IS_BOLD,
-    IS_ITALIC,
-    IS_STRIKETHROUGH,
-    IS_UNDERLINE,
     LexicalNode,
     TextNode,
 } from "lexical";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { ClickableDecoratorNode } from "../customNodes/ClickableDecoratorNode";
 import { SimplifiedAssociation } from "../../../types/Associations";
 import styles from "../threadwriter.module.css";
 import { generateTextHash } from "../../../constants/constants";
 import { ClickData } from "./DocumentClickPlugin";
 import { useAssociations } from "../../../hooks/useAssociations";
-import { TextFormatType } from "../../../types/Document";
+import { $createAssociationInlineNode, $isAssociationInlineNode, AssociationInlineNode } from "../customNodes/AssociationInlineNode";
 
 // Utility to escape RegExp special characters
 const escapeRegExp = (string: string) => {
@@ -56,41 +52,45 @@ export const AssociationDecoratorPlugin = ({
     }, []);
 
 
-    const cleanupObsoleteDecorators = useCallback((
+    const findObsoleteDecorators = useCallback((
         root: ElementNode,
         currentAssociations: SimplifiedAssociation[]
-    ): void => {
+    ): AssociationInlineNode[] => {
         // Create a map from association id to association data for quick lookup.
         const currentAssociationMap = new Map<string, SimplifiedAssociation>();
         currentAssociations.forEach(assoc => {
             currentAssociationMap.set(assoc.association_id, assoc);
         });
 
+        const obsoleteNodes: AssociationInlineNode[] = [];
+
         getAllDescendants(root).forEach((node) => {
-            if (node instanceof ClickableDecoratorNode) {
+            if (node instanceof AssociationInlineNode) {
                 const nodeAssocId = node.getAssociationId();
                 const currentAssoc = currentAssociationMap.get(nodeAssocId);
 
-                // If the association no longer exists, remove the decorator.
+                // If the association no longer exists, mark the node for cleanup
                 if (!currentAssoc) {
-                    const textContent = node.getTextContent();
-                    const replacement = new TextNode(textContent);
-                    node.replace(replacement);
+                    obsoleteNodes.push(node);
                 } else {
-                    // Check if any of the key properties have changed.
+                    const aliases = currentAssoc.aliases.split(",");
+                    // if (node.getName().indexOf('hou') > -1) {
+                    //     console.log("checking", node.getName(), currentAssoc.association_name, aliases);
+                    // }
+
                     if (
-                        node.getName() !== currentAssoc.association_name ||
+                        (node.getName().trim() !== currentAssoc.association_name && !aliases.map(alias => alias.trim()).includes(node.getName().trim())) ||
                         node.getShortDescription() !== currentAssoc.short_description ||
                         node.getPortrait() !== currentAssoc.portrait
                     ) {
-                        // The decorator's data is stale. Remove it so it can be re-created.
-                        const textContent = node.getTextContent();
-                        const replacement = new TextNode(textContent);
-                        node.replace(replacement);
+                        // Mark the node for cleanup if the data is stale
+                        obsoleteNodes.push(node);
                     }
                 }
             }
         });
+
+        return obsoleteNodes;
     }, [getAllDescendants]);
 
 
@@ -98,9 +98,17 @@ export const AssociationDecoratorPlugin = ({
     const processAssociations = useCallback(
         (associations: SimplifiedAssociation[], rootNode: ElementNode, exclusionList?: string[]): void => {
             if (!associations.length) return;
+
+            const obsoleteNodes = findObsoleteDecorators(rootNode, associations);
+            obsoleteNodes.forEach(node => {
+                const text = new TextNode(node.getName());
+                node.replace(text);
+            });
+
             const textNodes: TextNode[] = [];
             const traverse = (node: LexicalNode) => {
-                if (node instanceof TextNode) {
+                // Only collect TextNodes that are not inline association nodes.
+                if (node instanceof TextNode && !$isAssociationInlineNode(node)) {
                     textNodes.push(node);
                 } else if (node instanceof ElementNode) {
                     node.getChildren().forEach(traverse);
@@ -131,26 +139,14 @@ export const AssociationDecoratorPlugin = ({
                         let match: RegExpExecArray | null;
 
                         while ((match = regex.exec(searchText)) !== null) {
+                            // if ($isAssociationInlineNode(textNode)) {
+                            //     console.log("reactivate")
+                            //     textNode.reactivate();
+                            //     return;
+                            // }
                             const currentMatch = match;
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            const originalFormat: number = (textNode as any).getFormat ? (textNode as any).getFormat() : "";
-                            let formatting = "";
-                            if (originalFormat !== 0) {
-                                switch (originalFormat) {
-                                    case IS_ITALIC:
-                                        formatting = TextFormatType.italic;
-                                        break;
-                                    case IS_BOLD:
-                                        formatting = TextFormatType.bold;
-                                        break;
-                                    case IS_STRIKETHROUGH:
-                                        formatting = TextFormatType.strikethrough;
-                                        break;
-                                    case IS_UNDERLINE:
-                                        formatting = TextFormatType.underscore;
-                                        break;
-                                }
-                            }
+                            const format: number = (textNode as any).getFormat ? (textNode as any).getFormat() : "";
                             const parent = textNode.getParent();
                             if (!(parent instanceof ElementNode)) return;
 
@@ -158,7 +154,7 @@ export const AssociationDecoratorPlugin = ({
                             const matchedText = textContent.slice(
                                 currentMatch.index,
                                 currentMatch.index + searchFor.length
-                            ).trimEnd();
+                            )
                             const afterMatch = textContent.slice(
                                 currentMatch.index + searchFor.length
                             );
@@ -168,32 +164,41 @@ export const AssociationDecoratorPlugin = ({
                                 textNode.insertBefore(beforeNode);
                             }
 
-                            const decoratorNode = new ClickableDecoratorNode(
+                            const inlineNode = $createAssociationInlineNode(
                                 matchedText,
                                 association.association_id,
                                 association.short_description,
                                 association.association_type,
                                 association.portrait,
-                                undefined,
-                                formatting,
                                 customLeftClick,
-                                customRightClick
+                                customRightClick,
+                                format
                             );
-                            textNode.insertBefore(decoratorNode);
-
-                            const separator = new TextNode("");
-                            decoratorNode.insertAfter(separator);
+                            textNode.insertBefore(inlineNode);
 
                             if (afterMatch) {
                                 const afterNode = new TextNode(afterMatch);
-                                decoratorNode.insertAfter(afterNode);
-                                const newSelection = $createRangeSelection();
-                                newSelection.anchor.set(afterNode.getKey(), 0, "text");
-                                newSelection.focus.set(afterNode.getKey(), 0, "text");
-                                $setSelection(newSelection);
+                                inlineNode.insertAfter(afterNode);
+                            } else {
+                                const afterNode = new TextNode(' ');
+                                console.log("appending", afterNode.getKey())
+                                inlineNode.insertAfter(afterNode);
                             }
                             textNode.remove();
-                            break; // Stop processing after the first match for this association
+
+                            const nextNode: TextNode | null = inlineNode.getNextSibling();
+
+                            // const inlineTextLength = inlineNode.getTextContent().length;
+                            // inlineNode.splitText(inlineTextLength);
+
+                            if (nextNode) {
+                                const point = $createPoint(nextNode.getKey(), 1, 'text'); // Set point at the start of the next node
+                                const rangeSelection = $createRangeSelection();
+                                rangeSelection.anchor = point;
+                                rangeSelection.focus = point;
+                                $setSelection(rangeSelection);
+                                nextNode.setTextContent(nextNode.getTextContent().substring(0));
+                            }
                         }
                     }
                 });
@@ -220,7 +225,6 @@ export const AssociationDecoratorPlugin = ({
                 editor.update(() => {
                     //console.log("AssociationPlugin - Associations processed on associations prop change.", JSON.stringify(exclusionList), associations);
                     const root = $getRoot();
-                    cleanupObsoleteDecorators(root, associations);
                     processAssociations(associations, root, exclusionList);
                     //console.log("AssociationPlugin - Associations processed on associations prop change.");
                     if (scrollToTop) {
@@ -239,7 +243,7 @@ export const AssociationDecoratorPlugin = ({
                 console.error(`AssociationPlugin - Error processing associations on prop change: ${error}`);
             }
         }
-    }, [associations, editor, processAssociations, exclusionList, scrollToTop, previousHashRef, isProgrammaticChange, cleanupObsoleteDecorators]);
+    }, [associations, editor, processAssociations, exclusionList, scrollToTop, previousHashRef, isProgrammaticChange]);
 
     // Listener function for user-initiated editor updates
     const handleUserEditorUpdate = useCallback(() => {

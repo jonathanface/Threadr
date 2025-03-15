@@ -20,6 +20,7 @@ import { useSelections } from "../../hooks/useSelections";
 import { AlertToastType } from "../../types/AlertToasts";
 import { useToaster } from "../../hooks/useToaster";
 import { useMediaQuery } from "@mui/material";
+import { BlockAlignmentType, DocterTextFormatType } from "../../types/Document";
 
 export const Toolbar = () => {
     const [editor] = useLexicalComposerContext();
@@ -41,10 +42,10 @@ export const Toolbar = () => {
     };
 
     const alignmentMap = useMemo<Record<number, ElementFormatType>>(() => ({
-        1: "left",
-        2: "center",
-        3: "right",
-        4: "justify",
+        1: BlockAlignmentType.LEFT,
+        2: BlockAlignmentType.CENTER,
+        3: BlockAlignmentType.RIGHT,
+        4: BlockAlignmentType.JUSTIFY,
     }), []);
 
     useEffect(() => {
@@ -52,18 +53,18 @@ export const Toolbar = () => {
             editor.getEditorState().read(() => {
                 const selection = $getSelection();
                 if ($isRangeSelection(selection)) {
-                    setIsBold(selection.hasFormat("bold"));
-                    setIsItalic(selection.hasFormat("italic"));
-                    setIsUnderline(selection.hasFormat("underline"));
-                    setIsStrikethrough(selection.hasFormat("strikethrough"));
+                    setIsBold(selection.hasFormat(DocterTextFormatType.BOLD));
+                    setIsItalic(selection.hasFormat(DocterTextFormatType.ITALIC));
+                    setIsUnderline(selection.hasFormat(DocterTextFormatType.UNDERLINE));
+                    setIsStrikethrough(selection.hasFormat(DocterTextFormatType.STRIKETHROUGH));
                     const anchorNode = selection.anchor.getNode();
                     const parentNode = anchorNode.getType() === "custom-paragraph" ? anchorNode : anchorNode.getParent();
                     if (parentNode?.getType() === "custom-paragraph") {
                         const format = parentNode.getFormat(); // Use parentNode here
-                        const alignmentValue = alignmentMap[format] || "left";
+                        const alignmentValue = alignmentMap[format] || BlockAlignmentType.LEFT;
                         setAlignment(alignmentValue);
                     } else {
-                        setAlignment("left");
+                        setAlignment(BlockAlignmentType.LEFT);
                     }
                 }
             });
@@ -109,7 +110,7 @@ export const Toolbar = () => {
     };
 
     const isMobile = useMediaQuery("(max-width: 600px)");
-    const direction = isMobile ? 'left' : 'right';
+    const direction = isMobile ? BlockAlignmentType.LEFT : BlockAlignmentType.RIGHT;
 
     return (
         <div className={styles.toolbar}>
@@ -117,40 +118,40 @@ export const Toolbar = () => {
             <div className={styles.buttonContainer}>
                 <button
                     className={isBold ? styles.active : ""}
-                    onClick={() => toggleTextFormat("bold")}
+                    onClick={() => toggleTextFormat(DocterTextFormatType.BOLD)}
                 >
                     <b>B</b>
                 </button>
                 <button
                     className={isItalic ? styles.active : ""}
-                    onClick={() => toggleTextFormat("italic")}
+                    onClick={() => toggleTextFormat(DocterTextFormatType.ITALIC)}
                 >
                     <i>I</i>
                 </button>
                 <button
                     className={isUnderline ? styles.active : ""}
-                    onClick={() => toggleTextFormat("underline")}
+                    onClick={() => toggleTextFormat(DocterTextFormatType.UNDERLINE)}
                 >
                     <u>U</u>
                 </button>
                 <button
                     className={isStrikethrough ? styles.active : ""}
-                    onClick={() => toggleTextFormat("strikethrough")}
+                    onClick={() => toggleTextFormat(DocterTextFormatType.STRIKETHROUGH)}
                 >
                     <s>S</s>
                 </button>
 
                 {/* Alignment buttons */}
-                <IconButton className={alignment === 'left' ? styles.active : ""} aria-label="left" onClick={() => applyAlignment("left")}>
+                <IconButton className={alignment === BlockAlignmentType.LEFT ? styles.active : ""} aria-label={BlockAlignmentType.LEFT} onClick={() => applyAlignment(BlockAlignmentType.LEFT)}>
                     <FormatAlignLeftIcon fontSize="small" />
                 </IconButton>
-                <IconButton className={alignment === 'center' ? styles.active : ""} aria-label="center" onClick={() => applyAlignment("center")}>
+                <IconButton className={alignment === BlockAlignmentType.CENTER ? styles.active : ""} aria-label={BlockAlignmentType.CENTER} onClick={() => applyAlignment(BlockAlignmentType.CENTER)}>
                     <FormatAlignCenterIcon fontSize="small" />
                 </IconButton>
-                <IconButton className={alignment === 'right' ? styles.active : ""} aria-label="right" onClick={() => applyAlignment("right")}>
+                <IconButton className={alignment === BlockAlignmentType.RIGHT ? styles.active : ""} aria-label={BlockAlignmentType.RIGHT} onClick={() => applyAlignment(BlockAlignmentType.RIGHT)}>
                     <FormatAlignRightIcon fontSize="small" />
                 </IconButton>
-                <IconButton className={alignment === 'justify' ? styles.active : ""} aria-label="justify" onClick={() => applyAlignment("justify")}>
+                <IconButton className={alignment === BlockAlignmentType.JUSTIFY ? styles.active : ""} aria-label={BlockAlignmentType.JUSTIFY} onClick={() => applyAlignment(BlockAlignmentType.JUSTIFY)}>
                     <FormatAlignJustifyIcon fontSize="small" />
                 </IconButton>
             </div>

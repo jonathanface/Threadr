@@ -1,31 +1,10 @@
-import { $createRangeSelection, $createTextNode, $getRoot, $getSelection, $isElementNode, $isRangeSelection, $isTextNode, $setSelection, COMMAND_PRIORITY_CRITICAL, ElementNode, KEY_BACKSPACE_COMMAND, KEY_ENTER_COMMAND, KEY_TAB_COMMAND, LexicalEditor, LexicalNode, ParagraphNode, PASTE_COMMAND } from "lexical";
-import { ClickableDecoratorNode } from "../components/ThreadWriter/customNodes/ClickableDecoratorNode";
+import { $createRangeSelection, $createTextNode, $getRoot, $getSelection, $isElementNode, $isRangeSelection, $isTextNode, $setSelection, COMMAND_PRIORITY_CRITICAL, KEY_ENTER_COMMAND, KEY_TAB_COMMAND, LexicalEditor, ParagraphNode, PASTE_COMMAND } from "lexical";
 import { useCallback, useEffect } from "react";
 import { CustomParagraphNode } from "../components/ThreadWriter/customNodes/CustomParagraphNode";
 import { useDocumentSettings } from "./useDocumentSettings";
 import { v4 as uuidv4 } from 'uuid';
 import { AlertToastType } from "../types/AlertToasts";
 import { useToaster } from "./useToaster";
-
-function getChildAndOffsetRange(
-    paragraph: ElementNode,
-    absoluteOffset: number
-): { child: LexicalNode | null; childStart: number; childEnd: number; relativeOffset: number } {
-    let currentOffset = 0;
-    const children = paragraph.getChildren();
-    for (const child of children) {
-        // If the child is a decorator, treat its atomic length as 1,
-        // but its visible length will be determined later.
-        const atomicLength = child instanceof ClickableDecoratorNode ? 1 : child.getTextContent().length;
-        const childStart = currentOffset;
-        const childEnd = currentOffset + atomicLength;
-        if (absoluteOffset >= childStart && absoluteOffset < childEnd) {
-            return { child, childStart, childEnd, relativeOffset: absoluteOffset - childStart };
-        }
-        currentOffset += atomicLength;
-    }
-    return { child: null, childStart: currentOffset, childEnd: currentOffset, relativeOffset: 0 };
-}
 
 
 export const useEditorCommands = (editorRef: React.RefObject<LexicalEditor | null>, pastedParagraphKeys: React.RefObject<Set<string>>) => {
@@ -117,86 +96,6 @@ export const useEditorCommands = (editorRef: React.RefObject<LexicalEditor | nul
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editorRef.current]);
-
-    useEffect(() => {
-        if (editorRef.current) {
-            const unregister = editorRef.current.registerCommand(
-                KEY_BACKSPACE_COMMAND,
-                (event: KeyboardEvent) => {
-                    const selection = $getSelection();
-                    if (!$isRangeSelection(selection)) return false;
-
-                    // Log current selection info
-                    const originalNode = selection.anchor.getNode();
-                    //console.log("Original selection node key:", originalNode.getKey(), originalNode.getType(), "offset:", selection.anchor.offset);
-
-                    // If the selection is in a plain text node at offset 0,
-                    // check if the previous sibling is a decorator.
-                    let targetNode: LexicalNode = originalNode;
-                    if ($isTextNode(originalNode) && selection.anchor.offset === 0) {
-                        const parent = originalNode.getParent();
-                        if (parent instanceof ElementNode) {
-                            const siblings = parent.getChildren();
-                            const index = siblings.findIndex((node) => node.getKey() === originalNode.getKey());
-                            if (index > 0) {
-                                const prevSibling = siblings[index - 1];
-                                if (prevSibling instanceof ClickableDecoratorNode) {
-                                    targetNode = prevSibling;
-                                    // Snap selection to the end of the decorator.
-                                    const newOffset = targetNode.getTextContent().length;
-                                    selection.anchor.set(targetNode.getKey(), newOffset, "text");
-                                    selection.focus.set(targetNode.getKey(), newOffset, "text");
-                                    $setSelection(selection);
-                                    console.log("Snapped selection to decorator", targetNode.getKey());
-                                }
-                            }
-                        }
-                    }
-
-                    // Now we assume that if targetNode is a decorator, it’s the one to edit.
-                    // Instead of calling $getSelection() again, we use our targetNode.
-                    let effectiveDecorator: ClickableDecoratorNode | null = null;
-                    if (targetNode instanceof ClickableDecoratorNode) {
-                        effectiveDecorator = targetNode;
-                    } else {
-                        // If not, try to determine if the atomic offset falls within a decorator.
-                        const paragraph = originalNode.getTopLevelElementOrThrow() as ElementNode;
-                        const atomicOffset = selection.anchor.offset;
-                        const { child } = getChildAndOffsetRange(paragraph, atomicOffset);
-                        if (child && child instanceof ClickableDecoratorNode) {
-                            effectiveDecorator = child;
-                        }
-                    }
-
-                    if (effectiveDecorator) {
-                        // Use the decorator's full visible length as the effective offset.
-                        const textContent = effectiveDecorator.getTextContent();
-                        const effectiveOffset = textContent.length; // assume caret is at the end
-                        if (effectiveOffset > 0) {
-                            // Remove one character immediately before the effective offset.
-                            const newText = textContent.slice(0, effectiveOffset - 1) + textContent.slice(effectiveOffset);
-                            const plainTextNode = $createTextNode(newText);
-                            effectiveDecorator.replace(plainTextNode);
-                            // Set selection at the new offset.
-                            const newOffset = effectiveOffset - 1;
-                            selection.anchor.set(plainTextNode.getKey(), newOffset, "text");
-                            selection.focus.set(plainTextNode.getKey(), newOffset, "text");
-                            $setSelection(selection);
-                            event.preventDefault();
-                            return true;
-                        }
-                    }
-                    return false;
-                },
-                COMMAND_PRIORITY_CRITICAL
-            );
-            return () => unregister();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [editorRef.current]);
-
-
-
 
     useEffect(() => {
         if (editorRef.current) {

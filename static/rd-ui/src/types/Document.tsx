@@ -55,19 +55,25 @@ export interface EntityData {
 }
 
 export enum BlockAlignmentType {
-  left = "left",
-  right = "right",
-  center = "center",
-  justify = "justify",
+  LEFT = "left",
+  RIGHT = "right",
+  CENTER = "center",
+  JUSTIFY = "justify",
 }
 
-export enum TextFormatType {
-  bold = "bold",
-  italic = "italic",
-  underscore = "underscore",
-  strikethrough = "strikethrough",
+export enum DocterTextFormatType {
+  BOLD = "bold",
+  ITALIC = "italic",
+  UNDERLINE = "underline",
+  STRIKETHROUGH = "strikethrough",
+  HIGHLIGHT = "highlight",
+  CODE = "code",
+  SUBSCRIPT = "subscript",
+  SUPERSCRIPT = "superscript",
+  LOWERCASE = "lowercase",
+  UPPERCASE = "uppercase",
+  CAPITALIZE = "capitalize"
 }
-
 
 export interface DocumentSettings {
   spellcheck: boolean;

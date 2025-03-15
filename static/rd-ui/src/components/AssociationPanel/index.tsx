@@ -1,6 +1,5 @@
 import { Box, CircularProgress, Drawer, FormControlLabel, IconButton, Switch, TextField } from "@mui/material";
 import { Association } from "../../types/Associations";
-import { ClickableDecoratorNode } from "../ThreadWriter/customNodes/ClickableDecoratorNode";
 import styles from './association-ui.module.css'
 import { PortraitDropper } from "../PortraitDropper";
 import { useEffect, useRef, useState } from "react";
@@ -18,6 +17,7 @@ import { OverflowNode } from "@lexical/overflow";
 import { UCWords } from "../ThreadWriter/utilities";
 import CloseIcon from '@mui/icons-material/Close';
 import { TextTransformPlugin } from "../ThreadWriter/plugins/TextTransformPlugin";
+import { AssociationInlineNode } from "../ThreadWriter/customNodes/AssociationInlineNode";
 
 interface AssociationProps {
   onEditCallback: (association: Association) => void;
@@ -38,7 +38,7 @@ const descriptionConfig = {
   namespace: 'DescriptionEditor',
   theme,
   nodes: [
-    ClickableDecoratorNode,
+    AssociationInlineNode,
     OverflowNode
   ],
   onError: (error: Error) => {
@@ -49,7 +49,7 @@ const bgConfig = {
   namespace: 'BackgroundEditor',
   theme,
   nodes: [
-    ClickableDecoratorNode
+    AssociationInlineNode
   ],
   onError: (error: Error) => {
     console.error('BG error:', error);

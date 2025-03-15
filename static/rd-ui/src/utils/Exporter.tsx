@@ -1,5 +1,5 @@
 
-import { ClickableDecoratorNode } from "../components/ThreadWriter/customNodes/ClickableDecoratorNode";
+import { AssociationInlineNode } from "../components/ThreadWriter/customNodes/AssociationInlineNode";
 import { CustomParagraphNode, CustomSerializedParagraphNode } from "../components/ThreadWriter/customNodes/CustomParagraphNode";
 import { Story } from "../types/Story";
 import { $getRoot, createEditor, SerializedEditorState, SerializedLexicalNode } from "lexical";
@@ -34,7 +34,7 @@ export default class Exporter {
   lexicalToHtml = async (): Promise<returnHTML[]> => {
     const editor = createEditor({
       namespace: "ExportEditor",
-      nodes: [CustomParagraphNode, ClickableDecoratorNode], // Register custom nodes
+      nodes: [CustomParagraphNode, AssociationInlineNode], // Register custom nodes
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const storyData: any = await this.getFullStory(this.story.story_id);
