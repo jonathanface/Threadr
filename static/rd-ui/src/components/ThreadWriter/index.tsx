@@ -611,7 +611,7 @@ export const ThreadWriter = () => {
         }
       });
     }
-  }, [editorRef, queueParagraphForSave]);
+  }, [editorRef, queueParagraphForSave, documentSettings?.autotab]);
 
   useEffect(() => {
     if (editorRef.current) {
