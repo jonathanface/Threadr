@@ -4,7 +4,7 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
-import { $createRangeSelection, $isRangeSelection, $isTextNode, $setSelection, LexicalEditor, LexicalNode, ParagraphNode, SerializedEditorState, SerializedElementNode, SerializedLexicalNode } from 'lexical';
+import { $createPoint, $createRangeSelection, $createTextNode, $isRangeSelection, $isTextNode, $setSelection, LexicalEditor, LexicalNode, ParagraphNode, SerializedEditorState, SerializedElementNode, SerializedLexicalNode } from 'lexical';
 import {
   $getRoot,
   $getSelection,
@@ -511,7 +511,6 @@ export const ThreadWriter = () => {
             }
           }
         }
-        console.log("offset", charOffset)
         // **Step 3: Set cursor exactly where the user tapped**
         if (closestTextNode && $isTextNode(closestTextNode)) {
           const newSelection = $createRangeSelection();
@@ -577,6 +576,20 @@ export const ThreadWriter = () => {
         if (!(node instanceof CustomParagraphNode) || !node.getKeyId()) {
           const replacement = new CustomParagraphNode(uuidv4());
           replacement.append(...node.getChildren());
+          if (documentSettings?.autotab) {
+            const tabTextNode = $createTextNode("\t");
+            const firstChild = replacement.getFirstChild();
+            if (firstChild) {
+              firstChild.insertBefore(tabTextNode);
+            } else {
+              replacement.append(tabTextNode);
+            }
+            const point = $createPoint(tabTextNode.getKey(), 1, "text");
+            const rangeSelection = $createRangeSelection();
+            rangeSelection.anchor = point;
+            rangeSelection.focus = point;
+            $setSelection(rangeSelection);
+          }
           node.replace(replacement);
         }
       });
@@ -598,7 +611,7 @@ export const ThreadWriter = () => {
         }
       });
     }
-  }, [editorRef, queueParagraphForSave]);
+  }, [editorRef, queueParagraphForSave, documentSettings?.autotab]);
 
   useEffect(() => {
     if (editorRef.current) {
