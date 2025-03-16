@@ -1,4 +1,4 @@
-import { $createRangeSelection, $createTextNode, $getRoot, $getSelection, $isElementNode, $isRangeSelection, $isTextNode, $setSelection, COMMAND_PRIORITY_CRITICAL, KEY_ENTER_COMMAND, KEY_TAB_COMMAND, LexicalEditor, ParagraphNode, PASTE_COMMAND } from "lexical";
+import { $createTextNode, $getRoot, $getSelection, $isElementNode, $isRangeSelection, $isTextNode, COMMAND_PRIORITY_CRITICAL, KEY_TAB_COMMAND, LexicalEditor, ParagraphNode, PASTE_COMMAND } from "lexical";
 import { useCallback, useEffect } from "react";
 import { CustomParagraphNode } from "../components/ThreadWriter/customNodes/CustomParagraphNode";
 import { useDocumentSettings } from "./useDocumentSettings";
@@ -11,33 +11,6 @@ export const useEditorCommands = (editorRef: React.RefObject<LexicalEditor | nul
 
     const { documentSettings } = useDocumentSettings();
     const { setAlertState } = useToaster();
-
-    const handleEnterPress = useCallback(() => {
-        editorRef.current?.update(() => {
-            const selection = $getSelection();
-            if ($isRangeSelection(selection)) {
-                // Get the top-level element (paragraph) that contains the current selection.
-                const currentParagraph = selection.anchor.getNode().getTopLevelElementOrThrow();
-
-                // Create a new CustomParagraphNode.
-                const newParagraph = new CustomParagraphNode(uuidv4());
-                // Insert the new paragraph immediately after the current paragraph.
-                currentParagraph.insertAfter(newParagraph);
-                let textNode = $createTextNode("");
-                if (documentSettings?.autotab) {
-                    // Create a text node that starts with a tab.
-                    textNode = $createTextNode("\t");
-                }
-                newParagraph.append(textNode);
-                // Set the selection to the new paragraph's text node after the tab.
-                const newSelection = $createRangeSelection();
-                newSelection.anchor.set(textNode.getKey(), 1, "text");
-                newSelection.focus.set(textNode.getKey(), 1, "text");
-                $setSelection(newSelection);
-            }
-        });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [documentSettings?.autotab, editorRef.current]);
 
     const handleTabPress = useCallback(() => {
         if (editorRef.current) {
@@ -114,24 +87,6 @@ export const useEditorCommands = (editorRef: React.RefObject<LexicalEditor | nul
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editorRef.current, handleTabPress]);
-
-    useEffect(() => {
-        if (editorRef.current) {
-            const removeEnterPress = editorRef.current.registerCommand(
-                KEY_ENTER_COMMAND,
-                (event: KeyboardEvent) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    handleEnterPress();
-                    return true;
-                }, COMMAND_PRIORITY_CRITICAL
-            );
-            return () => {
-                removeEnterPress();
-            };
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [editorRef.current, handleEnterPress]);
 
     useEffect(() => {
         if (editorRef.current) {

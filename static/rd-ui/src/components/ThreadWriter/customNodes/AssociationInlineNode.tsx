@@ -4,6 +4,7 @@ import styles from './associationinlinenode.module.css';
 import { ClickData } from "../plugins/DocumentClickPlugin";
 
 let tooltipElement: null | HTMLDivElement = null;
+let tooltipRemovalTimer: ReturnType<typeof setTimeout> | null = null;
 
 const formatMap: { [key: number]: string } = {
     [IS_ITALIC]: 'italic',
@@ -126,8 +127,17 @@ export class AssociationInlineNode extends TextNode {
         return this;
     }
 
+    showTooltipLoader = () => {
+
+    }
+
     showTooltip = (event: MouseEvent) => {
         if (tooltipElement !== null) return;
+        if (tooltipRemovalTimer) {
+            clearTimeout(tooltipRemovalTimer);
+            tooltipRemovalTimer = null;
+        }
+        if (tooltipElement !== null) return; // Already showing
         document.querySelectorAll('#association-tooltip').forEach(el => el.remove());
         tooltipElement = document.createElement('div');
         tooltipElement.id = 'association-tooltip';
@@ -147,8 +157,7 @@ export class AssociationInlineNode extends TextNode {
             const width = tooltip.getBoundingClientRect().width;
             const leftValue = event.clientX - width / 2;
             tooltip.style.left = leftValue.toString() + "px";
-            void window.getComputedStyle(tooltip).opacity;
-            tooltip.classList.add(styles.show);
+
         });
         img.src = this.__portrait || "/img/default_association_portrait.jpg";
         column1.append(img);
@@ -158,60 +167,62 @@ export class AssociationInlineNode extends TextNode {
         column2.textContent = this.__shortDescription || "Click on the association to add a description.";
         row.append(column2);
         tooltip.append(row);
+        void window.getComputedStyle(tooltip).opacity;
+        tooltip.classList.add(styles.show);
 
     }
 
-    hideTooltip = () => {
-        if (tooltipElement) {
-            tooltipElement.classList.remove(styles.show);
-            setTimeout(() => {
-                if (tooltipElement && tooltipElement.parentNode) {
-                    tooltipElement.parentNode.removeChild(tooltipElement);
-                }
-                tooltipElement = null;
-                document.querySelectorAll('#association-tooltip').forEach(el => el.remove());
-            }, 200);
-        }
-    }
+    // hideTooltip = () => {
+    //     if (tooltipElement) {
+    //         tooltipElement.classList.remove(styles.show);
+    //         setTimeout(() => {
+    //             if (tooltipElement && tooltipElement.parentNode) {
+    //                 tooltipElement.parentNode.removeChild(tooltipElement);
+    //             }
+    //             tooltipElement = null;
+    //             document.querySelectorAll('#association-tooltip').forEach(el => el.remove());
+    //         }, 200);
+    //     }
+    // }
 
-    reactivate() {
-        if (!this.__decorator) return;
-        this.__decorator.classList.add(styles.associationInline);
-        this.__decorator.classList.add(styles[this.__associationType]);
-        if (this.__format !== 0) {
-            this.__decorator.classList.add(styles[formatMap[this.__format]]);
-        }
-        if (this.__rightClickCallback) {
-            this.__decorator.addEventListener("contextmenu", this.__handleRightClick.bind(this));
-        }
-        if (this.__leftClickCallback) {
-            this.__decorator.addEventListener("click", this.__handleLeftClick.bind(this));
-        }
-        this.__decorator.addEventListener('mouseenter', this.showTooltip);
-        this.__decorator.addEventListener('mouseleave', this.hideTooltip);
+    // reactivate() {
+    //     if (!this.__decorator) return;
+    //     this.__decorator.classList.add(styles.associationInline);
+    //     this.__decorator.classList.add(styles[this.__associationType]);
+    //     if (this.__format !== 0) {
+    //         this.__decorator.classList.add(styles[formatMap[this.__format]]);
+    //     }
+    //     if (this.__rightClickCallback) {
+    //         this.__decorator.addEventListener("contextmenu", this.__handleRightClick.bind(this));
+    //     }
+    //     if (this.__leftClickCallback) {
+    //         this.__decorator.addEventListener("click", this.__handleLeftClick.bind(this));
+    //     }
+    //     this.__decorator.addEventListener('mouseenter', this.showTooltip);
+    //     this.__decorator.addEventListener('mouseleave', this.hideTooltip);
 
-        this.__decorator.style.pointerEvents = "auto";
-        this.__decorator.removeAttribute("tabindex");
-    }
+    //     this.__decorator.style.pointerEvents = "auto";
+    //     this.__decorator.removeAttribute("tabindex");
+    // }
 
-    deactivate() {
-        console.log("deactivate", this.__decorator);
-        if (!this.__decorator) return;
-        this.__decorator.classList.remove(styles.associationInline);
-        this.__decorator.classList.remove(styles[this.__associationType]);
-        //decoratorElement.removeAttribute("data-association-id");
-        if (this.__rightClickCallback) {
-            this.__decorator.removeEventListener("contextmenu", this.__handleRightClick.bind(this));
-        }
-        if (this.__leftClickCallback) {
-            this.__decorator.removeEventListener("click", this.__handleLeftClick.bind(this));
-        }
-        this.__decorator.removeEventListener('mouseenter', this.showTooltip);
-        this.__decorator.removeEventListener('mouseleave', this.hideTooltip);
+    // deactivate() {
+    //     console.log("deactivate", this.__decorator);
+    //     if (!this.__decorator) return;
+    //     this.__decorator.classList.remove(styles.associationInline);
+    //     this.__decorator.classList.remove(styles[this.__associationType]);
+    //     //decoratorElement.removeAttribute("data-association-id");
+    //     if (this.__rightClickCallback) {
+    //         this.__decorator.removeEventListener("contextmenu", this.__handleRightClick.bind(this));
+    //     }
+    //     if (this.__leftClickCallback) {
+    //         this.__decorator.removeEventListener("click", this.__handleLeftClick.bind(this));
+    //     }
+    //     this.__decorator.removeEventListener('mouseenter', this.showTooltip);
+    //     this.__decorator.removeEventListener('mouseleave', this.hideTooltip);
 
-        this.__decorator.style.pointerEvents = "none";
-        this.__decorator.setAttribute("tabindex", "-1");
-    }
+    //     this.__decorator.style.pointerEvents = "none";
+    //     this.__decorator.setAttribute("tabindex", "-1");
+    // }
 
     // Override createDOM to add your custom classes and data attributes.
     createDOM(): HTMLElement {
@@ -232,8 +243,15 @@ export class AssociationInlineNode extends TextNode {
             this.__decorator.addEventListener("click", this.__handleLeftClick.bind(this));
         }
 
-        this.__decorator.addEventListener('mouseenter', this.showTooltip);
-        this.__decorator.addEventListener('mouseleave', this.hideTooltip);
+        this.__decorator.addEventListener('mouseenter', (event: MouseEvent) => {
+            this.showTooltip(event)
+        });
+        this.__decorator.addEventListener('mouseleave', () => {
+            if (tooltipElement) {
+                tooltipElement.remove();
+                tooltipElement = null;
+            }
+        });
 
         return this.__decorator;
     }
@@ -241,7 +259,7 @@ export class AssociationInlineNode extends TextNode {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     updateDOM(prevNode: AssociationInlineNode, dom: HTMLElement, config: any): boolean {
         this.__decorator = dom;
-        this.reactivate();
+        //this.reactivate();
         return super.updateDOM(prevNode as this, dom, config);
     }
 
