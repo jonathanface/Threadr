@@ -6,6 +6,7 @@ import (
 	"RichDocter/daos"
 	"RichDocter/models"
 	"RichDocter/sessions"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -96,7 +97,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	fullDetails, err = dao.GetUserDetails(info.Email)
 	if err != nil {
 		// hacky
-		if err.Error() == "no user found" {
+		if err == sql.ErrNoRows {
 			err = dao.CreateUser(info.Email)
 			if err != nil {
 				api.RespondWithError(w, http.StatusInternalServerError, err.Error())

@@ -1,6 +1,5 @@
 import { Box, CircularProgress, Drawer, FormControlLabel, IconButton, Switch, TextField } from "@mui/material";
 import { Association, SimplifiedAssociation } from "../../../types/Associations";
-import { ClickableDecoratorNode } from "../ThreadWriterDemo/customNodes/ClickableDecoratorNode";
 import styles from './association-ui.module.css'
 import { PortraitDropper } from "../../PortraitDropper";
 import { useEffect, useRef, useState } from "react";
@@ -8,7 +7,7 @@ import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
-import { AssociationDecoratorPluginDemo } from "../ThreadWriterDemo/plugins/AssociationDecoratorPluginDemo";
+import { AssociationDecoratorPlugin } from "../ThreadWriterDemo/plugins/AssociationDecoratorPlugin";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
 import { $createParagraphNode, $createTextNode, $getRoot, EditorState, LexicalEditor } from "lexical";
 import { ClickData } from "../ThreadWriterDemo/plugins/DocumentClickPlugin";
@@ -16,6 +15,7 @@ import { CharacterLimitPlugin } from "@lexical/react/LexicalCharacterLimitPlugin
 import { OverflowNode } from "@lexical/overflow";
 import { UCWords } from "../ThreadWriterDemo/utilities";
 import CloseIcon from '@mui/icons-material/Close';
+import { AssociationInlineNode } from "../ThreadWriterDemo/customNodes/AssociationInlineNode";
 
 interface AssociationProps {
   onEditCallback: (association: Association) => void;
@@ -37,7 +37,7 @@ const descriptionConfig = {
   namespace: 'DescriptionEditor',
   theme,
   nodes: [
-    ClickableDecoratorNode,
+    AssociationInlineNode,
     OverflowNode
   ],
   onError: (error: Error) => {
@@ -48,7 +48,7 @@ const bgConfig = {
   namespace: 'BackgroundEditor',
   theme,
   nodes: [
-    ClickableDecoratorNode
+    AssociationInlineNode
   ],
   onError: (error: Error) => {
     console.error('BG error:', error);
@@ -304,7 +304,7 @@ export const AssociationPanelDemo: React.FC<AssociationProps> = (props) => {
                 <CharacterLimitPlugin charset="UTF-8" maxLength={200} renderer={(obj) => {
                   return <div className={styles.remainingChars}>Remaining characters: <span className={`${styles.value} ${obj.remainingCharacters < 0 ? styles.exceeded : ""}`}>{obj.remainingCharacters}</span></div>
                 }} />
-                <AssociationDecoratorPluginDemo associations={props.associations} isProgrammaticChange={isProgrammaticChange} customLeftClick={onAssociationClick} exclusionList={exclusionList.current} />
+                <AssociationDecoratorPlugin associations={props.associations} isProgrammaticChange={isProgrammaticChange} customLeftClick={onAssociationClick} exclusionList={exclusionList.current} />
               </LexicalComposer>
             </div>
           </div>
@@ -336,7 +336,7 @@ export const AssociationPanelDemo: React.FC<AssociationProps> = (props) => {
                   ErrorBoundary={LexicalErrorBoundary}
                 />
                 <HistoryPlugin />
-                <AssociationDecoratorPluginDemo associations={props.associations} isProgrammaticChange={isProgrammaticChange} customLeftClick={onAssociationClick} exclusionList={exclusionList.current} />
+                <AssociationDecoratorPlugin associations={props.associations} isProgrammaticChange={isProgrammaticChange} customLeftClick={onAssociationClick} exclusionList={exclusionList.current} />
               </LexicalComposer>
             </div>
           </div>

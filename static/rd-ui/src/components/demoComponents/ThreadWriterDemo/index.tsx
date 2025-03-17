@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
-import { $createRangeSelection, $createTextNode, $isRangeSelection, $isTextNode, $setSelection, KEY_TAB_COMMAND, LexicalEditor, LexicalNode, ParagraphNode, PASTE_COMMAND, SerializedEditorState } from 'lexical';
+import { $createPoint, $createRangeSelection, $createTextNode, $isRangeSelection, $isTextNode, $setSelection, LexicalEditor, LexicalNode, ParagraphNode, SerializedEditorState, SerializedElementNode, SerializedLexicalNode } from 'lexical';
 import {
   $getRoot,
   $getSelection,
@@ -12,20 +12,19 @@ import {
 } from 'lexical';
 import LexicalErrorBoundary from '@lexical/react/LexicalErrorBoundary';
 import styles from "./threadwriter.module.css";
+import { ToolbarDemo } from '../ThreadWriterToolbarDemo';
 import { useLoader } from '../../../hooks/useLoader';
 import { v4 as uuidv4 } from 'uuid';
 import { CustomParagraphNode, CustomSerializedParagraphNode } from './customNodes/CustomParagraphNode';
-import { useToaster } from '../../../hooks/useToaster';
-import { AlertToastType } from '../../../types/AlertToasts';
-import { AssociationDecoratorPluginDemo } from './plugins/AssociationDecoratorPluginDemo';
-import { ClickableDecoratorNode } from './customNodes/ClickableDecoratorNode';
+import { AssociationDecoratorPlugin } from './plugins/AssociationDecoratorPlugin';
 import { Association, AssociationType, SimplifiedAssociation } from '../../../types/Associations';
 import { AssociationPanelDemo } from '../AssociationPanelDemo';
-import { useSelections } from '../../../hooks/useSelections';
 import { useEditorStateUpdater } from '../../../hooks/useEditorStateUpdater';
 import { ContextMenu, ContextMenuProps } from '../../ContextMenu';
 import DocumentClickPlugin, { ClickData } from './plugins/DocumentClickPlugin';
-import { ToolbarDemo } from '../ThreadWriterToolbarDemo';
+import { TextTransformPlugin } from './plugins/TextTransformPlugin';
+import { useEditorCommands } from '../hooks/useEditorCommands';
+import { AssociationInlineNode } from './customNodes/AssociationInlineNode';
 
 const theme = {
   'custom-paragraph': styles.customParagraph,
@@ -44,7 +43,7 @@ export const ThreadWriterDemo = () => {
     theme,
     nodes: [
       CustomParagraphNode,
-      ClickableDecoratorNode
+      AssociationInlineNode
     ],
     onError: (error: Error) => {
       console.error('Lexical error:', error);
@@ -59,9 +58,6 @@ export const ThreadWriterDemo = () => {
   const isInitialLoad = useRef(true);
   const selectedAssociation = useRef<string | null>(null);
 
-  // hooks
-  const { setAlertState } = useToaster();
-  const { story, chapter } = useSelections();
   const { showLoader, hideLoader } = useLoader();
 
   // states
@@ -76,8 +72,9 @@ export const ThreadWriterDemo = () => {
   const [contextMenuData, setContextMenuData] = useState<ContextMenuProps>(defaultContextData);
   const [isAssociationPanelOpen, setIsAssociationPanelOpen] = useState(false);
   const [associations, setAssociations] = useState<SimplifiedAssociation[]>([]);
+  useEditorCommands(editorRef, pastedParagraphKeys);
 
-  const generateAssociations = (): SimplifiedAssociation[] => {
+  const storedAssociations = useMemo((): SimplifiedAssociation[] => {
     return [
       {
         association_id: "123",
@@ -143,7 +140,7 @@ export const ThreadWriterDemo = () => {
         case_sensitive: false
       }
     ];
-  }
+  }, []);
 
   const generateBlankLine = (): CustomSerializedParagraphNode => ({
     children: [],
@@ -222,6 +219,7 @@ export const ThreadWriterDemo = () => {
     setContextMenuData(defaultContextData);
   };
 
+
   const handleMenuItemClick = async (_event: React.MouseEvent, type: AssociationType) => {
     setContextMenuData(defaultContextData);
     const text = getSelectedText();
@@ -239,6 +237,7 @@ export const ThreadWriterDemo = () => {
       setAssociations([...associations, newAssociation]);
     }
   };
+
 
   const handleDeleteAssociationClick = async () => {
     setContextMenuData(defaultContextData);
@@ -292,64 +291,6 @@ export const ThreadWriterDemo = () => {
       ],
     },
   ];
-
-  const handleTabPress = () => {
-    if (editorRef.current) {
-      editorRef.current.focus();
-      editorRef.current.update(() => {
-        const selection = $getSelection();
-        if ($isRangeSelection(selection)) {
-          const selectedNode = selection.anchor.getNode();
-          const parentNode = selectedNode.getParent();
-          if (parentNode instanceof CustomParagraphNode) {
-            const anchorOffset = selection.anchor.offset; // Get the cursor offset
-            const anchorNode = selection.anchor.getNode();
-            if ($isTextNode(anchorNode)) {
-              // Case: Cursor is inside a TextNode
-              const currentText = anchorNode.getTextContent();
-              const beforeText = currentText.slice(0, anchorOffset); // Text before the cursor
-              const afterText = currentText.slice(anchorOffset); // Text after the cursor
-
-              // Update the existing TextNode
-              const writableNode = anchorNode.getWritable();
-              writableNode.setTextContent(beforeText + "\t" + afterText);
-
-              // Update the selection to be at the end of the tab
-              selection.anchor.set(writableNode.getKey(), anchorOffset + 1, "text");
-              selection.focus.set(writableNode.getKey(), anchorOffset + 1, "text");
-            } else {
-              const currentIndent = parentNode.getIndent() || 0;
-              parentNode.setIndent(currentIndent + 1);
-            }
-          } else if (!$isTextNode(selectedNode) && $isElementNode(parentNode)) {
-            // Handling blank line or root-level selection
-            const newTextNode = $createTextNode("\t");
-            selectedNode.append(newTextNode);
-            const selection = $getSelection();
-            if ($isRangeSelection(selection)) {
-              selection.anchor.set(newTextNode.getKey(), 1, "text");
-              selection.focus.set(newTextNode.getKey(), 1, "text");
-            }
-          } else if (!$isTextNode(selectedNode) && !$isElementNode(parentNode)) {
-            const root = $getRoot();
-            const newParagraph = new CustomParagraphNode(uuidv4());
-            const newTextNode = $createTextNode("\t");
-            newParagraph.append(newTextNode);
-            root.append(newParagraph);
-            selection.anchor.set(newTextNode.getKey(), 1, "text");
-            selection.focus.set(newTextNode.getKey(), 1, "text");
-          } else if ($isTextNode(selectedNode)) {
-            const currentText = selectedNode.getTextContent();
-            selectedNode.setTextContent(currentText + "\t");
-          } else {
-            // Handle unexpected cases
-            console.warn("Unhandled case for Tab key press");
-          }
-        }
-      });
-    }
-  }
-
 
   useEditorStateUpdater(editorRef, storyBlocks, isProgrammaticChange);
 
@@ -415,7 +356,6 @@ export const ThreadWriterDemo = () => {
             }
           }
         }
-        console.log("offset", charOffset)
         // **Step 3: Set cursor exactly where the user tapped**
         if (closestTextNode && $isTextNode(closestTextNode)) {
           const newSelection = $createRangeSelection();
@@ -430,13 +370,11 @@ export const ThreadWriterDemo = () => {
     return () => document.removeEventListener("touchend", handleTouchEnd);
   }, []);
 
-  // Merged useEffect to handle both story and chapter changes
-  useEffect(() => {
 
-    console.log("Story or Chapter changed:", { story, chapter });
+  useEffect(() => {
     const fetchData = async () => {
       if (isInitialLoad.current && editorRef.current) {
-        setAssociations(generateAssociations());
+        setAssociations(storedAssociations);
         isInitialLoad.current = false;
         console.log("Initial load: fetching story blocks and associations");
         isProgrammaticChange.current = true; // Start programmatic change
@@ -456,11 +394,25 @@ export const ThreadWriterDemo = () => {
         if (!(node instanceof CustomParagraphNode) || !node.getKeyId()) {
           const replacement = new CustomParagraphNode(uuidv4());
           replacement.append(...node.getChildren());
+
+          const tabTextNode = $createTextNode("\t");
+          const firstChild = replacement.getFirstChild();
+          if (firstChild) {
+            firstChild.insertBefore(tabTextNode);
+          } else {
+            replacement.append(tabTextNode);
+          }
+          const point = $createPoint(tabTextNode.getKey(), 1, "text");
+          const rangeSelection = $createRangeSelection();
+          rangeSelection.anchor = point;
+          rangeSelection.focus = point;
+          $setSelection(rangeSelection);
+
           node.replace(replacement);
         }
       });
     }
-  }, []);
+  }, [editorRef]);
 
   useEffect(() => {
     if (editorRef.current) {
@@ -479,135 +431,9 @@ export const ThreadWriterDemo = () => {
       });
       isProgrammaticChange.current = false;
     }
-  }, []);
-
-  useEffect(() => {
-    if (editorRef.current) {
-      editorRef.current.registerCommand(
-        KEY_TAB_COMMAND,
-        (event: KeyboardEvent) => {
-          event.preventDefault();
-          handleTabPress();
-          return true;
-        }, 1
-      );
-    }
-  }, []);
-
-  useEffect(() => {
-    if (editorRef.current) {
-      const removeListener = editorRef.current.registerCommand(
-        PASTE_COMMAND,
-        (event: ClipboardEvent) => {
-          event.preventDefault();
-          // Handle the paste event
-          const pastedText = event.clipboardData?.getData("text/plain")
-          if (pastedText) {
-            const cleanedText = pastedText
-              .replace(/“/g, '"') // Left double quote
-              .replace(/”/g, '"') // Right double quote
-              .replace(/‘/g, "'") // Left single quote
-              .replace(/’/g, "'"); // Right single quote
-            const paragraphs = cleanedText.split("\n");
-            if (paragraphs.length > 100) {
-              const newAlert = {
-                title: "Oh, jeez",
-                message: "You're pasting a lot of paragraphs. This may take awhile to process...",
-                severity: AlertToastType.warning,
-                open: true,
-                timeout: 10000,
-              };
-              setAlertState(newAlert);
-              console.log(`Large paste operation detected. Total paragraphs: ${paragraphs.length}`);
-            }
-
-            editorRef.current?.update(() => {
-              const selection = $getSelection();
-
-              if ($isRangeSelection(selection)) {
-                let lastInsertedNode = selection.anchor.getNode();
-
-                // Ensure we're working with the top-level parent node
-                const parent = lastInsertedNode.getTopLevelElementOrThrow();
-
-                const isParentEmpty = parent.getTextContent().trim() === "";
-                if (isParentEmpty) {
-                  parent.clear();
-                }
-
-                paragraphs.forEach((paragraphText, index) => {
-                  if (index > 0 && !paragraphText.startsWith("\t")) {
-                    paragraphText = `\t${paragraphText}`;
-                  }
-
-                  if (index === 0 && isParentEmpty) {
-                    // Replace the first paragraph if the parent is empty
-                    parent.append($createTextNode(paragraphText));
-                    lastInsertedNode = parent; // Update reference
-                    const customKey = (parent as CustomParagraphNode).getKeyId();
-                    if (customKey)
-                      pastedParagraphKeys.current.add(customKey);
-                  } else if (index === 0) {
-                    // Insert text at the current selection for the first paragraph
-                    selection.insertText(paragraphText);
-                    lastInsertedNode = selection.anchor.getNode(); // Update reference
-                    const customKey = (parent as CustomParagraphNode).getKeyId()
-                    if (customKey)
-                      pastedParagraphKeys.current.add(customKey);
-                  } else {
-                    // Create and append new paragraphs for subsequent lines
-                    const customKey = uuidv4();
-                    const newParagraphNode = new CustomParagraphNode(customKey);
-                    newParagraphNode.append($createTextNode(paragraphText));
-
-                    if (lastInsertedNode) {
-                      lastInsertedNode.insertAfter(newParagraphNode);
-                    } else {
-                      parent.append(newParagraphNode);
-                    }
-                    pastedParagraphKeys.current.add(customKey);
-                    lastInsertedNode = newParagraphNode; // Update reference
-                  }
-                });
-              } else {
-                // Append to the root if no selection exists
-                const root = $getRoot();
-                let lastInsertedNode: null | ParagraphNode = null;
-
-                paragraphs.forEach((paragraphText, index) => {
-                  if (index > 0 && !paragraphText.startsWith("\t")) {
-                    paragraphText = `\t${paragraphText}`;
-                  }
-                  const customKey = uuidv4();
-                  const paragraphNode = new CustomParagraphNode(customKey);
-                  paragraphNode.append($createTextNode(paragraphText));
-
-                  if (lastInsertedNode) {
-                    lastInsertedNode.insertAfter(paragraphNode);
-                  } else {
-                    root.append(paragraphNode); // Append the first paragraph directly to the root
-                  }
-                  pastedParagraphKeys.current.add(customKey);
-                  lastInsertedNode = paragraphNode; // Update reference
-                });
-              }
-            });
-
-          }
-          return true;
-        },
-        1
-      );
-
-      // Cleanup the listener on unmount
-      return () => {
-        removeListener();
-      };
-    }
-  }, [setAlertState]);
+  }, [editorRef]);
 
   const onAssociationEditCallback = useCallback(async (assoc: Association) => {
-    console.log("callback")
     setAssociations((prevAssociations: SimplifiedAssociation[] = []) =>
       prevAssociations.map((storedAssociation) =>
         storedAssociation.association_id === assoc.association_id
@@ -620,14 +446,16 @@ export const ThreadWriterDemo = () => {
   const handleDocumentLeftClick = (event: MouseEvent | TouchEvent) => {
     setContextMenuData(defaultContextData);
     if (!editorRef.current) return;
+
     editorRef.current.focus();
+
     // Use setTimeout to ensure selection updates after browser processing
     setTimeout(() => {
       editorRef.current?.update(() => {
         const selection = $getSelection();
         // If there's already a valid selection, do nothing.
         if ($isRangeSelection(selection)) {
-          //return;
+          return;
         }
 
         let clientX, clientY;
@@ -748,17 +576,18 @@ export const ThreadWriterDemo = () => {
         <div className={styles.editorRow}>
           <div className={styles.editorArea}>
             <RichTextPlugin
-              contentEditable={<ContentEditable className={styles.editorInput} spellCheck={false} />}
+              contentEditable={<ContentEditable tabIndex={0} className={styles.editorInput} spellCheck={true} />}
               ErrorBoundary={LexicalErrorBoundary}
             />
-            <AssociationDecoratorPluginDemo associations={associations} isProgrammaticChange={isProgrammaticChange} scrollToTop={true} customLeftClick={handleAssociationLeftClick} customRightClick={handleAssociationRightClick} />
+            <AssociationDecoratorPlugin associations={associations} isProgrammaticChange={isProgrammaticChange} scrollToTop={true} customLeftClick={handleAssociationLeftClick} customRightClick={handleAssociationRightClick} />
             <HistoryPlugin />
+            <TextTransformPlugin />
             <DocumentClickPlugin onLeftClick={handleDocumentLeftClick} onRightClick={handleDocumentRightClick} />
             <AssociationPanelDemo associations={associations} onEditCallback={onAssociationEditCallback} isAssociationPanelOpen={isAssociationPanelOpen} setIsAssociationPanelOpen={setIsAssociationPanelOpen} selectedAssociationID={selectedAssociation.current} />
             <ContextMenu name={contextMenuData.name} visible={contextMenuData.visible} x={contextMenuData.x} y={contextMenuData.y} items={contextMenuData.items} />
           </div>
         </div>
       </LexicalComposer>
-    </div >
+    </div>
   );
 };

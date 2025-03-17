@@ -3,6 +3,7 @@ package daos
 import (
 	"RichDocter/models"
 	"context"
+	"database/sql"
 	"fmt"
 	"strconv"
 	"time"
@@ -59,7 +60,7 @@ func (d *DAO) GetUserDetails(email string) (user *models.UserInfo, err error) {
 		return user, err
 	}
 	if len(userFromMap) == 0 {
-		return user, fmt.Errorf("no user found")
+		return user, sql.ErrNoRows
 	}
 	return &userFromMap[0], nil
 }
