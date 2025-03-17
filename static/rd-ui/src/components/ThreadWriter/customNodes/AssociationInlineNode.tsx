@@ -4,7 +4,6 @@ import styles from './associationinlinenode.module.css';
 import { ClickData } from "../plugins/DocumentClickPlugin";
 
 let tooltipElement: null | HTMLDivElement = null;
-let tooltipRemovalTimer: ReturnType<typeof setTimeout> | null = null;
 
 const formatMap: { [key: number]: string } = {
     [IS_ITALIC]: 'italic',
@@ -133,10 +132,6 @@ export class AssociationInlineNode extends TextNode {
 
     showTooltip = (event: MouseEvent) => {
         if (tooltipElement !== null) return;
-        if (tooltipRemovalTimer) {
-            clearTimeout(tooltipRemovalTimer);
-            tooltipRemovalTimer = null;
-        }
         if (tooltipElement !== null) return; // Already showing
         document.querySelectorAll('#association-tooltip').forEach(el => el.remove());
         tooltipElement = document.createElement('div');

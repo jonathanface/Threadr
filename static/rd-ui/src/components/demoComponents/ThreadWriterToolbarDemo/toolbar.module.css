@@ -22,12 +22,14 @@
 
 .toolbar button {
     background: #f4f4f4;
+    border: 1px solid #ccc;
+    padding: 4px 8px;
     border-radius: 4px;
     cursor: pointer;
     font-size: 12px;
-    width: 30px;
-    height: 30px;
-    font-size: 0.8rem;
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
 }
 
 .toolbar button:hover {
@@ -62,11 +64,15 @@
         margin: 10px;
         border-radius: 5px;
         padding: 15px;
+        top: 70px;
         margin-top: 0px;
-        margin-bottom: 0px;
-        border-bottom-right-radius: 0px;
-        border-bottom-left-radius: 0px;
-        margin: 0;
+    }
+
+    .toolbar .extraButtons {
+        display: flex;
+        width: 100%;
+        justify-content: space-between;
+        margin-top: 5px;
     }
 
     .toolbar button {
