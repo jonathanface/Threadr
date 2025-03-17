@@ -1,12 +1,9 @@
 // AssociationDecoratorPlugin.tsx
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
-    $createPoint,
-    $createRangeSelection,
     $getRoot,
     $isTextNode,
-    $setSelection,
     ElementNode,
     LexicalNode,
     TextNode,
@@ -96,7 +93,7 @@ export const AssociationDecoratorPlugin = ({
 
     // Memoized association processing function
     // Create a WeakSet to track processed nodes for the duration of an update.
-    const processedNodes = new WeakSet<LexicalNode>();
+    const processedNodes = useMemo(() => new WeakSet<LexicalNode>(), []);
 
     const processAssociations = useCallback(
         (associations: SimplifiedAssociation[], rootNode: ElementNode, exclusionList?: string[]): void => {
@@ -133,9 +130,6 @@ export const AssociationDecoratorPlugin = ({
                     for (const name of namesToMatch) {
                         if (exclusionList?.includes(name)) continue;
 
-                        const searchText = association.case_sensitive
-                            ? textContent
-                            : textContent.toLowerCase();
                         const searchFor = association.case_sensitive
                             ? name
                             : name.toLowerCase();
@@ -147,6 +141,7 @@ export const AssociationDecoratorPlugin = ({
                             if (processedNodes.has(textNode)) break;
 
                             const currentMatch = match;
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             const format: number = (textNode as any).getFormat ? (textNode as any).getFormat() : 0;
                             const parent = textNode.getParent();
                             if (!(parent instanceof ElementNode)) return;
@@ -198,7 +193,7 @@ export const AssociationDecoratorPlugin = ({
                 });
             });
         },
-        [customLeftClick, customRightClick, findObsoleteDecorators]
+        [customLeftClick, customRightClick, findObsoleteDecorators, processedNodes]
     );
 
 
