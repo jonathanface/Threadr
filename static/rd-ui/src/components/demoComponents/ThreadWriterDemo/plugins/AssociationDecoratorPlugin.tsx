@@ -102,6 +102,7 @@ export const AssociationDecoratorPlugin = ({
             // First, mark obsolete inline nodes for cleanup
             const obsoleteNodes = findObsoleteDecorators(rootNode, associations);
             obsoleteNodes.forEach(node => {
+                node.hideHovers();
                 node.replace(new TextNode(node.getName()));
             });
 

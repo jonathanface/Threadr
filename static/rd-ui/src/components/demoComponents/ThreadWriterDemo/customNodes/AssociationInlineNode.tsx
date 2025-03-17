@@ -132,7 +132,6 @@ export class AssociationInlineNode extends TextNode {
 
     showTooltip = (event: MouseEvent) => {
         if (tooltipElement !== null) return;
-        if (tooltipElement !== null) return; // Already showing
         document.querySelectorAll('#association-tooltip').forEach(el => el.remove());
         tooltipElement = document.createElement('div');
         tooltipElement.id = 'association-tooltip';
@@ -249,6 +248,10 @@ export class AssociationInlineNode extends TextNode {
         });
 
         return this.__decorator;
+    }
+
+    hideHovers() {
+        document.querySelectorAll('#association-tooltip').forEach(el => el.remove());
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
