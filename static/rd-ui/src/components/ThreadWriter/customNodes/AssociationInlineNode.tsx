@@ -137,7 +137,7 @@ export class AssociationInlineNode extends TextNode {
     showTooltip = (event: MouseEvent) => {
         if (tooltipElement !== null) return;
         if (tooltipElement !== null) return; // Already showing
-        document.querySelectorAll('#association-tooltip').forEach(el => el.remove());
+        this.hideHovers();
         tooltipElement = document.createElement('div');
         tooltipElement.id = 'association-tooltip';
         const tooltip = tooltipElement;
