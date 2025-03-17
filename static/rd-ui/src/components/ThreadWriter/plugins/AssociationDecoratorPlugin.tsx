@@ -101,6 +101,7 @@ export const AssociationDecoratorPlugin = ({
 
             const obsoleteNodes = findObsoleteDecorators(rootNode, associations);
             obsoleteNodes.forEach(node => {
+                node.hideHovers();
                 const text = new TextNode(node.getName());
                 node.replace(text);
             });
