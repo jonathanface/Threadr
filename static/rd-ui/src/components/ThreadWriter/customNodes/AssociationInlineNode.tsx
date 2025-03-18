@@ -1,5 +1,5 @@
 // AssociationInlineNode.ts
-import { IS_BOLD, IS_ITALIC, IS_STRIKETHROUGH, IS_UNDERLINE, LexicalNode, TextNode } from "lexical";
+import { IS_BOLD, IS_ITALIC, IS_STRIKETHROUGH, IS_UNDERLINE, TextNode } from "lexical";
 import styles from './associationinlinenode.module.css';
 import { ClickData } from "../plugins/DocumentClickPlugin";
 
@@ -118,13 +118,18 @@ export class AssociationInlineNode extends TextNode {
         }
     }
 
-    canMergeWith(): boolean {
+    isUnmergeable(): boolean {
+        return true;
+    }
+
+    canInsertTextBefore(): boolean {
         return false;
     }
 
-    mergeWith(): LexicalNode {
-        return this;
+    canInsertTextAfter(): boolean {
+        return false;
     }
+
 
     showTooltipLoader = () => {
 
