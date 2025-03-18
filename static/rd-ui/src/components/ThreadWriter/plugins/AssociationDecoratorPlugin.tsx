@@ -51,7 +51,6 @@ export const AssociationDecoratorPlugin = ({
         return descendants;
     }, []);
 
-
     const findObsoleteDecorators = useCallback((
         root: ElementNode,
         currentAssociations: SimplifiedAssociation[]
@@ -63,36 +62,99 @@ export const AssociationDecoratorPlugin = ({
         });
 
         const obsoleteNodes: AssociationInlineNode[] = [];
+        const nodesToCheck: AssociationInlineNode[] = [];
 
+        // Step 1: Traverse all descendants and collect all association inline nodes
         getAllDescendants(root).forEach((node) => {
             if (node instanceof AssociationInlineNode) {
-                const nodeAssocId = node.getAssociationId();
-                const currentAssoc = currentAssociationMap.get(nodeAssocId);
+                nodesToCheck.push(node);  // Collect inline nodes to check later
+            }
+        });
 
-                // If the association no longer exists, mark the node for cleanup
-                if (!currentAssoc) {
+        // Step 2: Check for obsolete nodes and adjacent non-whitespace text nodes
+        nodesToCheck.forEach((node) => {
+            const nodeAssocId = node.getAssociationId();
+            const currentAssoc = currentAssociationMap.get(nodeAssocId);
+
+            // If the association no longer exists, mark the node for cleanup
+            if (!currentAssoc) {
+                obsoleteNodes.push(node);
+            } else {
+                const aliases = currentAssoc.aliases.split(",");
+                const nodeText = node.getName().trim();
+
+                // Check if the current node's text no longer matches the association's name or its aliases
+                const isTextOutOfSync = (
+                    nodeText !== currentAssoc.association_name.trim() &&
+                    !aliases.map(alias => alias.trim()).includes(nodeText)
+                );
+
+                // Check for adjacent non-whitespace text nodes (post-traversal check)
+                const hasAdjacentNonWhitespace = checkAdjacentNonWhitespace(node);
+
+                // If the node's text has changed or if there are adjacent non-whitespace characters, mark it as obsolete
+                if (isTextOutOfSync || hasAdjacentNonWhitespace) {
                     obsoleteNodes.push(node);
-                } else {
-                    const aliases = currentAssoc.aliases.split(",");
-                    // if (node.getName().indexOf('hou') > -1) {
-                    //     console.log("checking", node.getName(), currentAssoc.association_name, aliases);
-                    // }
-
-                    if (
-                        (node.getName().trim() !== currentAssoc.association_name && !aliases.map(alias => alias.trim()).includes(node.getName().trim())) ||
-                        node.getShortDescription() !== currentAssoc.short_description ||
-                        node.getPortrait() !== currentAssoc.portrait
-                    ) {
-                        // Mark the node for cleanup if the data is stale
-                        obsoleteNodes.push(node);
-                    }
                 }
             }
+
         });
 
         return obsoleteNodes;
     }, [getAllDescendants]);
 
+    // Helper function to check for adjacent non-whitespace text nodes
+    // Helper function to check for adjacent non-whitespace text nodes
+    const checkAdjacentNonWhitespace = (node: LexicalNode): boolean => {
+        const previousSibling = node.getPreviousSibling();
+        const nextSibling = node.getNextSibling();
+
+        // Check if the previous sibling does NOT end with whitespace
+        const previousDoesNotEndWithWhitespace = previousSibling instanceof TextNode && !/\s$/.test(previousSibling.getTextContent());
+
+        // Check if the next sibling does NOT begin with whitespace
+        const nextDoesNotStartWithWhitespace = nextSibling instanceof TextNode && !/^\s/.test(nextSibling.getTextContent());
+
+        return previousDoesNotEndWithWhitespace || nextDoesNotStartWithWhitespace;
+    };
+
+
+    const handleObsoleteNodes = (node: AssociationInlineNode) => {
+        node.hideHovers();
+        const previousSibling = node.getPreviousSibling();
+        const nextSibling = node.getNextSibling();
+        // Case 1: If previousSibling is a TextNode and does not end with whitespace
+        if (previousSibling instanceof TextNode) {
+            const prevText = previousSibling.getTextContent();
+            if (prevText.trim() !== "" && !/\s$/.test(prevText)) {
+                // Merge with previous sibling if it doesn't end with whitespace
+                previousSibling.setTextContent(prevText + node.getName());
+            } else {
+                // Case 2: If previousSibling ends with whitespace, check nextSibling
+                if (nextSibling instanceof TextNode && !/^\s/.test(nextSibling.getTextContent())) {
+                    // Merge with the next sibling if it doesn't start with whitespace
+                    nextSibling.setTextContent(node.getName() + nextSibling.getTextContent());
+                } else {
+                    // Case 3: If no valid merge, insert as new TextNode
+                    const text = new TextNode(node.getName());
+                    node.insertBefore(text);
+                }
+            }
+        } else {
+            // Case 4: If no previous sibling, just check nextSibling
+            if (nextSibling instanceof TextNode && !/^\s/.test(nextSibling.getTextContent())) {
+                nextSibling.setTextContent(node.getName() + nextSibling.getTextContent());
+            } else {
+                // Case 5: No adjacent text node, insert as new TextNode
+                const text = new TextNode(node.getName());
+                node.insertBefore(text);
+            }
+        }
+
+        // Remove the obsolete node after merging its content
+        node.remove();
+        return node;
+    }
 
     // Memoized association processing function
     const processAssociations = useCallback(
@@ -100,11 +162,18 @@ export const AssociationDecoratorPlugin = ({
             if (!associations.length) return;
 
             const obsoleteNodes = findObsoleteDecorators(rootNode, associations);
-            obsoleteNodes.forEach(node => {
-                node.hideHovers();
-                const text = new TextNode(node.getName());
-                node.replace(text);
+            const processedNodes = new Set<AssociationInlineNode>();
+
+            obsoleteNodes.forEach((node: AssociationInlineNode) => {
+                if (processedNodes.has(node)) {
+                    // Skip nodes that have already been processed
+                    return;
+                }
+                const processedNode = handleObsoleteNodes(node);
+                processedNodes.add(processedNode);
             });
+
+
 
             const textNodes: TextNode[] = [];
             const traverse = (node: LexicalNode) => {
@@ -181,8 +250,7 @@ export const AssociationDecoratorPlugin = ({
                                 const afterNode = new TextNode(afterMatch);
                                 inlineNode.insertAfter(afterNode);
                             } else {
-                                const afterNode = new TextNode(' ');
-                                console.log("appending", afterNode.getKey())
+                                const afterNode = new TextNode('');
                                 inlineNode.insertAfter(afterNode);
                             }
                             textNode.remove();
