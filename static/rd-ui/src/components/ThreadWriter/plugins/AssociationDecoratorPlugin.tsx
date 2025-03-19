@@ -83,14 +83,26 @@ export const AssociationDecoratorPlugin = ({
                 const aliases = currentAssoc.aliases.split(",");
                 const nodeText = node.getName().trim();
 
+                // Handle case sensitivity properly
+                const formattedAliases = currentAssoc.case_sensitive
+                    ? aliases.map(alias => alias.trim())
+                    : aliases.map(alias => alias.trim().toLowerCase());
+
+                const associationName = currentAssoc.case_sensitive
+                    ? currentAssoc.association_name.trim()
+                    : currentAssoc.association_name.trim().toLowerCase();
+
                 // Check if the current node's text no longer matches the association's name or its aliases
                 const isTextOutOfSync = (
-                    nodeText !== currentAssoc.association_name.trim() &&
-                    !aliases.map(alias => alias.trim()).includes(nodeText)
+                    nodeText !== associationName &&
+                    !(formattedAliases.includes(currentAssoc.case_sensitive ? nodeText : nodeText.toLowerCase()))
                 );
 
                 // Check for adjacent non-whitespace text nodes (post-traversal check)
                 const hasAdjacentNonWhitespace = checkAdjacentNonWhitespaceOrPunctuation(node);
+                if (hasAdjacentNonWhitespace) {
+                    console.log("has")
+                }
                 // console.log("out of sync", isTextOutOfSync, "adjacent", hasAdjacentNonWhitespace);
                 // If the node's text has changed or if there are adjacent non-whitespace characters, mark it as obsolete
                 if (isTextOutOfSync || hasAdjacentNonWhitespace) {
@@ -111,7 +123,7 @@ export const AssociationDecoratorPlugin = ({
         // Check if the previous sibling does NOT end with whitespace or allowed punctuation
         const previousDoesNotEndWithWhitespaceOrPunctuation =
             previousSibling instanceof TextNode &&
-            !/[\s'"—-…]$/.test(previousSibling.getTextContent().slice(-1)); // Only check the last character
+            !/[\s.,"'’“…—–-]$/.test(previousSibling.getTextContent().slice(-1)); // Only check the last character
         if (previousSibling && previousDoesNotEndWithWhitespaceOrPunctuation) {
             console.log("issue with", node.getTextContent());
             console.log("prev does not end with white space or allowed punctuation: ", previousSibling.getTextContent().slice(-1));
@@ -120,7 +132,7 @@ export const AssociationDecoratorPlugin = ({
         // Check if the next sibling does NOT start with whitespace or allowed punctuation
         const nextDoesNotStartWithWhitespaceOrPunctuation =
             nextSibling instanceof TextNode &&
-            !/^[\s.,!"'?—-…]/.test(nextSibling.getTextContent().charAt(0)); // Only check the first character
+            !/^[\s..,,:;!"'’“?…—–-]/.test(nextSibling.getTextContent().charAt(0)); // Only check the first character
         if (nextSibling && nextDoesNotStartWithWhitespaceOrPunctuation) {
             console.log("issue with", node.getTextContent());
             console.log("next does not start with whitespace or punctuation", nextSibling.getTextContent().charAt(0));
@@ -143,14 +155,14 @@ export const AssociationDecoratorPlugin = ({
                 previousSibling.setTextContent(prevText + node.getName());
             } else {
                 // Case 2: If previousSibling ends with whitespace, check nextSibling
-                console.log("Previous sibling ends with whitespace, checking nextSibling.");
+                //console.log("Previous sibling ends with whitespace, checking nextSibling.");
                 if (nextSibling instanceof TextNode && !/^\s/.test(nextSibling.getTextContent())) {
                     // Merge with the next sibling if it doesn't start with whitespace
                     //console.log("Merging with next sibling", node.getName(), nextSibling.getTextContent());
                     nextSibling.setTextContent(node.getName() + nextSibling.getTextContent());
                 } else {
                     // Case 3: If no valid merge, insert as new TextNode
-                    // console.log("Inserting as new TextNode", node.getName());
+                    //console.log("Inserting as new TextNode", node.getName());
                     const text = new TextNode(node.getName());
                     node.insertBefore(text);
                 }

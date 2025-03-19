@@ -137,44 +137,70 @@ export class AssociationInlineNode extends TextNode {
 
     hideHovers() {
         document.querySelectorAll('#association-tooltip').forEach(el => el.remove());
+        if (tooltipElement) {
+            tooltipElement.remove();
+            tooltipElement = null; // Make sure to set it to null
+        }
     }
 
     showTooltip = (event: MouseEvent) => {
-        if (tooltipElement !== null) return;
-        if (tooltipElement !== null) return; // Already showing
+        if (tooltipElement !== null) return; // Prevent multiple tooltips
+
         this.hideHovers();
+
+        // Create and append the tooltip immediately
         tooltipElement = document.createElement('div');
         tooltipElement.id = 'association-tooltip';
         const tooltip = tooltipElement;
         tooltip.classList.add(styles.associationTooltipBody);
+
         const row = document.createElement('div');
         row.classList.add(styles.row);
+
         const column1 = document.createElement('span');
         column1.classList.add(styles.column);
-        const img = document.createElement('img');
-        img.alt = this.__shortDescription || "Click on the association to add a description.";
-        img.addEventListener('load', () => {
-            document.body.appendChild(tooltip);
-            const height = tooltip.getBoundingClientRect().height;
-            const topValue = event.clientY - height - 20;
-            tooltip.style.top = topValue.toString() + "px";
-            const width = tooltip.getBoundingClientRect().width;
-            const leftValue = event.clientX - width / 2;
-            tooltip.style.left = leftValue.toString() + "px";
 
-        });
-        img.src = this.__portrait || "/img/default_association_portrait.jpg";
-        column1.append(img);
-        row.append(column1);
+        // Create the img element, but don't wait for it to load to show the tooltip
+        const img = document.createElement('img');
+
+        column1.appendChild(img);
+        row.appendChild(column1);
+
+        // Create column2 with the description text
         const column2 = document.createElement('span');
         column2.classList.add(styles.column);
         column2.textContent = this.__shortDescription || "Click on the association to add a description.";
-        row.append(column2);
-        tooltip.append(row);
-        void window.getComputedStyle(tooltip).opacity;
-        tooltip.classList.add(styles.show);
+        row.appendChild(column2);
 
-    }
+        tooltip.appendChild(row);
+
+        // Append the tooltip to the body, without waiting for the image
+        document.body.appendChild(tooltip);
+
+        // Initially position the tooltip (will be adjusted after image loads)
+        const height = tooltip.getBoundingClientRect().height;
+        const topValue = event.clientY - height - 20;
+        tooltip.style.top = topValue.toString() + "px";
+        const width = tooltip.getBoundingClientRect().width;
+        const leftValue = event.clientX - width / 2;
+        tooltip.style.left = leftValue.toString() + "px";
+
+        // Now wait for the image to load
+        img.onload = () => {
+            // After the image is loaded, update the tooltip positioning if necessary
+            const updatedHeight = tooltip.getBoundingClientRect().height;
+            const updatedTopValue = event.clientY - updatedHeight - 20;
+            tooltip.style.top = updatedTopValue.toString() + "px"; // Recalculate and adjust the top position
+        };
+        img.alt = this.__shortDescription || "Click on the association to add a description.";
+        img.src = this.__portrait || "/img/default_association_portrait.jpg";
+        img.classList.add(styles.tooltipImage); // Optional: add a class for styling the image
+
+        // Show the tooltip immediately without waiting for the image to load
+        tooltip.classList.add(styles.show);
+    };
+
+
 
     // hideTooltip = () => {
     //     if (tooltipElement) {
@@ -230,6 +256,7 @@ export class AssociationInlineNode extends TextNode {
 
     // Override createDOM to add your custom classes and data attributes.
     createDOM(): HTMLElement {
+        if (this.__decorator) return this.__decorator;
         this.__decorator = document.createElement('span');
         this.__decorator.classList.add(styles.associationInline);
         this.__decorator.classList.add(styles[this.__associationType]);
@@ -248,6 +275,7 @@ export class AssociationInlineNode extends TextNode {
         }
 
         this.__decorator.addEventListener('mouseenter', (event: MouseEvent) => {
+            console.log("enter", this.__text);
             this.showTooltip(event)
         });
         this.__decorator.addEventListener('mouseleave', () => {
@@ -255,6 +283,7 @@ export class AssociationInlineNode extends TextNode {
                 tooltipElement.remove();
                 tooltipElement = null;
             }
+            console.log("leave", this.__text)
         });
 
         return this.__decorator;

@@ -4,7 +4,7 @@ import { CustomParagraphNode } from "../ThreadWriterDemo/customNodes/CustomParag
 import { v4 as uuidv4 } from 'uuid';
 
 
-export const useEditorCommands = (editorRef: React.RefObject<LexicalEditor | null>, pastedParagraphKeys: React.RefObject<Set<string>>) => {
+export const useEditorCommandsDemo = (editorRef: React.RefObject<LexicalEditor | null>, pastedParagraphKeys: React.RefObject<Set<string>>) => {
 
     const handleTabPress = useCallback(() => {
         if (editorRef.current) {

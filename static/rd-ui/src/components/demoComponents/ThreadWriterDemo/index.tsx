@@ -16,15 +16,15 @@ import { ToolbarDemo } from '../ThreadWriterToolbarDemo';
 import { useLoader } from '../../../hooks/useLoader';
 import { v4 as uuidv4 } from 'uuid';
 import { CustomParagraphNode, CustomSerializedParagraphNode } from './customNodes/CustomParagraphNode';
-import { AssociationDecoratorPlugin } from './plugins/AssociationDecoratorPlugin';
+import { AssociationDecoratorPluginDemo } from './plugins/AssociationDecoratorPluginDemo'
 import { Association, AssociationType, SimplifiedAssociation } from '../../../types/Associations';
 import { AssociationPanelDemo } from '../AssociationPanelDemo';
 import { useEditorStateUpdater } from '../../../hooks/useEditorStateUpdater';
 import { ContextMenu, ContextMenuProps } from '../../ContextMenu';
-import DocumentClickPlugin, { ClickData } from './plugins/DocumentClickPlugin';
-import { TextTransformPlugin } from './plugins/TextTransformPlugin';
-import { useEditorCommands } from '../hooks/useEditorCommands';
-import { AssociationInlineNode } from './customNodes/AssociationInlineNode';
+import DocumentClickPluginDemo, { ClickData } from './plugins/DocumentClickPluginDemo';
+import { TextTransformPluginDemo } from './plugins/TextTransformPluginDemo'
+import { useEditorCommandsDemo } from '../hooks/useEditorCommandsDemo';
+import { AssociationInlineNodeDemo } from './customNodes/AssociationInlineNodeDemo';
 
 const theme = {
   'custom-paragraph': styles.customParagraph,
@@ -43,7 +43,7 @@ export const ThreadWriterDemo = () => {
     theme,
     nodes: [
       CustomParagraphNode,
-      AssociationInlineNode
+      AssociationInlineNodeDemo
     ],
     onError: (error: Error) => {
       console.error('Lexical error:', error);
@@ -72,7 +72,7 @@ export const ThreadWriterDemo = () => {
   const [contextMenuData, setContextMenuData] = useState<ContextMenuProps>(defaultContextData);
   const [isAssociationPanelOpen, setIsAssociationPanelOpen] = useState(false);
   const [associations, setAssociations] = useState<SimplifiedAssociation[]>([]);
-  useEditorCommands(editorRef, pastedParagraphKeys);
+  useEditorCommandsDemo(editorRef, pastedParagraphKeys);
 
   const storedAssociations = useMemo((): SimplifiedAssociation[] => {
     return [
@@ -579,10 +579,10 @@ export const ThreadWriterDemo = () => {
               contentEditable={<ContentEditable tabIndex={0} className={styles.editorInput} spellCheck={true} />}
               ErrorBoundary={LexicalErrorBoundary}
             />
-            <AssociationDecoratorPlugin associations={associations} isProgrammaticChange={isProgrammaticChange} scrollToTop={true} customLeftClick={handleAssociationLeftClick} customRightClick={handleAssociationRightClick} />
+            <AssociationDecoratorPluginDemo associations={associations} isProgrammaticChange={isProgrammaticChange} scrollToTop={true} customLeftClick={handleAssociationLeftClick} customRightClick={handleAssociationRightClick} />
             <HistoryPlugin />
-            <TextTransformPlugin />
-            <DocumentClickPlugin onLeftClick={handleDocumentLeftClick} onRightClick={handleDocumentRightClick} />
+            <TextTransformPluginDemo />
+            <DocumentClickPluginDemo onLeftClick={handleDocumentLeftClick} onRightClick={handleDocumentRightClick} />
             <AssociationPanelDemo associations={associations} onEditCallback={onAssociationEditCallback} isAssociationPanelOpen={isAssociationPanelOpen} setIsAssociationPanelOpen={setIsAssociationPanelOpen} selectedAssociationID={selectedAssociation.current} />
             <ContextMenu name={contextMenuData.name} visible={contextMenuData.visible} x={contextMenuData.x} y={contextMenuData.y} items={contextMenuData.items} />
           </div>

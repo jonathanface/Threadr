@@ -12,15 +12,15 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import { SimplifiedAssociation } from "../../../../types/Associations";
 import styles from "../threadwriter.module.css";
 import { generateTextHash } from "../../../../constants/constants";
-import { $createAssociationInlineNode, $isAssociationInlineNode, AssociationInlineNode } from "../customNodes/AssociationInlineNode";
-import { ClickData } from "./DocumentClickPlugin";
+import { $createAssociationInlineNode, $isAssociationInlineNode, AssociationInlineNodeDemo } from "../customNodes/AssociationInlineNodeDemo"
+import { ClickData } from "./DocumentClickPluginDemo";
 
 // Utility to escape RegExp special characters
 const escapeRegExp = (string: string) => {
     return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
-export const AssociationDecoratorPlugin = ({
+export const AssociationDecoratorPluginDemo = ({
     associations,
     isProgrammaticChange,
     customLeftClick,
@@ -53,17 +53,17 @@ export const AssociationDecoratorPlugin = ({
     const findObsoleteDecorators = useCallback((
         root: ElementNode,
         currentAssociations: SimplifiedAssociation[]
-    ): AssociationInlineNode[] => {
+    ): AssociationInlineNodeDemo[] => {
         // Create a map from association id to association data for quick lookup.
         const currentAssociationMap = new Map<string, SimplifiedAssociation>();
         currentAssociations.forEach(assoc => {
             currentAssociationMap.set(assoc.association_id, assoc);
         });
 
-        const obsoleteNodes: AssociationInlineNode[] = [];
+        const obsoleteNodes: AssociationInlineNodeDemo[] = [];
 
         getAllDescendants(root).forEach((node) => {
-            if (node instanceof AssociationInlineNode) {
+            if (node instanceof AssociationInlineNodeDemo) {
                 const nodeAssocId = node.getAssociationId();
                 const currentAssoc = currentAssociationMap.get(nodeAssocId);
 
