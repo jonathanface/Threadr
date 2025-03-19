@@ -44,12 +44,13 @@
 .associationTooltipBody {
     width: 300px;
     max-height: 150px;
+    min-height: 100px;
     display: inline-block;
     background-color: #6f6f6f;
     border-radius: 10px;
     position: absolute;
     padding: 8px;
-    z-index: 1000;
+    z-index: 5000;
     opacity: 0;
     transition: opacity 0.2s ease;
     font-size: 0.7rem;
