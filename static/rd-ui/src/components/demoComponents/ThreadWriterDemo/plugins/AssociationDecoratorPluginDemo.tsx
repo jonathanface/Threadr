@@ -97,6 +97,7 @@ export const AssociationDecoratorPluginDemo = ({
         // Check if the previous sibling does NOT end with whitespace or allowed punctuation
         const previousDoesNotEndWithWhitespaceOrPunctuation =
             previousSibling instanceof TextNode &&
+            // eslint-disable-next-line no-useless-escape
             !/[\s.,:;"'’“…—–\-]$/.test(previousSibling.getTextContent().slice(-1)); // Only check the last character
         if (previousSibling && previousDoesNotEndWithWhitespaceOrPunctuation) {
             console.log("issue with", node.getTextContent());
@@ -106,6 +107,7 @@ export const AssociationDecoratorPluginDemo = ({
         // Check if the next sibling does NOT start with whitespace or allowed punctuation
         const nextDoesNotStartWithWhitespaceOrPunctuation =
             nextSibling instanceof TextNode &&
+            // eslint-disable-next-line no-useless-escape
             !/^[\s.,:;!"'’“?…—–\-]|\u200B/.test(nextSibling.getTextContent().charAt(0)); // Only check the first character
         if (nextSibling && nextDoesNotStartWithWhitespaceOrPunctuation) {
             console.log("issue with", node.getTextContent());

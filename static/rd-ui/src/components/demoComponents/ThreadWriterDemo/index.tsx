@@ -3,12 +3,11 @@ import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
-import { $createPoint, $createRangeSelection, $createTextNode, $isRangeSelection, $isTextNode, $setSelection, LexicalEditor, LexicalNode, ParagraphNode, SerializedEditorState } from 'lexical';
+import { $createRangeSelection, $isRangeSelection, $isTextNode, $setSelection, LexicalEditor, LexicalNode, SerializedEditorState } from 'lexical';
 import {
   $getRoot,
   $getSelection,
   $isElementNode,
-  ElementNode,
 } from 'lexical';
 import LexicalErrorBoundary from '@lexical/react/LexicalErrorBoundary';
 import styles from "./threadwriter.module.css";

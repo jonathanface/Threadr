@@ -100,9 +100,6 @@ export const AssociationDecoratorPlugin = ({
 
                 // Check for adjacent non-whitespace text nodes (post-traversal check)
                 const hasAdjacentNonWhitespace = checkAdjacentNonWhitespaceOrPunctuation(node);
-                if (hasAdjacentNonWhitespace) {
-                    console.log("has")
-                }
                 // console.log("out of sync", isTextOutOfSync, "adjacent", hasAdjacentNonWhitespace);
                 // If the node's text has changed or if there are adjacent non-whitespace characters, mark it as obsolete
                 if (isTextOutOfSync || hasAdjacentNonWhitespace) {
@@ -123,6 +120,7 @@ export const AssociationDecoratorPlugin = ({
         // Check if the previous sibling does NOT end with whitespace or allowed punctuation
         const previousDoesNotEndWithWhitespaceOrPunctuation =
             previousSibling instanceof TextNode &&
+            // eslint-disable-next-line no-useless-escape
             !/[\s.,:;"'’“…—–\-]$/.test(previousSibling.getTextContent().slice(-1)); // Only check the last character
         if (previousSibling && previousDoesNotEndWithWhitespaceOrPunctuation) {
             console.log("issue with", node.getTextContent());
@@ -132,6 +130,7 @@ export const AssociationDecoratorPlugin = ({
         // Check if the next sibling does NOT start with whitespace or allowed punctuation
         const nextDoesNotStartWithWhitespaceOrPunctuation =
             nextSibling instanceof TextNode &&
+            // eslint-disable-next-line no-useless-escape
             !/^[\s.,:;!"'’“?…—–\-]/.test(nextSibling.getTextContent().charAt(0)); // Only check the first character
         if (nextSibling && nextDoesNotStartWithWhitespaceOrPunctuation) {
             console.log("issue with", node.getTextContent());
