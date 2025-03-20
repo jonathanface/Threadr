@@ -3,12 +3,11 @@ import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
-import { $createPoint, $createRangeSelection, $createTextNode, $isRangeSelection, $isTextNode, $setSelection, LexicalEditor, LexicalNode, ParagraphNode, SerializedEditorState } from 'lexical';
+import { $createRangeSelection, $isRangeSelection, $isTextNode, $setSelection, LexicalEditor, LexicalNode, SerializedEditorState } from 'lexical';
 import {
   $getRoot,
   $getSelection,
   $isElementNode,
-  ElementNode,
 } from 'lexical';
 import LexicalErrorBoundary from '@lexical/react/LexicalErrorBoundary';
 import styles from "./threadwriter.module.css";
@@ -219,7 +218,6 @@ export const ThreadWriterDemo = () => {
     setContextMenuData(defaultContextData);
   };
 
-
   const handleMenuItemClick = async (_event: React.MouseEvent, type: AssociationType) => {
     setContextMenuData(defaultContextData);
     const text = getSelectedText();
@@ -377,61 +375,23 @@ export const ThreadWriterDemo = () => {
         setAssociations(storedAssociations);
         isInitialLoad.current = false;
         console.log("Initial load: fetching story blocks and associations");
-        isProgrammaticChange.current = true; // Start programmatic change
+
+        // Wait for the editor to finish any processing
+        isProgrammaticChange.current = true;
         await getBatchedStoryBlocks();
-        isProgrammaticChange.current = false; // End programmatic change
+        isProgrammaticChange.current = false;
+        const container = document.querySelector(`.${styles.outerWrapper}`)?.parentElement;
+        if (container) {
+          setTimeout(() => container.scrollTop = 0, 250);
+        }
+
       }
     };
+
     fetchData();
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [getBatchedStoryBlocks]);
-
-  useEffect(() => {
-    if (editorRef.current) {
-      // Transform default ParagraphNode to CustomParagraphNode
-      editorRef.current.registerNodeTransform(ParagraphNode, (node: ParagraphNode) => {
-        if (!(node instanceof CustomParagraphNode) || !node.getKeyId()) {
-          const replacement = new CustomParagraphNode(uuidv4());
-          replacement.append(...node.getChildren());
-
-          const tabTextNode = $createTextNode("\t");
-          const firstChild = replacement.getFirstChild();
-          if (firstChild) {
-            firstChild.insertBefore(tabTextNode);
-          } else {
-            replacement.append(tabTextNode);
-          }
-          const point = $createPoint(tabTextNode.getKey(), 1, "text");
-          const rangeSelection = $createRangeSelection();
-          rangeSelection.anchor = point;
-          rangeSelection.focus = point;
-          $setSelection(rangeSelection);
-
-          node.replace(replacement);
-        }
-      });
-    }
-  }, [editorRef]);
-
-  useEffect(() => {
-    if (editorRef.current) {
-      isProgrammaticChange.current = true;
-      editorRef.current.update(() => {
-        const root = $getRoot();
-        const children = root.getChildren();
-        children.forEach((child) => {
-          if (child.getType() === "paragraph" && !(child instanceof CustomParagraphNode)) {
-            console.error(`Existing ParagraphNode found: ${child.getKey()}`);
-            const replacement = new CustomParagraphNode(uuidv4());
-            replacement.append(...(child as ElementNode).getChildren<ElementNode>());
-            child.replace(replacement);
-          }
-        });
-      });
-      isProgrammaticChange.current = false;
-    }
-  }, [editorRef]);
+  }, [getBatchedStoryBlocks, editorRef.current]);
 
   const onAssociationEditCallback = useCallback(async (assoc: Association) => {
     setAssociations((prevAssociations: SimplifiedAssociation[] = []) =>

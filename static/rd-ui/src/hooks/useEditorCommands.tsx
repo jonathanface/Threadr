@@ -1,10 +1,11 @@
-import { $createTextNode, $getRoot, $getSelection, $isElementNode, $isRangeSelection, $isTextNode, COMMAND_PRIORITY_CRITICAL, KEY_TAB_COMMAND, LexicalEditor, ParagraphNode, PASTE_COMMAND } from "lexical";
+import { $createTextNode, $getRoot, $getSelection, $isElementNode, $isRangeSelection, $isTextNode, COMMAND_PRIORITY_CRITICAL, KEY_TAB_COMMAND, LexicalEditor, ParagraphNode, PASTE_COMMAND, TextNode } from "lexical";
 import { useCallback, useEffect } from "react";
 import { CustomParagraphNode } from "../components/ThreadWriter/customNodes/CustomParagraphNode";
 import { useDocumentSettings } from "./useDocumentSettings";
 import { v4 as uuidv4 } from 'uuid';
 import { AlertToastType } from "../types/AlertToasts";
 import { useToaster } from "./useToaster";
+import { $isAssociationInlineNode } from "../components/ThreadWriter/customNodes/AssociationInlineNode";
 
 
 export const useEditorCommands = (editorRef: React.RefObject<LexicalEditor | null>, pastedParagraphKeys: React.RefObject<Set<string>>) => {
@@ -23,7 +24,10 @@ export const useEditorCommands = (editorRef: React.RefObject<LexicalEditor | nul
                     if (parentNode instanceof CustomParagraphNode) {
                         const anchorOffset = selection.anchor.offset; // Get the cursor offset
                         const anchorNode = selection.anchor.getNode();
-                        if ($isTextNode(anchorNode)) {
+                        if ($isAssociationInlineNode(anchorNode)) {
+                            const newText = new TextNode('\t');
+                            anchorNode.insertBefore(newText);
+                        } else if ($isTextNode(anchorNode)) {
                             // Case: Cursor is inside a TextNode
                             const currentText = anchorNode.getTextContent();
                             const beforeText = currentText.slice(0, anchorOffset); // Text before the cursor
@@ -40,7 +44,7 @@ export const useEditorCommands = (editorRef: React.RefObject<LexicalEditor | nul
                             const currentIndent = parentNode.getIndent() || 0;
                             parentNode.setIndent(currentIndent + 1);
                         }
-                    } else if (!$isTextNode(selectedNode) && $isElementNode(parentNode)) {
+                    } else if (!$isAssociationInlineNode(selectedNode) && !$isTextNode(selectedNode) && $isElementNode(parentNode)) {
                         // Handling blank line or root-level selection
                         const newTextNode = $createTextNode("\t");
                         selectedNode.append(newTextNode);
@@ -49,7 +53,7 @@ export const useEditorCommands = (editorRef: React.RefObject<LexicalEditor | nul
                             selection.anchor.set(newTextNode.getKey(), 1, "text");
                             selection.focus.set(newTextNode.getKey(), 1, "text");
                         }
-                    } else if (!$isTextNode(selectedNode) && !$isElementNode(parentNode)) {
+                    } else if (!$isAssociationInlineNode(selectedNode) && !$isTextNode(selectedNode) && !$isElementNode(parentNode)) {
                         const root = $getRoot();
                         const newParagraph = new CustomParagraphNode(uuidv4());
                         const newTextNode = $createTextNode("\t");
@@ -57,6 +61,9 @@ export const useEditorCommands = (editorRef: React.RefObject<LexicalEditor | nul
                         root.append(newParagraph);
                         selection.anchor.set(newTextNode.getKey(), 1, "text");
                         selection.focus.set(newTextNode.getKey(), 1, "text");
+                    } else if ($isAssociationInlineNode(selectedNode)) {
+                        const newText = new TextNode('\t');
+                        selectedNode.insertBefore(newText);
                     } else if ($isTextNode(selectedNode)) {
                         const currentText = selectedNode.getTextContent();
                         selectedNode.setTextContent(currentText + "\t");

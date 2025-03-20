@@ -241,6 +241,7 @@ export class AssociationInlineNodeDemo extends TextNode {
 
     // Override createDOM to add your custom classes and data attributes.
     createDOM(): HTMLElement {
+        if (this.__decorator) return this.__decorator;
         this.__decorator = document.createElement('span');
         this.__decorator.classList.add(styles.associationInline);
         this.__decorator.classList.add(styles[this.__associationType]);
@@ -273,6 +274,10 @@ export class AssociationInlineNodeDemo extends TextNode {
 
     hideHovers() {
         document.querySelectorAll('#association-tooltip').forEach(el => el.remove());
+        if (tooltipElement) {
+            tooltipElement.remove();
+            tooltipElement = null; // Make sure to set it to null
+        }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
