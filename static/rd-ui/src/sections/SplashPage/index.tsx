@@ -24,7 +24,6 @@ export const SplashPage = () => {
           <h4>Editable Excerpt: <a href="https://www.amazon.com/Remnants-Dead-Loss-Jonathan-Face-ebook/dp/B071V6BV9J" target="_blank"><i>The Remnants: Dead Loss</i></a> by Jonathan Face</h4>
         </div>
         <div className={styles.demo}>
-
           <ThreadWriterDemo />
         </div>
       </div>
