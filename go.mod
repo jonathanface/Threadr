@@ -22,6 +22,8 @@ require (
 	github.com/stripe/stripe-go/v72 v72.122.0
 )
 
+require golang.org/x/net v0.21.0 // indirect
+
 require (
 	cloud.google.com/go v0.67.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.4.10 // indirect
@@ -47,7 +49,6 @@ require (
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/markbates/going v1.0.0 // indirect
-	golang.org/x/net v0.36.0 // indirect
 	golang.org/x/oauth2 v0.17.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
