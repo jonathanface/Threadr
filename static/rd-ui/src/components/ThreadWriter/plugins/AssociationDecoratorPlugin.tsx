@@ -93,9 +93,11 @@ export const AssociationDecoratorPlugin = ({
                     : currentAssoc.association_name.trim().toLowerCase();
 
                 // Check if the current node's text no longer matches the association's name or its aliases
+
+                const enteredText = currentAssoc.case_sensitive ? nodeText : nodeText.toLowerCase();
                 const isTextOutOfSync = (
-                    nodeText !== associationName &&
-                    !(formattedAliases.includes(currentAssoc.case_sensitive ? nodeText : nodeText.toLowerCase()))
+                    enteredText !== associationName &&
+                    !(formattedAliases.includes(enteredText))
                 );
 
                 // Check for adjacent non-whitespace text nodes (post-traversal check)
@@ -150,31 +152,31 @@ export const AssociationDecoratorPlugin = ({
             const prevText = previousSibling.getTextContent();
             if (prevText.trim() !== "" && !/\s$/.test(prevText)) {
                 // Merge with previous sibling if it doesn't end with whitespace
-                //console.log("Merging with previous sibling", prevText, node.getName());
+                console.log("Merging with previous sibling", prevText, node.getName());
                 previousSibling.setTextContent(prevText + node.getName());
             } else {
                 // Case 2: If previousSibling ends with whitespace, check nextSibling
-                //console.log("Previous sibling ends with whitespace, checking nextSibling.");
+                console.log("Previous sibling ends with whitespace, checking nextSibling.");
                 if (nextSibling instanceof TextNode && !/^\s/.test(nextSibling.getTextContent())) {
                     // Merge with the next sibling if it doesn't start with whitespace
-                    //console.log("Merging with next sibling", node.getName(), nextSibling.getTextContent());
+                    console.log("Merging with next sibling", node.getName(), nextSibling.getTextContent());
                     nextSibling.setTextContent(node.getName() + nextSibling.getTextContent());
                 } else {
                     // Case 3: If no valid merge, insert as new TextNode
-                    //console.log("Inserting as new TextNode", node.getName());
+                    console.log("Inserting as new TextNode", node.getName());
                     const text = new TextNode(node.getName());
                     node.insertBefore(text);
                 }
             }
         } else {
             // Case 4: If no previous sibling, just check nextSibling
-            //console.log("No previous sibling, checking next sibling.");
+            console.log("No previous sibling, checking next sibling.");
             if (nextSibling instanceof TextNode && !/^\s/.test(nextSibling.getTextContent())) {
-                //console.log("Merging with next sibling", node.getName(), nextSibling.getTextContent());
+                console.log("Merging with next sibling", node.getName(), nextSibling.getTextContent());
                 nextSibling.setTextContent(node.getName() + nextSibling.getTextContent());
             } else {
                 // Case 5: No adjacent text node, insert as new TextNode
-                //console.log("Inserting as new TextNode", node.getName());
+                console.log("Inserting as new TextNode", node.getName());
                 const text = new TextNode(node.getName());
                 node.insertBefore(text);
             }
