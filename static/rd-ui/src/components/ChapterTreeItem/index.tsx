@@ -12,7 +12,7 @@ import { useLoader } from "../../hooks/useLoader";
 import styles from './chaptertreeitem.module.css';
 
 interface ChapterTreeItemProps {
-    chapter: Chapter;
+    itemChapter: Chapter;
     assignedSection?: OutlineSection;
     draggableId: string;
     index: number;
@@ -82,8 +82,8 @@ const getStringColor = (header: string): string => {
     return colorPalette[sum % colorPalette.length];
 }
 
-export const ChapterTreeItem = ({ chapter, assignedSection, draggableId, index }: ChapterTreeItemProps) => {
-    const { story, setStory, setChapter } = useSelections();
+export const ChapterTreeItem = ({ itemChapter, assignedSection, draggableId, index }: ChapterTreeItemProps) => {
+    const { story, setStory, chapter, setChapter } = useSelections();
     const { setAlertState } = useToaster();
     const { showLoader, hideLoader } = useLoader();
 
@@ -139,10 +139,11 @@ export const ChapterTreeItem = ({ chapter, assignedSection, draggableId, index }
         <Draggable draggableId={draggableId} index={index}>
             {(provided: DraggableProvided) => (
                 <TreeItem
-                    itemId={chapter.id}
+                    itemId={itemChapter.id}
                     ref={provided.innerRef}
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
+                    className={chapter?.id === itemChapter.id ? styles.activeChapter : ""}
                     label={
                         <Tooltip
                             title={assignedSection ? `Assigned to: ${assignedSection.header}` : "Not assigned to an outline"}
@@ -151,7 +152,7 @@ export const ChapterTreeItem = ({ chapter, assignedSection, draggableId, index }
                             <Box className={styles.chapterMenuItem}>
                                 {/* Left side: Chapter Title + Chip */}
                                 <Box className={styles.leftItems}>
-                                    <Typography>{chapter.title}</Typography>
+                                    <Typography>{itemChapter.title}</Typography>
                                     {assignedSection && (
                                         <Chip
                                             label={assignedSection.header}
@@ -169,7 +170,7 @@ export const ChapterTreeItem = ({ chapter, assignedSection, draggableId, index }
                                     title="Delete Chapter"
                                     aria-label="delete"
                                     size="small"
-                                    onClick={(event) => onDeleteChapterClick(event, chapter.id, chapter.title)}
+                                    onClick={(event) => onDeleteChapterClick(event, itemChapter.id, itemChapter.title)}
                                     sx={{ marginLeft: "auto" }} // ✅ Ensures it stays on the right
                                 >
                                     <DeleteOutlineIcon />

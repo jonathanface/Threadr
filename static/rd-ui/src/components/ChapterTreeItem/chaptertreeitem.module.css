@@ -5,6 +5,11 @@
     width: 100%;
 }
 
+.activeChapter {
+    border: 1px dashed #333;
+    border-radius: 5px;
+}
+
 .leftItems {
     display: flex;
     align-items: center;

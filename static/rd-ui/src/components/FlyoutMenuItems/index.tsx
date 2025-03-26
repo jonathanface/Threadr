@@ -191,7 +191,7 @@ export const FlyoutMenuItems = ({ chapters, onAssociationClick }: SettingsMenuPr
                                     .sort((a, b) => a.place - b.place)
                                     .map((chap, idx) => {
                                         const assignedSection = story.outline?.find(section => section.chapters?.includes(chap.id));
-                                        return <ChapterTreeItem index={idx} draggableId={chap.id} key={chap.id} chapter={chap} assignedSection={assignedSection} />
+                                        return <ChapterTreeItem index={idx} draggableId={chap.id} key={chap.id} itemChapter={chap} assignedSection={assignedSection} />
                                     })}
                                 {provided.placeholder}
                             </div>
