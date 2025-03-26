@@ -16,8 +16,8 @@ import LexicalErrorBoundary from '@lexical/react/LexicalErrorBoundary';
 import styles from "./threadwriter.module.css";
 import { Toolbar } from '../ThreadWriterToolbar';
 import { useLoader } from '../../hooks/useLoader';
-import { ProcessDBQueue } from './queue';
-import { DBOperation, DBOperationBlock, DBOperationType } from '../../types/DBOperations';
+import { ProcessDBQueue, QueueOp, QueueSyncOrder } from './queue';
+import { DBOperationBlock, DBOperationType } from '../../types/DBOperations';
 import { v4 as uuidv4 } from 'uuid';
 import { CustomParagraphNode } from './customNodes/CustomParagraphNode';
 import { BlockOrderMap } from '../../types/Document';
@@ -32,7 +32,7 @@ import { useFetchStoryBlocks } from '../../hooks/useFetchStoryBlocks';
 import { useAssociations } from '../../hooks/useAssociations';
 import { useEditorStateUpdater } from '../../hooks/useEditorStateUpdater';
 import { dbEventEmitter, SaveSuccessPayload } from '../../utils/EventEmitter';
-import { DbOperationQueue, generateTextHash } from '../../constants/constants';
+import { generateTextHash } from '../../constants/constants';
 import { getParagraphIndexByKey, serializeWithChildren } from '../../utils/helpers';
 import { ContextMenu, ContextMenuProps } from '../ContextMenu';
 import DocumentClickPlugin, { ClickData } from './plugins/DocumentClickPlugin';
@@ -316,14 +316,14 @@ export const ThreadWriter = () => {
 
         }
       })
-      DbOperationQueue.push({
+      QueueSyncOrder({
         type: DBOperationType.syncOrder,
         orderList: orderMap,
         blocks: [],
         time: Date.now(),
         storyID: story.story_id,
         chapterID: chapter.id,
-      });
+      })
     });
   }, [chapter, story]);
 
@@ -332,41 +332,16 @@ export const ThreadWriter = () => {
     const deleteBlock: DBOperationBlock = { key_id: customKey };
     const storyID = story.story_id;
     const chapterID = chapter.id;
-    const op: DBOperation = { type: DBOperationType.delete, storyID, chapterID, blocks: [deleteBlock], time: Date.now() };
-    DbOperationQueue.push(op);
-  }, [chapter, story]);
+    QueueOp(DBOperationType.delete, storyID, chapterID, deleteBlock, previousTableStatus)
+  }, [chapter, story, previousTableStatus]);
 
   const queueParagraphForSave = useCallback((customKey: string, order: string, content: SerializedElementNode<SerializedLexicalNode>) => {
     if (!story || !chapter) return;
-    // Check if there's an existing save operation for this paragraph
-    const existingOpIndex = DbOperationQueue.findIndex(op =>
-      op.type === DBOperationType.save &&
-      op.blocks.some(block => block.key_id === customKey)
-    );
+    const saveBlock: DBOperationBlock = { key_id: customKey, chunk: content, place: order };
+    const storyID = story.story_id;
+    const chapterID = chapter.id;
+    QueueOp(DBOperationType.save, storyID, chapterID, saveBlock, previousTableStatus)
 
-    if (existingOpIndex !== -1) {
-      // Update the existing operation
-      const existingOp = DbOperationQueue[existingOpIndex];
-      existingOp.blocks = existingOp.blocks.map(block =>
-        block.key_id === customKey ? { key_id: customKey, chunk: content, place: order } : block
-      );
-      // Optionally, update the timestamp so that the server knows this is a newer change
-      existingOp.time = Date.now();
-    } else {
-      // Otherwise, push a new operation
-      const saveBlock: DBOperationBlock = { key_id: customKey, chunk: content, place: order };
-      const storyID = story.story_id;
-      const chapterID = chapter.id;
-      const newOp: DBOperation = {
-        type: DBOperationType.save,
-        storyID,
-        chapterID,
-        blocks: [saveBlock],
-        time: Date.now(),
-        tableStatus: previousTableStatus
-      };
-      DbOperationQueue.push(newOp);
-    }
   }, [chapter, previousTableStatus, story]);
 
   const queueAllParagraphsForSave = useCallback((storyID: string, chapterID: string) => {
@@ -406,28 +381,15 @@ export const ThreadWriter = () => {
           place: index.toString(), // Assuming 'place' represents the order
         };
 
-        // Create a save operation
-        const saveOperation: DBOperation = {
-          type: DBOperationType.save,
-          storyID: storyID,
-          chapterID: chapterID,
-          blocks: [saveBlock],
-          time: Date.now(),
-        };
+        QueueOp(
+          DBOperationType.save,
+          storyID,
+          chapterID,
+          saveBlock
+        );
 
-        // Enqueue the save operation
-        DbOperationQueue.push(saveOperation);
         orderMap.blocks.push({ key_id, place: index.toString() });
 
-      });
-
-      DbOperationQueue.push({
-        type: DBOperationType.syncOrder,
-        orderList: orderMap,
-        blocks: [],
-        time: Date.now(),
-        storyID: storyID,
-        chapterID: chapterID,
       });
 
       try {
@@ -644,6 +606,18 @@ export const ThreadWriter = () => {
     };
   }, [story?.story_id, setAlertState, runQueue]);
 
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      try {
+        ProcessDBQueue(); // force sync
+      } catch (err) {
+        console.error("Error flushing DB queue on unload", err);
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+
   const onChangeHandler = useCallback((editorState: EditorState) => {
     if (isProgrammaticChange.current) {
       console.log("Programmatic change detected, skipping onChange handling.");
@@ -665,7 +639,6 @@ export const ThreadWriter = () => {
       const currentNodeKeys = new Set<string>();
       const newParagraphKeys = new Set<string>();
       const paragraphsToSave: { key_id: string, order: string, content: SerializedElementNode<SerializedLexicalNode> }[] = [];
-      const paragraphsToDelete: string[] = [];
       let orderResyncRequired = false;
 
       children.forEach((node, index) => {
@@ -674,36 +647,58 @@ export const ThreadWriter = () => {
           if (id) {
             currentNodeKeys.add(id);
 
+            // If new paragraph (not seen before), flag for save
             if (!previousNodeKeysRef.current.has(id)) {
+              orderResyncRequired = true;
               newParagraphKeys.add(id);
-              if (index !== children.length - 1) {
-                orderResyncRequired = true;
-              }
             }
+
+            // Add to paragraphsToSave if new, pasted, or selected
             const selection = $getSelection();
-            const customParagraph = $isRangeSelection(selection) ? selection.anchor.getNode().getParent() : null;
-            const selectedNodeKey = customParagraph instanceof CustomParagraphNode ? customParagraph.getKeyId() : null;
-            if (pastedParagraphKeys.current.has(id) || newParagraphKeys.has(id) || id === selectedNodeKey) {
+            const customParagraph = $isRangeSelection(selection)
+              ? selection.anchor.getNode().getParent()
+              : null;
+            const selectedNodeKey =
+              customParagraph instanceof CustomParagraphNode
+                ? customParagraph.getKeyId()
+                : null;
+
+            if (
+              pastedParagraphKeys.current.has(id) ||
+              newParagraphKeys.has(id) ||
+              id === selectedNodeKey ||
+              !previousNodeKeysRef.current.has(id)
+            ) {
               const serialized = serializeWithChildren(node);
-              paragraphsToSave.push({ key_id: serialized.key_id, order: index.toString(), content: serialized });
+              paragraphsToSave.push({
+                key_id: serialized.key_id,
+                order: index.toString(),
+                content: serialized,
+              });
             }
-            previousNodeKeysRef.current.delete(id);
           }
         }
       });
 
       // Remaining keys in previousNodeKeysRef are to be deleted
-      const deletedKeys = Array.from(previousNodeKeysRef.current);
-      paragraphsToDelete.push(...deletedKeys);
+      const deletedKeys = [...previousNodeKeysRef.current].filter(
+        (key) => !currentNodeKeys.has(key)
+      );
+      deletedKeys.forEach((key) => queueParagraphForDeletion(key));
+      if (deletedKeys.length) {
+        orderResyncRequired = true;
+      }
+
+      // Step 4: Filter saves – remove any that were just deleted
+      const filteredSaves = paragraphsToSave.filter(
+        (p) => !deletedKeys.includes(p.key_id)
+      );
+      filteredSaves.forEach((p) =>
+        queueParagraphForSave(p.key_id, p.order, p.content)
+      );
 
       // Reset previousNodeKeysRef to current keys
       previousNodeKeysRef.current = currentNodeKeys;
-
-      // Queue deletions
-      paragraphsToDelete.forEach(key => queueParagraphForDeletion(key));
-
-      // Queue saves
-      paragraphsToSave.forEach(paragraph => queueParagraphForSave(paragraph.key_id, paragraph.order, paragraph.content));
 
       // If order resync is required, queue it
       if (orderResyncRequired) queueParagraphOrderResync();

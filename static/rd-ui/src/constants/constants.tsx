@@ -1,7 +1,4 @@
-import { DBOperation } from "../types/DBOperations";
 import { $getRoot, LexicalEditor, TextNode } from 'lexical';
-
-export const DbOperationQueue: DBOperation[] = [];
 
 const simple32BitHash = (str: string): string => {
     let hash = 0;
