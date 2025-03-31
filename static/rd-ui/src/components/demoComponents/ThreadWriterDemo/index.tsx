@@ -23,7 +23,7 @@ import { ContextMenu, ContextMenuProps } from '../../ContextMenu';
 import DocumentClickPluginDemo, { ClickData } from './plugins/DocumentClickPluginDemo';
 import { TextTransformPluginDemo } from './plugins/TextTransformPluginDemo'
 import { useEditorCommandsDemo } from '../hooks/useEditorCommandsDemo';
-import { AssociationInlineNodeDemo } from './customNodes/AssociationInlineNodeDemo';
+import { $isAssociationInlineNode, AssociationInlineNodeDemo } from './customNodes/AssociationInlineNodeDemo';
 
 const theme = {
   'custom-paragraph': styles.customParagraph,
@@ -314,7 +314,7 @@ export const ThreadWriterDemo = () => {
         // Get all text nodes
         const textNodes: LexicalNode[] = [];
         const traverseNodes = (node: LexicalNode) => {
-          if ($isTextNode(node)) {
+          if ($isTextNode(node) || $isAssociationInlineNode(node)) {
             textNodes.push(node);
           } else if ($isElementNode(node)) {
             node.getChildren().forEach(traverseNodes);

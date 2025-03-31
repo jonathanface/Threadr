@@ -39,7 +39,7 @@ import DocumentClickPlugin, { ClickData } from './plugins/DocumentClickPlugin';
 import { useDocumentSettings } from '../../hooks/useDocumentSettings';
 import { TextTransformPlugin } from './plugins/TextTransformPlugin';
 import { useEditorCommands } from '../../hooks/useEditorCommands';
-import { AssociationInlineNode } from './customNodes/AssociationInlineNode';
+import { $isAssociationInlineNode, AssociationInlineNode } from './customNodes/AssociationInlineNode';
 
 const theme = {
   'custom-paragraph': styles.customParagraph,
@@ -298,6 +298,7 @@ export const ThreadWriter = () => {
 
   const queueParagraphOrderResync = useCallback(() => {
     if (!story || !chapter || !editorRef.current) return;
+    console.log("queueing a resync!!!!!")
     editorRef.current.read(() => {
       const root = $getRoot();
       const paragraphs = root.getChildren().filter((node) => node.getType() === "custom-paragraph");
@@ -327,19 +328,19 @@ export const ThreadWriter = () => {
     });
   }, [chapter, story]);
 
-  const queueParagraphForDeletion = useCallback((customKey: string) => {
-    if (!story || !chapter) return;
+  const queueParagraphForDeletion = useCallback((chapterID: string, customKey: string) => {
+    if (!story) return;
+    console.log("queueing a delete!!!!!")
     const deleteBlock: DBOperationBlock = { key_id: customKey };
     const storyID = story.story_id;
-    const chapterID = chapter.id;
     QueueOp(DBOperationType.delete, storyID, chapterID, deleteBlock, previousTableStatus)
-  }, [chapter, story, previousTableStatus]);
+  }, [story, previousTableStatus]);
 
-  const queueParagraphForSave = useCallback((customKey: string, order: string, content: SerializedElementNode<SerializedLexicalNode>) => {
+  const queueParagraphForSave = useCallback((chapterID: string, customKey: string, order: string, content: SerializedElementNode<SerializedLexicalNode>) => {
     if (!story || !chapter) return;
+    console.log("queueing a save!!!!!")
     const saveBlock: DBOperationBlock = { key_id: customKey, chunk: content, place: order };
     const storyID = story.story_id;
-    const chapterID = chapter.id;
     QueueOp(DBOperationType.save, storyID, chapterID, saveBlock, previousTableStatus)
 
   }, [chapter, previousTableStatus, story]);
@@ -433,7 +434,7 @@ export const ThreadWriter = () => {
         // Get all text nodes
         const textNodes: LexicalNode[] = [];
         const traverseNodes = (node: LexicalNode) => {
-          if ($isTextNode(node)) {
+          if ($isTextNode(node) || $isAssociationInlineNode(node)) {
             textNodes.push(node);
           } else if ($isElementNode(node)) {
             node.getChildren().forEach(traverseNodes);
@@ -506,7 +507,6 @@ export const ThreadWriter = () => {
   // Merged useEffect to handle both story and chapter changes
   useEffect(() => {
     if (story?.story_id && chapter?.id) {
-      console.log("Story or Chapter changed:", { story, chapter });
       const fetchData = async () => {
         if (isInitialLoad.current && editorRef.current) {
           console.log("Initial load: fetching story blocks and associations");
@@ -528,10 +528,11 @@ export const ThreadWriter = () => {
         fetchData();
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [story?.story_id, chapter?.id, getBatchedStoryBlocks]);
 
   useEffect(() => {
+    if (!chapter) return;
     if (editorRef.current) {
       // Transform default ParagraphNode to CustomParagraphNode
       editorRef.current.registerNodeTransform(ParagraphNode, (node: ParagraphNode) => {
@@ -565,7 +566,7 @@ export const ThreadWriter = () => {
             if (index !== null) {
               const id = node.getKeyId();
               if (id) {
-                queueParagraphForSave(id, index.toString(), serializeWithChildren(node));
+                queueParagraphForSave(chapter.id, id, index.toString(), serializeWithChildren(node));
               }
             }
           });
@@ -573,7 +574,7 @@ export const ThreadWriter = () => {
         }
       });
     }
-  }, [editorRef, queueParagraphForSave, documentSettings?.autotab]);
+  }, [editorRef, chapter, queueParagraphForSave, documentSettings?.autotab]);
 
   useEffect(() => {
     if (editorRef.current) {
@@ -609,6 +610,7 @@ export const ThreadWriter = () => {
   useEffect(() => {
     const handleBeforeUnload = () => {
       try {
+        console.warn("UNLOAD DETECTED")
         ProcessDBQueue(); // force sync
       } catch (err) {
         console.error("Error flushing DB queue on unload", err);
@@ -619,6 +621,7 @@ export const ThreadWriter = () => {
   }, []);
 
   const onChangeHandler = useCallback((editorState: EditorState) => {
+    if (!chapter) return;
     if (isProgrammaticChange.current) {
       console.log("Programmatic change detected, skipping onChange handling.");
       return;
@@ -684,7 +687,7 @@ export const ThreadWriter = () => {
       const deletedKeys = [...previousNodeKeysRef.current].filter(
         (key) => !currentNodeKeys.has(key)
       );
-      deletedKeys.forEach((key) => queueParagraphForDeletion(key));
+      deletedKeys.forEach((key) => queueParagraphForDeletion(chapter.id, key));
       if (deletedKeys.length) {
         orderResyncRequired = true;
       }
@@ -694,7 +697,7 @@ export const ThreadWriter = () => {
         (p) => !deletedKeys.includes(p.key_id)
       );
       filteredSaves.forEach((p) =>
-        queueParagraphForSave(p.key_id, p.order, p.content)
+        queueParagraphForSave(chapter.id, p.key_id, p.order, p.content)
       );
 
       // Reset previousNodeKeysRef to current keys
@@ -703,7 +706,7 @@ export const ThreadWriter = () => {
       // If order resync is required, queue it
       if (orderResyncRequired) queueParagraphOrderResync();
     });
-  }, [queueParagraphForDeletion, queueParagraphForSave, queueParagraphOrderResync]);
+  }, [chapter, queueParagraphForDeletion, queueParagraphForSave, queueParagraphOrderResync]);
 
 
   const onAssociationEditCallback = useCallback(async (assoc: Association) => {
@@ -772,7 +775,7 @@ export const ThreadWriter = () => {
         // Get all text nodes
         const textNodes: LexicalNode[] = [];
         const traverseNodes = (node: LexicalNode) => {
-          if ($isTextNode(node)) {
+          if ($isTextNode(node) || $isAssociationInlineNode(node)) {
             textNodes.push(node);
           } else if ($isElementNode(node)) {
             node.getChildren().forEach(traverseNodes);
@@ -880,7 +883,7 @@ export const ThreadWriter = () => {
             <AssociationDecoratorPlugin isProgrammaticChange={isProgrammaticChange} scrollToTop={true} customLeftClick={handleAssociationLeftClick} customRightClick={handleAssociationRightClick} />
             <OnChangePlugin onChange={onChangeHandler} />
             <HistoryPlugin />
-            <TextTransformPlugin />
+            <TextTransformPlugin isProgrammaticChange={isProgrammaticChange} />
             <DocumentClickPlugin onLeftClick={handleDocumentLeftClick} onRightClick={handleDocumentRightClick} />
             <AssociationPanel onEditCallback={onAssociationEditCallback} isAssociationPanelOpen={isAssociationPanelOpen} setIsAssociationPanelOpen={setIsAssociationPanelOpen} selectedAssociationID={selectedAssociation.current} />
             <ContextMenu name={contextMenuData.name} visible={contextMenuData.visible} x={contextMenuData.x} y={contextMenuData.y} items={contextMenuData.items} />

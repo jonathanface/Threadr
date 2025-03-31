@@ -3,9 +3,13 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
     $getRoot,
+    $getSelection,
+    $isRangeSelection,
     $isTextNode,
     ElementNode,
+    FORMAT_TEXT_COMMAND,
     LexicalNode,
+    TextFormatType,
     TextNode,
 } from "lexical";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
@@ -385,6 +389,28 @@ export const AssociationDecoratorPluginDemo = ({
             return () => unregister();
         }
     }, [associations, editor, handleUserEditorUpdate]);
+
+    useEffect(() => {
+        editor.registerCommand(
+            FORMAT_TEXT_COMMAND,
+            (format: TextFormatType) => {
+                const selection = $getSelection();
+                if ($isRangeSelection(selection)) {
+                    // Iterate over nodes in the selection.
+                    selection.getNodes().forEach((node) => {
+                        if ($isAssociationInlineNode(node)) {
+                            // Update the inline node's format with the new format.
+                            node.setFormatAndReplace(format);
+                            node.markDirty();
+                        }
+                    });
+                }
+                // Let the command propagate normally.
+                return false;
+            },
+            3
+        );
+    }, [editor]);
 
     return null;
 };

@@ -1,5 +1,5 @@
 // AssociationInlineNode.ts
-import { IS_BOLD, IS_ITALIC, IS_STRIKETHROUGH, IS_UNDERLINE, LexicalNode, TextNode } from "lexical";
+import { IS_BOLD, IS_ITALIC, IS_STRIKETHROUGH, IS_UNDERLINE, LexicalNode, TextFormatType, TextNode } from "lexical";
 import styles from './associationinlinenode.module.css';
 import { ClickData } from "../plugins/DocumentClickPluginDemo";
 
@@ -11,6 +11,15 @@ const formatMap: { [key: number]: string } = {
     [IS_STRIKETHROUGH]: 'strikethrough',
     [IS_UNDERLINE]: 'underline'
 };
+
+const reverseFormatMap: { [key: string]: number } = {};
+for (const key in formatMap) {
+    if (Object.prototype.hasOwnProperty.call(formatMap, key)) {
+        const numericKey = Number(key);
+        const formatName = formatMap[numericKey];
+        reverseFormatMap[formatName] = numericKey;
+    }
+}
 
 export class AssociationInlineNodeDemo extends TextNode {
     __associationId: string;
@@ -128,6 +137,28 @@ export class AssociationInlineNodeDemo extends TextNode {
 
     showTooltipLoader = () => {
 
+    }
+
+    setFormatAndReplace(newFormat: number | TextFormatType): this {
+        let numericFormat: number;
+        if (typeof newFormat === 'number') {
+            numericFormat = newFormat;
+        } else {
+            numericFormat = reverseFormatMap[newFormat] ?? 0;
+        }
+        // Create a new node with the updated format
+        const newNode = $createAssociationInlineNode(
+            this.getTextContent(),
+            this.__associationId,
+            this.__shortDescription,
+            this.__associationType,
+            this.__portrait,
+            this.__leftClickCallback,
+            this.__rightClickCallback,
+            numericFormat
+        );
+        // Replace the current node with the new one
+        return this.replace(newNode) as this;
     }
 
     showTooltip = (event: MouseEvent) => {

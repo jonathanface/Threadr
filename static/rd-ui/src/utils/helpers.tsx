@@ -1,6 +1,7 @@
 import { $getRoot, $isElementNode, $isTextNode, ElementNode, LexicalEditor, SerializedLexicalNode, SerializedTextNode } from "lexical";
 import { Story } from "../types/Story";
 import { CustomParagraphNode, CustomSerializedParagraphNode } from "../components/ThreadWriter/customNodes/CustomParagraphNode";
+import { $isAssociationInlineNode } from "../components/ThreadWriter/customNodes/AssociationInlineNode";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const isStory = (obj: any): obj is Story => {
@@ -70,23 +71,14 @@ export const serializeWithChildren = (node: ElementNode): CustomSerializedParagr
     };
 
     children.forEach((child) => {
-        if (child.getType() === "clickable-decorator" || $isTextNode(child)) {
-            // Extract formatting info if available.
-            let childData = {
-                text: child.getTextContent(),
-                format: 0,
-                style: "",
-                detail: 0,
-            };
+        if ($isTextNode(child) || $isAssociationInlineNode(child)) {
 
-            if ($isTextNode(child)) {
-                childData = {
-                    text: child.getTextContent(),
-                    format: child.getFormat(),
-                    style: child.getStyle(),
-                    detail: child.getDetail(),
-                };
-            }
+            const childData = {
+                text: child.getTextContent(),
+                format: child.getFormat(),
+                style: child.getStyle(),
+                detail: child.getDetail(),
+            };
 
             if (!bufferedTextData) {
                 // Initialize the buffer with this node's data

@@ -11,7 +11,7 @@ import {
 } from "lexical";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 
-export function TextTransformPluginDemo() {
+export const TextTransformPluginDemo = () => {
     const [editor] = useLexicalComposerContext();
 
     useEffect(() => {

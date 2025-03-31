@@ -521,7 +521,7 @@ func AllSeriesVolumesEndPoint(w http.ResponseWriter, r *http.Request) {
 	for _, story := range volumes {
 		allTablesReady := true
 		for _, chapter := range story.Chapters {
-			status, err := dao.CheckTableStatus(story.ID + "_" + chapter.ID + "_blocks")
+			status, err := dao.CheckTableStatus(story.ID + "_" + chapter.ID + "_blocks" + daos.GetTableSuffix())
 			if err != nil {
 				RespondWithError(w, http.StatusInternalServerError, err.Error())
 			}
