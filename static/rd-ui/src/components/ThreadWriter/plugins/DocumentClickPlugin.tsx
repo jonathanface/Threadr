@@ -1,6 +1,7 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getSelection, $isRangeSelection, $createRangeSelection, $setSelection, $isTextNode, TextNode, LexicalNode, $isElementNode, $getRoot } from 'lexical';
 import { useCallback, useEffect, useRef } from 'react';
+import { $isAssociationInlineNode } from '../customNodes/AssociationInlineNode';
 
 export interface ClickData {
     id?: string;
@@ -33,7 +34,7 @@ export default function DocumentClickPlugin(props: DocumentClickPluginProps) {
     }, [editor]);
 
     const traverseNodes = useCallback((node: LexicalNode, textNodes: TextNode[]) => {
-        if ($isTextNode(node)) {
+        if ($isTextNode(node) || $isAssociationInlineNode(node)) {
             textNodes.push(node);
         } else if ($isElementNode(node)) {
             node.getChildren().forEach((child) => traverseNodes(child, textNodes));

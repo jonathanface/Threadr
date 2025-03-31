@@ -5,9 +5,13 @@ import {
     $createPoint,
     $createRangeSelection,
     $getRoot,
+    $getSelection,
+    $isRangeSelection,
     $setSelection,
     ElementNode,
+    FORMAT_TEXT_COMMAND,
     LexicalNode,
+    TextFormatType,
     TextNode,
 } from "lexical";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
@@ -147,6 +151,8 @@ export const AssociationDecoratorPlugin = ({
     const processObsoleteAssociations = (node: AssociationInlineNode) => {
         const previousSibling = node.getPreviousSibling();
         const nextSibling = node.getNextSibling();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const format: number = (node as any).getFormat ? (node as any).getFormat() : "";
         // Case 1: If previousSibling is a TextNode and does not end with whitespace
         if (previousSibling instanceof TextNode) {
             const prevText = previousSibling.getTextContent();
@@ -165,6 +171,7 @@ export const AssociationDecoratorPlugin = ({
                     // Case 3: If no valid merge, insert as new TextNode
                     console.log("Inserting as new TextNode", node.getName());
                     const text = new TextNode(node.getName());
+                    text.setFormat(format);
                     node.insertBefore(text);
                 }
             }
@@ -178,6 +185,7 @@ export const AssociationDecoratorPlugin = ({
                 // Case 5: No adjacent text node, insert as new TextNode
                 console.log("Inserting as new TextNode", node.getName());
                 const text = new TextNode(node.getName());
+                text.setFormat(format);
                 node.insertBefore(text);
             }
         }
@@ -264,6 +272,7 @@ export const AssociationDecoratorPlugin = ({
 
                             if (beforeMatch) {
                                 const beforeNode = new TextNode(beforeMatch);
+                                beforeNode.setFormat(format);
                                 textNode.insertBefore(beforeNode);
                             }
 
@@ -281,9 +290,11 @@ export const AssociationDecoratorPlugin = ({
 
                             if (afterMatch) {
                                 const afterNode = new TextNode(afterMatch);
+                                afterNode.setFormat(format);
                                 inlineNode.insertAfter(afterNode);
                             } else {
                                 const afterNode = new TextNode('');
+                                afterNode.setFormat(format);
                                 inlineNode.insertAfter(afterNode);
                             }
                             textNode.remove();
@@ -400,6 +411,28 @@ export const AssociationDecoratorPlugin = ({
             return () => unregister();
         }
     }, [associations, editor, handleUserEditorUpdate]);
+
+    useEffect(() => {
+        editor.registerCommand(
+            FORMAT_TEXT_COMMAND,
+            (format: TextFormatType) => {
+                const selection = $getSelection();
+                if ($isRangeSelection(selection)) {
+                    // Iterate over nodes in the selection.
+                    selection.getNodes().forEach((node) => {
+                        if ($isAssociationInlineNode(node)) {
+                            // Update the inline node's format with the new format.
+                            node.setFormatAndReplace(format);
+                            node.markDirty();
+                        }
+                    });
+                }
+                // Let the command propagate normally.
+                return false;
+            },
+            3
+        );
+    }, [editor]);
 
     return null;
 };

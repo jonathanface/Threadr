@@ -736,22 +736,6 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if subscriberID, err = dao.IsUserSubscribed(email); err != nil {
-	// 	RespondWithError(w, http.StatusInternalServerError, "unable to retrieve user subscription status")
-	// 	return
-	// }
-	// if subscriberID == "" {
-	// 	blocks, err := dao.GetStoryParagraphs(storyID, storyBlocks.ChapterID, "")
-	// 	if err != nil {
-	// 		RespondWithError(w, http.StatusInternalServerError, "unable to retrieve story block count")
-	// 		return
-	// 	}
-	// 	if len(blocks.Items) >= MAX_UNSUBSCRIBED_BLOCK_COUNT {
-	// 		RespondWithError(w, http.StatusUnauthorized, "insufficient subscription")
-	// 		return
-	// 	}
-	// }
-
 	if err = dao.WriteBlocks(storyID, &storyBlocks); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)

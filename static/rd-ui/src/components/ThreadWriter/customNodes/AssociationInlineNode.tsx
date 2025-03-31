@@ -1,5 +1,5 @@
 // AssociationInlineNode.ts
-import { IS_BOLD, IS_ITALIC, IS_STRIKETHROUGH, IS_UNDERLINE, TextNode } from "lexical";
+import { IS_BOLD, IS_ITALIC, IS_STRIKETHROUGH, IS_UNDERLINE, TextFormatType, TextNode } from "lexical";
 import styles from './associationinlinenode.module.css';
 import { ClickData } from "../plugins/DocumentClickPlugin";
 
@@ -11,6 +11,15 @@ const formatMap: { [key: number]: string } = {
     [IS_STRIKETHROUGH]: 'strikethrough',
     [IS_UNDERLINE]: 'underline'
 };
+
+const reverseFormatMap: { [key: string]: number } = {};
+for (const key in formatMap) {
+    if (Object.prototype.hasOwnProperty.call(formatMap, key)) {
+        const numericKey = Number(key);
+        const formatName = formatMap[numericKey];
+        reverseFormatMap[formatName] = numericKey;
+    }
+}
 
 export class AssociationInlineNode extends TextNode {
     __associationId: string;
@@ -135,6 +144,28 @@ export class AssociationInlineNode extends TextNode {
 
     }
 
+    setFormatAndReplace(newFormat: number | TextFormatType): this {
+        let numericFormat: number;
+        if (typeof newFormat === 'number') {
+            numericFormat = newFormat;
+        } else {
+            numericFormat = reverseFormatMap[newFormat] ?? 0;
+        }
+        // Create a new node with the updated format
+        const newNode = $createAssociationInlineNode(
+            this.getTextContent(),
+            this.__associationId,
+            this.__shortDescription,
+            this.__associationType,
+            this.__portrait,
+            this.__leftClickCallback,
+            this.__rightClickCallback,
+            numericFormat
+        );
+        // Replace the current node with the new one
+        return this.replace(newNode) as this;
+    }
+
     hideHovers() {
         document.querySelectorAll('#association-tooltip').forEach(el => el.remove());
         if (tooltipElement) {
@@ -201,61 +232,9 @@ export class AssociationInlineNode extends TextNode {
     };
 
 
-
-    // hideTooltip = () => {
-    //     if (tooltipElement) {
-    //         tooltipElement.classList.remove(styles.show);
-    //         setTimeout(() => {
-    //             if (tooltipElement && tooltipElement.parentNode) {
-    //                 tooltipElement.parentNode.removeChild(tooltipElement);
-    //             }
-    //             tooltipElement = null;
-    //             document.querySelectorAll('#association-tooltip').forEach(el => el.remove());
-    //         }, 200);
-    //     }
-    // }
-
-    // reactivate() {
-    //     if (!this.__decorator) return;
-    //     this.__decorator.classList.add(styles.associationInline);
-    //     this.__decorator.classList.add(styles[this.__associationType]);
-    //     if (this.__format !== 0) {
-    //         this.__decorator.classList.add(styles[formatMap[this.__format]]);
-    //     }
-    //     if (this.__rightClickCallback) {
-    //         this.__decorator.addEventListener("contextmenu", this.__handleRightClick.bind(this));
-    //     }
-    //     if (this.__leftClickCallback) {
-    //         this.__decorator.addEventListener("click", this.__handleLeftClick.bind(this));
-    //     }
-    //     this.__decorator.addEventListener('mouseenter', this.showTooltip);
-    //     this.__decorator.addEventListener('mouseleave', this.hideTooltip);
-
-    //     this.__decorator.style.pointerEvents = "auto";
-    //     this.__decorator.removeAttribute("tabindex");
-    // }
-
-    // deactivate() {
-    //     console.log("deactivate", this.__decorator);
-    //     if (!this.__decorator) return;
-    //     this.__decorator.classList.remove(styles.associationInline);
-    //     this.__decorator.classList.remove(styles[this.__associationType]);
-    //     //decoratorElement.removeAttribute("data-association-id");
-    //     if (this.__rightClickCallback) {
-    //         this.__decorator.removeEventListener("contextmenu", this.__handleRightClick.bind(this));
-    //     }
-    //     if (this.__leftClickCallback) {
-    //         this.__decorator.removeEventListener("click", this.__handleLeftClick.bind(this));
-    //     }
-    //     this.__decorator.removeEventListener('mouseenter', this.showTooltip);
-    //     this.__decorator.removeEventListener('mouseleave', this.hideTooltip);
-
-    //     this.__decorator.style.pointerEvents = "none";
-    //     this.__decorator.setAttribute("tabindex", "-1");
-    // }
-
     // Override createDOM to add your custom classes and data attributes.
     createDOM(): HTMLElement {
+        //console.log("Creating new decorator with format", this.__format);
         if (this.__decorator) return this.__decorator;
         this.__decorator = document.createElement('span');
         this.__decorator.classList.add(styles.associationInline);
@@ -292,7 +271,6 @@ export class AssociationInlineNode extends TextNode {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     updateDOM(prevNode: AssociationInlineNode, dom: HTMLElement, config: any): boolean {
         this.__decorator = dom;
-        //this.reactivate();
         return super.updateDOM(prevNode as this, dom, config);
     }
 

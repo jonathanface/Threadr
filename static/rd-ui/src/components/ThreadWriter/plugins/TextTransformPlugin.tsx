@@ -7,11 +7,17 @@ import {
     $isTextNode,
     $createPoint,
     $createRangeSelection,
-    $setSelection
+    $setSelection,
+    $getSelection,
+    $isRangeSelection
 } from "lexical";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 
-export function TextTransformPlugin() {
+export const TextTransformPlugin = ({
+    isProgrammaticChange
+}: {
+    isProgrammaticChange?: React.RefObject<boolean>;
+}) => {
     const [editor] = useLexicalComposerContext();
 
     useEffect(() => {
@@ -25,35 +31,61 @@ export function TextTransformPlugin() {
                     if (mutationType === "updated") {
                         const node = $getNodeByKey(nodeKey);
                         if ($isTextNode(node)) {
-                            const textContent = node.getTextContent();
+                            const originalText = node.getTextContent();
+
                             if (
-                                textContent.includes("--") ||
-                                textContent.includes("“") ||
-                                textContent.includes("”") ||
-                                textContent.includes("‘") ||
-                                textContent.includes("’")
+                                originalText.includes("--") ||
+                                originalText.includes("“") ||
+                                originalText.includes("”") ||
+                                originalText.includes("‘") ||
+                                originalText.includes("’")
                             ) {
-                                const replaced = textContent
+                                const selection = $getSelection();
+                                if (!$isRangeSelection(selection)) return;
+                                if (!$isTextNode(selection?.anchor.getNode())) return;
+
+                                const isFocused = selection?.anchor.getNode().getKey() === node.getKey();
+                                const originalOffset = selection?.anchor.offset ?? null;
+
+                                const replaced = originalText
                                     .replace(/--/g, "—")
                                     .replace(/“/g, '"')
                                     .replace(/”/g, '"')
                                     .replace(/‘/g, "'")
                                     .replace(/’/g, "'");
-                                node.setTextContent(replaced);
 
-                                // Move the selection to the end of the replaced text
-                                const replacedLength = replaced.length;
-                                const point = $createPoint(node.getKey(), replacedLength, 'text');
-                                const rangeSelection = $createRangeSelection();
-                                rangeSelection.anchor = point;
-                                rangeSelection.focus = point;
-                                $setSelection(rangeSelection);
+                                if (replaced !== originalText) {
+                                    node.setTextContent(replaced);
+
+                                    if (!isProgrammaticChange?.current && isFocused && originalOffset !== null) {
+                                        // Calculate new offset by mapping the cursor position through the replacement
+                                        let newOffset = originalOffset;
+
+                                        // Handle -- → — specifically
+                                        const leftOfCursor = originalText.slice(0, originalOffset);
+                                        const leftReplaced = leftOfCursor
+                                            .replace(/--/g, "—")
+                                            .replace(/“/g, '"')
+                                            .replace(/”/g, '"')
+                                            .replace(/‘/g, "'")
+                                            .replace(/’/g, "'");
+
+                                        newOffset = leftReplaced.length;
+
+                                        const point = $createPoint(node.getKey(), newOffset, "text");
+                                        const rangeSelection = $createRangeSelection();
+                                        rangeSelection.anchor = point;
+                                        rangeSelection.focus = point;
+                                        $setSelection(rangeSelection);
+                                    }
+                                }
                             }
                         }
+
                     }
                 }
             });
         });
-    }, [editor]);
+    }, [editor, isProgrammaticChange]);
     return null;
 }

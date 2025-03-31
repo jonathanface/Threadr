@@ -26,7 +26,8 @@
     "noUncheckedSideEffectImports": true
   },
   "include": [
-    "src"
+    "src",
+    "src/components/demoComponents/**/*.tsx"
   ],
   "exclude": [
     "node_modules"
