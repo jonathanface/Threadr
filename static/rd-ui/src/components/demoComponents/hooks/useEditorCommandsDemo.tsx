@@ -121,7 +121,7 @@ export const useEditorCommandsDemo = (editorRef: React.RefObject<LexicalEditor |
                                     parent.clear();
                                 }
                                 paragraphs.forEach((paragraphText, index) => {
-                                    if (!paragraphText.startsWith("\t")) {
+                                    if ((index > 0 || isParentEmpty) && !paragraphText.startsWith("\t")) {
                                         paragraphText = `\t${paragraphText}`;
                                     }
 
