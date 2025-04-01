@@ -56,11 +56,9 @@ export const TextTransformPlugin = ({
 
                                 if (replaced !== originalText) {
                                     node.setTextContent(replaced);
-
                                     if (!isProgrammaticChange?.current && isFocused && originalOffset !== null) {
                                         // Calculate new offset by mapping the cursor position through the replacement
                                         let newOffset = originalOffset;
-
                                         // Handle -- → — specifically
                                         const leftOfCursor = originalText.slice(0, originalOffset);
                                         const leftReplaced = leftOfCursor
