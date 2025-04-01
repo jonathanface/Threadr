@@ -1,4 +1,4 @@
-import { Box, CircularProgress, Drawer, FormControlLabel, IconButton, Switch, TextField } from "@mui/material";
+import { Box, CircularProgress, Drawer, FormControlLabel, IconButton, Switch, TextField, Typography } from "@mui/material";
 import { Association } from "../../types/Associations";
 import styles from './association-ui.module.css'
 import { PortraitDropper } from "../PortraitDropper";
@@ -70,6 +70,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
   const [isDescriptionActive, setIsDescriptionActive] = useState(false);
   const [isBackgroundActive, setIsBackgroundActive] = useState(false);
   const [isAliasesActive, setIsAliasesActive] = useState(false);
+  const [aliasesError, setAliasesError] = useState('');
   const [selectedAssociationID, setSelectedAssociationID] = useState(props.selectedAssociationID);
   const { story } = useSelections();
 
@@ -86,6 +87,23 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
     });
   }
 
+  const updateAliases = (newAliases: string) => {
+    if (!selectedAssociation) return;
+    setAliasesError('');
+    const aliasesArray = newAliases.split(",");
+    // don't proceed if there are duplicates
+    const errMsg = "Aliases cannot contain the original name or any duplicates."
+    if (aliasesArray.includes(selectedAssociation.association_name)) {
+      setAliasesError(errMsg);
+      return;
+    }
+    if (aliasesArray.length !== new Set(aliasesArray).size) {
+      setAliasesError(errMsg);
+      return;
+    }
+    setAliases(newAliases);
+  }
+
   useEffect(() => {
     const fetchAssociationDetails = async () => {
       if (props.selectedAssociationID) setSelectedAssociationID(props.selectedAssociationID);
@@ -100,7 +118,6 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
         setSelectedAssociation(serverAssociation);
         setAliases(serverAssociation.aliases);
         exclusionList.current = [serverAssociation.association_name, ...serverAssociation.aliases.split(',')];
-        console.log("got", exclusionList);
       } catch (error: unknown) {
         console.error(`error fetching association details: ${error}`);
       } finally {
@@ -362,7 +379,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
               value={aliases}
               className={`${styles.textInput} ${isAliasesActive ? styles.activeField : styles.inactiveField}`}
               onChange={(event) => {
-                setAliases(event.target.value)
+                updateAliases(event.target.value);
               }}
               onFocus={() => setIsAliasesActive(true)}
               onBlur={(event) => {
@@ -387,6 +404,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
                 "& fieldset": { border: 'none' },
               }}
             />
+            <Typography style={{ marginTop: '-20px', fontWeight: 'bold' }} fontSize={"0.8rem"}>{aliasesError}</Typography>
             <FormControlLabel
               control={
                 <Switch
