@@ -148,77 +148,83 @@ export const AssociationDecoratorPlugin = ({
         return previousDoesNotEndWithWhitespaceOrPunctuation || nextDoesNotStartWithWhitespaceOrPunctuation;
     };
 
-    const processObsoleteAssociations = (node: AssociationInlineNode) => {
+    const processObsoleteAssociations = (node: AssociationInlineNode): void => {
+        if (!node.isAttached()) return;
+
         const previousSibling = node.getPreviousSibling();
         const nextSibling = node.getNextSibling();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const format: number = (node as any).getFormat ? (node as any).getFormat() : "";
-        // Case 1: If previousSibling is a TextNode and does not end with whitespace
+        const format: number = (node as any).getFormat ? (node as any).getFormat() : 0;
+        const nodeText = node.getName();
+
+        let merged = false;
+
+        // Case 1: Try merging with previous sibling if it is a TextNode.
         if (previousSibling instanceof TextNode) {
             const prevText = previousSibling.getTextContent();
             if (prevText.trim() !== "" && !/\s$/.test(prevText)) {
-                // Merge with previous sibling if it doesn't end with whitespace
-                console.log("Merging with previous sibling", prevText, node.getName());
-                previousSibling.setTextContent(prevText + node.getName());
-            } else {
-                // Case 2: If previousSibling ends with whitespace, check nextSibling
-                console.log("Previous sibling ends with whitespace, checking nextSibling.");
-                if (nextSibling instanceof TextNode && !/^\s/.test(nextSibling.getTextContent())) {
-                    // Merge with the next sibling if it doesn't start with whitespace
-                    console.log("Merging with next sibling", node.getName(), nextSibling.getTextContent());
-                    nextSibling.setTextContent(node.getName() + nextSibling.getTextContent());
+                // Only merge if the previous text does NOT already end with the nodeText.
+                if (!prevText.endsWith(nodeText)) {
+                    //console.log("Merging with previous sibling", prevText, nodeText);
+                    previousSibling.setTextContent(prevText + nodeText);
                 } else {
-                    // Case 3: If no valid merge, insert as new TextNode
-                    console.log("Inserting as new TextNode", node.getName());
-                    const text = new TextNode(node.getName());
-                    text.setFormat(format);
-                    node.insertBefore(text);
+                    //console.log("Previous sibling already merged with node text");
                 }
-            }
-        } else {
-            // Case 4: If no previous sibling, just check nextSibling
-            console.log("No previous sibling, checking next sibling.");
-            if (nextSibling instanceof TextNode && !/^\s/.test(nextSibling.getTextContent())) {
-                console.log("Merging with next sibling", node.getName(), nextSibling.getTextContent());
-                nextSibling.setTextContent(node.getName() + nextSibling.getTextContent());
-            } else {
-                // Case 5: No adjacent text node, insert as new TextNode
-                console.log("Inserting as new TextNode", node.getName());
-                const text = new TextNode(node.getName());
-                text.setFormat(format);
-                node.insertBefore(text);
+                merged = true;
             }
         }
-        // Remove the obsolete node after merging its content
+
+        // Case 2: If not merged with previous, try merging with next sibling.
+        if (!merged && nextSibling instanceof TextNode) {
+            const nextText = nextSibling.getTextContent();
+            if (!/^\s/.test(nextText)) {
+                if (!nextText.startsWith(nodeText)) {
+                    //console.log("Merging with next sibling", nodeText, nextText);
+                    nextSibling.setTextContent(nodeText + nextText);
+                } else {
+                    //console.log("Next sibling already merged with node text");
+                }
+                merged = true;
+            }
+        }
+
+        // If a merge occurred, remove the obsolete node and exit.
+        if (merged) {
+            node.remove();
+            return;
+        }
+
+        // Case 3: If no merge occurred, insert a new TextNode with the node's text.
+        //console.log("Inserting as new TextNode", nodeText);
+        const newNode = new TextNode(nodeText);
+        newNode.setFormat(format);
+        node.insertBefore(newNode);
         node.remove();
-    }
+    };
+
 
     // Memoized association processing function
     const processAssociations = useCallback(
-        (associations: SimplifiedAssociation[], rootNode: ElementNode, exclusionList?: string[]): void => {
+        (
+            associations: SimplifiedAssociation[],
+            rootNode: ElementNode,
+            exclusionList?: string[]
+        ): void => {
             if (!associations.length) return;
 
+            // Process obsolete inline nodes.
             const obsoleteNodes = findObsoleteDecorators(rootNode, associations);
             const processedNodes = new Set<AssociationInlineNode>();
-
-            obsoleteNodes.forEach(node => {
-                if (processedNodes.has(node)) {
-                    // Skip nodes that have already been processed
-                    return;
-                }
-
+            obsoleteNodes.forEach((node) => {
+                if (processedNodes.has(node)) return;
                 node.hideHovers();
-                // Mark the node as processed
                 processedNodes.add(node);
                 processObsoleteAssociations(node);
-
             });
 
-
-
+            // Collect all TextNodes that are not inline association nodes.
             const textNodes: TextNode[] = [];
-            const traverse = (node: LexicalNode) => {
-                // Only collect TextNodes that are not inline association nodes.
+            const traverse = (node: LexicalNode): void => {
                 if (node instanceof TextNode && !$isAssociationInlineNode(node)) {
                     textNodes.push(node);
                 } else if (node instanceof ElementNode) {
@@ -226,95 +232,145 @@ export const AssociationDecoratorPlugin = ({
                 }
             };
             rootNode.getChildren().forEach(traverse);
+
+            // Process each TextNode.
             textNodes.forEach((textNode) => {
-                const textContent = textNode.getTextContent();
+                const originalText = textNode.getTextContent();
+                if (!originalText) return;
+                // Get the text node's format.
+                const format: number = (textNode as any).getFormat
+                    ? (textNode as any).getFormat()
+                    : 0;
+
+                // Determine if this textNode is currently selected and store its offset.
+                let originalSelectionOffset: number | null = null;
+                const selection = $getSelection();
+                if ($isRangeSelection(selection) && selection.anchor.getNode() === textNode) {
+                    originalSelectionOffset = selection.anchor.offset;
+                }
+
+                // Collect all matches from the original text.
+                type MatchInfo = {
+                    start: number;
+                    end: number;
+                    association: SimplifiedAssociation;
+                    searchFor: string;
+                };
+                const matches: MatchInfo[] = [];
                 associations.forEach((association) => {
-                    const aliases = association.aliases.length
-                        ? association.aliases.split(",").map(alias => alias.trim())
-                        : [];
+                    const aliases =
+                        association.aliases.length > 0
+                            ? association.aliases.split(",").map((alias) => alias.trim())
+                            : [];
 
-                    const namesToMatch = [association.association_name.trim(), ...aliases].sort((a, b) => b.length - a.length);
-                    for (const name of namesToMatch) {
-                        if (exclusionList?.includes(name)) {
-                            continue;
-                        }
-
+                    const namesToMatch = Array.from(new Set([
+                        association.association_name.trim(),
+                        ...aliases,
+                    ])).sort((a, b) => b.length - a.length);
+                    namesToMatch.forEach((name) => {
+                        if (exclusionList?.includes(name)) return;
                         const searchText = association.case_sensitive
-                            ? textContent
-                            : textContent.toLowerCase();
+                            ? originalText
+                            : originalText.toLowerCase();
                         const searchFor = association.case_sensitive
                             ? name
                             : name.toLowerCase();
-
+                        //if (searchText === 'Ash') {
+                        //console.log("searchText", searchText, "searchFor", searchFor);
+                        //}
                         const regex = new RegExp(`\\b${escapeRegExp(searchFor)}\\b`, "g");
                         let match: RegExpExecArray | null;
-
                         while ((match = regex.exec(searchText)) !== null) {
-                            // if ($isAssociationInlineNode(textNode)) {
-                            //     console.log("reactivate")
-                            //     textNode.reactivate();
-                            //     return;
-                            // }
-                            const currentMatch = match;
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            const format: number = (textNode as any).getFormat ? (textNode as any).getFormat() : "";
-                            const parent = textNode.getParent();
-                            if (!(parent instanceof ElementNode)) return;
-
-                            const beforeMatch = textContent.slice(0, currentMatch.index);
-                            const matchedText = textContent.slice(
-                                currentMatch.index,
-                                currentMatch.index + searchFor.length
-                            )
-                            const afterMatch = textContent.slice(
-                                currentMatch.index + searchFor.length
-                            );
-
-                            if (beforeMatch) {
-                                const beforeNode = new TextNode(beforeMatch);
-                                beforeNode.setFormat(format);
-                                textNode.insertBefore(beforeNode);
-                            }
-
-                            const inlineNode = $createAssociationInlineNode(
-                                matchedText,
-                                association.association_id,
-                                association.short_description,
-                                association.association_type,
-                                association.portrait,
-                                customLeftClick,
-                                customRightClick,
-                                format
-                            );
-                            textNode.insertBefore(inlineNode);
-
-                            if (afterMatch) {
-                                const afterNode = new TextNode(afterMatch);
-                                afterNode.setFormat(format);
-                                inlineNode.insertAfter(afterNode);
-                            } else {
-                                const afterNode = new TextNode('');
-                                afterNode.setFormat(format);
-                                inlineNode.insertAfter(afterNode);
-                            }
-                            textNode.remove();
-
-                            const nextNode: TextNode | null = inlineNode.getNextSibling();
-
-                            // const inlineTextLength = inlineNode.getTextContent().length;
-                            // inlineNode.splitText(inlineTextLength);
-
-                            if (nextNode) {
-                                const point = $createPoint(nextNode.getKey(), 1, 'text'); // Set point at the start of the next node
-                                const rangeSelection = $createRangeSelection();
-                                rangeSelection.anchor = point;
-                                rangeSelection.focus = point;
-                                $setSelection(rangeSelection);
-                                nextNode.setTextContent(nextNode.getTextContent().substring(0));
-                            }
+                            matches.push({
+                                start: match.index,
+                                end: match.index + searchFor.length,
+                                association,
+                                searchFor,
+                            });
                         }
-                    }
+                    });
                 });
+
+                if (matches.length === 0) return;
+
+                // Sort matches in descending order (so later modifications don't affect earlier offsets).
+                matches.sort((a, b) => b.start - a.start);
+
+                // Remove the original text node.
+                const parent = textNode.getParent();
+                if (!(parent instanceof ElementNode)) return;
+                textNode.remove();
+
+                // Build new nodes by processing matches in reverse order.
+                const newNodes: LexicalNode[] = [];
+                let currentIndex = originalText.length;
+                matches.forEach((match) => {
+                    // Text after the match (from match.end to currentIndex)
+                    const afterText = originalText.slice(match.end, currentIndex);
+                    if (afterText.length > 0) {
+                        const afterNode = new TextNode(afterText);
+                        afterNode.setFormat(format);
+                        newNodes.unshift(afterNode);
+                    }
+                    // Create the inline association node.
+                    const matchedText = originalText.slice(match.start, match.end);
+                    const inlineNode = $createAssociationInlineNode(
+                        matchedText,
+                        match.association.association_id,
+                        match.association.short_description,
+                        match.association.association_type,
+                        match.association.portrait,
+                        customLeftClick,
+                        customRightClick,
+                        format
+                    );
+                    newNodes.unshift(inlineNode);
+                    // Update currentIndex for the next iteration.
+                    currentIndex = match.start;
+                });
+                // Add any remaining text before the first match.
+                if (currentIndex > 0) {
+                    const beforeText = originalText.slice(0, currentIndex);
+                    if (beforeText.length > 0) {
+                        const beforeNode = new TextNode(beforeText);
+                        beforeNode.setFormat(format);
+                        newNodes.unshift(beforeNode);
+                    }
+                }
+
+                // Insert the new nodes into the parent in order.
+                newNodes.forEach((node) => {
+                    parent.append(node);
+                });
+
+                // Restore selection: if the original text node was selected, compute the new selection position.
+                if (originalSelectionOffset !== null) {
+                    let cumulativeLength = 0;
+                    let newAnchorNode: TextNode | null = null;
+                    let newOffset = 0;
+                    // Iterate through newNodes in order (left-to-right).
+                    for (const node of newNodes) {
+                        const nodeText = node.getTextContent();
+                        if (cumulativeLength + nodeText.length >= originalSelectionOffset) {
+                            if (node instanceof TextNode) {
+                                newAnchorNode = node;
+                                newOffset = originalSelectionOffset - cumulativeLength;
+                            } else {
+                                // If the node is inline, use its length as well.
+                                newAnchorNode = null;
+                            }
+                            break;
+                        }
+                        cumulativeLength += nodeText.length;
+                    }
+                    if (newAnchorNode) {
+                        const point = $createPoint(newAnchorNode.getKey(), newOffset, "text");
+                        const rangeSelection = $createRangeSelection();
+                        rangeSelection.anchor = point;
+                        rangeSelection.focus = point;
+                        $setSelection(rangeSelection);
+                    }
+                }
             });
         },
         [customLeftClick, customRightClick, findObsoleteDecorators]
