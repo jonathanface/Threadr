@@ -129,8 +129,8 @@ export const AssociationDecoratorPlugin = ({
             // eslint-disable-next-line no-useless-escape
             !/[\s.,:;"'’“…—–\-]$/.test(previousSibling.getTextContent().slice(-1)); // Only check the last character
         if (previousSibling && previousDoesNotEndWithWhitespaceOrPunctuation) {
-            console.log("issue with", node.getTextContent());
-            console.log("prev does not end with white space or allowed punctuation: ", previousSibling.getTextContent().slice(-1));
+            //console.log("issue with", node.getTextContent());
+            //console.log("prev does not end with white space or allowed punctuation: ", previousSibling.getTextContent().slice(-1));
         }
 
         // Check if the next sibling does NOT start with whitespace or allowed punctuation
@@ -139,8 +139,8 @@ export const AssociationDecoratorPlugin = ({
             // eslint-disable-next-line no-useless-escape
             !/^[\s.,:;!"'’“?…—–\-]/.test(nextSibling.getTextContent().charAt(0)); // Only check the first character
         if (nextSibling && nextDoesNotStartWithWhitespaceOrPunctuation) {
-            console.log("issue with", node.getTextContent());
-            console.log("next does not start with whitespace or punctuation", nextSibling.getTextContent().charAt(0));
+            //console.log("issue with", node.getTextContent());
+            //console.log("next does not start with whitespace or punctuation", nextSibling.getTextContent().charAt(0));
         }
 
         // Return true if either condition is met (i.e., either previous sibling doesn't end with whitespace/punctuation, 
@@ -241,7 +241,7 @@ export const AssociationDecoratorPlugin = ({
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const format: number = (textNode as any).getFormat ? (textNode as any).getFormat() : 0;
 
-                // Determine if this textNode is currently selected and store its offset.
+                // Determine if this textNode is currently selected.
                 let originalSelectionOffset: number | null = null;
                 const selection = $getSelection();
                 if ($isRangeSelection(selection) && selection.anchor.getNode() === textNode) {
@@ -261,7 +261,6 @@ export const AssociationDecoratorPlugin = ({
                         association.aliases.length > 0
                             ? association.aliases.split(",").map((alias) => alias.trim())
                             : [];
-
                     const namesToMatch = Array.from(new Set([
                         association.association_name.trim(),
                         ...aliases,
@@ -274,9 +273,6 @@ export const AssociationDecoratorPlugin = ({
                         const searchFor = association.case_sensitive
                             ? name
                             : name.toLowerCase();
-                        //if (searchText === 'Ash') {
-                        //console.log("searchText", searchText, "searchFor", searchFor);
-                        //}
                         const regex = new RegExp(`\\b${escapeRegExp(searchFor)}\\b`, "g");
                         let match: RegExpExecArray | null;
                         while ((match = regex.exec(searchText)) !== null) {
@@ -290,28 +286,33 @@ export const AssociationDecoratorPlugin = ({
                     });
                 });
 
-                if (matches.length === 0) return;
+                const filteredMatches = matches.filter((m, _idx, arr) =>
+                    !arr.some(other =>
+                        other !== m &&
+                        other.start <= m.start &&
+                        other.end >= m.end
+                    )
+                );
 
-                // Sort matches in descending order (so later modifications don't affect earlier offsets).
-                matches.sort((a, b) => b.start - a.start);
+                if (filteredMatches.length === 0) return;
 
-                // Remove the original text node.
-                const parent = textNode.getParent();
-                if (!(parent instanceof ElementNode)) return;
-                textNode.remove();
+                // Sort matches in ascending order (left-to-right).
+                filteredMatches.sort((a, b) => a.start - b.start);
 
-                // Build new nodes by processing matches in reverse order.
+                // Build new nodes in order.
                 const newNodes: LexicalNode[] = [];
-                let currentIndex = originalText.length;
-                matches.forEach((match) => {
-                    // Text after the match (from match.end to currentIndex)
-                    const afterText = originalText.slice(match.end, currentIndex);
-                    if (afterText.length > 0) {
-                        const afterNode = new TextNode(afterText);
-                        afterNode.setFormat(format);
-                        newNodes.unshift(afterNode);
+                let currentIndex = 0;
+                filteredMatches.forEach((match) => {
+                    // Text segment before the match.
+                    if (match.start > currentIndex) {
+                        const segment = originalText.slice(currentIndex, match.start);
+                        if (segment.length > 0) {
+                            const segmentNode = new TextNode(segment);
+                            segmentNode.setFormat(format);
+                            newNodes.push(segmentNode);
+                        }
                     }
-                    // Create the inline association node.
+                    // The inline association node.
                     const matchedText = originalText.slice(match.start, match.end);
                     const inlineNode = $createAssociationInlineNode(
                         matchedText,
@@ -323,40 +324,45 @@ export const AssociationDecoratorPlugin = ({
                         customRightClick,
                         format
                     );
-                    newNodes.unshift(inlineNode);
-                    // Update currentIndex for the next iteration.
-                    currentIndex = match.start;
+                    newNodes.push(inlineNode);
+                    currentIndex = match.end;
                 });
-                // Add any remaining text before the first match.
-                if (currentIndex > 0) {
-                    const beforeText = originalText.slice(0, currentIndex);
-                    if (beforeText.length > 0) {
-                        const beforeNode = new TextNode(beforeText);
-                        beforeNode.setFormat(format);
-                        newNodes.unshift(beforeNode);
+                // Append any remaining text after the last match.
+                if (currentIndex < originalText.length) {
+                    const segment = originalText.slice(currentIndex);
+                    if (segment.length > 0) {
+                        const segmentNode = new TextNode(segment);
+                        segmentNode.setFormat(format);
+                        newNodes.push(segmentNode);
                     }
                 }
 
-                // Insert the new nodes into the parent in order.
+                // Remove the original text node.
+                const parent = textNode.getParent();
+                if (!(parent instanceof ElementNode)) return;
+                const referenceNode = textNode.getNextSibling();
+                textNode.remove();
+
+                // Insert new nodes in order.
                 newNodes.forEach((node) => {
-                    parent.append(node);
+                    if (referenceNode) {
+                        referenceNode.insertBefore(node);
+                    } else {
+                        parent.append(node);
+                    }
                 });
 
-                // Restore selection: if the original text node was selected, compute the new selection position.
+                // Restore selection if needed.
                 if (originalSelectionOffset !== null) {
                     let cumulativeLength = 0;
                     let newAnchorNode: TextNode | null = null;
                     let newOffset = 0;
-                    // Iterate through newNodes in order (left-to-right).
                     for (const node of newNodes) {
                         const nodeText = node.getTextContent();
                         if (cumulativeLength + nodeText.length >= originalSelectionOffset) {
                             if (node instanceof TextNode) {
                                 newAnchorNode = node;
                                 newOffset = originalSelectionOffset - cumulativeLength;
-                            } else {
-                                // If the node is inline, use its length as well.
-                                newAnchorNode = null;
                             }
                             break;
                         }
@@ -371,6 +377,7 @@ export const AssociationDecoratorPlugin = ({
                     }
                 }
             });
+
         },
         [customLeftClick, customRightClick, findObsoleteDecorators]
     );
