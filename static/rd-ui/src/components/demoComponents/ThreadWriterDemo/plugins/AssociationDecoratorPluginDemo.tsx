@@ -227,7 +227,9 @@ export const AssociationDecoratorPluginDemo = ({
                         ? association.aliases.split(",").map(alias => alias.trim())
                         : [];
 
-                    const namesToMatch = [association.association_name.trim(), ...aliases].sort((a, b) => b.length - a.length);
+                    const namesToMatch = Array.from(new Set([
+                        association.association_name.trim(),
+                        ...aliases])).sort((a, b) => b.length - a.length);
                     for (const name of namesToMatch) {
                         if (exclusionList?.includes(name)) continue;
 
