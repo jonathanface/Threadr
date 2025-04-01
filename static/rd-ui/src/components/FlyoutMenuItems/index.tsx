@@ -151,6 +151,7 @@ export const FlyoutMenuItems = ({ chapters, onAssociationClick }: SettingsMenuPr
     const handleItemToggle = (_event: React.SyntheticEvent, newExpanded: string[]) => {
         // Compare old vs. new
         const newlyExpanded = newExpanded.filter((id) => !expandedItems.includes(id));
+        console.log("newly", newlyExpanded);
         const newlyCollapsed = expandedItems.filter((id) => !newExpanded.includes(id));
         if (newlyCollapsed.length === 1) {
             if (newlyCollapsed[0] === 'outline') {
@@ -160,6 +161,15 @@ export const FlyoutMenuItems = ({ chapters, onAssociationClick }: SettingsMenuPr
                 setExpandedItems(['outline']);
                 return;
             }
+        }
+        if (newlyExpanded.length && newlyExpanded[0] === 'chapters') {
+            setTimeout(() => {
+                const target = document.querySelector(`[data-rfd-draggable-id="${chapter.id}"]`);
+                if (target) {
+                    target.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+            }, 500);
+
         }
         setRemountToken((old) => (parseInt(old) + 1).toString());
         setTimeout(() => { setExpandedItems(['outline', newlyExpanded[0]]) }, 50);;

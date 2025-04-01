@@ -238,9 +238,8 @@ export const AssociationDecoratorPlugin = ({
                 const originalText = textNode.getTextContent();
                 if (!originalText) return;
                 // Get the text node's format.
-                const format: number = (textNode as any).getFormat
-                    ? (textNode as any).getFormat()
-                    : 0;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const format: number = (textNode as any).getFormat ? (textNode as any).getFormat() : 0;
 
                 // Determine if this textNode is currently selected and store its offset.
                 let originalSelectionOffset: number | null = null;
