@@ -137,7 +137,7 @@ export const useEditorCommands = (editorRef: React.RefObject<LexicalEditor | nul
                                     parent.clear();
                                 }
                                 paragraphs.forEach((paragraphText, index) => {
-                                    if (!paragraphText.startsWith("\t") && documentSettings?.autotab) {
+                                    if ((index > 0 || isParentEmpty) && !paragraphText.startsWith("\t") && documentSettings?.autotab) {
                                         paragraphText = `\t${paragraphText}`;
                                     }
 
