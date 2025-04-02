@@ -68,7 +68,7 @@ export const ThreadWriter = () => {
   // refs
   const editorRef = useRef<LexicalEditor>(null);
   const isProgrammaticChange = useRef(false);
-  const previousNodeKeysRef = useRef<Set<string>>(new Set());
+  const previousNodeKeysRef = useRef<Map<string, string>>(new Map());
   const previousTextHashRef = useRef<string | null>(null);
   const pastedParagraphKeys = useRef(new Set<string>());
   const isInitialLoad = useRef(true);
@@ -636,25 +636,27 @@ export const ThreadWriter = () => {
     }
     previousTextHashRef.current = currentHash;
 
+    let orderResyncRequired = false;
     editorState.read(() => {
       const root = $getRoot();
       const children = root.getChildren();
       const currentNodeKeys = new Set<string>();
       const newParagraphKeys = new Set<string>();
       const paragraphsToSave: { key_id: string, order: string, content: SerializedElementNode<SerializedLexicalNode> }[] = [];
-      let orderResyncRequired = false;
 
       children.forEach((node, index) => {
         if (node instanceof CustomParagraphNode) {
           const id = node.getKeyId();
           if (id) {
             currentNodeKeys.add(id);
-
             // If new paragraph (not seen before), flag for save
             if (!previousNodeKeysRef.current.has(id)) {
               orderResyncRequired = true;
               newParagraphKeys.add(id);
             }
+            const currentText = node.getTextContent();
+            const prevText = previousNodeKeysRef.current.get(id);
+            const textHasChanged = prevText === undefined || currentText !== prevText;
 
             // Add to paragraphsToSave if new, pasted, or selected
             const selection = $getSelection();
@@ -670,7 +672,8 @@ export const ThreadWriter = () => {
               pastedParagraphKeys.current.has(id) ||
               newParagraphKeys.has(id) ||
               id === selectedNodeKey ||
-              !previousNodeKeysRef.current.has(id)
+              !previousNodeKeysRef.current.has(id) ||
+              textHasChanged
             ) {
               const serialized = serializeWithChildren(node);
               paragraphsToSave.push({
@@ -678,16 +681,19 @@ export const ThreadWriter = () => {
                 order: index.toString(),
                 content: serialized,
               });
+              previousNodeKeysRef.current.set(id, currentText);
             }
           }
         }
       });
 
       // Remaining keys in previousNodeKeysRef are to be deleted
-      const deletedKeys = [...previousNodeKeysRef.current].filter(
+      const deletedKeys = Array.from(previousNodeKeysRef.current.keys()).filter(
         (key) => !currentNodeKeys.has(key)
       );
-      deletedKeys.forEach((key) => queueParagraphForDeletion(chapter.id, key));
+      deletedKeys.forEach((key) => {
+        queueParagraphForDeletion(chapter.id, key)
+      });
       if (deletedKeys.length) {
         orderResyncRequired = true;
       }
@@ -699,13 +705,9 @@ export const ThreadWriter = () => {
       filteredSaves.forEach((p) =>
         queueParagraphForSave(chapter.id, p.key_id, p.order, p.content)
       );
-
-      // Reset previousNodeKeysRef to current keys
-      previousNodeKeysRef.current = currentNodeKeys;
-
-      // If order resync is required, queue it
-      if (orderResyncRequired) queueParagraphOrderResync();
     });
+    // If order resync is required, queue it
+    if (orderResyncRequired) queueParagraphOrderResync();
   }, [chapter, queueParagraphForDeletion, queueParagraphForSave, queueParagraphOrderResync]);
 
 
