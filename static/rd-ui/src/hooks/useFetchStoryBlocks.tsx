@@ -35,6 +35,7 @@ export const useFetchStoryBlocks = (
             showLoader();
             const response = await fetch(`/api/stories/${storyId}/content?key=${startKey}&chapter=${chapterId}`);
             if (!response.ok) throw response;
+            previousNodeKeysRef.current = new Map();
             const data = await response.json();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const remappedStoryBlocks = data.items?.map((item: { chunk: any; key_id: any }) => {

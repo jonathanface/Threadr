@@ -73,6 +73,7 @@ export const ThreadWriter = () => {
   const pastedParagraphKeys = useRef(new Set<string>());
   const isInitialLoad = useRef(true);
   const selectedAssociation = useRef<string | null>(null);
+  const isQueuePausedRef = useRef(false);
 
 
   // hooks
@@ -519,7 +520,6 @@ export const ThreadWriter = () => {
         } else {
           console.log("Chapter change: fetching new story blocks");
           isProgrammaticChange.current = true; // Start programmatic change
-          previousNodeKeysRef.current.clear(); // Clear previous keys to prevent DELETEs
           await getBatchedStoryBlocks("");
           isProgrammaticChange.current = false; // End programmatic change
         }
@@ -530,6 +530,18 @@ export const ThreadWriter = () => {
     }
 
   }, [story?.story_id, chapter?.id, getBatchedStoryBlocks]);
+
+  useEffect(() => {
+    // pause the queue processing during chapter change, as this leads to buggy behavior
+    // with data from one chapter getting saved to another.
+    isQueuePausedRef.current = true;
+    if (previousNodeKeysRef.current) {
+      previousNodeKeysRef.current.clear();
+    }
+    setTimeout(() => {
+      isQueuePausedRef.current = false;
+    }, 2000);
+  }, [chapter]);
 
   useEffect(() => {
     if (!chapter) return;
@@ -597,7 +609,9 @@ export const ThreadWriter = () => {
 
   useEffect(() => {
     const processInterval = setInterval(() => {
-      runQueue();
+      if (!isQueuePausedRef.current) {
+        runQueue();
+      }
     }, 5000);
     window.addEventListener("unload", () => {
     });
@@ -636,8 +650,9 @@ export const ThreadWriter = () => {
     }
     previousTextHashRef.current = currentHash;
 
-    let orderResyncRequired = false;
+
     editorState.read(() => {
+      let orderResyncRequired = false;
       const root = $getRoot();
       const children = root.getChildren();
       const currentNodeKeys = new Set<string>();
@@ -651,7 +666,6 @@ export const ThreadWriter = () => {
             currentNodeKeys.add(id);
             // If new paragraph (not seen before), flag for save
             if (!previousNodeKeysRef.current.has(id)) {
-              orderResyncRequired = true;
               newParagraphKeys.add(id);
             }
             const currentText = node.getTextContent();
@@ -672,7 +686,6 @@ export const ThreadWriter = () => {
               pastedParagraphKeys.current.has(id) ||
               newParagraphKeys.has(id) ||
               id === selectedNodeKey ||
-              !previousNodeKeysRef.current.has(id) ||
               textHasChanged
             ) {
               const serialized = serializeWithChildren(node);
@@ -692,9 +705,10 @@ export const ThreadWriter = () => {
         (key) => !currentNodeKeys.has(key)
       );
       deletedKeys.forEach((key) => {
-        queueParagraphForDeletion(chapter.id, key)
+        queueParagraphForDeletion(chapter.id, key);
+        previousNodeKeysRef.current.delete(key);
       });
-      if (deletedKeys.length) {
+      if (deletedKeys.length || newParagraphKeys.size) {
         orderResyncRequired = true;
       }
 
@@ -705,9 +719,10 @@ export const ThreadWriter = () => {
       filteredSaves.forEach((p) =>
         queueParagraphForSave(chapter.id, p.key_id, p.order, p.content)
       );
+      // If order resync is required, queue it
+      if (orderResyncRequired) queueParagraphOrderResync();
     });
-    // If order resync is required, queue it
-    if (orderResyncRequired) queueParagraphOrderResync();
+
   }, [chapter, queueParagraphForDeletion, queueParagraphForSave, queueParagraphOrderResync]);
 
 
