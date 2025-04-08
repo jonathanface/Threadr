@@ -23,7 +23,7 @@ export const useFetchStoryBlocks = (
     storyId: string,
     chapterId: string,
     setStoryBlocks?: (blocks: SerializedEditorState) => void,
-    previousNodeKeysRef?: React.RefObject<Set<string>>
+    previousNodeKeysRef?: React.RefObject<Map<string, string>>
 ) => {
     const { showLoader, hideLoader } = useLoader();
     const { setAlertState } = useToaster();
@@ -35,15 +35,22 @@ export const useFetchStoryBlocks = (
             showLoader();
             const response = await fetch(`/api/stories/${storyId}/content?key=${startKey}&chapter=${chapterId}`);
             if (!response.ok) throw response;
+            previousNodeKeysRef.current = new Map();
             const data = await response.json();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const remappedStoryBlocks = data.items?.map((item: { chunk: any; key_id: any }) => {
                 const key = item.key_id?.Value || '';
-                previousNodeKeysRef.current.add(key);
+
                 const fixed: CustomSerializedParagraphNode = item.chunk?.Value
                     ? JSON.parse(item.chunk.Value)
                     : generateBlankLine();
                 fixed.key_id = key;
+
+                // extract text content to store in ref for change comparison
+                const children = fixed.children || [];
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const textContent = children.map((child: any) => child.text).join("");
+                previousNodeKeysRef.current.set(key, textContent);
 
                 if (fixed.type !== CustomParagraphNode.getType()) {
                     fixed.type = CustomParagraphNode.getType();

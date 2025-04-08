@@ -94,6 +94,7 @@ export default class Exporter {
             })
             .join("");
         });
+        console.log("chap html", chapterHtml)
 
         chapters.push({
           chapter: chapter.chapter.title,
