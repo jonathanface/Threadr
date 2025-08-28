@@ -98,7 +98,13 @@ func setupRouter(mode models.AppMode, dao *daos.DAO) *mux.Router {
 	fileServer := http.FileServer(http.Dir(staticFilesDir))
 	rtr.PathPrefix("/").Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestedPath := filepath.Join(staticFilesDir, r.URL.Path)
-		if info, err := os.Stat(requestedPath); err == nil && !info.IsDir() {
+		absStaticDir, err1 := filepath.Abs(staticFilesDir)
+		absRequestedPath, err2 := filepath.Abs(requestedPath)
+		if err1 != nil || err2 != nil || !strings.HasPrefix(absRequestedPath, absStaticDir) {
+			http.Error(w, "Invalid file path", http.StatusBadRequest)
+			return
+		}
+		if info, err := os.Stat(absRequestedPath); err == nil && !info.IsDir() {
 			if strings.HasPrefix(r.URL.Path, "/assets/") || strings.Contains(r.URL.Path, ".") {
 				// hashed assets (/assets/*.js, .css, .png, etc.)
 				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
