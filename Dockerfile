@@ -1,19 +1,21 @@
 FROM node:19-bullseye AS frontend-builder
 ARG VITE_STRIPE_KEY
 ARG VITE_MODE
+ENV VITE_MODE=$VITE_MODE
+ENV VITE_STRIPE_KEY=$VITE_STRIPE_KEY
 WORKDIR /app
-COPY ./static/rd-ui/package*.json ./
+COPY ./static/package*.json ./
 RUN npm install
-COPY ./static/rd-ui/src ./src
-COPY ./static/rd-ui/index.html ./
-COPY ./static/rd-ui/public ./public
-COPY ./static/rd-ui/tsconfig.json ./
-COPY ./static/rd-ui/tsconfig.app.json ./
-COPY ./static/rd-ui/tsconfig.node.json ./
-COPY ./static/rd-ui/vite.config.ts ./
+COPY ./static/src ./src
+COPY ./static/index.html ./
+COPY ./static/public ./public
+COPY ./static/tsconfig.json ./
+COPY ./static/tsconfig.app.json ./
+COPY ./static/tsconfig.node.json ./
+COPY ./static/vite.config.ts ./
 RUN npm run build
 
-FROM golang:1.24 AS backend-builder
+FROM golang:1.24-bullseye AS backend-builder
 # Install wkhtmltox dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -31,12 +33,11 @@ RUN apt-get update && \
 WORKDIR /app
 
 # Set environment variables for Go
-ENV GO111MODULE=auto \
-    GOPATH=/go \
+ENV GOPATH=/go \
     PATH=$GOPATH/bin:/usr/local/go/bin:/usr/local/bin:/usr/local/:$PATH
 
 ENV PORT=":80"
-
+ARG STRIPE_KEY
 ARG AWS_ACCESS_KEY_ID
 ENV AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
 ARG AWS_SECRET_ACCESS_KEY
@@ -70,10 +71,8 @@ ENV ROOT_URL=$ROOT_URL
 ARG SESSION_SECRET
 ENV SESSION_SECRET=$SESSION_SECRET
 ARG VERSION
-ENV VERSION = $VERSION
-ARG STRIPE_KEY
+ENV VERSION=$VERSION
 ENV STRIPE_KEY=$STRIPE_KEY
-ENV VITE_STRIPE_KEY=$STRIPE_KEY
 ARG STRIPE_SECRET
 ENV STRIPE_SECRET=$STRIPE_SECRET
 ARG MODE
@@ -82,26 +81,24 @@ ENV VITE_MODE=$MODE
 ARG OPENAI_API_KEY
 ENV OPENAI_API_KEY=$OPENAI_API_KEY
 
-COPY --from=frontend-builder /app/dist /app/static/rd-ui/dist
+COPY --from=frontend-builder /app/dist /app/static/dist
 
 COPY ./go.mod ./go.mod
 COPY ./go.sum ./go.sum
+RUN go mod download
 COPY ./api ./api
 COPY ./converters ./converters
 COPY ./ctxkeys ./ctxkeys
 COPY ./models ./models
 COPY ./auth ./auth
 COPY ./billing ./billing
-COPY ./bins /usr/local/bin/
-COPY ./bins/custom-reference.docx ./bins/custom-reference.docx
+COPY ./bin /usr/local/bin/
+COPY ./assets ./assets
 COPY ./daos ./daos
 COPY ./sessions ./sessions
-COPY ./RichDocter.go ./RichDocter.go
-
-RUN go mod tidy
+COPY ./cmd ./cmd
 
 RUN mkdir -p ./tmp
-RUN go build -o /RichDocter
-#CMD ["sleep", "infinity"]
-CMD ["/RichDocter"]
+RUN go build -o ./bin/richdocter ./cmd/richdocter
+CMD ["./bin/richdocter"]
 
