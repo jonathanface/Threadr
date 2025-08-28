@@ -12,7 +12,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
@@ -31,6 +30,16 @@ func New(options Options) {
 		amazon.New(options.AmazonId, options.AmazonSecret, options.AmazonUrl),
 		microsoftonline.New(options.MsnId, options.MsnSecret, options.MsnUrl),
 	)
+}
+
+func requestOrigin(r *http.Request) string {
+    scheme := r.Header.Get("X-Forwarded-Proto")
+    if scheme == "" {
+        if r.TLS != nil { scheme = "https" } else { scheme = "http" }
+    }
+    host := r.Header.Get("X-Forwarded-Host")
+    if host == "" { host = r.Host }
+    return scheme + "://" + host
 }
 
 func determineName(info goth.User) string {
@@ -128,7 +137,8 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	root := os.Getenv("ROOT_URL")
+	root := requestOrigin(r)
+	log.Println("rootURL", root)
 	session.Values["token_data"] = toJSON
 	session.Options.Path = "/"
 	session.Options.HttpOnly = true
@@ -150,6 +160,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	var next = root
 	if !sess.IsNew {
 		if ref, _ := sess.Values["referrer"].(string); ref != "" {
+			log.Println("session referrer value", sess.Values["referrer"].(string))
 			next = safeRedirect(ref, root)
 		}
 	}
