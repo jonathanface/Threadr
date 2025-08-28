@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/amazon"
@@ -25,20 +24,12 @@ import (
 	"github.com/markbates/goth/providers/microsoftonline"
 )
 
-func init() {
-	currentMode := models.AppMode(strings.ToLower(os.Getenv("MODE")))
-	if currentMode != models.ModeProduction && currentMode != models.ModeStaging {
-		if err := godotenv.Load(); err != nil {
-			log.Println("Error loading .env file for the auth service")
-		}
-	}
-}
+func New(options Options) {
 
-func New() {
 	goth.UseProviders(
-		google.New(os.Getenv("GOOGLE_OAUTH_CLIENT_ID"), os.Getenv("GOOGLE_OAUTH_CLIENT_SECRET"), os.Getenv("GOOGLE_OAUTH_REDIRECT_URL")),
-		amazon.New(os.Getenv("AMAZON_OAUTH_CLIENT_ID"), os.Getenv("AMAZON_OAUTH_CLIENT_SECRET"), os.Getenv("AMAZON_OAUTH_REDIRECT_URL")),
-		microsoftonline.New(os.Getenv("MSN_OAUTH_CLIENT_ID"), os.Getenv("MSN_OAUTH_CLIENT_SECRET"), os.Getenv("MSN_OAUTH_REDIRECT_URL")),
+		google.New(options.GoogleId, options.GoogleSecret, options.GoogleUrl),
+		amazon.New(options.AmazonId, options.AmazonSecret, options.AmazonUrl),
+		microsoftonline.New(options.MsnId, options.MsnSecret, options.MsnUrl),
 	)
 }
 
@@ -54,6 +45,20 @@ func determineName(info goth.User) string {
 		name = "Stranger"
 	}
 	return name
+}
+
+func safeRedirect(dest, fallback string) string {
+	fb, _ := url.Parse(fallback)
+	u, err := url.Parse(dest)
+	if err != nil || u.Host == "" {
+		return fallback
+	}
+	// same scheme+host only
+	if !strings.EqualFold(u.Scheme, fb.Scheme) || !strings.EqualFold(u.Host, fb.Host) {
+		return fallback
+	}
+	// allow only absolute path + query on your site
+	return u.Scheme + "://" + u.Host + u.RequestURI()
 }
 
 func Callback(w http.ResponseWriter, r *http.Request) {
@@ -97,6 +102,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	fullDetails, err = dao.GetUserDetails(info.Email)
 	if err != nil {
 		// hacky
+		log.Println("err getting user data", err)
 		if err == sql.ErrNoRows {
 			err = dao.CreateUser(info.Email)
 			if err != nil {
@@ -116,18 +122,39 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		api.RespondWithError(w, http.StatusBadGateway, err.Error())
 		return
 	}
-	session, _ := sessions.Get(r, "token")
+	session, err := sessions.Get(r, "token")
+	if err != nil {
+		api.RespondWithError(w, http.StatusBadGateway, err.Error())
+		return
+	}
+
+	root := os.Getenv("ROOT_URL")
 	session.Values["token_data"] = toJSON
-	session.Options.MaxAge = int(user.ExpiresAt.UTC().UnixNano() - time.Now().UTC().UnixNano())
+	session.Options.Path = "/"
+	session.Options.HttpOnly = true
+	session.Options.Secure = strings.HasPrefix(root, "https://")
+	ttl := int(time.Until(user.ExpiresAt).Seconds())
+	if ttl < 60 {
+		ttl = 3600 // default 1h if provider expiry is tiny or missing
+	}
+	if ttl > 60*60*24*30 {
+		ttl = 60 * 60 * 24 * 30 // cap to 30d
+	}
+	session.Options.MaxAge = ttl
+
 	if err = session.Save(r, w); err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if sess.IsNew {
-		http.Redirect(w, r, os.Getenv("ROOT_URL"), http.StatusTemporaryRedirect)
-		return
+
+	var next = root
+	if !sess.IsNew {
+		if ref, _ := sess.Values["referrer"].(string); ref != "" {
+			next = safeRedirect(ref, root)
+		}
 	}
-	http.Redirect(w, r, sess.Values["referrer"].(string), http.StatusTemporaryRedirect)
+	log.Println("redirecting to", next)
+	http.Redirect(w, r, next, http.StatusTemporaryRedirect)
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
@@ -136,7 +163,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Session Error: %s\n", err.Error())
 	}
 	session.Options.Path = "/auth"
-	session.Options.MaxAge = int(5 * time.Minute)
+	session.Options.MaxAge = int((5 * time.Minute).Seconds())
 	session.Values["referrer"] = r.Header.Get("Referer")
 	if err = session.Save(r, w); err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())

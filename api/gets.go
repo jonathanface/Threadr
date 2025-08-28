@@ -7,6 +7,7 @@ import (
 	"RichDocter/sessions"
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -538,6 +539,7 @@ func AllSeriesVolumesEndPoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUserData(w http.ResponseWriter, r *http.Request) {
+	log.Println("got user data")
 	session, err := sessions.Get(r, "token")
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())

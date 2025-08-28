@@ -4,161 +4,35 @@ import (
 	"RichDocter/api"
 	"RichDocter/auth"
 	"RichDocter/billing"
-	ctxkey "RichDocter/ctxkeys"
 	"RichDocter/daos"
 	"RichDocter/models"
-	"RichDocter/sessions"
-	"context"
-	"encoding/json"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
-	"time"
-
-	_ "net/http/pprof"
 
 	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
 )
 
 const (
-	staticFilesDir = "static/rd-ui/dist"
+	staticFilesDir = "static/dist"
 	servicePath    = "/api"
 	billingPath    = "/billing"
 	authPath       = "/auth"
 )
 
-var dao daos.DaoInterface
-
-func looseMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(time.Second*5))
-		defer cancel()
-		ctx = context.WithValue(ctx, ctxkey.DAO, dao)
-		r = r.WithContext(ctx)
-		next.ServeHTTP(w, r)
-	})
-}
-
-func billingMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		token, err := sessions.Get(r, "token")
-		if err != nil || token.IsNew {
-			api.RespondWithError(w, http.StatusNotFound, "cannot find token")
-			return
-		}
-		var user models.UserInfo
-		if err = json.Unmarshal(token.Values["token_data"].([]byte), &user); err != nil {
-			api.RespondWithError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(time.Second*5))
-		defer cancel()
-		ctx = context.WithValue(ctx, ctxkey.DAO, dao)
-		r = r.WithContext(ctx)
-		next.ServeHTTP(w, r)
-	})
-}
-
-func accessControlMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		token, err := sessions.Get(r, "token")
-		if err != nil || token.IsNew {
-			api.RespondWithError(w, http.StatusNotFound, "cannot find token")
-			return
-		}
-		var user models.UserInfo
-		if err = json.Unmarshal(token.Values["token_data"].([]byte), &user); err != nil {
-			api.RespondWithError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-		userDetails, err := dao.GetUserDetails(user.Email)
-		if err != nil {
-			api.RespondWithError(w, http.StatusBadRequest, err.Error())
-			return
-		}
-
-		// see if the user's a subscriber, and the subscription has expired
-		if len(userDetails.SubscriptionID) > 0 && !userDetails.Renewing {
-			i, err := strconv.ParseInt(userDetails.ExpiresAt, 10, 64)
-			if err != nil {
-				api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-				return
-			}
-			t := time.Unix(i, 0)
-			if t.Before(time.Now()) {
-				userDetails.Expired = true
-				userDetails.SubscriptionID = ""
-				err = dao.UpdateUser(*userDetails)
-				if err != nil {
-					api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-					return
-				}
-			}
-		}
-
-		if userDetails.SubscriptionID == "" || userDetails.Expired {
-			if r.Method == "POST" && (strings.HasSuffix(r.URL.Path, "/analyze") || strings.HasSuffix(r.URL.Path, "/propose") || strings.HasSuffix(r.URL.Path, "/outline")) ||
-				r.Method == "PUT" && (strings.HasSuffix(r.URL.Path, "/export") || strings.HasSuffix(r.URL.Path, "/outline")) {
-				api.RespondWithError(w, http.StatusUnauthorized, "insufficient subscription")
-				return
-			}
-		}
-		if err = dao.UpsertUser(user.Email); err != nil {
-			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		isSubscriber := false
-		if userDetails.SubscriptionID != "" && !userDetails.Expired {
-			isSubscriber = true
-		}
-
-		// 15 sec timeout
-		ctx, cancel := context.WithTimeout(r.Context(), time.Duration(time.Second*5))
-		defer cancel()
-		ctx = context.WithValue(ctx, ctxkey.DAO, dao)
-		ctx = context.WithValue(ctx, ctxkey.Subscriber, isSubscriber)
-		r = r.WithContext(ctx)
-		next.ServeHTTP(w, r)
-	})
-}
-
-func main() {
-	currentMode := models.AppMode(strings.ToLower(os.Getenv("MODE")))
-	if currentMode != models.ModeProduction && currentMode != models.ModeStaging {
-		if err := godotenv.Load(); err != nil {
-			log.Fatal("Error loading .env file")
-		}
-	}
-	port := os.Getenv("PORT")
-	log.Println("Launching RichDocter version", os.Getenv("VERSION"))
-	log.Println("Listening for http on " + port)
-
-	dao = daos.NewDAO()
-	auth.New()
-
+func setupRouter(mode models.AppMode, dao *daos.DAO) *mux.Router {
 	rtr := mux.NewRouter()
+
 	rtr.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}).Methods("GET", "OPTIONS")
 
+	if mode == models.ModeDevelopment {
+		rtr.PathPrefix("/debug/pprof/").Handler(http.DefaultServeMux)
+	}
 	authRtr := rtr.PathPrefix(authPath).Subrouter()
-	authRtr.Use(looseMiddleware)
+	authRtr.Use(looseMiddleware(dao))
 	// DEV ONLY!!
 	//rtr.HandleFunc("/auth/logout", auth.DeleteToken).Methods("GET", "OPTIONS")
 	authRtr.HandleFunc("/logout", auth.Logout).Methods("DELETE", "OPTIONS")
@@ -166,7 +40,7 @@ func main() {
 	authRtr.HandleFunc("/{provider}/callback", auth.Callback).Methods("POST", "GET", "OPTIONS")
 
 	billingRtr := rtr.PathPrefix(billingPath).Subrouter()
-	billingRtr.Use(billingMiddleware)
+	billingRtr.Use(billingMiddleware(dao))
 	billingRtr.HandleFunc("/products", billing.GetProductsEndpoint).Methods("GET", "OPTIONS")
 	billingRtr.HandleFunc("/customer", billing.GetCustomerEndpoint).Methods("GET", "OPTIONS")
 	billingRtr.HandleFunc("/customer/payment", billing.GetCustomerPaymentMethodEndpoint).Methods("GET", "OPTIONS")
@@ -176,7 +50,7 @@ func main() {
 	billingRtr.HandleFunc("/subscribe", billing.SubscribeCustomerEndpoint).Methods("POST", "OPTIONS")
 
 	apiRtr := rtr.PathPrefix(servicePath).Subrouter()
-	apiRtr.Use(accessControlMiddleware)
+	apiRtr.Use(strictMiddleware(dao))
 
 	// GETs
 	apiRtr.HandleFunc("/user", api.GetUserData).Methods("GET", "OPTIONS")
@@ -221,19 +95,28 @@ func main() {
 	apiRtr.HandleFunc("/stories/{story}", api.DeleteStoryEndpoint).Methods("DELETE", "OPTIONS")
 	apiRtr.HandleFunc("/series/{seriesID}", api.DeleteSeriesEndpoint).Methods("DELETE", "OPTIONS")
 
+	fileServer := http.FileServer(http.Dir(staticFilesDir))
 	rtr.PathPrefix("/").Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Build the absolute path to the requested file.
 		requestedPath := filepath.Join(staticFilesDir, r.URL.Path)
-		// Check if the file exists and is not a directory.
-		info, err := os.Stat(requestedPath)
-		if err != nil || info.IsDir() {
-			// Fallback to index.html for client-side routing.
-			http.ServeFile(w, r, filepath.Join(staticFilesDir, "index.html"))
+		absStaticDir, err1 := filepath.Abs(staticFilesDir)
+		absRequestedPath, err2 := filepath.Abs(requestedPath)
+		if err1 != nil || err2 != nil || !strings.HasPrefix(absRequestedPath, absStaticDir) {
+			http.Error(w, "Invalid file path", http.StatusBadRequest)
 			return
 		}
-		// Otherwise, serve the file.
-		http.FileServer(http.Dir(staticFilesDir)).ServeHTTP(w, r)
+		if info, err := os.Stat(absRequestedPath); err == nil && !info.IsDir() {
+			if strings.HasPrefix(r.URL.Path, "/assets/") || strings.Contains(r.URL.Path, ".") {
+				// hashed assets (/assets/*.js, .css, .png, etc.)
+				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			} else {
+				w.Header().Set("Cache-Control", "no-store")
+			}
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+		w.Header().Set("Cache-Control", "no-store")
+		http.ServeFile(w, r, filepath.Join(staticFilesDir, "index.html"))
 	}))
 
-	log.Fatal(http.ListenAndServe(port, rtr))
+	return rtr
 }

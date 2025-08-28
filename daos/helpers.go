@@ -437,69 +437,6 @@ func (d *DAO) CheckTableStatus(tableName string) (string, error) {
 	return string(resp.Table.TableStatus), nil
 }
 
-// func (d *DAO) waitForTableToGoActive(tableName string, maxRetries int, delayBetweenRetries time.Duration) error {
-// 	for i := 0; i < maxRetries; i++ {
-// 		resp, err := d.DynamoClient.DescribeTable(context.TODO(), &dynamodb.DescribeTableInput{
-// 			TableName: &tableName,
-// 		})
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		if resp.Table.TableStatus == types.TableStatusActive {
-// 			return nil
-// 		}
-// 		time.Sleep(delayBetweenRetries)
-// 	}
-// 	return fmt.Errorf("table %s did not become active after %d retries", tableName, maxRetries)
-// }
-
-// func (d *DAO) copyTableContents(email, srcTableName, destTableName string) error {
-// 	describeInput := &dynamodb.DescribeTableInput{
-// 		TableName: &destTableName,
-// 	}
-// 	describeResp, err := d.DynamoClient.DescribeTable(context.TODO(), describeInput)
-// 	var resourceNotFoundErr *types.ResourceNotFoundException
-// 	if err != nil {
-// 		return err
-// 	}
-// 	if err == nil {
-// 		// The destination table exists, check its status.
-// 		if describeResp.Table.TableStatus != types.TableStatusActive {
-// 			// Table exists but is not active, you may need to wait.
-// 			err = d.waitForTableToGoActive(destTableName, 20, time.Second*1)
-// 			if err != nil {
-// 				return fmt.Errorf("destination table %s is not ready: %v", destTableName, err)
-// 			}
-// 		}
-// 	} else if !errors.As(err, &resourceNotFoundErr) {
-// 		// Other error other than not found, fail the operation.
-// 		return fmt.Errorf("error checking status of destination table %s: %v", destTableName, err)
-// 	}
-
-// 	paginator := dynamodb.NewScanPaginator(d.DynamoClient, &dynamodb.ScanInput{
-// 		TableName: &srcTableName,
-// 	})
-// 	for paginator.HasMorePages() {
-// 		page, err := paginator.NextPage(context.TODO())
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		for _, item := range page.Items {
-// 			_, err := d.DynamoClient.PutItem(context.TODO(), &dynamodb.PutItemInput{
-// 				TableName: &destTableName,
-// 				Item:      item,
-// 			})
-
-// 			if err != nil {
-// 				return err
-// 			}
-// 		}
-// 	}
-// 	return nil
-// }
-
 func (d *DAO) RestoreAutomaticallyDeletedStories(email string) error {
 	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("stories"),
