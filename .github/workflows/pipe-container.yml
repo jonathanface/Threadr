@@ -144,6 +144,7 @@ jobs:
 
       - name: debug image env
         run: |
+          echo "deploying to: ${{github.ref}}\n"
           echo "env image name: ${{env.IMAGE}}"
 
       - name: Fill in the new image ID in the Amazon ECS task definition
