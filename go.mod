@@ -22,7 +22,7 @@ require (
 	github.com/stripe/stripe-go/v72 v72.122.0
 )
 
-require golang.org/x/net v0.21.0 // indirect
+require golang.org/x/net v0.38.0 // indirect
 
 require (
 	cloud.google.com/go v0.67.0 // indirect
