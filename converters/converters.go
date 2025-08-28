@@ -16,7 +16,7 @@ import (
 
 const (
 	FONT_NAME         = "Arial"
-	FONT_PATH         = "fonts/arial.ttf"
+	FONT_PATH         = "assets/fonts/arial.ttf"
 	FONT_SIZE_DEFAULT = "12px"
 	FONT_SIZE_HEADER  = "18px"
 	LINE_HEIGHT       = "24px"
@@ -88,7 +88,7 @@ func HTMLToDOCX(export models.DocumentExportRequest) (filename string, err error
 
 	// Convert HTML to DOCX using Pandoc command-line tool
 	filename = uuid.NewString()
-	cmd := exec.Command("pandoc", "-f", "html", "-t", "docx", "--reference-doc", "bins/custom-reference.docx", "-o", "./tmp/"+filename, tmpFile.Name())
+	cmd := exec.Command("pandoc", "-f", "html", "-t", "docx", "--reference-doc", "assets/custom-reference.docx", "-o", "./tmp/"+filename, tmpFile.Name())
 
 	// Execute the command
 	err = cmd.Run()
