@@ -1,4 +1,4 @@
-FROM node:19-bullseye AS frontend-builder
+FROM node:22-bullseye AS frontend-builder
 ARG VITE_STRIPE_KEY
 ARG VITE_MODE
 ENV VITE_MODE=$VITE_MODE
