@@ -1,5 +1,5 @@
 # Binaries for programs and plugins
-richdocter
+bin/Richdocter
 *.exe
 *.dll
 *.so
@@ -9,9 +9,6 @@ richdocter
 config.json
 bundle.js
 application
-RichDocter
-richdocter.zip
-richdocter
 dist
 vite.config.js
 coverage/

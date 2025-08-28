@@ -1,7 +1,9 @@
 package auth
 
 import (
+	"errors"
 	"log"
+	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -9,10 +11,17 @@ import (
 )
 
 func sendWelcomeEmail(toEmail string) error {
+	region := os.Getenv("AWS_REGION")
+	if region == "" {
+		return errors.New("unable to send welcome email due to missing aws region param")
+	}
 
 	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String("us-east-1"), // Change as needed
+		Region: aws.String(region),
 	})
+	if err != nil {
+		return err
+	}
 
 	svc := ses.New(sess)
 
@@ -47,9 +56,17 @@ func sendWelcomeEmail(toEmail string) error {
 
 func sendAlertEmail(userEmail string) error {
 
+	region := os.Getenv("AWS_REGION")
+	if region == "" {
+		return errors.New("unable to send alert email due to missing aws region param")
+	}
+
 	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String("us-east-1"), // Change as needed
+		Region: aws.String(region),
 	})
+	if err != nil {
+		return err
+	}
 
 	svc := ses.New(sess)
 

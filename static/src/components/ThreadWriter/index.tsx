@@ -1,48 +1,75 @@
-import { startTransition, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
-import { $createPoint, $createRangeSelection, $createTextNode, $isRangeSelection, $isTextNode, $setSelection, LexicalEditor, LexicalNode, ParagraphNode, SerializedEditorState, SerializedElementNode, SerializedLexicalNode } from 'lexical';
+import {
+  $createPoint,
+  $createRangeSelection,
+  $createTextNode,
+  $isRangeSelection,
+  $isTextNode,
+  $setSelection,
+  LexicalEditor,
+  LexicalNode,
+  ParagraphNode,
+  SerializedEditorState,
+  SerializedElementNode,
+  SerializedLexicalNode,
+} from "lexical";
 import {
   $getRoot,
   $getSelection,
   $isElementNode,
   EditorState,
   ElementNode,
-} from 'lexical';
-import LexicalErrorBoundary from '@lexical/react/LexicalErrorBoundary';
+} from "lexical";
+import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
 import styles from "./threadwriter.module.css";
-import { Toolbar } from '../ThreadWriterToolbar';
-import { useLoader } from '../../hooks/useLoader';
-import { ProcessDBQueue, QueueOp, QueueSyncOrder } from './queue';
-import { DBOperationBlock, DBOperationType } from '../../types/DBOperations';
-import { v4 as uuidv4 } from 'uuid';
-import { CustomParagraphNode } from './customNodes/CustomParagraphNode';
-import { BlockOrderMap } from '../../types/Document';
-import { useToaster } from '../../hooks/useToaster';
-import { AlertCommandType, AlertFunctionCall, AlertToastType } from '../../types/AlertToasts';
-import { AssociationDecoratorPlugin } from './plugins/AssociationDecoratorPlugin';
-import { Association, AssociationType, SimplifiedAssociation } from '../../types/Associations';
-import { AssociationPanel } from '../AssociationPanel';
-import { DocumentMenu } from '../DocumentMenu';
-import { useSelections } from '../../hooks/useSelections';
-import { useFetchStoryBlocks } from '../../hooks/useFetchStoryBlocks';
-import { useAssociations } from '../../hooks/useAssociations';
-import { useEditorStateUpdater } from '../../hooks/useEditorStateUpdater';
-import { dbEventEmitter, SaveSuccessPayload } from '../../utils/EventEmitter';
-import { generateTextHash } from '../../constants/constants';
-import { getParagraphIndexByKey, serializeWithChildren } from '../../utils/helpers';
-import { ContextMenu, ContextMenuProps } from '../ContextMenu';
-import DocumentClickPlugin, { ClickData } from './plugins/DocumentClickPlugin';
-import { useDocumentSettings } from '../../hooks/useDocumentSettings';
-import { TextTransformPlugin } from './plugins/TextTransformPlugin';
-import { useEditorCommands } from '../../hooks/useEditorCommands';
-import { $isAssociationInlineNode, AssociationInlineNode } from './customNodes/AssociationInlineNode';
+import { Toolbar } from "../ThreadWriterToolbar";
+import { useLoader } from "../../hooks/useLoader";
+import { ProcessDBQueue, QueueOp, QueueSyncOrder } from "./queue";
+import { DBOperationBlock, DBOperationType } from "../../types/DBOperations";
+import { v4 as uuidv4 } from "uuid";
+import { CustomParagraphNode } from "./customNodes/CustomParagraphNode";
+import { BlockOrderMap } from "../../types/Document";
+import { useToaster } from "../../hooks/useToaster";
+import {
+  AlertCommandType,
+  AlertFunctionCall,
+  AlertToastType,
+} from "../../types/AlertToasts";
+import { AssociationDecoratorPlugin } from "./plugins/AssociationDecoratorPlugin";
+import {
+  Association,
+  AssociationType,
+  SimplifiedAssociation,
+} from "../../types/Associations";
+import { AssociationPanel } from "../AssociationPanel";
+import { DocumentMenu } from "../DocumentMenu";
+import { useSelections } from "../../hooks/useSelections";
+import { useFetchStoryBlocks } from "../../hooks/useFetchStoryBlocks";
+import { useAssociations } from "../../hooks/useAssociations";
+import { useEditorStateUpdater } from "../../hooks/useEditorStateUpdater";
+import { dbEventEmitter, SaveSuccessPayload } from "../../utils/EventEmitter";
+import { generateTextHash } from "../../constants/constants";
+import {
+  getParagraphIndexByKey,
+  serializeWithChildren,
+} from "../../utils/helpers";
+import { ContextMenu, ContextMenuProps } from "../ContextMenu";
+import DocumentClickPlugin, { ClickData } from "./plugins/DocumentClickPlugin";
+import { useDocumentSettings } from "../../hooks/useDocumentSettings";
+import { TextTransformPlugin } from "./plugins/TextTransformPlugin";
+import { useEditorCommands } from "../../hooks/useEditorCommands";
+import {
+  $isAssociationInlineNode,
+  AssociationInlineNode,
+} from "./customNodes/AssociationInlineNode";
 
 const theme = {
-  'custom-paragraph': styles.customParagraph,
+  "custom-paragraph": styles.customParagraph,
   text: {
     bold: styles.bold,
     italic: styles.italic,
@@ -52,16 +79,12 @@ const theme = {
 };
 
 export const ThreadWriter = () => {
-
   const initialConfig = {
-    namespace: 'ThreadWriterEditor',
+    namespace: "ThreadWriterEditor",
     theme,
-    nodes: [
-      CustomParagraphNode,
-      AssociationInlineNode
-    ],
+    nodes: [CustomParagraphNode, AssociationInlineNode],
     onError: (error: Error) => {
-      console.error('Lexical error:', error);
+      console.error("Lexical error:", error);
     },
   };
 
@@ -75,7 +98,6 @@ export const ThreadWriter = () => {
   const selectedAssociation = useRef<string | null>(null);
   const isQueuePausedRef = useRef(false);
 
-
   // hooks
   const { setAlertState } = useToaster();
   const { story, chapter } = useSelections();
@@ -83,30 +105,36 @@ export const ThreadWriter = () => {
   const { documentSettings } = useDocumentSettings();
 
   // states
-  const [storyBlocks, setStoryBlocks] = useState<SerializedEditorState | null>(null);
+  const [storyBlocks, setStoryBlocks] = useState<SerializedEditorState | null>(
+    null,
+  );
   const defaultContextData: ContextMenuProps = {
     visible: false,
     name: "",
     x: 0,
     y: 0,
-    items: []
-  }
-  const [contextMenuData, setContextMenuData] = useState<ContextMenuProps>(defaultContextData);
+    items: [],
+  };
+  const [contextMenuData, setContextMenuData] =
+    useState<ContextMenuProps>(defaultContextData);
   const [isAssociationPanelOpen, setIsAssociationPanelOpen] = useState(false);
+
+  const resetContextMenu = () => setContextMenuData({ ...defaultContextData });
 
   useEditorCommands(editorRef, pastedParagraphKeys);
 
   // Fetchers
-  const { getBatchedStoryBlocks, previousTableStatus, setPreviousTableStatus } = useFetchStoryBlocks(
-    story?.story_id || '',
-    chapter?.id || '',
-    setStoryBlocks,
-    previousNodeKeysRef
-  );
+  const { getBatchedStoryBlocks, previousTableStatus, setPreviousTableStatus } =
+    useFetchStoryBlocks(
+      story?.story_id || "",
+      chapter?.id || "",
+      setStoryBlocks,
+      previousNodeKeysRef,
+    );
   const { associations, setAssociations } = useAssociations();
 
   const getSelectedText = () => {
-    let selectedText = '';
+    let selectedText = "";
     // Update the editor state to read the current selection.
     editorRef.current?.update(() => {
       const selection = $getSelection();
@@ -127,22 +155,27 @@ export const ThreadWriter = () => {
       () => {
         console.error("Failed to copy");
         /* Rejected - text failed to copy to the clipboard */
-      }
+      },
     );
-    setContextMenuData(defaultContextData);
+    resetContextMenu();
   };
 
-  const saveAssociationsToServer = async (associations: SimplifiedAssociation[]) => {
+  const saveAssociationsToServer = async (
+    associations: SimplifiedAssociation[],
+  ) => {
     if (!story?.story_id) return;
     try {
       showLoader();
-      const response = await fetch("/api/stories/" + story.story_id + "/associations", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        "/api/stories/" + story.story_id + "/associations",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(associations),
         },
-        body: JSON.stringify(associations),
-      });
+      );
       if (!response.ok) {
         throw response;
       }
@@ -166,9 +199,10 @@ export const ThreadWriter = () => {
       } else {
         setAlertState({
           title: "Error saving association",
-          message: "There was an error saving your association. Please try again later.",
+          message:
+            "There was an error saving your association. Please try again later.",
           severity: AlertToastType.error,
-          open: true
+          open: true,
         });
       }
     } finally {
@@ -176,8 +210,11 @@ export const ThreadWriter = () => {
     }
   };
 
-  const handleMenuItemClick = async (_event: React.MouseEvent, type: AssociationType) => {
-    setContextMenuData(defaultContextData);
+  const handleMenuItemClick = async (
+    _event: React.MouseEvent,
+    type: AssociationType,
+  ) => {
+    resetContextMenu();
     const text = getSelectedText();
     if (text.length) {
       // check if !contains
@@ -188,9 +225,11 @@ export const ThreadWriter = () => {
         short_description: "",
         portrait: "",
         aliases: "",
-        case_sensitive: true
-      }
-      const storedAssociation = await saveAssociationsToServer([newAssociation]);
+        case_sensitive: true,
+      };
+      const storedAssociation = await saveAssociationsToServer([
+        newAssociation,
+      ]);
       if (storedAssociation) {
         newAssociation.portrait = storedAssociation[0].portrait;
         newAssociation.association_id = storedAssociation[0].association_id;
@@ -203,35 +242,41 @@ export const ThreadWriter = () => {
     }
   };
 
-  const deleteAssociationsFromServer = async (associations: SimplifiedAssociation[]) => {
+  const deleteAssociationsFromServer = async (
+    associations: SimplifiedAssociation[],
+  ) => {
     if (!story) return;
     try {
       showLoader();
-      const response = await fetch("/api/stories/" + story.story_id + "/associations", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        "/api/stories/" + story.story_id + "/associations",
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(associations),
         },
-        body: JSON.stringify(associations),
-      });
+      );
       if (!response.ok) {
         throw response;
       }
     } catch (error: unknown) {
-      console.error(`Error deleting association: ${(error as Response).statusText}`)
+      console.error(
+        `Error deleting association: ${(error as Response).statusText}`,
+      );
     } finally {
       hideLoader();
     }
   };
 
-
   const handleDeleteAssociationClick = async () => {
-    setContextMenuData(defaultContextData);
+    resetContextMenu();
     if (selectedAssociation.current?.length && associations) {
       const ind = associations.findIndex((assoc) => {
         return assoc.association_id === selectedAssociation.current;
       });
-      selectedAssociation.current = '';
+      selectedAssociation.current = "";
       const deleteMe = associations[ind];
       const newAssociations = [...associations];
       newAssociations.splice(ind, 1);
@@ -292,32 +337,39 @@ export const ThreadWriter = () => {
           "We are experiencing difficulty contacting the server. We'll keep attempting to save your work as long as you leave this window open, however we suggest you save a local copy of your current work.",
         severity: AlertToastType.error,
         open: true,
-        timeout: null
+        timeout: null,
       });
     }
   }, [setAlertState]);
 
   const queueParagraphOrderResync = useCallback(() => {
     if (!story || !chapter || !editorRef.current) return;
-    console.log("queueing a resync!!!!!")
+    console.log("queueing a resync!!!!!");
     editorRef.current.read(() => {
       const root = $getRoot();
-      const paragraphs = root.getChildren().filter((node) => node.getType() === "custom-paragraph");
+      const paragraphs = root
+        .getChildren()
+        .filter((node) => node.getType() === "custom-paragraph");
       const orderMap: BlockOrderMap = {
         chapter_id: chapter.id,
-        blocks: []
-      }
-      paragraphs.forEach(paragraph => {
-        const index = getParagraphIndexByKey(editorRef.current, paragraph.getKey());
+        blocks: [],
+      };
+      paragraphs.forEach((paragraph) => {
+        const index = getParagraphIndexByKey(
+          editorRef.current,
+          paragraph.getKey(),
+        );
         if (index !== null) {
           const asCP = paragraph as CustomParagraphNode;
           const customKey = asCP.getKeyId();
           if (customKey) {
-            orderMap.blocks.push({ key_id: customKey, place: index.toString() });
+            orderMap.blocks.push({
+              key_id: customKey,
+              place: index.toString(),
+            });
           }
-
         }
-      })
+      });
       QueueSyncOrder({
         type: DBOperationType.syncOrder,
         orderList: orderMap,
@@ -325,91 +377,141 @@ export const ThreadWriter = () => {
         time: Date.now(),
         storyID: story.story_id,
         chapterID: chapter.id,
-      })
+      });
     });
   }, [chapter, story]);
 
-  const queueParagraphForDeletion = useCallback((chapterID: string, customKey: string) => {
-    if (!story) return;
-    console.log("queueing a delete!!!!!")
-    const deleteBlock: DBOperationBlock = { key_id: customKey };
-    const storyID = story.story_id;
-    QueueOp(DBOperationType.delete, storyID, chapterID, deleteBlock, previousTableStatus)
-  }, [story, previousTableStatus]);
+  const writeEpochRef = useRef(0);
+  useEffect(() => {
+    writeEpochRef.current += 1;
+  }, [chapter?.id]);
 
-  const queueParagraphForSave = useCallback((chapterID: string, customKey: string, order: string, content: SerializedElementNode<SerializedLexicalNode>) => {
-    if (!story || !chapter) return;
-    console.log("queueing a save!!!!!")
-    const saveBlock: DBOperationBlock = { key_id: customKey, chunk: content, place: order };
-    const storyID = story.story_id;
-    QueueOp(DBOperationType.save, storyID, chapterID, saveBlock, previousTableStatus)
+  const queueParagraphForDeletion = useCallback(
+    (chapterID: string, customKey: string) => {
+      if (!story) return;
+      console.log("queueing a delete!!!!!");
+      const deleteBlock: DBOperationBlock = { key_id: customKey };
+      const storyID = story.story_id;
+      QueueOp(
+        DBOperationType.delete,
+        storyID,
+        chapterID,
+        deleteBlock,
+        previousTableStatus,
+        {
+          epoch: writeEpochRef.current,
+        },
+      );
+    },
+    [story, previousTableStatus],
+  );
 
-  }, [chapter, previousTableStatus, story]);
+  const queueParagraphForSave = useCallback(
+    (
+      chapterID: string,
+      customKey: string,
+      order: string,
+      content: SerializedElementNode<SerializedLexicalNode>,
+    ) => {
+      if (!story || !chapter) return;
+      console.log("queueing a save!!!!!");
+      const saveBlock: DBOperationBlock = {
+        key_id: customKey,
+        chunk: content,
+        place: order,
+      };
+      const storyID = story.story_id;
+      QueueOp(
+        DBOperationType.save,
+        storyID,
+        chapterID,
+        saveBlock,
+        previousTableStatus,
+        {
+          epoch: writeEpochRef.current,
+        },
+      );
+    },
+    [chapter, previousTableStatus, story],
+  );
 
-  const queueAllParagraphsForSave = useCallback((storyID: string, chapterID: string) => {
-    if (!editorRef || !editorRef.current) {
-      console.warn("ThreadWriter - Editor, story, or chapter is not available.");
-      return;
-    }
-
-    const orderMap: BlockOrderMap = {
-      chapter_id: chapterID,
-      blocks: []
-    }
-    editorRef.current.read(() => {
-      const root = $getRoot();
-      const paragraphs = root.getChildren().filter(
-        (node) => node instanceof CustomParagraphNode
-      ) as CustomParagraphNode[];
-
-      paragraphs.forEach((paragraph, index) => {
-        const key_id = paragraph.getKeyId();
-        if (!key_id) {
-          console.warn(`ThreadWriter - Paragraph at index ${index} is missing a key_id.`);
-          return;
-        }
-
-        // Serialize the paragraph
-        const serialized = serializeWithChildren(paragraph);
-        if (!serialized) {
-          console.warn(`ThreadWriter - Failed to serialize paragraph with key_id: ${key_id}`);
-          return;
-        }
-
-        // Create a save operation block
-        const saveBlock: DBOperationBlock = {
-          key_id,
-          chunk: serialized,
-          place: index.toString(), // Assuming 'place' represents the order
-        };
-
-        QueueOp(
-          DBOperationType.save,
-          storyID,
-          chapterID,
-          saveBlock
+  const queueAllParagraphsForSave = useCallback(
+    (storyID: string, chapterID: string) => {
+      if (!editorRef || !editorRef.current) {
+        console.warn(
+          "ThreadWriter - Editor, story, or chapter is not available.",
         );
-
-        orderMap.blocks.push({ key_id, place: index.toString() });
-
-      });
-
-      try {
-        runQueue();
-      } catch (error) {
-        console.error("error from db queue", error);
+        return;
       }
-      setAlertState({
-        title: "Chapter ready",
-        message:
-          "Your chapter assets are complete and your content was saved",
-        severity: AlertToastType.success,
-        open: true,
-        timeout: 10000,
-      });
-    });
-  }, [setAlertState, runQueue]);
 
+      const orderMap: BlockOrderMap = {
+        chapter_id: chapterID,
+        blocks: [],
+      };
+      editorRef.current.read(() => {
+        const root = $getRoot();
+        const paragraphs = root
+          .getChildren()
+          .filter(
+            (node) => node instanceof CustomParagraphNode,
+          ) as CustomParagraphNode[];
+
+        paragraphs.forEach((paragraph, index) => {
+          const key_id = paragraph.getKeyId();
+          if (!key_id) {
+            console.warn(
+              `ThreadWriter - Paragraph at index ${index} is missing a key_id.`,
+            );
+            return;
+          }
+
+          // Serialize the paragraph
+          const serialized = serializeWithChildren(paragraph);
+          if (!serialized) {
+            console.warn(
+              `ThreadWriter - Failed to serialize paragraph with key_id: ${key_id}`,
+            );
+            return;
+          }
+
+          // Create a save operation block
+          const saveBlock: DBOperationBlock = {
+            key_id,
+            chunk: serialized,
+            place: index.toString(), // Assuming 'place' represents the order
+          };
+
+          QueueOp(
+            DBOperationType.save,
+            storyID,
+            chapterID,
+            saveBlock,
+            undefined,
+            {
+              epoch: writeEpochRef.current,
+            },
+          );
+
+          orderMap.blocks.push({ key_id, place: index.toString() });
+        });
+
+        try {
+          runQueue();
+        } catch (error) {
+          console.error("error from db queue", error);
+        }
+        setAlertState({
+          title: "Chapter ready",
+          message:
+            "Your chapter assets are complete and your content was saved",
+          severity: AlertToastType.success,
+          open: true,
+          timeout: 10000,
+        });
+      });
+    },
+    [setAlertState, runQueue],
+  );
 
   useEditorStateUpdater(editorRef, storyBlocks, isProgrammaticChange);
 
@@ -446,12 +548,18 @@ export const ThreadWriter = () => {
         // **Step 1: Use caret position to find exact text offset**
         let range: Range | null = null;
         const doc = document as unknown as {
-          caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
+          caretPositionFromPoint?: (
+            x: number,
+            y: number,
+          ) => { offsetNode: Node; offset: number } | null;
           caretRangeFromPoint?: (x: number, y: number) => Range | null;
         } & Document;
 
         if (doc.caretPositionFromPoint) {
-          const caretPos = doc.caretPositionFromPoint(touch.clientX, touch.clientY);
+          const caretPos = doc.caretPositionFromPoint(
+            touch.clientX,
+            touch.clientY,
+          );
           if (caretPos) {
             range = document.createRange();
             range.setStart(caretPos.offsetNode, caretPos.offset);
@@ -489,20 +597,19 @@ export const ThreadWriter = () => {
     return () => document.removeEventListener("touchend", handleTouchEnd);
   }, []);
 
-
   useEffect(() => {
     // this effect will wait for tables with previous statuses (stati?) of 501 (assets not ready yet)
     // are now deployed and you should synch all current data nodes with the cloud now
     const handleSaveSuccess = (event: Event) => {
       const customEvent = event as CustomEvent<SaveSuccessPayload>;
       const payload = customEvent.detail;
-      setPreviousTableStatus('ok');
+      setPreviousTableStatus("ok");
       queueAllParagraphsForSave(payload.storyID, payload.chapterID);
     };
-    dbEventEmitter.addEventListener('saveSuccess', handleSaveSuccess);
+    dbEventEmitter.addEventListener("saveSuccess", handleSaveSuccess);
     return () => {
-      dbEventEmitter.removeEventListener('saveSuccess', handleSaveSuccess);
-    }
+      dbEventEmitter.removeEventListener("saveSuccess", handleSaveSuccess);
+    };
   }, [queueAllParagraphsForSave, setPreviousTableStatus]);
 
   // Merged useEffect to handle both story and chapter changes
@@ -524,11 +631,8 @@ export const ThreadWriter = () => {
           isProgrammaticChange.current = false; // End programmatic change
         }
       };
-      startTransition(() => {
-        fetchData();
-      });
+      fetchData();
     }
-
   }, [story?.story_id, chapter?.id, getBatchedStoryBlocks]);
 
   useEffect(() => {
@@ -547,44 +651,57 @@ export const ThreadWriter = () => {
     if (!chapter) return;
     if (editorRef.current) {
       // Transform default ParagraphNode to CustomParagraphNode
-      editorRef.current.registerNodeTransform(ParagraphNode, (node: ParagraphNode) => {
-        if (!(node instanceof CustomParagraphNode) || !node.getKeyId()) {
-          const replacement = new CustomParagraphNode(uuidv4());
-          replacement.append(...node.getChildren());
-          if (documentSettings?.autotab) {
-            const tabTextNode = $createTextNode("\t");
-            const firstChild = replacement.getFirstChild();
-            if (firstChild) {
-              firstChild.insertBefore(tabTextNode);
-            } else {
-              replacement.append(tabTextNode);
+      const unregisterParagraphTransform =
+        editorRef.current.registerNodeTransform(
+          ParagraphNode,
+          (node: ParagraphNode) => {
+            if (!(node instanceof CustomParagraphNode) || !node.getKeyId()) {
+              const replacement = new CustomParagraphNode(uuidv4());
+              replacement.append(...node.getChildren());
+              if (documentSettings?.autotab) {
+                const tabTextNode = $createTextNode("\t");
+                const firstChild = replacement.getFirstChild();
+                if (firstChild) {
+                  firstChild.insertBefore(tabTextNode);
+                } else {
+                  replacement.append(tabTextNode);
+                }
+                const point = $createPoint(tabTextNode.getKey(), 1, "text");
+                const rangeSelection = $createRangeSelection();
+                rangeSelection.anchor = point;
+                rangeSelection.focus = point;
+                $setSelection(rangeSelection);
+              }
+              node.replace(replacement);
             }
-            const point = $createPoint(tabTextNode.getKey(), 1, "text");
-            const rangeSelection = $createRangeSelection();
-            rangeSelection.anchor = point;
-            rangeSelection.focus = point;
-            $setSelection(rangeSelection);
-          }
-          node.replace(replacement);
-        }
-      });
+          },
+        );
 
       // Handle empty CustomParagraphNodes
-      editorRef.current.registerNodeTransform(CustomParagraphNode, (node: CustomParagraphNode) => {
-        if (node.getTextContent().trim() === "") {
-          // Prevent redundant replacement of already empty nodes
-          editorRef.current?.update(() => {
-            const index = getParagraphIndexByKey(editorRef.current, node.getKey());
+      const unregisterCustomTransform = editorRef.current.registerNodeTransform(
+        CustomParagraphNode,
+        (node: CustomParagraphNode) => {
+          if (node.getTextContent().trim() === "") {
+            // Prevent redundant replacement of already empty nodes
+            const index = node.getIndexWithinParent();
             if (index !== null) {
               const id = node.getKeyId();
               if (id) {
-                queueParagraphForSave(chapter.id, id, index.toString(), serializeWithChildren(node));
+                queueParagraphForSave(
+                  chapter.id,
+                  id,
+                  index.toString(),
+                  serializeWithChildren(node),
+                );
               }
             }
-          });
-
-        }
-      });
+          }
+        },
+      );
+      return () => {
+        unregisterParagraphTransform();
+        unregisterCustomTransform();
+      };
     }
   }, [editorRef, chapter, queueParagraphForSave, documentSettings?.autotab]);
 
@@ -595,10 +712,15 @@ export const ThreadWriter = () => {
         const root = $getRoot();
         const children = root.getChildren();
         children.forEach((child) => {
-          if (child.getType() === "paragraph" && !(child instanceof CustomParagraphNode)) {
+          if (
+            child.getType() === "paragraph" &&
+            !(child instanceof CustomParagraphNode)
+          ) {
             console.error(`Existing ParagraphNode found: ${child.getKey()}`);
             const replacement = new CustomParagraphNode(uuidv4());
-            replacement.append(...(child as ElementNode).getChildren<ElementNode>());
+            replacement.append(
+              ...(child as ElementNode).getChildren<ElementNode>(),
+            );
             child.replace(replacement);
           }
         });
@@ -613,18 +735,15 @@ export const ThreadWriter = () => {
         runQueue();
       }
     }, 5000);
-    window.addEventListener("unload", () => {
-    });
     return () => {
       clearInterval(processInterval);
-      window.removeEventListener("unload", () => { });
     };
   }, [story?.story_id, setAlertState, runQueue]);
 
   useEffect(() => {
     const handleBeforeUnload = () => {
       try {
-        console.warn("UNLOAD DETECTED")
+        console.warn("UNLOAD DETECTED");
         ProcessDBQueue(); // force sync
       } catch (err) {
         console.error("Error flushing DB queue on unload", err);
@@ -634,135 +753,153 @@ export const ThreadWriter = () => {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
-  const onChangeHandler = useCallback((editorState: EditorState) => {
-    if (!chapter) return;
-    if (isProgrammaticChange.current) {
-      console.log("Programmatic change detected, skipping onChange handling.");
-      return;
-    }
-    if (!editorRef.current) return;
-    const currentHash = generateTextHash(editorRef.current);
-    const previousHash = previousTextHashRef.current;
+  const onChangeHandler = useCallback(
+    (editorState: EditorState) => {
+      if (!chapter) return;
+      if (isProgrammaticChange.current) {
+        console.log(
+          "Programmatic change detected, skipping onChange handling.",
+        );
+        return;
+      }
+      if (!editorRef.current) return;
+      const currentHash = generateTextHash(editorRef.current);
+      const previousHash = previousTextHashRef.current;
 
-    if (currentHash === previousHash) {
-      console.log("No content changes detected, skipping onChange handling.");
-      return;
-    }
-    previousTextHashRef.current = currentHash;
+      if (currentHash === previousHash) {
+        console.log("No content changes detected, skipping onChange handling.");
+        return;
+      }
+      previousTextHashRef.current = currentHash;
 
+      editorState.read(() => {
+        let orderResyncRequired = false;
+        const root = $getRoot();
+        const children = root.getChildren();
+        const currentNodeKeys = new Set<string>();
+        const newParagraphKeys = new Set<string>();
+        const paragraphsToSave: {
+          key_id: string;
+          order: string;
+          content: SerializedElementNode<SerializedLexicalNode>;
+        }[] = [];
 
-    editorState.read(() => {
-      let orderResyncRequired = false;
-      const root = $getRoot();
-      const children = root.getChildren();
-      const currentNodeKeys = new Set<string>();
-      const newParagraphKeys = new Set<string>();
-      const paragraphsToSave: { key_id: string, order: string, content: SerializedElementNode<SerializedLexicalNode> }[] = [];
+        children.forEach((node, index) => {
+          if (node instanceof CustomParagraphNode) {
+            const id = node.getKeyId();
+            if (id) {
+              currentNodeKeys.add(id);
+              // If new paragraph (not seen before), flag for save
+              if (!previousNodeKeysRef.current.has(id)) {
+                newParagraphKeys.add(id);
+              }
+              const currentText = node.getTextContent();
+              const prevText = previousNodeKeysRef.current.get(id);
+              const textHasChanged =
+                prevText === undefined || currentText !== prevText;
 
-      children.forEach((node, index) => {
-        if (node instanceof CustomParagraphNode) {
-          const id = node.getKeyId();
-          if (id) {
-            currentNodeKeys.add(id);
-            // If new paragraph (not seen before), flag for save
-            if (!previousNodeKeysRef.current.has(id)) {
-              newParagraphKeys.add(id);
-            }
-            const currentText = node.getTextContent();
-            const prevText = previousNodeKeysRef.current.get(id);
-            const textHasChanged = prevText === undefined || currentText !== prevText;
-
-            // Add to paragraphsToSave if new, pasted, or selected
-            const selection = $getSelection();
-            const customParagraph = $isRangeSelection(selection)
-              ? selection.anchor.getNode().getParent()
-              : null;
-            const selectedNodeKey =
-              customParagraph instanceof CustomParagraphNode
-                ? customParagraph.getKeyId()
+              // Add to paragraphsToSave if new, pasted, or selected
+              const selection = $getSelection();
+              const customParagraph = $isRangeSelection(selection)
+                ? selection.anchor.getNode().getParent()
                 : null;
+              const selectedNodeKey =
+                customParagraph instanceof CustomParagraphNode
+                  ? customParagraph.getKeyId()
+                  : null;
 
-            if (
-              pastedParagraphKeys.current.has(id) ||
-              newParagraphKeys.has(id) ||
-              id === selectedNodeKey ||
-              textHasChanged
-            ) {
-              const serialized = serializeWithChildren(node);
-              paragraphsToSave.push({
-                key_id: serialized.key_id,
-                order: index.toString(),
-                content: serialized,
-              });
-              previousNodeKeysRef.current.set(id, currentText);
+              if (
+                pastedParagraphKeys.current.has(id) ||
+                newParagraphKeys.has(id) ||
+                id === selectedNodeKey ||
+                textHasChanged
+              ) {
+                const serialized = serializeWithChildren(node);
+                paragraphsToSave.push({
+                  key_id: serialized.key_id,
+                  order: index.toString(),
+                  content: serialized,
+                });
+                previousNodeKeysRef.current.set(id, currentText);
+              }
             }
           }
+        });
+
+        // Remaining keys in previousNodeKeysRef are to be deleted
+        const deletedKeys = Array.from(
+          previousNodeKeysRef.current.keys(),
+        ).filter((key) => !currentNodeKeys.has(key));
+        deletedKeys.forEach((key) => {
+          queueParagraphForDeletion(chapter.id, key);
+          previousNodeKeysRef.current.delete(key);
+        });
+        if (deletedKeys.length || newParagraphKeys.size) {
+          orderResyncRequired = true;
         }
-      });
 
-      // Remaining keys in previousNodeKeysRef are to be deleted
-      const deletedKeys = Array.from(previousNodeKeysRef.current.keys()).filter(
-        (key) => !currentNodeKeys.has(key)
-      );
-      deletedKeys.forEach((key) => {
-        queueParagraphForDeletion(chapter.id, key);
-        previousNodeKeysRef.current.delete(key);
+        // Step 4: Filter saves – remove any that were just deleted
+        const filteredSaves = paragraphsToSave.filter(
+          (p) => !deletedKeys.includes(p.key_id),
+        );
+        filteredSaves.forEach((p) =>
+          queueParagraphForSave(chapter.id, p.key_id, p.order, p.content),
+        );
+        // If order resync is required, queue it
+        if (orderResyncRequired) queueParagraphOrderResync();
       });
-      if (deletedKeys.length || newParagraphKeys.size) {
-        orderResyncRequired = true;
+    },
+    [
+      chapter,
+      queueParagraphForDeletion,
+      queueParagraphForSave,
+      queueParagraphOrderResync,
+    ],
+  );
+
+  const onAssociationEditCallback = useCallback(
+    async (assoc: Association) => {
+      if (!story) return;
+      try {
+        showLoader();
+        const response = await fetch(
+          "/api/stories/" + story.story_id + "/associations",
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify([assoc]),
+          },
+        );
+        if (!response.ok) {
+          throw new Error(`Error saving association: ${response.body}`);
+        }
+      } catch (error: unknown) {
+        console.error(`Error saving association: ${error}`);
+        setAlertState({
+          title: "Save Failure",
+          message:
+            "We are unable to save your association. Please try again later.",
+          severity: AlertToastType.error,
+          open: true,
+        });
+      } finally {
+        setAssociations((prevAssociations: SimplifiedAssociation[] = []) =>
+          prevAssociations.map((storedAssociation) =>
+            storedAssociation.association_id === assoc.association_id
+              ? { ...storedAssociation, ...assoc }
+              : storedAssociation,
+          ),
+        );
+        hideLoader();
       }
-
-      // Step 4: Filter saves – remove any that were just deleted
-      const filteredSaves = paragraphsToSave.filter(
-        (p) => !deletedKeys.includes(p.key_id)
-      );
-      filteredSaves.forEach((p) =>
-        queueParagraphForSave(chapter.id, p.key_id, p.order, p.content)
-      );
-      // If order resync is required, queue it
-      if (orderResyncRequired) queueParagraphOrderResync();
-    });
-
-  }, [chapter, queueParagraphForDeletion, queueParagraphForSave, queueParagraphOrderResync]);
-
-
-  const onAssociationEditCallback = useCallback(async (assoc: Association) => {
-    if (!story) return;
-    try {
-      showLoader();
-      const response = await fetch("/api/stories/" + story.story_id + "/associations", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify([assoc]),
-      });
-      if (!response.ok) {
-        throw new Error(`Error saving association: ${response.body}`);
-      }
-    } catch (error: unknown) {
-      console.error(`Error saving association: ${error}`)
-      setAlertState({
-        title: "Save Failure",
-        message:
-          "We are unable to save your association. Please try again later.",
-        severity: AlertToastType.error,
-        open: true
-      });
-    } finally {
-      setAssociations((prevAssociations: SimplifiedAssociation[] = []) =>
-        prevAssociations.map((storedAssociation) =>
-          storedAssociation.association_id === assoc.association_id
-            ? { ...storedAssociation, ...assoc }
-            : storedAssociation
-        )
-      );
-      hideLoader();
-    }
-  }, [story, hideLoader, showLoader, setAlertState, setAssociations]);
+    },
+    [story, hideLoader, showLoader, setAlertState, setAssociations],
+  );
 
   const handleDocumentLeftClick = (event: MouseEvent | TouchEvent) => {
-    setContextMenuData(defaultContextData);
+    resetContextMenu();
     if (!editorRef.current) return;
 
     editorRef.current.focus();
@@ -803,7 +940,10 @@ export const ThreadWriter = () => {
         // **Find exact text offset using caret position**
         let range: Range | null = null;
         const doc = document as unknown as {
-          caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
+          caretPositionFromPoint?: (
+            x: number,
+            y: number,
+          ) => { offsetNode: Node; offset: number } | null;
           caretRangeFromPoint?: (x: number, y: number) => Range | null;
         } & Document;
 
@@ -843,23 +983,22 @@ export const ThreadWriter = () => {
     }, 0); // Small delay allows browser to finish handling the event
   };
 
-
   const handleDocumentRightClick = (data: ClickData) => {
     const contextData: ContextMenuProps = {
       name: data.text ? data.text : "",
       visible: true,
       y: data.y,
       x: data.x,
-      items: selectedContextMenuItems
-    }
+      items: selectedContextMenuItems,
+    };
     setContextMenuData(contextData);
-  }
+  };
 
   const handleAssociationLeftClick = (data: ClickData) => {
     if (!data.id) return;
     selectedAssociation.current = data.id;
     setIsAssociationPanelOpen(true);
-  }
+  };
 
   const handleAssociationRightClick = (data: ClickData) => {
     if (!data.id) return;
@@ -869,20 +1008,20 @@ export const ThreadWriter = () => {
       visible: true,
       y: data.y,
       x: data.x,
-      items: associationContextMenuItems
-    }
+      items: associationContextMenuItems,
+    };
     setContextMenuData(contextData);
-  }
+  };
 
   if (!story || !story.story_id || !chapter || !chapter.id) {
     console.warn("Story and chapter not loaded yet.");
-    return;
+    return null;
   }
 
   return (
-
     <div className={styles.outerWrapper}>
       <LexicalComposer
+        key={`${story.story_id}:${chapter.id}`}
         initialConfig={{
           ...initialConfig,
           editorState: (editor) => {
@@ -894,16 +1033,41 @@ export const ThreadWriter = () => {
         <div className={styles.editorRow}>
           <div className={styles.editorArea}>
             <RichTextPlugin
-              contentEditable={<ContentEditable tabIndex={0} className={styles.editorInput} spellCheck={documentSettings?.spellcheck} />}
+              contentEditable={
+                <ContentEditable
+                  tabIndex={0}
+                  className={styles.editorInput}
+                  spellCheck={documentSettings?.spellcheck}
+                />
+              }
               ErrorBoundary={LexicalErrorBoundary}
             />
-            <AssociationDecoratorPlugin isProgrammaticChange={isProgrammaticChange} scrollToTop={true} customLeftClick={handleAssociationLeftClick} customRightClick={handleAssociationRightClick} />
+            <AssociationDecoratorPlugin
+              isProgrammaticChange={isProgrammaticChange}
+              scrollToTop={true}
+              customLeftClick={handleAssociationLeftClick}
+              customRightClick={handleAssociationRightClick}
+            />
             <OnChangePlugin onChange={onChangeHandler} />
             <HistoryPlugin />
             <TextTransformPlugin isProgrammaticChange={isProgrammaticChange} />
-            <DocumentClickPlugin onLeftClick={handleDocumentLeftClick} onRightClick={handleDocumentRightClick} />
-            <AssociationPanel onEditCallback={onAssociationEditCallback} isAssociationPanelOpen={isAssociationPanelOpen} setIsAssociationPanelOpen={setIsAssociationPanelOpen} selectedAssociationID={selectedAssociation.current} />
-            <ContextMenu name={contextMenuData.name} visible={contextMenuData.visible} x={contextMenuData.x} y={contextMenuData.y} items={contextMenuData.items} />
+            <DocumentClickPlugin
+              onLeftClick={handleDocumentLeftClick}
+              onRightClick={handleDocumentRightClick}
+            />
+            <AssociationPanel
+              onEditCallback={onAssociationEditCallback}
+              isAssociationPanelOpen={isAssociationPanelOpen}
+              setIsAssociationPanelOpen={setIsAssociationPanelOpen}
+              selectedAssociationID={selectedAssociation.current}
+            />
+            <ContextMenu
+              name={contextMenuData.name}
+              visible={contextMenuData.visible}
+              x={contextMenuData.x}
+              y={contextMenuData.y}
+              items={contextMenuData.items}
+            />
           </div>
           <DocumentMenu onAssociationClick={handleAssociationLeftClick} />
         </div>
