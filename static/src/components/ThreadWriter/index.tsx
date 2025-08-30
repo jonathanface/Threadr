@@ -27,7 +27,7 @@ import {
 } from "lexical";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
 import styles from "./threadwriter.module.css";
-import { Toolbar } from "../ThreadWriterToolbar";
+import { Toolbar } from "./ThreadWriterToolbar";
 import { useLoader } from "../../hooks/useLoader";
 import { ProcessDBQueue, QueueOp, QueueSyncOrder } from "./queue";
 import { DBOperationBlock, DBOperationType } from "../../types/DBOperations";

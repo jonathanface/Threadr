@@ -163,7 +163,7 @@ func (d *DAO) GetStoryByID(email, storyID string) (story *models.Story, err erro
 		}
 		storyFromMap[0].Chapters = append(storyFromMap[0].Chapters, chapter)
 	}
-	storyFromMap[0].Outline, err = d.GetOutlineByStoryID(storyID)
+	storyFromMap[0].Outline, err = d.GetOutlineByStoryID(storyID, storyFromMap[0].Chapters)
 	if err != nil && err != sql.ErrNoRows {
 		return &storyFromMap[0], err
 	}

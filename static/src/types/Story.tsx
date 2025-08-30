@@ -1,5 +1,5 @@
 import { Chapter } from "./Chapter";
-import { OutlineSection } from "./Outline";
+import { Outline } from "./Outline";
 
 export interface Story {
   story_id: string;
@@ -8,7 +8,7 @@ export interface Story {
   description: string;
   series_id?: string;
   chapters: Chapter[];
-  outline?: OutlineSection[];
+  outline?: Outline;
   place?: number;
   image_url: string;
 }

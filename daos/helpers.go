@@ -21,7 +21,7 @@ import (
 	"github.com/aws/smithy-go"
 )
 
-func GenerateStoryOutlineSections(typeOf models.OutlineType) []models.OutlineSection {
+func GenerateStoryOutlineSections(typeOf models.OutlineTemplate) []models.OutlineSection {
 	var sections []models.OutlineSection
 	switch typeOf {
 	case models.ThreeAct:
