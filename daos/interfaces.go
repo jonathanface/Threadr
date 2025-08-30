@@ -23,7 +23,7 @@ type DaoInterface interface {
 	GetSeriesVolumes(email string, seriesID string) ([]*models.Story, error)
 	GetUserDetails(email string) (*models.UserInfo, error)
 	GetChapterByID(chapterID string) (*models.Chapter, error)
-	GetOutlineByStoryID(storyID string) (*[]models.OutlineSection, error)
+	GetOutlineByStoryID(storyID string, chapters []models.Chapter) (*models.OutlineResponse, error)
 
 	// PUTs
 	UpsertUser(email string) error
@@ -40,7 +40,7 @@ type DaoInterface interface {
 	EditSeries(email string, series models.Series) (models.Series, error)
 	EditChapter(storyID string, chapter models.Chapter) (models.Chapter, error)
 	RemoveStoryFromSeries(email, storyID string, series models.Series) (models.Series, error)
-	UpdateOutline(outline models.OutlineRequest) error
+	UpdateOutline(outline models.OutlineRequest) (*models.OutlineResponse, error)
 
 	// POSTs
 	CreateChapter(storyID string, chapter models.Chapter, email string) (models.Chapter, error)

@@ -1,62 +1,116 @@
-import { Box, Drawer, IconButton, Paper, Tooltip } from "@mui/material"
-import { FlyoutMenuItems } from "../FlyoutMenuItems";
+import { Box, Drawer, IconButton, Paper, Tooltip } from "@mui/material";
 import { Settings } from "@mui/icons-material";
 import styles from "./settingsmenu.module.css";
-import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered';
-import CancelPresentationIcon from '@mui/icons-material/CancelPresentation';
+import FormatListNumberedIcon from "@mui/icons-material/FormatListNumbered";
+import CancelPresentationIcon from "@mui/icons-material/CancelPresentation";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useSelections } from "../../hooks/useSelections";
 import { ClickData } from "../ThreadWriter/plugins/DocumentClickPlugin";
 import { DocumentSettingsModal } from "../DocumentSettingsModal";
+import { ChapterMenu } from "../ChapterMenu";
+import { OutlineMenu } from "../OutlineMenu";
+import { useFetchUserData } from "../../hooks/useFetchUserData";
+import MenuBookTwoToneIcon from "@mui/icons-material/MenuBookTwoTone";
 
 interface DocumentMenuProps {
-    onAssociationClick: (data: ClickData) => void;
+  onAssociationClick: (data: ClickData) => void;
 }
+
 export const DocumentMenu = (props: DocumentMenuProps) => {
-    const navigate = useNavigate();
-    const { story, deselectAll } = useSelections();
-    const [isEditorMenuOpen, setIsEditorMenuOpen] = useState(false);
-    const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const { story, deselectAll } = useSelections();
+  const [isEditorChapterMenuOpen, setIsEditorChapterMenuOpen] = useState(false);
+  const [isEditorOutlineMenuOpen, setIsEditorOutlineMenuOpen] = useState(false);
+  const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
+  const userSettings = useFetchUserData();
 
-    if (!story) return;
+  if (!story) return;
 
-    const closeDoc = () => {
-        navigate(`/stories`);
-        deselectAll();
-    }
+  const closeSideMenus = () => {
+    setIsEditorChapterMenuOpen(false);
+    setIsEditorOutlineMenuOpen(false);
+  };
 
-    return (
-        <div>
-            <Paper
-                className={styles.sideMenu}
-                elevation={3}
-            >
-                <Tooltip title="Close this Document" placement="right">
-                    <IconButton onClick={closeDoc}>
-                        <CancelPresentationIcon />
-                    </IconButton>
-                </Tooltip>
-                <Tooltip title="Chapters & Layout" placement="right">
-                    <IconButton onClick={() => { setIsEditorMenuOpen(true) }}>
-                        <FormatListNumberedIcon />
-                    </IconButton>
-                </Tooltip>
-                <Tooltip title="Settings" placement="right">
-                    <IconButton onClick={() => { setIsSettingsMenuOpen(true) }}>
-                        <Settings />
-                    </IconButton>
-                </Tooltip>
-            </Paper>
-            <DocumentSettingsModal open={isSettingsMenuOpen} setOpen={setIsSettingsMenuOpen} />
-            <Drawer anchor={"right"} open={isEditorMenuOpen} onClose={() => { setIsEditorMenuOpen(false) }}>
-                <Box
-                    className={styles.flyoutMenu}
-                    role="presentation"
-                    component="section">
-                    <FlyoutMenuItems chapters={story.chapters} onAssociationClick={props.onAssociationClick} />
-                </Box>
-            </Drawer>
-        </div>
-    );
-}
+  const closeDoc = () => {
+    navigate(`/stories`);
+    deselectAll();
+  };
+
+  if (!userSettings?.userDetails) {
+    return null;
+  }
+  const isSubscriber: boolean = Boolean(
+    userSettings.userDetails.subscription_id.length,
+  );
+  if (!isSubscriber) return null;
+
+  return (
+    <div>
+      <Paper className={styles.sideMenu} elevation={3}>
+        <Tooltip title="Close this Document" placement="right">
+          <IconButton onClick={closeDoc}>
+            <CancelPresentationIcon />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Chapters" placement="right">
+          <IconButton
+            onClick={() => {
+              setIsEditorChapterMenuOpen(true);
+            }}
+          >
+            <FormatListNumberedIcon />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Outline" placement="right">
+          <IconButton
+            onClick={() => {
+              setIsEditorOutlineMenuOpen(true);
+            }}
+          >
+            <MenuBookTwoToneIcon />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Settings" placement="right">
+          <IconButton
+            onClick={() => {
+              setIsSettingsMenuOpen(true);
+            }}
+          >
+            <Settings />
+          </IconButton>
+        </Tooltip>
+      </Paper>
+      <DocumentSettingsModal
+        open={isSettingsMenuOpen}
+        setOpen={setIsSettingsMenuOpen}
+      />
+      <Drawer
+        anchor={"right"}
+        open={isEditorChapterMenuOpen}
+        onClose={closeSideMenus}
+      >
+        <Box
+          className={styles.flyoutMenu}
+          role="presentation"
+          component="section"
+        >
+          <ChapterMenu chapters={story.chapters} />
+        </Box>
+      </Drawer>
+      <Drawer
+        anchor={"right"}
+        open={isEditorOutlineMenuOpen}
+        onClose={closeSideMenus}
+      >
+        <Box
+          className={styles.flyoutMenu}
+          role="presentation"
+          component="section"
+        >
+          <OutlineMenu onAssociationClick={props.onAssociationClick} />
+        </Box>
+      </Drawer>
+    </div>
+  );
+};

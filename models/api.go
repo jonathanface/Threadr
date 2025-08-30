@@ -72,15 +72,15 @@ type ChapterWithContents struct {
 }
 
 type Story struct {
-	ID          string            `json:"story_id" dynamodbav:"story_id"`
-	CreatedAt   int               `json:"created_at" dynamodbav:"created_at"`
-	Title       string            `json:"title" dynamodbav:"title"`
-	Description string            `json:"description" dynamodbav:"description"`
-	SeriesID    string            `json:"series_id" dynamodbav:"series_id"`
-	Chapters    []Chapter         `json:"chapters"`
-	Outline     *[]OutlineSection `json:"outline"`
-	Place       int               `json:"place"`
-	ImageURL    string            `json:"image_url" dynamodbav:"image_url"`
+	ID          string           `json:"story_id" dynamodbav:"story_id"`
+	CreatedAt   int              `json:"created_at" dynamodbav:"created_at"`
+	Title       string           `json:"title" dynamodbav:"title"`
+	Description string           `json:"description" dynamodbav:"description"`
+	SeriesID    string           `json:"series_id" dynamodbav:"series_id"`
+	Chapters    []Chapter        `json:"chapters"`
+	Outline     *OutlineResponse `json:"outline"`
+	Place       int              `json:"place"`
+	ImageURL    string           `json:"image_url" dynamodbav:"image_url"`
 }
 type StorySettings struct {
 	Spellcheck bool `json:"spellcheck" dynamodbav:"spellcheck"`
@@ -142,24 +142,36 @@ type DocumentExportRequest struct {
 	Title         string     `json:"title"`
 }
 
-type OutlineType string
+type OutlineTemplate string
+type OutlineSectionStatus string
 
 const (
-	ThreeAct    OutlineType = "threeAct"
-	FiveAct     OutlineType = "fiveAct"
-	HeroJourney OutlineType = "heroJourney"
+	ThreeAct    OutlineTemplate      = "threeAct"
+	FiveAct     OutlineTemplate      = "fiveAct"
+	HeroJourney OutlineTemplate      = "heroJourney"
+	Draft       OutlineSectionStatus = "Draft"
+	Revising    OutlineSectionStatus = "Revising"
+	None        OutlineSectionStatus = "None"
 )
 
 type OutlineSection struct {
-	Header      string   `json:"header"`
-	Description string   `json:"description"`
-	Text        string   `json:"text"`
-	Place       int      `json:"place"`
-	Chapters    []string `json:"chapters"`
+	Header      string               `json:"header"`
+	Description string               `json:"description"`
+	Text        string               `json:"text"`
+	Place       int                  `json:"place"`
+	Chapters    []string             `json:"chapters"`
+	Status      OutlineSectionStatus `json:"status"`
 }
 
 type OutlineRequest struct {
 	StoryID  string           `json:"storyID"`
-	Type     OutlineType      `json:"type"`
+	Template OutlineTemplate  `json:"outlineTemplate"`
 	Sections []OutlineSection `json:"sections"`
+}
+
+type OutlineResponse struct {
+	StoryID    string           `json:"storyID"`
+	Template   OutlineTemplate  `json:"outlineTemplate"`
+	Sections   []OutlineSection `json:"sections"`
+	Unassigned []string         `json:"unassigned"`
 }

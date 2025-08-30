@@ -86,7 +86,7 @@ func setupRouter(mode models.AppMode, dao *daos.DAO) *mux.Router {
 	apiRtr.HandleFunc("/series/{seriesID}", api.EditSeriesEndpoint).Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/series/{seriesID}/story/{storyID}", api.RemoveStoryFromSeriesEndpoint).Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/user", api.UpdateUserEndpoint).Methods("PUT", "OPTIONS")
-	apiRtr.HandleFunc("/outline", api.UpdateOutlineEndpoint).Methods("PUT", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/outline", api.UpdateOutlineEndpoint).Methods("PUT", "OPTIONS")
 
 	// DELETEs
 	apiRtr.HandleFunc("/stories/{storyID}/block", api.DeleteBlocksFromStoryEndpoint).Methods("DELETE", "OPTIONS")
