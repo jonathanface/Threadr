@@ -7,7 +7,6 @@ on:
       - staging
 
 env:
-  AWS_REGION: ${{ secrets.AWS_REGION }}
   ECR_REPOSITORY: richdocter
 
 jobs:
@@ -41,14 +40,6 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     needs: test
-    env:
-      ECS_SERVICE: ${{ github.ref == 'refs/heads/production' && secrets.AWS_ECS_SERVICE || secrets.AWS_ECS_SERVICE_STAGING }}
-      STRIPE_KEY: ${{ github.ref == 'refs/heads/production' && secrets.STRIPE_KEY || secrets.STRIPE_KEY_STAGING }}
-      STRIPE_SECRET: ${{ github.ref == 'refs/heads/production' && secrets.STRIPE_SECRET || secrets.STRIPE_SECRET_STAGING }}
-      GOOGLE_REDIRECT: ${{ github.ref == 'refs/heads/production' && format('https://{0}{1}', secrets.ROOT_URL, secrets.GOOGLE_OAUTH_REDIRECT_PATH) || format('https://{0}{1}', secrets.ROOT_URL_STAGING, secrets.GOOGLE_OAUTH_REDIRECT_PATH) }}
-      AMAZON_REDIRECT: ${{ github.ref == 'refs/heads/production' && format('https://{0}{1}', secrets.ROOT_URL, secrets.AMAZON_OAUTH_REDIRECT_PATH) || format('https://{0}{1}', secrets.ROOT_URL_STAGING, secrets.AMAZON_OAUTH_REDIRECT_PATH) }}
-      MSN_REDIRECT: ${{ github.ref == 'refs/heads/production' && format('https://{0}{1}', secrets.ROOT_URL, secrets.MSN_OAUTH_REDIRECT_PATH) || format('https://{0}{1}', secrets.ROOT_URL_STAGING, secrets.MSN_OAUTH_REDIRECT_PATH) }}
-      MODE: ${{ github.ref_name }}
 
     steps:
       - name: Check vars
@@ -76,29 +67,9 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -t "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" . \
-            --build-arg AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
-            --build-arg AWS_REGION=${{ env.AWS_REGION }} \
-            --build-arg AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
-            --build-arg AWS_MAX_RETRIES=${{ secrets.AWS_MAX_RETRIES }} \
-            --build-arg AWS_BLOCKTABLE_MIN_WRITE_CAPACITY=${{ secrets.AWS_BLOCKTABLE_MIN_WRITE_CAPACITY }} \
-            --build-arg GOOGLE_OAUTH_CLIENT_ID=${{ secrets.GOOGLE_OAUTH_CLIENT_ID }} \
-            --build-arg GOOGLE_OAUTH_CLIENT_SECRET=${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }} \
-            --build-arg GOOGLE_OAUTH_REDIRECT_URL=${{ env.GOOGLE_REDIRECT }} \
-            --build-arg AMAZON_OAUTH_CLIENT_ID=${{ secrets.AMAZON_OAUTH_CLIENT_ID }} \
-            --build-arg AMAZON_OAUTH_CLIENT_SECRET=${{ secrets.AMAZON_OAUTH_CLIENT_SECRET }} \
-            --build-arg AMAZON_OAUTH_REDIRECT_URL=${{ env.AMAZON_REDIRECT }} \
-            --build-arg MSN_OAUTH_CLIENT_ID=${{ secrets.MSN_OAUTH_CLIENT_ID }} \
-            --build-arg MSN_OAUTH_CLIENT_SECRET=${{ secrets.MSN_OAUTH_CLIENT_SECRET }} \
-            --build-arg MSN_OAUTH_REDIRECT_URL=${{ env.MSN_REDIRECT }} \
-            --build-arg ROOT_URL=${{ secrets.ROOT_URL }} \
-            --build-arg SESSION_SECRET=${{ secrets.SESSION_SECRET }} \
             --build-arg VERSION=${{ github.sha }} \
-            --build-arg STRIPE_SECRET=${{ env.STRIPE_SECRET }} \
-            --build-arg STRIPE_KEY=${{ env.STRIPE_KEY }} \
-            --build-arg VITE_STRIPE_KEY=${{ env.STRIPE_KEY }} \
             --build-arg VITE_MODE=${{ env.MODE }} \
-            --build-arg MODE=${{ env.MODE }} \
-            --build-arg OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+            --build-arg MODE=${{ env.MODE }} 
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
           echo "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" > image.txt
 
