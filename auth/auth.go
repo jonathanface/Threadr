@@ -32,14 +32,26 @@ func New(options Options) {
 	)
 }
 
+func CallbackHandler(options Options) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		callbackWithOptions(w, r, options)
+	}
+}
+
 func requestOrigin(r *http.Request) string {
-    scheme := r.Header.Get("X-Forwarded-Proto")
-    if scheme == "" {
-        if r.TLS != nil { scheme = "https" } else { scheme = "http" }
-    }
-    host := r.Header.Get("X-Forwarded-Host")
-    if host == "" { host = r.Host }
-    return scheme + "://" + host
+	scheme := r.Header.Get("X-Forwarded-Proto")
+	if scheme == "" {
+		if r.TLS != nil {
+			scheme = "https"
+		} else {
+			scheme = "http"
+		}
+	}
+	host := r.Header.Get("X-Forwarded-Host")
+	if host == "" {
+		host = r.Host
+	}
+	return scheme + "://" + host
 }
 
 func determineName(info goth.User) string {
@@ -56,21 +68,33 @@ func determineName(info goth.User) string {
 	return name
 }
 
-func safeRedirect(dest, fallback string) string {
-	fb, _ := url.Parse(fallback)
+func safeRedirect(dest, defaultURL string, allowed []string) string {
+	if dest == "" {
+		return defaultURL
+	}
+	if strings.HasPrefix(dest, "/") {
+		base, _ := url.Parse(defaultURL)
+		rel, _ := url.Parse(dest)
+		base.Path = rel.Path
+		base.RawQuery = rel.RawQuery
+		base.Fragment = rel.Fragment
+		return base.String()
+	}
 	u, err := url.Parse(dest)
 	if err != nil || u.Host == "" {
-		return fallback
+		return defaultURL
 	}
-	// same scheme+host only
-	if !strings.EqualFold(u.Scheme, fb.Scheme) || !strings.EqualFold(u.Host, fb.Host) {
-		return fallback
+	for _, origin := range allowed {
+		a, _ := url.Parse(origin)
+		if strings.EqualFold(u.Scheme, a.Scheme) && strings.EqualFold(u.Host, a.Host) {
+			// ok: preserve path/query from dest
+			return u.String()
+		}
 	}
-	// allow only absolute path + query on your site
-	return u.Scheme + "://" + u.Host + u.RequestURI()
+	return defaultURL
 }
 
-func Callback(w http.ResponseWriter, r *http.Request) {
+func callbackWithOptions(w http.ResponseWriter, r *http.Request, options Options) {
 	var (
 		provider string
 		err      error
@@ -84,11 +108,6 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sess, err := sessions.Get(r, "login_referral")
-	if err != nil {
-		api.RespondWithError(w, http.StatusBadRequest, err.Error())
-		return
-	}
 	user, err := gothic.CompleteUserAuth(w, r)
 	if err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -97,7 +116,6 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	info := models.UserInfo{}
 	info.AuthType = mux.Vars(r)["provider"]
 	info.Email = user.Email
-	info.AuthType = mux.Vars(r)["provider"]
 	info.FirstName = determineName(user)
 	var (
 		dao         daos.DaoInterface
@@ -116,6 +134,7 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 			err = dao.CreateUser(info.Email)
 			if err != nil {
 				api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
 			}
 		} else {
 			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -138,7 +157,6 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	root := requestOrigin(r)
-	log.Println("rootURL", root)
 	session.Values["token_data"] = toJSON
 	session.Options.Path = "/"
 	session.Options.HttpOnly = true
@@ -157,25 +175,39 @@ func Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var next = root
-	if !sess.IsNew {
-		if ref, _ := sess.Values["referrer"].(string); ref != "" {
-			log.Println("session referrer value", sess.Values["referrer"].(string))
-			next = safeRedirect(ref, root)
+	loginSess, _ := sessions.Get(r, "login_referral")
+
+	frontend := options.FrontEndURL
+	allowedOrigins := []string{options.FrontEndURL}
+	next := frontend
+	if loginSess != nil && !loginSess.IsNew {
+		if ref, _ := loginSess.Values["referrer"].(string); ref != "" {
+			next = safeRedirect(ref, frontend, allowedOrigins)
 		}
 	}
-	log.Println("redirecting to", next)
 	http.Redirect(w, r, next, http.StatusTemporaryRedirect)
 }
 
-func Login(w http.ResponseWriter, r *http.Request) {
+func LoginHandler(options Options) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		loginWithOptions(w, r, options)
+	}
+}
+
+func loginWithOptions(w http.ResponseWriter, r *http.Request, options Options) {
 	session, err := sessions.Get(r, "login_referral")
 	if err != nil {
 		fmt.Printf("Session Error: %s\n", err.Error())
 	}
-	session.Options.Path = "/auth"
+	session.Options.Path = "/"
+	session.Options.HttpOnly = true
+	session.Options.Secure = strings.HasPrefix(requestOrigin(r), "https://")
 	session.Options.MaxAge = int((5 * time.Minute).Seconds())
-	session.Values["referrer"] = r.Header.Get("Referer")
+	next := r.URL.Query().Get("next")
+	if next == "" {
+		next = options.FrontEndURL
+	}
+	session.Values["referrer"] = next
 	if err = session.Save(r, w); err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
