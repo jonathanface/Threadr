@@ -1,5 +1,5 @@
 # Binaries for programs and plugins
-bin/richdocter
+richdocter
 *.exe
 *.dll
 *.so
@@ -23,9 +23,9 @@ coverage/
 .glide/
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-static/rd-ui/node_modules/
-static/rd-ui/build/
-static/rd-ui/dist/
+static/node_modules/
+static/build/
+static/dist/
 node_modules
 /.pnp
 .pnp.js
