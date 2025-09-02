@@ -2,9 +2,10 @@ import { Tooltip } from "@mui/material";
 import styles from "./footer.module.css";
 export const Footer = () => {
   const version = import.meta.env.VITE_APP_VERSION;
+  const thisYear = new Date().getFullYear();
   return (
     <footer>
-      <p>©2023 Docter.io, All Rights Reserved</p>
+      <p>©{thisYear} Docter.io, All Rights Reserved</p>
       <p>
         <a href="/privacy.html">Privacy Policy</a>&nbsp;&nbsp;&nbsp;
         <a href="/terms.html">Terms of Use</a>

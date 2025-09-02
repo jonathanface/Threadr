@@ -21,7 +21,7 @@ const (
 	authPath       = "/auth"
 )
 
-func setupRouter(mode models.AppMode, dao *daos.DAO) *mux.Router {
+func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.Options) *mux.Router {
 	rtr := mux.NewRouter()
 
 	rtr.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -36,8 +36,8 @@ func setupRouter(mode models.AppMode, dao *daos.DAO) *mux.Router {
 	// DEV ONLY!!
 	//rtr.HandleFunc("/auth/logout", auth.DeleteToken).Methods("GET", "OPTIONS")
 	authRtr.HandleFunc("/logout", auth.Logout).Methods("DELETE", "OPTIONS")
-	authRtr.HandleFunc("/{provider}", auth.Login).Methods("GET", "PUT", "OPTIONS")
-	authRtr.HandleFunc("/{provider}/callback", auth.Callback).Methods("POST", "GET", "OPTIONS")
+	authRtr.HandleFunc("/{provider}", auth.LoginHandler(authOptions)).Methods("GET", "PUT", "OPTIONS")
+	authRtr.HandleFunc("/{provider}/callback", auth.CallbackHandler(authOptions)).Methods("POST", "GET", "OPTIONS")
 
 	billingRtr := rtr.PathPrefix(billingPath).Subrouter()
 	billingRtr.Use(billingMiddleware(dao))

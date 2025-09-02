@@ -90,11 +90,12 @@ func main() {
 		MsnId:        getenv("MSN_OAUTH_CLIENT_ID", ""),
 		MsnSecret:    getenv("MSN_OAUTH_CLIENT_SECRET", ""),
 		MsnUrl:       getenv("MSN_OAUTH_REDIRECT_URL", ""),
+		FrontEndURL:  getenv("FRONTEND_URL", ""),
 	}
 
 	auth.New(authOptions)
 
-	rtr := setupRouter(mode, dao)
+	rtr := setupRouter(mode, dao, authOptions)
 	srv := &http.Server{
 		Addr:              addr,
 		Handler:           rtr,

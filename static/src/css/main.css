@@ -42,14 +42,15 @@ body {
 #root {
   flex: 1 0 auto;
 }
-
 .App {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
   text-align: center;
 }
 
 main {
-  display: inline-block;
-  width: 100%;
+  flex: 1 0 auto;
 }
 
 .MultiTreeItem-root {
