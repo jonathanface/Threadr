@@ -67,9 +67,11 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -t "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" . \
-            --build-arg VERSION=${{ github.sha }} \
+            --build-arg APP_VERSION=${{ github.sha }} \
+            --build-arg MODE=${{ env.MODE }} \
+            --build-arg VITE_APP_VERSION=${{github.sha}} \
             --build-arg VITE_MODE=${{ env.MODE }} \
-            --build-arg MODE=${{ env.MODE }} 
+            --build-arg VITE_STRIPE_KEY=${{ env.VITE_STRIPE_KEY }} 
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
           echo "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" > image.txt
 

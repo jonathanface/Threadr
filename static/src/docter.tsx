@@ -1,4 +1,3 @@
-
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 
@@ -15,9 +14,14 @@ import { LoginPanel } from "./sections/LoginPanel";
 import { ConfigPanel } from "./sections/UserConfigPanel";
 import { EditSeries } from "./sections/EditSeries";
 import { useToaster } from "./hooks/useToaster";
-import { AlertCommandType, AlertFunctionCall, AlertToastType } from "./types/AlertToasts";
+import {
+  AlertCommandType,
+  AlertFunctionCall,
+  AlertToastType,
+} from "./types/AlertToasts";
 import { CreateOrEditStory } from "./sections/CreateOrEditStory";
 import { PaymentMethodPanel } from "./sections/paymentMethod";
+import { Footer } from "./components/Footer";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_KEY ?? "");
 
@@ -40,7 +44,8 @@ export const Docter = memo(() => {
       };
       setAlertState({
         title: "Subscription Expired",
-        message: "Your subscription has expired. If you wish to renew your subscription, click below.",
+        message:
+          "Your subscription has expired. If you wish to renew your subscription, click below.",
         open: true,
         severity: AlertToastType.warning,
         timeout: null,
@@ -49,7 +54,10 @@ export const Docter = memo(() => {
     } else if (userDetails && userDetails.expires_at && !userDetails.renewing) {
       const now = Math.floor(Date.now() / 1000);
       const twentyFourHoursFromNow = now + 24 * 60 * 60;
-      if (parseInt(userDetails.expires_at) >= now && parseInt(userDetails.expires_at) <= twentyFourHoursFromNow) {
+      if (
+        parseInt(userDetails.expires_at) >= now &&
+        parseInt(userDetails.expires_at) <= twentyFourHoursFromNow
+      ) {
         const renewFunc: AlertFunctionCall = {
           type: AlertCommandType.renew,
           text: "Renew",
@@ -78,11 +86,7 @@ export const Docter = memo(() => {
           <Route
             path="/stories/:storyID"
             element={
-              isLoggedIn ? (
-                <DocumentEditorPage />
-              ) : (
-                <Navigate to="/" replace />
-              )
+              isLoggedIn ? <DocumentEditorPage /> : <Navigate to="/" replace />
             }
           />
           <Route
@@ -97,71 +101,41 @@ export const Docter = memo(() => {
           />
           <Route
             path="/"
-            element={isLoggedIn ? (
-              <Navigate to="/stories" replace />
-            ) : (
-              <SplashPage />
-            )}
+            element={
+              isLoggedIn ? <Navigate to="/stories" replace /> : <SplashPage />
+            }
           />
           <Route
             path="/signin"
             element={
-              isLoggedIn ? (
-                <Navigate to="/stories" replace />
-              ) : (
-                <LoginPanel />
-              )
+              isLoggedIn ? <Navigate to="/stories" replace /> : <LoginPanel />
             }
           />
           <Route
             path="/settings"
-            element={
-              isLoggedIn ? (
-                <ConfigPanel />
-              ) : (
-                <Navigate to="/" replace />
-              )
-            }
+            element={isLoggedIn ? <ConfigPanel /> : <Navigate to="/" replace />}
           />
           <Route
             path="/stories/new"
             element={
-              isLoggedIn ? (
-                <CreateOrEditStory />
-              ) : (
-                <Navigate to="/" replace />
-              )
+              isLoggedIn ? <CreateOrEditStory /> : <Navigate to="/" replace />
             }
           />
           <Route
             path="/stories/:storyID/edit"
             element={
-              isLoggedIn ? (
-                <CreateOrEditStory />
-              ) : (
-                <Navigate to="/" replace />
-              )
+              isLoggedIn ? <CreateOrEditStory /> : <Navigate to="/" replace />
             }
           />
           <Route
             path="/series/:seriesID/add"
             element={
-              isLoggedIn ? (
-                <CreateOrEditStory />
-              ) : (
-                <Navigate to="/" replace />
-              )
+              isLoggedIn ? <CreateOrEditStory /> : <Navigate to="/" replace />
             }
           />
           <Route
             path="/series/:seriesID/edit"
-            element={
-              isLoggedIn ? (
-                <EditSeries />
-              ) : (
-                <Navigate to="/" replace />
-              )
-            }
+            element={isLoggedIn ? <EditSeries /> : <Navigate to="/" replace />}
           />
           <Route
             path="/subscribe"
@@ -189,6 +163,7 @@ export const Docter = memo(() => {
           />
         </Routes>
       </main>
+      <Footer />
     </div>
   );
 });
