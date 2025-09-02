@@ -42,7 +42,7 @@ export const CreateOutline: React.FC = () => {
         body: JSON.stringify(body),
       });
       if (!response.ok) throw new Error(response.statusText);
-      const outline = ((await response.json()) as Outline).sections;
+      const outline = (await response.json()) as Outline;
       setStory({ ...story, outline });
     } catch (error) {
       console.error(error);

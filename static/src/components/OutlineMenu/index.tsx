@@ -65,9 +65,9 @@ export const OutlineMenu = ({ onAssociationClick }: OutlineMenuProps) => {
         throw new Error(text || "Failed to update outline.");
       }
       const json = (await res.json()) as Outline;
-      console.log("got back", json);
       updatedStory.outline = json;
       setStory(updatedStory);
+      propagateStoryUpdates(updatedStory);
     } catch (err) {
       setAlertState({
         title: "Error",
