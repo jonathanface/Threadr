@@ -120,6 +120,30 @@ jobs:
           echo "deploying to: ${{github.ref}}\n"
           echo "env image name: ${{env.IMAGE}}"
 
+      - name: Echo deploy inputs
+        run: |
+          echo "Branch: ${{ github.ref }}"
+          echo "Cluster: ${{ env.ECS_CLUSTER }}"
+          echo "Service: ${{ env.ECS_SERVICE }}"
+          echo "TD file (input): ${{ env.ECS_TASK_DEFINITION }}"
+          echo "Container (to update): ${{ env.CONTAINER_NAME }}"
+          echo "Image: ${{ env.IMAGE }}"
+
+      - name: Show rendered task definition (container names & ports)
+        run: |
+          cat "${{ steps.task-def.outputs.task-definition }}" | jq '.taskDefinition | {family, revision, containerDefinitions: [ .containerDefinitions[] | {name, image, portMappings} ] }'
+
+      - name: Show service load balancer mapping
+        run: |
+          aws ecs describe-services --cluster "${{ env.ECS_CLUSTER }}" --services "${{ env.ECS_SERVICE }}" \
+            --query 'services[0].loadBalancers' --output table
+
+      - name: Show recent ECS service events
+        run: |
+          aws ecs describe-services --cluster "${{ env.ECS_CLUSTER }}" --services "${{ env.ECS_SERVICE }}" \
+            --query 'services[0].events[0:10].[createdAt,message]' --output table
+
+
       - name: Fill in the new image ID in the Amazon ECS task definition
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
