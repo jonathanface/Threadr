@@ -1,6 +1,15 @@
-import { Box, CircularProgress, Drawer, FormControlLabel, IconButton, Switch, TextField, Typography } from "@mui/material";
+import {
+  Box,
+  CircularProgress,
+  Drawer,
+  FormControlLabel,
+  IconButton,
+  Switch,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { Association } from "../../types/Associations";
-import styles from './association-ui.module.css'
+import styles from "./association-ui.module.css";
 import { PortraitDropper } from "../PortraitDropper";
 import { useEffect, useRef, useState } from "react";
 import { useSelections } from "../../hooks/useSelections";
@@ -10,14 +19,20 @@ import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { AssociationDecoratorPlugin } from "../ThreadWriter/plugins/AssociationDecoratorPlugin";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
-import { $createParagraphNode, $createTextNode, $getRoot, EditorState, LexicalEditor } from "lexical";
+import {
+  $createParagraphNode,
+  $createTextNode,
+  $getRoot,
+  EditorState,
+  LexicalEditor,
+} from "lexical";
 import { ClickData } from "../ThreadWriter/plugins/DocumentClickPlugin";
 import { CharacterLimitPlugin } from "@lexical/react/LexicalCharacterLimitPlugin";
 import { OverflowNode } from "@lexical/overflow";
-import { UCWords } from "../ThreadWriter/utilities";
-import CloseIcon from '@mui/icons-material/Close';
+import CloseIcon from "@mui/icons-material/Close";
 import { TextTransformPlugin } from "../ThreadWriter/plugins/TextTransformPlugin";
 import { AssociationInlineNode } from "../ThreadWriter/customNodes/AssociationInlineNode";
+import { InfoHover } from "../InfoHover";
 
 interface AssociationProps {
   onEditCallback: (association: Association) => void;
@@ -35,43 +50,44 @@ const theme = {
   },
 };
 const descriptionConfig = {
-  namespace: 'DescriptionEditor',
+  namespace: "DescriptionEditor",
   theme,
-  nodes: [
-    AssociationInlineNode,
-    OverflowNode
-  ],
+  nodes: [AssociationInlineNode, OverflowNode],
   onError: (error: Error) => {
-    console.error('descr error:', error);
-  }
-}
+    console.error("descr error:", error);
+  },
+};
 const bgConfig = {
-  namespace: 'BackgroundEditor',
+  namespace: "BackgroundEditor",
   theme,
-  nodes: [
-    AssociationInlineNode
-  ],
+  nodes: [AssociationInlineNode],
   onError: (error: Error) => {
-    console.error('BG error:', error);
-  }
-}
+    console.error("BG error:", error);
+  },
+};
 
 export const AssociationPanel: React.FC<AssociationProps> = (props) => {
   const defaultImageURL = useRef("/img/default_association_portrait.jpg");
-  const [selectedAssociation, setSelectedAssociation] = useState<Association | null>(null);
-  const [isAssociationLoaderVisible, setIsAssociationLoaderVisible] = useState(true);
+  const [selectedAssociation, setSelectedAssociation] =
+    useState<Association | null>(null);
+  const [isAssociationLoaderVisible, setIsAssociationLoaderVisible] =
+    useState(true);
   const bgEditorRef = useRef<LexicalEditor>(null);
   const descriptionEditorRef = useRef<LexicalEditor>(null);
   const isProgrammaticChange = useRef(false);
   const initialAssociation = useRef<Association | null>(null);
   const exclusionList = useRef<string[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [aliases, setAliases] = useState('');
+  const [aliases, setAliases] = useState("");
+  const [name, setName] = useState("");
   const [isDescriptionActive, setIsDescriptionActive] = useState(false);
   const [isBackgroundActive, setIsBackgroundActive] = useState(false);
   const [isAliasesActive, setIsAliasesActive] = useState(false);
-  const [aliasesError, setAliasesError] = useState('');
-  const [selectedAssociationID, setSelectedAssociationID] = useState(props.selectedAssociationID);
+  const [isNameActive, setIsNameActive] = useState(false);
+  const [aliasesError, setAliasesError] = useState("");
+  const [selectedAssociationID, setSelectedAssociationID] = useState(
+    props.selectedAssociationID,
+  );
   const { story } = useSelections();
 
   const clearData = () => {
@@ -79,20 +95,22 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
     setSelectedAssociation(null);
     setSelectedAssociationID(null);
     setAliases("");
+    setName("");
     bgEditorRef.current?.update(() => {
       $getRoot().clear();
     });
     descriptionEditorRef.current?.update(() => {
       $getRoot().clear();
     });
-  }
+  };
 
   const updateAliases = (newAliases: string) => {
     if (!selectedAssociation) return;
-    setAliasesError('');
+    setAliasesError("");
     const aliasesArray = newAliases.split(",");
     // don't proceed if there are duplicates
-    const errMsg = "Aliases cannot contain the original name or any duplicates."
+    const errMsg =
+      "Aliases cannot contain the original name or any duplicates.";
     if (aliasesArray.includes(selectedAssociation.association_name)) {
       setAliasesError(errMsg);
       return;
@@ -102,32 +120,48 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
       return;
     }
     setAliases(newAliases);
-  }
+  };
 
   useEffect(() => {
     const fetchAssociationDetails = async () => {
-      if (props.selectedAssociationID) setSelectedAssociationID(props.selectedAssociationID);
+      if (props.selectedAssociationID)
+        setSelectedAssociationID(props.selectedAssociationID);
       setSelectedAssociationID(props.selectedAssociationID);
-      if (!story || !isInitialLoad || !props.selectedAssociationID?.length) return;
+      if (!story || !isInitialLoad || !props.selectedAssociationID?.length)
+        return;
       try {
         setIsAssociationLoaderVisible(true);
-        const response = await fetch(`/api/stories/${story.story_id}/associations/${selectedAssociationID ? selectedAssociationID : props.selectedAssociationID}`);
+        const response = await fetch(
+          `/api/stories/${story.story_id}/associations/${selectedAssociationID ? selectedAssociationID : props.selectedAssociationID}`,
+        );
         if (!response.ok) throw response;
-        const serverAssociation = await response.json() as Association;
-        initialAssociation.current = JSON.parse(JSON.stringify(serverAssociation));
+        const serverAssociation = (await response.json()) as Association;
+        initialAssociation.current = JSON.parse(
+          JSON.stringify(serverAssociation),
+        );
         setSelectedAssociation(serverAssociation);
         setAliases(serverAssociation.aliases);
-        exclusionList.current = [serverAssociation.association_name, ...serverAssociation.aliases.split(',')];
+        setName(serverAssociation.association_name);
+        exclusionList.current = [
+          serverAssociation.association_name,
+          ...serverAssociation.aliases.split(","),
+        ];
       } catch (error: unknown) {
         console.error(`error fetching association details: ${error}`);
       } finally {
-        setIsAssociationLoaderVisible(false)
+        setIsAssociationLoaderVisible(false);
         setIsInitialLoad(false);
       }
     };
-    if (props.isAssociationPanelOpen && props.selectedAssociationID) fetchAssociationDetails();
+    if (props.isAssociationPanelOpen && props.selectedAssociationID)
+      fetchAssociationDetails();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.selectedAssociationID, story, isInitialLoad, props.isAssociationPanelOpen]);
+  }, [
+    props.selectedAssociationID,
+    story,
+    isInitialLoad,
+    props.isAssociationPanelOpen,
+  ]);
 
   useEffect(() => {
     if (bgEditorRef.current) {
@@ -135,7 +169,8 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
       bgEditorRef.current.update(() => {
         const root = $getRoot();
         root.clear();
-        const paragraphs = selectedAssociation?.details?.extended_description.split("\n");
+        const paragraphs =
+          selectedAssociation?.details?.extended_description.split("\n");
         paragraphs?.forEach((paragraphText) => {
           const paragraphNode = $createParagraphNode();
           const formattedText = paragraphText.replace(/\t/g, "    ");
@@ -163,8 +198,16 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
   }, [selectedAssociation, descriptionEditorRef, isInitialLoad]);
 
   const saveEdits = () => {
-    if (!selectedAssociationID || isInitialLoad || !selectedAssociation?.details) return;
-    if (JSON.stringify(selectedAssociation) !== JSON.stringify(initialAssociation.current)) {
+    if (
+      !selectedAssociationID ||
+      isInitialLoad ||
+      !selectedAssociation?.details
+    )
+      return;
+    if (
+      JSON.stringify(selectedAssociation) !==
+      JSON.stringify(initialAssociation.current)
+    ) {
       props.onEditCallback(selectedAssociation);
     }
   };
@@ -179,7 +222,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
     setTimeout(() => {
       clearData();
     }, 500);
-  }
+  };
 
   const onAssociationClick = (value: ClickData) => {
     if (!value.id) return;
@@ -187,7 +230,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
     setIsInitialLoad(true);
     clearData();
     setSelectedAssociationID(value.id);
-  }
+  };
 
   const extractTextAndUpdate = (editorState: EditorState, type: string) => {
     if (!selectedAssociation) return;
@@ -196,7 +239,8 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
     editorState.read(() => {
       const root = $getRoot();
       // Assume each child is a paragraph node.
-      textContent = root.getChildren()
+      textContent = root
+        .getChildren()
         .map((node) => node.getTextContent())
         .join("\n");
     });
@@ -217,12 +261,13 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
     } else if (type === "description") {
       updatedAssociation.short_description = textContent;
     }
-    if (JSON.stringify(updatedAssociation) !== JSON.stringify(selectedAssociation)) {
+    if (
+      JSON.stringify(updatedAssociation) !== JSON.stringify(selectedAssociation)
+    ) {
       setSelectedAssociation(updatedAssociation);
     }
     isProgrammaticChange.current = false;
   };
-
 
   const processImage = (acceptedFiles: File[]) => {
     if (!selectedAssociationID || !story || !selectedAssociation) {
@@ -239,12 +284,12 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
           formData.append("file", file);
           const response = await fetch(
             "/api/stories/" +
-            story.story_id +
-            "/associations/" +
-            selectedAssociation.association_id +
-            "/upload?type=" +
-            selectedAssociation.association_type,
-            { credentials: "include", method: "PUT", body: formData }
+              story.story_id +
+              "/associations/" +
+              selectedAssociation.association_id +
+              "/upload?type=" +
+              selectedAssociation.association_type,
+            { credentials: "include", method: "PUT", body: formData },
           );
           if (!response.ok) throw response;
           const json = await response.json();
@@ -263,7 +308,12 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
   };
 
   return (
-    <Drawer anchor={"right"} open={props.isAssociationPanelOpen} onClose={handleClose} className={styles.associationPanel}>
+    <Drawer
+      anchor={"right"}
+      open={props.isAssociationPanelOpen}
+      onClose={handleClose}
+      className={styles.associationPanel}
+    >
       <Box className={styles.header}>
         <IconButton onClick={handleClose} sx={{ mr: 1 }}>
           <CloseIcon />
@@ -272,10 +322,13 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
       <Box
         role="presentation"
         component="section"
-        className={styles.contentContainer}>
+        className={styles.contentContainer}
+      >
         <div
           className="loading-screen"
-          style={{ visibility: isAssociationLoaderVisible ? "visible" : "hidden" }}
+          style={{
+            visibility: isAssociationLoaderVisible ? "visible" : "hidden",
+          }}
         >
           <Box className="progress-box" />
           <Box className="prog-anim-holder">
@@ -284,32 +337,83 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
         </div>
         <div className={styles.associationHeader}>
           <h2 className={styles.associationName}>
-            <span className={`${styles.type} ${selectedAssociation?.association_type ? selectedAssociation.association_type : ""}`}>{UCWords(selectedAssociation?.association_type ? selectedAssociation.association_type : "")}: </span>
-            {selectedAssociation?.association_name}
+            <TextField
+              label=""
+              type="search"
+              variant="filled"
+              slotProps={{
+                input: {
+                  disableUnderline: true,
+                },
+              }}
+              value={name}
+              className={`${styles.textInput} ${styles.associationNameField} ${isNameActive ? styles.activeField : styles.inactiveField}`}
+              onChange={(event) => {
+                setName(event.target.value);
+              }}
+              onFocus={() => setIsNameActive(true)}
+              onBlur={(event) => {
+                setIsNameActive(false);
+                if (!selectedAssociation) return;
+                if (selectedAssociation.association_name === event.target.value)
+                  return;
+                const updatedAssociation = { ...selectedAssociation };
+                updatedAssociation.association_name = event.target.value;
+                setSelectedAssociation(updatedAssociation);
+              }}
+              sx={{
+                label: {
+                  color: "#333",
+                },
+                "& .MuiFilledInput-root": {
+                  backgroundColor: "transparent",
+                },
+                input: {
+                  color: "#333",
+                  backgroundColor: "transparent",
+                  paddingTop: "8px",
+                },
+                "& fieldset": { border: "none" },
+              }}
+            />
           </h2>
           <PortraitDropper
             className={styles.associationPortrait}
-            imageURL={selectedAssociation?.portrait ? selectedAssociation.portrait : defaultImageURL.current}
-            name={selectedAssociation ? selectedAssociation.association_name : ""}
+            imageURL={
+              selectedAssociation?.portrait
+                ? selectedAssociation.portrait
+                : defaultImageURL.current
+            }
+            name={
+              selectedAssociation ? selectedAssociation.association_name : ""
+            }
             onComplete={processImage}
             hideLabel={true}
           />
         </div>
         <div className={styles.associationDetails}>
           <div className={styles.detailBubble}>
-            <h4 className={`${isDescriptionActive ? styles.activeLabel : styles.inactiveLabel}`}>Summary</h4>
+            <h4
+              className={`${isDescriptionActive ? styles.activeLabel : styles.inactiveLabel}`}
+            >
+              Summary
+            </h4>
+            <InfoHover text="a brief description which will appear when you hover over the association, must be less than 200 characters long" />
             <div className={styles.docTextArea}>
-              <LexicalComposer initialConfig={{
-                editable: false,
-                ...descriptionConfig,
-                editorState: (editor) => {
-                  descriptionEditorRef.current = editor;
-                },
-
-              }}>
+              <LexicalComposer
+                initialConfig={{
+                  editable: false,
+                  ...descriptionConfig,
+                  editorState: (editor) => {
+                    descriptionEditorRef.current = editor;
+                  },
+                }}
+              >
                 <RichTextPlugin
                   contentEditable={
-                    <ContentEditable spellCheck={false} className={`${styles.editorInput} ${isDescriptionActive ? styles.activeField : styles.inactiveField}`}
+                    <ContentEditable
+                      spellCheck={false}
+                      className={`${styles.editorInput} ${isDescriptionActive ? styles.activeField : styles.inactiveField}`}
                       onFocus={() => setIsDescriptionActive(true)}
                       onBlur={() => {
                         setIsDescriptionActive(false);
@@ -326,26 +430,53 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
                 />
                 <HistoryPlugin />
                 <TextTransformPlugin />
-                <CharacterLimitPlugin charset="UTF-8" maxLength={200} renderer={(obj) => {
-                  return <div className={styles.remainingChars}>Remaining characters: <span className={`${styles.value} ${obj.remainingCharacters < 0 ? styles.exceeded : ""}`}>{obj.remainingCharacters}</span></div>
-                }} />
-                <AssociationDecoratorPlugin isProgrammaticChange={isProgrammaticChange} customLeftClick={onAssociationClick} exclusionList={exclusionList.current} />
+                <CharacterLimitPlugin
+                  charset="UTF-8"
+                  maxLength={200}
+                  renderer={(obj) => {
+                    return (
+                      <div className={styles.remainingChars}>
+                        Remaining characters:{" "}
+                        <span
+                          className={`${styles.value} ${obj.remainingCharacters < 0 ? styles.exceeded : ""}`}
+                        >
+                          {obj.remainingCharacters}
+                        </span>
+                      </div>
+                    );
+                  }}
+                />
+                <AssociationDecoratorPlugin
+                  isProgrammaticChange={isProgrammaticChange}
+                  customLeftClick={onAssociationClick}
+                  exclusionList={exclusionList.current}
+                />
               </LexicalComposer>
             </div>
           </div>
           <div className={styles.detailBubble}>
-            <h4 className={`${isBackgroundActive ? styles.activeLabel : styles.inactiveLabel}`}>Background</h4>
-            <div className={styles.docTextArea}>
-              <LexicalComposer initialConfig={{
-                editable: false,
-                ...bgConfig,
-                editorState: (editor) => {
-                  bgEditorRef.current = editor;
-                },
-              }}>
+            <h4
+              className={`${isBackgroundActive ? styles.activeLabel : styles.inactiveLabel}`}
+            >
+              Background
+            </h4>
+            <div
+              className={`${styles.docTextArea} ${styles.backgroundDescription}`}
+            >
+              <LexicalComposer
+                initialConfig={{
+                  editable: false,
+                  ...bgConfig,
+                  editorState: (editor) => {
+                    bgEditorRef.current = editor;
+                  },
+                }}
+              >
                 <RichTextPlugin
                   contentEditable={
-                    <ContentEditable spellCheck={false} className={`${styles.editorInput} ${isBackgroundActive ? styles.activeField : styles.inactiveField}`}
+                    <ContentEditable
+                      spellCheck={false}
+                      className={`${styles.editorInput} ${isBackgroundActive ? styles.activeField : styles.inactiveField}`}
                       onFocus={() => setIsBackgroundActive(true)}
                       onBlur={() => {
                         setIsBackgroundActive(false);
@@ -362,7 +493,11 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
                 />
                 <HistoryPlugin />
                 <TextTransformPlugin />
-                <AssociationDecoratorPlugin isProgrammaticChange={isProgrammaticChange} customLeftClick={onAssociationClick} exclusionList={exclusionList.current} />
+                <AssociationDecoratorPlugin
+                  isProgrammaticChange={isProgrammaticChange}
+                  customLeftClick={onAssociationClick}
+                  exclusionList={exclusionList.current}
+                />
               </LexicalComposer>
             </div>
           </div>
@@ -373,8 +508,8 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
               variant="filled"
               slotProps={{
                 input: {
-                  disableUnderline: true
-                }
+                  disableUnderline: true,
+                },
               }}
               value={aliases}
               className={`${styles.textInput} ${isAliasesActive ? styles.activeField : styles.inactiveField}`}
@@ -395,23 +530,29 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
                   color: "#333",
                 },
                 "& .MuiFilledInput-root": {
-                  backgroundColor: "transparent"
+                  backgroundColor: "transparent",
                 },
                 input: {
                   color: "#333",
-                  backgroundColor: "transparent"
+                  backgroundColor: "transparent",
                 },
-                "& fieldset": { border: 'none' },
+                "& fieldset": { border: "none" },
               }}
             />
-            <Typography style={{ marginTop: '-20px', fontWeight: 'bold' }} fontSize={"0.8rem"}>{aliasesError}</Typography>
+            <Typography
+              style={{ marginTop: "-20px", fontWeight: "bold" }}
+              fontSize={"0.8rem"}
+            >
+              {aliasesError}
+            </Typography>
             <FormControlLabel
               control={
                 <Switch
                   onChange={() => {
                     if (!selectedAssociation) return;
                     const updatedAssociation = { ...selectedAssociation };
-                    updatedAssociation.case_sensitive = !selectedAssociation?.case_sensitive;
+                    updatedAssociation.case_sensitive =
+                      !selectedAssociation?.case_sensitive;
                     setSelectedAssociation(updatedAssociation);
                   }}
                   checked={selectedAssociation?.case_sensitive || false}

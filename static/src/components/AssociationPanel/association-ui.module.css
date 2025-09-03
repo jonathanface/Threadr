@@ -13,11 +13,16 @@
 .associationPanel .associationHeader .associationName {
   text-align: left;
   font-size: 1.1rem;
-  width: 100%;
   line-break: anywhere;
   font-weight: normal;
   letter-spacing: 1.1px;
   font-weight: bold;
+  width: 100%;
+  margin: 0;
+}
+
+.associationPanel .associationHeader .associationNameField {
+  margin: 0;
 }
 
 .associationPanel .associationHeader .associationName .type {
@@ -30,6 +35,7 @@
 
 .associationPanel .associationDetails {
   margin: 10px;
+  margin-bottom: 100px;
 }
 
 .associationPanel .detailBubble h4 {
@@ -45,28 +51,31 @@
   color: inherit;
   transition: color 300ms linear;
 }
+.associationPanel .detailBubble h4 {
+  display: inline;
+}
 
 .associationPanel .editorInput {
   border: 1px dotted #333;
   color: #333;
   border-radius: 10px;
-  max-height: 300px;
   overflow-y: auto;
   padding: 15px;
-  background-color: #F9F9F9;
+  background-color: #f9f9f9;
   margin-bottom: 20px;
   outline: none;
   font-size: 0.9rem;
+  height: 100%;
 }
 
 .associationPanel .editorInput.activeField {
   border: 1px dashed #333;
-  background-color: #DBDBDB;
+  background-color: #dbdbdb;
   transition: background-color 300ms linear;
 }
 
 .associationPanel .editorInput.inactiveField {
-  background-color: #F9F9F9;
+  background-color: #f9f9f9;
   transition: background-color 300ms linear;
 }
 
@@ -74,11 +83,15 @@
   border: 1px dotted #333;
   outline: none;
   border-radius: 10px;
-  background-color: #F9F9F9;
+  background-color: #f9f9f9;
   color: #333;
   margin-bottom: 20px;
   font-size: 0.9rem;
   margin-top: 40px;
+}
+
+.associationPanel .backgroundDescription {
+  height: 400px;
 }
 
 .associationPanel .remainingChars {
@@ -93,12 +106,12 @@
 
 .associationPanel .textInput.activeField {
   border: 1px dashed #333;
-  background-color: #DBDBDB;
+  background-color: #dbdbdb;
   transition: background-color 300ms linear;
 }
 
 .associationPanel .textInput.inactiveField {
-  background-color: #F9F9F9;
+  background-color: #f9f9f9;
   transition: background-color 300ms linear;
 }
 
