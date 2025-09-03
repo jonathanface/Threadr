@@ -26,6 +26,7 @@ import { Footer } from "./components/Footer";
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_KEY ?? "");
 
 export const Docter = memo(() => {
+  console.log("env", import.meta.env);
   const { setAlertState } = useToaster();
   const { isLoggedIn, userLoading, userDetails } = useFetchUserData();
 
