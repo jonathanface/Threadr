@@ -42,9 +42,12 @@ jobs:
     needs: test
 
     steps:
-      - name: Check vars
+      - name: Load VITE vars (staging/prod aware)
         run: |
-          echo "app mode is set to ${{github.ref_name}}"
+          echo "APP_VERSION=${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "MODE=${GITHUB_REF_NAME}"   >> "$GITHUB_ENV"
+          echo "STRIPE_KEY=${{ github.ref == 'refs/heads/production' && secrets.STRIPE_PUB_KEY_PROD || secrets.STRIPE_PUB_KEY_STAGE }}" >> "$GITHUB_ENV"
+          echo "::add-mask::${{ github.ref == 'refs/heads/production' && secrets.STRIPE_PUB_KEY_PROD || secrets.STRIPE_PUB_KEY_STAGE }}"
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -67,11 +70,9 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -t "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" . \
-            --build-arg APP_VERSION=${{ github.sha }} \
+            --build-arg APP_VERSION=${{ env.APP_VERSION }} \
             --build-arg MODE=${{ env.MODE }} \
-            --build-arg VITE_APP_VERSION=${{github.sha}} \
-            --build-arg VITE_MODE=${{ env.MODE }} \
-            --build-arg VITE_STRIPE_KEY=${{ env.VITE_STRIPE_KEY }} 
+            --build-arg STRIPE_KEY=${{ env.STRIPE_KEY }} 
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
           echo "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" > image.txt
 
@@ -114,24 +115,6 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-
-      - name: debug image env
-        run: |
-          echo "deploying to: ${{github.ref}}\n"
-          echo "env image name: ${{env.IMAGE}}"
-
-      - name: Echo deploy inputs
-        run: |
-          echo "Branch: ${{ github.ref }}"
-          echo "Cluster: ${{ env.ECS_CLUSTER }}"
-          echo "Service: ${{ env.ECS_SERVICE }}"
-          echo "TD file (input): ${{ env.ECS_TASK_DEFINITION }}"
-          echo "Container (to update): ${{ env.CONTAINER_NAME }}"
-          echo "Image: ${{ env.IMAGE }}"
-
-      - name: Show rendered task definition (container names & ports)
-        run: |
-          cat "${{ steps.task-def.outputs.task-definition }}" | jq '.taskDefinition | {family, revision, containerDefinitions: [ .containerDefinitions[] | {name, image, portMappings} ] }'
 
       - name: Show service load balancer mapping
         run: |
