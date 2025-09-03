@@ -885,13 +885,16 @@ export const ThreadWriter = () => {
           open: true,
         });
       } finally {
-        setAssociations((prevAssociations: SimplifiedAssociation[] = []) =>
-          prevAssociations.map((storedAssociation) =>
-            storedAssociation.association_id === assoc.association_id
-              ? { ...storedAssociation, ...assoc }
-              : storedAssociation,
-          ),
-        );
+        setAssociations((prevAssociations: SimplifiedAssociation[] = []) => {
+          const newAssociations = prevAssociations.map((storedAssociation) => {
+            if (storedAssociation.association_id === assoc.association_id) {
+              return { ...storedAssociation, ...assoc };
+            } else {
+              return storedAssociation;
+            }
+          });
+          return newAssociations;
+        });
         hideLoader();
       }
     },

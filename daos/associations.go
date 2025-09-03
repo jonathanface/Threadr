@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	MAX_SHORT_DESCRIPTION_LENGTH = 200
+	MAX_SHORT_DESCRIPTION_LENGTH = 100
 )
 
 func (d DAO) WriteAssociations(email, storyOrSeriesID string, associations []*models.Association) (err error) {

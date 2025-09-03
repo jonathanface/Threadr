@@ -1,5 +1,4 @@
 # Binaries for programs and plugins
-richdocter
 *.exe
 *.dll
 *.so
@@ -50,3 +49,4 @@ yarn-error.log*
 *.zip
 .aider*
 bootstrap
+bin/richdocter
