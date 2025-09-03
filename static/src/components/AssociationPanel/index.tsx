@@ -11,7 +11,7 @@ import {
 import { Association } from "../../types/Associations";
 import styles from "./association-ui.module.css";
 import { PortraitDropper } from "../PortraitDropper";
-import { useEffect, useRef, useState } from "react";
+import { FC, useEffect, useRef, useState } from "react";
 import { useSelections } from "../../hooks/useSelections";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
@@ -66,7 +66,7 @@ const bgConfig = {
   },
 };
 
-export const AssociationPanel: React.FC<AssociationProps> = (props) => {
+export const AssociationPanel: FC<AssociationProps> = (props) => {
   const defaultImageURL = useRef("/img/default_association_portrait.jpg");
   const [selectedAssociation, setSelectedAssociation] =
     useState<Association | null>(null);
@@ -398,7 +398,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
             >
               Summary
             </h4>
-            <InfoHover text="a brief description which will appear when you hover over the association, must be less than 200 characters long" />
+            <InfoHover text="A brief description which will appear when you hover over the association, no greater than 100 characters long." />
             <div className={styles.docTextArea}>
               <LexicalComposer
                 initialConfig={{
@@ -432,7 +432,7 @@ export const AssociationPanel: React.FC<AssociationProps> = (props) => {
                 <TextTransformPlugin />
                 <CharacterLimitPlugin
                   charset="UTF-8"
-                  maxLength={200}
+                  maxLength={100}
                   renderer={(obj) => {
                     return (
                       <div className={styles.remainingChars}>

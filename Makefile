@@ -11,3 +11,6 @@ run: build
 
 clean:
 	rm -rf bin
+
+ui:
+	npm --prefix ./static run dev
