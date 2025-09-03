@@ -1,7 +1,7 @@
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 
-import { memo, useEffect } from "react";
+import { useEffect } from "react";
 import "./css/main.css";
 import { DocumentEditorPage } from "./sections/DocumentEditor";
 import { SplashPage } from "./sections/SplashPage";
@@ -25,7 +25,7 @@ import { Footer } from "./components/Footer";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_KEY ?? "");
 
-export const Docter = memo(() => {
+export const Docter = () => {
   console.log("env", import.meta.env);
   const { setAlertState } = useToaster();
   const { isLoggedIn, userLoading, userDetails } = useFetchUserData();
@@ -167,4 +167,4 @@ export const Docter = memo(() => {
       <Footer />
     </div>
   );
-});
+};
