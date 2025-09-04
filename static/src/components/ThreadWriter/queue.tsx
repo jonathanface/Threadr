@@ -1,3 +1,4 @@
+import { api } from "../../api";
 import { APIError } from "../../types/API";
 import {
   DBOperation,
@@ -209,15 +210,17 @@ const saveBlocksToServer = async (
     chapter_id: chapterID,
     blocks: ops,
   };
-  const response = await fetch(`/api/stories/${storyID}`, {
-    method: "PUT",
+  const res = await api.put(`/stories/${storyID}`, params, {
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params),
+    validateStatus: (status) => {
+      return (status >= 200 && status < 300) || status === 501;
+    },
   });
-  if (!response.ok && response.status !== 501) {
+
+  if (res.status !== 200 && res.status !== 201 && res.status !== 501) {
     const error: APIError = {
-      statusCode: response.status,
-      statusText: response.statusText,
+      statusCode: res.status,
+      statusText: res.statusText,
       retry: true,
     };
     throw error;
@@ -240,27 +243,29 @@ const deleteBlocksFromServer = async (
       chapter_id: chapterID,
       blocks: ops,
     };
-    const response = await fetch("/api/stories/" + storyID + "/block", {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
+
+    const res = await api.delete(`/stories/${storyID}/block`, {
+      headers: { "Content-Type": "application/json" },
+      data: params,
+      validateStatus: (status) => {
+        return (status >= 200 && status < 300) || status === 501;
       },
-      body: JSON.stringify(params),
     });
 
-    if (!response.ok && response.status !== 501) {
+    if (res.status !== 200 && res.status !== 204 && res.status !== 501) {
       const error: APIError = {
-        statusCode: response.status,
-        statusText: response.statusText,
+        statusCode: res.status,
+        statusText: res.statusText,
         retry: true,
       };
       throw error;
     }
+
     if (tableStatus && tableStatus === "501") {
       const payload: DeleteSuccessPayload = { storyID, chapterID };
       emitDeleteSuccess(payload);
     }
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("ERROR DELETING BLOCK:", error);
   }
 };
@@ -276,27 +281,29 @@ const syncBlockOrderMap = async (
       chapter_id: chapterID,
       blocks: blockList.blocks,
     };
-    const response = await fetch("/api/stories/" + storyID + "/orderMap", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
+
+    const res = await api.put(`/stories/${storyID}/orderMap`, params, {
+      headers: { "Content-Type": "application/json" },
+      validateStatus: (status) => {
+        return (status >= 200 && status < 300) || status === 501;
       },
-      body: JSON.stringify(params),
     });
-    if (!response.ok && response.status !== 501) {
+
+    if (res.status !== 200 && res.status !== 201 && res.status !== 501) {
       const error: APIError = {
-        statusCode: response.status,
-        statusText: response.statusText,
+        statusCode: res.status,
+        statusText: res.statusText,
         retry: true,
       };
       throw error;
     }
+
     if (tableStatus && tableStatus === "501") {
       console.log("signal success");
       const payload: SyncOrderSuccessPayload = { storyID, chapterID };
       emitSyncOrderSuccess(payload);
     }
-  } catch (error: unknown) {
-    console.error("ERROR ORDERING BLOCKS: ", error);
+  } catch (error) {
+    console.error("ERROR ORDERING BLOCKS:", error);
   }
 };

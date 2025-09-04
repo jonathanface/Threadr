@@ -9,6 +9,8 @@ import styles from "./story.module.css";
 import { Story } from "../../types/Story";
 import { useLoader } from "../../hooks/useLoader";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { api } from "../../api";
 
 interface StoryBoxProps {
   story: Story;
@@ -30,10 +32,14 @@ export const StoryBox = (props: StoryBoxProps) => {
 
   const editStory = (event: React.MouseEvent, storyID: string) => {
     event.stopPropagation();
-    navigate(`/stories/${storyID}/edit`)
+    navigate(`/stories/${storyID}/edit`);
   };
 
-  const deleteStory = async (event: React.MouseEvent, id: string, title: string) => {
+  const deleteStory = async (
+    event: React.MouseEvent,
+    id: string,
+    title: string,
+  ) => {
     event.stopPropagation();
 
     const confirmText = "Delete story " + title + "?";
@@ -43,24 +49,28 @@ export const StoryBox = (props: StoryBoxProps) => {
     if (conf) {
       try {
         showLoader();
-        const url = `/api/stories/${id}`;
-        const response = await fetch(url, {
-          credentials: "include",
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
+
+        const res = await api.delete(`/stories/${id}`, {
+          headers: { "Content-Type": "application/json" },
         });
-        if (!response.ok) {
-          if (response.status !== 501) {
-            const errorData = await response.json();
-            throw new Error(JSON.stringify(errorData));
-          }
+
+        // allow 200/204 as success, and also 501 (per your global validateStatus rule)
+        if (![200, 204, 501].includes(res.status)) {
+          const payload =
+            typeof res.data === "string" ? res.data : JSON.stringify(res.data);
+          throw new Error(payload || "Unexpected delete response");
         }
+
         setWasDeleted(true);
       } catch (error) {
         setWasDeleted(true);
-        console.error(`Error deleting story ${error}`);
+        if (axios.isAxiosError(error)) {
+          console.error(
+            `Error deleting story: ${error.response?.status} ${error.message}`,
+          );
+        } else {
+          console.error(`Error deleting story: ${error}`);
+        }
       } finally {
         hideLoader();
       }
@@ -70,11 +80,11 @@ export const StoryBox = (props: StoryBoxProps) => {
   const showSlider = (event: React.MouseEvent) => {
     event.stopPropagation();
     setIsSliderVisible(true);
-  }
+  };
   const hideSlider = (event: React.MouseEvent) => {
     event.stopPropagation();
     setIsSliderVisible(false);
-  }
+  };
 
   const id = props.story.story_id;
   const title = props.story.title;
@@ -82,14 +92,16 @@ export const StoryBox = (props: StoryBoxProps) => {
   const editHoverText = "Edit " + title;
   const deleteHoverText = "Delete " + title;
 
-  const imageURL = props.story.image_url ? props.story.image_url : '/img/icons/story_standalone_icon.jpg'
+  const imageURL = props.story.image_url
+    ? props.story.image_url
+    : "/img/icons/story_standalone_icon.jpg";
   return !wasDeleted ? (
     <button
       onMouseOver={showSlider}
       onMouseOut={hideSlider}
       className={styles.storyBoxContainer}
       onClick={(event) => {
-        handleClick(event, props.story.story_id,);
+        handleClick(event, props.story.story_id);
       }}
     >
       <div
@@ -110,7 +122,9 @@ export const StoryBox = (props: StoryBoxProps) => {
           }}
         />
         <div className={styles.storyLabel}>
-          <div className={styles.title} title={title}>{title}</div>
+          <div className={styles.title} title={title}>
+            {title}
+          </div>
           <span className={styles.buttons}>
             <IconButton
               aria-label="edit story"
@@ -166,5 +180,7 @@ export const StoryBox = (props: StoryBoxProps) => {
         />
       </div>
     </button>
-  ) : "";
+  ) : (
+    ""
+  );
 };

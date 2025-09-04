@@ -14,6 +14,8 @@ import { useLoader } from "../../hooks/useLoader";
 import { useSelections } from "../../hooks/useSelections";
 import { useToaster } from "../../hooks/useToaster";
 import { AlertToastType } from "../../types/AlertToasts";
+import axios from "axios";
+import { api } from "../../api";
 
 interface OutlineForm {
   storyID: string;
@@ -30,22 +32,23 @@ export const CreateOutline: React.FC = () => {
     if (!story) return;
     try {
       showLoader();
+
       const body: OutlineForm = {
         storyID: story.story_id,
         type,
       };
-      const response = await fetch("/api/outline", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
-      if (!response.ok) throw new Error(response.statusText);
-      const outline = (await response.json()) as Outline;
+
+      const { data: outline } = await api.post<Outline>("/outline", body);
+
       setStory({ ...story, outline });
     } catch (error) {
-      console.error(error);
+      if (axios.isAxiosError(error)) {
+        console.error(
+          `Outline create failed: ${error.response?.status} ${error.message}`,
+        );
+      } else {
+        console.error(error);
+      }
       setAlertState({
         title: "Error",
         message:

@@ -1,12 +1,12 @@
-import styles from './loginpanel.module.css';
+import styles from "./loginpanel.module.css";
 
 export const LoginPanel = () => {
+  const search = window.location.search;
   return (
-    <div className={styles.loginPanel}
-    >
+    <div className={styles.loginPanel}>
       <h1>Sign In Options</h1>
       <div className={styles.option}>
-        <a href="/auth/google" id="LoginWithGoogle">
+        <a href={`/auth/google${search}`} id="LoginWithGoogle">
           <img
             alt="Login with Google"
             src="https://developers.google.com/static/identity/images/branding_guideline_sample_lt_sq_lg.svg"
@@ -15,7 +15,7 @@ export const LoginPanel = () => {
         </a>
       </div>
       <div className={styles.option}>
-        <a href="/auth/amazon" id="LoginWithAmazon">
+        <a href={`/auth/amazon${search}`} id="LoginWithAmazon">
           <img
             alt="Login with Amazon"
             src="https://images-na.ssl-images-amazon.com/images/G/01/lwa/btnLWA_gold_156x32.png"
@@ -24,7 +24,7 @@ export const LoginPanel = () => {
         </a>
       </div>
       <div className={styles.option}>
-        <a href="/auth/microsoftonline" id="LoginWithMicrosoft">
+        <a href={`/auth/microsoftonline${search}`} id="LoginWithMicrosoft">
           <img
             alt="Login with Microsoft"
             src="https://learn.microsoft.com/en-us/entra/identity-platform/media/howto-add-branding-in-apps/ms-symbollockup_signin_light.png"

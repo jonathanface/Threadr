@@ -1,17 +1,24 @@
-
+import axios from "axios";
 import { useLoader } from "../../hooks/useLoader";
 import { useSelections } from "../../hooks/useSelections";
 import { useToaster } from "../../hooks/useToaster";
 import { AlertToastType } from "../../types/AlertToasts";
 import { Story } from "../../types/Story";
-import { UserMenu } from "..//UserMenu"
+import { UserMenu } from "..//UserMenu";
 import { EditableText } from "../EditableText";
 
 import styles from "./headermenu.module.css";
+import { api } from "../../api";
 
 export const HeaderMenu = () => {
-
-  const { story, series, setStory, setSeries, propagateStoryUpdates, propagateSeriesUpdates } = useSelections();
+  const {
+    story,
+    series,
+    setStory,
+    setSeries,
+    propagateStoryUpdates,
+    propagateSeriesUpdates,
+  } = useSelections();
   const { setAlertState } = useToaster();
   const { showLoader, hideLoader } = useLoader();
 
@@ -25,27 +32,34 @@ export const HeaderMenu = () => {
         Object.keys(updatedStory).forEach((key) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const value = (updatedStory as any)[key];
-          formData.append(key, value !== undefined && value !== null ? String(value) : "");
+          formData.append(
+            key,
+            value !== undefined && value !== null ? String(value) : "",
+          );
         });
 
         try {
           showLoader();
-          const response = await fetch("/api/stories/" + updatedStory.story_id + "/details", {
-            method: "PUT",
-            body: formData,
+
+          await api.put(`/stories/${updatedStory.story_id}/details`, formData, {
+            headers: { "Content-Type": "multipart/form-data" },
           });
-          if (!response.ok) {
-            console.error(response.statusText);
-            throw new Error('There was an error updating your story title. Please report this.')
-          }
+
           setStory(updatedStory);
           propagateStoryUpdates(updatedStory);
         } catch (error) {
+          const message =
+            (axios.isAxiosError(error) &&
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (error.response?.data as any)?.message) ||
+            (error as Error).message ||
+            "There was an error updating your story title. Please report this.";
+
           setAlertState({
             title: "Error",
-            message: (error as Error).message,
+            message,
             severity: AlertToastType.error,
-            open: true
+            open: true,
           });
         } finally {
           hideLoader();
@@ -73,26 +87,33 @@ export const HeaderMenu = () => {
           } else {
             formData.append(key, "");
           }
-          formData.append(key, value !== undefined && value !== null ? String(value) : "");
+          formData.append(
+            key,
+            value !== undefined && value !== null ? String(value) : "",
+          );
         });
         try {
           showLoader();
-          const response = await fetch("/api/series/" + updatedSeries.series_id, {
-            method: "PUT",
-            body: formData,
+
+          await api.put(`/series/${updatedSeries.series_id}`, formData, {
+            headers: { "Content-Type": "multipart/form-data" },
           });
-          if (!response.ok) {
-            console.error(response.statusText);
-            throw new Error('There was an error updating your series title. Please report this.')
-          }
+
           setSeries(updatedSeries);
-          propagateSeriesUpdates(updatedSeries)
+          propagateSeriesUpdates(updatedSeries);
         } catch (error) {
+          const message =
+            (axios.isAxiosError(error) &&
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (error.response?.data as any)?.message) ||
+            (error as Error).message ||
+            "There was an error updating your series title. Please report this.";
+
           setAlertState({
             title: "Error",
-            message: (error as Error).message,
+            message,
             severity: AlertToastType.error,
-            open: true
+            open: true,
           });
         } finally {
           hideLoader();
@@ -105,7 +126,8 @@ export const HeaderMenu = () => {
     <header className={styles.header}>
       <span className={styles.leftPane}>
         <a href="https://docter.io">
-          <img className={styles.logoImage}
+          <img
+            className={styles.logoImage}
             alt="RichDocter logo"
             title="RichDocter - Organized Imagination"
             src="/img/logo_trans_scaled.png"
@@ -114,14 +136,20 @@ export const HeaderMenu = () => {
         <span className={styles.storyInfo}>
           <img alt={story?.title} src={story?.image_url} />
           <div className={styles.storyData}>
-            <EditableText textValue={story?.title ? story.title : ""} onTextChange={onStoryTitleEdit} />
+            <EditableText
+              textValue={story?.title ? story.title : ""}
+              onTextChange={onStoryTitleEdit}
+            />
             <div className={styles.seriesInfo}>
-              <EditableText textValue={series?.series_title ? series.series_title : ""} onTextChange={onSeriesTitleEdit} />
+              <EditableText
+                textValue={series?.series_title ? series.series_title : ""}
+                onTextChange={onSeriesTitleEdit}
+              />
             </div>
           </div>
         </span>
       </span>
       <UserMenu />
-    </header >
-  )
-}
+    </header>
+  );
+};

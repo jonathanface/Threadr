@@ -33,6 +33,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import { TextTransformPlugin } from "../ThreadWriter/plugins/TextTransformPlugin";
 import { AssociationInlineNode } from "../ThreadWriter/customNodes/AssociationInlineNode";
 import { InfoHover } from "../InfoHover";
+import { api } from "../../api";
+import axios from "axios";
 
 interface AssociationProps {
   onEditCallback: (association: Association) => void;
@@ -131,14 +133,17 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
         return;
       try {
         setIsAssociationLoaderVisible(true);
-        const response = await fetch(
-          `/api/stories/${story.story_id}/associations/${selectedAssociationID ? selectedAssociationID : props.selectedAssociationID}`,
+
+        const { data: serverAssociation } = await api.get<Association>(
+          `/api/stories/${story.story_id}/associations/${
+            selectedAssociationID ?? props.selectedAssociationID
+          }`,
         );
-        if (!response.ok) throw response;
-        const serverAssociation = (await response.json()) as Association;
+
         initialAssociation.current = JSON.parse(
           JSON.stringify(serverAssociation),
         );
+
         setSelectedAssociation(serverAssociation);
         setAliases(serverAssociation.aliases);
         setName(serverAssociation.association_name);
@@ -146,8 +151,14 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
           serverAssociation.association_name,
           ...serverAssociation.aliases.split(","),
         ];
-      } catch (error: unknown) {
-        console.error(`error fetching association details: ${error}`);
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          console.error(
+            `error fetching association details: ${error.response?.status} ${error.message}`,
+          );
+        } else {
+          console.error("unexpected error", error);
+        }
       } finally {
         setIsAssociationLoaderVisible(false);
         setIsInitialLoad(false);
@@ -284,25 +295,36 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
       reader.onload = async () => {
         try {
           setIsAssociationLoaderVisible(true);
+
           const formData = new FormData();
           formData.append("file", file);
-          const response = await fetch(
-            "/api/stories/" +
-              story.story_id +
-              "/associations/" +
-              selectedAssociation.association_id +
-              "/upload?type=" +
-              selectedAssociation.association_type,
-            { credentials: "include", method: "PUT", body: formData },
+
+          const { data } = await api.put<{ url: string }>(
+            `/api/stories/${story.story_id}/associations/${selectedAssociation.association_id}/upload`,
+            formData,
+            {
+              params: { type: selectedAssociation.association_type },
+              withCredentials: true,
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            },
           );
-          if (!response.ok) throw response;
-          const json = await response.json();
-          const updatedAssociation = { ...selectedAssociation };
-          const newImageURL = json.url + "?date=" + Date.now();
-          updatedAssociation.portrait = newImageURL;
+
+          const updatedAssociation = {
+            ...selectedAssociation,
+            portrait: `${data.url}?date=${Date.now()}`, // bust cache
+          };
+
           setSelectedAssociation(updatedAssociation);
-        } catch (error: unknown) {
-          console.error(error);
+        } catch (error) {
+          if (axios.isAxiosError(error)) {
+            console.error(
+              `Upload failed: ${error.response?.status} ${error.message}`,
+            );
+          } else {
+            console.error(error);
+          }
         } finally {
           setIsAssociationLoaderVisible(false);
         }

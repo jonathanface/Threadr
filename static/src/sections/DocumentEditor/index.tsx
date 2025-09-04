@@ -10,6 +10,8 @@ import { useToaster } from "../../hooks/useToaster";
 import { AlertState, AlertToastType } from "../../types/AlertToasts";
 import { AssociationsProvider } from "../../providers/associations";
 import { DocumentSettingsProvider } from "../../providers/documentSettings";
+import axios from "axios";
+import { api } from "../../api";
 
 export const DocumentEditorPage = () => {
   const { storyID } = useParams<{ storyID: string }>();
@@ -37,19 +39,23 @@ export const DocumentEditorPage = () => {
     const run = async () => {
       try {
         showLoader();
-        const response = await fetch(`/api/stories/${storyID}`, {
+
+        const res = await api.get<Story>(`/stories/${storyID}`, {
           signal: ac.signal,
         });
-        if (!response.ok) throw new Error("Story not found");
-        const data = (await response.json()) as Story;
-
-        console.log("setting story from index");
-        setStory(data);
+        setStory(res.data);
       } catch (err) {
-        if (!(err instanceof DOMException && err.name === "AbortError")) {
+        if (axios.isCancel(err)) {
+          // request was aborted, ignore
+        } else if (axios.isAxiosError(err)) {
+          console.error(
+            `Error fetching story: ${err.response?.status} ${err.response?.statusText || err.message}`,
+          );
+          setAlertState(fetchError);
+        } else {
+          console.error(err);
           setAlertState(fetchError);
         }
-        console.error(err);
       } finally {
         hideLoader();
       }
@@ -65,15 +71,24 @@ export const DocumentEditorPage = () => {
     const run = async () => {
       try {
         showLoader();
-        const response = await fetch(`/api/series/${story.series_id}`, {
+
+        const { data } = await api.get<Series>(`/series/${story.series_id}`, {
           signal: ac.signal,
         });
-        if (!response.ok) throw new Error("Series not found");
-        const data = (await response.json()) as Series;
+
         setSeries(data);
       } catch (err) {
-        console.error(err);
-        setAlertState(fetchError);
+        if (axios.isCancel(err)) {
+          // Request was aborted — safe to ignore
+        } else if (axios.isAxiosError(err)) {
+          console.error(
+            `Error fetching series: ${err.response?.status} ${err.response?.statusText || err.message}`,
+          );
+          setAlertState(fetchError);
+        } else {
+          console.error(err);
+          setAlertState(fetchError);
+        }
       } finally {
         hideLoader();
       }
@@ -105,15 +120,23 @@ export const DocumentEditorPage = () => {
     const ac = new AbortController();
     const run = async () => {
       try {
-        const res = await fetch(
-          `/api/stories/${storyID}/chapters/${chapterID}`,
-          { signal: ac.signal },
+        const { data } = await api.get<Chapter>(
+          `/stories/${storyID}/chapters/${chapterID}`,
+          {
+            signal: ac.signal,
+          },
         );
-        if (!res.ok) throw new Error(res.statusText);
-        const data = (await res.json()) as Chapter;
+
         setChapter(data);
       } catch (e) {
-        if (!(e instanceof DOMException && e.name === "AbortError")) {
+        if (axios.isCancel(e)) {
+          // Request was aborted — ignore
+        } else if (axios.isAxiosError(e)) {
+          console.error(
+            `Error fetching chapter: ${e.response?.status} ${e.response?.statusText || e.message}`,
+          );
+          setAlertState(fetchError);
+        } else {
           console.error(e);
           setAlertState(fetchError);
         }

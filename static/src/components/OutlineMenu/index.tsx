@@ -8,6 +8,8 @@ import { Story } from "../../types/Story";
 import { useLoader } from "../../hooks/useLoader";
 import { useToaster } from "../../hooks/useToaster";
 import { AlertToastType } from "../../types/AlertToasts";
+import axios from "axios";
+import { api } from "../../api";
 
 interface OutlineMenuProps {
   onAssociationClick: (data: ClickData) => void;
@@ -54,24 +56,28 @@ export const OutlineMenu = ({ onAssociationClick }: OutlineMenuProps) => {
 
     try {
       showLoader();
-      const res = await fetch(`/api/stories/${updatedStory.story_id}/outline`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedStory.outline),
-      });
 
-      if (!res.ok) {
-        const text = await res.text().catch(() => res.statusText);
-        throw new Error(text || "Failed to update outline.");
-      }
-      const json = (await res.json()) as Outline;
+      const { data: json } = await api.put<Outline>(
+        `/stories/${updatedStory.story_id}/outline`,
+        updatedStory.outline,
+        {
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+
       updatedStory.outline = json;
       setStory(updatedStory);
       propagateStoryUpdates(updatedStory);
     } catch (err) {
+      const message =
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (axios.isAxiosError(err) && (err.response?.data as any)?.message) ||
+        (err as Error).message ||
+        "Failed to update outline.";
+
       setAlertState({
         title: "Error",
-        message: (err as Error).message,
+        message,
         severity: AlertToastType.error,
         open: true,
       });

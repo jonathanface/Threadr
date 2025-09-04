@@ -4,12 +4,13 @@ import { Chapter } from "../../../types/Chapter";
 import { OutlineSection } from "../../../types/Outline";
 import { Draggable, DraggableProvided } from "@hello-pangea/dnd";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import { UpdateChapterParameter } from "../../ThreadWriter/utilities";
+import { UpdateChapterQueryStringParameter } from "../../ThreadWriter/utilities";
 import { AlertToastType } from "../../../types/AlertToasts";
 import { useSelections } from "../../../hooks/useSelections";
 import { useToaster } from "../../../hooks/useToaster";
 import { useLoader } from "../../../hooks/useLoader";
 import styles from "./chaptertreeitem.module.css";
+import { api } from "../../../api";
 
 interface ChapterTreeItemProps {
   itemChapter: Chapter;
@@ -118,20 +119,19 @@ export const ChapterTreeItem = ({
 
     try {
       showLoader();
-      const response = await fetch(
-        `/api/stories/${story.story_id}/chapter/${chapterIDToDelete}`,
-        {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-        },
+
+      const response = await api.delete(
+        `/stories/${story.story_id}/chapter/${chapterIDToDelete}`,
       );
 
-      if (!response.ok && response.status !== 501)
-        throw new Error(response.statusText);
+      if (response.status !== 200 && response.status !== 501) {
+        throw new Error(response.statusText || "Unexpected error");
+      }
 
       const chapterIndex = story.chapters.findIndex(
         (c: { id: string }) => c.id === chapterIDToDelete,
       );
+
       if (chapterIndex !== -1) {
         const newChapters = [...story.chapters];
         newChapters.splice(chapterIndex, 1);
@@ -140,11 +140,10 @@ export const ChapterTreeItem = ({
         setStory(newSelectedStory);
 
         if (isCurrentlySelected) {
-          // Set previous chapter if possible, otherwise fallback to the next one
           const prevChapter = newChapters[chapterIndex - 1] || newChapters[0];
           if (prevChapter) {
             setChapter(prevChapter);
-            UpdateChapterParameter(prevChapter.id);
+            UpdateChapterQueryStringParameter(prevChapter.id);
           }
         }
       }

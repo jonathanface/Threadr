@@ -28,7 +28,7 @@ const (
 )
 
 func New(options Options) {
-
+	gothic.Store = sessions.Store
 	goth.UseProviders(
 		google.New(options.GoogleId, options.GoogleSecret, options.GoogleUrl),
 		amazon.New(options.AmazonId, options.AmazonSecret, options.AmazonUrl),
@@ -40,22 +40,6 @@ func CallbackHandler(options Options) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		callbackWithOptions(w, r, options)
 	}
-}
-
-func requestOrigin(r *http.Request) string {
-	scheme := r.Header.Get("X-Forwarded-Proto")
-	if scheme == "" {
-		if r.TLS != nil {
-			scheme = "https"
-		} else {
-			scheme = "http"
-		}
-	}
-	host := r.Header.Get("X-Forwarded-Host")
-	if host == "" {
-		host = r.Host
-	}
-	return scheme + "://" + host
 }
 
 func determineName(info goth.User) string {
@@ -99,11 +83,8 @@ func safeRedirect(dest, defaultURL string, allowed []string) string {
 }
 
 func callbackWithOptions(w http.ResponseWriter, r *http.Request, options Options) {
-	var (
-		provider string
-		err      error
-	)
-	if provider, err = url.PathUnescape(mux.Vars(r)["provider"]); err != nil {
+	provider, err := url.PathUnescape(mux.Vars(r)["provider"])
+	if err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, "Error parsing provider")
 		return
 	}
@@ -117,24 +98,21 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options Options
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	info := models.UserInfo{}
-	info.AuthType = mux.Vars(r)["provider"]
-	info.Email = user.Email
-	info.FirstName = determineName(user)
-	var (
-		dao         daos.DaoInterface
-		ok          bool
-		fullDetails *models.UserInfo
-	)
-	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
+
+	info := models.UserInfo{
+		AuthType:  mux.Vars(r)["provider"],
+		Email:     user.Email,
+		FirstName: determineName(user),
+	}
+
+	dao, ok := r.Context().Value(ctxkey.DAO).(daos.DaoInterface)
+	if !ok {
 		api.RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	fullDetails, err = dao.GetUserDetails(info.Email)
-	if err != nil {
+	if fullDetails, err := dao.GetUserDetails(info.Email); err != nil {
 		if err == sql.ErrNoRows {
-			err = dao.CreateUser(info.Email)
-			if err != nil {
+			if err := dao.CreateUser(info.Email); err != nil {
 				api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 				return
 			}
@@ -142,52 +120,54 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options Options
 			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
 	} else {
 		info.CustomerID = fullDetails.CustomerID
 		info.SubscriptionID = fullDetails.SubscriptionID
 	}
+
 	toJSON, err := json.Marshal(info)
 	if err != nil {
 		api.RespondWithError(w, http.StatusBadGateway, err.Error())
 		return
 	}
-	session, err := sessions.Get(r, "token")
+
+	tokenSess, err := sessions.Get(r, "token")
 	if err != nil {
 		api.RespondWithError(w, http.StatusBadGateway, err.Error())
 		return
 	}
+	tokenSess.Values["token_data"] = toJSON
 
-	root := requestOrigin(r)
-	session.Values["token_data"] = toJSON
-	session.Options.Path = "/"
-	session.Options.HttpOnly = true
-	session.Options.Secure = strings.HasPrefix(root, "https://")
+	opts := sessions.OptionsFor(r)
 	ttl := time.Until(user.ExpiresAt)
-
 	if ttl < oneHour {
-		ttl = oneHour // default 1h if provider expiry is tiny or missing
+		ttl = oneHour
 	}
 	if ttl > thirtyDays {
-		ttl = thirtyDays // cap to 30d
+		ttl = thirtyDays
 	}
-	session.Options.MaxAge = int(ttl.Seconds())
+	opts.MaxAge = int(ttl.Seconds())
+	tokenSess.Options = opts
 
-	if err = session.Save(r, w); err != nil {
+	if err := tokenSess.Save(r, w); err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	loginSess, _ := sessions.Get(r, "login_referral")
-
+	// ---- Compute next URL: prefer ?redirect=..., then fallback to login_referral, else frontend root
 	frontend := options.FrontEndURL
 	allowedOrigins := []string{options.FrontEndURL}
 	next := frontend
-	if loginSess != nil && !loginSess.IsNew {
+	if rdx := r.URL.Query().Get("next"); rdx != "" {
+		next = safeRedirect(rdx, frontend, allowedOrigins)
+	} else if loginSess, _ := sessions.Get(r, "login_referral"); loginSess != nil && !loginSess.IsNew {
 		if ref, _ := loginSess.Values["referrer"].(string); ref != "" {
 			next = safeRedirect(ref, frontend, allowedOrigins)
 		}
+		// Clear the one-time referral cookie now that we’ve used it
+		_ = sessions.Delete(w, r, "login_referral")
 	}
+
 	http.Redirect(w, r, next, http.StatusTemporaryRedirect)
 }
 
@@ -198,43 +178,39 @@ func LoginHandler(options Options) http.HandlerFunc {
 }
 
 func loginWithOptions(w http.ResponseWriter, r *http.Request, options Options) {
-	session, err := sessions.Get(r, "login_referral")
+	sess, err := sessions.Get(r, "login_referral")
 	if err != nil {
 		fmt.Printf("Session Error: %s\n", err.Error())
 	}
-	session.Options.Path = "/"
-	session.Options.HttpOnly = true
-	session.Options.Secure = strings.HasPrefix(requestOrigin(r), "https://")
-	session.Options.MaxAge = int((5 * time.Minute).Seconds())
+
+	// Use shared options, then set TTL
+	opts := sessions.OptionsFor(r)
+	opts.MaxAge = int((5 * time.Minute).Seconds())
+	sess.Options = opts
+
 	next := r.URL.Query().Get("next")
 	if next == "" {
 		next = options.FrontEndURL
 	}
-	session.Values["referrer"] = next
-	if err = session.Save(r, w); err != nil {
+	sess.Values["referrer"] = next
+
+	if err = sess.Save(r, w); err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
 	if _, err := gothic.CompleteUserAuth(w, r); err != nil {
 		gothic.BeginAuthHandler(w, r)
 	}
 }
 
 func Logout(w http.ResponseWriter, r *http.Request) {
-	session, err := sessions.Get(r, "token")
-	if err != nil {
+	if err := sessions.Delete(w, r, "token"); err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	session.Options.MaxAge = -1
-	if err = session.Save(r, w); err != nil {
-		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	err = gothic.Logout(w, r)
-	if err != nil {
-		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
+	_ = sessions.Delete(w, r, "login_referral") // clear if exists
+	_ = gothic.Logout(w, r)
+
 	api.RespondWithJson(w, http.StatusOK, nil)
 }

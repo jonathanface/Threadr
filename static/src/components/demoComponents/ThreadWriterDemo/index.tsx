@@ -1,32 +1,49 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
-import { $createRangeSelection, $isRangeSelection, $isTextNode, $setSelection, LexicalEditor, LexicalNode, SerializedEditorState } from 'lexical';
 import {
-  $getRoot,
-  $getSelection,
-  $isElementNode,
-} from 'lexical';
-import LexicalErrorBoundary from '@lexical/react/LexicalErrorBoundary';
+  $createRangeSelection,
+  $isRangeSelection,
+  $isTextNode,
+  $setSelection,
+  LexicalEditor,
+  LexicalNode,
+  SerializedEditorState,
+} from "lexical";
+import { $getRoot, $getSelection, $isElementNode } from "lexical";
+import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
 import styles from "./threadwriter.module.css";
-import { ToolbarDemo } from '../ThreadWriterToolbarDemo';
-import { useLoader } from '../../../hooks/useLoader';
-import { v4 as uuidv4 } from 'uuid';
-import { CustomParagraphNode, CustomSerializedParagraphNode } from './customNodes/CustomParagraphNode';
-import { AssociationDecoratorPluginDemo } from './plugins/AssociationDecoratorPluginDemo'
-import { Association, AssociationType, SimplifiedAssociation } from '../../../types/Associations';
-import { AssociationPanelDemo } from '../AssociationPanelDemo';
-import { useEditorStateUpdater } from '../../../hooks/useEditorStateUpdater';
-import { ContextMenu, ContextMenuProps } from '../../ContextMenu';
-import DocumentClickPluginDemo, { ClickData } from './plugins/DocumentClickPluginDemo';
-import { TextTransformPluginDemo } from './plugins/TextTransformPluginDemo'
-import { useEditorCommandsDemo } from '../hooks/useEditorCommandsDemo';
-import { $isAssociationInlineNode, AssociationInlineNodeDemo } from './customNodes/AssociationInlineNodeDemo';
+import { ToolbarDemo } from "../ThreadWriterToolbarDemo";
+import { useLoader } from "../../../hooks/useLoader";
+import { v4 as uuidv4 } from "uuid";
+import {
+  CustomParagraphNode,
+  CustomSerializedParagraphNode,
+} from "./customNodes/CustomParagraphNode";
+import { AssociationDecoratorPluginDemo } from "./plugins/AssociationDecoratorPluginDemo";
+import {
+  Association,
+  AssociationType,
+  SimplifiedAssociation,
+} from "../../../types/Associations";
+import { AssociationPanelDemo } from "../AssociationPanelDemo";
+import { useEditorStateUpdater } from "../../../hooks/useEditorStateUpdater";
+import { ContextMenu, ContextMenuProps } from "../../ContextMenu";
+import DocumentClickPluginDemo, {
+  ClickData,
+} from "./plugins/DocumentClickPluginDemo";
+import { TextTransformPluginDemo } from "./plugins/TextTransformPluginDemo";
+import { useEditorCommandsDemo } from "../hooks/useEditorCommandsDemo";
+import {
+  $isAssociationInlineNode,
+  AssociationInlineNodeDemo,
+} from "./customNodes/AssociationInlineNodeDemo";
+import { api } from "../../../api";
 
 const theme = {
-  'custom-paragraph': styles.customParagraph,
+  "custom-paragraph": styles.customParagraph,
   text: {
     bold: styles.bold,
     italic: styles.italic,
@@ -36,16 +53,12 @@ const theme = {
 };
 
 export const ThreadWriterDemo = () => {
-
   const initialConfig = {
-    namespace: 'ThreadWriterEditor',
+    namespace: "ThreadWriterEditor",
     theme,
-    nodes: [
-      CustomParagraphNode,
-      AssociationInlineNodeDemo
-    ],
+    nodes: [CustomParagraphNode, AssociationInlineNodeDemo],
     onError: (error: Error) => {
-      console.error('Lexical error:', error);
+      console.error("Lexical error:", error);
     },
   };
 
@@ -60,15 +73,18 @@ export const ThreadWriterDemo = () => {
   const { showLoader, hideLoader } = useLoader();
 
   // states
-  const [storyBlocks, setStoryBlocks] = useState<SerializedEditorState | null>(null);
+  const [storyBlocks, setStoryBlocks] = useState<SerializedEditorState | null>(
+    null,
+  );
   const defaultContextData: ContextMenuProps = {
     visible: false,
     name: "",
     x: 0,
     y: 0,
-    items: []
-  }
-  const [contextMenuData, setContextMenuData] = useState<ContextMenuProps>(defaultContextData);
+    items: [],
+  };
+  const [contextMenuData, setContextMenuData] =
+    useState<ContextMenuProps>(defaultContextData);
   const [isAssociationPanelOpen, setIsAssociationPanelOpen] = useState(false);
   const [associations, setAssociations] = useState<SimplifiedAssociation[]>([]);
   useEditorCommandsDemo(editorRef, pastedParagraphKeys);
@@ -79,65 +95,74 @@ export const ThreadWriterDemo = () => {
         association_id: "123",
         association_name: "Seth Walker",
         association_type: AssociationType.character,
-        short_description: 'A young, resourceful survivor who has grown up quickly in the aftermath of the zombie apocalypse. He lives on a remote family farm in Montana with his younger sister, Melinda.',
-        portrait: 'https://richdocter-custom-portraits.s3.us-east-1.amazonaws.com/jonathanjface-gmail.com_the-remnants_seth_character.jpg',
-        aliases: 'Seth',
-        case_sensitive: true
+        short_description:
+          "A young, resourceful survivor who has grown up quickly in the aftermath of the zombie apocalypse. He lives on a remote family farm in Montana with his younger sister, Melinda.",
+        portrait:
+          "https://richdocter-custom-portraits.s3.us-east-1.amazonaws.com/jonathanjface-gmail.com_the-remnants_seth_character.jpg",
+        aliases: "Seth",
+        case_sensitive: true,
       },
       {
         association_id: "124",
         association_name: "Melinda Walker",
         association_type: AssociationType.character,
-        short_description: "Melinda, Seth’s seven-year-old sister, is frail from hunger and trauma. She clings to her brother Seth for safety, quietly enduring nightmares in a harsh, dangerous new world.",
-        portrait: "https://richdocter-custom-portraits.s3.us-east-1.amazonaws.com/jonathanjface-gmail.com_the-remnants_melinda_character.jpg",
+        short_description:
+          "Melinda, Seth’s seven-year-old sister, is frail from hunger and trauma. She clings to her brother Seth for safety, quietly enduring nightmares in a harsh, dangerous new world.",
+        portrait:
+          "https://richdocter-custom-portraits.s3.us-east-1.amazonaws.com/jonathanjface-gmail.com_the-remnants_melinda_character.jpg",
         aliases: "Melinda",
-        case_sensitive: true
+        case_sensitive: true,
       },
       {
         association_id: "125",
         association_name: "Tommy",
         association_type: AssociationType.character,
-        short_description: "A grizzled survivor with perm-curled gray hair, a glum expression, and a ruthless streak. Wears a leather jacket, cracks jokes, but kills without hesitation. Practical, selfish, and dangerous.",
+        short_description:
+          "A grizzled survivor with perm-curled gray hair, a glum expression, and a ruthless streak. Wears a leather jacket, cracks jokes, but kills without hesitation. Practical, selfish, and dangerous.",
         portrait: "./demo-data/rocker.jpg",
         aliases: "Rocker",
-        case_sensitive: true
+        case_sensitive: true,
       },
       {
         association_id: "126",
         association_name: "Riley",
         association_type: AssociationType.character,
-        short_description: "A wiry man with a prominent Adam’s apple and a battered hat. A tough but anxious survivor, clinging to old-world manners.",
+        short_description:
+          "A wiry man with a prominent Adam’s apple and a battered hat. A tough but anxious survivor, clinging to old-world manners.",
         portrait: "./demo-data/cowboy.jpg",
         aliases: "Cowboy",
-        case_sensitive: true
+        case_sensitive: true,
       },
       {
         association_id: "127",
         association_name: "Kevin",
         association_type: AssociationType.character,
-        short_description: "A rigid, disciplined man with a stiff, sculpted flattop haircut. Wears military gear and keeps a wary eye on his surroundings. Focused, methodical, and always expecting trouble.",
+        short_description:
+          "A rigid, disciplined man with a stiff, sculpted flattop haircut. Wears military gear and keeps a wary eye on his surroundings. Focused, methodical, and always expecting trouble.",
         portrait: "./demo-data/flattop.jpg",
         aliases: "Flattop",
-        case_sensitive: true
+        case_sensitive: true,
       },
       {
         association_id: "128",
         association_name: "The Walker Farm",
         association_type: AssociationType.place,
-        short_description: "A frost-covered, abandoned Montana farm with a broken-windowed house, a worn barn with an open hayloft, and dead crops in melting snow. Wild grass creeps in, reclaiming the silent land.",
+        short_description:
+          "A frost-covered, abandoned Montana farm with a broken-windowed house, a worn barn with an open hayloft, and dead crops in melting snow. Wild grass creeps in, reclaiming the silent land.",
         portrait: "./demo-data/farm.jpg",
         aliases: "the farm",
-        case_sensitive: false
+        case_sensitive: false,
       },
       {
         association_id: "129",
         association_name: "Bowie knife",
         association_type: AssociationType.item,
-        short_description: "A rugged Bowie knife with a broad, sharp steel blade and a well-worn wooden handle.",
+        short_description:
+          "A rugged Bowie knife with a broad, sharp steel blade and a well-worn wooden handle.",
         portrait: "./demo-data/bowie.jpg",
         aliases: "",
-        case_sensitive: false
-      }
+        case_sensitive: false,
+      },
     ];
   }, []);
 
@@ -156,23 +181,29 @@ export const ThreadWriterDemo = () => {
   const getBatchedStoryBlocks = async () => {
     try {
       showLoader();
-      const response = await fetch(`./demo-data/demoContent.json`);
-      if (!response.ok) throw response;
-      const data = await response.json();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const remappedStoryBlocks = data.items?.map((item: { chunk: any; key_id: any }) => {
-        const key = item.key_id?.Value || '';
-        previousNodeKeysRef.current.add(key);
-        const fixed: CustomSerializedParagraphNode = item.chunk?.Value
-          ? JSON.parse(item.chunk.Value)
-          : generateBlankLine();
-        fixed.key_id = key;
 
-        if (fixed.type !== CustomParagraphNode.getType()) {
-          fixed.type = CustomParagraphNode.getType();
-        }
-        return fixed;
-      }) || [];
+      // Override baseURL for this one call
+      const { data } = await api.get<{
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        items?: Array<{ chunk: any; key_id: any }>;
+      }>("/demo-data/demoContent.json", { baseURL: "" });
+
+      const remappedStoryBlocks: CustomSerializedParagraphNode[] =
+        data.items?.map((item) => {
+          const key = item.key_id?.Value || "";
+          previousNodeKeysRef.current.add(key);
+
+          const fixed: CustomSerializedParagraphNode = item.chunk?.Value
+            ? JSON.parse(item.chunk.Value)
+            : generateBlankLine();
+
+          fixed.key_id = key;
+
+          if (fixed.type !== CustomParagraphNode.getType()) {
+            fixed.type = CustomParagraphNode.getType();
+          }
+          return fixed;
+        }) ?? [];
 
       setStoryBlocks({
         root: {
@@ -184,7 +215,7 @@ export const ThreadWriterDemo = () => {
           indent: 0,
         },
       });
-    } catch (error: unknown) {
+    } catch (error) {
       console.error("Error retrieving story content:", error);
     } finally {
       hideLoader();
@@ -192,7 +223,7 @@ export const ThreadWriterDemo = () => {
   };
 
   const getSelectedText = () => {
-    let selectedText = '';
+    let selectedText = "";
     // Update the editor state to read the current selection.
     editorRef.current?.update(() => {
       const selection = $getSelection();
@@ -213,12 +244,15 @@ export const ThreadWriterDemo = () => {
       () => {
         console.error("Failed to copy");
         /* Rejected - text failed to copy to the clipboard */
-      }
+      },
     );
     setContextMenuData(defaultContextData);
   };
 
-  const handleMenuItemClick = async (_event: React.MouseEvent, type: AssociationType) => {
+  const handleMenuItemClick = async (
+    _event: React.MouseEvent,
+    type: AssociationType,
+  ) => {
     setContextMenuData(defaultContextData);
     const text = getSelectedText();
     if (text.length) {
@@ -230,12 +264,11 @@ export const ThreadWriterDemo = () => {
         short_description: "",
         portrait: "",
         aliases: "",
-        case_sensitive: true
-      }
+        case_sensitive: true,
+      };
       setAssociations([...associations, newAssociation]);
     }
   };
-
 
   const handleDeleteAssociationClick = async () => {
     setContextMenuData(defaultContextData);
@@ -243,7 +276,7 @@ export const ThreadWriterDemo = () => {
       const ind = associations.findIndex((assoc) => {
         return assoc.association_id === selectedAssociation.current;
       });
-      selectedAssociation.current = '';
+      selectedAssociation.current = "";
       const newAssociations = [...associations];
       newAssociations.splice(ind, 1);
       setAssociations(newAssociations);
@@ -325,12 +358,18 @@ export const ThreadWriterDemo = () => {
         // **Step 1: Use caret position to find exact text offset**
         let range: Range | null = null;
         const doc = document as unknown as {
-          caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
+          caretPositionFromPoint?: (
+            x: number,
+            y: number,
+          ) => { offsetNode: Node; offset: number } | null;
           caretRangeFromPoint?: (x: number, y: number) => Range | null;
         } & Document;
 
         if (doc.caretPositionFromPoint) {
-          const caretPos = doc.caretPositionFromPoint(touch.clientX, touch.clientY);
+          const caretPos = doc.caretPositionFromPoint(
+            touch.clientX,
+            touch.clientY,
+          );
           if (caretPos) {
             range = document.createRange();
             range.setStart(caretPos.offsetNode, caretPos.offset);
@@ -368,7 +407,6 @@ export const ThreadWriterDemo = () => {
     return () => document.removeEventListener("touchend", handleTouchEnd);
   }, []);
 
-
   useEffect(() => {
     const fetchData = async () => {
       if (isInitialLoad.current && editorRef.current) {
@@ -380,11 +418,12 @@ export const ThreadWriterDemo = () => {
         isProgrammaticChange.current = true;
         await getBatchedStoryBlocks();
         isProgrammaticChange.current = false;
-        const container = document.querySelector(`.${styles.outerWrapper}`)?.parentElement;
+        const container = document.querySelector(
+          `.${styles.outerWrapper}`,
+        )?.parentElement;
         if (container) {
-          setTimeout(() => container.scrollTop = 0, 250);
+          setTimeout(() => (container.scrollTop = 0), 250);
         }
-
       }
     };
 
@@ -393,15 +432,18 @@ export const ThreadWriterDemo = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getBatchedStoryBlocks, editorRef.current]);
 
-  const onAssociationEditCallback = useCallback(async (assoc: Association) => {
-    setAssociations((prevAssociations: SimplifiedAssociation[] = []) =>
-      prevAssociations.map((storedAssociation) =>
-        storedAssociation.association_id === assoc.association_id
-          ? { ...storedAssociation, ...assoc }
-          : storedAssociation
-      )
-    );
-  }, [setAssociations]);
+  const onAssociationEditCallback = useCallback(
+    async (assoc: Association) => {
+      setAssociations((prevAssociations: SimplifiedAssociation[] = []) =>
+        prevAssociations.map((storedAssociation) =>
+          storedAssociation.association_id === assoc.association_id
+            ? { ...storedAssociation, ...assoc }
+            : storedAssociation,
+        ),
+      );
+    },
+    [setAssociations],
+  );
 
   const handleDocumentLeftClick = (event: MouseEvent | TouchEvent) => {
     setContextMenuData(defaultContextData);
@@ -445,7 +487,10 @@ export const ThreadWriterDemo = () => {
         // **Find exact text offset using caret position**
         let range: Range | null = null;
         const doc = document as unknown as {
-          caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
+          caretPositionFromPoint?: (
+            x: number,
+            y: number,
+          ) => { offsetNode: Node; offset: number } | null;
           caretRangeFromPoint?: (x: number, y: number) => Range | null;
         } & Document;
 
@@ -485,30 +530,30 @@ export const ThreadWriterDemo = () => {
     }, 0); // Small delay allows browser to finish handling the event
   };
 
-
   const handleDocumentRightClick = (data: ClickData) => {
     const contextData: ContextMenuProps = {
       name: data.text ? data.text : "",
       visible: true,
       y: data.y,
       x: data.x,
-      items: selectedContextMenuItems
-    }
+      items: selectedContextMenuItems,
+    };
     setContextMenuData(contextData);
-  }
+  };
 
   const handleAssociationLeftClick = (data: ClickData) => {
     if (!data.id) return;
     selectedAssociation.current = data.id;
     setIsAssociationPanelOpen(true);
-  }
+  };
 
   const handleAssociationRightClick = (data: ClickData) => {
     if (!data.id) return;
     const rootElement = editorRef.current?.getRootElement();
     if (!rootElement) return;
     selectedAssociation.current = data.id;
-    const containerRect = rootElement.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.getBoundingClientRect();
+    const containerRect =
+      rootElement.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.getBoundingClientRect();
     const xInContainer = containerRect ? data.x - containerRect.left : data.x;
     const yInContainer = containerRect ? data.y - containerRect.top : data.y;
     const contextData: ContextMenuProps = {
@@ -516,13 +561,12 @@ export const ThreadWriterDemo = () => {
       visible: true,
       y: yInContainer,
       x: xInContainer,
-      items: associationContextMenuItems
-    }
+      items: associationContextMenuItems,
+    };
     setContextMenuData(contextData);
-  }
+  };
 
   return (
-
     <div className={styles.outerWrapper}>
       <LexicalComposer
         initialConfig={{
@@ -536,15 +580,42 @@ export const ThreadWriterDemo = () => {
         <div className={styles.editorRow}>
           <div className={styles.editorArea}>
             <RichTextPlugin
-              contentEditable={<ContentEditable tabIndex={0} className={styles.editorInput} spellCheck={true} />}
+              contentEditable={
+                <ContentEditable
+                  tabIndex={0}
+                  className={styles.editorInput}
+                  spellCheck={true}
+                />
+              }
               ErrorBoundary={LexicalErrorBoundary}
             />
-            <AssociationDecoratorPluginDemo associations={associations} isProgrammaticChange={isProgrammaticChange} scrollToTop={true} customLeftClick={handleAssociationLeftClick} customRightClick={handleAssociationRightClick} />
+            <AssociationDecoratorPluginDemo
+              associations={associations}
+              isProgrammaticChange={isProgrammaticChange}
+              scrollToTop={true}
+              customLeftClick={handleAssociationLeftClick}
+              customRightClick={handleAssociationRightClick}
+            />
             <HistoryPlugin />
             <TextTransformPluginDemo />
-            <DocumentClickPluginDemo onLeftClick={handleDocumentLeftClick} onRightClick={handleDocumentRightClick} />
-            <AssociationPanelDemo associations={associations} onEditCallback={onAssociationEditCallback} isAssociationPanelOpen={isAssociationPanelOpen} setIsAssociationPanelOpen={setIsAssociationPanelOpen} selectedAssociationID={selectedAssociation.current} />
-            <ContextMenu name={contextMenuData.name} visible={contextMenuData.visible} x={contextMenuData.x} y={contextMenuData.y} items={contextMenuData.items} />
+            <DocumentClickPluginDemo
+              onLeftClick={handleDocumentLeftClick}
+              onRightClick={handleDocumentRightClick}
+            />
+            <AssociationPanelDemo
+              associations={associations}
+              onEditCallback={onAssociationEditCallback}
+              isAssociationPanelOpen={isAssociationPanelOpen}
+              setIsAssociationPanelOpen={setIsAssociationPanelOpen}
+              selectedAssociationID={selectedAssociation.current}
+            />
+            <ContextMenu
+              name={contextMenuData.name}
+              visible={contextMenuData.visible}
+              x={contextMenuData.x}
+              y={contextMenuData.y}
+              items={contextMenuData.items}
+            />
           </div>
         </div>
       </LexicalComposer>

@@ -1,4 +1,3 @@
-
 export const UCWords = (str: string) => {
   return str
     .split(" ")
@@ -6,7 +5,13 @@ export const UCWords = (str: string) => {
     .join(" ");
 };
 
-export const UpdateChapterParameter = (chapterID: string) => {
-  const newurl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?chapter=' + chapterID;
-  window.history.pushState({ path: newurl }, '', newurl);
-}
+export const UpdateChapterQueryStringParameter = (chapterID: string) => {
+  const newurl =
+    window.location.protocol +
+    "//" +
+    window.location.host +
+    window.location.pathname +
+    "?chapter=" +
+    chapterID;
+  window.history.pushState({ path: newurl }, "", newurl);
+};
