@@ -88,7 +88,7 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
   const [selectedAssociationID, setSelectedAssociationID] = useState(
     props.selectedAssociationID,
   );
-  const { story } = useSelections();
+  const { story, chapter } = useSelections();
 
   const clearData = () => {
     initialAssociation.current = null;
@@ -196,6 +196,10 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
       });
     }
   }, [selectedAssociation, descriptionEditorRef, isInitialLoad]);
+
+  useEffect(() => {
+    clearData();
+  }, [chapter?.id, story?.story_id]);
 
   const saveEdits = () => {
     if (

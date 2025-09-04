@@ -15,6 +15,46 @@ import (
 	"github.com/gorilla/mux"
 )
 
+func ChapterTableStatusEndpoint(w http.ResponseWriter, r *http.Request) {
+	var (
+		storyID, chapterID string
+		err                error
+		dao                daos.DaoInterface
+		ok                 bool
+	)
+
+	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing story ID")
+		return
+	}
+	if storyID == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing story id")
+		return
+	}
+	if chapterID, err = url.PathUnescape(mux.Vars(r)["chapterID"]); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing chapter ID")
+		return
+	}
+	if chapterID == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing chapter id")
+		return
+	}
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
+		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
+		return
+	}
+	isTableReady, err := dao.GetChapterTableStatus(storyID, chapterID)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if !isTableReady {
+		RespondWithError(w, http.StatusNotImplemented, "table not ready")
+		return
+	}
+	RespondWithJson(w, http.StatusOK, "")
+}
+
 func ChapterDetailsEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		storyID, chapterID string

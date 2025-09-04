@@ -9,7 +9,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -21,6 +20,11 @@ import (
 	"github.com/markbates/goth/providers/amazon"
 	"github.com/markbates/goth/providers/google"
 	"github.com/markbates/goth/providers/microsoftonline"
+)
+
+const (
+	oneHour    = time.Hour
+	thirtyDays = 30 * 24 * time.Hour
 )
 
 func New(options Options) {
@@ -128,8 +132,6 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options Options
 	}
 	fullDetails, err = dao.GetUserDetails(info.Email)
 	if err != nil {
-		// hacky
-		log.Println("err getting user data", err)
 		if err == sql.ErrNoRows {
 			err = dao.CreateUser(info.Email)
 			if err != nil {
@@ -161,14 +163,15 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options Options
 	session.Options.Path = "/"
 	session.Options.HttpOnly = true
 	session.Options.Secure = strings.HasPrefix(root, "https://")
-	ttl := int(time.Until(user.ExpiresAt).Seconds())
-	if ttl < 60 {
-		ttl = 3600 // default 1h if provider expiry is tiny or missing
+	ttl := time.Until(user.ExpiresAt)
+
+	if ttl < oneHour {
+		ttl = oneHour // default 1h if provider expiry is tiny or missing
 	}
-	if ttl > 60*60*24*30 {
-		ttl = 60 * 60 * 24 * 30 // cap to 30d
+	if ttl > thirtyDays {
+		ttl = thirtyDays // cap to 30d
 	}
-	session.Options.MaxAge = ttl
+	session.Options.MaxAge = int(ttl.Seconds())
 
 	if err = session.Save(r, w); err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())

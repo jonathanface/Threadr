@@ -7,7 +7,7 @@ export enum AlertToastType {
 
 export enum AlertCommandType {
   subscribe = "subscribe",
-  renew = "renew"
+  renew = "renew",
 }
 
 export interface AlertLink {
@@ -26,7 +26,7 @@ export type AlertState = {
   severity: string;
   message: string;
   title: string;
-  timeout?: number | null;
+  timeout?: number | null; //milliseconds
   link?: { url: string; text: string };
   callback?: AlertFunctionCall;
 };
