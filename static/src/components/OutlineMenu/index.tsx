@@ -1,7 +1,7 @@
 import { SimpleTreeView } from "@mui/x-tree-view";
 import { useSelections } from "../../hooks/useSelections";
 import { ClickData } from "../ThreadWriter/plugins/DocumentClickPlugin";
-import { Typography } from "@mui/material";
+import { Button, Stack, Typography } from "@mui/material";
 import { OutlineStageCard } from "./OutlineStageCard";
 import { Outline, OutlineSection, OutlineTemplate } from "../../types/Outline";
 import { Story } from "../../types/Story";
@@ -10,6 +10,7 @@ import { useToaster } from "../../hooks/useToaster";
 import { AlertToastType } from "../../types/AlertToasts";
 import axios from "axios";
 import { api } from "../../api";
+import AddIcon from "@mui/icons-material/Add";
 
 interface OutlineMenuProps {
   onAssociationClick: (data: ClickData) => void;
@@ -86,20 +87,69 @@ export const OutlineMenu = ({ onAssociationClick }: OutlineMenuProps) => {
     }
   };
 
+  const handleAddSection = () => {
+    const existing = story.outline?.sections ?? [];
+    const nextPlace =
+      existing.length > 0
+        ? Math.max(...existing.map((s) => s.place || 0)) + 1
+        : 1;
+
+    const newSection: OutlineSection = {
+      header: "",
+      description: "",
+      place: nextPlace,
+      text: "",
+      chapters: [],
+      status: "Draft",
+    };
+    void onOutlineSectionEdit(newSection);
+  };
+
   return (
     <SimpleTreeView>
-      <Typography variant="h5" p={2}>
-        Outline
-      </Typography>
-      {story?.outline?.sections?.map((section, idx) => (
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        px={2}
+        py={1.5}
+      >
+        <Typography variant="h5">Outline</Typography>
+        <Button
+          size="small"
+          startIcon={<AddIcon />}
+          onClick={handleAddSection}
+          variant="outlined"
+        >
+          Add section
+        </Button>
+      </Stack>
+      {story?.outline ? (
+        story.outline.sections?.map((section, idx) => (
+          <OutlineStageCard
+            key={`outline-${idx}`}
+            outlineSection={section}
+            unassigned={story.outline?.unassigned}
+            onAssociationClick={onAssociationClick}
+            onOutlineSectionEdit={onOutlineSectionEdit}
+          />
+        ))
+      ) : (
         <OutlineStageCard
-          key={`outline-${idx}`}
-          outlineSection={section}
-          unassigned={story.outline?.unassigned}
+          key="outline-0"
+          outlineSection={{
+            header: "",
+            description: "",
+            place: 1,
+            text: "",
+            chapters: [],
+            status: "Draft",
+          }}
+          unassigned={story.chapters.map((chapter) => chapter.id)}
           onAssociationClick={onAssociationClick}
           onOutlineSectionEdit={onOutlineSectionEdit}
         />
-      ))}
+      )}
     </SimpleTreeView>
   );
 };
