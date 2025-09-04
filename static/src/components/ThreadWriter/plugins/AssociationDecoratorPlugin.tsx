@@ -232,10 +232,8 @@ export const AssociationDecoratorPlugin = ({
       exclusionList?: string[],
     ): void => {
       if (!associations.length) return;
-      console.log("ass change", associations);
       // Process obsolete inline nodes.
       const obsoleteNodes = findObsoleteDecorators(rootNode, associations);
-      console.log("obsolete", obsoleteNodes);
       const processedNodes = new Set<AssociationInlineNode>();
       obsoleteNodes.forEach((node) => {
         if (processedNodes.has(node)) return;

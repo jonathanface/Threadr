@@ -8,7 +8,7 @@ import { useLoader } from "../../hooks/useLoader";
 import { AlertToastType } from "../../types/AlertToasts";
 import { useToaster } from "../../hooks/useToaster";
 import { DragDropContext, Droppable, DropResult } from "@hello-pangea/dnd";
-import { ChapterTreeItem } from "../ChapterTreeItem";
+import { ChapterTreeItem } from "./ChapterTreeItem";
 import { UpdateChapterParameter } from "../ThreadWriter/utilities";
 import { useState } from "react";
 

@@ -1,14 +1,14 @@
 import { TreeItem } from "@mui/x-tree-view";
 import { Tooltip, Chip, Typography, IconButton, Box } from "@mui/material";
-import { Chapter } from "../../types/Chapter";
-import { OutlineSection } from "../../types/Outline";
+import { Chapter } from "../../../types/Chapter";
+import { OutlineSection } from "../../../types/Outline";
 import { Draggable, DraggableProvided } from "@hello-pangea/dnd";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import { UpdateChapterParameter } from "../ThreadWriter/utilities";
-import { AlertToastType } from "../../types/AlertToasts";
-import { useSelections } from "../../hooks/useSelections";
-import { useToaster } from "../../hooks/useToaster";
-import { useLoader } from "../../hooks/useLoader";
+import { UpdateChapterParameter } from "../../ThreadWriter/utilities";
+import { AlertToastType } from "../../../types/AlertToasts";
+import { useSelections } from "../../../hooks/useSelections";
+import { useToaster } from "../../../hooks/useToaster";
+import { useLoader } from "../../../hooks/useLoader";
 import styles from "./chaptertreeitem.module.css";
 
 interface ChapterTreeItemProps {
@@ -129,7 +129,7 @@ export const ChapterTreeItem = ({
         throw new Error(response.statusText);
 
       const chapterIndex = story.chapters.findIndex(
-        (c) => c.id === chapterIDToDelete,
+        (c: { id: string }) => c.id === chapterIDToDelete,
       );
       if (chapterIndex !== -1) {
         const newChapters = [...story.chapters];

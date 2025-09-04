@@ -39,7 +39,7 @@ func billingMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 			}
 			token, err := sessions.Get(r, "token")
 			if err != nil || token.IsNew {
-				api.RespondWithError(w, http.StatusNotFound, "cannot find token")
+				api.RespondWithError(w, http.StatusUnauthorized, "cannot find token")
 				return
 			}
 			var user models.UserInfo
@@ -64,7 +64,7 @@ func strictMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 			}
 			token, err := sessions.Get(r, "token")
 			if err != nil || token.IsNew {
-				api.RespondWithError(w, http.StatusNotFound, "cannot find token")
+				api.RespondWithError(w, http.StatusUnauthorized, "cannot find token")
 				return
 			}
 			var user models.UserInfo
