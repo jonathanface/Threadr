@@ -39,6 +39,25 @@ func (d *DAO) GetChaptersByStoryID(storyID string) (chapters []models.Chapter, e
 	return chapters, nil
 }
 
+func (d *DAO) GetChapterTableStatus(storyID, chapterID string) (bool, error) {
+	tableName := storyID + "_" + chapterID + "_blocks" + GetTableSuffix()
+	out, err := d.DynamoClient.DescribeTable(context.TODO(), &dynamodb.DescribeTableInput{
+		TableName: aws.String(tableName),
+	})
+	if err != nil {
+		// e.g. ResourceNotFoundException if table doesn't exist
+		return false, err
+	}
+
+	if out.Table == nil {
+		return false, nil
+	}
+	if out.Table.TableStatus != types.TableStatusActive {
+		return false, nil
+	}
+	return true, nil
+}
+
 func (d *DAO) GetChapterByID(chapterID string) (chapter *models.Chapter, err error) {
 	scanInput := &dynamodb.ScanInput{
 		TableName:        aws.String("chapters" + GetTableSuffix()),

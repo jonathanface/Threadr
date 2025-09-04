@@ -96,6 +96,7 @@ export const ChapterTreeItem = ({
     event: React.MouseEvent,
     chapterIDToDelete: string,
     chapterTitle: string,
+    isCurrentlySelected: boolean,
   ) => {
     if (!story) return;
     event.stopPropagation();
@@ -138,11 +139,13 @@ export const ChapterTreeItem = ({
         const newSelectedStory = { ...story, chapters: newChapters };
         setStory(newSelectedStory);
 
-        // Set previous chapter if possible, otherwise fallback to the next one
-        const prevChapter = newChapters[chapterIndex - 1] || newChapters[0];
-        if (prevChapter) {
-          setChapter(prevChapter);
-          UpdateChapterParameter(prevChapter.id);
+        if (isCurrentlySelected) {
+          // Set previous chapter if possible, otherwise fallback to the next one
+          const prevChapter = newChapters[chapterIndex - 1] || newChapters[0];
+          if (prevChapter) {
+            setChapter(prevChapter);
+            UpdateChapterParameter(prevChapter.id);
+          }
         }
       }
     } catch (error) {
@@ -196,6 +199,7 @@ export const ChapterTreeItem = ({
                       event,
                       itemChapter.id,
                       itemChapter.title,
+                      chapter?.id === itemChapter.id,
                     )
                   }
                   sx={{ marginLeft: "auto" }} // ✅ Ensures it stays on the right

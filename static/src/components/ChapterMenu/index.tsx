@@ -24,22 +24,63 @@ export const ChapterMenu = ({ chapters }: SettingsMenuProps) => {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   if (!chapter || !story) return;
 
-  const handleNodeSelect = (
+  const checkCurrentChapterTableStatus = async (chapterID: string) => {
+    try {
+      const response = await fetch(
+        "/api/stories/" + story.story_id + "/chapters/" + chapterID + "/status",
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      if (!response.ok) throw response;
+    } catch (error: unknown) {
+      console.log("resp", (error as Response).status);
+      if ((error as Response).status === 501) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const showTableWarning = () => {
+    setAlertState({
+      title: "Warning",
+      message:
+        "Your chapter is still being created and your changes will be lost if you change chapters now. Please wait a few seconds and try again.",
+      severity: AlertToastType.warning,
+      open: true,
+      timeout: 30000,
+    });
+  };
+
+  const handleNodeSelect = async (
     _event: React.MouseEvent,
     selectedItemId: string,
   ) => {
     if (selectedItemId === "chapters_add") {
+      const isTableReady = await checkCurrentChapterTableStatus(chapter.id);
+      if (!isTableReady) {
+        showTableWarning();
+        return;
+      }
       onNewChapterClick();
       return;
     }
     if (selectedItemId !== chapter.id) {
+      const isTableReady = await checkCurrentChapterTableStatus(chapter.id);
+      if (!isTableReady) {
+        showTableWarning();
+        return;
+      }
       const newChapter = chapters.find(
         (chapter) => chapter.id === selectedItemId,
       );
       if (newChapter) {
         UpdateChapterParameter(newChapter.id);
         setChapter(newChapter);
-        //closeFn(false);
       }
     }
   };
