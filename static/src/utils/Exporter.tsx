@@ -1,9 +1,18 @@
-
+import axios from "axios";
+import { api } from "../api";
 import { AssociationInlineNode } from "../components/ThreadWriter/customNodes/AssociationInlineNode";
-import { CustomParagraphNode, CustomSerializedParagraphNode } from "../components/ThreadWriter/customNodes/CustomParagraphNode";
+import {
+  CustomParagraphNode,
+  CustomSerializedParagraphNode,
+} from "../components/ThreadWriter/customNodes/CustomParagraphNode";
 import { Story } from "../types/Story";
-import { $getRoot, createEditor, SerializedEditorState, SerializedLexicalNode } from "lexical";
-import { v4 as uuidv4 } from 'uuid';
+import {
+  $getRoot,
+  createEditor,
+  SerializedEditorState,
+  SerializedLexicalNode,
+} from "lexical";
+import { v4 as uuidv4 } from "uuid";
 
 interface returnHTML {
   chapter: string;
@@ -29,8 +38,6 @@ export default class Exporter {
     key_id: uuidv4(),
   });
 
-
-
   lexicalToHtml = async (): Promise<returnHTML[]> => {
     const editor = createEditor({
       namespace: "ExportEditor",
@@ -42,17 +49,20 @@ export default class Exporter {
 
     for (const chapter of storyData.chapters_with_contents) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const chapterBlocks = chapter.blocks?.items.map((paragraph: { chunk: any; key_id: any }) => {
-        const fixed: CustomSerializedParagraphNode = paragraph.chunk.Value
-          ? JSON.parse(paragraph.chunk.Value)
-          : this.generateBlankLine(); // Use blank line if missing
-        fixed.key_id = paragraph.key_id.Value;
+      const chapterBlocks = chapter.blocks?.items.map(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (paragraph: { chunk: any; key_id: any }) => {
+          const fixed: CustomSerializedParagraphNode = paragraph.chunk.Value
+            ? JSON.parse(paragraph.chunk.Value)
+            : this.generateBlankLine(); // Use blank line if missing
+          fixed.key_id = paragraph.key_id.Value;
 
-        if (fixed.type !== CustomParagraphNode.getType()) {
-          fixed.type = CustomParagraphNode.getType();
-        }
-        return fixed;
-      });
+          if (fixed.type !== CustomParagraphNode.getType()) {
+            fixed.type = CustomParagraphNode.getType();
+          }
+          return fixed;
+        },
+      );
 
       if (chapterBlocks) {
         const rootDoc: SerializedEditorState<SerializedLexicalNode> = {
@@ -94,23 +104,31 @@ export default class Exporter {
             })
             .join("");
         });
-        console.log("chap html", chapterHtml)
+        console.log("chap html", chapterHtml);
 
         chapters.push({
           chapter: chapter.chapter.title,
-          html: chapterHtml
+          html: chapterHtml,
         });
       }
     }
 
     return chapters;
-  }
+  };
 
   getFullStory = async (storyID: string) => {
-    const response = await fetch("/api/stories/" + storyID + "/full");
-    if (!response.ok) {
-      throw new Error(`SERVER ERROR FETCHING FULL STORY: ${response.body}`);
+    try {
+      const { data } = await api.get<Story>(`/stories/${storyID}/full`);
+      return data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new Error(
+          `SERVER ERROR FETCHING FULL STORY: ${
+            error.response?.data || error.message
+          }`,
+        );
+      }
+      throw error;
     }
-    return await response.json();
   };
 }

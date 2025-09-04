@@ -4,6 +4,7 @@ import { Story } from "../types/Story";
 import { Series } from "../types/Series";
 import { useFetchUserData } from "../hooks/useFetchUserData";
 import { useLoader } from "../hooks/useLoader";
+import { api } from "../api";
 
 export const WorksListProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -15,20 +16,17 @@ export const WorksListProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Fetch function for series and stories
   const fetchSeries = async (): Promise<Series[]> => {
-    console.log("wtfhere");
-    const response = await fetch("/api/series", { credentials: "include" });
-    if (!response.ok) {
-      throw new Error(`Error fetching series: ${response.statusText}`);
-    }
-    return response.json();
+    const { data } = await api.get<Series[]>("/series", {
+      withCredentials: true,
+    });
+    return data;
   };
 
   const fetchStories = async (): Promise<Story[]> => {
-    const response = await fetch("/api/stories", { credentials: "include" });
-    if (!response.ok) {
-      throw new Error(`Error fetching stories: ${response.statusText}`);
-    }
-    return response.json();
+    const { data } = await api.get<Story[]>("/stories", {
+      withCredentials: true,
+    });
+    return data;
   };
 
   useEffect(() => {

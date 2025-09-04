@@ -24,6 +24,8 @@ import {
   BlockAlignmentType,
   DocterTextFormatType,
 } from "../../../types/Document";
+import { api } from "../../../api";
+import axios from "axios";
 
 export const Toolbar = () => {
   const [editor] = useLexicalComposerContext();
@@ -97,28 +99,26 @@ export const Toolbar = () => {
         const updatedChapter = { ...chapter };
         updatedChapter.title = target.value;
         try {
-          const response = await fetch(
-            "/api/stories/" + story.story_id + "/chapters/" + chapter.id,
+          await api.put(
+            `/stories/${story.story_id}/chapters/${chapter.id}`,
+            updatedChapter,
             {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(updatedChapter),
+              headers: { "Content-Type": "application/json" },
             },
           );
-          if (!response.ok) {
-            console.error(response.body);
-            throw new Error(
-              "There was an error updating your chapter. Please report this.",
-            );
-          }
+
           setChapter(updatedChapter);
           propagateChapterUpdates(updatedChapter);
-        } catch (error: unknown) {
+        } catch (error) {
+          const message = axios.isAxiosError(error)
+            ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (error.response?.data as any)?.message ||
+              `HTTP ${error.response?.status}: ${error.message}`
+            : (error as Error).message;
+
           setAlertState({
             title: "Error",
-            message: (error as Error).message,
+            message,
             severity: AlertToastType.error,
             open: true,
           });

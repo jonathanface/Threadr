@@ -12,6 +12,8 @@ import {
 import Exporter from "../../../../utils/Exporter";
 import { useFetchUserData } from "../../../../hooks/useFetchUserData";
 import { useToaster } from "../../../../hooks/useToaster";
+import axios from "axios";
+import { api } from "../../../../api";
 
 export const DocumentExporter = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -36,47 +38,27 @@ export const DocumentExporter = () => {
         });
         return;
       }
+
       try {
-        const response = await fetch(
-          "/api/stories/" + story.story_id + "/export?type=" + type,
+        const { data: json } = await api.put<{ url: string }>(
+          `/stories/${story.story_id}/export`,
           {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              html_by_chapter: htmlData,
-              title: story.title,
-              storyID: story.story_id,
-              type,
-            }),
+            html_by_chapter: htmlData,
+            title: story.title,
+            storyID: story.story_id,
+            type,
+          },
+          {
+            headers: { "Content-Type": "application/json" },
+            params: { type }, // cleaner than manual `?type=${type}`
           },
         );
-        if (!response.ok) {
-          if (response.status === 401) {
-            const subscribeFunc: AlertFunctionCall = {
-              type: AlertCommandType.subscribe,
-              text: "subscribe",
-            };
-            setAlertState({
-              title: "Insufficient subscription",
-              message: "Free accounts are unable to export their stories.",
-              open: true,
-              severity: AlertToastType.warning,
-              timeout: null,
-              callback: subscribeFunc,
-            });
-            return;
-          } else {
-            throw new Error("Fetch problem export " + response.status);
-          }
-        }
-        const json = await response.json();
 
         const alertLink = {
           url: json.url,
           text: "download/open",
         };
+
         setAlertState({
           title: "Conversion complete",
           message: "Right-click the link to save your document.",
@@ -86,14 +68,29 @@ export const DocumentExporter = () => {
           timeout: null,
         });
       } catch (error) {
-        console.error(error);
-        setAlertState({
-          title: "Error",
-          message:
-            "Unable to export your document at this time. Please try again later, or contact support@richdocter.io.",
-          open: true,
-          severity: AlertToastType.error,
-        });
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          const subscribeFunc: AlertFunctionCall = {
+            type: AlertCommandType.subscribe,
+            text: "subscribe",
+          };
+          setAlertState({
+            title: "Insufficient subscription",
+            message: "Free accounts are unable to export their stories.",
+            open: true,
+            severity: AlertToastType.warning,
+            timeout: null,
+            callback: subscribeFunc,
+          });
+        } else {
+          console.error(error);
+          setAlertState({
+            title: "Error",
+            message:
+              "Unable to export your document at this time. Please try again later, or contact support@richdocter.io.",
+            open: true,
+            severity: AlertToastType.error,
+          });
+        }
       }
     }
   };

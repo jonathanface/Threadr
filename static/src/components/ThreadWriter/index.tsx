@@ -67,6 +67,8 @@ import {
   $isAssociationInlineNode,
   AssociationInlineNode,
 } from "./customNodes/AssociationInlineNode";
+import axios from "axios";
+import { api } from "../../api";
 
 const theme = {
   "custom-paragraph": styles.customParagraph,
@@ -166,24 +168,22 @@ export const ThreadWriter = () => {
     if (!story?.story_id) return;
     try {
       showLoader();
-      const response = await fetch(
-        "/api/stories/" + story.story_id + "/associations",
+
+      const { data } = await api.post(
+        `/stories/${story.story_id}/associations`,
+        associations,
         {
-          method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(associations),
         },
       );
-      if (!response.ok) {
-        throw response;
-      }
-      return await response.json();
-    } catch (error: unknown) {
+
+      return data;
+    } catch (error) {
       console.error(error);
-      const apiError = error as Response;
-      if (apiError.status === 401) {
+
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
         const subscribeFunc: AlertFunctionCall = {
           type: AlertCommandType.subscribe,
           text: "subscribe",
@@ -248,23 +248,19 @@ export const ThreadWriter = () => {
     if (!story) return;
     try {
       showLoader();
-      const response = await fetch(
-        "/api/stories/" + story.story_id + "/associations",
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(associations),
-        },
-      );
-      if (!response.ok) {
-        throw response;
+
+      await api.delete(`/stories/${story.story_id}/associations`, {
+        headers: { "Content-Type": "application/json" },
+        data: associations,
+      });
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error(
+          `Error deleting association: ${error.response?.status} ${error.response?.statusText}`,
+        );
+      } else {
+        console.error("Unexpected error deleting association:", error);
       }
-    } catch (error: unknown) {
-      console.error(
-        `Error deleting association: ${(error as Response).statusText}`,
-      );
     } finally {
       hideLoader();
     }
@@ -862,21 +858,23 @@ export const ThreadWriter = () => {
       if (!story) return;
       try {
         showLoader();
-        const response = await fetch(
-          "/api/stories/" + story.story_id + "/associations",
+
+        await api.put(
+          `/stories/${story.story_id}/associations`,
+          [assoc], // axios auto-stringifies JSON
           {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify([assoc]),
+            headers: { "Content-Type": "application/json" },
           },
         );
-        if (!response.ok) {
-          throw new Error(`Error saving association: ${response.body}`);
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          console.error(
+            `Error saving association: ${error.response?.status} ${error.message}`,
+          );
+        } else {
+          console.error(`Error saving association: ${error}`);
         }
-      } catch (error: unknown) {
-        console.error(`Error saving association: ${error}`);
+
         setAlertState({
           title: "Save Failure",
           message:

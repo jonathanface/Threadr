@@ -9,8 +9,10 @@ import { AlertToastType } from "../../types/AlertToasts";
 import { useToaster } from "../../hooks/useToaster";
 import { DragDropContext, Droppable, DropResult } from "@hello-pangea/dnd";
 import { ChapterTreeItem } from "./ChapterTreeItem";
-import { UpdateChapterParameter } from "../ThreadWriter/utilities";
+import { UpdateChapterQueryStringParameter } from "../ThreadWriter/utilities";
 import { useState } from "react";
+import axios from "axios";
+import { api } from "../../api";
 
 interface SettingsMenuProps {
   chapters: Chapter[];
@@ -26,22 +28,25 @@ export const ChapterMenu = ({ chapters }: SettingsMenuProps) => {
 
   const checkCurrentChapterTableStatus = async (chapterID: string) => {
     try {
-      const response = await fetch(
-        "/api/stories/" + story.story_id + "/chapters/" + chapterID + "/status",
+      await api.get(
+        `/api/stories/${story.story_id}/chapters/${chapterID}/status`,
         {
-          method: "GET",
           headers: {
             "Content-Type": "application/json",
           },
         },
       );
-      if (!response.ok) throw response;
-    } catch (error: unknown) {
-      console.log("resp", (error as Response).status);
-      if ((error as Response).status === 501) {
-        return false;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.log("resp", error.response?.status);
+        if (error.response?.status === 501) {
+          return false;
+        }
+      } else {
+        console.error("unexpected error", error);
       }
     }
+
     return true;
   };
 
@@ -79,7 +84,7 @@ export const ChapterMenu = ({ chapters }: SettingsMenuProps) => {
         (chapter) => chapter.id === selectedItemId,
       );
       if (newChapter) {
-        UpdateChapterParameter(newChapter.id);
+        UpdateChapterQueryStringParameter(newChapter.id);
         setChapter(newChapter);
       }
     }
@@ -90,22 +95,22 @@ export const ChapterMenu = ({ chapters }: SettingsMenuProps) => {
     const newChapterTitle = "Chapter " + newChapterNum;
     try {
       showLoader();
-      const response = await fetch(
-        "/api/stories/" + story.story_id + "/chapter",
+
+      const { data: json } = await api.post<Chapter>(
+        `/api/stories/${story.story_id}/chapter`,
         {
-          method: "POST",
+          title: newChapterTitle,
+          place: newChapterNum,
+        },
+        {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            title: newChapterTitle,
-            place: newChapterNum,
-          }),
         },
       );
-      if (!response.ok) throw new Error(response.statusText);
-      const json = (await response.json()) as Chapter;
+
       json.story_id = story.story_id;
+
       const newChapters = [...chapters];
       newChapters.push({
         story_id: story.story_id,
@@ -113,8 +118,9 @@ export const ChapterMenu = ({ chapters }: SettingsMenuProps) => {
         title: newChapterTitle,
         place: newChapterNum,
       });
-      const updatedSelectedStory = { ...story };
-      updatedSelectedStory.chapters = newChapters;
+
+      const updatedSelectedStory = { ...story, chapters: newChapters };
+
       if (series) {
         const storyIdx = series.stories.findIndex(
           (thisStory) => thisStory.story_id === story.story_id,
@@ -125,11 +131,18 @@ export const ChapterMenu = ({ chapters }: SettingsMenuProps) => {
           setSeries(updatedSeries);
         }
       }
+
       setStory(updatedSelectedStory);
       setChapter(json);
-      UpdateChapterParameter(json.id);
+      UpdateChapterQueryStringParameter(json.id);
     } catch (error) {
-      console.error(`Error creating chapter: ${error}`);
+      if (axios.isAxiosError(error)) {
+        console.error(
+          `Error creating chapter: ${error.response?.status} ${error.message}`,
+        );
+      } else {
+        console.error("Unexpected error creating chapter", error);
+      }
       setAlertState({
         title: "Problem",
         message: "An error occurred creating your chapter.",
@@ -164,24 +177,30 @@ export const ChapterMenu = ({ chapters }: SettingsMenuProps) => {
     setStory(newStory);
     try {
       showLoader();
-      const response = await fetch(
-        "/api/stories/" + story.story_id + "/chapters",
+
+      await api.put(
+        `/api/stories/${story.story_id}/chapters`,
+        updatedChapters,
         {
-          method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(updatedChapters),
         },
       );
-      if (!response.ok) {
-        console.error(response.body);
-        throw new Error(
-          "There was an error updating your chapters. Please report this.",
-        );
+    } catch (error) {
+      let message =
+        "There was an error updating your chapters. Please report this.";
+
+      if (axios.isAxiosError(error)) {
+        console.error(error.response?.data);
+        message =
+          error.response?.data?.message ||
+          `HTTP ${error.response?.status}: ${error.message}`;
+      } else {
+        console.error(error);
+        message = (error as Error).message;
       }
-    } catch (error: unknown) {
-      const message = (error as Error).message;
+
       setAlertState({
         title: "Error",
         message,

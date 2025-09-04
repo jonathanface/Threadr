@@ -25,6 +25,7 @@
     "@mui/x-tree-view": "^7.24.1",
     "@stripe/react-stripe-js": "^3.1.1",
     "@stripe/stripe-js": "^5.5.0",
+    "axios": "^1.11.0",
     "lexical": "^0.23.1",
     "oidc-client-ts": "^3.1.0",
     "primereact": "^10.8.5",

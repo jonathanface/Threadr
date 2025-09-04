@@ -6,11 +6,15 @@ import { useLoader } from "../../hooks/useLoader";
 import { UserContext } from "../../contexts/user";
 import { useNavigate } from "react-router-dom";
 import { useFetchUserData } from "../../hooks/useFetchUserData";
+import { api } from "../../api";
+import axios from "axios";
+import { useSelections } from "../../hooks/useSelections";
 
 export const UserMenu = () => {
   const userData = useContext(UserContext);
   const { showLoader, hideLoader } = useLoader();
   const { setIsLoggedIn } = useFetchUserData();
+  const { setStory } = useSelections();
   const navigate = useNavigate();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -18,28 +22,31 @@ export const UserMenu = () => {
   const signout = async () => {
     showLoader();
     try {
-      const response = await fetch("/auth/logout", {
-        method: "DELETE",
-      });
-      if (!response.ok) {
-        throw new Error(`Unable to logout: ${response.status}`);
-      }
+      await api.delete("/auth/logout", { baseURL: "" });
+
       setIsLoggedIn(false);
-      navigate('/');
+      navigate("/");
     } catch (error) {
-      console.error(error);
+      if (axios.isAxiosError(error)) {
+        console.error(
+          `Unable to logout: ${error.response?.status} ${error.message}`,
+        );
+      } else {
+        console.error(error);
+      }
     } finally {
+      setStory(undefined);
       hideLoader();
     }
   };
 
   const showLoginPanel = () => {
-    navigate('/signin');
-  }
+    navigate("/signin");
+  };
 
   const showSettingsPanel = () => {
-    navigate('/settings');
-  }
+    navigate("/settings");
+  };
 
   const displayComponent = userData?.isLoggedIn ? (
     <span
