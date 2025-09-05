@@ -62,14 +62,13 @@ export const UserMenu = () => {
       </span>
       {isOpen && (
         <ul>
-          {/* {userData?.userDetails?.subscription_id === "" && (
-            <li onClick={subscribe}>Subscribe</li>
-          )}*/}
           <li onClick={showSettingsPanel}>Settings</li>
           <li onClick={signout}>Signout</li>
         </ul>
       )}
     </span>
+  ) : window.location.pathname === "/signin" ? (
+    ""
   ) : (
     <a onClick={showLoginPanel}>Register / SignIn</a>
   );

@@ -22,13 +22,16 @@ type OperationRecord = {
   time: number;
   storyID: string;
   chapterID: string;
-  tableStatus?: string;
+  tableBecameReady: boolean;
   epoch: number;
 };
 
 const OpQueueByKey: Map<string, OperationRecord> = new Map();
 
-type DBOperationWithMeta = DBOperation & { epoch?: number };
+type DBOperationWithMeta = DBOperation & {
+  epoch?: number;
+  tableBecameReady: boolean;
+};
 const SyncOps: Array<DBOperationWithMeta> = [];
 // helper to avoid collisions across chapters/epochs
 const qKey = (
@@ -43,7 +46,7 @@ export const QueueOp = (
   storyID: string,
   chapterID: string,
   block: DBOperationBlock,
-  tableStatus?: string,
+  tableBecameReady: boolean,
   meta?: { epoch?: number },
 ) => {
   const epoch = meta?.epoch ?? 0;
@@ -63,11 +66,11 @@ export const QueueOp = (
       opType === DBOperationType.delete
     ) {
       // Overwrite the save with a delete
-      OpQueueByKey.set(block.key_id, {
+      OpQueueByKey.set(key, {
         op: DBOperationType.delete,
         storyID,
         chapterID,
-        tableStatus,
+        tableBecameReady: false,
         block,
         time: Date.now(),
         epoch,
@@ -76,19 +79,19 @@ export const QueueOp = (
     }
   }
 
-  OpQueueByKey.set(block.key_id, {
+  OpQueueByKey.set(key, {
     op: opType,
     block,
     storyID,
     chapterID,
     time: Date.now(),
-    tableStatus,
+    tableBecameReady,
     epoch,
   });
 };
 
 export const QueueSyncOrder = (op: DBOperationWithMeta) => {
-  SyncOps.push(op); // op should include .epoch
+  SyncOps.push({ ...op, epoch: op.epoch ?? 0 });
 };
 
 export const ProcessDBQueue = async () => {
@@ -122,7 +125,7 @@ export const ProcessDBQueue = async () => {
     const deleteOps: DBOperationBlock[] = [];
 
     // all recs in group share these three fields
-    const { storyID, chapterID, tableStatus } = recs[0];
+    const { storyID, chapterID, tableBecameReady } = recs[0];
 
     for (const r of recs) {
       if (r.op === DBOperationType.save && !deleteKeys.has(r.block.key_id)) {
@@ -135,7 +138,7 @@ export const ProcessDBQueue = async () => {
     // SAVE
     if (saveOps.length) {
       try {
-        await saveBlocksToServer(saveOps, storyID, chapterID, tableStatus);
+        await saveBlocksToServer(saveOps, storyID, chapterID, tableBecameReady);
       } catch (err) {
         console.error("Failed to save", err);
         // requeue with same epoch & grouping key
@@ -146,7 +149,7 @@ export const ProcessDBQueue = async () => {
             storyID,
             chapterID,
             time: Date.now(),
-            tableStatus,
+            tableBecameReady,
             epoch: recs[0].epoch,
           };
           OpQueueByKey.set(qKey(rec.epoch, storyID, chapterID, b.key_id), rec);
@@ -161,7 +164,7 @@ export const ProcessDBQueue = async () => {
           deleteOps,
           storyID,
           chapterID,
-          tableStatus,
+          tableBecameReady,
         );
       } catch (err) {
         console.error("Failed to delete", err);
@@ -172,7 +175,7 @@ export const ProcessDBQueue = async () => {
             storyID,
             chapterID,
             time: Date.now(),
-            tableStatus,
+            tableBecameReady,
             epoch: recs[0].epoch,
           };
           OpQueueByKey.set(qKey(rec.epoch, storyID, chapterID, b.key_id), rec);
@@ -190,7 +193,7 @@ export const ProcessDBQueue = async () => {
         op.orderList!,
         op.storyID,
         op.chapterID,
-        op.tableStatus,
+        op.tableBecameReady,
       );
     } catch (err) {
       console.error("Failed to sync order", err);
@@ -203,7 +206,7 @@ const saveBlocksToServer = async (
   ops: DBOperationBlock[],
   storyID: string,
   chapterID: string,
-  tableStatus?: string,
+  tableBecameReady: boolean,
 ) => {
   const params: DocumentBlocksForServer = {
     story_id: storyID,
@@ -217,7 +220,7 @@ const saveBlocksToServer = async (
     },
   });
 
-  if (res.status !== 200 && res.status !== 201 && res.status !== 501) {
+  if (res.status !== 200 && res.status !== 201) {
     const error: APIError = {
       statusCode: res.status,
       statusText: res.statusText,
@@ -225,7 +228,7 @@ const saveBlocksToServer = async (
     };
     throw error;
   }
-  if (tableStatus && tableStatus === "501") {
+  if (tableBecameReady) {
     const payload: SaveSuccessPayload = { storyID, chapterID };
     emitSaveSuccess(payload);
   }
@@ -235,7 +238,7 @@ const deleteBlocksFromServer = async (
   ops: DBOperationBlock[],
   storyID: string,
   chapterID: string,
-  tableStatus?: string,
+  tableBecameReady: boolean,
 ) => {
   try {
     const params: DocumentBlocksForServer = {
@@ -252,7 +255,7 @@ const deleteBlocksFromServer = async (
       },
     });
 
-    if (res.status !== 200 && res.status !== 204 && res.status !== 501) {
+    if (res.status !== 200 && res.status !== 204) {
       const error: APIError = {
         statusCode: res.status,
         statusText: res.statusText,
@@ -261,7 +264,7 @@ const deleteBlocksFromServer = async (
       throw error;
     }
 
-    if (tableStatus && tableStatus === "501") {
+    if (tableBecameReady) {
       const payload: DeleteSuccessPayload = { storyID, chapterID };
       emitDeleteSuccess(payload);
     }
@@ -274,7 +277,7 @@ const syncBlockOrderMap = async (
   blockList: BlockOrderMap,
   storyID: string,
   chapterID: string,
-  tableStatus?: string,
+  tableBecameReady: boolean,
 ) => {
   try {
     const params: BlockOrderMap = {
@@ -289,7 +292,7 @@ const syncBlockOrderMap = async (
       },
     });
 
-    if (res.status !== 200 && res.status !== 201 && res.status !== 501) {
+    if (res.status !== 200 && res.status !== 201) {
       const error: APIError = {
         statusCode: res.status,
         statusText: res.statusText,
@@ -298,8 +301,7 @@ const syncBlockOrderMap = async (
       throw error;
     }
 
-    if (tableStatus && tableStatus === "501") {
-      console.log("signal success");
+    if (tableBecameReady) {
       const payload: SyncOrderSuccessPayload = { storyID, chapterID };
       emitSyncOrderSuccess(payload);
     }

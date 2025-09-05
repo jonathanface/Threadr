@@ -3,5 +3,6 @@ export interface Chapter {
   story_id: string;
   place: number;
   title: string;
+  tableNotReady: boolean;
   bup_arm?: string;
 }

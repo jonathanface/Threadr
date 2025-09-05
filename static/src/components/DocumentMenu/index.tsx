@@ -19,13 +19,11 @@ interface DocumentMenuProps {
 
 export const DocumentMenu = (props: DocumentMenuProps) => {
   const navigate = useNavigate();
-  const { story, deselectAll } = useSelections();
+  const { deselectAll } = useSelections();
   const [isEditorChapterMenuOpen, setIsEditorChapterMenuOpen] = useState(false);
   const [isEditorOutlineMenuOpen, setIsEditorOutlineMenuOpen] = useState(false);
   const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
   const userSettings = useFetchUserData();
-
-  if (!story) return;
 
   const closeSideMenus = () => {
     setIsEditorChapterMenuOpen(false);
@@ -86,22 +84,34 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
         setOpen={setIsSettingsMenuOpen}
       />
       <Drawer
+        variant="temporary"
         anchor={"right"}
         open={isEditorChapterMenuOpen}
-        onClose={closeSideMenus}
+        onClose={(_, reason) => {
+          if (reason === "backdropClick" || reason === "escapeKeyDown") {
+            closeSideMenus();
+          }
+        }}
+        ModalProps={{ keepMounted: true }}
       >
         <Box
           className={styles.flyoutMenu}
           role="presentation"
           component="section"
         >
-          <ChapterMenu chapters={story.chapters} />
+          <ChapterMenu />
         </Box>
       </Drawer>
       <Drawer
+        variant="temporary"
         anchor={"right"}
         open={isEditorOutlineMenuOpen}
-        onClose={closeSideMenus}
+        onClose={(_, reason) => {
+          if (reason === "backdropClick" || reason === "escapeKeyDown") {
+            closeSideMenus();
+          }
+        }}
+        ModalProps={{ keepMounted: true }}
       >
         <Box
           className={styles.flyoutMenu}
