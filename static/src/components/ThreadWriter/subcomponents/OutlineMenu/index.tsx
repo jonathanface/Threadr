@@ -23,9 +23,10 @@ import { AlertToastType } from "../../../../types/AlertToasts";
 import axios from "axios";
 import { api } from "../../../../api";
 import AddIcon from "@mui/icons-material/Add";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { ExpandMoreToggle } from "../../../ExpandMoreToggle";
+import { BackstoryCard } from "./BackstoryCard";
 
 interface OutlineMenuProps {
   onAssociationClick: (data: ClickData) => void;
@@ -36,26 +37,7 @@ export const OutlineMenu = ({ onAssociationClick }: OutlineMenuProps) => {
   const { showLoader, hideLoader } = useLoader();
   const { setAlertState } = useToaster();
   const [openMap, setOpenMap] = useState<Record<number, boolean>>({});
-  const initializedRef = useRef(false);
-
-  useEffect(() => {
-    if (initializedRef.current) return;
-
-    const sections = story?.outline?.sections ?? [];
-    // find first section with chapters assigned
-    const firstPlaceWithChapters =
-      sections.find((s) => (s.chapters?.length ?? 0) > 0)?.place ??
-      sections[0]?.place; // fallback to first section
-
-    const next: Record<number, boolean> = {};
-    for (const s of sections) {
-      const place = s.place ?? 0;
-      next[place] = place === firstPlaceWithChapters; // only this one open
-    }
-
-    setOpenMap(next);
-    initializedRef.current = true;
-  }, [story?.outline?.sections]);
+  const [isBackstoryOpen, setIsBackstoryOpen] = useState(false);
 
   if (!story) {
     return null;
@@ -64,6 +46,52 @@ export const OutlineMenu = ({ onAssociationClick }: OutlineMenuProps) => {
     storyID: story.story_id,
     sections: [],
     unassigned: story.chapters.map((chap) => chap.id),
+    backstory: "",
+  };
+
+  const pushOutline = async (updatedStory: Story) => {
+    try {
+      showLoader();
+      const { data: json } = await api.put<Outline>(
+        `/stories/${updatedStory.story_id}/outline`,
+        updatedStory.outline,
+        {
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+
+      updatedStory.outline = json;
+      setStory(updatedStory);
+      propagateStoryUpdates(updatedStory);
+    } catch (err) {
+      const message =
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (axios.isAxiosError(err) && (err.response?.data as any)?.message) ||
+        (err as Error).message ||
+        "Failed to update outline.";
+
+      setAlertState({
+        title: "Error",
+        message,
+        severity: AlertToastType.error,
+        open: true,
+      });
+    } finally {
+      hideLoader();
+    }
+  };
+
+  const setBackstoryText = (text: string) => {
+    const prevOutline = story.outline ?? { ...defaultOutline, sections: [] };
+    const updatedStory: Story = {
+      ...story,
+      outline: {
+        ...prevOutline,
+        template: OutlineTemplate.custom,
+        backstory: text,
+      },
+    };
+    pushOutline(updatedStory);
   };
 
   const toggleOpen = (place: number) =>
@@ -95,36 +123,7 @@ export const OutlineMenu = ({ onAssociationClick }: OutlineMenuProps) => {
       },
     };
 
-    try {
-      showLoader();
-
-      const { data: json } = await api.put<Outline>(
-        `/stories/${updatedStory.story_id}/outline`,
-        updatedStory.outline,
-        {
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-
-      updatedStory.outline = json;
-      setStory(updatedStory);
-      propagateStoryUpdates(updatedStory);
-    } catch (err) {
-      const message =
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (axios.isAxiosError(err) && (err.response?.data as any)?.message) ||
-        (err as Error).message ||
-        "Failed to update outline.";
-
-      setAlertState({
-        title: "Error",
-        message,
-        severity: AlertToastType.error,
-        open: true,
-      });
-    } finally {
-      hideLoader();
-    }
+    pushOutline(updatedStory);
   };
 
   const handleAddSection = () => {
@@ -169,7 +168,7 @@ export const OutlineMenu = ({ onAssociationClick }: OutlineMenuProps) => {
       {story?.outline ? (
         story.outline.sections?.map((section, idx) => {
           const place = section.place ?? idx + 1;
-          const isOpen = openMap[place] ?? true;
+          const isOpen = openMap[place] ?? false;
 
           return (
             <Box key={`outline-wrap-${place}`} sx={{ px: 2, pb: 1 }}>
@@ -191,7 +190,7 @@ export const OutlineMenu = ({ onAssociationClick }: OutlineMenuProps) => {
                   expand={isOpen}
                   size="small"
                   aria-label={`toggle section ${place}`}
-                  onClick={(e: MouseEvent) => {
+                  onClick={(e) => {
                     e.stopPropagation();
                     toggleOpen(place);
                   }}
@@ -248,6 +247,46 @@ export const OutlineMenu = ({ onAssociationClick }: OutlineMenuProps) => {
           />
         </Box>
       )}
+      <Box key={`outline-wrap-backstory`} sx={{ px: 2, pb: 1 }}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1}
+          sx={{
+            py: 1,
+            px: 1,
+            borderRadius: 1,
+            "&:hover": { backgroundColor: "action.hover" },
+            cursor: "pointer",
+          }}
+          onClick={() => setIsBackstoryOpen(!isBackstoryOpen)}
+        >
+          <ExpandMoreToggle
+            expand={isBackstoryOpen}
+            size="small"
+            aria-label={`toggle backstory`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsBackstoryOpen(!isBackstoryOpen);
+            }}
+          >
+            <ExpandMoreIcon fontSize="small" />
+          </ExpandMoreToggle>
+
+          <Typography variant="subtitle1" sx={{ flex: 1 }}>
+            Backstory
+          </Typography>
+        </Stack>
+        <Collapse in={isBackstoryOpen} timeout="auto" unmountOnExit>
+          <Box sx={{ pt: 1 }}>
+            <BackstoryCard
+              text={story.outline?.backstory || ""}
+              onAssociationClick={onAssociationClick}
+              onBackstoryEdit={setBackstoryText}
+            />
+          </Box>
+        </Collapse>
+      </Box>
     </SimpleTreeView>
   );
 };

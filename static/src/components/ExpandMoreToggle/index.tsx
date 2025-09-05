@@ -1,19 +1,45 @@
-import { IconButton, styled, Tooltip } from "@mui/material";
+import { IconButton, IconButtonProps, Tooltip } from "@mui/material";
+import { styled } from "@mui/material/styles";
+import { forwardRef } from "react";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const ExpandMoreToggle = styled((props: any) => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { _expand, ...other } = props;
-  return (
-    <Tooltip title={!other.expand ? "open" : "close"}>
-      <IconButton size="small" {...other} />
-    </Tooltip>
-  );
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-})(({ theme, expand }: { theme?: any; expand: boolean }) => ({
-  transform: !expand ? "rotate(-90deg)" : "rotate(0deg)",
+type ExpandMoreToggleProps = IconButtonProps & {
+  expand: boolean;
+  tooltipOpenText?: string;
+  tooltipCloseText?: string;
+  children?: React.ReactNode;
+};
+
+const ExpandMoreIconButton = styled(IconButton, {
+  shouldForwardProp: (prop) => prop !== "expand",
+})<{ expand: boolean }>(({ theme, expand }) => ({
+  transform: expand ? "rotate(0deg)" : "rotate(-90deg)",
   transition: theme.transitions.create("transform", {
     duration: theme.transitions.duration.shortest,
   }),
   marginLeft: 4,
 }));
+
+export const ExpandMoreToggle = forwardRef<
+  HTMLButtonElement,
+  ExpandMoreToggleProps
+>(function ExpandMoreToggle(
+  {
+    expand,
+    tooltipOpenText = "open",
+    tooltipCloseText = "close",
+    children,
+    ...iconButtonProps
+  },
+  ref,
+) {
+  return (
+    <Tooltip title={expand ? tooltipCloseText : tooltipOpenText}>
+      {/* span wrapper keeps tooltip working when button is disabled */}
+      <span>
+        <ExpandMoreIconButton {...iconButtonProps} ref={ref} expand={expand}>
+          {children}
+        </ExpandMoreIconButton>
+      </span>
+    </Tooltip>
+  );
+});

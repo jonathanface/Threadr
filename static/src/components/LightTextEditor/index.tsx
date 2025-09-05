@@ -18,7 +18,7 @@ type LightTextEditorProps = {
 export function LightTextEditor({
   text = "",
   onChange,
-  placeholder = "Write beats, goals, themes for this stage…",
+  placeholder = "Write beats, goals, themes for this stage...",
 }: LightTextEditorProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [showingPlaceholder, setShowingPlaceholder] = useState(false);

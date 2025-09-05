@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
@@ -42,6 +43,13 @@ func (d *DAO) GetOutlineByStoryID(storyID string, chapters []models.Chapter) (*m
 	out.StoryID = storyID
 
 	for _, item := range result.Items {
+		if v, ok := item["backstory"]; ok {
+			var bs string
+			if err := attributevalue.Unmarshal(v, &bs); err != nil {
+				return nil, fmt.Errorf("unmarshal backstory: %w", err)
+			}
+			out.Backstory = bs
+		}
 		var s models.OutlineSection
 
 		if v, ok := item["place"].(*types.AttributeValueMemberN); ok {
@@ -85,6 +93,7 @@ func (d *DAO) GetOutlineByStoryID(storyID string, chapters []models.Chapter) (*m
 			out.Unassigned = append(out.Unassigned, ch.ID) // or append(ch) if your API expects full objects
 		}
 	}
+
 	return &out, nil
 }
 
@@ -143,22 +152,20 @@ func (d *DAO) UpdateOutline(outline models.OutlineRequest) (*models.OutlineRespo
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 
 	for _, section := range outline.Sections {
-		// ✅ Define base ExpressionAttributeValues
 		expressionValues := map[string]types.AttributeValue{
 			":header":     &types.AttributeValueMemberS{Value: section.Header},
 			":status":     &types.AttributeValueMemberS{Value: string(section.Status)},
 			":text":       &types.AttributeValueMemberS{Value: section.Text},
 			":updated_at": &types.AttributeValueMemberN{Value: now},
+			":backstory":  &types.AttributeValueMemberS{Value: outline.Backstory},
 		}
 
-		// ✅ UpdateExpression for normal updates
-		updateExpression := "SET #text = :text, updated_at = :updated_at, header=:header, #status=:status"
+		updateExpression := "SET #text = :text, updated_at = :updated_at, header=:header, #status=:status, backstory=:backstory"
 		expressionAttributeNames := map[string]string{
 			"#text":   "text",
 			"#status": "status",
 		}
 
-		// ✅ Handle chapters: Update if non-empty, remove if empty
 		if len(section.Chapters) > 0 {
 			expressionValues[":chapters"] = &types.AttributeValueMemberSS{Value: section.Chapters}
 			updateExpression += ", #chapters = :chapters"
@@ -220,6 +227,7 @@ func (d *DAO) CreateOutline(outline models.OutlineRequest) (*models.OutlineReque
 			"header":      &types.AttributeValueMemberS{Value: section.Header},
 			"description": &types.AttributeValueMemberS{Value: section.Description},
 			"created_at":  &types.AttributeValueMemberN{Value: now},
+			"backstory":   &types.AttributeValueMemberS{Value: outline.Backstory},
 		}
 		twi := types.TransactWriteItem{
 			Put: &types.Put{

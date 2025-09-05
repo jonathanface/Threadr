@@ -203,44 +203,43 @@ export const OutlineStageCard = ({
         {/* Notes */}
         {editing ? (
           <LightTextEditor text={notes} onChange={(value) => setNotes(value)} />
-        ) : (
+        ) : !outlineSection.text ? (
           <Typography
-            sx={{ whiteSpace: "pre-wrap", fontSize: "0.8em", margin: "0.5em" }}
+            component="div" // render as <div>, not <p>
+            sx={{ fontSize: "0.8em", m: "0.5em", color: "text.secondary" }}
           >
-            {!outlineSection.text ? (
-              <Typography sx={{ fontSize: "0.8em", m: "0.5em" }}>
-                — No notes yet —
-              </Typography>
-            ) : (
-              <Box
-                sx={{
-                  m: "0.5em",
-                  whiteSpace: "normal", // allow wrapping for HTML content
-                  "& ul, & ol": { pl: 3, my: 0.5 },
-                  "& p": { m: 0, mb: 0.5 }, // tame default margins from pasted content
-                }}
-                dangerouslySetInnerHTML={{
-                  __html: DOMPurify.sanitize(notes, {
-                    ALLOWED_TAGS: [
-                      "b",
-                      "strong",
-                      "i",
-                      "em",
-                      "u",
-                      "ul",
-                      "ol",
-                      "li",
-                      "br",
-                      "p",
-                      "div",
-                      "span",
-                    ],
-                    ALLOWED_ATTR: [],
-                  }),
-                }}
-              />
-            )}
+            — No notes yet —
           </Typography>
+        ) : (
+          <Box
+            component="div" // explicit <div> wrapper
+            sx={{
+              m: "0.5em",
+              fontSize: "0.8em",
+              whiteSpace: "normal",
+              "& ul, & ol": { pl: 3, my: 0.5 },
+              "& p": { m: 0, mb: 0.5 },
+            }}
+            dangerouslySetInnerHTML={{
+              __html: DOMPurify.sanitize(outlineSection.text, {
+                ALLOWED_TAGS: [
+                  "b",
+                  "strong",
+                  "i",
+                  "em",
+                  "u",
+                  "ul",
+                  "ol",
+                  "li",
+                  "br",
+                  "p",
+                  "div",
+                  "span",
+                ],
+                ALLOWED_ATTR: [],
+              }),
+            }}
+          />
         )}
 
         <Divider sx={{ my: 1.5 }} />

@@ -84,6 +84,7 @@ type Story struct {
 }
 type StorySettings struct {
 	Spellcheck bool `json:"spellcheck" dynamodbav:"spellcheck"`
+	Autotab    bool `json:"autotab" dynamodbav:"autotab"`
 }
 
 type BlocksData struct {
@@ -164,9 +165,10 @@ type OutlineSection struct {
 }
 
 type OutlineRequest struct {
-	StoryID  string           `json:"storyID"`
-	Template OutlineTemplate  `json:"outlineTemplate"`
-	Sections []OutlineSection `json:"sections"`
+	StoryID   string           `json:"storyID"`
+	Template  OutlineTemplate  `json:"outlineTemplate"`
+	Sections  []OutlineSection `json:"sections"`
+	Backstory string           `json:"backstory"`
 }
 
 type OutlineResponse struct {
@@ -174,4 +176,5 @@ type OutlineResponse struct {
 	Template   OutlineTemplate  `json:"outlineTemplate"`
 	Sections   []OutlineSection `json:"sections"`
 	Unassigned []string         `json:"unassigned"`
+	Backstory  string           `json:"backstory"`
 }
