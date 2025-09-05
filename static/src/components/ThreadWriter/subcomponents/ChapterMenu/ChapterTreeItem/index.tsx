@@ -176,7 +176,7 @@ export const ChapterTreeItem = ({
               <Box className={styles.chapterMenuItem}>
                 {/* Left side: Chapter Title + Chip */}
                 <Box className={styles.leftItems}>
-                  <Typography variant="body1">{itemChapter.title}</Typography>
+                  <Typography variant="body2">{itemChapter.title}</Typography>
                   {assignedSection && (
                     <Chip
                       label={assignedSection.header}

@@ -23,6 +23,8 @@ import { OutlineSection, StageStatus } from "../../../../../types/Outline";
 import { ClickData } from "../../../plugins/DocumentClickPlugin";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { ExpandMoreToggle } from "../../../../ExpandMoreToggle";
+import { LightTextEditor } from "../../../../LightTextEditor";
+import DOMPurify from "dompurify";
 
 export type StageCardProps = {
   outlineSection: OutlineSection;
@@ -38,7 +40,7 @@ export const OutlineStageCard = ({
 }: StageCardProps) => {
   //const wordTotal = chapters.reduce((sum, c) => sum + (c.wordCount ?? 0), 0);
   const [notes, setNotes] = useState(outlineSection.text || "");
-  const [editing, setEditing] = useState(!outlineSection.text);
+  const [editing, setEditing] = useState(false);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [stageStatus, setStageStatus] = useState(outlineSection.status);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -173,7 +175,7 @@ export const OutlineStageCard = ({
         }
         subheader={
           <Typography variant="body2" color="text.secondary">
-            {outlineSection.chapters?.length} chapter
+            {outlineSection.chapters?.length || "No"} chapter
             {outlineSection.chapters?.length !== 1 ? "s" : ""}
             {/* •{" "} */}
             {/* {wordTotal.toLocaleString()} words */}
@@ -200,24 +202,44 @@ export const OutlineStageCard = ({
       <CardContent sx={{ pt: 1.5, ml: "8px" }}>
         {/* Notes */}
         {editing ? (
-          <TextField
-            slotProps={{
-              htmlInput: {
-                style: { fontSize: "0.8em" },
-              },
-            }}
-            onChange={(e) => setNotes(e.target.value)}
-            value={notes}
-            placeholder="Write beats, goals, themes for this stage…"
-            multiline
-            minRows={3}
-            fullWidth
-          />
+          <LightTextEditor text={notes} onChange={(value) => setNotes(value)} />
         ) : (
           <Typography
             sx={{ whiteSpace: "pre-wrap", fontSize: "0.8em", margin: "0.5em" }}
           >
-            {outlineSection.text || "— No notes yet —"}
+            {!outlineSection.text ? (
+              <Typography sx={{ fontSize: "0.8em", m: "0.5em" }}>
+                — No notes yet —
+              </Typography>
+            ) : (
+              <Box
+                sx={{
+                  m: "0.5em",
+                  whiteSpace: "normal", // allow wrapping for HTML content
+                  "& ul, & ol": { pl: 3, my: 0.5 },
+                  "& p": { m: 0, mb: 0.5 }, // tame default margins from pasted content
+                }}
+                dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(notes, {
+                    ALLOWED_TAGS: [
+                      "b",
+                      "strong",
+                      "i",
+                      "em",
+                      "u",
+                      "ul",
+                      "ol",
+                      "li",
+                      "br",
+                      "p",
+                      "div",
+                      "span",
+                    ],
+                    ALLOWED_ATTR: [],
+                  }),
+                }}
+              />
+            )}
           </Typography>
         )}
 
