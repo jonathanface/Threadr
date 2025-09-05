@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import styles from "./documentsettings.module.css";
 import { ChangeEvent } from "react";
-import { useDocumentSettings } from "../../hooks/useDocumentSettings";
+import { useDocumentSettings } from "../../../../../hooks/useDocumentSettings";
 
 interface DocumentSettingsProps {
   open: boolean;

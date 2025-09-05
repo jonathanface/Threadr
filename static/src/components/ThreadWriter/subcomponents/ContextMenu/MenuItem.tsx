@@ -1,7 +1,7 @@
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import React from "react";
 import styles from "./custom-context.module.css";
-import { MenuItemEntry } from "../../types/MenuItemEntry";
+import { MenuItemEntry } from "../../../../types/MenuItemEntry";
 
 interface MenuItemProps {
   item: MenuItemEntry;
@@ -10,7 +10,7 @@ interface MenuItemProps {
 export const MenuItem = (props: MenuItemProps) => {
   const handleClickAction = (
     item: MenuItemEntry,
-    event: React.MouseEvent<HTMLAnchorElement, MouseEvent>
+    event: React.MouseEvent<HTMLAnchorElement, MouseEvent>,
   ) => {
     event.stopPropagation();
     event.preventDefault();

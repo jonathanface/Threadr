@@ -11,14 +11,18 @@ import {
   Divider,
   Menu,
   MenuItem,
+  Box,
+  Collapse,
 } from "@mui/material";
 import EditNoteIcon from "@mui/icons-material/EditNote";
 import AddIcon from "@mui/icons-material/Add";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import RemoveOutlineIcon from "@mui/icons-material/Remove";
 import { useEffect, useState } from "react";
-import { useSelections } from "../../../hooks/useSelections";
-import { OutlineSection, StageStatus } from "../../../types/Outline";
-import { ClickData } from "../../ThreadWriter/plugins/DocumentClickPlugin";
+import { useSelections } from "../../../../../hooks/useSelections";
+import { OutlineSection, StageStatus } from "../../../../../types/Outline";
+import { ClickData } from "../../../plugins/DocumentClickPlugin";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { ExpandMoreToggle } from "../../../../ExpandMoreToggle";
 
 export type StageCardProps = {
   outlineSection: OutlineSection;
@@ -44,7 +48,6 @@ export const OutlineStageCard = ({
   useEffect(() => {
     setTitleDraft(outlineSection.header ?? "");
   }, [outlineSection.header]);
-  if (!story) return null;
 
   const commitTitle = () => {
     const next = (titleDraft ?? "").trim() || "Untitled stage";
@@ -59,9 +62,18 @@ export const OutlineStageCard = ({
     setEditingTitle(false);
   };
 
-  const sectionChapters = story.chapters.filter((chap) =>
-    outlineSection.chapters?.includes(chap.id),
+  const sectionChapters =
+    story?.chapters.filter((chap) =>
+      outlineSection.chapters?.includes(chap.id),
+    ) ?? [];
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const [openAssigned, setOpenAssigned] = useState(
+    sectionChapters.length > 0 || false,
   );
+  const [openUnassigned, setOpenUnassigned] = useState(false);
+
+  if (!story) return null;
 
   const onNotesChange = (notes: string) => {
     const newOutlineSection: OutlineSection = {
@@ -212,48 +224,110 @@ export const OutlineStageCard = ({
         <Divider sx={{ my: 1.5 }} />
 
         {/* Assigned chapters as chips (ready for DnD later) */}
-        <Typography variant="overline" color="text.secondary">
-          Chapters
-        </Typography>
-        <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 0.5 }}>
-          {sectionChapters.map((ch) => (
-            <Chip
-              key={ch.id}
-              label={ch.title || "Untitled"}
-              onDelete={() => onRemoveChapter(ch.id)}
-              deleteIcon={<DeleteOutlineIcon />}
-              sx={{
-                mb: 1,
-              }}
-            />
-          ))}
-          {sectionChapters.length === 0 && (
-            <Typography variant="body2" color="text.secondary">
-              No chapters assigned.
-            </Typography>
-          )}
-        </Stack>
-
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            mb: 0.5,
+            userSelect: "none",
+          }}
+        >
+          <Typography variant="overline" color="text.secondary">
+            Chapters ({sectionChapters.length})
+          </Typography>
+          <ExpandMoreToggle
+            aria-label="toggle assigned chapters"
+            expand={openAssigned}
+            onClick={() => setOpenAssigned((v) => !v)}
+          >
+            <ExpandMoreIcon fontSize="small" />
+          </ExpandMoreToggle>
+        </Box>
+        <Collapse in={openAssigned} timeout="auto" unmountOnExit>
+          <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 0.5 }}>
+            {sectionChapters.length > 0 ? (
+              sectionChapters.map((ch) => (
+                <Chip
+                  key={ch.id}
+                  label={ch.title || "Untitled"}
+                  onDelete={() => onRemoveChapter(ch.id)}
+                  deleteIcon={
+                    <Tooltip title="Click to remove">
+                      <RemoveOutlineIcon />
+                    </Tooltip>
+                  }
+                  sx={{ margin: "4px !important" }}
+                />
+              ))
+            ) : (
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ ml: 0.5 }}
+              >
+                No chapters assigned.
+              </Typography>
+            )}
+          </Stack>
+        </Collapse>
         {/* Quick add from unassigned list (optional) */}
         {unassigned?.length ? (
-          <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 1 }}>
-            {unassigned.map((chapterID: string) => {
-              const chapter = story.chapters.find(
-                (chap) => chap.id === chapterID,
-              );
-              if (!chapter) return null;
-              return (
-                <Chip
-                  key={chapterID}
-                  variant="outlined"
-                  label={chapter.title || "Untitled"}
-                  onClick={() => onAddChapter?.(chapterID)}
-                  icon={<AddIcon fontSize="small" />}
-                  sx={{ mb: 1 }}
-                />
-              );
-            })}
-          </Stack>
+          <>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                mt: 1.5,
+                mb: 0.5,
+                userSelect: "none",
+              }}
+            >
+              <Typography
+                variant="overline"
+                color="text.secondary"
+                sx={{ letterSpacing: 0.6 }}
+              >
+                Unassigned ({unassigned.length})
+              </Typography>
+              <ExpandMoreToggle
+                aria-label="toggle unassigned chapters"
+                expand={openUnassigned}
+                onClick={() => setOpenUnassigned((v) => !v)}
+              >
+                <ExpandMoreIcon fontSize="small" />
+              </ExpandMoreToggle>
+            </Box>
+
+            <Collapse in={openUnassigned} timeout="auto" unmountOnExit>
+              <Stack
+                direction="row"
+                spacing={1}
+                flexWrap="wrap"
+                sx={{ mt: 0.5 }}
+              >
+                {unassigned.map((chapterID: string) => {
+                  const chapter = story.chapters.find(
+                    (chap) => chap.id === chapterID,
+                  );
+                  if (!chapter) return null;
+                  return (
+                    <Chip
+                      key={chapterID}
+                      variant="outlined"
+                      label={chapter.title || "Untitled"}
+                      onClick={() => onAddChapter?.(chapterID)}
+                      icon={
+                        <Tooltip title="Click to add">
+                          <AddIcon fontSize="small" />
+                        </Tooltip>
+                      }
+                      sx={{ margin: "4px !important" }}
+                    />
+                  );
+                })}
+              </Stack>
+            </Collapse>
+          </>
         ) : null}
       </CardContent>
     </Card>

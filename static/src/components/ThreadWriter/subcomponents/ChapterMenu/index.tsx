@@ -1,18 +1,18 @@
 import { SimpleTreeView, TreeItem } from "@mui/x-tree-view";
-import { Chapter } from "../../types/Chapter";
+import { Chapter } from "../../../../types/Chapter";
 import styles from "./flyoutmenuitems.module.css";
-import { useSelections } from "../../hooks/useSelections";
+import { useSelections } from "../../../../hooks/useSelections";
 import PostAddIcon from "@mui/icons-material/PostAdd";
 import { Button, Typography } from "@mui/material";
-import { useLoader } from "../../hooks/useLoader";
-import { AlertToastType } from "../../types/AlertToasts";
-import { useToaster } from "../../hooks/useToaster";
+import { useLoader } from "../../../../hooks/useLoader";
+import { AlertToastType } from "../../../../types/AlertToasts";
+import { useToaster } from "../../../../hooks/useToaster";
 import { DragDropContext, Droppable, DropResult } from "@hello-pangea/dnd";
 import { ChapterTreeItem } from "./ChapterTreeItem";
-import { UpdateChapterQueryStringParameter } from "../ThreadWriter/utilities";
+import { UpdateChapterQueryStringParameter } from "../../utilities";
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
-import { api } from "../../api";
+import { api } from "../../../../api";
 
 export const ChapterMenu = () => {
   const { story, chapter, setChapter, setStory, series, setSeries } =

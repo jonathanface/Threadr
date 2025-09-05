@@ -8,16 +8,16 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { Association } from "../../types/Associations";
+import { Association } from "../../../../types/Associations";
 import styles from "./association-ui.module.css";
-import { PortraitDropper } from "../PortraitDropper";
+import { PortraitDropper } from "../../../PortraitDropper";
 import { FC, useEffect, useRef, useState } from "react";
-import { useSelections } from "../../hooks/useSelections";
+import { useSelections } from "../../../../hooks/useSelections";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
-import { AssociationDecoratorPlugin } from "../ThreadWriter/plugins/AssociationDecoratorPlugin";
+import { AssociationDecoratorPlugin } from "../../plugins/AssociationDecoratorPlugin";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
 import {
   $createParagraphNode,
@@ -26,14 +26,14 @@ import {
   EditorState,
   LexicalEditor,
 } from "lexical";
-import { ClickData } from "../ThreadWriter/plugins/DocumentClickPlugin";
+import { ClickData } from "../../plugins/DocumentClickPlugin";
 import { CharacterLimitPlugin } from "@lexical/react/LexicalCharacterLimitPlugin";
 import { OverflowNode } from "@lexical/overflow";
 import CloseIcon from "@mui/icons-material/Close";
-import { TextTransformPlugin } from "../ThreadWriter/plugins/TextTransformPlugin";
-import { AssociationInlineNode } from "../ThreadWriter/customNodes/AssociationInlineNode";
-import { InfoHover } from "../InfoHover";
-import { api } from "../../api";
+import { TextTransformPlugin } from "../../plugins/TextTransformPlugin";
+import { AssociationInlineNode } from "../../customNodes/AssociationInlineNode";
+import { InfoHover } from "../../../InfoHover";
+import { api } from "../../../../api";
 import axios from "axios";
 
 interface AssociationProps {

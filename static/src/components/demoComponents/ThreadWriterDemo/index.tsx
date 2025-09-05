@@ -30,7 +30,7 @@ import {
 } from "../../../types/Associations";
 import { AssociationPanelDemo } from "../AssociationPanelDemo";
 import { useEditorStateUpdater } from "../../../hooks/useEditorStateUpdater";
-import { ContextMenu, ContextMenuProps } from "../../ContextMenu";
+
 import DocumentClickPluginDemo, {
   ClickData,
 } from "./plugins/DocumentClickPluginDemo";
@@ -41,6 +41,10 @@ import {
   AssociationInlineNodeDemo,
 } from "./customNodes/AssociationInlineNodeDemo";
 import { api } from "../../../api";
+import {
+  ContextMenu,
+  ContextMenuProps,
+} from "../../ThreadWriter/subcomponents/ContextMenu";
 
 const theme = {
   "custom-paragraph": styles.customParagraph,

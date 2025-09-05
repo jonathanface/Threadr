@@ -27,7 +27,6 @@ import {
 } from "lexical";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
 import styles from "./threadwriter.module.css";
-import { Toolbar } from "./ThreadWriterToolbar";
 import { useLoader } from "../../hooks/useLoader";
 import { ProcessDBQueue, QueueOp, QueueSyncOrder } from "./queue";
 import { DBOperationBlock, DBOperationType } from "../../types/DBOperations";
@@ -46,8 +45,7 @@ import {
   AssociationType,
   SimplifiedAssociation,
 } from "../../types/Associations";
-import { AssociationPanel } from "../AssociationPanel";
-import { DocumentMenu } from "../DocumentMenu";
+import { DocumentMenu } from "./subcomponents/DocumentMenu";
 import { useSelections } from "../../hooks/useSelections";
 import { useFetchStoryBlocks } from "../../hooks/useFetchStoryBlocks";
 import { useAssociations } from "../../hooks/useAssociations";
@@ -58,7 +56,6 @@ import {
   getParagraphIndexByKey,
   serializeWithChildren,
 } from "../../utils/helpers";
-import { ContextMenu, ContextMenuProps } from "../ContextMenu";
 import DocumentClickPlugin, { ClickData } from "./plugins/DocumentClickPlugin";
 import { useDocumentSettings } from "../../hooks/useDocumentSettings";
 import { TextTransformPlugin } from "./plugins/TextTransformPlugin";
@@ -69,6 +66,9 @@ import {
 } from "./customNodes/AssociationInlineNode";
 import axios from "axios";
 import { api } from "../../api";
+import { ContextMenu, ContextMenuProps } from "./subcomponents/ContextMenu";
+import { AssociationPanel } from "./subcomponents/AssociationPanel";
+import { Toolbar } from "./subcomponents/ThreadWriterToolbar";
 
 const theme = {
   "custom-paragraph": styles.customParagraph,

@@ -1,16 +1,16 @@
 import { TreeItem } from "@mui/x-tree-view";
 import { Tooltip, Chip, Typography, IconButton, Box } from "@mui/material";
-import { Chapter } from "../../../types/Chapter";
-import { OutlineSection } from "../../../types/Outline";
+import { Chapter } from "../../../../../types/Chapter";
+import { OutlineSection } from "../../../../../types/Outline";
 import { Draggable, DraggableProvided } from "@hello-pangea/dnd";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import { UpdateChapterQueryStringParameter } from "../../ThreadWriter/utilities";
-import { AlertToastType } from "../../../types/AlertToasts";
-import { useSelections } from "../../../hooks/useSelections";
-import { useToaster } from "../../../hooks/useToaster";
-import { useLoader } from "../../../hooks/useLoader";
+import { UpdateChapterQueryStringParameter } from "../../../utilities";
+import { AlertToastType } from "../../../../../types/AlertToasts";
+import { useSelections } from "../../../../../hooks/useSelections";
+import { useToaster } from "../../../../../hooks/useToaster";
+import { useLoader } from "../../../../../hooks/useLoader";
 import styles from "./chaptertreeitem.module.css";
-import { api } from "../../../api";
+import { api } from "../../../../../api";
 
 interface ChapterTreeItemProps {
   itemChapter: Chapter;
