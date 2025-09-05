@@ -398,11 +398,12 @@ func (d *DAO) UpdateStorySettings(email, storyID string, settings models.StorySe
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 
 	expressionValues := map[string]types.AttributeValue{
+		":autotab":    &types.AttributeValueMemberBOOL{Value: settings.Autotab},
 		":spellcheck": &types.AttributeValueMemberBOOL{Value: settings.Spellcheck},
 		":updated_at": &types.AttributeValueMemberN{Value: now},
 	}
 
-	updateExpression := "SET #spellcheck = :spellcheck, #updated_at = :updated_at"
+	updateExpression := "SET #spellcheck = :spellcheck, autotab=:autotab, #updated_at = :updated_at"
 	expressionAttributeNames := map[string]string{
 		"#spellcheck": "spellcheck",
 		"#updated_at": "updated_at",

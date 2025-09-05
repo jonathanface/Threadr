@@ -19,6 +19,7 @@ export interface Outline {
   template?: OutlineTemplate;
   sections: OutlineSection[];
   unassigned?: string[];
+  backstory?: string;
 }
 
 export type StageStatus = "Draft" | "Revising" | "Done";

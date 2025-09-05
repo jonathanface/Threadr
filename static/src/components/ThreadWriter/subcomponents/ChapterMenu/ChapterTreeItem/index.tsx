@@ -20,68 +20,40 @@ interface ChapterTreeItemProps {
   disable: boolean;
 }
 
-const getStringColor = (header: string): string => {
-  // Sum all character codes
-  let sum = 0;
-  for (let i = 0; i < header.length; i++) {
-    sum += header.charCodeAt(i);
+const hash32 = (str: string) => {
+  let h = 0x811c9dc5 >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
   }
+  return h >>> 0;
+};
 
-  // Define an array of colors to pick from
-  const colorPalette = [
-    "#f9d3d3", // red
-    "#f0f8ff", // blue
-    "#f0fff4", // green
-    "#fdf0ff", // pink
-    "#fffbf0", // yellow
-    "#ffcdb9", // orange
-    "#f2f0ff ", // lavender
-    "#f0fffa", // mint
-    "#fff4f0", // peach
-    "#f5f0ff", // periwinkle
-    "#fff0f9", // rose
-    "#f7fff0", // lime
-    "#FCE7E7",
-    "#FAF3E7",
-    "#F8FAE7",
-    "#E7FAF3",
-    "#E7F9FA",
-    "#E7ECFA",
-    "#E9E7FA",
-    "#F9E7FA",
-    "#FAE7F2",
-    "#FAE7E7",
-    "#FAE7E2",
-    "#FAEEE7",
-    "#FAF0E7",
-    "#FAF5E7",
-    "#E7FAEE",
-    "#E7FAE2",
-    "#E7F6FA",
-    "#E7FAFE",
-    "#EFE7FA",
-    "#FCE7FA",
-    "#FAE7F6",
-    "#FAE7FD",
-    "#FAE7EB",
-    "#E7FAEB",
-    "#E7F8FA",
-    "#FAEBE7",
-    "#FCE7EC",
-    "#FCE7E3",
-    "#FCEBE7",
-    "#FCEFF7",
-    "#FEFAE7",
-    "#E7FEFA",
-    "#FAE7FE",
-    "#FDE7FA",
-    "#FDE7F8",
-    "#FAE7E8",
-    "#FAE7EE",
-    "#FAE7F9",
-  ];
-  // Pick a color based on sum
-  return colorPalette[sum % colorPalette.length];
+// Quantize hue into N distant buckets (e.g., 12 => 30° steps)
+const quantizedHue = (key: string, buckets = 12) =>
+  Math.round((hash32(key) % buckets) * (360 / buckets));
+
+// Prefer OKLCH for clearer separation; fall back to HSL
+const makeColors = (key: string) => {
+  const h = quantizedHue(key, 12);
+  const supportsOKLCH = CSS.supports?.("color", "oklch(0.8 0.12 0)");
+  if (supportsOKLCH) {
+    const base = `oklch(0.62 0.11 ${h})`; // saturated for text/border
+    const bg = `oklch(0.90 0.06 ${h})`; // softer fill (but not washed out)
+    return { bg, fg: base, border: base };
+  } else {
+    const base = `hsl(${h} 85% 35%)`;
+    const bg = `hsl(${h} 80% 88%)`; // darker than 92% so it pops
+    return { bg, fg: base, border: base };
+  }
+};
+
+// Use header + place/id so "Act One"/"Act Two" are distinct
+const colorForSection = (section: OutlineSection, storyId?: string) => {
+  const header = (section.header || "untitled").toLowerCase().trim();
+  const place = section.place ?? 0;
+  const key = `${storyId ?? ""}|${header}|${place}`;
+  return makeColors(key);
 };
 
 export const ChapterTreeItem = ({
@@ -176,17 +148,27 @@ export const ChapterTreeItem = ({
               <Box className={styles.chapterMenuItem}>
                 {/* Left side: Chapter Title + Chip */}
                 <Box className={styles.leftItems}>
-                  <Typography variant="body1">{itemChapter.title}</Typography>
-                  {assignedSection && (
-                    <Chip
-                      label={assignedSection.header}
-                      size="small"
-                      sx={{
-                        backgroundColor: getStringColor(assignedSection.header),
-                      }}
-                      className={styles.outlineLabel}
-                    />
-                  )}
+                  <Typography variant="body2">{itemChapter.title}</Typography>
+                  {assignedSection &&
+                    (() => {
+                      const { bg, fg, border } = colorForSection(
+                        assignedSection,
+                        story?.story_id,
+                      );
+                      return (
+                        <Chip
+                          label={assignedSection.header || "Untitled"}
+                          size="small"
+                          variant="outlined"
+                          sx={{
+                            bgcolor: bg,
+                            color: fg,
+                            borderColor: border,
+                            fontWeight: 600,
+                          }}
+                        />
+                      );
+                    })()}
                 </Box>
 
                 {/* ✅ Right-aligned Delete Button */}
