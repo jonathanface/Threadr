@@ -5,12 +5,12 @@ import FormatListNumberedIcon from "@mui/icons-material/FormatListNumbered";
 import CancelPresentationIcon from "@mui/icons-material/CancelPresentation";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { useSelections } from "../../hooks/useSelections";
-import { ClickData } from "../ThreadWriter/plugins/DocumentClickPlugin";
-import { DocumentSettingsModal } from "../DocumentSettingsModal";
+import { useSelections } from "../../../../hooks/useSelections";
+import { ClickData } from "../../plugins/DocumentClickPlugin";
+import { DocumentSettingsModal } from "./DocumentSettingsModal";
 import { ChapterMenu } from "../ChapterMenu";
 import { OutlineMenu } from "../OutlineMenu";
-import { useFetchUserData } from "../../hooks/useFetchUserData";
+import { useFetchUserData } from "../../../../hooks/useFetchUserData";
 import MenuBookTwoToneIcon from "@mui/icons-material/MenuBookTwoTone";
 
 interface DocumentMenuProps {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { MenuItem } from "./MenuItem";
 import styles from "./custom-context.module.css";
-import { MenuItemEntry } from "../../types/MenuItemEntry";
+import { MenuItemEntry } from "../../../../types/MenuItemEntry";
 
 export interface ContextMenuProps {
   name: string;

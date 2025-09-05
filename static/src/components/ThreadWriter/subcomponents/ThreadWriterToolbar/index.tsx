@@ -15,16 +15,16 @@ import FormatAlignRightIcon from "@mui/icons-material/FormatAlignRight";
 import FormatAlignJustifyIcon from "@mui/icons-material/FormatAlignJustify";
 import styles from "./toolbar.module.css";
 import { DocumentExporter } from "./DocumentExporter";
-import { EditableText } from "../../EditableText";
-import { useSelections } from "../../../hooks/useSelections";
-import { AlertToastType } from "../../../types/AlertToasts";
-import { useToaster } from "../../../hooks/useToaster";
+import { EditableText } from "../../../EditableText";
+import { useSelections } from "../../../../hooks/useSelections";
+import { AlertToastType } from "../../../../types/AlertToasts";
+import { useToaster } from "../../../../hooks/useToaster";
 import { useMediaQuery } from "@mui/material";
 import {
   BlockAlignmentType,
   DocterTextFormatType,
-} from "../../../types/Document";
-import { api } from "../../../api";
+} from "../../../../types/Document";
+import { api } from "../../../../api";
 import axios from "axios";
 
 export const Toolbar = () => {

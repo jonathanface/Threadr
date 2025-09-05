@@ -9,13 +9,13 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import styles from "./createoutline.module.css";
-import { Outline, OutlineTemplate } from "../../types/Outline";
-import { useLoader } from "../../hooks/useLoader";
-import { useSelections } from "../../hooks/useSelections";
-import { useToaster } from "../../hooks/useToaster";
-import { AlertToastType } from "../../types/AlertToasts";
+import { Outline, OutlineTemplate } from "../../../../../types/Outline";
+import { useLoader } from "../../../../../hooks/useLoader";
+import { useSelections } from "../../../../../hooks/useSelections";
+import { useToaster } from "../../../../../hooks/useToaster";
+import { AlertToastType } from "../../../../../types/AlertToasts";
 import axios from "axios";
-import { api } from "../../api";
+import { api } from "../../../../../api";
 
 interface OutlineForm {
   storyID: string;
