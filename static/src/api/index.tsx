@@ -8,7 +8,7 @@ export const api = axios.create({
   },
   validateStatus: (status) => {
     // Treat 2xx as OK, plus allow 501 to be handled manually
-    return (status >= 200 && status < 300) || status === 501;
+    return status >= 200 && status < 300;
   },
 });
 

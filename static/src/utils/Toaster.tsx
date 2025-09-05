@@ -1,6 +1,6 @@
 import Alert, { AlertColor } from "@mui/material/Alert";
 import AlertTitle from "@mui/material/AlertTitle";
-import Snackbar from "@mui/material/Snackbar";
+import Snackbar, { SnackbarOrigin } from "@mui/material/Snackbar";
 import { useToaster } from "../hooks/useToaster";
 
 export const Toaster = () => {
@@ -8,13 +8,19 @@ export const Toaster = () => {
 
   const splitByNewline = alertState.message.split("\n");
 
-  const timeout = alertState.timeout !== undefined ? alertState.timeout : 10 * 1000;
+  const timeout =
+    alertState.timeout !== undefined ? alertState.timeout : 10 * 1000;
+
+  const defaultOrigin: SnackbarOrigin = {
+    horizontal: "right",
+    vertical: "bottom",
+  };
 
   return (
     <Snackbar
+      anchorOrigin={alertState.origin ? alertState.origin : defaultOrigin}
       className="alert-toast"
       autoHideDuration={timeout}
-      anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       open={alertState.open}
       onClose={clearAlert}
       key="bottom_right"

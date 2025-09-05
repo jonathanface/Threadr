@@ -126,7 +126,7 @@ export const ThreadWriter = () => {
   useEditorCommands(editorRef, pastedParagraphKeys);
 
   // Fetchers
-  const { getBatchedStoryBlocks, previousTableStatus, setPreviousTableStatus } =
+  const { getBatchedStoryBlocks, previousTableStatus, tableStatus } =
     useFetchStoryBlocks(
       story?.story_id || "",
       chapter?.id || "",
@@ -373,6 +373,7 @@ export const ThreadWriter = () => {
         time: Date.now(),
         storyID: story.story_id,
         chapterID: chapter.id,
+        tableBecameReady: false,
       });
     });
   }, [chapter, story]);
@@ -385,7 +386,6 @@ export const ThreadWriter = () => {
   const queueParagraphForDeletion = useCallback(
     (chapterID: string, customKey: string) => {
       if (!story) return;
-      console.log("queueing a delete!!!!!");
       const deleteBlock: DBOperationBlock = { key_id: customKey };
       const storyID = story.story_id;
       QueueOp(
@@ -393,13 +393,13 @@ export const ThreadWriter = () => {
         storyID,
         chapterID,
         deleteBlock,
-        previousTableStatus,
+        previousTableStatus === "501" && tableStatus === "ok" ? true : false,
         {
           epoch: writeEpochRef.current,
         },
       );
     },
-    [story, previousTableStatus],
+    [story, previousTableStatus, tableStatus],
   );
 
   const queueParagraphForSave = useCallback(
@@ -410,7 +410,6 @@ export const ThreadWriter = () => {
       content: SerializedElementNode<SerializedLexicalNode>,
     ) => {
       if (!story || !chapter) return;
-      console.log("queueing a save!!!!!");
       const saveBlock: DBOperationBlock = {
         key_id: customKey,
         chunk: content,
@@ -422,13 +421,13 @@ export const ThreadWriter = () => {
         storyID,
         chapterID,
         saveBlock,
-        previousTableStatus,
+        previousTableStatus === "501" && tableStatus === "ok" ? true : false,
         {
           epoch: writeEpochRef.current,
         },
       );
     },
-    [chapter, previousTableStatus, story],
+    [chapter, previousTableStatus, story, tableStatus],
   );
 
   const queueAllParagraphsForSave = useCallback(
@@ -477,16 +476,9 @@ export const ThreadWriter = () => {
             place: index.toString(), // Assuming 'place' represents the order
           };
 
-          QueueOp(
-            DBOperationType.save,
-            storyID,
-            chapterID,
-            saveBlock,
-            undefined,
-            {
-              epoch: writeEpochRef.current,
-            },
-          );
+          QueueOp(DBOperationType.save, storyID, chapterID, saveBlock, false, {
+            epoch: writeEpochRef.current,
+          });
 
           orderMap.blocks.push({ key_id, place: index.toString() });
         });
@@ -599,14 +591,13 @@ export const ThreadWriter = () => {
     const handleSaveSuccess = (event: Event) => {
       const customEvent = event as CustomEvent<SaveSuccessPayload>;
       const payload = customEvent.detail;
-      setPreviousTableStatus("ok");
       queueAllParagraphsForSave(payload.storyID, payload.chapterID);
     };
     dbEventEmitter.addEventListener("saveSuccess", handleSaveSuccess);
     return () => {
       dbEventEmitter.removeEventListener("saveSuccess", handleSaveSuccess);
     };
-  }, [queueAllParagraphsForSave, setPreviousTableStatus]);
+  }, [queueAllParagraphsForSave]);
 
   // Merged useEffect to handle both story and chapter changes
   useEffect(() => {
@@ -1011,15 +1002,15 @@ export const ThreadWriter = () => {
     setContextMenuData(contextData);
   };
 
-  if (!story || !story.story_id || !chapter || !chapter.id) {
-    console.warn("Story and chapter not loaded yet.");
-    return null;
-  }
+  // if (!story || !story.story_id || !chapter || !chapter.id) {
+  //   console.warn("Story and chapter not loaded yet.");
+  //   return null;
+  // }
 
   return (
     <div className={styles.outerWrapper}>
       <LexicalComposer
-        key={`${story.story_id}:${chapter.id}`}
+        key={`${story?.story_id}`}
         initialConfig={{
           ...initialConfig,
           editorState: (editor) => {

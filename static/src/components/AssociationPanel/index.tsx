@@ -135,7 +135,7 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
         setIsAssociationLoaderVisible(true);
 
         const { data: serverAssociation } = await api.get<Association>(
-          `/api/stories/${story.story_id}/associations/${
+          `/stories/${story.story_id}/associations/${
             selectedAssociationID ?? props.selectedAssociationID
           }`,
         );

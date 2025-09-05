@@ -1,3 +1,5 @@
+import { SnackbarOrigin } from "@mui/material";
+
 export enum AlertToastType {
   success = "success",
   info = "info",
@@ -29,4 +31,5 @@ export type AlertState = {
   timeout?: number | null; //milliseconds
   link?: { url: string; text: string };
   callback?: AlertFunctionCall;
+  origin?: SnackbarOrigin;
 };

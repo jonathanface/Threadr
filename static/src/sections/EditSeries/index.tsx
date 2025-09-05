@@ -257,7 +257,7 @@ export const EditSeries = () => {
     const conf = window.confirm(confirmText);
     if (conf) {
       showLoader();
-      const url = "/api/series/" + seriesID + "/story/" + id;
+      const url = "/series/" + seriesID + "/story/" + id;
       try {
         const { data: json } = await api.put<Series>(
           url,

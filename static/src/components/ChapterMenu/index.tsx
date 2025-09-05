@@ -10,94 +10,156 @@ import { useToaster } from "../../hooks/useToaster";
 import { DragDropContext, Droppable, DropResult } from "@hello-pangea/dnd";
 import { ChapterTreeItem } from "./ChapterTreeItem";
 import { UpdateChapterQueryStringParameter } from "../ThreadWriter/utilities";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { api } from "../../api";
 
-interface SettingsMenuProps {
-  chapters: Chapter[];
-}
-
-export const ChapterMenu = ({ chapters }: SettingsMenuProps) => {
+export const ChapterMenu = () => {
   const { story, chapter, setChapter, setStory, series, setSeries } =
     useSelections();
   const { showLoader, hideLoader } = useLoader();
   const { setAlertState } = useToaster();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
-  if (!chapter || !story) return;
+  const pollersRef = useRef<Record<string, number>>({});
+
+  useEffect(() => {
+    return () => {
+      // cleanup on unmount
+      Object.values(pollersRef.current).forEach((id) => clearTimeout(id));
+    };
+  }, []);
+  if (!story) return null;
 
   const checkCurrentChapterTableStatus = async (chapterID: string) => {
     try {
-      await api.get(
-        `/api/stories/${story.story_id}/chapters/${chapterID}/status`,
+      const res = await api.get(
+        `/stories/${story!.story_id}/chapters/${chapterID}/status`,
         {
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
+          // Let us inspect non-2xx instead of throwing
+          validateStatus: () => true,
         },
       );
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        console.log("resp", error.response?.status);
-        if (error.response?.status === 501) {
-          return false;
-        }
-      } else {
-        console.error("unexpected error", error);
-      }
-    }
 
-    return true;
+      if (res.status === 200) return { ready: true };
+      // Treat “in progress” codes as not ready (keep your 501)
+      if (res.status === 501 || res.status === 202 || res.status === 503) {
+        const retryAfter =
+          (res.headers?.["retry-after"] &&
+            Number(res.headers["retry-after"]) * 1000) ||
+          undefined;
+        return { ready: false, retryAfterMs: retryAfter };
+      }
+      // Any other code => not ready
+      return { ready: false };
+    } catch {
+      // Network/unknown error => not ready
+      return { ready: false };
+    }
   };
 
-  const showTableWarning = () => {
+  const notifyTableNotReady = () => {
     setAlertState({
       title: "Warning",
       message:
-        "Your chapter is still being created and your changes will be lost if you change chapters now. Please wait a few seconds and try again.",
+        "Your chapter is being created and you will be able to access it once the new chapter's menu item activates.",
       severity: AlertToastType.warning,
       open: true,
       timeout: 30000,
+      origin: { horizontal: "left", vertical: "bottom" },
+    });
+  };
+
+  const notifyTableReady = () => {
+    setAlertState({
+      title: "Good News",
+      message:
+        "The chapter you created is ready and available via the chapter menu.",
+      severity: AlertToastType.success,
+      open: true,
+      timeout: 30000,
+      origin: { horizontal: "left", vertical: "bottom" },
     });
   };
 
   const handleNodeSelect = async (
-    _event: React.MouseEvent,
+    _e: React.MouseEvent,
     selectedItemId: string,
   ) => {
     if (selectedItemId === "chapters_add") {
-      const isTableReady = await checkCurrentChapterTableStatus(chapter.id);
-      if (!isTableReady) {
-        showTableWarning();
-        return;
-      }
       onNewChapterClick();
       return;
     }
-    if (selectedItemId !== chapter.id) {
-      const isTableReady = await checkCurrentChapterTableStatus(chapter.id);
-      if (!isTableReady) {
-        showTableWarning();
+    if (selectedItemId !== chapter!.id) {
+      const newChapter = story.chapters.find((c) => c.id === selectedItemId);
+      if (!newChapter) return;
+
+      if (newChapter.tableNotReady) {
+        setAlertState({
+          title: "Creating chapter…",
+          message:
+            "We’re setting things up. This chapter will activate automatically when ready.",
+          severity: AlertToastType.info,
+          open: true,
+          origin: { horizontal: "left", vertical: "bottom" },
+        });
         return;
       }
-      const newChapter = chapters.find(
-        (chapter) => chapter.id === selectedItemId,
-      );
-      if (newChapter) {
-        UpdateChapterQueryStringParameter(newChapter.id);
-        setChapter(newChapter);
-      }
+
+      UpdateChapterQueryStringParameter(newChapter.id);
+      setChapter(newChapter);
     }
   };
 
+  const startPollingChapterStatus = (newChapterID: string) => {
+    const maxWaitMs = 60_000; // optional cap
+    let elapsed = 0;
+
+    const tick = async () => {
+      const { ready, retryAfterMs } =
+        await checkCurrentChapterTableStatus(newChapterID);
+      if (ready) {
+        setStory((prev) => {
+          if (!prev) return prev;
+          const chapters = prev.chapters.map((c) =>
+            c.id === newChapterID ? { ...c, tableNotReady: false } : c,
+          );
+          return { ...prev, chapters };
+        });
+        notifyTableReady();
+        return; // stop polling
+      }
+
+      elapsed += retryAfterMs ?? 1000;
+      if (elapsed >= maxWaitMs) {
+        setAlertState({
+          title: "Still working…",
+          message:
+            "The new chapter is still being prepared. It’ll appear here once ready.",
+          severity: AlertToastType.info,
+          open: true,
+          origin: { horizontal: "left", vertical: "bottom" },
+        });
+        return;
+      }
+
+      const nextDelay =
+        retryAfterMs ?? Math.min(5000, 1000 + Math.floor(elapsed / 4));
+      pollersRef.current[newChapterID] = window.setTimeout(tick, nextDelay);
+    };
+
+    // initial schedule
+    pollersRef.current[newChapterID] = window.setTimeout(tick, 1000);
+  };
+
   const onNewChapterClick = async () => {
-    const newChapterNum = chapters.length + 1;
+    const newChapterNum = story.chapters.length + 1;
     const newChapterTitle = "Chapter " + newChapterNum;
     try {
       showLoader();
 
       const { data: json } = await api.post<Chapter>(
-        `/api/stories/${story.story_id}/chapter`,
+        `/stories/${story.story_id}/chapter`,
         {
           title: newChapterTitle,
           place: newChapterNum,
@@ -110,31 +172,31 @@ export const ChapterMenu = ({ chapters }: SettingsMenuProps) => {
       );
 
       json.story_id = story.story_id;
-
-      const newChapters = [...chapters];
+      const newChapters = [...story.chapters];
       newChapters.push({
         story_id: story.story_id,
         id: json.id,
         title: newChapterTitle,
         place: newChapterNum,
+        tableNotReady: true,
       });
 
       const updatedSelectedStory = { ...story, chapters: newChapters };
 
       if (series) {
         const storyIdx = series.stories.findIndex(
-          (thisStory) => thisStory.story_id === story.story_id,
+          (s) => s.story_id === story.story_id,
         );
         if (storyIdx !== -1) {
-          const updatedSeries = { ...series };
-          updatedSeries.stories[storyIdx] = updatedSelectedStory;
-          setSeries(updatedSeries);
+          const stories = [...series.stories];
+          stories[storyIdx] = updatedSelectedStory;
+          setSeries({ ...series, stories }); // new array reference
         }
       }
 
       setStory(updatedSelectedStory);
-      setChapter(json);
-      UpdateChapterQueryStringParameter(json.id);
+      notifyTableNotReady();
+      startPollingChapterStatus(json.id);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.error(
@@ -148,6 +210,7 @@ export const ChapterMenu = ({ chapters }: SettingsMenuProps) => {
         message: "An error occurred creating your chapter.",
         severity: AlertToastType.info,
         open: true,
+        origin: { horizontal: "left", vertical: "bottom" },
       });
     } finally {
       hideLoader();
@@ -178,15 +241,11 @@ export const ChapterMenu = ({ chapters }: SettingsMenuProps) => {
     try {
       showLoader();
 
-      await api.put(
-        `/api/stories/${story.story_id}/chapters`,
-        updatedChapters,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
+      await api.put(`/stories/${story.story_id}/chapters`, updatedChapters, {
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+      });
     } catch (error) {
       let message =
         "There was an error updating your chapters. Please report this.";
@@ -206,6 +265,7 @@ export const ChapterMenu = ({ chapters }: SettingsMenuProps) => {
         message,
         severity: AlertToastType.error,
         open: true,
+        origin: { horizontal: "left", vertical: "bottom" },
       });
     } finally {
       hideLoader();
@@ -235,7 +295,7 @@ export const ChapterMenu = ({ chapters }: SettingsMenuProps) => {
     if (newlyExpanded.length && newlyExpanded[0] === "chapters") {
       setTimeout(() => {
         const target = document.querySelector(
-          `[data-rfd-draggable-id="${chapter.id}"]`,
+          `[data-rfd-draggable-id="${chapter?.id}"]`,
         );
         if (target) {
           target.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -275,7 +335,7 @@ export const ChapterMenu = ({ chapters }: SettingsMenuProps) => {
               ref={provided.innerRef}
               style={{ paddingLeft: "1rem" }} // Indent draggable items
             >
-              {chapters
+              {[...story.chapters]
                 .sort((a, b) => a.place - b.place)
                 .map((chap, idx) => {
                   const assignedSection = story.outline?.sections?.find(
@@ -288,6 +348,7 @@ export const ChapterMenu = ({ chapters }: SettingsMenuProps) => {
                       key={chap.id}
                       itemChapter={chap}
                       assignedSection={assignedSection}
+                      disable={chap.tableNotReady}
                     />
                   );
                 })}

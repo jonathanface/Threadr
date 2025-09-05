@@ -17,6 +17,7 @@ interface ChapterTreeItemProps {
   assignedSection?: OutlineSection;
   draggableId: string;
   index: number;
+  disable: boolean;
 }
 
 const getStringColor = (header: string): string => {
@@ -88,6 +89,7 @@ export const ChapterTreeItem = ({
   assignedSection,
   draggableId,
   index,
+  disable,
 }: ChapterTreeItemProps) => {
   const { story, setStory, chapter, setChapter } = useSelections();
   const { setAlertState } = useToaster();
@@ -155,10 +157,11 @@ export const ChapterTreeItem = ({
   };
 
   return (
-    <Draggable draggableId={draggableId} index={index}>
+    <Draggable isDragDisabled={disable} draggableId={draggableId} index={index}>
       {(provided: DraggableProvided) => (
         <TreeItem
           itemId={itemChapter.id}
+          disabled={disable}
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
@@ -166,9 +169,7 @@ export const ChapterTreeItem = ({
           label={
             <Tooltip
               title={
-                assignedSection
-                  ? `Assigned to: ${assignedSection.header}`
-                  : "Not assigned to an outline"
+                assignedSection ? `Assigned to: ${assignedSection.header}` : ""
               }
               arrow
             >
@@ -193,6 +194,7 @@ export const ChapterTreeItem = ({
                   title="Delete Chapter"
                   aria-label="delete"
                   size="small"
+                  disabled={disable}
                   onClick={(event) =>
                     onDeleteChapterClick(
                       event,

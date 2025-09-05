@@ -32,6 +32,7 @@ export const useFetchStoryBlocks = (
 ) => {
   const { showLoader, hideLoader } = useLoader();
   const { setAlertState } = useToaster();
+  const [tableStatus, setTableStatus] = useState("ok");
   const [previousTableStatus, setPreviousTableStatus] = useState("ok");
 
   const getBatchedStoryBlocks = useCallback(
@@ -52,11 +53,7 @@ export const useFetchStoryBlocks = (
           },
           validateStatus: (status) => {
             // let 2xx, 404, and 501 resolve so we can handle them in catch logic
-            return (
-              (status >= 200 && status < 300) ||
-              status === 404 ||
-              status === 501
-            );
+            return (status >= 200 && status < 300) || status === 404;
           },
         });
 
@@ -95,6 +92,7 @@ export const useFetchStoryBlocks = (
             indent: 0,
           },
         });
+        setTableStatus("ok");
       } catch (error) {
         if (axios.isAxiosError(error)) {
           const status = error.response?.status;
@@ -140,8 +138,13 @@ export const useFetchStoryBlocks = (
       showLoader,
       hideLoader,
       setAlertState,
+      setTableStatus,
     ],
   );
 
-  return { getBatchedStoryBlocks, previousTableStatus, setPreviousTableStatus };
+  return {
+    getBatchedStoryBlocks,
+    tableStatus,
+    previousTableStatus,
+  };
 };
