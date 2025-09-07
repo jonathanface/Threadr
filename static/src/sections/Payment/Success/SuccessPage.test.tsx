@@ -19,19 +19,19 @@ vi.mock("../../../api", () => {
 
 // Helpers for window.location (assign is non-configurable in jsdom)
 const originalLocation = window.location;
-function stubLocation(href = "http://localhost/success") {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  delete (window as any).location;
-  // @ts-expect-error // necessary
-  window.location = {
+function stubLocation(href = "http://localhost/test") {
+  // tell TS we're assigning a Location
+  (window as unknown as { location: Location }).location = {
     ...originalLocation,
     href,
     assign: vi.fn(),
-  };
+    replace: vi.fn(),
+    reload: vi.fn(),
+  } as unknown as Location;
 }
+
 function restoreLocation() {
-  // @ts-expect-error // necessary
-  window.location = originalLocation;
+  (window as unknown as { location: Location }).location = originalLocation;
 }
 
 beforeEach(() => {

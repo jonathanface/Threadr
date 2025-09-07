@@ -22,22 +22,20 @@ let mockElements: null | {
   submit: () => Promise<SubmitResult>;
 };
 
-const stubLocationAssign = () => {
-  // remove the non-configurable property
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  delete (window as any).location;
-  // replace with a writable object
-  // @ts-expect-error: we intentionally provide a partial
-  window.location = {
+function stubLocation(href = "http://localhost/test") {
+  // tell TS we're assigning a Location
+  (window as unknown as { location: Location }).location = {
     ...originalLocation,
+    href,
     assign: vi.fn(),
-  };
-};
+    replace: vi.fn(),
+    reload: vi.fn(),
+  } as unknown as Location;
+}
 
-const restoreLocation = () => {
-  // @ts-expect-error: we intentionally replace
-  window.location = originalLocation;
-};
+function restoreLocation() {
+  (window as unknown as { location: Location }).location = originalLocation;
+}
 
 // Helpers to set different hook return values per test
 const setStripeReady = (opts?: {
@@ -121,7 +119,7 @@ describe("<CheckoutForm />", () => {
   });
 
   it("navigates to /success when payment succeeds without redirect", async () => {
-    stubLocationAssign();
+    stubLocation();
     try {
       setStripeReady({ submitResult: {}, confirmResult: {} });
       const user = userEvent.setup();
@@ -164,7 +162,7 @@ describe("<CheckoutForm />", () => {
     resolveConfirm!();
 
     // success redirect
-    stubLocationAssign();
+    stubLocation();
     try {
       await waitFor(() =>
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
