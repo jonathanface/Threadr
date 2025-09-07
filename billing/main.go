@@ -15,6 +15,10 @@ import (
 	"github.com/stripe/stripe-go/v79/billingportal/session"
 )
 
+// stubs to make these funcs mockable in tests
+var getUserEmailFn = getUserEmail
+var ensureCustomerFn = ensureCustomer
+
 func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	priceID := os.Getenv("STRIPE_PRICE_ID")
@@ -29,7 +33,7 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		dao   daos.DaoInterface
 		ok    bool
 	)
-	if email, err = getUserEmail(r); err != nil {
+	if email, err = getUserEmailFn(r); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -45,7 +49,7 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	custID := ensureCustomer(user)
+	custID := ensureCustomerFn(user)
 
 	// Create (or reuse) a subscription in incomplete state
 	params := &stripe.SubscriptionParams{
@@ -87,7 +91,7 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok    bool
 	)
 
-	if email, err = getUserEmail(r); err != nil {
+	if email, err = getUserEmailFn(r); err != nil {
 		RespondWithError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
@@ -103,7 +107,7 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	custID := ensureCustomer(user)
+	custID := ensureCustomerFn(user)
 
 	params := &stripe.SubscriptionListParams{
 		Customer: stripe.String(custID),
@@ -144,7 +148,7 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 
 func BillingPortalSessionEndpoint(w http.ResponseWriter, r *http.Request) {
 	// 1) Who is the user?
-	email, err := getUserEmail(r)
+	email, err := getUserEmailFn(r)
 	if err != nil {
 		RespondWithError(w, http.StatusUnauthorized, err.Error())
 		return
@@ -165,7 +169,7 @@ func BillingPortalSessionEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 4) Ensure Stripe customer exists / get ID
-	custID := ensureCustomer(user)
+	custID := ensureCustomerFn(user)
 
 	// 5) Determine return URL (from header or fallback)
 	retURL := r.Header.Get("X-Return-Url")

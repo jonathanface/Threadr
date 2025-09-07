@@ -19,7 +19,7 @@ import { Footer } from "./components/Footer";
 import { SubscribePage } from "./sections/Payment/Subscribe";
 import { CheckoutPage } from "./sections/Payment/Checkout";
 import { SuccessPage } from "./sections/Payment/Success";
-import { AccountSubscription } from "./sections/Payment/AccountSubscription";
+import { AccountSubscriptionPage } from "./sections/Payment/AccountSubscription";
 import { NotFoundPage } from "./sections/NotFound";
 
 export const Docter = () => {
@@ -111,7 +111,11 @@ export const Docter = () => {
           <Route
             path="/account/subscription"
             element={
-              isLoggedIn ? <AccountSubscription /> : <Navigate to="/" replace />
+              isLoggedIn ? (
+                <AccountSubscriptionPage />
+              ) : (
+                <Navigate to="/" replace />
+              )
             }
           />
           <Route
