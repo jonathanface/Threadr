@@ -45,7 +45,7 @@ export const UserMenu = () => {
   };
 
   const showSettingsPanel = () => {
-    navigate("/settings");
+    navigate("/account/subscription");
   };
 
   const displayComponent = userData?.isLoggedIn ? (

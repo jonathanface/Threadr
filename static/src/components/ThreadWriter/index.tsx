@@ -183,14 +183,14 @@ export const ThreadWriter = () => {
     } catch (error) {
       console.error(error);
 
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
+      if (axios.isAxiosError(error) && error.response?.status === 402) {
         const subscribeFunc: AlertFunctionCall = {
           type: AlertCommandType.subscribe,
           text: "subscribe",
         };
         setAlertState({
           title: "Insufficient subscription",
-          message: "Free accounts are limited to 5 associations per story.",
+          message: "Free accounts are limited to 20 associations per story.",
           open: true,
           severity: AlertToastType.warning,
           timeout: null,

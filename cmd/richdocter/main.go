@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
+	stripe "github.com/stripe/stripe-go/v79"
 )
 
 const (
@@ -65,6 +66,7 @@ func main() {
 	port := getenv("PORT", DEFAULT_PORT)
 	addr := normalizeAddr(port)
 	version := getenv("VERSION", DEFAULT_VERSION)
+	stripe.Key = getenv("STRIPE_SECRET", "")
 
 	initCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

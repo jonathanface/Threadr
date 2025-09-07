@@ -68,7 +68,7 @@ export const DocumentExporter = () => {
           timeout: null,
         });
       } catch (error) {
-        if (axios.isAxiosError(error) && error.response?.status === 401) {
+        if (axios.isAxiosError(error) && error.response?.status === 402) {
           const subscribeFunc: AlertFunctionCall = {
             type: AlertCommandType.subscribe,
             text: "subscribe",

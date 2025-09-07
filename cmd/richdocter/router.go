@@ -41,13 +41,9 @@ func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.Options) *
 
 	billingRtr := rtr.PathPrefix(billingPath).Subrouter()
 	billingRtr.Use(billingMiddleware(dao))
-	billingRtr.HandleFunc("/products", billing.GetProductsEndpoint).Methods("GET", "OPTIONS")
-	billingRtr.HandleFunc("/customer", billing.GetCustomerEndpoint).Methods("GET", "OPTIONS")
-	billingRtr.HandleFunc("/customer/payment", billing.GetCustomerPaymentMethodEndpoint).Methods("GET", "OPTIONS")
-	billingRtr.HandleFunc("/customer", billing.CreateCustomerEndpoint).Methods("POST", "OPTIONS")
-	billingRtr.HandleFunc("/customer", billing.UpdateCustomerPaymentMethodEndpoint).Methods("PUT", "OPTIONS")
-	billingRtr.HandleFunc("/card", billing.CreateCardIntentEndpoint).Methods("POST", "OPTIONS")
 	billingRtr.HandleFunc("/subscribe", billing.SubscribeCustomerEndpoint).Methods("POST", "OPTIONS")
+	billingRtr.HandleFunc("/summary", billing.BillingSummaryEndpoint).Methods("GET", "OPTIONS")
+	billingRtr.HandleFunc("/portal-session", billing.BillingPortalSessionEndpoint).Methods("POST", "OPTIONS")
 
 	apiRtr := rtr.PathPrefix(servicePath).Subrouter()
 	apiRtr.Use(strictMiddleware(dao))
