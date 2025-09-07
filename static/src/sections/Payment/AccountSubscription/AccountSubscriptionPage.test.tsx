@@ -21,21 +21,21 @@ vi.mock("../../../api", () => {
   };
 });
 
-// ---- window.location helpers (assign is non-configurable in jsdom) ----
 const originalLocation = window.location;
-function stubLocation(href = "http://localhost/account/subscription") {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  delete (window as any).location;
-  // @ts-expect-error – partial is fine for tests
-  window.location = {
+
+function stubLocation(href = "http://localhost/test") {
+  // tell TS we're assigning a Location
+  (window as unknown as { location: Location }).location = {
     ...originalLocation,
     href,
     assign: vi.fn(),
-  };
+    replace: vi.fn(),
+    reload: vi.fn(),
+  } as unknown as Location;
 }
+
 function restoreLocation() {
-  // @ts-expect-error //mocking location
-  window.location = originalLocation;
+  (window as unknown as { location: Location }).location = originalLocation;
 }
 
 // ---- small util to keep promises pending when needed ----
@@ -110,7 +110,7 @@ describe("<AccountSubscriptionPage />", () => {
   });
 
   it("clicking 'MANAGE BILLING' posts to portal session and redirects to returned URL", async () => {
-    stubLocation();
+    stubLocation("http://localhost/account/subscription"); // <-- set the href you expect
     const user = userEvent.setup();
     getMock.mockResolvedValueOnce({ data: { status: "active" } });
 
@@ -122,10 +122,8 @@ describe("<AccountSubscriptionPage />", () => {
     await waitFor(() =>
       expect(screen.getByText(/^ACTIVE$/)).toBeInTheDocument(),
     );
-
     await user.click(screen.getByRole("button", { name: /manage billing/i }));
 
-    // resolve the portal call
     d.resolve({ data: { url: "https://stripe.test/portal/xyz" } });
 
     await waitFor(() =>
@@ -134,7 +132,6 @@ describe("<AccountSubscriptionPage />", () => {
       ),
     );
 
-    // Verify API call shape and header
     expect(postMock).toHaveBeenCalledWith(
       "/billing/portal-session",
       null,
