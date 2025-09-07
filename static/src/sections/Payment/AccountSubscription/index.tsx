@@ -11,7 +11,7 @@ import {
 import { api } from "../../../api";
 import { SubscriptionSummary } from "../../../types/billing";
 
-export const AccountSubscription = () => {
+export const AccountSubscriptionPage = () => {
   const [data, setData] = useState<SubscriptionSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

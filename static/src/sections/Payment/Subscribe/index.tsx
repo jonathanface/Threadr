@@ -131,11 +131,11 @@ export const SubscribePage = () => {
             sx={{ display: "block", textAlign: "center", mt: 1.5 }}
           >
             By subscribing you agree to our{" "}
-            <MuiLink href="/terms" underline="hover">
+            <MuiLink href="/terms.html" underline="hover">
               Terms
             </MuiLink>{" "}
             and{" "}
-            <MuiLink href="/privacy" underline="hover">
+            <MuiLink href="/privacy.html" underline="hover">
               Privacy Policy
             </MuiLink>
             .
