@@ -27,15 +27,12 @@ import (
 )
 
 const (
-	associationTypeCharacter           = "character"
-	associationTypePlace               = "place"
-	associationTypeEvent               = "event"
-	S3_CUSTOM_PORTRAIT_BUCKET          = "richdocter-custom-portraits"
-	S3_EXPORTS_BUCKET                  = "richdocter-document-exports"
-	S3_STORY_IMAGE_BUCKET              = "richdocter-story-portraits"
-	S3_SERIES_IMAGE_BUCKET             = "richdocter-series-portraits"
-	TMP_EXPORT_DIR                     = "./tmp"
-	MAX_UNSUBSCRIBED_ASSOCIATION_LIMIT = 10
+	S3_CUSTOM_PORTRAIT_BUCKET = "richdocter-custom-portraits"
+	S3_EXPORTS_BUCKET         = "richdocter-document-exports"
+	S3_STORY_IMAGE_BUCKET     = "richdocter-story-portraits"
+	S3_SERIES_IMAGE_BUCKET    = "richdocter-series-portraits"
+	TMP_EXPORT_DIR            = "./tmp"
+	NON_SUBSCRIBER_MAX_ASSOC  = 20
 )
 
 func getUserEmail(r *http.Request) (string, error) {

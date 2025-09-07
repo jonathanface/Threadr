@@ -266,8 +266,8 @@ func CreateAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		if len(existingAssoc) >= 5 {
-			RespondWithError(w, http.StatusUnauthorized, "insufficient subscription")
+		if len(existingAssoc) >= NON_SUBSCRIBER_MAX_ASSOC {
+			RespondWithError(w, http.StatusPaymentRequired, "insufficient subscription")
 			return
 		}
 	}

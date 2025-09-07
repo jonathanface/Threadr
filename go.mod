@@ -20,6 +20,7 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.24
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/stripe/stripe-go/v72 v72.122.0
+	github.com/stripe/stripe-go/v79 v79.12.0
 )
 
 require golang.org/x/net v0.38.0 // indirect

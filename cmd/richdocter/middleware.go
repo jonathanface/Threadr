@@ -98,8 +98,8 @@ func strictMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 			}
 
 			if userDetails.SubscriptionID == "" || userDetails.Expired {
-				if r.Method == "POST" && (strings.HasSuffix(r.URL.Path, "/analyze") || strings.HasSuffix(r.URL.Path, "/propose") || strings.HasSuffix(r.URL.Path, "/outline")) ||
-					r.Method == "PUT" && (strings.HasSuffix(r.URL.Path, "/export") || strings.HasSuffix(r.URL.Path, "/outline")) {
+				if r.Method == "POST" && (strings.HasSuffix(r.URL.Path, "/analyze") || strings.HasSuffix(r.URL.Path, "/propose")) ||
+					r.Method == "PUT" && (strings.HasSuffix(r.URL.Path, "/export")) {
 					api.RespondWithError(w, http.StatusUnauthorized, "insufficient subscription")
 					return
 				}

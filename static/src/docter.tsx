@@ -1,17 +1,12 @@
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements } from "@stripe/react-stripe-js";
-
 import { useEffect } from "react";
 import "./css/main.css";
 import { DocumentEditorPage } from "./sections/DocumentEditor";
 import { SplashPage } from "./sections/SplashPage";
 import { StoryAndSeriesListing } from "./sections/StoryAndSeriesListing";
-import { SubscribePanel } from "./sections/SubscribePanel";
 import { useFetchUserData } from "./hooks/useFetchUserData";
 import { HeaderMenu } from "./components/HeaderMenu";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { LoginPanel } from "./sections/LoginPanel";
-import { ConfigPanel } from "./sections/UserConfigPanel";
 import { EditSeries } from "./sections/EditSeries";
 import { useToaster } from "./hooks/useToaster";
 import {
@@ -20,10 +15,12 @@ import {
   AlertToastType,
 } from "./types/AlertToasts";
 import { CreateOrEditStory } from "./sections/CreateOrEditStory";
-import { PaymentMethodPanel } from "./sections/paymentMethod";
 import { Footer } from "./components/Footer";
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_KEY ?? "");
+import { SubscribePage } from "./sections/Payment/Subscribe";
+import { CheckoutPage } from "./sections/Payment/Checkout";
+import { SuccessPage } from "./sections/Payment/Success";
+import { AccountSubscription } from "./sections/Payment/AccountSubscription";
+import { NotFoundPage } from "./sections/NotFound";
 
 export const Docter = () => {
   const { setAlertState } = useToaster();
@@ -112,8 +109,10 @@ export const Docter = () => {
             }
           />
           <Route
-            path="/settings"
-            element={isLoggedIn ? <ConfigPanel /> : <Navigate to="/" replace />}
+            path="/account/subscription"
+            element={
+              isLoggedIn ? <AccountSubscription /> : <Navigate to="/" replace />
+            }
           />
           <Route
             path="/stories/new"
@@ -140,27 +139,21 @@ export const Docter = () => {
           <Route
             path="/subscribe"
             element={
-              isLoggedIn ? (
-                <Elements stripe={stripePromise}>
-                  <SubscribePanel />
-                </Elements>
-              ) : (
-                <Navigate to="/" replace />
-              )
+              isLoggedIn ? <SubscribePage /> : <Navigate to="/" replace />
             }
           />
           <Route
-            path="/payment"
+            path="/checkout"
             element={
-              isLoggedIn ? (
-                <Elements stripe={stripePromise}>
-                  <PaymentMethodPanel />
-                </Elements>
-              ) : (
-                <Navigate to="/" replace />
-              )
+              isLoggedIn ? <CheckoutPage /> : <Navigate to="/" replace />
             }
           />
+          <Route
+            path="/success"
+            element={isLoggedIn ? <SuccessPage /> : <Navigate to="/" replace />}
+          />
+          {/* Catch-all 404 */}
+          <Route path="*" element={<NotFoundPage isLoggedIn={isLoggedIn} />} />
         </Routes>
       </main>
       <Footer />
