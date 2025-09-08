@@ -120,8 +120,6 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("got cust", custID)
-
 	if it.Next() {
 		s := it.Subscription()
 
