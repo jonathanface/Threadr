@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	oneHour    = time.Hour
-	thirtyDays = 30 * 24 * time.Hour
+	oneDay     = 24 * time.Hour
+	thirtyDays = 30 * oneDay
 )
 
 func New(options Options) {
@@ -140,8 +140,8 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options Options
 
 	opts := sessions.OptionsFor(r)
 	ttl := time.Until(user.ExpiresAt)
-	if ttl < oneHour {
-		ttl = oneHour
+	if ttl < oneDay {
+		ttl = oneDay
 	}
 	if ttl > thirtyDays {
 		ttl = thirtyDays
