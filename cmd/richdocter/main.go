@@ -5,6 +5,7 @@ import (
 	"RichDocter/daos"
 	"RichDocter/models"
 	"context"
+	"fmt"
 	"os/signal"
 	"strconv"
 	"syscall"
@@ -67,6 +68,7 @@ func main() {
 	addr := normalizeAddr(port)
 	version := getenv("VERSION", DEFAULT_VERSION)
 	stripe.Key = getenv("STRIPE_SECRET", "")
+	fmt.Println("stripe secret", stripe.Key)
 
 	initCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

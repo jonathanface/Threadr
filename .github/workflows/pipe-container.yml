@@ -73,6 +73,7 @@ jobs:
             --build-arg APP_VERSION=${{ env.APP_VERSION }} \
             --build-arg MODE=${{ env.MODE }} \
             --build-arg STRIPE_KEY=${{ env.STRIPE_KEY }} 
+            --build-arg STRIPE_SECRET=${{env.STRIPE_SECRET}}
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
           echo "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" > image.txt
 
