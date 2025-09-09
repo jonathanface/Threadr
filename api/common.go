@@ -108,68 +108,6 @@ func processAWSError(opErr *smithy.OperationError) (err models.AwsStatusResponse
 	return err
 }
 
-func checkSubscriptionIsActive(user models.UserInfo) (bool, *stripe.Error) {
-	stripe.Key = os.Getenv("STRIPE_SECRET")
-	if stripe.Key == "" {
-		return false, &stripe.Error{HTTPStatusCode: http.StatusInternalServerError, Msg: "unable to load stripe secret"}
-	}
-	var c *stripe.Customer
-	params := &stripe.CustomerParams{}
-	params.AddExpand("subscriptions")
-	c, err := customer.Get(user.CustomerID, params)
-	if err != nil {
-		if _, ok := err.(*stripe.Error); ok {
-			return false, &stripe.Error{HTTPStatusCode: http.StatusBadGateway, Msg: "unable to cast response to stripe.Error"}
-		}
-		return false, err.(*stripe.Error)
-	}
-
-	activeSubscription := false
-	if c.Subscriptions != nil {
-		for _, item := range c.Subscriptions.Data {
-			if item.Status == stripe.SubscriptionStatusActive {
-				activeSubscription = true
-				break
-			}
-		}
-	} else {
-		return false, &stripe.Error{HTTPStatusCode: http.StatusNotFound, Msg: "unable to find subscription"}
-	}
-	return activeSubscription, nil
-}
-
-func checkSubscriptionIsExpiring(user models.UserInfo) (bool, *stripe.Error) {
-	stripe.Key = os.Getenv("STRIPE_SECRET")
-	if stripe.Key == "" {
-		return false, &stripe.Error{HTTPStatusCode: http.StatusInternalServerError, Msg: "unable to load stripe secret"}
-	}
-	var c *stripe.Customer
-	params := &stripe.CustomerParams{}
-	params.AddExpand("subscriptions")
-	c, err := customer.Get(user.CustomerID, params)
-	if err != nil {
-		if _, ok := err.(*stripe.Error); ok {
-			return false, &stripe.Error{HTTPStatusCode: http.StatusBadGateway, Msg: "unable to cast response to stripe.Error"}
-		}
-		return false, err.(*stripe.Error)
-	}
-
-	isExpiring := false
-	if c.Subscriptions != nil {
-		for _, item := range c.Subscriptions.Data {
-			fmt.Println("sub", item.CancelAtPeriodEnd)
-
-			if item.CancelAtPeriodEnd {
-				isExpiring = true
-				break
-			}
-		}
-	} else {
-		return false, &stripe.Error{HTTPStatusCode: http.StatusNotFound, Msg: "unable to find subscription"}
-	}
-	return isExpiring, nil
-}
-
 func updateSubscription(subscriptionID, paymentMethodID, priceID string) (*stripe.Subscription, error) {
 	subItemParams := &stripe.SubscriptionItemListParams{
 		Subscription: &subscriptionID,

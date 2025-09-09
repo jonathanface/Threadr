@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -110,9 +111,10 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options Options
 		api.RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	if fullDetails, err := dao.GetUserDetails(info.Email); err != nil {
+	userDetails, err := dao.GetUserDetails(info.Email)
+	if err != nil {
 		if err == sql.ErrNoRows {
-			if err := dao.CreateUser(info.Email); err != nil {
+			if userDetails, err = dao.CreateUser(info.Email); err != nil {
 				api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 				return
 			}
@@ -120,9 +122,6 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options Options
 			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-	} else {
-		info.CustomerID = fullDetails.CustomerID
-		info.SubscriptionID = fullDetails.SubscriptionID
 	}
 
 	toJSON, err := json.Marshal(info)
@@ -154,7 +153,6 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options Options
 		return
 	}
 
-	// ---- Compute next URL: prefer ?redirect=..., then fallback to login_referral, else frontend root
 	frontend := options.FrontEndURL
 	allowedOrigins := []string{options.FrontEndURL}
 	next := frontend
@@ -166,6 +164,31 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options Options
 		}
 		// Clear the one-time referral cookie now that we’ve used it
 		_ = sessions.Delete(w, r, "login_referral")
+	}
+
+	updated, err := dao.IsUserSubscribed(*userDetails)
+	if err != nil {
+		log.Println("IsUserSubscribed error:", err)
+	} else {
+		log.Println("user is subscriber", updated)
+		// persist Subscriber flip only when changed
+		if userDetails.Subscriber != updated.Subscriber {
+			log.Println("previously nonsub")
+			if err := dao.UpdateUser(*updated); err != nil {
+				api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+		}
+
+		// Append UX query flags and return immediately after redirect
+		if updated.NotifyExpired {
+			http.Redirect(w, r, next+"?expired=true", http.StatusTemporaryRedirect)
+			return
+		}
+		if updated.NotifyRestored {
+			http.Redirect(w, r, next+"?restored=true", http.StatusTemporaryRedirect)
+			return
+		}
 	}
 
 	http.Redirect(w, r, next, http.StatusTemporaryRedirect)

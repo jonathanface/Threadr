@@ -600,9 +600,6 @@ func GetUserData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user.Admin = details.Admin
-	user.Renewing = details.Renewing
-	user.SubscriptionID = details.SubscriptionID
-	user.ExpiresAt = details.ExpiresAt
-	user.Expired = details.Expired
+	user.Subscriber = details.Subscriber
 	RespondWithJson(w, http.StatusOK, user)
 }

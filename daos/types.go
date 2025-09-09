@@ -2,6 +2,7 @@ package daos
 
 import (
 	"context"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -12,6 +13,14 @@ type Options struct {
 	MaxRetries                 int
 	BlockTableMinWriteCapacity int
 	WriteBatchSize             int
+}
+
+type SubscriptionStatus struct {
+	Active           bool
+	Status           string
+	ID               string
+	CurrentPeriodEnd time.Time
+	Found            bool
 }
 
 type dynamoClient struct {

@@ -36,7 +36,10 @@ func (d *DAO) GetAllStories(email string) (stories []*models.Story, err error) {
 	// Sort stories by the created_at timestamp
 
 	sort.Slice(stories, func(i, j int) bool {
-		return stories[i].CreatedAt < stories[j].CreatedAt
+		if stories[i].CreatedAt == stories[j].CreatedAt {
+			return stories[i].ID < stories[j].ID // tie-breaker
+		}
+		return stories[i].CreatedAt < stories[j].CreatedAt // oldest first
 	})
 
 	for i := 0; i < len(stories); i++ {

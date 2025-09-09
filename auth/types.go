@@ -1,6 +1,8 @@
 package auth
 
-import "RichDocter/models"
+import (
+	"RichDocter/models"
+)
 
 type Options struct {
 	Mode         models.AppMode

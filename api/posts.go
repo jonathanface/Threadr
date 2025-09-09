@@ -247,7 +247,7 @@ func CreateAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if isSubscriber, ok = r.Context().Value(ctxkey.Subscriber).(bool); !ok {
-		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
+		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve subscriber key from context")
 		return
 	}
 
