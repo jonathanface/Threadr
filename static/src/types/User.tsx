@@ -1,12 +1,7 @@
 export interface UserDetails {
-  user_id: string;
   email: string;
-  renewing: boolean;
-  subscription_id: string;
-  customer_id: string;
+  subscriber: boolean;
   admin?: boolean;
-  expired?: boolean;
-  expires_at?: string;
 }
 
 export interface User {

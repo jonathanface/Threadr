@@ -95,10 +95,10 @@ export const DocumentExporter = () => {
     }
   };
   let disabled = false;
-  if (!userDetails?.subscription_id.length) {
+  if (!userDetails?.subscriber) {
     disabled = true;
   }
-  const altText = !userDetails?.subscription_id.length
+  const altText = !userDetails?.subscriber
     ? "Exporting stories is only available to subscribers"
     : "Export story";
 

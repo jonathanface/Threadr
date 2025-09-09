@@ -111,12 +111,18 @@ type UserInfo struct {
 	Email          string `json:"email" dynamodbav:"email"`
 	FirstName      string `json:"first_name" dynamodbav:"first_name"`
 	Admin          bool   `json:"admin" dynamodbav:"admin"`
-	SubscriptionID string `json:"subscription_id" dynamodbav:"subscription_id"`
-	CustomerID     string `json:"customer_id" dynamodbav:"customer_id"`
-	Expired        bool   `json:"expired" dynamodbav:"expired"`
-	Renewing       bool   `json:"renewing" dynamodbav:"renewing"`
 	AuthType       string `json:"auth_type"`
-	ExpiresAt      string `json:"expires_at" dynamodbav:"expires_at"`
+	Subscriber     bool   `json:"subscriber" dynamodbav:"subscriber"`
+	NotifyExpired  bool   `json:"notify_expired,omitempty"`
+	NotifyRestored bool   `json:"notify_restored,omitempty"`
+}
+
+type Subscription struct {
+	Email                  string    `json:"email" dynamodbav:"email"`
+	SubscriptionID         string    `json:"subscription_id" dynamodbav:"subscription_id"`
+	CustomerID             string    `json:"customer_id" dynamodbav:"customer_id"`
+	CurrentSubscriptionEnd time.Time `dynamodbav:"current_subscription_end"`
+	LastSubCheck           time.Time `dynamodbav:"last_sub_check"`
 }
 
 type Answer struct {

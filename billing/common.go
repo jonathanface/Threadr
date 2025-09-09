@@ -11,9 +11,12 @@ import (
 	"github.com/stripe/stripe-go/v79/customer"
 )
 
-func ensureCustomer(u *models.UserInfo) string {
-	if u.CustomerID != "" {
-		return u.CustomerID
+func ensureCustomer(u *models.UserInfo, s *models.Subscription) string {
+	if u == nil {
+		panic("empty user passed to ensureCustomer")
+	}
+	if s != nil && s.CustomerID != "" {
+		return s.CustomerID
 	}
 	// 1) try to find by email
 	lp := &stripe.CustomerListParams{

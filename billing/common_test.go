@@ -246,6 +246,7 @@ func TestEnsureCustomer(t *testing.T) {
 	type tc struct {
 		name    string
 		user    models.UserInfo
+		sub     models.Subscription
 		spec    stripeRouteSpec
 		wantID  string
 		wanPnic bool
@@ -254,25 +255,29 @@ func TestEnsureCustomer(t *testing.T) {
 	cases := []tc{
 		{
 			name:   "has existing CustomerID on user – returns it, no Stripe calls required",
-			user:   models.UserInfo{Email: "a@example.com", CustomerID: "cus_from_user"},
+			user:   models.UserInfo{Email: "a@example.com"},
+			sub:    models.Subscription{Email: "c@example.com", CustomerID: "cus_from_user"},
 			spec:   stripeRouteSpec{}, // should be ignored
 			wantID: "cus_from_user",
 		},
 		{
 			name:   "no CustomerID, list finds existing customer",
 			user:   models.UserInfo{Email: "b@example.com"},
+			sub:    models.Subscription{Email: "c@example.com"},
 			spec:   stripeRouteSpec{ExistingCustomerID: "cus_list_hit"},
 			wantID: "cus_list_hit",
 		},
 		{
 			name:   "no CustomerID, list empty → creates new",
 			user:   models.UserInfo{Email: "c@example.com"},
+			sub:    models.Subscription{Email: "c@example.com"},
 			spec:   stripeRouteSpec{CreateCustomerID: "cus_created"},
 			wantID: "cus_created",
 		},
 		{
 			name:    "create error → function panics",
 			user:    models.UserInfo{Email: "d@example.com"},
+			sub:     models.Subscription{Email: "c@example.com"},
 			spec:    stripeRouteSpec{CreateShouldError: true},
 			wanPnic: true,
 		},
@@ -290,7 +295,7 @@ func TestEnsureCustomer(t *testing.T) {
 			var panicked any
 			func() {
 				defer func() { panicked = recover() }()
-				got = ensureCustomer(&c.user) // through a small shim (below) to access unexported ensureCustomer
+				got = ensureCustomer(&c.user, &c.sub) // through a small shim (below) to access unexported ensureCustomer
 			}()
 
 			if c.wanPnic {

@@ -38,10 +38,6 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
   if (!userSettings?.userDetails) {
     return null;
   }
-  const isSubscriber: boolean = Boolean(
-    userSettings.userDetails.subscription_id.length,
-  );
-  if (!isSubscriber) return null;
 
   return (
     <div>

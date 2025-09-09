@@ -1,6 +1,7 @@
 package billing
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"os"
@@ -11,6 +12,7 @@ import (
 
 	ctxkey "RichDocter/ctxkeys"
 	"RichDocter/daos"
+	"RichDocter/models"
 
 	"github.com/stripe/stripe-go/v79/billingportal/session"
 )
@@ -49,14 +51,18 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	custID := ensureCustomerFn(user)
+	sub, err := dao.GetSubscription(email)
+	if err != nil && err != sql.ErrNoRows {
+		RespondWithError(w, http.StatusInternalServerError, "unable to load subscription")
+		return
+	}
+
+	custID := ensureCustomerFn(user, sub)
 
 	// Create (or reuse) a subscription in incomplete state
 	params := &stripe.SubscriptionParams{
-		Customer: stripe.String(custID),
-		Items: []*stripe.SubscriptionItemsParams{{
-			Price: stripe.String(priceID),
-		}},
+		Customer:        stripe.String(custID),
+		Items:           []*stripe.SubscriptionItemsParams{{Price: stripe.String(priceID)}},
 		PaymentBehavior: stripe.String("default_incomplete"),
 		PaymentSettings: &stripe.SubscriptionPaymentSettingsParams{
 			SaveDefaultPaymentMethod: stripe.String("on_subscription"),
@@ -76,11 +82,27 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusFailedDependency, "missing payment_intent")
 		return
 	}
-	resp := map[string]any{
-		"clientSecret":   inv.PaymentIntent.ClientSecret,
-		"subscriptionId": s.ID,
+	var periodEnd time.Time
+	if s.CurrentPeriodEnd > 0 {
+		periodEnd = time.Unix(s.CurrentPeriodEnd, 0).UTC()
 	}
-	RespondWithJson(w, http.StatusOK, resp)
+
+	err = dao.UpdateSubscription(models.Subscription{
+		Email:                  user.Email,
+		SubscriptionID:         s.ID,
+		CustomerID:             custID,
+		CurrentSubscriptionEnd: periodEnd,
+		LastSubCheck:           time.Now(),
+	})
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "unable to update subscription")
+		return
+	}
+	RespondWithJson(w, http.StatusOK, createSubResp{
+		SubscriptionID: s.ID,
+		Status:         string(s.Status),
+		ClientSecret:   inv.PaymentIntent.ClientSecret,
+	})
 }
 
 func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -107,7 +129,13 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	custID := ensureCustomerFn(user)
+	sub, err := dao.GetSubscription(email)
+	if err != nil && err != sql.ErrNoRows {
+		RespondWithError(w, http.StatusInternalServerError, "unable to load user")
+		return
+	}
+
+	custID := ensureCustomerFn(user, sub)
 
 	params := &stripe.SubscriptionListParams{
 		Customer: stripe.String(custID),
@@ -166,8 +194,14 @@ func BillingPortalSessionEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sub, err := dao.GetSubscription(email)
+	if err != nil && err != sql.ErrNoRows {
+		RespondWithError(w, http.StatusInternalServerError, "unable to load user")
+		return
+	}
+
 	// 4) Ensure Stripe customer exists / get ID
-	custID := ensureCustomerFn(user)
+	custID := ensureCustomerFn(user, sub)
 
 	// 5) Determine return URL (from header or fallback)
 	retURL := r.Header.Get("X-Return-Url")

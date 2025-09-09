@@ -19,6 +19,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/smithy-go"
+	stripe "github.com/stripe/stripe-go/v79"
+	stripesub "github.com/stripe/stripe-go/v79/subscription"
 )
 
 func GenerateStoryOutlineSections(typeOf models.OutlineTemplate) []models.OutlineSection {
@@ -439,7 +441,7 @@ func (d *DAO) CheckTableStatus(tableName string) (string, error) {
 
 func (d *DAO) RestoreAutomaticallyDeletedStories(email string) error {
 	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
-		TableName:        aws.String("stories"),
+		TableName:        aws.String("stories" + GetTableSuffix()),
 		FilterExpression: aws.String("author=:eml AND attribute_exists(deleted_at) AND automated_deletion=:a"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
@@ -456,7 +458,7 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(email string) error {
 	}
 	for _, story := range stories {
 		chapterScanInput := &dynamodb.ScanInput{
-			TableName:        aws.String("chapters"),
+			TableName:        aws.String("chapters" + GetTableSuffix()),
 			FilterExpression: aws.String("attribute_exists(deleted_at) AND story_id = :sid AND attribute_exists(bup_arn)"),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
 				":sid": &types.AttributeValueMemberS{Value: story.ID},
@@ -475,7 +477,7 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(email string) error {
 			if len(chapter.BackupARN) == 0 {
 				continue
 			}
-			oldTableName := story.ID + "_" + chapter.ID + "_blocks"
+			oldTableName := story.ID + "_" + chapter.ID + "_blocks" + GetTableSuffix()
 			_, err := d.DynamoClient.RestoreTableFromBackup(context.TODO(), &dynamodb.RestoreTableFromBackupInput{
 				BackupArn:       aws.String(chapter.BackupARN),
 				TargetTableName: aws.String(oldTableName),
@@ -488,7 +490,7 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(email string) error {
 				"story_id":   &types.AttributeValueMemberS{Value: story.ID},
 			}
 			chapterUpdateInput := &dynamodb.UpdateItemInput{
-				TableName:        aws.String("chapters"),
+				TableName:        aws.String("chapters" + GetTableSuffix()),
 				Key:              chapterKey,
 				UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 			}
@@ -502,7 +504,7 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(email string) error {
 			"author":   &types.AttributeValueMemberS{Value: email},
 		}
 		storyUpdateInput := &dynamodb.UpdateItemInput{
-			TableName:        aws.String("stories"),
+			TableName:        aws.String("stories" + GetTableSuffix()),
 			Key:              storyKey,
 			UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 		}
@@ -519,7 +521,7 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(email string) error {
 				"author":    &types.AttributeValueMemberS{Value: email},
 			}
 			seriesUpdateInput := &dynamodb.UpdateItemInput{
-				TableName:        aws.String("series"),
+				TableName:        aws.String("series" + GetTableSuffix()),
 				Key:              seriesKey,
 				UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 			}
@@ -530,7 +532,7 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(email string) error {
 		}
 
 		associationScanInput := &dynamodb.ScanInput{
-			TableName:        aws.String("associations"),
+			TableName:        aws.String("associations" + GetTableSuffix()),
 			FilterExpression: aws.String("author = :eml AND attribute_exists(deleted_at) AND automated_deletion = :a AND story_or_series_id = :sid"),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
 				":eml": &types.AttributeValueMemberS{Value: email},
@@ -551,7 +553,7 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(email string) error {
 				"story_or_series_id": &types.AttributeValueMemberS{Value: storyOrSeriesID},
 			}
 			associationUpdateInput := &dynamodb.UpdateItemInput{
-				TableName:        aws.String("associations"),
+				TableName:        aws.String("associations" + GetTableSuffix()),
 				Key:              associationKey,
 				UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 			}
@@ -561,7 +563,7 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(email string) error {
 			}
 
 			associationDetailsUpdateInput := &dynamodb.UpdateItemInput{
-				TableName:        aws.String("association_details"),
+				TableName:        aws.String("association_details" + GetTableSuffix()),
 				Key:              associationKey,
 				UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 			}
@@ -1008,4 +1010,52 @@ func (d *DAO) AddStripeData(email, subscriptionID, customerID *string) error {
 		return err
 	}
 	return nil
+}
+
+func (d *DAO) verifyStripeSubscription(subID, customerID string) (SubscriptionStatus, error) {
+
+	normalize := func(s string) string { return strings.TrimSpace(s) }
+
+	subID = normalize(subID)
+	customerID = normalize(customerID)
+
+	// 1) Try direct GET if we have a candidate ID
+	if subID != "" {
+		s, err := stripesub.Get(subID, nil)
+		if err == nil {
+			return toStatus(s, true), nil
+		}
+		// Gracefully handle 404 resource_missing
+		if se, ok := err.(*stripe.Error); ok && se.Code == stripe.ErrorCodeResourceMissing && se.Param == "id" {
+			// fall through to customer lookup if we can
+		} else {
+			// other errors (auth, network, etc.) bubble up
+			return SubscriptionStatus{}, err
+		}
+	}
+
+	// 2) If we know the customer, try to find their most recent subscription
+	if customerID != "" {
+		lp := &stripe.SubscriptionListParams{
+			Customer: stripe.String(customerID),
+			Status:   stripe.String("all"),
+		}
+		it := stripesub.List(lp)
+		var newest *stripe.Subscription
+		for it.Next() {
+			s := it.Subscription()
+			if newest == nil || s.Created > newest.Created {
+				newest = s
+			}
+		}
+		if err := it.Err(); err != nil {
+			return SubscriptionStatus{}, err
+		}
+		if newest != nil {
+			return toStatus(newest, true), nil
+		}
+	}
+
+	// 3) Nothing found
+	return SubscriptionStatus{Found: false, Active: false, Status: "not_found"}, nil
 }

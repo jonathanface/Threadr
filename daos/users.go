@@ -5,6 +5,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
+	"os"
 	"strconv"
 	"time"
 
@@ -12,9 +14,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/stripe/stripe-go/v79"
 )
 
-func (d *DAO) CreateUser(email string) error {
+func (d *DAO) CreateUser(email string) (*models.UserInfo, error) {
 	twii := &dynamodb.TransactWriteItemsInput{}
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	attributes := map[string]types.AttributeValue{
@@ -34,12 +37,18 @@ func (d *DAO) CreateUser(email string) error {
 	twii.TransactItems = append(twii.TransactItems, twi)
 	awsErr, err := d.awsWriteTransaction(twii)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !awsErr.IsNil() {
-		return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
+		return nil, fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 	}
-	return nil
+
+	user := models.UserInfo{
+		Email:      email,
+		Admin:      false,
+		Subscriber: false,
+	}
+	return &user, nil
 }
 
 func (d *DAO) GetUserDetails(email string) (user *models.UserInfo, err error) {
@@ -51,16 +60,16 @@ func (d *DAO) GetUserDetails(email string) (user *models.UserInfo, err error) {
 		},
 	})
 	if err != nil {
-		return user, err
+		return nil, err
 	}
 
 	userFromMap := []models.UserInfo{}
 
 	if err = attributevalue.UnmarshalListOfMaps(out.Items, &userFromMap); err != nil {
-		return user, err
+		return nil, err
 	}
 	if len(userFromMap) == 0 {
-		return user, sql.ErrNoRows
+		return nil, sql.ErrNoRows
 	}
 	return &userFromMap[0], nil
 }
@@ -68,7 +77,7 @@ func (d *DAO) GetUserDetails(email string) (user *models.UserInfo, err error) {
 /**
  * Either create a user, or update user with last login time
 **/
-func (d *DAO) UpsertUser(email string) (err error) {
+func (d *DAO) UpsertUser(email string) (user models.UserInfo, err error) {
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	input := &dynamodb.UpdateItemInput{
 		TableName: aws.String("users" + GetTableSuffix()),
@@ -83,7 +92,7 @@ func (d *DAO) UpsertUser(email string) (err error) {
 	}
 	var out *dynamodb.UpdateItemOutput
 	if out, err = d.DynamoClient.UpdateItem(context.TODO(), input); err != nil {
-		return err
+		return user, err
 	}
 	var createdAt string
 	attributevalue.Unmarshal(out.Attributes["created_at"], &createdAt)
@@ -91,22 +100,15 @@ func (d *DAO) UpsertUser(email string) (err error) {
 	if createdAt == now {
 		fmt.Println("new account created")
 	}
-	return
+	return user, nil
 }
 
 func (d *DAO) UpdateUser(user models.UserInfo) (err error) {
 	now := strconv.FormatInt(time.Now().Unix(), 10)
-	queryString := "set last_accessed=:t, customer_id=:cid, subscription_id=:sid, expired=:e, renewing=:r"
+	queryString := "set last_accessed=:t, subscriber=:s"
 	attributes := map[string]types.AttributeValue{
-		":t":   &types.AttributeValueMemberN{Value: now},
-		":sid": &types.AttributeValueMemberS{Value: user.SubscriptionID},
-		":cid": &types.AttributeValueMemberS{Value: user.CustomerID},
-		":r":   &types.AttributeValueMemberBOOL{Value: user.Renewing},
-		":e":   &types.AttributeValueMemberBOOL{Value: user.Expired},
-	}
-	if len(user.ExpiresAt) > 0 {
-		queryString += ", expires_at=:ea"
-		attributes[":ea"] = &types.AttributeValueMemberN{Value: user.ExpiresAt}
+		":t": &types.AttributeValueMemberN{Value: now},
+		":s": &types.AttributeValueMemberBOOL{Value: user.Subscriber},
 	}
 	input := &dynamodb.UpdateItemInput{
 		TableName: aws.String("users" + GetTableSuffix()),
@@ -130,12 +132,90 @@ func (d *DAO) UpdateUser(user models.UserInfo) (err error) {
 	return
 }
 
-func (d *DAO) IsUserSubscribed(email string) (subscriberID string, err error) {
-	userInfo, err := d.GetUserDetails(email)
-	if err != nil {
-		return
+func toStatus(s *stripe.Subscription, found bool) SubscriptionStatus {
+	active := s.Status == stripe.SubscriptionStatusActive || s.Status == stripe.SubscriptionStatusTrialing
+	var cpe time.Time
+	if s.CurrentPeriodEnd > 0 {
+		cpe = time.Unix(s.CurrentPeriodEnd, 0)
 	}
-	return userInfo.SubscriptionID, nil
+	return SubscriptionStatus{
+		ID:               s.ID,
+		Found:            found,
+		Active:           active,
+		Status:           string(s.Status),
+		CurrentPeriodEnd: cpe,
+	}
+}
+
+func (d *DAO) IsUserSubscribed(user models.UserInfo) (*models.UserInfo, error) {
+	stripe.Key = os.Getenv("STRIPE_SECRET")
+	if stripe.Key == "" {
+		return nil, fmt.Errorf("missing stripe secret")
+	}
+	sub, err := d.GetSubscription(user.Email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// No subscription on file: treat as not subscribed, not an error
+			user.Subscriber = false
+			return &user, nil
+		}
+		return nil, err
+	}
+
+	// Base truth from DB
+	isSubscribed := sub.SubscriptionID != "" && sub.CurrentSubscriptionEnd.After(time.Now())
+
+	// Recheck policy:
+	// Re-verify with Stripe if we have a sub id AND the check is stale.
+	const staleAfter = 15 * time.Minute
+	shouldRecheck := sub.SubscriptionID != "" && (sub.LastSubCheck.IsZero() || time.Since(sub.LastSubCheck) > staleAfter)
+
+	if shouldRecheck {
+		status, stripeErr := d.verifyStripeSubscription(sub.SubscriptionID, sub.CustomerID)
+		if stripeErr == nil && status.Found {
+			isSubscribed = status.Active
+			sub.CurrentSubscriptionEnd = status.CurrentPeriodEnd
+			sub.LastSubCheck = time.Now().UTC()
+			if err := d.UpdateSubscription(*sub); err != nil {
+				return nil, err
+			}
+		} else if stripeErr != nil {
+			// Network/auth issues—log and keep DB truth
+			log.Println("verifyStripeSubscription error:", stripeErr)
+		}
+	}
+
+	// Side effects: suspend/restore stories + set notify flags for UX
+	if !isSubscribed && user.Subscriber {
+		user.NotifyExpired = true
+
+		stories, err := d.GetAllStories(user.Email)
+		if err != nil && err != sql.ErrNoRows {
+			return nil, err
+		}
+		for idx, s := range stories {
+			if idx > 0 {
+				if derr := d.SoftDeleteStory(user.Email, s.ID, true); derr != nil {
+					log.Printf("SoftDeleteStory(%s, %s) error: %v", user.Email, s.ID, derr)
+				}
+			}
+		}
+	} else if isSubscribed {
+		wasSuspended, err := d.CheckForSuspendedStories(user.Email) // bool
+		if err != nil {
+			return nil, err
+		}
+		if wasSuspended {
+			if rerr := d.RestoreAutomaticallyDeletedStories(user.Email); rerr != nil && rerr != sql.ErrNoRows {
+				log.Printf("RestoreAutomaticallyDeletedStories(%s) error: %v", user.Email, rerr)
+			}
+			user.NotifyRestored = true
+		}
+	}
+
+	// Reflect final status back to caller
+	user.Subscriber = isSubscribed
+	return &user, nil
 }
 
 func (d *DAO) AddCustomerID(email, customerID *string) error {
