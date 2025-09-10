@@ -26,6 +26,7 @@ type DaoInterface interface {
 	GetOutlineByStoryID(storyID string, chapters []models.Chapter) (*models.OutlineResponse, error)
 	GetChapterTableStatus(storyID, chapterID string) (bool, error)
 	GetSubscription(email string) (*models.Subscription, error)
+	GetEmailByCustomerId(customerID string) (string, error)
 
 	// PUTs
 	UpsertUser(email string) (models.UserInfo, error)

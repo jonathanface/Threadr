@@ -1,14 +1,20 @@
 package billing
 
 import (
+	"bytes"
+	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"os"
 	"time"
 
 	stripe "github.com/stripe/stripe-go/v79"
 	"github.com/stripe/stripe-go/v79/subscription"
+	"github.com/stripe/stripe-go/v79/webhook"
 
 	ctxkey "RichDocter/ctxkeys"
 	"RichDocter/daos"
@@ -20,6 +26,123 @@ import (
 // stubs to make these funcs mockable in tests
 var getUserEmailFn = getUserEmail
 var ensureCustomerFn = ensureCustomer
+
+const (
+	DEFAULT_MAX_RETRIES              = 3
+	DEFAULT_AWS_BLOCK_WRITE_CAPACITY = 10
+	DEFAULT_AWS_REGION               = "us-east-1"
+	DEFAULT_DYNAMO_WRITE_BATCH_SIZE  = 50
+)
+
+func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
+	log.Println("stripe hook hit")
+	const tolerance = 300 * time.Second
+
+	payload, _ := io.ReadAll(r.Body)
+	defer r.Body.Close()
+
+	sigHeader := r.Header.Get("Stripe-Signature")
+	endpointSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
+	if endpointSecret == "" {
+		RespondWithError(w, http.StatusInternalServerError, "missing webhook secret")
+		return
+	}
+
+	var (
+		err error
+	)
+	daoOptions := daos.Options{
+		Region:                     getenv("AWS_REGION", DEFAULT_AWS_REGION),
+		MaxRetries:                 atoiDefault(os.Getenv("AWS_MAX_RETRIES"), DEFAULT_MAX_RETRIES),
+		BlockTableMinWriteCapacity: atoiDefault(os.Getenv("AWS_BLOCKTABLE_MIN_WRITE_CAPACITY"), DEFAULT_AWS_BLOCK_WRITE_CAPACITY),
+		WriteBatchSize:             atoiDefault(os.Getenv("DYNAMO_WRITE_BATCH_SIZE"), DEFAULT_DYNAMO_WRITE_BATCH_SIZE),
+	}
+	dao, err := daos.NewDAO(context.Background(), daoOptions)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	event, err := webhook.ConstructEventWithOptions(payload, sigHeader, endpointSecret, webhook.ConstructEventOptions{
+		IgnoreAPIVersionMismatch: true,
+		Tolerance:                tolerance,
+	})
+	if err != nil {
+		http.Error(w, "signature verification failed: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	switch event.Type {
+	case "customer.subscription.updated",
+		"customer.subscription.deleted":
+		var sub stripe.Subscription
+		if err := json.NewDecoder(bytes.NewReader(event.Data.Raw)).Decode(&sub); err != nil {
+			RespondWithError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		email, err := dao.GetEmailByCustomerId(sub.Customer.ID)
+		if err != nil || email == "" {
+			RespondWithError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		err = dao.UpdateSubscription(models.Subscription{
+			Email:                  email,
+			CustomerID:             sub.Customer.ID,
+			SubscriptionID:         sub.ID,
+			LastSubCheck:           time.Now(),
+			CurrentSubscriptionEnd: time.Unix(sub.CurrentPeriodEnd, 0).UTC(),
+		})
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		user, err := dao.GetUserDetails(email)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		isActive := sub.Status == stripe.SubscriptionStatusActive || sub.Status == stripe.SubscriptionStatusTrialing
+
+		if isActive && !user.Subscriber {
+			user.Subscriber = true
+			wasSuspended, err := dao.CheckForSuspendedStories(user.Email) // bool
+			if err != nil {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			if wasSuspended {
+				go dao.RestoreAutomaticallyDeletedStories(user.Email)
+				user.NotifyRestored = true
+
+			}
+		}
+		if !isActive && user.Subscriber {
+			user.Subscriber = false
+			user.NotifyExpired = true
+
+			stories, err := dao.GetAllStories(user.Email)
+			if err != nil && err != sql.ErrNoRows {
+				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			for idx, s := range stories {
+				if idx > 0 {
+					go dao.SoftDeleteStory(user.Email, s.ID, true)
+				}
+			}
+		}
+		err = dao.UpdateUser(*user)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	RespondWithJson(w, http.StatusOK, nil)
+}
 
 func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 
@@ -106,6 +229,7 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
+	log.Println("billing portal summary")
 	var (
 		email string
 		err   error
@@ -173,6 +297,7 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func BillingPortalSessionEndpoint(w http.ResponseWriter, r *http.Request) {
+	log.Println("in billing portal endpoint")
 	// 1) Who is the user?
 	email, err := getUserEmailFn(r)
 	if err != nil {
@@ -220,6 +345,14 @@ func BillingPortalSessionEndpoint(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		RespondWithError(w, http.StatusBadGateway, "stripe portal error: "+err.Error())
+		return
+	}
+
+	var zeroTime time.Time
+	sub.LastSubCheck = zeroTime
+	err = dao.UpdateSubscription(*sub)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "error updating subscription: "+err.Error())
 		return
 	}
 
