@@ -9,7 +9,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -24,8 +23,7 @@ import (
 )
 
 const (
-	oneDay     = 24 * time.Hour
-	thirtyDays = 30 * oneDay
+	oneDay = 24 * time.Hour
 )
 
 func New(options Options) {
@@ -138,14 +136,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options Options
 	tokenSess.Values["token_data"] = toJSON
 
 	opts := sessions.OptionsFor(r)
-	ttl := time.Until(user.ExpiresAt)
-	if ttl < oneDay {
-		ttl = oneDay
-	}
-	if ttl > thirtyDays {
-		ttl = thirtyDays
-	}
-	opts.MaxAge = int(ttl.Seconds())
+	opts.MaxAge = int(oneDay.Seconds())
 	tokenSess.Options = opts
 
 	if err := tokenSess.Save(r, w); err != nil {
@@ -167,13 +158,9 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options Options
 	}
 
 	updated, err := dao.IsUserSubscribed(*userDetails)
-	if err != nil {
-		log.Println("IsUserSubscribed error:", err)
-	} else {
-		log.Println("user is subscriber", updated)
+	if err == nil {
 		// persist Subscriber flip only when changed
 		if userDetails.Subscriber != updated.Subscriber {
-			log.Println("previously nonsub")
 			if err := dao.UpdateUser(*updated); err != nil {
 				api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 				return

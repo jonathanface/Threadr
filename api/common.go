@@ -14,16 +14,10 @@ import (
 	"image/png"
 	"io"
 	"net/http"
-	"os"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/smithy-go"
 	"github.com/nfnt/resize"
-	stripe "github.com/stripe/stripe-go/v72"
-	"github.com/stripe/stripe-go/v72/customer"
-	"github.com/stripe/stripe-go/v72/paymentmethod"
-	"github.com/stripe/stripe-go/v72/sub"
-	"github.com/stripe/stripe-go/v72/subitem"
 )
 
 const (
@@ -108,96 +102,6 @@ func processAWSError(opErr *smithy.OperationError) (err models.AwsStatusResponse
 	return err
 }
 
-func updateSubscription(subscriptionID, paymentMethodID, priceID string) (*stripe.Subscription, error) {
-	subItemParams := &stripe.SubscriptionItemListParams{
-		Subscription: &subscriptionID,
-	}
-	i := subitem.List(subItemParams)
-	var si *stripe.SubscriptionItem
-	for i.Next() {
-		si = i.SubscriptionItem()
-		break
-	}
-	if si == nil {
-		return nil, fmt.Errorf("no subscription items found for subscription %v", subscriptionID)
-	}
-
-	subscriptionParams := &stripe.SubscriptionParams{
-		CancelAtPeriodEnd: stripe.Bool(false),
-		ProrationBehavior: stripe.String(string(stripe.SubscriptionProrationBehaviorCreateProrations)),
-		Items: []*stripe.SubscriptionItemsParams{
-			{
-				ID:    &si.ID,
-				Price: &priceID,
-			},
-		},
-		DefaultPaymentMethod: &paymentMethodID,
-	}
-
-	stripeSubscription, err := sub.Update(subscriptionID, subscriptionParams)
-	if err != nil {
-		return nil, err
-	}
-
-	return stripeSubscription, nil
-}
-
-func createSubscription(customerID string, priceID string, paymentMethodID string) (*stripe.Subscription, error) {
-	stripe.Key = os.Getenv("STRIPE_SECRET")
-	if stripe.Key == "" {
-		return &stripe.Subscription{}, fmt.Errorf("missing stripe secret")
-	}
-	subscriptionParams := &stripe.SubscriptionParams{
-		Customer: &customerID,
-		Items: []*stripe.SubscriptionItemsParams{
-			{
-				Plan: &priceID,
-			},
-		},
-		DefaultPaymentMethod: &paymentMethodID,
-	}
-	return sub.New(subscriptionParams)
-}
-
-func getPaymentMethodsForCustomer(customerID string) ([]models.PaymentMethod, error) {
-	stripe.Key = os.Getenv("STRIPE_SECRET")
-	if stripe.Key == "" {
-		return nil, fmt.Errorf("missing stripe secret")
-	}
-
-	c, err := customer.Get(customerID, nil)
-	if err != nil {
-		return nil, err
-	}
-	var defaultPaymentMethodID *string
-	if c.InvoiceSettings.DefaultPaymentMethod != nil {
-		defaultPaymentMethodID = &c.InvoiceSettings.DefaultPaymentMethod.ID
-	}
-	listParams := &stripe.PaymentMethodListParams{
-		Customer: stripe.String(customerID),
-		Type:     stripe.String("card"), // Filter to retrieve only card payment methods
-	}
-
-	// List payment methods associated with the customer
-	iter := paymentmethod.List(listParams)
-
-	var methods []models.PaymentMethod
-	for iter.Next() {
-		pm := iter.PaymentMethod()
-		localPM := models.PaymentMethod{}
-		localPM.Id = pm.ID
-		localPM.Brand = pm.Card.Brand
-		localPM.LastFour = pm.Card.Last4
-		localPM.ExpirationMonth = pm.Card.ExpMonth
-		localPM.ExpirationYear = pm.Card.ExpYear
-		if defaultPaymentMethodID != nil && *defaultPaymentMethodID == pm.ID {
-			localPM.IsDefault = true
-		}
-		methods = append(methods, localPM)
-	}
-	return methods, nil
-}
-
 func staggeredStoryBlockRetrieval(dao daos.DaoInterface, storyID string, chapterID string, key *map[string]types.AttributeValue, accumulatedBlocks *models.BlocksData) (*models.BlocksData, error) {
 	// If this is the first call, initialize accumulatedBlocks
 	if accumulatedBlocks == nil {
@@ -247,21 +151,4 @@ func scaleDownImage(file io.Reader, maxWidth uint) (*bytes.Buffer, string, error
 		err = fmt.Errorf("unsupported image format: %s", format)
 	}
 	return buf, format, err
-}
-
-func cancelSubscription(subscriptionID string) (*stripe.Subscription, error) {
-	stripe.Key = os.Getenv("STRIPE_SECRET")
-	if stripe.Key == "" {
-		return nil, fmt.Errorf("missing stripe secret")
-	}
-	cancel := true
-	subscriptionParams := &stripe.SubscriptionParams{
-		CancelAtPeriodEnd: &cancel,
-	}
-
-	sub, err := sub.Update(subscriptionID, subscriptionParams)
-	if err != nil {
-		return nil, err
-	}
-	return sub, nil
 }

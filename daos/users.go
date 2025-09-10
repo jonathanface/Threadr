@@ -159,6 +159,10 @@ func (d *DAO) IsUserSubscribed(user models.UserInfo) (*models.UserInfo, error) {
 			user.Subscriber = false
 			return &user, nil
 		}
+		if sub.CurrentSubscriptionEnd.After(time.Now()) {
+			user.Subscriber = false
+			return &user, nil
+		}
 		return nil, err
 	}
 
@@ -169,7 +173,7 @@ func (d *DAO) IsUserSubscribed(user models.UserInfo) (*models.UserInfo, error) {
 	// Re-verify with Stripe if we have a sub id AND the check is stale.
 	const staleAfter = 15 * time.Minute
 	shouldRecheck := sub.SubscriptionID != "" && (sub.LastSubCheck.IsZero() || time.Since(sub.LastSubCheck) > staleAfter)
-
+	log.Println("trigger recheck?", shouldRecheck)
 	if shouldRecheck {
 		status, stripeErr := d.verifyStripeSubscription(sub.SubscriptionID, sub.CustomerID)
 		if stripeErr == nil && status.Found {
@@ -184,7 +188,7 @@ func (d *DAO) IsUserSubscribed(user models.UserInfo) (*models.UserInfo, error) {
 			log.Println("verifyStripeSubscription error:", stripeErr)
 		}
 	}
-
+	log.Println("wtf", isSubscribed, user.Subscriber)
 	// Side effects: suspend/restore stories + set notify flags for UX
 	if !isSubscribed && user.Subscriber {
 		user.NotifyExpired = true
@@ -195,10 +199,18 @@ func (d *DAO) IsUserSubscribed(user models.UserInfo) (*models.UserInfo, error) {
 		}
 		for idx, s := range stories {
 			if idx > 0 {
-				if derr := d.SoftDeleteStory(user.Email, s.ID, true); derr != nil {
-					log.Printf("SoftDeleteStory(%s, %s) error: %v", user.Email, s.ID, derr)
-				}
+				go d.SoftDeleteStory(user.Email, s.ID, true)
 			}
+		}
+		sub.CurrentSubscriptionEnd = time.Now()
+		err = d.UpdateSubscription(*sub)
+		if err != nil {
+			return nil, err
+		}
+		user.Subscriber = false
+		err = d.UpdateUser(user)
+		if err != nil {
+			return nil, err
 		}
 	} else if isSubscribed {
 		wasSuspended, err := d.CheckForSuspendedStories(user.Email) // bool
@@ -206,9 +218,7 @@ func (d *DAO) IsUserSubscribed(user models.UserInfo) (*models.UserInfo, error) {
 			return nil, err
 		}
 		if wasSuspended {
-			if rerr := d.RestoreAutomaticallyDeletedStories(user.Email); rerr != nil && rerr != sql.ErrNoRows {
-				log.Printf("RestoreAutomaticallyDeletedStories(%s) error: %v", user.Email, rerr)
-			}
+			go d.RestoreAutomaticallyDeletedStories(user.Email)
 			user.NotifyRestored = true
 		}
 	}

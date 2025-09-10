@@ -41,8 +41,6 @@ func (d *DAO) GetSubscription(email string) (sub *models.Subscription, err error
 }
 
 func (d *DAO) UpdateSubscription(sub models.Subscription) error {
-	now := time.Now().UTC()
-
 	// Build the SET parts
 	setParts := []string{
 		"subscription_id = :sid",
@@ -50,7 +48,7 @@ func (d *DAO) UpdateSubscription(sub models.Subscription) error {
 	}
 	attrs := map[string]types.AttributeValue{
 		":sid": &types.AttributeValueMemberS{Value: sub.SubscriptionID},
-		":now": &types.AttributeValueMemberS{Value: now.Format(time.RFC3339Nano)},
+		":now": &types.AttributeValueMemberS{Value: sub.LastSubCheck.Format(time.RFC3339Nano)},
 	}
 
 	if sub.Email == "" {
@@ -88,4 +86,28 @@ func (d *DAO) UpdateSubscription(sub models.Subscription) error {
 
 	_, err := d.DynamoClient.UpdateItem(context.TODO(), input)
 	return err
+}
+
+func (d *DAO) GetEmailByCustomerId(custId string) (string, error) {
+	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName:        aws.String("subscriptions" + GetTableSuffix()),
+		FilterExpression: aws.String("customer_id = :c"), // make sure matches your schema
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":c": &types.AttributeValueMemberS{Value: custId},
+		},
+		Limit: aws.Int32(1),
+	})
+	if err != nil {
+		return "", err
+	}
+	if len(out.Items) == 0 {
+		return "", fmt.Errorf("no subscription found for customer %s", custId)
+	}
+
+	emailAttr, ok := out.Items[0]["email"].(*types.AttributeValueMemberS)
+	if !ok {
+		return "", fmt.Errorf("email attribute missing or wrong type for customer %s", custId)
+	}
+
+	return emailAttr.Value, nil
 }
