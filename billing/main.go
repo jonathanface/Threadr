@@ -348,12 +348,14 @@ func BillingPortalSessionEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var zeroTime time.Time
-	sub.LastSubCheck = zeroTime
-	err = dao.UpdateSubscription(*sub)
-	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "error updating subscription: "+err.Error())
-		return
+	if sub != nil {
+		var zeroTime time.Time
+		sub.LastSubCheck = zeroTime
+		err = dao.UpdateSubscription(*sub)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, "error updating subscription: "+err.Error())
+			return
+		}
 	}
 
 	// 7) Respond with the redirect URL
