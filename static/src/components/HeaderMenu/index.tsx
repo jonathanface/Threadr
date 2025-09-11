@@ -122,10 +122,12 @@ export const HeaderMenu = () => {
     }
   };
 
+  const baseUrl = `${window.location.protocol}//${window.location.host}`;
+
   return (
     <header className={styles.header}>
       <span className={styles.leftPane}>
-        <a href="https://docter.io">
+        <a href={baseUrl}>
           <img
             className={styles.logoImage}
             alt="RichDocter logo"
