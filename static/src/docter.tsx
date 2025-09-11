@@ -9,11 +9,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { LoginPanel } from "./sections/LoginPanel";
 import { EditSeries } from "./sections/EditSeries";
 import { useToaster } from "./hooks/useToaster";
-import {
-  AlertCommandType,
-  AlertFunctionCall,
-  AlertToastType,
-} from "./types/AlertToasts";
+
 import { CreateOrEditStory } from "./sections/CreateOrEditStory";
 import { Footer } from "./components/Footer";
 import { SubscribePage } from "./sections/Payment/Subscribe";
@@ -34,41 +30,41 @@ export const Docter = () => {
   }, []);
 
   useEffect(() => {
-    if (userDetails?.expired) {
-      const subscribeFunc: AlertFunctionCall = {
-        type: AlertCommandType.subscribe,
-        text: "subscribe",
-      };
-      setAlertState({
-        title: "Subscription Expired",
-        message:
-          "Your subscription has expired. If you wish to renew your subscription, click below.",
-        open: true,
-        severity: AlertToastType.warning,
-        timeout: null,
-        callback: subscribeFunc,
-      });
-    } else if (userDetails && userDetails.expires_at && !userDetails.renewing) {
-      const now = Math.floor(Date.now() / 1000);
-      const twentyFourHoursFromNow = now + 24 * 60 * 60;
-      if (
-        parseInt(userDetails.expires_at) >= now &&
-        parseInt(userDetails.expires_at) <= twentyFourHoursFromNow
-      ) {
-        const renewFunc: AlertFunctionCall = {
-          type: AlertCommandType.renew,
-          text: "Renew",
-        };
-        setAlertState({
-          title: "Subscription Expiring",
-          message: `Your subscription will expire at ${new Date(parseInt(userDetails.expires_at) * 1000).toLocaleString()} and you will lose access to members-only features.\n\nIf you wish to renew your subscription, click below.`,
-          open: true,
-          severity: AlertToastType.warning,
-          timeout: null,
-          callback: renewFunc,
-        });
-      }
-    }
+    // if (!userDetails?.subscriber) {
+    //   const subscribeFunc: AlertFunctionCall = {
+    //     type: AlertCommandType.subscribe,
+    //     text: "subscribe",
+    //   };
+    //   setAlertState({
+    //     title: "Subscription Expired",
+    //     message:
+    //       "Your subscription has expired. If you wish to renew your subscription, click below.",
+    //     open: true,
+    //     severity: AlertToastType.warning,
+    //     timeout: null,
+    //     callback: subscribeFunc,
+    //   });
+    // } else if (userDetails && userDetails.expires_at && !userDetails.renewing) {
+    //   const now = Math.floor(Date.now() / 1000);
+    //   const twentyFourHoursFromNow = now + 24 * 60 * 60;
+    //   if (
+    //     parseInt(userDetails.expires_at) >= now &&
+    //     parseInt(userDetails.expires_at) <= twentyFourHoursFromNow
+    //   ) {
+    //     const renewFunc: AlertFunctionCall = {
+    //       type: AlertCommandType.renew,
+    //       text: "Renew",
+    //     };
+    //     setAlertState({
+    //       title: "Subscription Expiring",
+    //       message: `Your subscription will expire at ${new Date(parseInt(userDetails.expires_at) * 1000).toLocaleString()} and you will lose access to members-only features.\n\nIf you wish to renew your subscription, click below.`,
+    //       open: true,
+    //       severity: AlertToastType.warning,
+    //       timeout: null,
+    //       callback: renewFunc,
+    //     });
+    //   }
+    // }
   }, [userDetails, setAlertState]);
 
   if (userLoading) {
