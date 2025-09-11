@@ -34,7 +34,7 @@ export const CheckoutPage = () => {
           {},
           { baseURL: "" },
         );
-        setClientSecret(data.clientSecret);
+        setClientSecret(data.client_secret);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
         setError(e?.message || "Unable to start checkout");
