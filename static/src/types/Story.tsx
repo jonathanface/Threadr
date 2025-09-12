@@ -11,5 +11,5 @@ export interface Story {
   outline?: Outline;
   place?: number;
   image_url: string;
+  inactive?: boolean;
 }
-

@@ -101,7 +101,7 @@ export const useFetchStoryBlocks = (
             setAlertState({
               title: "Chapter Being Created",
               message:
-                "Your chapter is being created on our servers and will take a few minutes to complete. You can type, but nothing will be saved until the process is complete. You will be notified when everything's ready and your content saved.",
+                "Your chapter is being created or restored from archives on our servers, and will take a few minutes to complete. You can type, but nothing will be saved until the process is complete. You will be notified when everything's ready and your content saved.",
               severity: AlertToastType.warning,
               open: true,
               timeout: null,

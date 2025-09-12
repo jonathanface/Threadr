@@ -218,7 +218,30 @@ func (d *DAO) IsUserSubscribed(user models.UserInfo) (*models.UserInfo, error) {
 			return nil, err
 		}
 		if wasSuspended {
-			go d.RestoreAutomaticallyDeletedStories(user.Email)
+			ctx := context.Background()
+			events, err := d.RestoreAutomaticallyDeletedStories(ctx, user.Email)
+			if err != nil {
+				return nil, err
+			}
+			for ev := range events {
+				if ev.OK() {
+					story, err := d.GetStoryByID(user.Email, ev.StoryID)
+					if err != nil {
+						return nil, err
+					}
+					story.Inactive = false
+					_, err = d.EditStory(user.Email, *story)
+					if err != nil {
+						log.Printf("error restoring story %s (%d/%d)\n\n", ev.Title, ev.Index, ev.Total)
+						continue
+					}
+					// push “story X done” to logs, SSE, WebSocket, etc.
+					log.Printf("story: restored %s (%d/%d)\n\n", ev.Title, ev.Index, ev.Total)
+					// or broadcast JSON payload {storyId, title, index, total}
+				} else {
+					log.Printf("data: error restoring %s: %v (%d/%d)\n\n", ev.Title, ev.Err, ev.Index, ev.Total)
+				}
+			}
 			user.NotifyRestored = true
 		}
 	}

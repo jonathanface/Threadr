@@ -72,33 +72,37 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var (
+		needsRestore bool
+		email        string
+		user         *models.UserInfo
+	)
 	switch event.Type {
-	case "customer.subscription.updated",
-		"customer.subscription.deleted":
+	case "customer.subscription.updated", "customer.subscription.deleted":
 		var sub stripe.Subscription
 		if err := json.NewDecoder(bytes.NewReader(event.Data.Raw)).Decode(&sub); err != nil {
 			RespondWithError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		email, err := dao.GetEmailByCustomerId(sub.Customer.ID)
+
+		email, err = dao.GetEmailByCustomerId(sub.Customer.ID)
 		if err != nil || email == "" {
-			RespondWithError(w, http.StatusBadRequest, err.Error())
+			RespondWithError(w, http.StatusBadRequest, "unknown customer")
 			return
 		}
 
-		err = dao.UpdateSubscription(models.Subscription{
+		if err := dao.UpdateSubscription(models.Subscription{
 			Email:                  email,
 			CustomerID:             sub.Customer.ID,
 			SubscriptionID:         sub.ID,
 			LastSubCheck:           time.Now(),
 			CurrentSubscriptionEnd: time.Unix(sub.CurrentPeriodEnd, 0).UTC(),
-		})
-		if err != nil {
+		}); err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
-		user, err := dao.GetUserDetails(email)
+		user, err = dao.GetUserDetails(email)
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -108,21 +112,19 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 
 		if isActive && !user.Subscriber {
 			user.Subscriber = true
-			wasSuspended, err := dao.CheckForSuspendedStories(user.Email) // bool
-			if err != nil {
+			if wasSuspended, err := dao.CheckForSuspendedStories(user.Email); err == nil && wasSuspended {
+				needsRestore = true
+				user.NotifyRestored = true
+			} else if err != nil {
+				// validation/state still not ACKed yet, so we can error out
 				RespondWithError(w, http.StatusInternalServerError, err.Error())
 				return
 			}
-			if wasSuspended {
-				go dao.RestoreAutomaticallyDeletedStories(user.Email)
-				user.NotifyRestored = true
-
-			}
-		}
-		if !isActive && user.Subscriber {
+		} else if !isActive && user.Subscriber {
 			user.Subscriber = false
 			user.NotifyExpired = true
 
+			// suspend others (async fan-out OK)
 			stories, err := dao.GetAllStories(user.Email)
 			if err != nil && err != sql.ErrNoRows {
 				RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -134,14 +136,46 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		err = dao.UpdateUser(*user)
-		if err != nil {
+
+		if err := dao.UpdateUser(*user); err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-	}
 
+	default:
+		// Not a type we care about: ACK and return
+		RespondWithJson(w, http.StatusOK, nil)
+		return
+	}
 	RespondWithJson(w, http.StatusOK, nil)
+
+	if needsRestore {
+		go func(email string) {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
+			defer cancel()
+
+			events, err := dao.RestoreAutomaticallyDeletedStories(ctx, email)
+			if err != nil {
+				log.Printf("restore start failed for %s: %v", email, err)
+				return
+			}
+			for ev := range events {
+				if ev.Err == nil {
+					if story, err := dao.GetStoryByID(email, ev.StoryID); err == nil {
+						story.Inactive = false
+						if _, e2 := dao.EditStory(email, *story); e2 != nil {
+							log.Printf("post-restore EditStory failed %s: %v", ev.StoryID, e2)
+						}
+					} else {
+						log.Printf("GetStoryByID failed %s: %v", ev.StoryID, err)
+					}
+					log.Printf("restored %s (%d/%d)", ev.StoryID, ev.Index, ev.Total)
+				} else {
+					log.Printf("restore error %s (%d/%d): %v", ev.StoryID, ev.Index, ev.Total, ev.Err)
+				}
+			}
+		}(email)
+	}
 }
 
 func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {

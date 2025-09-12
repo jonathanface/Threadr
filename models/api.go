@@ -81,6 +81,7 @@ type Story struct {
 	Outline     *OutlineResponse `json:"outline"`
 	Place       int              `json:"place"`
 	ImageURL    string           `json:"image_url" dynamodbav:"image_url"`
+	Inactive    bool             `json:"inactive" dynamodbav:"inactive"`
 }
 type StorySettings struct {
 	Spellcheck bool `json:"spellcheck" dynamodbav:"spellcheck"`

@@ -11,6 +11,7 @@ import {
   $isRangeSelection,
   $isTextNode,
   $setSelection,
+  CLEAR_HISTORY_COMMAND,
   LexicalEditor,
   LexicalNode,
   ParagraphNode,
@@ -18,13 +19,7 @@ import {
   SerializedElementNode,
   SerializedLexicalNode,
 } from "lexical";
-import {
-  $getRoot,
-  $getSelection,
-  $isElementNode,
-  EditorState,
-  ElementNode,
-} from "lexical";
+import { $getRoot, $getSelection, $isElementNode, EditorState } from "lexical";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
 import styles from "./threadwriter.module.css";
 import { useLoader } from "../../hooks/useLoader";
@@ -380,8 +375,30 @@ export const ThreadWriter = () => {
 
   const writeEpochRef = useRef(0);
   useEffect(() => {
+    if (!chapter) return;
+    isQueuePausedRef.current = true;
+    pastedParagraphKeys.current.clear();
+    previousNodeKeysRef.current.clear();
+    // fetch + set storyBlocks…
+    // mount/hydrate happens because key changed
+    setTimeout(() => {
+      // or better, flip after a microtask post-hydrate
+      isQueuePausedRef.current = false;
+    }, 0);
     writeEpochRef.current += 1;
-  }, [chapter?.id]);
+  }, [chapter]);
+
+  useEffect(() => {
+    if (!story || !chapter) return;
+    if (!storyBlocks) return;
+    if (!editorRef.current) return;
+
+    loadChapterIntoEditor(editorRef.current, storyBlocks, {
+      tag: "CHAPTER_LOAD",
+    });
+    // refresh the “no-change” hash after a programmatic load
+    previousTextHashRef.current = generateTextHash(editorRef.current);
+  }, [story, chapter, storyBlocks]);
 
   const queueParagraphForDeletion = useCallback(
     (chapterID: string, customKey: string) => {
@@ -668,7 +685,10 @@ export const ThreadWriter = () => {
       const unregisterCustomTransform = editorRef.current.registerNodeTransform(
         CustomParagraphNode,
         (node: CustomParagraphNode) => {
-          if (node.getTextContent().trim() === "") {
+          const existedBefore = !!previousNodeKeysRef.current.get(
+            node.getKeyId() ?? "",
+          );
+          if (node.getTextContent().trim() === "" && existedBefore) {
             // Prevent redundant replacement of already empty nodes
             const index = node.getIndexWithinParent();
             if (index !== null) {
@@ -691,30 +711,6 @@ export const ThreadWriter = () => {
       };
     }
   }, [editorRef, chapter, queueParagraphForSave, documentSettings?.autotab]);
-
-  useEffect(() => {
-    if (editorRef.current) {
-      isProgrammaticChange.current = true;
-      editorRef.current.update(() => {
-        const root = $getRoot();
-        const children = root.getChildren();
-        children.forEach((child) => {
-          if (
-            child.getType() === "paragraph" &&
-            !(child instanceof CustomParagraphNode)
-          ) {
-            console.error(`Existing ParagraphNode found: ${child.getKey()}`);
-            const replacement = new CustomParagraphNode(uuidv4());
-            replacement.append(
-              ...(child as ElementNode).getChildren<ElementNode>(),
-            );
-            child.replace(replacement);
-          }
-        });
-      });
-      isProgrammaticChange.current = false;
-    }
-  }, [editorRef]);
 
   useEffect(() => {
     const processInterval = setInterval(() => {
@@ -1007,6 +1003,45 @@ export const ThreadWriter = () => {
   //   return null;
   // }
 
+  if (!story || !chapter) return null;
+  if (!storyBlocks) {
+    return <div className={styles.loading}>Loading…</div>;
+  }
+  const loadChapterIntoEditor = (
+    editor: LexicalEditor,
+    serialized: SerializedEditorState | string,
+    opts?: { tag?: string },
+  ) => {
+    const json =
+      typeof serialized === "string" ? serialized : JSON.stringify(serialized);
+
+    // bracket the swap
+    isProgrammaticChange.current = true;
+    isQueuePausedRef.current = true;
+    pastedParagraphKeys.current.clear();
+    previousNodeKeysRef.current.clear();
+
+    const next = editor.parseEditorState(json);
+    editor.setEditorState(next, { tag: opts?.tag ?? "CHAPTER_LOAD" });
+
+    // seed previousNodeKeys so onChange won’t diff against the old chapter
+    editor.update(() => {
+      const root = $getRoot();
+      root.getChildren().forEach((n) => {
+        if (n instanceof CustomParagraphNode) {
+          const id = n.getKeyId();
+          if (id) previousNodeKeysRef.current.set(id, n.getTextContent());
+        }
+      });
+    });
+
+    // clear history for clean undo
+    editor.dispatchCommand(CLEAR_HISTORY_COMMAND, undefined);
+
+    isProgrammaticChange.current = false;
+    isQueuePausedRef.current = false;
+  };
+
   return (
     <div className={styles.outerWrapper}>
       <LexicalComposer
@@ -1014,6 +1049,7 @@ export const ThreadWriter = () => {
         initialConfig={{
           ...initialConfig,
           editorState: (editor) => {
+            // capture the instance on first mount
             editorRef.current = editor;
           },
         }}

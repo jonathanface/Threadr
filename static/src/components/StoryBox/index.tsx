@@ -97,6 +97,7 @@ export const StoryBox = (props: StoryBoxProps) => {
     : "/img/icons/story_standalone_icon.jpg";
   return !wasDeleted ? (
     <button
+      disabled={props.story.inactive}
       onMouseOver={showSlider}
       onMouseOut={hideSlider}
       className={styles.storyBoxContainer}

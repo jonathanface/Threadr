@@ -8,6 +8,16 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
+type RestoreStoryEvent struct {
+	StoryID string
+	Title   string
+	Index   int // 1-based
+	Total   int
+	Err     error
+}
+
+func (e RestoreStoryEvent) OK() bool { return e.Err == nil }
+
 type Options struct {
 	Region                     string
 	MaxRetries                 int
