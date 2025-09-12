@@ -168,7 +168,6 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options Options
 				return
 			}
 		}
-
 		// Append UX query flags and return immediately after redirect
 		if updated.NotifyExpired {
 			http.Redirect(w, r, next+"?expired=true", http.StatusTemporaryRedirect)

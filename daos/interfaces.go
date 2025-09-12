@@ -28,12 +28,14 @@ type DaoInterface interface {
 	GetChapterTableStatus(storyID, chapterID string) (bool, error)
 	GetSubscription(email string) (*models.Subscription, error)
 	GetEmailByCustomerId(customerID string) (string, error)
+	ensureBlocksTableFromBackup(ctx context.Context, backupARN, oldTableName, chapterName string) error
+	kickoffRestoreAsync(email string)
 
 	// PUTs
 	UpsertUser(email string) (models.UserInfo, error)
 	UpdateUser(user models.UserInfo) error
 	RestoreAutomaticallyDeletedStories(ctx context.Context, email string) (<-chan RestoreStoryEvent, error)
-	restoreOneStory(context context.Context, email string, story models.Story) error
+	restoreOneStory(email string, story models.Story) error
 	ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) error
 	WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) error
 	WriteAssociations(email, storyOrSeriesID string, associations []*models.Association) error
