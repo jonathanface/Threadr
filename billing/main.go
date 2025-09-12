@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -292,34 +291,36 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to load user")
 		return
 	}
+	ensureCustomerFn(user, sub)
 
-	custID := ensureCustomerFn(user, sub)
-
-	params := &stripe.SubscriptionListParams{
-		Customer: stripe.String(custID),
-	}
-	params.Limit = stripe.Int64(1)
-
-	it := subscription.List(params)
-	if err := it.Err(); err != nil {
-		RespondWithError(w, http.StatusBadGateway, "stripe list error: "+err.Error())
-		return
-	}
-
-	if it.Next() {
-		s := it.Subscription()
-
-		var cpe string
-		if s.CurrentPeriodEnd > 0 {
-			cpe = time.Unix(s.CurrentPeriodEnd, 0).UTC().Format(time.RFC3339)
+	if sub != nil && sub.SubscriptionID != "" {
+		stripeSub, err := subscription.Get(sub.SubscriptionID, nil)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, "unable to retrieve subscription from stripe")
+			return
 		}
-		fmt.Println(s.Status)
+		var cpeTime time.Time
+		if stripeSub.CurrentPeriodEnd > 0 {
+			cpeTime = time.Unix(stripeSub.CurrentPeriodEnd, 0).UTC()
+		}
+		sub.CustomerID = stripeSub.Customer.ID
+		sub.LastSubCheck = time.Now().UTC()
+		sub.CurrentSubscriptionEnd = cpeTime
 
+		err = dao.UpdateSubscription(*sub)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, "error updating subscription")
+			return
+		}
+		var cpe string
+		if !cpeTime.IsZero() {
+			cpe = cpeTime.Format(time.RFC3339)
+		}
 		RespondWithJson(w, http.StatusOK, map[string]any{
-			"id":                s.ID,
-			"status":            s.Status,            // "active", "trialing", "past_due", "incomplete", "canceled", etc.
-			"currentPeriodEnd":  cpe,                 // RFC3339 string or ""
-			"cancelAtPeriodEnd": s.CancelAtPeriodEnd, // bool
+			"id":                stripeSub.ID,
+			"status":            stripeSub.Status,
+			"currentPeriodEnd":  cpe,
+			"cancelAtPeriodEnd": stripeSub.CancelAtPeriodEnd,
 		})
 		return
 	}
