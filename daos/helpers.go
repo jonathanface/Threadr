@@ -429,36 +429,67 @@ func (d *DAO) GetTotalCreatedStories(email string) (storiesCount int, err error)
 	return
 }
 
-func (d *DAO) CheckTableStatus(tableName string) (string, error) {
-	resp, err := d.DynamoClient.DescribeTable(context.TODO(), &dynamodb.DescribeTableInput{
-		TableName: aws.String(tableName),
-	})
-	if err != nil {
-		return "", err
+func isResourceNotFound(err error) bool {
+	var op *smithy.OperationError
+	if errors.As(err, &op) {
+		var nf *types.ResourceNotFoundException
+		return errors.As(op.Unwrap(), &nf)
 	}
-	return string(resp.Table.TableStatus), nil
+	return false
+}
+
+// Detect TableInUse from RestoreTableFromBackup
+func isTableInUse(err error) bool {
+	var op *smithy.OperationError
+	if errors.As(err, &op) {
+		var inUse *types.TableInUseException
+		return errors.As(op.Unwrap(), &inUse)
+	}
+	return false
+}
+
+func waitForTableStatus(ctx context.Context, client dynamoDBClient, tableName, want string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	backoff := 500 * time.Millisecond
+
+	for {
+		if time.Now().After(deadline) {
+			return fmt.Errorf("timeout waiting for table %s to reach status %s", tableName, want)
+		}
+		out, err := client.DescribeTable(ctx, &dynamodb.DescribeTableInput{
+			TableName: aws.String(tableName),
+		})
+		if err != nil {
+			if isResourceNotFound(err) && want == "NOT_EXISTS" {
+				return nil
+			}
+			// transient/permissions/etc
+			// small sleep and retry
+		} else {
+			got := string(out.Table.TableStatus)
+			if got == want {
+				return nil
+			}
+		}
+		time.Sleep(backoff)
+		// capped exponential backoff
+		if backoff < 5*time.Second {
+			backoff *= 2
+		}
+	}
 }
 
 func (d *DAO) RestoreAutomaticallyDeletedStories(ctx context.Context, email string) (<-chan RestoreStoryEvent, error) {
-	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
-		TableName:        aws.String("stories" + GetTableSuffix()),
-		FilterExpression: aws.String("author=:eml AND attribute_exists(deleted_at) AND automated_deletion=:a"),
-		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":eml": &types.AttributeValueMemberS{Value: email},
-			":a":   &types.AttributeValueMemberBOOL{Value: true},
-		},
-	})
+	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{TableName: aws.String("stories" + GetTableSuffix()), FilterExpression: aws.String("author=:eml AND attribute_exists(deleted_at) AND automated_deletion=:a"), ExpressionAttributeValues: map[string]types.AttributeValue{":eml": &types.AttributeValueMemberS{Value: email}, ":a": &types.AttributeValueMemberBOOL{Value: true}}})
 	if err != nil {
 		return nil, err
 	}
-
 	var stories []models.Story
 	if err = attributevalue.UnmarshalListOfMaps(out.Items, &stories); err != nil {
 		return nil, err
 	}
 	ch := make(chan RestoreStoryEvent, 8) // small buffer helps if receiver does light work
 	total := len(stories)
-
 	go func() {
 		defer close(ch)
 		for i, story := range stories {
@@ -470,13 +501,7 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(ctx context.Context, email stri
 			default:
 			}
 			err = d.restoreOneStory(ctx, email, story)
-
-			ev := RestoreStoryEvent{
-				Index:   i,
-				Total:   total,
-				StoryID: story.ID,
-				Err:     err,
-			}
+			ev := RestoreStoryEvent{Index: i, Total: total, StoryID: story.ID, Err: err}
 			select {
 			case ch <- ev:
 			case <-ctx.Done():
@@ -484,15 +509,7 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(ctx context.Context, email stri
 			}
 		}
 	}()
-
 	return ch, nil
-}
-
-func waitTableActive(ctx context.Context, client dynamoDBClient, tableName string, timeout time.Duration) error {
-	waiter := dynamodb.NewTableExistsWaiter(client)
-	return waiter.Wait(ctx, &dynamodb.DescribeTableInput{
-		TableName: aws.String(tableName),
-	}, timeout)
 }
 
 func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.Story) error {
@@ -524,9 +541,34 @@ func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.St
 			return err
 		}
 
-		// Wait until the restored table is ACTIVE (important!)
-		if err := waitTableActive(ctx, d.DynamoClient, oldTableName, 10*time.Minute); err != nil {
-			return err
+		// 1) First check if the table already exists
+		_, descErr := d.DynamoClient.DescribeTable(ctx, &dynamodb.DescribeTableInput{
+			TableName: aws.String(oldTableName),
+		})
+		if descErr == nil {
+			// Table exists; ensure ACTIVE then proceed
+			if err := waitForTableStatus(ctx, d.DynamoClient, oldTableName, "ACTIVE", 10*time.Minute); err != nil {
+				return err
+			}
+		} else if isResourceNotFound(descErr) {
+			// 2) Not found, so attempt restore
+			_, err := d.DynamoClient.RestoreTableFromBackup(ctx, &dynamodb.RestoreTableFromBackupInput{
+				BackupArn:       aws.String(chapter.BackupARN),
+				TargetTableName: aws.String(oldTableName),
+			})
+			if err != nil {
+				// If another attempt is already restoring it, just wait
+				if !isTableInUse(err) {
+					return err
+				}
+			}
+			// Either we kicked off the restore or someone else did; wait until ACTIVE
+			if err := waitForTableStatus(ctx, d.DynamoClient, oldTableName, "ACTIVE", 10*time.Minute); err != nil {
+				return err
+			}
+		} else {
+			// Describe failed for another reason
+			return descErr
 		}
 
 		chapterKey := map[string]types.AttributeValue{
@@ -620,6 +662,14 @@ func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.St
 	return nil
 }
 
+func (d *DAO) CheckTableStatus(tableName string) (string, error) {
+	resp, err := d.DynamoClient.DescribeTable(context.TODO(), &dynamodb.DescribeTableInput{TableName: aws.String(tableName)})
+	if err != nil {
+		return "", err
+	}
+	return string(resp.Table.TableStatus), nil
+}
+
 func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 
@@ -688,14 +738,8 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 			if err != nil {
 				return err
 			}
-			chapterStatus, err := d.CheckTableStatus(oldTableName)
-			if err != nil {
-				return err
-			}
-			if chapterStatus != "ACTIVE" {
-				time.Sleep(1 * time.Second)
-				go d.SoftDeleteStory(email, storyID, automated)
-				return nil
+			if err := waitForTableStatus(context.TODO(), d.DynamoClient, oldTableName, "ACTIVE", 5*time.Minute); err != nil {
+				return fmt.Errorf("chapter blocks table %s not ACTIVE before delete: %w", oldTableName, err)
 			}
 			deleteTableInput := &dynamodb.DeleteTableInput{
 				TableName: aws.String(oldTableName),

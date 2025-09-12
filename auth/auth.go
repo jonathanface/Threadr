@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -158,6 +159,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options Options
 	}
 
 	updated, err := dao.IsUserSubscribed(*userDetails)
+	log.Println("logincallback - usersubbed", updated, err)
 	if err == nil {
 		// persist Subscriber flip only when changed
 		if userDetails.Subscriber != updated.Subscriber {
