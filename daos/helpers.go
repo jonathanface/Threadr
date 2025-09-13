@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/url"
 	"os"
 	"path"
@@ -448,7 +449,7 @@ func isTableInUse(err error) bool {
 	return false
 }
 
-func waitForTableStatus(ctx context.Context, client dynamoDBClient, tableName, want string, timeout time.Duration) error {
+func waitForTableStatus(ctx context.Context, client dynamoDBClient, tableName, chapterName, want string, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	backoff := 500 * time.Millisecond
 
@@ -463,10 +464,9 @@ func waitForTableStatus(ctx context.Context, client dynamoDBClient, tableName, w
 			if isResourceNotFound(err) && want == "NOT_EXISTS" {
 				return nil
 			}
-			// transient/permissions/etc
-			// small sleep and retry
 		} else {
 			got := string(out.Table.TableStatus)
+			log.Printf("table %s status is: %s\n", chapterName, got)
 			if got == want {
 				return nil
 			}
@@ -477,6 +477,25 @@ func waitForTableStatus(ctx context.Context, client dynamoDBClient, tableName, w
 			backoff *= 2
 		}
 	}
+}
+
+func (d *DAO) kickoffRestoreAsync(email string) {
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+		evCh, err := d.RestoreAutomaticallyDeletedStories(ctx, email)
+		if err != nil {
+			log.Printf("restore: start error for %s: %v", email, err)
+			return
+		}
+		for ev := range evCh {
+			if ev.Err != nil {
+				log.Printf("restore: story %s failed: %v", ev.StoryID, ev.Err)
+			} else {
+				log.Printf("restore: story %s (%d/%d) OK", ev.StoryID, ev.Index+1, ev.Total)
+			}
+		}
+	}()
 }
 
 func (d *DAO) RestoreAutomaticallyDeletedStories(ctx context.Context, email string) (<-chan RestoreStoryEvent, error) {
@@ -500,7 +519,8 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(ctx context.Context, email stri
 				return
 			default:
 			}
-			err = d.restoreOneStory(ctx, email, story)
+			log.Println("Starting restore on story", story.Title)
+			err = d.restoreOneStory(email, story)
 			ev := RestoreStoryEvent{Index: i, Total: total, StoryID: story.ID, Err: err}
 			select {
 			case ch <- ev:
@@ -512,7 +532,50 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(ctx context.Context, email stri
 	return ch, nil
 }
 
-func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.Story) error {
+func (d *DAO) ensureBlocksTableFromBackup(
+	ctx context.Context,
+	backupARN, tableName, chapterName string,
+) error {
+	// 1) If table exists, wait for ACTIVE and return
+	_, err := d.DynamoClient.DescribeTable(ctx, &dynamodb.DescribeTableInput{
+		TableName: aws.String(tableName),
+	})
+	if err == nil {
+		log.Println("waiting for table status")
+		return waitForTableStatus(ctx, d.DynamoClient, tableName, chapterName, "ACTIVE", 10*time.Minute)
+	}
+	if !isResourceNotFound(err) && err != nil {
+		return err
+	}
+
+	// 2) Not found → try to restore
+	_, err = d.DynamoClient.RestoreTableFromBackup(ctx, &dynamodb.RestoreTableFromBackupInput{
+		BackupArn:       aws.String(backupARN),
+		TargetTableName: aws.String(tableName),
+	})
+	if err != nil {
+		// If another attempt already created/is creating it, just wait
+		if !(isTableInUse(err) || isTableAlreadyExists(err)) {
+			return err
+		}
+	}
+
+	// 3) Either we kicked it off or someone else did; wait until ACTIVE
+	return waitForTableStatus(ctx, d.DynamoClient, tableName, chapterName, "ACTIVE", 10*time.Minute)
+}
+
+func isTableAlreadyExists(err error) bool {
+	var op *smithy.OperationError
+	if errors.As(err, &op) {
+		var exists *types.TableAlreadyExistsException
+		return errors.As(op.Unwrap(), &exists)
+	}
+	return false
+}
+
+func (d *DAO) restoreOneStory(email string, story models.Story) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Minute)
+	defer cancel()
 	chapterScanInput := &dynamodb.ScanInput{
 		TableName:        aws.String("chapters" + GetTableSuffix()),
 		FilterExpression: aws.String("attribute_exists(deleted_at) AND story_id = :sid AND attribute_exists(bup_arn)"),
@@ -534,67 +597,39 @@ func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.St
 			continue
 		}
 		oldTableName := story.ID + "_" + chapter.ID + "_blocks" + GetTableSuffix()
-		if _, err := d.DynamoClient.RestoreTableFromBackup(ctx, &dynamodb.RestoreTableFromBackupInput{
-			BackupArn:       aws.String(chapter.BackupARN),
-			TargetTableName: aws.String(oldTableName),
-		}); err != nil {
-			return err
-		}
-
-		// 1) First check if the table already exists
-		_, descErr := d.DynamoClient.DescribeTable(ctx, &dynamodb.DescribeTableInput{
-			TableName: aws.String(oldTableName),
-		})
-		if descErr == nil {
-			// Table exists; ensure ACTIVE then proceed
-			if err := waitForTableStatus(ctx, d.DynamoClient, oldTableName, "ACTIVE", 10*time.Minute); err != nil {
-				return err
-			}
-		} else if isResourceNotFound(descErr) {
-			// 2) Not found, so attempt restore
-			_, err := d.DynamoClient.RestoreTableFromBackup(ctx, &dynamodb.RestoreTableFromBackupInput{
-				BackupArn:       aws.String(chapter.BackupARN),
-				TargetTableName: aws.String(oldTableName),
-			})
-			if err != nil {
-				// If another attempt is already restoring it, just wait
-				if !isTableInUse(err) {
-					return err
-				}
-			}
-			// Either we kicked off the restore or someone else did; wait until ACTIVE
-			if err := waitForTableStatus(ctx, d.DynamoClient, oldTableName, "ACTIVE", 10*time.Minute); err != nil {
-				return err
+		if len(chapter.BackupARN) > 0 {
+			if err := d.ensureBlocksTableFromBackup(ctx, chapter.BackupARN, oldTableName, chapter.Title); err != nil {
+				return err // only real errors bubble up; races are absorbed
 			}
 		} else {
-			// Describe failed for another reason
-			return descErr
+			fmt.Printf("no backup arn for chapter: %s\n", chapter.ID)
 		}
 
-		chapterKey := map[string]types.AttributeValue{
-			"chapter_id": &types.AttributeValueMemberS{Value: chapter.ID},
-			"story_id":   &types.AttributeValueMemberS{Value: story.ID},
-		}
 		chapterUpdateInput := &dynamodb.UpdateItemInput{
-			TableName:        aws.String("chapters" + GetTableSuffix()),
-			Key:              chapterKey,
+			TableName: aws.String("chapters" + GetTableSuffix()),
+			Key: map[string]types.AttributeValue{
+				"chapter_id": &types.AttributeValueMemberS{Value: chapter.ID},
+				"story_id":   &types.AttributeValueMemberS{Value: story.ID},
+			},
 			UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 		}
 		_, err = d.DynamoClient.UpdateItem(ctx, chapterUpdateInput)
 		if err != nil {
-			return err
+			fmt.Printf("failed to update deletion flag for chapter: %s\n", chapter.ID)
 		}
 	}
 	storyKey := map[string]types.AttributeValue{
 		"story_id": &types.AttributeValueMemberS{Value: story.ID},
 		"author":   &types.AttributeValueMemberS{Value: email},
 	}
+	finCtx, finCancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer finCancel()
 	storyUpdateInput := &dynamodb.UpdateItemInput{
 		TableName:        aws.String("stories" + GetTableSuffix()),
 		Key:              storyKey,
 		UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 	}
-	_, err = d.DynamoClient.UpdateItem(ctx, storyUpdateInput)
+	_, err = d.DynamoClient.UpdateItem(finCtx, storyUpdateInput)
 	if err != nil {
 		return err
 	}
@@ -611,7 +646,7 @@ func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.St
 			Key:              seriesKey,
 			UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 		}
-		_, err = d.DynamoClient.UpdateItem(ctx, seriesUpdateInput)
+		_, err = d.DynamoClient.UpdateItem(finCtx, seriesUpdateInput)
 		if err != nil {
 			return err
 		}
@@ -627,7 +662,7 @@ func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.St
 		},
 		Select: types.SelectAllAttributes,
 	}
-	associationOut, err := d.DynamoClient.Scan(ctx, associationScanInput)
+	associationOut, err := d.DynamoClient.Scan(finCtx, associationScanInput)
 	if err != nil {
 		return err
 	}
@@ -643,7 +678,7 @@ func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.St
 			Key:              associationKey,
 			UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 		}
-		_, err = d.DynamoClient.UpdateItem(ctx, associationUpdateInput)
+		_, err = d.DynamoClient.UpdateItem(finCtx, associationUpdateInput)
 		if err != nil {
 			return err
 		}
@@ -653,7 +688,7 @@ func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.St
 			Key:              associationKey,
 			UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 		}
-		_, err = d.DynamoClient.UpdateItem(ctx, associationDetailsUpdateInput)
+		_, err = d.DynamoClient.UpdateItem(finCtx, associationDetailsUpdateInput)
 		if err != nil {
 			return err
 		}
@@ -705,7 +740,12 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 		if !ok {
 			return errors.New("chapter_id missing or not a string")
 		}
+		chapterTitleAttr, ok := item["chapter_title"].(*types.AttributeValueMemberS)
+		if !ok {
+			return errors.New("chapter_title missing or not a string")
+		}
 		chapterID := chapterIDAttr.Value
+		chapterTitle := chapterTitleAttr.Value
 		oldTableName := storyID + "_" + chapterID + "_blocks" + GetTableSuffix()
 
 		// Create the BackupTableInput
@@ -738,7 +778,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 			if err != nil {
 				return err
 			}
-			if err := waitForTableStatus(context.TODO(), d.DynamoClient, oldTableName, "ACTIVE", 5*time.Minute); err != nil {
+			if err := waitForTableStatus(context.TODO(), d.DynamoClient, oldTableName, chapterTitle, "ACTIVE", 5*time.Minute); err != nil {
 				return fmt.Errorf("chapter blocks table %s not ACTIVE before delete: %w", oldTableName, err)
 			}
 			deleteTableInput := &dynamodb.DeleteTableInput{
