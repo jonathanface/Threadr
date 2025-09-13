@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"path"
 	"strings"
 	"testing"
 
@@ -14,27 +15,6 @@ import (
 )
 
 // ---- Helpers to stub Stripe API via httptest server ----
-
-type stripeRouteSpec struct {
-	// customers
-	ExistingCustomerID string
-	CreateCustomerID   string
-	CreateShouldError  bool
-
-	// subscriptions list/create
-	ListSubStatus            string // if non-empty, list returns one subscription with this status
-	ListSubCurrentPeriodEnd  int64  // unix seconds; 0 => omit
-	ListSubCancelAtPeriodEnd bool   // include flag
-
-	CreateSubID          string
-	CreateSubShouldError bool
-	// if true, the created subscription will have no latest_invoice.payment_intent (to hit 424 path)
-	CreateSubNoPI bool
-
-	// billing portal session
-	PortalURL         string
-	PortalShouldError bool
-}
 
 func newStripeServer(t *testing.T, spec stripeRouteSpec) *httptest.Server {
 	t.Helper()
@@ -74,22 +54,53 @@ func newStripeServer(t *testing.T, spec stripeRouteSpec) *httptest.Server {
 	// Subscriptions
 	handleSubscriptions := func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
-		case http.MethodGet: // list
-			resp := map[string]any{"object": "list", "data": []any{}, "has_more": false, "url": "/v1/subscriptions"}
-			if spec.ListSubStatus != "" {
-				item := map[string]any{
-					"id":                   "sub_list_123",
-					"object":               "subscription",
-					"status":               spec.ListSubStatus,
-					"cancel_at_period_end": spec.ListSubCancelAtPeriodEnd,
+		case http.MethodGet:
+			// Distinguish list vs get-by-id
+			if r.URL.Path == "/v1/subscriptions" || r.URL.Path == "/v1/subscriptions/" {
+				// LIST
+				resp := map[string]any{"object": "list", "data": []any{}, "has_more": false, "url": "/v1/subscriptions"}
+				if spec.ListSubStatus != "" {
+					item := map[string]any{
+						"id":                   "sub_list_123",
+						"object":               "subscription",
+						"status":               spec.ListSubStatus,
+						"cancel_at_period_end": spec.ListSubCancelAtPeriodEnd,
+					}
+					if spec.ListSubCurrentPeriodEnd > 0 {
+						item["current_period_end"] = spec.ListSubCurrentPeriodEnd
+					}
+					resp["data"] = []any{item}
 				}
-				if spec.ListSubCurrentPeriodEnd > 0 {
-					item["current_period_end"] = spec.ListSubCurrentPeriodEnd
-				}
-				resp["data"] = []any{item}
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(resp)
+				return
+			}
+
+			// GET BY ID: /v1/subscriptions/{id}
+			id := path.Base(r.URL.Path)
+			if spec.GetSubID == "" || id != spec.GetSubID {
+				w.WriteHeader(http.StatusNotFound)
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"error":{"message":"not found"}}`))
+				return
+			}
+			sub := map[string]any{
+				"id":                   spec.GetSubID,
+				"object":               "subscription",
+				"status":               spec.GetSubStatus,
+				"cancel_at_period_end": spec.GetSubCancelAtPeriodEnd,
+			}
+			if spec.GetSubCurrentPeriodEnd > 0 {
+				sub["current_period_end"] = spec.GetSubCurrentPeriodEnd
+			}
+			// If you want endpoint to read Customer.ID, include an expanded customer
+			if spec.GetSubCustomerID != "" {
+				sub["customer"] = map[string]any{"id": spec.GetSubCustomerID, "object": "customer"}
 			}
 			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(sub)
+			return
+
 		case http.MethodPost: // create
 			if spec.CreateSubShouldError {
 				w.WriteHeader(http.StatusBadRequest)

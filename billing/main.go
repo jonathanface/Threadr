@@ -291,6 +291,7 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to load user")
 		return
 	}
+
 	ensureCustomerFn(user, sub)
 
 	if sub != nil && sub.SubscriptionID != "" {
@@ -299,11 +300,15 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusInternalServerError, "unable to retrieve subscription from stripe")
 			return
 		}
+		var custID string
+		if stripeSub.Customer != nil && stripeSub.Customer.ID != "" {
+			custID = stripeSub.Customer.ID
+		}
 		var cpeTime time.Time
 		if stripeSub.CurrentPeriodEnd > 0 {
 			cpeTime = time.Unix(stripeSub.CurrentPeriodEnd, 0).UTC()
 		}
-		sub.CustomerID = stripeSub.Customer.ID
+		sub.CustomerID = custID
 		sub.LastSubCheck = time.Now().UTC()
 		sub.CurrentSubscriptionEnd = cpeTime
 
