@@ -51,6 +51,14 @@ COPY ./daos ./daos
 COPY ./sessions ./sessions
 COPY ./cmd ./cmd
 
+ENV PATH="/usr/local/bin:${PATH}"
+RUN chmod +x /usr/local/bin/wkhtmltoimage || true \
+ && which wkhtmltoimage \
+ && wkhtmltoimage -V
+ RUN chmod +x /usr/local/bin/wkhtmltopdf || true \
+ && which wkhtmltopdf \
+ && wkhtmltopdf -V
+
 RUN mkdir -p ./tmp
 RUN go build -o ./bin/richdocter ./cmd/richdocter
 CMD ["./bin/richdocter"]

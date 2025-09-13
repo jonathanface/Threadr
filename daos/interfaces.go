@@ -32,7 +32,7 @@ type DaoInterface interface {
 	kickoffRestoreAsync(email string)
 
 	// PUTs
-	UpsertUser(email string) (models.UserInfo, error)
+	UpsertUser(email string) (*models.UserInfo, error)
 	UpdateUser(user models.UserInfo) error
 	RestoreAutomaticallyDeletedStories(ctx context.Context, email string) (<-chan RestoreStoryEvent, error)
 	restoreOneStory(email string, story models.Story) error

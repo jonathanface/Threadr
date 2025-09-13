@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -89,7 +90,7 @@ func strictMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 
 			needsSub := (r.Method == "POST" && strings.HasSuffix(r.URL.Path, "/stories")) ||
 				(r.Method == "PUT" && strings.HasSuffix(r.URL.Path, "/export"))
-
+			log.Println("subbed", needsSub, userDetails.Subscriber)
 			if needsSub && !userDetails.Subscriber {
 				api.RespondWithError(w, http.StatusPaymentRequired, "insufficient subscription")
 				return
