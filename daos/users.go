@@ -77,30 +77,39 @@ func (d *DAO) GetUserDetails(email string) (user *models.UserInfo, err error) {
 /**
  * Either create a user, or update user with last login time
 **/
-func (d *DAO) UpsertUser(email string) (user models.UserInfo, err error) {
+func (d *DAO) UpsertUser(email string) (*models.UserInfo, error) {
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	input := &dynamodb.UpdateItemInput{
 		TableName: aws.String("users" + GetTableSuffix()),
 		Key: map[string]types.AttributeValue{
 			"email": &types.AttributeValueMemberS{Value: email},
 		},
-		ReturnValues:     types.ReturnValueUpdatedNew,
+		ReturnValues:     types.ReturnValueAllNew,
 		UpdateExpression: aws.String("set last_accessed=:t, created_at=if_not_exists(created_at, :t)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":t": &types.AttributeValueMemberN{Value: now},
 		},
 	}
 	var out *dynamodb.UpdateItemOutput
+	var err error
 	if out, err = d.DynamoClient.UpdateItem(context.TODO(), input); err != nil {
-		return user, err
+		return nil, err
 	}
+
+	var user models.UserInfo
+	if out.Attributes != nil {
+		if err := attributevalue.UnmarshalMap(out.Attributes, &user); err != nil {
+			return nil, err
+		}
+	}
+
 	var createdAt string
 	attributevalue.Unmarshal(out.Attributes["created_at"], &createdAt)
 
 	if createdAt == now {
 		fmt.Println("new account created")
 	}
-	return user, nil
+	return &user, nil
 }
 
 func (d *DAO) UpdateUser(user models.UserInfo) (err error) {
