@@ -5,12 +5,14 @@ import (
 	"RichDocter/daos"
 	"RichDocter/models"
 	"context"
+	"database/sql"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 	//stripe "github.com/stripe/stripe-go/v79"
@@ -116,29 +118,37 @@ func TestSubscribeCustomerEndpoint(t *testing.T) {
 
 func TestBillingSummaryEndpoint(t *testing.T) {
 	t.Cleanup(func() { getUserEmailFn = getUserEmail; ensureCustomerFn = ensureCustomer })
+
 	getUserEmailFn = func(r *http.Request) (string, error) { return "user@example.com", nil }
 	ensureCustomerFn = func(u *models.UserInfo, s *models.Subscription) string { return "cus_123" }
 
+	// Happy-path DAO
 	daoMock := daos.NewMockDAO()
 	daoMock.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
-		return &models.UserInfo{Email: email}, nil
+		return &models.UserInfo{Email: strings.ToLower(email)}, nil
 	}
 
+	// Error DAO
 	daoMockError := daos.NewMockDAO()
 	daoMockError.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
 		return nil, fmt.Errorf("db down")
 	}
 
 	now := time.Now().UTC().Truncate(time.Second)
+
 	type tc struct {
 		name               string
 		dao                daos.DaoInterface
 		spec               stripeRouteSpec
 		wantStatus         int
 		wantContains       string
-		overrideGetUserErr error // make getUserEmail error for this case
+		overrideGetUserErr error
 		daoMissing         bool
+		after              func(t *testing.T) // optional extra assertions
+		setupDAO           func()             // per-case DAO mock wiring
 	}
+
+	var updateCalled atomic.Bool
 	cases := []tc{
 		{
 			name:               "unauthorized if getUserEmail fails",
@@ -159,21 +169,47 @@ func TestBillingSummaryEndpoint(t *testing.T) {
 			wantContains: `"error":"unable to load user"`,
 		},
 		{
-			name: "list returns active subscription",
+			name: "returns active subscription (stripe GET)",
 			dao:  daoMock,
-			spec: stripeRouteSpec{
-				ListSubStatus:            "active",
-				ListSubCurrentPeriodEnd:  now.Unix(),
-				ListSubCancelAtPeriodEnd: false,
+			setupDAO: func() {
+				updateCalled.Store(false)
+				daoMock.MockGetSubscription = func(email string) (*models.Subscription, error) {
+					// must return a non-nil sub with an ID
+					return &models.Subscription{SubscriptionID: "sub_123"}, nil
+				}
+				daoMock.MockUpdateSubscription = func(s models.Subscription) error {
+					// optional sanity checks; don't require CustomerID if you didn't expand it
+					if s.LastSubCheck.IsZero() {
+						return fmt.Errorf("LastSubCheck not set")
+					}
+					updateCalled.Store(true)
+					return nil
+				}
 			},
-			wantStatus: http.StatusOK,
-			// will include RFC3339 date and fields
+			spec: stripeRouteSpec{
+				GetSubID:                "sub_123",
+				GetSubStatus:            "active",
+				GetSubCurrentPeriodEnd:  now.Unix(),
+				GetSubCancelAtPeriodEnd: false,
+				GetSubCustomerID:        "cus_456", // optional; include if your endpoint reads it
+			},
+			wantStatus:   http.StatusOK,
 			wantContains: `"status":"active"`,
+			after: func(t *testing.T) {
+				if !updateCalled.Load() {
+					t.Fatalf("expected UpdateSubscription to be called")
+				}
+			},
 		},
 		{
-			name:         "no subscriptions found → status none",
-			dao:          daoMock,
-			spec:         stripeRouteSpec{},
+			name: "no subscriptions found → status none",
+			dao:  daoMock,
+			setupDAO: func() {
+				daoMock.MockGetSubscription = func(email string) (*models.Subscription, error) {
+					return nil, sql.ErrNoRows
+				}
+				daoMock.MockUpdateSubscription = func(s models.Subscription) error { return nil }
+			},
 			wantStatus:   http.StatusOK,
 			wantContains: `"status":"none"`,
 		},
@@ -187,7 +223,12 @@ func TestBillingSummaryEndpoint(t *testing.T) {
 				getUserEmailFn = func(r *http.Request) (string, error) { return "user@example.com", nil }
 			}
 
-			srv := newStripeServer(t, c.spec)
+			if c.setupDAO != nil {
+				c.setupDAO()
+			}
+
+			// Spin up a fake Stripe server that serves GET /v1/subscriptions/{id}
+			srv := newStripeServer(t, c.spec) // must handle GET /v1/subscriptions/:id using spec
 			defer srv.Close()
 			restore := setStripeBackendToServer(t, srv)
 			defer restore()
@@ -197,7 +238,9 @@ func TestBillingSummaryEndpoint(t *testing.T) {
 				req = req.WithContext(contextWithDAO(req.Context(), c.dao))
 			}
 			rec := httptest.NewRecorder()
+
 			BillingSummaryEndpoint(rec, req)
+
 			res := rec.Result()
 			defer res.Body.Close()
 
@@ -210,6 +253,9 @@ func TestBillingSummaryEndpoint(t *testing.T) {
 				if !strings.Contains(got, c.wantContains) {
 					t.Fatalf("body %s, expected to contain %q", got, c.wantContains)
 				}
+			}
+			if c.after != nil {
+				c.after(t)
 			}
 		})
 	}
