@@ -4,7 +4,7 @@ import (
 	"RichDocter/models"
 )
 
-type Options struct {
+type OauthOptions struct {
 	Mode         models.AppMode
 	FrontEndURL  string
 	GoogleId     string
@@ -13,7 +13,4 @@ type Options struct {
 	AmazonId     string
 	AmazonSecret string
 	AmazonUrl    string
-	MsnId        string
-	MsnSecret    string
-	MsnUrl       string
 }
