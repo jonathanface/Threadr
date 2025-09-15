@@ -740,9 +740,9 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 		if !ok {
 			return errors.New("chapter_id missing or not a string")
 		}
-		chapterTitleAttr, ok := item["chapter_title"].(*types.AttributeValueMemberS)
+		chapterTitleAttr, ok := item["title"].(*types.AttributeValueMemberS)
 		if !ok {
-			return errors.New("chapter_title missing or not a string")
+			return errors.New("title missing or not a string")
 		}
 		chapterID := chapterIDAttr.Value
 		chapterTitle := chapterTitleAttr.Value
