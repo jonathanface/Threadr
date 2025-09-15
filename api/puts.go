@@ -954,12 +954,15 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	var generatedFile string
 	filetype := "application/pdf"
 
-	switch typeOf {
-	case "pdf":
+	switch models.ExportFormat(typeOf) {
+	case models.FormatPDF:
 		generatedFile, err = converters.HTMLToPDF(export)
-	case "docx":
+	case models.FormatDOCX:
 		filetype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 		generatedFile, err = converters.HTMLToDOCX(export)
+	case models.FormatEPUB:
+		filetype = "application/epub+zip"
+		generatedFile, err = converters.HTMLToEPUB(export)
 	}
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -978,9 +981,6 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		Key:         aws.String(generatedFile),
 		Body:        reader,
 		ContentType: aws.String(filetype),
-		/*		Metadata: map[string]string{
-				"Content-Disposition": "attachment; filename=" + generatedFile,
-			},*/
 	}); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
