@@ -23,15 +23,6 @@ export const LoginPanel = () => {
           />
         </a>
       </div>
-      <div className={styles.option}>
-        <a href={`/auth/microsoftonline${search}`} id="LoginWithMicrosoft">
-          <img
-            alt="Login with Microsoft"
-            src="https://learn.microsoft.com/en-us/entra/identity-platform/media/howto-add-branding-in-apps/ms-symbollockup_signin_light.png"
-            width="175"
-          />
-        </a>
-      </div>
     </div>
   );
 };
