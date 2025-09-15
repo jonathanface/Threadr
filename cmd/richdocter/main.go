@@ -82,8 +82,6 @@ func main() {
 		log.Fatalf("Unable to initialize DAO: %v", err)
 	}
 
-	log.Println("oauth", getenv("AMAZON_OAUTH_CLIENT_ID", ""), getenv("AMAZON_OAUTH_CLIENT_SECRET", ""), getenv("AMAZON_OAUTH_REDIRECT_URL", ""))
-
 	authOptions := auth.OauthOptions{
 		GoogleId:     getenv("GOOGLE_OAUTH_CLIENT_ID", ""),
 		GoogleSecret: getenv("GOOGLE_OAUTH_CLIENT_SECRET", ""),
