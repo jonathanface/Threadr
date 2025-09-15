@@ -20,23 +20,21 @@ import (
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/amazon"
 	"github.com/markbates/goth/providers/google"
-	"github.com/markbates/goth/providers/microsoftonline"
 )
 
 const (
 	oneDay = 24 * time.Hour
 )
 
-func New(options Options) {
+func New(options OauthOptions) {
 	gothic.Store = sessions.Store
 	goth.UseProviders(
 		google.New(options.GoogleId, options.GoogleSecret, options.GoogleUrl),
 		amazon.New(options.AmazonId, options.AmazonSecret, options.AmazonUrl),
-		microsoftonline.New(options.MsnId, options.MsnSecret, options.MsnUrl),
 	)
 }
 
-func CallbackHandler(options Options) http.HandlerFunc {
+func CallbackHandler(options OauthOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		callbackWithOptions(w, r, options)
 	}
@@ -82,7 +80,7 @@ func safeRedirect(dest, defaultURL string, allowed []string) string {
 	return defaultURL
 }
 
-func callbackWithOptions(w http.ResponseWriter, r *http.Request, options Options) {
+func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 	provider, err := url.PathUnescape(mux.Vars(r)["provider"])
 	if err != nil {
 		api.RespondWithError(w, http.StatusInternalServerError, "Error parsing provider")
@@ -182,13 +180,13 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options Options
 	http.Redirect(w, r, next, http.StatusTemporaryRedirect)
 }
 
-func LoginHandler(options Options) http.HandlerFunc {
+func LoginHandler(options OauthOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		loginWithOptions(w, r, options)
 	}
 }
 
-func loginWithOptions(w http.ResponseWriter, r *http.Request, options Options) {
+func loginWithOptions(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 	sess, err := sessions.Get(r, "login_referral")
 	if err != nil {
 		fmt.Printf("Session Error: %s\n", err.Error())

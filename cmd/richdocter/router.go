@@ -21,7 +21,7 @@ const (
 	authPath       = "/auth"
 )
 
-func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.Options) *mux.Router {
+func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.OauthOptions) *mux.Router {
 	rtr := mux.NewRouter()
 
 	rtr.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
