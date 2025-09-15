@@ -1,0 +1,293 @@
+package converters
+
+import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"runtime"
+	"strings"
+	"testing"
+	"time"
+
+	"RichDocter/models"
+)
+
+// --- Test helpers ------------------------------------------------------------
+
+func writeFakePandoc(t *testing.T, dir string) string {
+	t.Helper()
+	var name, contents string
+	if runtime.GOOS == "windows" {
+		name = "pandoc.bat"
+		// Write to the output path passed after "-o" and exit 0.
+		contents = `@echo off
+setlocal enabledelayedexpansion
+set OUT=
+:loop
+if "%~1"=="" goto done
+if "%~1"=="-o" (
+  set OUT=%~2
+)
+shift
+goto loop
+:done
+if not "%OUT%"=="" (
+  echo FAKE_PANDOC> "%OUT%"
+)
+exit /b 0
+`
+	} else {
+		name = "pandoc"
+		contents = `#!/usr/bin/env bash
+set -euo pipefail
+OUT=""
+while (( "$#" )); do
+  if [[ "$1" == "-o" ]]; then
+    OUT="$2"; shift 2; continue
+  fi
+  shift
+done
+if [[ -n "${OUT}" ]]; then
+  mkdir -p "$(dirname "${OUT}")"
+  echo "FAKE_PANDOC" > "${OUT}"
+fi
+`
+	}
+	full := filepath.Join(dir, name)
+	if err := os.WriteFile(full, []byte(contents), 0o755); err != nil {
+		t.Fatalf("write fake pandoc: %v", err)
+	}
+	return full
+}
+
+func withPathPrepended(t *testing.T, dir string) (restore func()) {
+	t.Helper()
+	old := os.Getenv("PATH")
+	sep := string(os.PathListSeparator)
+	if err := os.Setenv("PATH", dir+sep+old); err != nil {
+		t.Fatalf("set PATH: %v", err)
+	}
+	return func() { _ = os.Setenv("PATH", old) }
+}
+
+func mustTempDir(t *testing.T) string {
+	t.Helper()
+	d := t.TempDir()
+	return d
+}
+
+// --- Minimal test struct for models.DocumentExportRequest --------------------
+// Ensure this matches your actual type in RichDocter/models.
+
+type testChapter struct {
+	Chapter string
+	HTML    string
+}
+
+type testExport struct {
+	Title         string
+	HtmlByChapter []testChapter
+	CoverImage    *string
+	Author        *string
+}
+
+// adapter: convert our test type to your real models.DocumentExportRequest
+// If your real struct matches, you can replace this with the real type directly.
+func toRealExport(te testExport) models.DocumentExportRequest {
+	var chapters []models.HTMLData // adjust to your actual field type if needed
+	// If your actual model is []struct{ Chapter, HTML string }, you can convert directly:
+	// (This adapter assumes the same field names.)
+	for _, c := range te.HtmlByChapter {
+		chapters = append(chapters, models.HTMLData{Chapter: c.Chapter, HTML: c.HTML})
+	}
+	return models.DocumentExportRequest{
+		Title:         te.Title,
+		HtmlByChapter: chapters,
+		CoverImage:    te.CoverImage,
+		Author:        te.Author,
+	}
+}
+
+// --- Tests -------------------------------------------------------------------
+
+func TestDetab_TableDriven(t *testing.T) {
+	tests := []struct {
+		name     string
+		in       string
+		tabWidth int
+		want     string
+	}{
+		{
+			name:     "no_tabs",
+			in:       "hello",
+			tabWidth: 4,
+			want:     "hello",
+		},
+		{
+			name:     "single_tab_at_start",
+			in:       "\tA",
+			tabWidth: 4,
+			want:     "    A",
+		},
+		{
+			name:     "tab_middle_aligns_to_next_stop",
+			in:       "ab\tc",
+			tabWidth: 4,
+			// "ab" is 2 cols, next stop at 4 -> 2 spaces
+			want: "ab  c",
+		},
+		{
+			name:     "multiple_tabs",
+			in:       "a\tb\tc",
+			tabWidth: 4,
+			// a: col1; after tab -> pad to 4 -> 3 spaces; then 'b' at col4,
+			// next tab -> pad to 8 -> 3 spaces; then 'c'
+			want: "a   b   c",
+		},
+		{
+			name:     "newline_resets_column",
+			in:       "12\t34\nX\tY",
+			tabWidth: 4,
+			// "12" col2 -> pad to 4 -> 2 spaces: "12  34"
+			// newline: reset col -> "X" col1, pad to 4 -> 3 spaces: "X   Y"
+			want: "12  34\nX   Y",
+		},
+		{
+			name:     "custom_width_8",
+			in:       "1234\tZ",
+			tabWidth: 8,
+			// at col4 -> pad to 8 -> 4 spaces
+			want: "1234    Z",
+		},
+		{
+			name:     "non_positive_width_defaults_to_5",
+			in:       "12\tZ",
+			tabWidth: 0,
+			// at col2 -> default 5 -> pad 3
+			want: "12   Z",
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			got := detab(tc.in, tc.tabWidth)
+			if got != tc.want {
+				t.Fatalf("detab(%q, %d) = %q; want %q", tc.in, tc.tabWidth, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestSafeTimestampFormat(t *testing.T) {
+	re := regexp.MustCompile(`^\d{8}T\d{6}Z$`)
+	for i := 0; i < 3; i++ {
+		ts := safeTimestamp()
+		if !re.MatchString(ts) {
+			t.Fatalf("safeTimestamp() = %q; want format YYYYMMDDThhmmssZ", ts)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+}
+
+func TestHTMLToDOCX_UsesPandocStub_WritesFile(t *testing.T) {
+	// Arrange: fake pandoc
+	fakeDir := mustTempDir(t)
+	_ = writeFakePandoc(t, fakeDir)
+	restore := withPathPrepended(t, fakeDir)
+	defer restore()
+
+	// Use a minimal export
+	exp := toRealExport(testExport{
+		Title: "DocxTitle",
+		HtmlByChapter: []testChapter{
+			{Chapter: "One", HTML: "<div>Hello</div>"},
+		},
+	})
+
+	// Act
+	name, err := HTMLToDOCX(exp)
+	if err != nil {
+		t.Fatalf("HTMLToDOCX error: %v", err)
+	}
+	if !strings.HasSuffix(name, ".docx") {
+		t.Fatalf("expected .docx suffix, got %q", name)
+	}
+	// Output lives in ./tmp/<name>
+	outPath := filepath.Join(".", "tmp", name)
+	b, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("reading output: %v", err)
+	}
+	if len(b) == 0 {
+		t.Fatalf("expected non-empty file; got 0 bytes")
+	}
+	_ = os.Remove(outPath) // clean
+}
+
+func TestHTMLToEPUB_UsesPandocStub_WritesFile(t *testing.T) {
+	// Arrange: fake pandoc
+	fakeDir := mustTempDir(t)
+	_ = writeFakePandoc(t, fakeDir)
+	restore := withPathPrepended(t, fakeDir)
+	defer restore()
+
+	exp := toRealExport(testExport{
+		Title: "EpubTitle",
+		HtmlByChapter: []testChapter{
+			{Chapter: "Intro", HTML: "<p>Hi</p>"},
+			{Chapter: "Next", HTML: "<p>There</p>"},
+		},
+	})
+
+	// Act
+	name, err := HTMLToEPUB(exp)
+	if err != nil {
+		t.Fatalf("HTMLToEPUB error: %v", err)
+	}
+	if !strings.HasSuffix(name, ".epub") {
+		t.Fatalf("expected .epub suffix, got %q", name)
+	}
+	outPath := filepath.Join(".", "tmp", name)
+	b, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("reading output: %v", err)
+	}
+	if len(b) == 0 {
+		t.Fatalf("expected non-empty file; got 0 bytes")
+	}
+	_ = os.Remove(outPath)
+}
+
+// This is a smoke test only. It requires a functional wkhtmltopdf in PATH.
+// You can opt-in by setting RUN_PDF_TESTS=1 (or ensure wkhtmltopdf exists).
+func TestHTMLToPDF_Smoke(t *testing.T) {
+	if os.Getenv("RUN_PDF_TESTS") != "1" {
+		if _, err := exec.LookPath("wkhtmltopdf"); err != nil {
+			t.Skip("wkhtmltopdf not found and RUN_PDF_TESTS!=1; skipping PDF smoke test")
+		}
+	}
+	exp := toRealExport(testExport{
+		Title: "PdfTitle",
+		HtmlByChapter: []testChapter{
+			{Chapter: "C1", HTML: "A\tB\nC\tD"},
+		},
+	})
+	name, err := HTMLToPDF(exp)
+	if err != nil {
+		t.Fatalf("HTMLToPDF error: %v", err)
+	}
+	if !strings.HasSuffix(name, ".pdf") {
+		t.Fatalf("expected .pdf suffix, got %q", name)
+	}
+	outPath := filepath.Join(".", "tmp", name)
+	info, err := os.Stat(outPath)
+	if err != nil {
+		t.Fatalf("stat output: %v", err)
+	}
+	if info.Size() == 0 {
+		t.Fatalf("expected non-empty pdf")
+	}
+	_ = os.Remove(outPath)
+}

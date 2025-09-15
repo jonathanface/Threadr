@@ -25,6 +25,14 @@ export const DocumentExporter = () => {
     if (story) {
       const exp = new Exporter(story);
       let htmlData;
+      setIsOpen(false);
+      setAlertState({
+        title: "Exporting",
+        message:
+          "Your export is being prepared. You will be notified when the document is ready.",
+        open: true,
+        severity: AlertToastType.info,
+      });
       try {
         htmlData = await exp.lexicalToHtml();
       } catch (error) {
@@ -50,7 +58,7 @@ export const DocumentExporter = () => {
           },
           {
             headers: { "Content-Type": "application/json" },
-            params: { type }, // cleaner than manual `?type=${type}`
+            params: { type },
           },
         );
 
@@ -125,6 +133,7 @@ export const DocumentExporter = () => {
         <ul>
           <li onClick={() => exportDoc(DocumentExportType.pdf)}>PDF</li>
           <li onClick={() => exportDoc(DocumentExportType.docx)}>DOCX</li>
+          <li onClick={() => exportDoc(DocumentExportType.epub)}>EPUB</li>
         </ul>
       )}
     </div>

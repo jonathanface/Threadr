@@ -2,15 +2,16 @@ package converters
 
 import (
 	"RichDocter/models"
-	"fmt"
-	"io"
+	"context"
+	"html"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/SebastiaanKlippert/go-wkhtmltopdf"
-	"github.com/google/uuid"
 	"github.com/microcosm-cc/bluemonday"
 )
 
@@ -23,151 +24,279 @@ const (
 	MARGIN_1INCH      = "1in"
 )
 
-var regexes = []*regexp.Regexp{
-	regexp.MustCompile(`<div custom-style="Centered">(.*?)<\/div>`),
-	regexp.MustCompile(`<div custom-style="Righted">(.*?)<\/div>`),
-	regexp.MustCompile(`<div custom-style="Justified">(.*?)<\/div>`),
-	regexp.MustCompile(`<div>(.*?)</div>`),
-	regexp.MustCompile(`’`),
-	regexp.MustCompile(`&#x27;`),
-	regexp.MustCompile(`&#39;`),
-	regexp.MustCompile(`“`),
-	regexp.MustCompile(`”`),
-	regexp.MustCompile(`&quot;`),
-	regexp.MustCompile(`&#34;`),
-	regexp.MustCompile(`—`),
-	regexp.MustCompile(`&amp;`),
-}
-var reMatches = []string{
-	`<div style="margin:0;padding:0;white-space:pre-wrap;text-align:center;">$1</div>`,
-	`<div style="margin:0;padding:0;white-space:pre-wrap;text-align:right;">$1</div>`,
-	`<div style="margin:0;padding:0;white-space:pre-wrap;text-align:justify;">$1</div>`,
-	`<div style="margin:0;padding:0;white-space:pre-wrap;">$1</div>`,
-	`'`,
-	`'`,
-	`'`,
-	`"`,
-	`"`,
-	`"`,
-	`"`,
-	`--`,
-	`&`,
-}
-
-func HTMLToDOCX(export models.DocumentExportRequest) (filename string, err error) {
-	htmlContent := `<html><body style="font-family:\"Times New Roman\",san-serif;font-size:` + FONT_SIZE_DEFAULT + `;line-height:` + LINE_HEIGHT + `;margin:0">`
-	for idx, htmlData := range export.HtmlByChapter {
-		sanitizer := bluemonday.UGCPolicy()
-		sanitizer.AllowAttrs("style", "custom-style").OnElements("div", "p")
-		sanitizedHTML := sanitizer.Sanitize(htmlData.HTML)
-		chapterHeadingStr := fmt.Sprintf(`Chapter %d`, idx+1)
-		chapterTitle := fmt.Sprintf(`<h1>%s</h1>`, htmlData.Chapter)
-		if htmlData.Chapter != chapterHeadingStr {
-			chapterTitle = `<h1>` + chapterHeadingStr + `</h1>`
-			chapterTitle += fmt.Sprintf(`<h2>%s</h2>`, htmlData.Chapter)
+func detab(s string, tabWidth int) string {
+	if tabWidth <= 0 {
+		tabWidth = 5
+	}
+	var b strings.Builder
+	b.Grow(len(s) + len(s)/8)
+	col := 0
+	for _, r := range s {
+		switch r {
+		case '\n':
+			b.WriteRune('\n')
+			col = 0
+		case '\t':
+			spaces := tabWidth - (col % tabWidth)
+			for i := 0; i < spaces; i++ {
+				b.WriteByte(' ')
+			}
+			col += spaces
+		default:
+			b.WriteRune(r)
+			// crude width=1 for non-wide runes; good enough for ASCII text
+			col++
 		}
-		htmlContent += chapterTitle + sanitizedHTML
 	}
-	htmlContent += "</body></html>"
-
-	// Create a temporary HTML file
-	tmpFile, err := os.CreateTemp("", "html_to_docx_*.html")
-	if err != nil {
-		fmt.Println("creating temp html file err", err)
-		return "", err
-	}
-	defer os.Remove(tmpFile.Name())
-
-	// Write HTML content to the temporary file
-	_, err = tmpFile.WriteString(htmlContent)
-	if err != nil {
-		fmt.Println("writing html to temp file error", err)
-		return "", err
-	}
-	tmpFile.Close()
-
-	// Convert HTML to DOCX using Pandoc command-line tool
-	filename = uuid.NewString()
-	cmd := exec.Command("pandoc", "-f", "html", "-t", "docx", "--reference-doc", "assets/custom-reference.docx", "-o", "./tmp/"+filename, tmpFile.Name())
-
-	// Execute the command
-	err = cmd.Run()
-	if err != nil {
-		fmt.Println("pandoc error", err)
-		return "", err
-	}
-	return filename, nil
+	return b.String()
 }
 
-func HTMLToPDF(export models.DocumentExportRequest) (filename string, err error) {
+func safeTimestamp() string {
+	return time.Now().UTC().Format("20060102T150405Z")
+}
+
+func HTMLToEPUB(export models.DocumentExportRequest) (string, error) {
+	if err := os.MkdirAll("./tmp", 0o755); err != nil {
+		return "", err
+	}
+
+	// ---- Build a single sanitized HTML doc (like your DOCX path) ----
+	var b strings.Builder
+	b.WriteString(`<html><head><meta charset="utf-8"></head><body style="font-family: serif; line-height: 1.5; margin: 0 0 1rem;">`)
+
+	sanitizer := bluemonday.UGCPolicy()
+	// Allow minimal formatting commonly used in prose; tweak as needed
+	sanitizer.AllowAttrs("style", "custom-style").OnElements("div", "p")
+	sanitizer.AllowElements("em", "strong", "i", "b", "u", "br", "hr", "blockquote", "ul", "ol", "li", "span")
+	sanitizer.AllowAttrs("href").OnElements("a")
+	sanitizer.AllowAttrs("src", "alt", "title").OnElements("img")
+
+	for _, htmlData := range export.HtmlByChapter {
+		title := html.EscapeString(htmlData.Chapter)
+		b.WriteString(`<h1>` + title + `</h1>`)
+		b.WriteString(sanitizer.Sanitize(htmlData.HTML))
+	}
+	b.WriteString(`</body></html>`)
+
+	// Write temp HTML
+	tmpHTML, err := os.CreateTemp("", "epub_src_*.html")
+	if err != nil {
+		return "", err
+	}
+	defer os.Remove(tmpHTML.Name())
+	if _, err := tmpHTML.WriteString(b.String()); err != nil {
+		return "", err
+	}
+	_ = tmpHTML.Close()
+
+	// ---- Optional: embed a simple CSS for better reading ----
+	css := `
+body { margin: 0; padding: 0.5rem 0.75rem; font-size: 1rem; }
+h1 { font-size: 1.6rem; margin: 1.2rem 0 0.6rem; text-align:center; }
+h2 { font-size: 1.3rem; margin: 1rem 0 0.5rem; }
+p, div { margin: 0 0 0.8rem; }
+blockquote { margin: 0.8rem 1rem; font-style: italic; }
+img { max-width: 100%; height: auto; }
+a { text-decoration: underline; }
+`
+	tmpCSS := filepath.Join(os.TempDir(), "epub_style_"+safeTimestamp()+".css")
+	if err := os.WriteFile(tmpCSS, []byte(css), 0o644); err != nil {
+		return "", err
+	}
+	defer os.Remove(tmpCSS)
+
+	// ---- Output path ----
+	outName := export.Title + "_" + safeTimestamp() + ".epub"
+	outPath := "./tmp/" + outName
+
+	// ---- Pandoc args ----
+	args := []string{
+		"-f", "html",
+		"-t", "epub3",
+		"--toc",
+		"--toc-depth=2",
+		"--epub-chapter-level=1", // split on <h1>
+		"--css", tmpCSS,
+		"-o", outPath,
+		tmpHTML.Name(),
+	}
+
+	// If you have a cover image path on the request, include it:
+	// (Add these fields to your request model as needed)
+	//   CoverImagePath string `json:"cover_image_path,omitempty"`
+	//   Author         string `json:"author,omitempty"`
+	if export.CoverImage != nil {
+		args = append([]string{"--epub-cover-image", *export.CoverImage}, args...)
+	}
+	if export.Author != nil {
+		// Quick inline metadata; for heavier use, consider a metadata YAML
+		args = append([]string{"-M", "author=" + *export.Author}, args...)
+	}
+	if export.Title != "" {
+		args = append([]string{"-M", "title=" + export.Title}, args...)
+	}
+
+	// ---- Run pandoc with a timeout ----
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "pandoc", args...)
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+	return outName, nil
+}
+
+func HTMLToDOCX(export models.DocumentExportRequest) (string, error) {
+	if err := os.MkdirAll("./tmp", 0o755); err != nil {
+		return "", err
+	}
+
+	var b strings.Builder
+	b.WriteString(`
+		<html>
+			<head>
+				<meta charset="utf-8">
+			</head>
+			<body style="font-family:'Times New Roman',serif;font-size:` + FONT_SIZE_DEFAULT + `;line-height:` + LINE_HEIGHT + `;margin:0">`)
+	sanitizer := bluemonday.UGCPolicy()
+	sanitizer.AllowAttrs("style", "custom-style").OnElements("div", "p")
+
+	for _, htmlData := range export.HtmlByChapter {
+		title := html.EscapeString(htmlData.Chapter)
+		b.WriteString(`<h1>` + title + `</h1>`)
+		b.WriteString(sanitizer.Sanitize(htmlData.HTML))
+	}
+	b.WriteString(`</body></html>`)
+
+	tmpHTML, err := os.CreateTemp("", "html_to_docx_*.html")
+	if err != nil {
+		return "", err
+	}
+	defer os.Remove(tmpHTML.Name())
+	if _, err := tmpHTML.WriteString(b.String()); err != nil {
+		return "", err
+	}
+	_ = tmpHTML.Close()
+
+	now := time.Now().UTC()
+	iso := now.Format(time.RFC3339)
+	docTitle := export.Title + "_" + iso
+	out := "./tmp/" + docTitle + ".docx"
+
+	// Add a timeout so pandoc can’t hang your handler forever
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "pandoc", "-f", "html", "-t", "docx",
+		"--reference-doc", "assets/custom-reference.docx",
+		"-o", out, tmpHTML.Name(),
+	)
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+	return docTitle + ".docx", nil
+}
+
+func HTMLToPDF(export models.DocumentExportRequest) (string, error) {
+	if err := os.MkdirAll("./tmp", 0o755); err != nil {
+		return "", err
+	}
+	/* For code blocks: stricter preservation + monospaced font */
+
+	// Build a single HTML document with page breaks between chapters
+	var b strings.Builder
+	b.WriteString(`
+		<html>
+			<head>
+				<meta charset="utf-8">
+				<style>
+					@page { margin: 1in; }
+					html, body, div, p, pre { 
+						tab-size: 4;
+						-o-tab-size: 4; /* harmless fallback */
+						white-space: pre-wrap; /* preserves tabs & spaces, still allows wrapping */
+					}
+					pre, .code {
+						white-space: pre;      /* no collapsing, no wrapping */
+						font-family: "Courier New", Courier, monospace;
+						tab-size: 4;
+					}
+					body { font-family: Arial, sans-serif; font-size:` + FONT_SIZE_DEFAULT + `; line-height:` + LINE_HEIGHT + `; margin:0; }
+					.h1 { text-align:center; font-weight:bold; font-size:` + FONT_SIZE_HEADER + `; line-height:` + FONT_SIZE_HEADER + `; margin: 0 0 ` + FONT_SIZE_HEADER + ` 0; }
+					.chapter { page-break-before: always; }
+					.chapter:first-child { page-break-before: auto; }
+					div, p { margin:0; padding:0; white-space: pre-wrap; }
+				</style>
+			</head>
+		<body>`)
+
+	// Prepare sanitizer once
+	sanitizer := bluemonday.UGCPolicy()
+	sanitizer.AllowAttrs("style").OnElements("p", "div", "pre")
+
+	// If you still want the alignment transforms, do it more narrowly and avoid double-decodes.
+	align := func(s string) string {
+		s = strings.ReplaceAll(s, "’", "'")
+		s = strings.ReplaceAll(s, "&#x27;", "'")
+		s = strings.ReplaceAll(s, "&#39;", "'")
+		s = strings.ReplaceAll(s, "“", `"`)
+		s = strings.ReplaceAll(s, "”", `"`)
+		s = strings.ReplaceAll(s, "&quot;", `"`)
+		s = strings.ReplaceAll(s, "&#34;", `"`)
+		// don’t turn &amp; back into & before sanitization; sanitizer will normalize safely
+		// don’t convert em dash to double-hyphen
+		// convert only your custom-style wrappers
+		s = regexp.MustCompile(`(?s)<div custom-style="Centered">(.*?)</div>`).ReplaceAllString(s, `<div style="text-align:center;">$1</div>`)
+		s = regexp.MustCompile(`(?s)<div custom-style="Righted">(.*?)</div>`).ReplaceAllString(s, `<div style="text-align:right;">$1</div>`)
+		s = regexp.MustCompile(`(?s)<div custom-style="Justified">(.*?)</div>`).ReplaceAllString(s, `<div style="text-align:justify;">$1</div>`)
+		// Generic div normalization across newlines:
+		s = regexp.MustCompile(`(?s)<div>(.*?)</div>`).ReplaceAllString(s, `<div>$1</div>`)
+		return s
+	}
+
+	for i, htmlData := range export.HtmlByChapter {
+		title := html.EscapeString(htmlData.Chapter)
+		sectionClass := "chapter"
+		if i == 0 {
+			sectionClass = "" // first chapter: no forced break
+		}
+		b.WriteString(`<section class="` + sectionClass + `">`)
+		b.WriteString(`<div class="h1">` + title + `</div>`)
+		raw := detab(htmlData.HTML, 4)
+		body := align(raw)
+		b.WriteString(sanitizer.Sanitize(body))
+		b.WriteString(`</section>`)
+	}
+	b.WriteString(`</body></html>`)
+
 	pdfg, err := wkhtmltopdf.NewPDFGenerator()
 	if err != nil {
 		return "", err
 	}
-	htmlContent := `<html><body style="font-family:Arial,san-serif;font-size:` + FONT_SIZE_DEFAULT + `;line-height:` + LINE_HEIGHT + `;margin:0">`
-	for _, htmlData := range export.HtmlByChapter {
-		for idx, re := range regexes {
-			htmlData.HTML = re.ReplaceAllString(htmlData.HTML, reMatches[idx])
-		}
 
-		sanitizer := bluemonday.UGCPolicy()
-		sanitizer.AllowAttrs("style").OnElements("p", "div")
-		sanitizedHTML := sanitizer.Sanitize(htmlData.HTML)
-		chapterTitle := fmt.Sprintf(`<div style="page-break-before: always; margin: 0; margin-bottom: %s; padding: 0; text-align: center; font-weight: bold; font-size: %s; line-height: %s;">%s</div>`, FONT_SIZE_HEADER, FONT_SIZE_HEADER, FONT_SIZE_HEADER, htmlData.Chapter)
-		htmlContent += chapterTitle + sanitizedHTML
-		pdfg.AddPage(wkhtmltopdf.NewPageReader(strings.NewReader(htmlContent)))
-	}
-	htmlContent += "</body></html>"
+	page := wkhtmltopdf.NewPageReader(strings.NewReader(b.String()))
+	// Allow local @font-face or images if you add them later
+	page.EnableLocalFileAccess.Set(true)
 
-	safeTitle := uuid.New()
-	filename = fmt.Sprintf("%s.pdf", safeTitle)
-	cmd := exec.Command("wkhtmltopdf",
-		"--margin-top", "1in",
-		"--margin-right", "1in",
-		"--margin-bottom", "1in",
-		"--margin-left", "1in",
-		"-", // Read HTML from stdin
-		"./tmp/"+filename,
-	)
+	pdfg.AddPage(page)
 
-	// Get pipes for stdin and stdout
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
+	// Margins can be set either via CSS @page or here; we already set @page,
+	// but setting here is OK and explicit:
+	pdfg.MarginTop.Set(25) // ~1in at 96dpi; wkhtmltopdf uses mm by default, but lib converts
+	pdfg.MarginRight.Set(25)
+	pdfg.MarginBottom.Set(25)
+	pdfg.MarginLeft.Set(25)
+
+	if err := pdfg.Create(); err != nil {
 		return "", err
 	}
-
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
+	now := time.Now().UTC()
+	iso := now.Format(time.RFC3339)
+	docTitle := export.Title + "_" + iso
+	name := docTitle + ".pdf"
+	out := "./tmp/" + name
+	if err := pdfg.WriteFile(out); err != nil {
 		return "", err
 	}
-
-	// Start the command
-	if err := cmd.Start(); err != nil {
-		return "", err
-	}
-
-	// Write HTML string to stdin
-	_, err = io.WriteString(stdin, htmlContent)
-	if err != nil {
-		return "", err
-	}
-	stdin.Close() // Close stdin to signal end of input
-
-	// Read the generated PDF from stdout
-	file, err := os.Create("./tmp/" + filename)
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-
-	_, err = io.Copy(file, stdout)
-	if err != nil {
-		return "", err
-	}
-
-	// Wait for the command to finish
-	if err := cmd.Wait(); err != nil {
-		return "", err
-	}
-	return filename, nil
+	return name, nil
 }

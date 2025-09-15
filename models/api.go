@@ -143,11 +143,21 @@ type HTMLData struct {
 	HTML    string `json:"html"`
 }
 
+type ExportFormat string
+
+const (
+	FormatPDF  ExportFormat = "pdf"
+	FormatDOCX ExportFormat = "docx"
+	FormatEPUB ExportFormat = "epub"
+)
+
 type DocumentExportRequest struct {
-	StoryID       string     `json:"story_id"`
-	HtmlByChapter []HTMLData `json:"html_by_chapter"`
-	Type          string     `json:"type"`
-	Title         string     `json:"title"`
+	StoryID       string       `json:"story_id"`
+	HtmlByChapter []HTMLData   `json:"html_by_chapter"`
+	Type          ExportFormat `json:"type"`
+	Title         string       `json:"title"`
+	Author        *string      `json:"author"`
+	CoverImage    *string      `json:"cover_image"`
 }
 
 type OutlineTemplate string
