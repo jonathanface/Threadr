@@ -1,16 +1,15 @@
-// hooks/useFetchStoryBlocks.ts
 import { useCallback, useState } from "react";
 import { SerializedEditorState } from "lexical";
-import { useLoader } from "./useLoader";
+import { useLoader } from "../../../hooks/useLoader";
 import {
   CustomSerializedParagraphNode,
   CustomParagraphNode,
-} from "../components/ThreadWriter/customNodes/CustomParagraphNode";
+} from "../../../components/ThreadWriter/customNodes/CustomParagraphNode";
 import { v4 as uuidv4 } from "uuid";
-import { useToaster } from "./useToaster";
-import { AlertToastType } from "../types/AlertToasts";
+import { useToaster } from "../../../hooks/useToaster";
+import { AlertToastType } from "../../../types/AlertToasts";
 import axios from "axios";
-import { api } from "../api";
+import { api } from "../../../api";
 
 const generateBlankLine = (): CustomSerializedParagraphNode => ({
   children: [],
