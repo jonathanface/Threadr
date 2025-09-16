@@ -29,7 +29,7 @@ import {
   SimplifiedAssociation,
 } from "../../../types/Associations";
 import { AssociationPanelDemo } from "../AssociationPanelDemo";
-import { useEditorStateUpdater } from "../../../hooks/useEditorStateUpdater";
+import { useEditorStateUpdater } from "../../ThreadWriter/hooks/useEditorStateUpdater";
 
 import DocumentClickPluginDemo, {
   ClickData,

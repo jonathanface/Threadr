@@ -17,7 +17,7 @@ import { SimplifiedAssociation } from "../../../types/Associations";
 import styles from "../threadwriter.module.css";
 import { generateTextHash } from "../../../constants/constants";
 import { ClickData } from "./DocumentClickPlugin";
-import { useAssociations } from "../../../hooks/useAssociations";
+import { useAssociations } from "../hooks/useAssociations";
 import {
   $createAssociationInlineNode,
   $isAssociationInlineNode,

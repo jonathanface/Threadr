@@ -42,9 +42,9 @@ import {
 } from "../../types/Associations";
 import { DocumentMenu } from "./subcomponents/DocumentMenu";
 import { useSelections } from "../../hooks/useSelections";
-import { useFetchStoryBlocks } from "../../hooks/useFetchStoryBlocks";
-import { useAssociations } from "../../hooks/useAssociations";
-import { useEditorStateUpdater } from "../../hooks/useEditorStateUpdater";
+import { useFetchStoryBlocks } from "./hooks/useFetchStoryBlocks";
+import { useAssociations } from "./hooks/useAssociations";
+import { useEditorStateUpdater } from "./hooks/useEditorStateUpdater";
 import { dbEventEmitter, SaveSuccessPayload } from "../../utils/EventEmitter";
 import { generateTextHash } from "../../constants/constants";
 import {
@@ -52,9 +52,9 @@ import {
   serializeWithChildren,
 } from "../../utils/helpers";
 import DocumentClickPlugin, { ClickData } from "./plugins/DocumentClickPlugin";
-import { useDocumentSettings } from "../../hooks/useDocumentSettings";
+import { useDocumentSettings } from "./hooks/useDocumentSettings";
 import { TextTransformPlugin } from "./plugins/TextTransformPlugin";
-import { useEditorCommands } from "../../hooks/useEditorCommands";
+import { useEditorCommands } from "./hooks/useEditorCommands";
 import {
   $isAssociationInlineNode,
   AssociationInlineNode,
@@ -64,6 +64,8 @@ import { api } from "../../api";
 import { ContextMenu, ContextMenuProps } from "./subcomponents/ContextMenu";
 import { AssociationPanel } from "./subcomponents/AssociationPanel";
 import { Toolbar } from "./subcomponents/ThreadWriterToolbar";
+import { useAutotabOnEnter } from "./hooks/useAutotabOnEnter";
+import { useMobileCursorAdjustment } from "./hooks/useMobileCursorAdjustment";
 
 const theme = {
   "custom-paragraph": styles.customParagraph,
@@ -85,6 +87,14 @@ export const ThreadWriter = () => {
     },
   };
 
+  const defaultContextData: ContextMenuProps = {
+    visible: false,
+    name: "",
+    x: 0,
+    y: 0,
+    items: [],
+  };
+
   // refs
   const editorRef = useRef<LexicalEditor>(null);
   const isProgrammaticChange = useRef(false);
@@ -95,29 +105,25 @@ export const ThreadWriter = () => {
   const selectedAssociation = useRef<string | null>(null);
   const isQueuePausedRef = useRef(false);
 
-  // hooks
-  const { setAlertState } = useToaster();
-  const { story, chapter } = useSelections();
-  const { showLoader, hideLoader } = useLoader();
-  const { documentSettings } = useDocumentSettings();
-
   // states
   const [storyBlocks, setStoryBlocks] = useState<SerializedEditorState | null>(
     null,
   );
-  const defaultContextData: ContextMenuProps = {
-    visible: false,
-    name: "",
-    x: 0,
-    y: 0,
-    items: [],
-  };
   const [contextMenuData, setContextMenuData] =
     useState<ContextMenuProps>(defaultContextData);
   const [isAssociationPanelOpen, setIsAssociationPanelOpen] = useState(false);
 
   const resetContextMenu = () => setContextMenuData({ ...defaultContextData });
 
+  // hooks
+  const { setAlertState } = useToaster();
+  const { story, chapter } = useSelections();
+  const { showLoader, hideLoader } = useLoader();
+  const { documentSettings } = useDocumentSettings();
+  const { associations, setAssociations } = useAssociations();
+  useAutotabOnEnter(editorRef, !!documentSettings?.autotab);
+  useEditorStateUpdater(editorRef, storyBlocks, isProgrammaticChange);
+  useMobileCursorAdjustment(editorRef);
   useEditorCommands(editorRef, pastedParagraphKeys);
 
   // Fetchers
@@ -128,7 +134,6 @@ export const ThreadWriter = () => {
       setStoryBlocks,
       previousNodeKeysRef,
     );
-  const { associations, setAssociations } = useAssociations();
 
   const getSelectedText = () => {
     let selectedText = "";
@@ -517,90 +522,6 @@ export const ThreadWriter = () => {
     },
     [setAlertState, runQueue],
   );
-
-  useEditorStateUpdater(editorRef, storyBlocks, isProgrammaticChange);
-
-  // all of this messy effect is just to make the cursor move as expected on mobile
-  useEffect(() => {
-    if (!editorRef.current) return;
-
-    const handleTouchEnd = (event: TouchEvent) => {
-      const editor: LexicalEditor | null = editorRef.current;
-      if (!editor) return;
-
-      // Get the tapped position
-      const touch = event.changedTouches[0];
-      const target = document.elementFromPoint(touch.clientX, touch.clientY);
-      if (!target || !editor.getRootElement()?.contains(target)) return;
-
-      editor.update(() => {
-        const root = $getRoot();
-
-        let closestTextNode: LexicalNode | null = null;
-        let charOffset = 0;
-
-        // Get all text nodes
-        const textNodes: LexicalNode[] = [];
-        const traverseNodes = (node: LexicalNode) => {
-          if ($isTextNode(node) || $isAssociationInlineNode(node)) {
-            textNodes.push(node);
-          } else if ($isElementNode(node)) {
-            node.getChildren().forEach(traverseNodes);
-          }
-        };
-        root.getChildren().forEach(traverseNodes);
-
-        // **Step 1: Use caret position to find exact text offset**
-        let range: Range | null = null;
-        const doc = document as unknown as {
-          caretPositionFromPoint?: (
-            x: number,
-            y: number,
-          ) => { offsetNode: Node; offset: number } | null;
-          caretRangeFromPoint?: (x: number, y: number) => Range | null;
-        } & Document;
-
-        if (doc.caretPositionFromPoint) {
-          const caretPos = doc.caretPositionFromPoint(
-            touch.clientX,
-            touch.clientY,
-          );
-          if (caretPos) {
-            range = document.createRange();
-            range.setStart(caretPos.offsetNode, caretPos.offset);
-            range.setEnd(caretPos.offsetNode, caretPos.offset);
-            charOffset = caretPos.offset;
-          }
-        } else if (doc.caretRangeFromPoint) {
-          range = doc.caretRangeFromPoint(touch.clientX, touch.clientY);
-          if (range) {
-            charOffset = range.startOffset;
-          }
-        }
-
-        // **Step 2: Find the closest text node based on the caret range**
-        if (range) {
-          for (const node of textNodes) {
-            const domNode = editor.getElementByKey(node.getKey());
-            if (domNode && domNode.contains(range.startContainer)) {
-              closestTextNode = node;
-              break;
-            }
-          }
-        }
-        // **Step 3: Set cursor exactly where the user tapped**
-        if (closestTextNode && $isTextNode(closestTextNode)) {
-          const newSelection = $createRangeSelection();
-          newSelection.anchor.set(closestTextNode.getKey(), charOffset, "text");
-          newSelection.focus.set(closestTextNode.getKey(), charOffset, "text");
-          $setSelection(newSelection);
-        }
-      });
-    };
-
-    document.addEventListener("touchend", handleTouchEnd);
-    return () => document.removeEventListener("touchend", handleTouchEnd);
-  }, []);
 
   useEffect(() => {
     // this effect will wait for tables with previous statuses (stati?) of 501 (assets not ready yet)
@@ -997,11 +918,6 @@ export const ThreadWriter = () => {
     };
     setContextMenuData(contextData);
   };
-
-  // if (!story || !story.story_id || !chapter || !chapter.id) {
-  //   console.warn("Story and chapter not loaded yet.");
-  //   return null;
-  // }
 
   if (!story || !chapter) return null;
   if (!storyBlocks) {
