@@ -300,7 +300,7 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
           formData.append("file", file);
 
           const { data } = await api.put<{ url: string }>(
-            `/api/stories/${story.story_id}/associations/${selectedAssociation.association_id}/upload`,
+            `/stories/${story.story_id}/associations/${selectedAssociation.association_id}/upload`,
             formData,
             {
               params: { type: selectedAssociation.association_type },

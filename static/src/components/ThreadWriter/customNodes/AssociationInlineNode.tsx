@@ -181,9 +181,7 @@ export class AssociationInlineNode extends TextNode {
       const updatedTopValue = event.clientY - updatedHeight - 20;
       tooltip.style.top = updatedTopValue.toString() + "px"; // Recalculate and adjust the top position
     };
-    img.alt =
-      this.__shortDescription ||
-      "Click on the association to add a description.";
+    img.alt = this.__text || "Unknown Name";
     img.src = this.__portrait || "/img/default_association_portrait.jpg";
     img.classList.add(styles.tooltipImage); // Optional: add a class for styling the image
 
