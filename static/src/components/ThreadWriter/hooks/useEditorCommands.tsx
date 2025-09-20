@@ -183,18 +183,20 @@ export const useEditorCommands = (
                     // Replace the first paragraph if the parent is empty
                     parent.append($createTextNode(paragraphText));
                     lastInsertedNode = parent; // Update reference
-                    const customKey = (
-                      parent as CustomParagraphNode
-                    ).getKeyId();
-                    if (customKey) pastedParagraphKeys.current.add(customKey);
+                    const customNode = parent as CustomParagraphNode;
+                    if (customNode) {
+                      const customKey = customNode.getKeyId();
+                      if (customKey) pastedParagraphKeys.current.add(customKey);
+                    }
                   } else if (index === 0) {
                     // Insert text at the current selection for the first paragraph
                     selection.insertText(paragraphText);
                     lastInsertedNode = selection.anchor.getNode(); // Update reference
-                    const customKey = (
-                      parent as CustomParagraphNode
-                    ).getKeyId();
-                    if (customKey) pastedParagraphKeys.current.add(customKey);
+                    const customNode = parent as CustomParagraphNode;
+                    if (customNode) {
+                      const customKey = customNode.getKeyId();
+                      if (customKey) pastedParagraphKeys.current.add(customKey);
+                    }
                   } else {
                     // Create and append new paragraphs for subsequent lines
                     const customKey = uuidv4();
