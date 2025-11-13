@@ -1,19 +1,21 @@
-import { EditorConfig, LexicalEditor, ParagraphNode, SerializedParagraphNode } from "lexical";
-
+import { EditorConfig, LexicalEditor, NodeKey, ParagraphNode, SerializedParagraphNode } from "lexical";
+import { v4 as uuidv4 } from "uuid";
 export interface CustomSerializedParagraphNode extends SerializedParagraphNode {
+    type: "custom-paragraph";
+    version: 1;
     key_id: string;
 }
 
 export class CustomParagraphNode extends ParagraphNode {
-    __key_id: string | null;
+    __key_id: string;
 
-    constructor(key_id: string | null = null, key?: string) {
-        super(key); // Pass the key to the parent constructor
-        this.__key_id = key_id;
+    constructor(key_id?: string | null, key?: NodeKey) {
+        super(key);
+        this.__key_id = key_id ?? uuidv4();
     }
 
-    static getType(): string {
-        return "custom-paragraph"; // Unique type
+    static getType(): "custom-paragraph" {
+        return "custom-paragraph";
     }
 
     static clone(node: CustomParagraphNode): CustomParagraphNode {
@@ -21,17 +23,19 @@ export class CustomParagraphNode extends ParagraphNode {
     }
 
     static importJSON(serializedNode: CustomSerializedParagraphNode): CustomParagraphNode {
-        const node = new CustomParagraphNode(serializedNode.key_id || null);
+        const node = new CustomParagraphNode(serializedNode.key_id || uuidv4());
         node.setFormat(serializedNode.format);
         node.setIndent(serializedNode.indent);
         return node;
     }
 
     exportJSON(): CustomSerializedParagraphNode {
+        const base = super.exportJSON();
         return {
-            ...super.exportJSON(),
-            key_id: this.__key_id || "",
-            children: this.getChildren().map((child) => child.exportJSON()),
+            ...base,
+            type: "custom-paragraph",
+            version: 1,
+            key_id: this.__key_id,
         };
     }
 
@@ -55,8 +59,15 @@ export class CustomParagraphNode extends ParagraphNode {
         writable.__key_id = key_id;
     }
 
-    getKeyId(): string | null {
+    getKeyId(): string {
         return this.__key_id;
+    }
+    insertNewAfter(): CustomParagraphNode {
+        const next = new CustomParagraphNode(); 
+        const dir = this.getDirection();
+        if (dir) next.setDirection(dir);
+        this.insertAfter(next, true);
+        return next;
     }
 
     createDOM(config: EditorConfig): HTMLElement {
