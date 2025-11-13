@@ -48,6 +48,5 @@ require (
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/markbates/going v1.0.0 // indirect
 	golang.org/x/oauth2 v0.27.0 // indirect
 )
