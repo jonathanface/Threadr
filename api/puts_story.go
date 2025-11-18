@@ -333,6 +333,10 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		defer file.Close()
 
 		allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
+		if handler.Size < 0 || handler.Size > int64(maxFileSize) {
+			RespondWithError(w, http.StatusBadRequest, "File is too large")
+			return
+		}
 		fileBytes := make([]byte, handler.Size)
 		if _, err := file.Read(fileBytes); err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
