@@ -69,6 +69,12 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
+	// Enforce maximum file size to protect against excessive memory allocation
+	if handler.Size <= 0 || handler.Size > maxFileSize {
+		RespondWithError(w, http.StatusBadRequest, "File is too large or invalid size")
+		return
+	}
+
 	allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
 	fileBytes := make([]byte, handler.Size)
 	if _, err := file.Read(fileBytes); err != nil {
