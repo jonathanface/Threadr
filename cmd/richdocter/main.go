@@ -73,9 +73,9 @@ func main() {
 
 	daoOptions := daos.Options{
 		Region:                     getenv("AWS_REGION", DEFAULT_AWS_REGION),
-		MaxRetries:                 atoiDefault(os.Getenv("AWS_MAX_RETRIES"), DEFAULT_MAX_RETRIES),
-		BlockTableMinWriteCapacity: atoiDefault(os.Getenv("AWS_BLOCKTABLE_MIN_WRITE_CAPACITY"), DEFAULT_AWS_BLOCK_WRITE_CAPACITY),
-		WriteBatchSize:             atoiDefault(os.Getenv("DYNAMO_WRITE_BATCH_SIZE"), DEFAULT_DYNAMO_WRITE_BATCH_SIZE),
+		MaxRetries:                 DEFAULT_MAX_RETRIES,
+		BlockTableMinWriteCapacity: DEFAULT_AWS_BLOCK_WRITE_CAPACITY,
+		WriteBatchSize:             DEFAULT_DYNAMO_WRITE_BATCH_SIZE,
 	}
 	dao, err := daos.NewDAO(initCtx, daoOptions)
 	if err != nil {

@@ -15,6 +15,23 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
+// sanitizeFilename makes a filename safe to use, only allows
+// basic ASCII, replaces spaces with underscores, and strips path traversal
+func sanitizeFilename(name string) string {
+	// Remove path separators and ".."
+	name = strings.ReplaceAll(name, "/", "_")
+	name = strings.ReplaceAll(name, "\\", "_")
+	name = strings.ReplaceAll(name, "..", "_")
+	// Only allow [A-Za-z0-9_-] and replace anything else with _
+	re := regexp.MustCompile(`[^\w\d_-]`)
+	name = re.ReplaceAllString(name, "_")
+	// Limit length to 64 chars
+	if len(name) > 64 {
+		name = name[:64]
+	}
+	return name
+}
+
 const (
 	FONT_NAME         = "Arial"
 	FONT_PATH         = "assets/fonts/arial.ttf"
@@ -180,9 +197,9 @@ func HTMLToDOCX(export models.DocumentExportRequest) (string, error) {
 
 	now := time.Now().UTC()
 	iso := now.Format(time.RFC3339)
-	docTitle := export.Title + "_" + iso
+	safeTitle := sanitizeFilename(export.Title)
+	docTitle := safeTitle + "_" + iso
 	out := "./tmp/" + docTitle + ".docx"
-
 	// Add a timeout so pandoc can’t hang your handler forever
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -292,7 +309,8 @@ func HTMLToPDF(export models.DocumentExportRequest) (string, error) {
 	}
 	now := time.Now().UTC()
 	iso := now.Format(time.RFC3339)
-	docTitle := export.Title + "_" + iso
+	safeTitle := sanitizeFilename(export.Title)
+	docTitle := safeTitle + "_" + iso
 	name := docTitle + ".pdf"
 	out := "./tmp/" + name
 	if err := pdfg.WriteFile(out); err != nil {
