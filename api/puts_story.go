@@ -113,6 +113,10 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		// TODO delete previous image
 		defer file.Close()
 
+		if handler.Size < 0 || handler.Size > maxFileSize {
+			RespondWithError(w, http.StatusBadRequest, "File size exceeds allowed limit")
+			return
+		}
 		allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
 		fileBytes := make([]byte, handler.Size)
 		if _, err := file.Read(fileBytes); err != nil {
