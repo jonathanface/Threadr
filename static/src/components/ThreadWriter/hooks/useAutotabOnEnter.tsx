@@ -9,8 +9,8 @@ import {
   $createPoint,
   $createRangeSelection,
   $setSelection,
+  ParagraphNode,
 } from "lexical";
-import { CustomParagraphNode } from "../customNodes/CustomParagraphNode";
 
 export const useAutotabOnEnter = (
   editorRef: React.RefObject<LexicalEditor | null>,
@@ -31,20 +31,32 @@ export const useAutotabOnEnter = (
             if (!$isRangeSelection(sel)) return;
 
             // anchor sits in the newly created paragraph after Enter
-            const anchorParent = sel.anchor.getNode().getParent();
-            if (!(anchorParent instanceof CustomParagraphNode)) return;
+            // It might be the paragraph itself (if empty) or a node inside it
+            const anchorNode = sel.anchor.getNode();
 
-            const first = anchorParent.getFirstChild();
+            let targetParagraph: ParagraphNode | null = null;
+            if (anchorNode instanceof ParagraphNode) {
+              targetParagraph = anchorNode;
+            } else {
+              const anchorParent = anchorNode.getParent();
+              if (anchorParent instanceof ParagraphNode) {
+                targetParagraph = anchorParent;
+              }
+            }
+
+            if (!targetParagraph) return;
+
+            const first = targetParagraph.getFirstChild();
             const hasLeadingTab =
               first instanceof TextNode &&
               first.getTextContent().startsWith("\t");
-            console.log("has lead", hasLeadingTab);
+
             if (!hasLeadingTab) {
               const tab = new TextNode("\t");
               if (first) {
                 first.insertBefore(tab);
               } else {
-                anchorParent.append(tab);
+                targetParagraph.append(tab);
               }
 
               // if caret is at paragraph start, put it just after the tab
