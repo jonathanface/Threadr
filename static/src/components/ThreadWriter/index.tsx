@@ -66,6 +66,7 @@ import { AssociationPanel } from "./subcomponents/AssociationPanel";
 import { Toolbar } from "./subcomponents/ThreadWriterToolbar";
 import { useAutotabOnEnter } from "./hooks/useAutotabOnEnter";
 import { useMobileCursorAdjustment } from "./hooks/useMobileCursorAdjustment";
+import { useCursorMemory } from "./hooks/useCursorMemory";
 
 const theme = {
   "custom-paragraph": styles.customParagraph,
@@ -125,6 +126,13 @@ export const ThreadWriter = () => {
   useEditorStateUpdater(editorRef, storyBlocks, isProgrammaticChange);
   useMobileCursorAdjustment(editorRef);
   useEditorCommands(editorRef, pastedParagraphKeys);
+
+  useCursorMemory(
+    editorRef,
+    story?.story_id,
+    chapter?.id,
+    !!storyBlocks, // Restore cursor after content loads
+  );
 
   // Fetchers
   const { getBatchedStoryBlocks, previousTableStatus, tableStatus } =
@@ -380,10 +388,16 @@ export const ThreadWriter = () => {
 
   const writeEpochRef = useRef(0);
   useEffect(() => {
-    if (!chapter) return;
+    if (!chapter) {
+      // Clear storyBlocks when chapter becomes undefined (navigating away)
+      setStoryBlocks(null);
+      return;
+    }
     isQueuePausedRef.current = true;
     pastedParagraphKeys.current.clear();
     previousNodeKeysRef.current.clear();
+    // Clear storyBlocks when switching chapters
+    setStoryBlocks(null);
     // fetch + set storyBlocks…
     // mount/hydrate happens because key changed
     setTimeout(() => {

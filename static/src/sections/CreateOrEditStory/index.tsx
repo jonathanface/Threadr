@@ -399,21 +399,22 @@ export const CreateOrEditStory: React.FC = () => {
         defaultImageFetchedRef.current = true;
         showLoader();
 
-        const res = await api.get<Blob>(randomImageURL, {
-          baseURL: "", // don't prepend "/api"
-          responseType: "blob", // get binary data
-        });
+        // Use fetch instead of axios for better CORS handling with external resources
+        const res = await fetch(randomImageURL);
 
-        const blob = res.data;
+        if (!res.ok) {
+          throw new Error(`Failed to fetch image: ${res.status}`);
+        }
+
+        const blob = await res.blob();
         // preserve server-provided type if available, fallback to jpeg
         const fileType = blob.type || "image/jpeg";
         tempImageFile.current = new File([blob], "temp.jpg", {
           type: fileType,
         });
 
-        // Axios' final URL after redirects (fallback to requested URL)
-        const finalUrl =
-          (res.request as XMLHttpRequest)?.responseURL ?? randomImageURL;
+        // Get final URL after redirects
+        const finalUrl = res.url || randomImageURL;
 
         return finalUrl;
       }

@@ -12,6 +12,7 @@ import { AssociationsProvider } from "../../providers/associations";
 import { DocumentSettingsProvider } from "../../providers/documentSettings";
 import axios from "axios";
 import { api } from "../../api";
+import { getLastChapter, saveLastChapter } from "../../utils/chapterMemory";
 
 export const DocumentEditorPage = () => {
   const { storyID } = useParams<{ storyID: string }>();
@@ -19,7 +20,7 @@ export const DocumentEditorPage = () => {
   const { showLoader, hideLoader } = useLoader();
   const { setAlertState } = useToaster();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { story, setStory, setSeries, setChapter } = useSelections();
+  const { story, chapter, setStory, setSeries, setChapter } = useSelections();
 
   const fetchError: AlertState = useMemo(
     () => ({
@@ -99,23 +100,42 @@ export const DocumentEditorPage = () => {
   }, [story, fetchError, setAlertState, setSeries, showLoader, hideLoader]);
 
   // Ensure a chapter param exists once story is known
+  // Try to use last viewed chapter, otherwise default to first chapter
   useEffect(() => {
-    if (!story) return;
-    const current = searchParams.get("chapter");
-    if (!current) {
-      const firstId = story.chapters?.[0]?.id;
-      if (firstId) {
+    if (!story || !storyID) return;
+
+    const currentChapterParam = searchParams.get("chapter");
+ 
+    if (!currentChapterParam) {
+      // No chapter in URL - try to get last viewed chapter from localStorage
+      const lastChapterId = getLastChapter(storyID);
+      // Verify the last chapter still exists in this story
+      const chapterToLoad =
+        lastChapterId && story.chapters?.some((ch) => ch.id === lastChapterId)
+          ? lastChapterId
+          : story.chapters?.[0]?.id;
+
+      if (chapterToLoad) {
         const next = new URLSearchParams(searchParams);
-        next.set("chapter", String(firstId));
+        next.set("chapter", String(chapterToLoad));
         setSearchParams(next, { replace: true });
       }
+    } else {
+      console.log("[CHAPTER MEMORY] Chapter param already in URL, using it:", currentChapterParam);
     }
-  }, [story, searchParams, setSearchParams]);
+  }, [story, storyID, searchParams, setSearchParams]);
+
+  // Save chapter to localStorage whenever it changes
+  useEffect(() => {
+    if (storyID && chapter?.id) {
+      saveLastChapter(storyID, chapter.id);
+    }
+  }, [storyID, chapter?.id]);
 
   // Fetch Chapter whenever URL param changes
   useEffect(() => {
     const chapterID = searchParams.get("chapter");
-    if (!chapterID) return;
+    if (!chapterID || !storyID) return;
 
     const ac = new AbortController();
     const run = async () => {
@@ -128,6 +148,9 @@ export const DocumentEditorPage = () => {
         );
 
         setChapter(data);
+
+        // Save this as the last viewed chapter for this story
+        saveLastChapter(storyID, chapterID);
       } catch (e) {
         if (axios.isCancel(e)) {
           // Request was aborted — ignore

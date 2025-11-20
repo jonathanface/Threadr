@@ -50,10 +50,6 @@ export const useFetchStoryBlocks = (
             key: startKey,
             chapter: chapterId,
           },
-          validateStatus: (status) => {
-            // let 2xx, 404, and 501 resolve so we can handle them in catch logic
-            return (status >= 200 && status < 300) || status === 404;
-          },
         });
 
         previousNodeKeysRef.current = new Map();

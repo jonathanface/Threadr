@@ -49,7 +49,7 @@ describe("<CheckoutPage />", () => {
   });
 
   it("renders the payment form when clientSecret is returned", async () => {
-    postMock.mockResolvedValueOnce({ data: { clientSecret: "cs_test_123" } });
+    postMock.mockResolvedValueOnce({ data: { client_secret: "cs_test_123" } });
 
     render(<CheckoutPage />);
 
@@ -90,7 +90,7 @@ describe("<CheckoutPage />", () => {
   });
 
   it("only calls the subscribe endpoint once (StrictMode guard)", async () => {
-    postMock.mockResolvedValueOnce({ data: { clientSecret: "cs_123" } });
+    postMock.mockResolvedValueOnce({ data: { client_secret: "cs_123" } });
 
     render(<CheckoutPage />);
 
