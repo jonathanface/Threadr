@@ -37,6 +37,27 @@ jobs:
       - name: Run Go unit tests
         run: go test ./... -v
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        with:
+          path: static/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('static/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install frontend dependencies
+        working-directory: ./static
+        run: npm ci
+
+      - name: Run frontend unit tests
+        working-directory: ./static
+        run: npm test
+
       - name: Test Summary
         if: always()
         run: |
