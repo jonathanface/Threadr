@@ -1,16 +1,16 @@
-import { useEffect, useRef } from "react";
 import {
-  LexicalEditor,
+  $createPoint,
+  $createRangeSelection,
+  $getRoot,
   $getSelection,
   $isRangeSelection,
-  $getRoot,
-  $createRangeSelection,
   $setSelection,
-  $createPoint,
+  LexicalEditor,
 } from "lexical";
+import { useEffect, useRef } from "react";
 import {
-  saveCursorPosition,
   getCursorPosition,
+  saveCursorPosition,
 } from "../../../utils/chapterMemory";
 import { CustomParagraphNode } from "../customNodes/CustomParagraphNode";
 

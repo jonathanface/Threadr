@@ -1,0 +1,17 @@
+{
+  "recommendations": [
+    // Go Development
+    "golang.go",
+
+    // TypeScript/JavaScript Development
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+
+    // Testing
+    "vitest.explorer",
+
+    // Utilities
+    "editorconfig.editorconfig",
+    "streetsidesoftware.code-spell-checker"
+  ]
+}
