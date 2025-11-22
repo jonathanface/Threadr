@@ -11,7 +11,8 @@ import {
   $createRangeSelection,
   $createPoint,
   INSERT_PARAGRAPH_COMMAND,
-  ParagraphNode,
+  $isElementNode,
+  $isRangeSelection,
 } from 'lexical';
 import { useAutotabOnEnter } from '../useAutotabOnEnter';
 import { createTestEditor } from '../../__tests__/testUtils';
@@ -78,7 +79,7 @@ describe('useAutotabOnEnter', () => {
 
         // The new paragraph should have a tab
         const newParagraph = paragraphs[1];
-        const firstChild = newParagraph.getFirstChild();
+        const firstChild = $isElementNode(newParagraph) ? newParagraph.getFirstChild() : null;
 
         if (firstChild) {
           expect(firstChild.getTextContent()).toMatch(/^\t/);
@@ -111,7 +112,7 @@ describe('useAutotabOnEnter', () => {
 
         if (paragraphs.length > 1) {
           const newParagraph = paragraphs[1];
-          const firstChild = newParagraph.getFirstChild();
+          const firstChild = $isElementNode(newParagraph) ? newParagraph.getFirstChild() : null;
 
           // Should not have a tab
           if (firstChild) {
@@ -186,7 +187,7 @@ describe('useAutotabOnEnter', () => {
       editor.getEditorState().read(() => {
         const selection = $getSelection();
 
-        if (selection) {
+        if ($isRangeSelection(selection)) {
           // Cursor should be positioned after the tab (offset 1)
           expect(selection.anchor.offset).toBeGreaterThan(0);
         }
@@ -260,7 +261,7 @@ describe('useAutotabOnEnter', () => {
 
         // The new paragraph should have a tab
         const newParagraph = paragraphs[1];
-        const firstChild = newParagraph.getFirstChild();
+        const firstChild = $isElementNode(newParagraph) ? newParagraph.getFirstChild() : null;
         if (firstChild) {
           expect(firstChild.getTextContent()).toMatch(/^\t/);
         }
@@ -431,7 +432,7 @@ describe('useAutotabOnEnter', () => {
         const root = $getRoot();
         const paragraphs = root.getChildren();
         const secondPara = paragraphs[1];
-        const firstChild = secondPara?.getFirstChild();
+        const firstChild = $isElementNode(secondPara) ? secondPara.getFirstChild() : null;
 
         // Should not have a tab yet
         if (firstChild) {
@@ -473,7 +474,7 @@ describe('useAutotabOnEnter', () => {
 
         // The third paragraph should have a tab
         const thirdPara = paragraphs[2];
-        const firstChild = thirdPara?.getFirstChild();
+        const firstChild = $isElementNode(thirdPara) ? thirdPara.getFirstChild() : null;
         if (firstChild) {
           expect(firstChild.getTextContent()).toMatch(/^\t/);
         }

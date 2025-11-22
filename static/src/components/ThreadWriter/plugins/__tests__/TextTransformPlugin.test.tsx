@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from 'vitest';
-import { TextTransformPlugin } from '../TextTransformPlugin';
 import * as React from 'react';
+import { describe, expect, it } from 'vitest';
+import { TextTransformPlugin } from '../TextTransformPlugin';
 
 describe('TextTransformPlugin', () => {
   describe('Plugin structure', () => {

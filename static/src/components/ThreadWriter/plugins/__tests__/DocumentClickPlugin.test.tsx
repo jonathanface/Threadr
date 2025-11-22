@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render } from '@testing-library/react';
-import * as React from 'react';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { render } from '@testing-library/react';
+import { $createParagraphNode, $createTextNode, $getRoot, LexicalEditor } from 'lexical';
+import * as React from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import DocumentClickPlugin, { ClickData } from '../DocumentClickPlugin';
-import { LexicalEditor, $getRoot, $createParagraphNode, $createTextNode, $createRangeSelection, $setSelection, $createPoint } from 'lexical';
 
 describe('DocumentClickPlugin', () => {
   const mockOnRightClick = vi.fn();
@@ -335,10 +335,6 @@ describe('DocumentClickPlugin', () => {
 
   describe('Browser API compatibility', () => {
     it('should handle document.caretPositionFromPoint if available', () => {
-      const mockCaretPos = {
-        offsetNode: document.createTextNode('test'),
-        offset: 2,
-      };
 
       const doc = document as any;
       const hasCaretPosition = typeof doc.caretPositionFromPoint !== 'undefined';

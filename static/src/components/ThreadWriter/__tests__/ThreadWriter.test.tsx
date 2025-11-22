@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ThreadWriter } from '../index';
 import * as React from 'react';
@@ -146,23 +146,6 @@ describe('ThreadWriter', () => {
   const mockChapter = {
     id: 'chapter-456',
     title: 'Chapter 1',
-  };
-
-  const mockStoryBlocks = {
-    root: {
-      children: [
-        {
-          type: 'custom-paragraph',
-          key_id: 'para-1',
-          children: [
-            {
-              type: 'text',
-              text: 'Test paragraph',
-            },
-          ],
-        },
-      ],
-    },
   };
 
   beforeEach(() => {

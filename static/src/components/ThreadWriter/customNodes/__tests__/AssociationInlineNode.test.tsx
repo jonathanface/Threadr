@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { LexicalEditor, $getRoot, $createTextNode } from 'lexical';
+import { LexicalEditor, $getRoot, $createTextNode, $isElementNode } from 'lexical';
 import { AssociationInlineNode, $isAssociationInlineNode } from '../AssociationInlineNode';
 import { createTestEditor } from '../../__tests__/testUtils';
 import { CustomParagraphNode } from '../CustomParagraphNode';
@@ -524,7 +524,8 @@ describe('AssociationInlineNode', () => {
         const paragraph = root.getFirstChild();
 
         expect(paragraph).not.toBeNull();
-        const children = paragraph?.getChildren();
+        expect($isElementNode(paragraph)).toBe(true);
+        const children = $isElementNode(paragraph) ? paragraph.getChildren() : [];
 
         expect(children).toBeDefined();
         expect(children).toHaveLength(3);

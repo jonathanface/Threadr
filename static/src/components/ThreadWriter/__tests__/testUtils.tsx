@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import React, { ReactNode } from 'react';
 import { renderHook, RenderHookOptions } from '@testing-library/react';
 import { createEditor, LexicalEditor, $getRoot, $createParagraphNode, $createTextNode } from 'lexical';
 import { CustomParagraphNode } from '../customNodes/CustomParagraphNode';
@@ -48,7 +48,7 @@ export function getEditorTextContent(editor: LexicalEditor): string {
 export function renderHookWithProviders<TProps, TResult>(
   hook: (props: TProps) => TResult,
   options?: RenderHookOptions<TProps> & {
-    wrapper?: ({ children }: { children: ReactNode }) => JSX.Element;
+    wrapper?: ({ children }: { children: ReactNode }) => React.ReactElement;
   }
 ) {
   return renderHook(hook, options);
