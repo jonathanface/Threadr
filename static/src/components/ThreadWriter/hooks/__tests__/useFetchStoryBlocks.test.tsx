@@ -5,6 +5,7 @@ import { SerializedEditorState } from 'lexical';
 import { useFetchStoryBlocks } from '../useFetchStoryBlocks';
 import { api } from '../../../../api';
 import axios, { AxiosError } from 'axios';
+import { CustomSerializedParagraphNode } from '../../customNodes/CustomParagraphNode';
 
 vi.mock('../../../../api');
 vi.mock('../../../../hooks/useLoader', () => ({
@@ -513,7 +514,7 @@ describe('useFetchStoryBlocks', () => {
       });
 
       const calledWith = mockSetStoryBlocks.mock.calls[0][0] as SerializedEditorState;
-      expect(calledWith.root.children[0].key_id).toBe('unique-key-123');
+      expect((calledWith.root.children[0] as CustomSerializedParagraphNode).key_id).toBe('unique-key-123');
     });
   });
 });

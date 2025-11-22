@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { LexicalEditor, $getRoot, $createTextNode, $createParagraphNode } from 'lexical';
+import { LexicalEditor, $getRoot, $createTextNode } from 'lexical';
 import { CustomParagraphNode, CustomSerializedParagraphNode } from '../CustomParagraphNode';
 import { createTestEditor } from '../../__tests__/testUtils';
 
@@ -101,7 +101,7 @@ describe('CustomParagraphNode', () => {
           key_id: '', // Empty key_id
           children: [],
           direction: 'ltr' as const,
-          format: '',
+          format: '' as const,
           indent: 0,
           textFormat: 0,
           textStyle: '',
@@ -260,8 +260,8 @@ describe('CustomParagraphNode', () => {
     });
 
     it('should generate new key_id for inserted node', () => {
-      let originalKeyId: string;
-      let newKeyId: string;
+      let originalKeyId!: string;
+      let newKeyId!: string;
 
       editor.update(() => {
         const root = $getRoot();

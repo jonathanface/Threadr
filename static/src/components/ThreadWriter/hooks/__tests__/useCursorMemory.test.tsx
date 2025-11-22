@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { createRef } from 'react';
-import { LexicalEditor, $getRoot, $createRangeSelection, $setSelection, $getSelection, $createPoint, $createParagraphNode } from 'lexical';
+import { LexicalEditor, $getRoot, $createRangeSelection, $setSelection, $getSelection, $createPoint, $createParagraphNode, $isRangeSelection, $isElementNode } from 'lexical';
 import { useCursorMemory } from '../useCursorMemory';
 import { createTestEditor, setupMockLocalStorage } from '../../__tests__/testUtils';
 import { CustomParagraphNode } from '../../customNodes/CustomParagraphNode';
@@ -9,12 +9,11 @@ import { $createTextNode } from 'lexical';
 import * as chapterMemory from '../../../../utils/chapterMemory';
 
 describe('useCursorMemory', () => {
-  let mockLocalStorage: ReturnType<typeof setupMockLocalStorage>;
   let editor: LexicalEditor;
   let editorRef: React.RefObject<LexicalEditor>;
 
   beforeEach(() => {
-    mockLocalStorage = setupMockLocalStorage();
+    setupMockLocalStorage();
     editor = createTestEditor();
     editorRef = createRef() as React.MutableRefObject<LexicalEditor>;
     editorRef.current = editor;
@@ -221,7 +220,7 @@ describe('useCursorMemory', () => {
       // Check the selection immediately
       editor.read(() => {
         const selection = $getSelection();
-        expect(selection?.anchor.offset).toBe(7);
+        expect($isRangeSelection(selection) ? selection.anchor.offset : undefined).toBe(7);
       });
     });
 
@@ -255,7 +254,7 @@ describe('useCursorMemory', () => {
       editor.getEditorState().read(() => {
         const selection = $getSelection();
         // Selection should be null or not at the saved position
-        expect(selection?.anchor.offset).not.toBe(5);
+        expect($isRangeSelection(selection) ? selection.anchor.offset : undefined).not.toBe(5);
       });
     });
 
@@ -324,7 +323,7 @@ describe('useCursorMemory', () => {
       editor.read(() => {
         const selection = $getSelection();
         // Should be clamped to text length (5)
-        expect(selection?.anchor.offset).toBeLessThanOrEqual(5);
+        expect($isRangeSelection(selection) ? selection.anchor.offset : 0).toBeLessThanOrEqual(5);
       });
     });
 
@@ -395,7 +394,8 @@ describe('useCursorMemory', () => {
       act(() => {
         editor.update(() => {
           const root = $getRoot();
-          const textNode = root.getFirstChild()?.getFirstChild();
+          const firstChild = root.getFirstChild();
+          const textNode = $isElementNode(firstChild) ? firstChild.getFirstChild() : null;
           if (textNode) {
             const selection = $createRangeSelection();
             const point = $createPoint(textNode.getKey(), 0, 'text');
@@ -416,7 +416,7 @@ describe('useCursorMemory', () => {
       // Selection should still be at 0, not restored again to 5
       editor.read(() => {
         const selection = $getSelection();
-        expect(selection?.anchor.offset).toBe(0);
+        expect($isRangeSelection(selection) ? selection.anchor.offset : undefined).toBe(0);
       });
     });
   });
