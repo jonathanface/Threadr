@@ -74,5 +74,6 @@ export const useAutotabOnEnter = (
       },
       COMMAND_PRIORITY_LOW,
     );
-  }, [editorRef, enabled]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editorRef.current, enabled]);
 };
