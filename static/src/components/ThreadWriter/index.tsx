@@ -54,6 +54,7 @@ import {
   getParagraphIndexByKey,
   serializeWithChildren,
 } from "../../utils/helpers";
+import { logger } from "../../utils/logger";
 import {
   $isAssociationInlineNode,
   AssociationInlineNode,
@@ -98,7 +99,7 @@ export const ThreadWriter = () => {
     theme,
     nodes: [CustomParagraphNode, AssociationInlineNode],
     onError: (error: Error) => {
-      console.error("Lexical error:", error);
+      logger.error("Lexical error:", error);
     },
   };
 
@@ -179,8 +180,7 @@ export const ThreadWriter = () => {
         /* Resolved - text copied to clipboard successfully */
       },
       () => {
-        console.error("Failed to copy");
-        /* Rejected - text failed to copy to the clipboard */
+        logger.error("Failed to copy");
       }
     );
     resetContextMenu();
@@ -205,8 +205,7 @@ export const ThreadWriter = () => {
 
       return data;
     } catch (error) {
-      console.error(error);
-
+      logger.error("Error saving associations:", error);
       if (axios.isAxiosError(error) && error.response?.status === 402) {
         const subscribeFunc: AlertFunctionCall = {
           type: AlertCommandType.subscribe,
@@ -279,11 +278,11 @@ export const ThreadWriter = () => {
       });
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        console.error(
+        logger.error(
           `Error deleting association: ${error.response?.status} ${error.response?.statusText}`
         );
       } else {
-        console.error("Unexpected error deleting association:", error);
+        logger.error("Unexpected error deleting association:", error);
       }
     } finally {
       hideLoader();
@@ -350,7 +349,7 @@ export const ThreadWriter = () => {
     try {
       await ProcessDBQueue();
     } catch (error) {
-      console.error((error as Error).message);
+      logger.error("Error from DB queue:", (error as Error).message);
       setAlertState({
         title: "Unable to sync",
         message:
@@ -364,7 +363,7 @@ export const ThreadWriter = () => {
 
   const queueParagraphOrderResync = useCallback(() => {
     if (!story || !chapter || !editorRef.current) return;
-    console.log("queueing a resync!!!!!");
+    logger.log("Queueing paragraph order resync");
     editorRef.current.read(() => {
       const root = $getRoot();
       const paragraphs = root
@@ -529,9 +528,7 @@ export const ThreadWriter = () => {
   const queueAllParagraphsForSave = useCallback(
     (storyID: string, chapterID: string) => {
       if (!editorRef || !editorRef.current) {
-        console.warn(
-          "ThreadWriter - Editor, story, or chapter is not available."
-        );
+        logger.warn("ThreadWriter - Editor not available.");
         return;
       }
 
@@ -550,18 +547,14 @@ export const ThreadWriter = () => {
         paragraphs.forEach((paragraph, index) => {
           const key_id = paragraph.getKeyId();
           if (!key_id) {
-            console.warn(
-              `ThreadWriter - Paragraph at index ${index} is missing a key_id.`
-            );
+            logger.warn(`ThreadWriter - Paragraph at index ${index} is missing a key_id.`);
             return;
           }
 
           // Serialize the paragraph
           const serialized = serializeWithChildren(paragraph);
           if (!serialized) {
-            console.warn(
-              `ThreadWriter - Failed to serialize paragraph with key_id: ${key_id}`
-            );
+            logger.warn(`ThreadWriter - Failed to serialize paragraph with key_id: ${key_id}`);
             return;
           }
 
@@ -582,7 +575,7 @@ export const ThreadWriter = () => {
         try {
           runQueue();
         } catch (error) {
-          console.error("error from db queue", error);
+          logger.error("Error from db queue", error);
         }
         setAlertState({
           title: "Chapter ready",
@@ -616,7 +609,7 @@ export const ThreadWriter = () => {
     if (story?.story_id && chapter?.id) {
       const fetchData = async () => {
         if (isInitialLoad.current && editorRef.current) {
-          console.log("Initial load: fetching story blocks and associations");
+          logger.log("Initial load: fetching story blocks and associations");
           isProgrammaticChange.current = true; // Start programmatic change
           await getBatchedStoryBlocks("");
           const newHash = generateTextHash(editorRef.current);
@@ -624,7 +617,7 @@ export const ThreadWriter = () => {
           isProgrammaticChange.current = false; // End programmatic change
           isInitialLoad.current = false;
         } else {
-          console.log("Chapter change: fetching new story blocks");
+          logger.log("Chapter change: fetching new story blocks");
           isProgrammaticChange.current = true; // Start programmatic change
           await getBatchedStoryBlocks("");
           isProgrammaticChange.current = false; // End programmatic change
@@ -709,10 +702,10 @@ export const ThreadWriter = () => {
   useEffect(() => {
     const handleBeforeUnload = () => {
       try {
-        console.warn("UNLOAD DETECTED");
+        logger.warn("UNLOAD DETECTED");
         ProcessDBQueue(); // force sync
       } catch (err) {
-        console.error("Error flushing DB queue on unload", err);
+        logger.error("Error flushing DB queue on unload", err);
       }
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
@@ -723,9 +716,7 @@ export const ThreadWriter = () => {
     (editorState: EditorState) => {
       if (!chapter) return;
       if (isProgrammaticChange.current) {
-        console.log(
-          "Programmatic change detected, skipping onChange handling."
-        );
+        logger.log("Programmatic change detected, skipping onChange handling.");
         return;
       }
       if (!editorRef.current) return;
@@ -733,7 +724,7 @@ export const ThreadWriter = () => {
       const previousHash = previousTextHashRef.current;
 
       if (currentHash === previousHash) {
-        console.log("No content changes detected, skipping onChange handling.");
+        logger.log("No content changes detected, skipping onChange handling.");
         return;
       }
       previousTextHashRef.current = currentHash;
@@ -842,11 +833,11 @@ export const ThreadWriter = () => {
         );
       } catch (error) {
         if (axios.isAxiosError(error)) {
-          console.error(
+          logger.error(
             `Error saving association: ${error.response?.status} ${error.message}`
           );
         } else {
-          console.error(`Error saving association: ${error}`);
+          logger.error(`Error saving association: ${error}`);
         }
 
         setAlertState({

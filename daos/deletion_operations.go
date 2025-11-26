@@ -1,6 +1,7 @@
 package daos
 
 import (
+	"RichDocter/logger"
 	"context"
 	"errors"
 	"fmt"
@@ -17,11 +18,20 @@ import (
 )
 
 func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
+	logger.Info("SoftDeleteStory started",
+		"email", email,
+		"storyId", storyID,
+		"automated", automated)
+
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 
 	// Get the story. If not found, return error.
 	story, err := d.GetStoryByID(email, storyID)
 	if err != nil {
+		logger.Error("Failed to get story for soft delete",
+			"error", err,
+			"email", email,
+			"storyId", storyID)
 		return err
 	}
 	seriesID := story.SeriesID
@@ -32,6 +42,10 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 
 	// --- Process Chapters ---
 	// Scan the "chapters" table for active (not yet deleted) chapters for this story.
+	logger.Debug("Scanning for active chapters to soft delete",
+		"email", email,
+		"storyId", storyID)
+
 	chapterScanInput := &dynamodb.ScanInput{
 		TableName:        aws.String("chapters" + GetTableSuffix()),
 		FilterExpression: aws.String("attribute_not_exists(deleted_at) AND story_id = :sid"),
@@ -42,8 +56,17 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 	}
 	chapterOut, err := d.DynamoClient.Scan(context.TODO(), chapterScanInput)
 	if err != nil {
+		logger.Error("Failed to scan chapters for soft delete",
+			"error", err,
+			"email", email,
+			"storyId", storyID)
 		return err
 	}
+
+	logger.Info("Found chapters to process for soft delete",
+		"email", email,
+		"storyId", storyID,
+		"chapterCount", len(chapterOut.Items))
 
 	// For each chapter item, add an Update operation to mark it as deleted.
 	for _, item := range chapterOut.Items {
@@ -66,6 +89,11 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 		}
 
 		// Create the backup
+		logger.Debug("Creating backup for chapter blocks table",
+			"tableName", oldTableName,
+			"chapterId", chapterID,
+			"storyId", storyID)
+
 		buResponse, err := d.DynamoClient.CreateBackup(context.TODO(), input)
 		tableNotFound := false
 		if err != nil {
@@ -73,11 +101,18 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 				var txnErr *types.TableNotFoundException
 				if errors.As(opErr.Unwrap(), &txnErr) {
 					tableNotFound = true
-					fmt.Printf("Table %s not found, skipping", oldTableName)
+					logger.Warn("Chapter blocks table not found, skipping backup",
+						"tableName", oldTableName,
+						"chapterId", chapterID,
+						"storyId", storyID)
 				}
 			}
 			if !tableNotFound {
-				fmt.Printf("Failed to create backup for table %s, %v", oldTableName, err)
+				logger.Error("Failed to create backup for chapter blocks table",
+					"error", err,
+					"tableName", oldTableName,
+					"chapterId", chapterID,
+					"storyId", storyID)
 				return err
 			}
 		}
@@ -85,13 +120,33 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 		backupARN := ""
 		if !tableNotFound {
 			backupARN = *buResponse.BackupDetails.BackupArn
+			logger.Info("Backup created successfully",
+				"backupArn", backupARN,
+				"tableName", oldTableName,
+				"chapterId", chapterID,
+				"storyId", storyID)
+
 			err = d.checkBackupStatus(*buResponse.BackupDetails.BackupArn)
 			if err != nil {
+				logger.Error("Backup status check failed",
+					"error", err,
+					"backupArn", backupARN,
+					"storyId", storyID)
 				return err
 			}
 			if err := waitForTableStatus(context.TODO(), d.DynamoClient, oldTableName, chapterTitle, "ACTIVE", 5*time.Minute); err != nil {
+				logger.Error("Chapter blocks table not ACTIVE before delete",
+					"error", err,
+					"tableName", oldTableName,
+					"storyId", storyID)
 				return fmt.Errorf("chapter blocks table %s not ACTIVE before delete: %w", oldTableName, err)
 			}
+
+			logger.Debug("Deleting chapter blocks table",
+				"tableName", oldTableName,
+				"chapterId", chapterID,
+				"storyId", storyID)
+
 			deleteTableInput := &dynamodb.DeleteTableInput{
 				TableName: aws.String(oldTableName),
 			}
@@ -104,15 +159,27 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 						if errors.As(opErr.Unwrap(), &useErr) {
 							delay := time.Duration((1 << uint(numRetries)) * (2 * time.Second))
 							if numRetries < d.maxRetries-1 {
-								fmt.Println("retrying block table deletion in", delay)
+								logger.Warn("Table deletion in use, retrying",
+									"tableName", oldTableName,
+									"retryAttempt", numRetries+1,
+									"delay", delay,
+									"storyId", storyID)
 								time.Sleep(delay)
 								continue
 							} else {
+								logger.Error("Max retries reached for table deletion",
+									"tableName", oldTableName,
+									"maxRetries", d.maxRetries,
+									"storyId", storyID)
 								return err
 							}
 						}
 					}
 				}
+				logger.Info("Chapter blocks table deleted successfully",
+					"tableName", oldTableName,
+					"chapterId", chapterID,
+					"storyId", storyID)
 				break
 			}
 		}
@@ -140,13 +207,27 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 	// If the story is part of a series, and if the series now has no stories,
 	// then update the series item.
 	if seriesID != "" {
+		logger.Debug("Checking series for soft delete",
+			"seriesId", seriesID,
+			"storyId", storyID,
+			"email", email)
+
 		series, err := d.GetSeriesByID(email, seriesID)
 		if err != nil {
+			logger.Error("Failed to get series for soft delete",
+				"error", err,
+				"seriesId", seriesID,
+				"storyId", storyID,
+				"email", email)
 			return err
 		}
 		if len(series.Stories) == 0 {
 			// Use seriesID instead of storyID
 			storyOrSeriesID = seriesID
+			logger.Info("Series has no remaining stories, marking for deletion",
+				"seriesId", seriesID,
+				"storyId", storyID,
+				"email", email)
 			seriesKey := map[string]types.AttributeValue{
 				"series_id": &types.AttributeValueMemberS{Value: seriesID},
 				"author":    &types.AttributeValueMemberS{Value: email},
@@ -171,6 +252,10 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 	// If this story (or series) has associations and either there is no series or the series was deleted,
 	// update the associations to mark them as deleted.
 	if seriesID == "" || deletedSeries {
+		logger.Debug("Scanning for associations to soft delete",
+			"email", email,
+			"storyOrSeriesId", storyOrSeriesID)
+
 		associationScanInput := &dynamodb.ScanInput{
 			TableName:        aws.String("associations" + GetTableSuffix()),
 			FilterExpression: aws.String("author = :eml AND attribute_not_exists(deleted_at) AND story_or_series_id = :sid"),
@@ -182,8 +267,16 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 		}
 		associationOut, err := d.DynamoClient.Scan(context.TODO(), associationScanInput)
 		if err != nil {
+			logger.Error("Failed to scan associations for soft delete",
+				"error", err,
+				"email", email,
+				"storyOrSeriesId", storyOrSeriesID)
 			return err
 		}
+		logger.Info("Found associations to process for soft delete",
+			"email", email,
+			"storyOrSeriesId", storyOrSeriesID,
+			"associationCount", len(associationOut.Items))
 		for _, item := range associationOut.Items {
 			assocIDAttr, ok := item["association_id"].(*types.AttributeValueMemberS)
 			if !ok {
@@ -240,24 +333,58 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 	})
 
 	// Finally, create a TransactWriteItemsInput with all operations.
+	logger.Debug("Executing soft delete transaction",
+		"email", email,
+		"storyId", storyID,
+		"transactionItemCount", len(transactItems))
+
 	transactions := &dynamodb.TransactWriteItemsInput{
 		TransactItems: transactItems,
 	}
 	awsErr, err := d.awsWriteTransaction((transactions))
 	if err != nil {
+		logger.Error("Soft delete transaction failed",
+			"error", err,
+			"email", email,
+			"storyId", storyID)
 		return err
 	}
 	if !awsErr.IsNil() {
+		logger.Error("Soft delete AWS transaction error",
+			"awsCode", awsErr.Code,
+			"awsErrorType", awsErr.ErrorType,
+			"awsMessage", awsErr.Text,
+			"email", email,
+			"storyId", storyID)
 		return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 	}
+
+	logger.Info("SoftDeleteStory completed successfully",
+		"email", email,
+		"storyId", storyID,
+		"seriesDeleted", deletedSeries,
+		"itemsProcessed", len(transactItems))
 	return nil
 }
 
 func (d *DAO) hardDeleteStory(email, storyID string) error {
+	logger.Info("HardDeleteStory started",
+		"email", email,
+		"storyId", storyID)
+
 	originalStory, err := d.GetStoryByID(email, storyID)
 	if err != nil {
+		logger.Error("Failed to get story for hard delete",
+			"error", err,
+			"email", email,
+			"storyId", storyID)
 		return err
 	}
+
+	logger.Debug("Scanning for chapters to hard delete",
+		"email", email,
+		"storyId", storyID)
+
 	// Delete chapters
 	chapterScanInput := &dynamodb.ScanInput{
 		TableName:        aws.String("chapters" + GetTableSuffix()),
@@ -270,8 +397,17 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 	}
 	chapterOut, err := d.DynamoClient.Scan(context.TODO(), chapterScanInput)
 	if err != nil {
+		logger.Error("Failed to scan chapters for hard delete",
+			"error", err,
+			"email", email,
+			"storyId", storyID)
 		return err
 	}
+
+	logger.Info("Found chapters to hard delete",
+		"email", email,
+		"storyId", storyID,
+		"chapterCount", len(chapterOut.Items))
 
 	for _, item := range chapterOut.Items {
 		chapterID := item["id"].(*types.AttributeValueMemberS)
@@ -286,9 +422,21 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 		}
 		_, err = d.DynamoClient.DeleteItem(context.Background(), chapterDeleteInput)
 		if err != nil {
+			logger.Error("Failed to delete chapter",
+				"error", err,
+				"chapterId", chapterID.Value,
+				"storyId", storyID,
+				"email", email)
 			return err
 		}
+		logger.Debug("Chapter deleted",
+			"chapterId", chapterID.Value,
+			"storyId", storyID)
 	}
+
+	logger.Debug("Deleting story record",
+		"storyId", storyID,
+		"email", email)
 
 	// Delete story
 	storyKey := map[string]types.AttributeValue{
@@ -301,15 +449,30 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 	}
 	_, err = d.DynamoClient.DeleteItem(context.Background(), storyDeleteInput)
 	if err != nil {
+		logger.Error("Failed to delete story",
+			"error", err,
+			"storyId", storyID,
+			"email", email)
 		return err
 	}
+	logger.Info("Story deleted",
+		"storyId", storyID,
+		"email", email)
 
 	// Delete series
 	deletedSeries := false
 	storyOrSeriesID := storyID
 	if originalStory.SeriesID != "" {
+		logger.Debug("Checking series for hard delete",
+			"seriesId", originalStory.SeriesID,
+			"storyId", storyID)
+
 		series, err := d.GetSeriesByID(email, originalStory.SeriesID)
 		if err != nil {
+			logger.Error("Failed to get series for hard delete",
+				"error", err,
+				"seriesId", originalStory.SeriesID,
+				"storyId", storyID)
 			return err
 		}
 		if len(series.Stories)-1 <= 0 {
@@ -322,30 +485,57 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 				TableName: aws.String("series" + GetTableSuffix()),
 				Key:       seriesKey,
 			}
+			logger.Info("Series has no remaining stories, deleting",
+				"seriesId", originalStory.SeriesID,
+				"storyId", storyID)
+
 			_, err = d.DynamoClient.DeleteItem(context.Background(), seriesDeleteInput)
 			if err != nil {
+				logger.Error("Failed to delete series",
+					"error", err,
+					"seriesId", originalStory.SeriesID,
+					"storyId", storyID)
 				return err
 			}
 			// delete series portrait image from s3
 			bucketName := "richdocter-series-portraits"
 			parsedPath, err := url.Parse(originalStory.ImageURL)
 			if err != nil {
+				logger.Error("Failed to parse series image URL",
+					"error", err,
+					"seriesId", originalStory.SeriesID,
+					"imageUrl", originalStory.ImageURL)
 				return err
 			}
 			objectKey := path.Base(parsedPath.Path)
+
+			logger.Debug("Deleting series portrait from S3",
+				"bucket", bucketName,
+				"objectKey", objectKey,
+				"seriesId", originalStory.SeriesID)
 
 			_, err = d.s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
 				Bucket: &bucketName,
 				Key:    &objectKey,
 			})
 			if err != nil {
-				fmt.Println("DELETE IMAGE ERROR:", err)
+				logger.Error("Failed to delete series portrait from S3",
+					"error", err,
+					"bucket", bucketName,
+					"objectKey", objectKey,
+					"seriesId", originalStory.SeriesID)
+			} else {
+				logger.Info("Series deleted successfully",
+					"seriesId", originalStory.SeriesID)
 			}
 			deletedSeries = true
 		}
 	}
 
 	if originalStory.SeriesID == "" || deletedSeries {
+		logger.Debug("Scanning for associations to hard delete",
+			"email", email,
+			"storyOrSeriesId", storyOrSeriesID)
 
 		// Delete associations
 		associationScanInput := &dynamodb.ScanInput{
@@ -359,8 +549,17 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 		}
 		associationOut, err := d.DynamoClient.Scan(context.TODO(), associationScanInput)
 		if err != nil {
+			logger.Error("Failed to scan associations for hard delete",
+				"error", err,
+				"email", email,
+				"storyOrSeriesId", storyOrSeriesID)
 			return err
 		}
+
+		logger.Info("Found associations to hard delete",
+			"email", email,
+			"storyOrSeriesId", storyOrSeriesID,
+			"associationCount", len(associationOut.Items))
 
 		for _, item := range associationOut.Items {
 			assocID := item["association_id"].(*types.AttributeValueMemberS).Value
@@ -406,24 +605,46 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 				Key:    &objectKey,
 			})
 			if err != nil {
-				fmt.Println("DELETE IMAGE ERROR:", err)
+				logger.Error("Failed to delete association image from S3",
+					"error", err,
+					"bucket", bucketName,
+					"objectKey", objectKey,
+					"associationId", assocID)
 			}
 		}
 		// delete story portrait image from s3
 		bucketName := "richdocter-story-portraits"
 		parsedPath, err := url.Parse(originalStory.ImageURL)
 		if err != nil {
+			logger.Error("Failed to parse story image URL",
+				"error", err,
+				"storyId", storyID,
+				"imageUrl", originalStory.ImageURL)
 			return err
 		}
 		objectKey := path.Base(parsedPath.Path)
+
+		logger.Debug("Deleting story portrait from S3",
+			"bucket", bucketName,
+			"objectKey", objectKey,
+			"storyId", storyID)
 
 		_, err = d.s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
 			Bucket: &bucketName,
 			Key:    &objectKey,
 		})
 		if err != nil {
-			fmt.Println("DELETE IMAGE ERROR:", err)
+			logger.Error("Failed to delete story portrait from S3",
+				"error", err,
+				"bucket", bucketName,
+				"objectKey", objectKey,
+				"storyId", storyID)
 		}
 	}
+
+	logger.Info("HardDeleteStory completed successfully",
+		"email", email,
+		"storyId", storyID,
+		"seriesDeleted", deletedSeries)
 	return nil
 }

@@ -1,6 +1,7 @@
 package daos
 
 import (
+	"RichDocter/logger"
 	"RichDocter/models"
 	"context"
 	"errors"
@@ -280,7 +281,11 @@ func (d *DAO) DeleteChapters(storyID string, chapters []models.Chapter) (err err
 				compositeKey := buildCompositeKey(storyID, chID)
 				if err := d.deleteAllBlocksForChapter(compositeKey); err != nil {
 					// Log error but don't fail the transaction
-					fmt.Printf("Error deleting blocks for chapter %s: %v\n", chID, err)
+					logger.Error("Failed to delete blocks for chapter",
+						"error", err,
+						"chapterId", chID,
+						"storyId", storyID,
+						"compositeKey", compositeKey)
 				}
 			}(item.ID)
 		}

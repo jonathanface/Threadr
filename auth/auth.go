@@ -4,12 +4,11 @@ import (
 	"RichDocter/api"
 	ctxkey "RichDocter/ctxkeys"
 	"RichDocter/daos"
+	"RichDocter/logger"
 	"RichDocter/models"
 	"RichDocter/sessions"
 	"database/sql"
 	"encoding/json"
-	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -83,16 +82,21 @@ func safeRedirect(dest, defaultURL string, allowed []string) string {
 func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 	provider, err := url.PathUnescape(mux.Vars(r)["provider"])
 	if err != nil {
+		logger.Error("Failed to parse provider in callback", "error", err, "remoteAddr", r.RemoteAddr)
 		api.RespondWithError(w, http.StatusInternalServerError, "Error parsing provider")
 		return
 	}
 	if provider == "" {
+		logger.Warn("Missing provider in callback", "remoteAddr", r.RemoteAddr)
 		api.RespondWithError(w, http.StatusBadRequest, "Missing provider")
 		return
 	}
 
+	logger.Info("OAuth callback initiated", "provider", provider, "remoteAddr", r.RemoteAddr)
+
 	user, err := gothic.CompleteUserAuth(w, r)
 	if err != nil {
+		logger.Error("OAuth authentication failed", "error", err, "provider", provider, "remoteAddr", r.RemoteAddr)
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -105,17 +109,22 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 
 	dao, ok := r.Context().Value(ctxkey.DAO).(daos.DaoInterface)
 	if !ok {
+		logger.Error("Failed to get DAO from context in auth callback", "email", info.Email, "remoteAddr", r.RemoteAddr)
 		api.RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
 	userDetails, err := dao.GetUserDetails(info.Email)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			logger.Info("New user detected, creating account", "email", info.Email, "provider", provider, "remoteAddr", r.RemoteAddr)
 			if userDetails, err = dao.CreateUser(info.Email); err != nil {
+				logger.Error("Failed to create new user", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
 				api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 				return
 			}
+			logger.Info("New user created successfully", "email", info.Email, "remoteAddr", r.RemoteAddr)
 		} else {
+			logger.Error("Failed to retrieve user details", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
 			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -123,12 +132,14 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 
 	toJSON, err := json.Marshal(info)
 	if err != nil {
+		logger.Error("Failed to marshal user info", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
 		api.RespondWithError(w, http.StatusBadGateway, err.Error())
 		return
 	}
 
 	tokenSess, err := sessions.Get(r, "token")
 	if err != nil {
+		logger.Error("Failed to get token session", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
 		api.RespondWithError(w, http.StatusBadGateway, err.Error())
 		return
 	}
@@ -139,9 +150,12 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	tokenSess.Options = opts
 
 	if err := tokenSess.Save(r, w); err != nil {
+		logger.Error("Failed to save token session", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	logger.Debug("Token session saved successfully", "email", info.Email, "remoteAddr", r.RemoteAddr)
 
 	frontend := options.FrontEndURL
 	allowedOrigins := []string{options.FrontEndURL}
@@ -157,26 +171,37 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	}
 
 	updated, err := dao.IsUserSubscribed(*userDetails)
-	log.Println("logincallback - usersubbed", updated, err)
-	if err == nil {
+	if err != nil {
+		logger.Error("Failed to check subscription status", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
+	} else {
+		logger.Debug("Subscription status checked", "email", info.Email, "subscriber", updated.Subscriber, "remoteAddr", r.RemoteAddr)
 		// persist Subscriber flip only when changed
 		if userDetails.Subscriber != updated.Subscriber {
+			logger.Info("Subscription status changed",
+				"email", info.Email,
+				"previousStatus", userDetails.Subscriber,
+				"newStatus", updated.Subscriber,
+				"remoteAddr", r.RemoteAddr)
 			if err := dao.UpdateUser(*updated); err != nil {
+				logger.Error("Failed to update user subscription status", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
 				api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 				return
 			}
 		}
 		// Append UX query flags and return immediately after redirect
 		if updated.NotifyExpired {
+			logger.Info("User subscription expired", "email", info.Email, "remoteAddr", r.RemoteAddr)
 			http.Redirect(w, r, next+"?expired=true", http.StatusTemporaryRedirect)
 			return
 		}
 		if updated.NotifyRestored {
+			logger.Info("User subscription restored", "email", info.Email, "remoteAddr", r.RemoteAddr)
 			http.Redirect(w, r, next+"?restored=true", http.StatusTemporaryRedirect)
 			return
 		}
 	}
 
+	logger.Info("OAuth login successful", "email", info.Email, "provider", provider, "remoteAddr", r.RemoteAddr)
 	http.Redirect(w, r, next, http.StatusTemporaryRedirect)
 }
 
@@ -187,9 +212,12 @@ func LoginHandler(options OauthOptions) http.HandlerFunc {
 }
 
 func loginWithOptions(w http.ResponseWriter, r *http.Request, options OauthOptions) {
+	provider := mux.Vars(r)["provider"]
+	logger.Info("Login initiated", "provider", provider, "remoteAddr", r.RemoteAddr)
+
 	sess, err := sessions.Get(r, "login_referral")
 	if err != nil {
-		fmt.Printf("Session Error: %s\n", err.Error())
+		logger.Error("Failed to get login_referral session", "error", err, "provider", provider, "remoteAddr", r.RemoteAddr)
 	}
 
 	// Use shared options, then set TTL
@@ -204,22 +232,30 @@ func loginWithOptions(w http.ResponseWriter, r *http.Request, options OauthOptio
 	sess.Values["referrer"] = next
 
 	if err = sess.Save(r, w); err != nil {
+		logger.Error("Failed to save login_referral session", "error", err, "provider", provider, "remoteAddr", r.RemoteAddr)
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
+	logger.Debug("Login referral session saved", "provider", provider, "next", next, "remoteAddr", r.RemoteAddr)
+
 	if _, err := gothic.CompleteUserAuth(w, r); err != nil {
+		logger.Debug("Starting OAuth flow", "provider", provider, "remoteAddr", r.RemoteAddr)
 		gothic.BeginAuthHandler(w, r)
 	}
 }
 
 func Logout(w http.ResponseWriter, r *http.Request) {
+	logger.Info("Logout initiated", "remoteAddr", r.RemoteAddr)
+
 	if err := sessions.Delete(w, r, "token"); err != nil {
+		logger.Error("Failed to delete token session during logout", "error", err, "remoteAddr", r.RemoteAddr)
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	_ = sessions.Delete(w, r, "login_referral") // clear if exists
 	_ = gothic.Logout(w, r)
 
+	logger.Info("Logout successful", "remoteAddr", r.RemoteAddr)
 	api.RespondWithJson(w, http.StatusOK, nil)
 }

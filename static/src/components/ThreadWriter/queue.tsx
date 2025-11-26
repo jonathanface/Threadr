@@ -15,6 +15,7 @@ import {
   SaveSuccessPayload,
   SyncOrderSuccessPayload,
 } from "../../utils/EventEmitter";
+import { logger } from "../../utils/logger";
 
 type OperationRecord = {
   op: DBOperationType;
@@ -59,6 +60,12 @@ export const QueueOp = (
       opType === DBOperationType.save
     ) {
       // Save after delete is invalid — ignore
+      logger.warn("Queue operation: save after delete ignored (invalid)", {
+        blockKeyId: block.key_id,
+        storyID,
+        chapterID,
+        epoch,
+      });
       return;
     }
     if (
@@ -66,6 +73,12 @@ export const QueueOp = (
       opType === DBOperationType.delete
     ) {
       // Overwrite the save with a delete
+      logger.debug("Queue operation: delete overrides previous save", {
+        blockKeyId: block.key_id,
+        storyID,
+        chapterID,
+        epoch,
+      });
       OpQueueByKey.set(key, {
         op: DBOperationType.delete,
         storyID,
@@ -77,6 +90,23 @@ export const QueueOp = (
       });
       return;
     }
+    logger.debug("Queue operation: updating existing operation", {
+      blockKeyId: block.key_id,
+      opType,
+      existingOpType: existing.op,
+      storyID,
+      chapterID,
+      epoch,
+    });
+  } else {
+    logger.debug("Queue operation: new operation queued", {
+      blockKeyId: block.key_id,
+      opType,
+      storyID,
+      chapterID,
+      epoch,
+      queueSize: OpQueueByKey.size + 1,
+    });
   }
 
   OpQueueByKey.set(key, {
@@ -91,10 +121,30 @@ export const QueueOp = (
 };
 
 export const QueueSyncOrder = (op: DBOperationWithMeta) => {
-  SyncOps.push({ ...op, epoch: op.epoch ?? 0 });
+  const epoch = op.epoch ?? 0;
+  logger.debug("Queue sync order operation", {
+    storyID: op.storyID,
+    chapterID: op.chapterID,
+    blockCount: op.orderList?.blocks?.length || 0,
+    epoch,
+    syncQueueSize: SyncOps.length + 1,
+  });
+  SyncOps.push({ ...op, epoch });
 };
 
 export const ProcessDBQueue = async () => {
+  const queueSize = OpQueueByKey.size;
+  const syncQueueSize = SyncOps.length;
+
+  if (queueSize === 0 && syncQueueSize === 0) {
+    return;
+  }
+
+  logger.info("Processing DB queue", {
+    operationQueueSize: queueSize,
+    syncQueueSize,
+  });
+
   // snapshot and clear immediately to avoid concurrent mutation during processing
   const records = [...OpQueueByKey.values()];
   OpQueueByKey.clear();
@@ -137,10 +187,27 @@ export const ProcessDBQueue = async () => {
 
     // SAVE
     if (saveOps.length) {
+      logger.debug("Processing save operations", {
+        storyID,
+        chapterID,
+        blockCount: saveOps.length,
+        tableBecameReady,
+      });
       try {
         await saveBlocksToServer(saveOps, storyID, chapterID, tableBecameReady);
+        logger.info("Save operations successful", {
+          storyID,
+          chapterID,
+          blockCount: saveOps.length,
+        });
       } catch (err) {
-        console.error("Failed to save", err);
+        logger.error("Failed to save blocks - requeuing", {
+          error: err,
+          storyID,
+          chapterID,
+          blockCount: saveOps.length,
+          epoch: recs[0].epoch,
+        });
         // requeue with same epoch & grouping key
         for (const b of saveOps) {
           const rec: OperationRecord = {
@@ -159,6 +226,12 @@ export const ProcessDBQueue = async () => {
 
     // DELETE
     if (deleteOps.length) {
+      logger.debug("Processing delete operations", {
+        storyID,
+        chapterID,
+        blockCount: deleteOps.length,
+        tableBecameReady,
+      });
       try {
         await deleteBlocksFromServer(
           deleteOps,
@@ -166,8 +239,19 @@ export const ProcessDBQueue = async () => {
           chapterID,
           tableBecameReady,
         );
+        logger.info("Delete operations successful", {
+          storyID,
+          chapterID,
+          blockCount: deleteOps.length,
+        });
       } catch (err) {
-        console.error("Failed to delete", err);
+        logger.error("Failed to delete blocks - requeuing", {
+          error: err,
+          storyID,
+          chapterID,
+          blockCount: deleteOps.length,
+          epoch: recs[0].epoch,
+        });
         for (const b of deleteOps) {
           const rec: OperationRecord = {
             op: DBOperationType.delete,
@@ -186,6 +270,11 @@ export const ProcessDBQueue = async () => {
 
   // Process order-sync ops in a safe loop
   let n = SyncOps.length;
+  if (n > 0) {
+    logger.debug("Processing order-sync operations", {
+      syncOpsCount: n,
+    });
+  }
   while (n--) {
     const op = SyncOps.shift()!; // oldest first
     try {
@@ -195,11 +284,25 @@ export const ProcessDBQueue = async () => {
         op.chapterID,
         op.tableBecameReady,
       );
+      logger.info("Order-sync operation successful", {
+        storyID: op.storyID,
+        chapterID: op.chapterID,
+        blockCount: op.orderList?.blocks?.length || 0,
+      });
     } catch (err) {
-      console.error("Failed to sync order", err);
+      logger.error("Failed to sync order - requeuing", {
+        error: err,
+        storyID: op.storyID,
+        chapterID: op.chapterID,
+      });
       SyncOps.push(op); // requeue
     }
   }
+
+  logger.info("DB queue processing complete", {
+    remainingQueueSize: OpQueueByKey.size,
+    remainingSyncQueueSize: SyncOps.length,
+  });
 };
 
 const saveBlocksToServer = async (
@@ -269,7 +372,13 @@ const deleteBlocksFromServer = async (
       emitDeleteSuccess(payload);
     }
   } catch (error) {
-    console.error("ERROR DELETING BLOCK:", error);
+    logger.error("Error deleting blocks from server", {
+      error,
+      storyID,
+      chapterID,
+      blockCount: ops.length,
+    });
+    throw error;
   }
 };
 
@@ -306,6 +415,12 @@ const syncBlockOrderMap = async (
       emitSyncOrderSuccess(payload);
     }
   } catch (error) {
-    console.error("ERROR ORDERING BLOCKS:", error);
+    logger.error("Error syncing block order", {
+      error,
+      storyID,
+      chapterID,
+      blockCount: blockList.blocks.length,
+    });
+    throw error;
   }
 };

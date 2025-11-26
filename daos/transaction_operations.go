@@ -1,6 +1,7 @@
 package daos
 
 import (
+	"RichDocter/logger"
 	"RichDocter/models"
 	"context"
 	"errors"
@@ -15,8 +16,15 @@ import (
 
 func (d *DAO) awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsInput) (awsError models.AwsError, err error) {
 	if writeItemsInput == nil || len(writeItemsInput.TransactItems) == 0 {
+		logger.Error("awsWriteTransaction called with nil or empty input")
 		return awsError, fmt.Errorf("writeItemsInput is nil or empty")
 	}
+
+	totalItems := len(writeItemsInput.TransactItems)
+	logger.Debug("awsWriteTransaction started",
+		"totalItems", totalItems,
+		"capacity", d.capacity,
+		"maxRetries", d.maxRetries)
 
 	maxItemsPerSecond := d.capacity / 2
 	maxTransactions := 100 // AWS limit for TransactWriteItems
@@ -32,10 +40,20 @@ func (d *DAO) awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsIn
 			TransactItems: writeItemsInput.TransactItems[i:end],
 		}
 
+		chunkNum := (i / maxTransactions) + 1
+		totalChunks := (totalItems + maxTransactions - 1) / maxTransactions
+		logger.Debug("Processing transaction chunk",
+			"chunkNum", chunkNum,
+			"totalChunks", totalChunks,
+			"chunkSize", len(chunk.TransactItems))
+
 		// **Step 2: Retry logic with exponential backoff**
 		for numRetries := 0; numRetries < d.maxRetries; numRetries++ {
 			_, err := d.DynamoClient.TransactWriteItems(context.Background(), chunk)
 			if err == nil {
+				logger.Debug("Transaction chunk succeeded",
+					"chunkNum", chunkNum,
+					"totalChunks", totalChunks)
 				break // Success, continue to next chunk
 			}
 
@@ -44,6 +62,10 @@ func (d *DAO) awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsIn
 			if errors.As(err, &txnErr) && txnErr.CancellationReasons != nil {
 				for _, reason := range txnErr.CancellationReasons {
 					if *reason.Code == "ConditionalCheckFailed" {
+						logger.Warn("Transaction conditional check failed",
+							"chunkNum", chunkNum,
+							"errorCode", *reason.Code,
+							"message", *reason.Message)
 						awsError.ErrorType = *reason.Code
 						awsError.Code = txnErr.ErrorCode()
 						awsError.Text = *reason.Message
@@ -63,9 +85,20 @@ func (d *DAO) awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsIn
 							delay = time.Duration((1 << uint(numRetries)) * time.Millisecond)
 						}
 
+						logger.Warn("Transaction retryable error, retrying",
+							"chunkNum", chunkNum,
+							"errorCode", *reason.Code,
+							"retryAttempt", numRetries+1,
+							"maxRetries", d.maxRetries,
+							"delay", delay)
+
 						time.Sleep(delay)
 						break // Retry loop
 					} else if *reason.Code != "None" {
+						logger.Error("Transaction non-retryable error",
+							"chunkNum", chunkNum,
+							"errorCode", *reason.Code,
+							"message", *reason.Message)
 						awsError.ErrorType = *reason.Code
 						awsError.Code = txnErr.ErrorCode()
 						awsError.Text = *reason.Message
@@ -73,10 +106,15 @@ func (d *DAO) awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsIn
 					}
 				}
 			} else {
+				logger.Error("Transaction error (non-AWS)",
+					"error", err,
+					"chunkNum", chunkNum)
 				return models.AwsError{}, err
 			}
 		}
 	}
+
+	logger.Debug("awsWriteTransaction completed successfully", "totalItems", totalItems)
 	return awsError, nil
 }
 

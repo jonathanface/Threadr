@@ -1,6 +1,7 @@
 package daos
 
 import (
+	"RichDocter/logger"
 	"RichDocter/models"
 	"context"
 	"database/sql"
@@ -18,6 +19,8 @@ import (
 )
 
 func (d *DAO) GetAllStories(email string) (stories []*models.Story, err error) {
+	logger.Debug("GetAllStories called", "email", email)
+
 	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
 		TableName:        aws.String("stories" + GetTableSuffix()),
 		FilterExpression: aws.String("author=:eml AND attribute_not_exists(deleted_at)"),
@@ -26,10 +29,12 @@ func (d *DAO) GetAllStories(email string) (stories []*models.Story, err error) {
 		},
 	})
 	if err != nil {
+		logger.Error("Failed to scan stories table", "error", err, "email", email)
 		return nil, err
 	}
 
 	if err = attributevalue.UnmarshalListOfMaps(out.Items, &stories); err != nil {
+		logger.Error("Failed to unmarshal stories", "error", err, "email", email, "itemCount", len(out.Items))
 		return nil, err
 	}
 
@@ -178,6 +183,11 @@ func (d *DAO) GetStoryByID(email, storyID string) (story *models.Story, err erro
 func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (err error) {
 	compositeKey := buildCompositeKey(storyID, storyBlocks.ChapterID)
 
+	logger.Info("ResetBlockOrder started",
+		"storyId", storyID,
+		"chapterId", storyBlocks.ChapterID,
+		"blockCount", len(storyBlocks.Blocks))
+
 	// Step 1: Query all existing blocks to get their current data
 	queryInput := &dynamodb.QueryInput{
 		TableName:              aws.String(GetStoryBlocksTableName()),
@@ -193,10 +203,19 @@ func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (
 	for paginator.HasMorePages() {
 		page, err := paginator.NextPage(context.Background())
 		if err != nil {
+			logger.Error("Failed to query existing blocks",
+				"error", err,
+				"storyId", storyID,
+				"chapterId", storyBlocks.ChapterID)
 			return err
 		}
 		existingItems = append(existingItems, page.Items...)
 	}
+
+	logger.Debug("Queried existing blocks",
+		"storyId", storyID,
+		"chapterId", storyBlocks.ChapterID,
+		"existingItemCount", len(existingItems))
 
 	// Step 2: Create a map of key_id -> full item for quick lookup
 	itemsByKeyID := make(map[string]map[string]types.AttributeValue)
@@ -225,7 +244,19 @@ func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (
 	// Phase 1: Delete all existing blocks that are moving
 	// Phase 2: Put all blocks at their new positions
 
-	for _, batch := range batches {
+	logger.Debug("Processing batches",
+		"storyId", storyID,
+		"chapterId", storyBlocks.ChapterID,
+		"batchCount", len(batches),
+		"batchSize", batchSize)
+
+	for batchIndex, batch := range batches {
+		logger.Debug("Processing batch",
+			"storyId", storyID,
+			"chapterId", storyBlocks.ChapterID,
+			"batchNumber", batchIndex+1,
+			"totalBatches", len(batches),
+			"itemsInBatch", len(batch))
 		// Phase 1: Delete existing blocks that need to move
 		deleteItems := &dynamodb.TransactWriteItemsInput{
 			ClientRequestToken: nil,
@@ -313,19 +344,50 @@ func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (
 
 		// Execute Phase 1: Delete all items that are moving
 		if len(deleteItems.TransactItems) > 0 {
+			logger.Debug("Phase 1: Deleting blocks from old positions",
+				"storyId", storyID,
+				"chapterId", storyBlocks.ChapterID,
+				"deleteCount", len(deleteItems.TransactItems))
 			awsErr, err := d.awsWriteTransaction(deleteItems)
 			if err != nil {
+				logger.Error("Phase 1 delete transaction failed",
+					"error", err,
+					"storyId", storyID,
+					"chapterId", storyBlocks.ChapterID)
 				return err
 			}
 			if !awsErr.IsNil() {
+				logger.Error("Phase 1 AWS error",
+					"awsCode", awsErr.Code,
+					"awsErrorType", awsErr.ErrorType,
+					"awsText", awsErr.Text,
+					"storyId", storyID,
+					"chapterId", storyBlocks.ChapterID)
 				return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 			}
 		}
 
 		// Execute Phase 2: Put all items at their new positions
 		if len(putItems.TransactItems) > 0 {
+			logger.Debug("Phase 2: Writing blocks to new positions",
+				"storyId", storyID,
+				"chapterId", storyBlocks.ChapterID,
+				"putCount", len(putItems.TransactItems))
 			awsErr, err := d.awsWriteTransaction(putItems)
 			if err != nil {
+				logger.Error("Phase 2 put transaction failed",
+					"error", err,
+					"storyId", storyID,
+					"chapterId", storyBlocks.ChapterID)
+				return err
+			}
+			if !awsErr.IsNil() {
+				logger.Error("Phase 2 AWS error",
+					"awsCode", awsErr.Code,
+					"awsErrorType", awsErr.ErrorType,
+					"awsText", awsErr.Text,
+					"storyId", storyID,
+					"chapterId", storyBlocks.ChapterID)
 				return err
 			}
 			if !awsErr.IsNil() {
@@ -333,6 +395,11 @@ func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (
 			}
 		}
 	}
+
+	logger.Info("ResetBlockOrder completed successfully",
+		"storyId", storyID,
+		"chapterId", storyBlocks.ChapterID,
+		"blocksProcessed", len(storyBlocks.Blocks))
 	return
 }
 
@@ -340,6 +407,11 @@ func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (
 // It identifies blocks by key_id and handles moving them if their place changed
 func (d *DAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) (err error) {
 	compositeKey := buildCompositeKey(storyID, storyBlocks.ChapterID)
+
+	logger.Info("WriteBlocks started",
+		"storyId", storyID,
+		"chapterId", storyBlocks.ChapterID,
+		"blockCount", len(storyBlocks.Blocks))
 
 	// Step 1: Query existing blocks to find their current positions by key_id
 	queryInput := &dynamodb.QueryInput{
@@ -356,10 +428,19 @@ func (d *DAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) (err 
 	for paginator.HasMorePages() {
 		page, err := paginator.NextPage(context.Background())
 		if err != nil {
+			logger.Error("Failed to query existing blocks",
+				"error", err,
+				"storyId", storyID,
+				"chapterId", storyBlocks.ChapterID)
 			return err
 		}
 		existingItems = append(existingItems, page.Items...)
 	}
+
+	logger.Debug("Queried existing blocks",
+		"storyId", storyID,
+		"chapterId", storyBlocks.ChapterID,
+		"existingItemCount", len(existingItems))
 
 	// Create maps for lookups
 	itemsByKeyID := make(map[string]map[string]types.AttributeValue)  // key_id -> item
@@ -390,8 +471,20 @@ func (d *DAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) (err 
 		batches = append(batches, storyBlocks.Blocks[i:end])
 	}
 
+	logger.Debug("Processing batches",
+		"storyId", storyID,
+		"chapterId", storyBlocks.ChapterID,
+		"batchCount", len(batches),
+		"batchSize", batchSize)
+
 	// Process in two phases like ResetBlockOrder
-	for _, batch := range batches {
+	for batchIndex, batch := range batches {
+		logger.Debug("Processing batch",
+			"storyId", storyID,
+			"chapterId", storyBlocks.ChapterID,
+			"batchNumber", batchIndex+1,
+			"totalBatches", len(batches),
+			"itemsInBatch", len(batch))
 		deleteItems := &dynamodb.TransactWriteItemsInput{
 			ClientRequestToken: nil,
 			TransactItems:      make([]types.TransactWriteItem, 0, len(batch)),
@@ -464,6 +557,12 @@ func (d *DAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) (err 
 					// Assign a temporary high place value to avoid conflicts
 					// ResetBlockOrder will fix this later
 					actualPlace = 1000000 + newPlaceNum
+					logger.Warn("Place conflict detected for new block",
+						"storyId", storyID,
+						"chapterId", storyBlocks.ChapterID,
+						"keyId", item.KeyID,
+						"requestedPlace", newPlaceNum,
+						"temporaryPlace", actualPlace)
 				}
 
 				// Create the new block (at temporary place if there was a conflict)
@@ -487,26 +586,59 @@ func (d *DAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) (err 
 
 		// Execute Phase 1: Delete
 		if len(deleteItems.TransactItems) > 0 {
+			logger.Debug("Phase 1: Deleting blocks from old positions",
+				"storyId", storyID,
+				"chapterId", storyBlocks.ChapterID,
+				"deleteCount", len(deleteItems.TransactItems))
 			awsErr, err := d.awsWriteTransaction(deleteItems)
 			if err != nil {
+				logger.Error("Phase 1 delete transaction failed",
+					"error", err,
+					"storyId", storyID,
+					"chapterId", storyBlocks.ChapterID)
 				return err
 			}
 			if !awsErr.IsNil() {
+				logger.Error("Phase 1 delete AWS error",
+					"awsCode", awsErr.Code,
+					"awsErrorType", awsErr.ErrorType,
+					"awsMessage", awsErr.Text,
+					"storyId", storyID,
+					"chapterId", storyBlocks.ChapterID)
 				return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 			}
 		}
 
 		// Execute Phase 2: Put
 		if len(putItems.TransactItems) > 0 {
+			logger.Debug("Phase 2: Writing blocks to new positions",
+				"storyId", storyID,
+				"chapterId", storyBlocks.ChapterID,
+				"putCount", len(putItems.TransactItems))
 			awsErr, err := d.awsWriteTransaction(putItems)
 			if err != nil {
+				logger.Error("Phase 2 put transaction failed",
+					"error", err,
+					"storyId", storyID,
+					"chapterId", storyBlocks.ChapterID)
 				return err
 			}
 			if !awsErr.IsNil() {
+				logger.Error("Phase 2 put AWS error",
+					"awsCode", awsErr.Code,
+					"awsErrorType", awsErr.ErrorType,
+					"awsMessage", awsErr.Text,
+					"storyId", storyID,
+					"chapterId", storyBlocks.ChapterID)
 				return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 			}
 		}
 	}
+
+	logger.Info("WriteBlocks completed successfully",
+		"storyId", storyID,
+		"chapterId", storyBlocks.ChapterID,
+		"blocksProcessed", len(storyBlocks.Blocks))
 	return
 }
 
