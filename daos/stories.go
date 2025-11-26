@@ -396,6 +396,75 @@ func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (
 		}
 	}
 
+	// Phase 3: Delete blocks that exist in the database but aren't in the new order list
+	// This handles blocks that were deleted from the editor
+	newBlockKeyIDs := make(map[string]bool)
+	for _, block := range storyBlocks.Blocks {
+		newBlockKeyIDs[block.KeyID] = true
+	}
+
+	var blocksToDelete []map[string]types.AttributeValue
+	for keyID, item := range itemsByKeyID {
+		if !newBlockKeyIDs[keyID] {
+			blocksToDelete = append(blocksToDelete, item)
+		}
+	}
+
+	if len(blocksToDelete) > 0 {
+		logger.Info("Phase 3: Deleting blocks not in new order list",
+			"storyId", storyID,
+			"chapterId", storyBlocks.ChapterID,
+			"deleteCount", len(blocksToDelete))
+
+		// Batch delete orphaned blocks
+		deleteBatches := make([][]map[string]types.AttributeValue, 0, (len(blocksToDelete)+(d.writeBatchSize-1))/d.writeBatchSize)
+		for i := 0; i < len(blocksToDelete); i += d.writeBatchSize {
+			end := i + d.writeBatchSize
+			if end > len(blocksToDelete) {
+				end = len(blocksToDelete)
+			}
+			deleteBatches = append(deleteBatches, blocksToDelete[i:end])
+		}
+
+		for _, batch := range deleteBatches {
+			deleteInput := &dynamodb.TransactWriteItemsInput{
+				ClientRequestToken: nil,
+				TransactItems:      make([]types.TransactWriteItem, len(batch)),
+			}
+
+			for i, item := range batch {
+				deleteKey := map[string]types.AttributeValue{
+					"composite_key": item["composite_key"],
+					"place":         item["place"],
+				}
+				deleteInput.TransactItems[i] = types.TransactWriteItem{
+					Delete: &types.Delete{
+						TableName: aws.String(GetStoryBlocksTableName()),
+						Key:       deleteKey,
+					},
+				}
+			}
+
+			awsErr, err := d.awsWriteTransaction(deleteInput)
+			if err != nil {
+				logger.Error("Phase 3 delete transaction failed",
+					"error", err,
+					"storyId", storyID,
+					"chapterId", storyBlocks.ChapterID)
+				return err
+			}
+			if !awsErr.IsNil() {
+				logger.Error("Phase 3 AWS error",
+					"awsCode", awsErr.Code,
+					"awsErrorType", awsErr.ErrorType,
+					"awsText", awsErr.Text,
+					"storyId", storyID,
+					"chapterId", storyBlocks.ChapterID)
+				return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
+			}
+		}
+	}
+
 	logger.Info("ResetBlockOrder completed successfully",
 		"storyId", storyID,
 		"chapterId", storyBlocks.ChapterID,

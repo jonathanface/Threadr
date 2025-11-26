@@ -790,6 +790,15 @@ export const ThreadWriter = () => {
         const deletedKeys = Array.from(
           previousNodeKeysRef.current.keys()
         ).filter((key) => !currentNodeKeys.has(key));
+
+        if (deletedKeys.length > 0) {
+          logger.log("Delete operation detected", {
+            deletedKeys,
+            deletedCount: deletedKeys.length,
+            currentNodeCount: currentNodeKeys.size,
+          });
+        }
+
         deletedKeys.forEach((key) => {
           const prevData = previousNodeKeysRef.current.get(key);
           queueParagraphForDeletion(chapter.id, key, prevData?.place);
@@ -803,11 +812,22 @@ export const ThreadWriter = () => {
         const filteredSaves = paragraphsToSave.filter(
           (p) => !deletedKeys.includes(p.key_id)
         );
+
+        if (filteredSaves.length > 0) {
+          logger.log("Save operations queued", {
+            saveCount: filteredSaves.length,
+            savedKeys: filteredSaves.map((p) => p.key_id),
+          });
+        }
+
         filteredSaves.forEach((p) => {
           queueParagraphForSave(chapter.id, p.key_id, p.order, p.content);
         });
         // If order resync is required, queue it
-        if (orderResyncRequired) queueParagraphOrderResync();
+        if (orderResyncRequired) {
+          logger.log("Order resync required after paragraph changes");
+          queueParagraphOrderResync();
+        }
       });
     },
     [
