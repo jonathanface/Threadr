@@ -292,8 +292,14 @@ describe('Queue', () => {
 
       await ProcessDBQueue();
 
-      // Should process both operations
-      expect(api.put).toHaveBeenCalledTimes(2);
+      // Should process only the most recent operation (deduplicated)
+      expect(api.put).toHaveBeenCalledTimes(1);
+      // Verify it was the second order map (most recent)
+      expect(api.put).toHaveBeenCalledWith(
+        '/stories/story-123/orderMap',
+        orderMap2,
+        expect.any(Object),
+      );
     });
   });
 

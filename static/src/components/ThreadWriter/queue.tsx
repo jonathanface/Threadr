@@ -33,7 +33,7 @@ type DBOperationWithMeta = DBOperation & {
   epoch?: number;
   tableBecameReady: boolean;
 };
-const SyncOps: Array<DBOperationWithMeta> = [];
+const SyncOps: Map<string, DBOperationWithMeta> = new Map();
 // helper to avoid collisions across chapters/epochs
 const qKey = (
   epoch: number,
@@ -41,6 +41,9 @@ const qKey = (
   chapterID: string,
   keyId: string,
 ) => `${epoch}:${storyID}:${chapterID}:${keyId}`;
+// helper for sync operation keys (without block key_id)
+const syncKey = (epoch: number, storyID: string, chapterID: string) =>
+  `${epoch}:${storyID}:${chapterID}`;
 
 export const QueueOp = (
   opType: DBOperationType,
@@ -122,19 +125,26 @@ export const QueueOp = (
 
 export const QueueSyncOrder = (op: DBOperationWithMeta) => {
   const epoch = op.epoch ?? 0;
-  logger.debug("Queue sync order operation", {
-    storyID: op.storyID,
-    chapterID: op.chapterID,
-    blockCount: op.orderList?.blocks?.length || 0,
-    epoch,
-    syncQueueSize: SyncOps.length + 1,
-  });
-  SyncOps.push({ ...op, epoch });
+  const key = syncKey(epoch, op.storyID, op.chapterID);
+  const existing = SyncOps.get(key);
+
+  logger.debug(
+    existing ? "Queue sync order: replacing existing" : "Queue sync order: new",
+    {
+      storyID: op.storyID,
+      chapterID: op.chapterID,
+      blockCount: op.orderList?.blocks?.length || 0,
+      epoch,
+      syncQueueSize: SyncOps.size + (existing ? 0 : 1),
+    }
+  );
+
+  SyncOps.set(key, { ...op, epoch });
 };
 
 export const ProcessDBQueue = async () => {
   const queueSize = OpQueueByKey.size;
-  const syncQueueSize = SyncOps.length;
+  const syncQueueSize = SyncOps.size;
 
   if (queueSize === 0 && syncQueueSize === 0) {
     return;
@@ -268,40 +278,46 @@ export const ProcessDBQueue = async () => {
     }
   }
 
-  // Process order-sync ops in a safe loop
-  let n = SyncOps.length;
-  if (n > 0) {
+  // Process order-sync ops
+  if (SyncOps.size > 0) {
     logger.debug("Processing order-sync operations", {
-      syncOpsCount: n,
+      syncOpsCount: SyncOps.size,
     });
-  }
-  while (n--) {
-    const op = SyncOps.shift()!; // oldest first
-    try {
-      await syncBlockOrderMap(
-        op.orderList!,
-        op.storyID,
-        op.chapterID,
-        op.tableBecameReady,
-      );
-      logger.info("Order-sync operation successful", {
-        storyID: op.storyID,
-        chapterID: op.chapterID,
-        blockCount: op.orderList?.blocks?.length || 0,
-      });
-    } catch (err) {
-      logger.error("Failed to sync order - requeuing", {
-        error: err,
-        storyID: op.storyID,
-        chapterID: op.chapterID,
-      });
-      SyncOps.push(op); // requeue
+
+    // Snapshot sync ops and clear the map
+    const syncOps = [...SyncOps.values()];
+    SyncOps.clear();
+
+    for (const op of syncOps) {
+      try {
+        await syncBlockOrderMap(
+          op.orderList!,
+          op.storyID,
+          op.chapterID,
+          op.tableBecameReady,
+        );
+        logger.info("Order-sync operation successful", {
+          storyID: op.storyID,
+          chapterID: op.chapterID,
+          blockCount: op.orderList?.blocks?.length || 0,
+        });
+      } catch (err) {
+        logger.error("Failed to sync order - requeuing", {
+          error: err,
+          storyID: op.storyID,
+          chapterID: op.chapterID,
+        });
+        // Requeue with same key
+        const epoch = op.epoch ?? 0;
+        const key = syncKey(epoch, op.storyID, op.chapterID);
+        SyncOps.set(key, op);
+      }
     }
   }
 
   logger.info("DB queue processing complete", {
     remainingQueueSize: OpQueueByKey.size,
-    remainingSyncQueueSize: SyncOps.length,
+    remainingSyncQueueSize: SyncOps.size,
   });
 };
 
