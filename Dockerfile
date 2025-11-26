@@ -48,6 +48,7 @@ COPY ./billing ./billing
 COPY ./bin /usr/local/bin/
 COPY ./assets ./assets
 COPY ./daos ./daos
+COPY ./logger ./logger
 COPY ./sessions ./sessions
 COPY ./cmd ./cmd
 
