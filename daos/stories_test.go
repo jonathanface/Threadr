@@ -2,6 +2,7 @@ package daos
 
 import (
 	"RichDocter/models"
+	"errors"
 	"testing"
 )
 
@@ -218,6 +219,14 @@ func TestResetBlockOrder(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
+
+			// Mock the ResetBlockOrder function since it requires DynamoDB Query operations
+			mockDao.MockResetBlockOrder = func(storyID string, storyBlocks *models.StoryBlocks) error {
+				if tc.wantErr {
+					return errors.New("mock error")
+				}
+				return nil
+			}
 
 			err := mockDao.ResetBlockOrder(tc.storyID, tc.storyBlocks)
 

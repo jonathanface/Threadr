@@ -25,7 +25,7 @@ describe('useFetchStoryBlocks', () => {
   const mockStoryId = 'test-story-id';
   const mockChapterId = 'test-chapter-id';
   const mockSetStoryBlocks = vi.fn();
-  const mockPreviousNodeKeysRef = createRef() as React.MutableRefObject<Map<string, string>>;
+  const mockPreviousNodeKeysRef = createRef() as React.MutableRefObject<Map<string, { text: string; place: string }>>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -113,7 +113,10 @@ describe('useFetchStoryBlocks', () => {
       await result.current.getBatchedStoryBlocks('');
 
       await waitFor(() => {
-        expect(mockPreviousNodeKeysRef.current.get('para-1')).toBe('Test content');
+        expect(mockPreviousNodeKeysRef.current.get('para-1')).toEqual({
+          text: 'Test content',
+          place: '0',
+        });
       });
     });
 
