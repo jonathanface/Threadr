@@ -55,7 +55,7 @@ ENV PATH="/usr/local/bin:${PATH}"
 RUN chmod +x /usr/local/bin/wkhtmltoimage || true \
  && which wkhtmltoimage \
  && wkhtmltoimage -V
- RUN chmod +x /usr/local/bin/wkhtmltopdf || true \
+RUN chmod +x /usr/local/bin/wkhtmltopdf || true \
  && which wkhtmltopdf \
  && wkhtmltopdf -V
 
