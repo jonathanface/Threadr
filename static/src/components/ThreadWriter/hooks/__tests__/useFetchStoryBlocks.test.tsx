@@ -25,7 +25,7 @@ describe('useFetchStoryBlocks', () => {
   const mockStoryId = 'test-story-id';
   const mockChapterId = 'test-chapter-id';
   const mockSetStoryBlocks = vi.fn();
-  const mockPreviousNodeKeysRef = createRef() as React.MutableRefObject<Map<string, string>>;
+  const mockPreviousNodeKeysRef = createRef() as React.MutableRefObject<Map<string, { text: string; place: string }>>;
 
   beforeEach(() => {
     vi.clearAllMocks();
