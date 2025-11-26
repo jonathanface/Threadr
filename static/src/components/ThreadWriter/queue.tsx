@@ -323,7 +323,7 @@ const saveBlocksToServer = async (
     },
   });
 
-  if (res.status !== 200 && res.status !== 201) {
+  if (res.status !== 200 && res.status !== 201 && res.status !== 501) {
     const error: APIError = {
       statusCode: res.status,
       statusText: res.statusText,
@@ -358,7 +358,7 @@ const deleteBlocksFromServer = async (
       },
     });
 
-    if (res.status !== 200 && res.status !== 204) {
+    if (res.status !== 200 && res.status !== 204 && res.status !== 501) {
       const error: APIError = {
         statusCode: res.status,
         statusText: res.statusText,
@@ -401,7 +401,7 @@ const syncBlockOrderMap = async (
       },
     });
 
-    if (res.status !== 200 && res.status !== 201) {
+    if (res.status !== 200 && res.status !== 201 && res.status !== 501) {
       const error: APIError = {
         statusCode: res.status,
         statusText: res.statusText,
