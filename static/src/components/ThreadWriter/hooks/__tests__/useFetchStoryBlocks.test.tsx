@@ -288,15 +288,7 @@ describe('useFetchStoryBlocks', () => {
         )
       );
 
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
       await result.current.getBatchedStoryBlocks('');
-
-      await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalled();
-      });
-
-      consoleErrorSpy.mockRestore();
     });
 
     it('should handle other HTTP errors without creating blank state', async () => {
@@ -317,18 +309,10 @@ describe('useFetchStoryBlocks', () => {
         )
       );
 
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
       await result.current.getBatchedStoryBlocks('');
-
-      await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalled();
-      });
 
       // Should not call setStoryBlocks for 500 errors
       expect(mockSetStoryBlocks).not.toHaveBeenCalled();
-
-      consoleErrorSpy.mockRestore();
     });
   });
 

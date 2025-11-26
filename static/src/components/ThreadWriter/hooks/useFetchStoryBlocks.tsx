@@ -10,6 +10,7 @@ import {
 import { useLoader } from "../../../hooks/useLoader";
 import { useToaster } from "../../../hooks/useToaster";
 import { AlertToastType } from "../../../types/AlertToasts";
+import { logger } from "../../../utils/logger";
 
 const generateBlankLine = (): CustomSerializedParagraphNode => ({
   children: [],
@@ -121,10 +122,10 @@ export const useFetchStoryBlocks = (
               },
             });
           } else {
-            console.error("Error retrieving story content:", error);
+            logger.error("Error retrieving story content:", error);
           }
         } else {
-          console.error("Unexpected error retrieving story content:", error);
+          logger.error("Unexpected error retrieving story content:", error);
         }
       } finally {
         hideLoader();
