@@ -14,3 +14,20 @@ clean:
 
 run-ui:
 	npm --prefix ./static run dev
+
+unit-test:
+	@go test ./...
+	@npm run test --prefix static
+
+coverage:
+	@echo "Running tests with coverage..."
+	@go list ./... | xargs go test -cover
+
+coverage-html:
+	@echo "Generating HTML coverage report..."
+	@go test -coverprofile=coverage.out $$(go list ./... )
+	@go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
+	@echo "Opening in browser..."
+	@open coverage.html || xdg-open coverage.html || echo "Please open coverage.html manually"
+
