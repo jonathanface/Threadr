@@ -1,9 +1,9 @@
 package auth
 
 import (
+	"RichDocter/logger"
 	"context"
 	"errors"
-	"log"
 	"os"
 
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
@@ -51,7 +51,9 @@ func SendWelcomeEmail(toEmail string) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("Welcome email sent to %s, Message ID: %s\n", toEmail, *result.MessageId)
+	logger.Info("Welcome email sent",
+		"email", toEmail,
+		"messageId", *result.MessageId)
 	return nil
 }
 
