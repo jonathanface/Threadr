@@ -25,7 +25,7 @@ func (m *MockSESClient) SendEmail(input *ses.SendEmailInput) (*ses.SendEmailOutp
 	}, nil
 }
 
-// Tests for sendWelcomeEmail
+// Tests for SendWelcomeEmail
 func TestSendWelcomeEmail_MissingAWSRegion(t *testing.T) {
 	// Save original env var and restore after test
 	originalRegion := os.Getenv("AWS_REGION")
@@ -34,7 +34,7 @@ func TestSendWelcomeEmail_MissingAWSRegion(t *testing.T) {
 	// Unset AWS_REGION
 	os.Unsetenv("AWS_REGION")
 
-	err := sendWelcomeEmail("test@example.com")
+	err := SendWelcomeEmail("test@example.com")
 	if err == nil {
 		t.Error("Expected error for missing AWS_REGION, got nil")
 	}
@@ -50,7 +50,7 @@ func TestSendWelcomeEmail_ValidEmail(t *testing.T) {
 	defer os.Setenv("AWS_REGION", originalRegion)
 
 	// Note: This test will attempt to create a real AWS session
-	// In a real-world scenario, we would need to refactor sendWelcomeEmail
+	// In a real-world scenario, we would need to refactor SendWelcomeEmail
 	// to accept an SES client interface for proper mocking
 	// For now, we just verify the function doesn't panic with valid inputs
 
@@ -71,7 +71,7 @@ func TestSendWelcomeEmail_EmailFormat(t *testing.T) {
 
 	// The function will try to create an AWS session, which will fail in test
 	// unless AWS credentials are configured, but it shouldn't panic
-	err := sendWelcomeEmail(testEmail)
+	err := SendWelcomeEmail(testEmail)
 	// We expect either nil (if AWS creds are configured) or an AWS-related error
 	// but not a panic or validation error
 	if err != nil {
@@ -79,7 +79,7 @@ func TestSendWelcomeEmail_EmailFormat(t *testing.T) {
 	}
 }
 
-// Tests for sendAlertEmail
+// Tests for SendAlertEmail
 func TestSendAlertEmail_MissingAWSRegion(t *testing.T) {
 	// Save original env var and restore after test
 	originalRegion := os.Getenv("AWS_REGION")
@@ -88,7 +88,7 @@ func TestSendAlertEmail_MissingAWSRegion(t *testing.T) {
 	// Unset AWS_REGION
 	os.Unsetenv("AWS_REGION")
 
-	err := sendAlertEmail("test@example.com")
+	err := SendAlertEmail("test@example.com")
 	if err == nil {
 		t.Error("Expected error for missing AWS_REGION, got nil")
 	}
@@ -107,7 +107,7 @@ func TestSendAlertEmail_ValidEmail(t *testing.T) {
 	// The function would need refactoring to properly mock the SES client
 	testEmail := "newuser@example.com"
 
-	err := sendAlertEmail(testEmail)
+	err := SendAlertEmail(testEmail)
 	// We expect either nil (if AWS creds are configured) or an AWS-related error
 	if err != nil {
 		t.Logf("Function executed, AWS error expected in test env: %v", err)
@@ -125,7 +125,7 @@ func TestSendAlertEmail_EmailContent(t *testing.T) {
 	// The function will try to send an email to support@docter.io
 	// We can't verify the content without mocking, but we can ensure
 	// the function handles the email parameter
-	err := sendAlertEmail(testEmail)
+	err := SendAlertEmail(testEmail)
 	if err != nil {
 		t.Logf("Function executed with email: %s, error: %v", testEmail, err)
 	}
@@ -135,22 +135,22 @@ func TestSendAlertEmail_EmailContent(t *testing.T) {
 // These are more like documentation of expected behavior
 
 func TestEmailFunctions_ExpectedBehavior(t *testing.T) {
-	t.Run("sendWelcomeEmail should send to user", func(t *testing.T) {
+	t.Run("SendWelcomeEmail should send to user", func(t *testing.T) {
 		// Expected behavior:
 		// - Source: no-reply@docter.io
 		// - Destination: user's email
-		// - Subject: "Welcome to RichDocter"
+		// - Subject: "Welcome to Docter"
 		// - Body: Welcome message
-		t.Log("sendWelcomeEmail sends welcome email to new users")
+		t.Log("SendWelcomeEmail sends welcome email to new users")
 	})
 
-	t.Run("sendAlertEmail should notify support", func(t *testing.T) {
+	t.Run("SendAlertEmail should notify support", func(t *testing.T) {
 		// Expected behavior:
 		// - Source: no-reply@docter.io
 		// - Destination: support@docter.io
 		// - Subject: "New User Signup"
 		// - Body: Contains user's email
-		t.Log("sendAlertEmail notifies support of new signups")
+		t.Log("SendAlertEmail notifies support of new signups")
 	})
 }
 
@@ -172,8 +172,8 @@ func TestSendWelcomeEmail_WithMock_Success(t *testing.T) {
 			if *input.Destination.ToAddresses[0] != "test@example.com" {
 				t.Errorf("Expected recipient 'test@example.com', got %s", *input.Destination.ToAddresses[0])
 			}
-			if *input.Message.Subject.Data != "Welcome to RichDocter" {
-				t.Errorf("Expected subject 'Welcome to RichDocter', got %s", *input.Message.Subject.Data)
+			if *input.Message.Subject.Data != "Welcome to Docter" {
+				t.Errorf("Expected subject 'Welcome to Docter', got %s", *input.Message.Subject.Data)
 			}
 
 			messageID := "test-message-123"
@@ -225,10 +225,11 @@ func TestSendAlertEmail_WithMock_Success(t *testing.T) {
 
 // Refactoring suggestion tests
 func TestEmailFunctions_RefactoringNeeded(t *testing.T) {
-	t.Log("NOTE: The sendWelcomeEmail and sendAlertEmail functions are unexported")
-	t.Log("and create their own AWS sessions internally, making them hard to test.")
+	t.Log("NOTE: SendAlertEmail is now exported and can be used from other packages")
+	t.Log("The sendWelcomeEmail function remains unexported")
+	t.Log("Both functions create their own AWS sessions internally, making them hard to test.")
 	t.Log("Consider refactoring to:")
-	t.Log("1. Export the functions (SendWelcomeEmail, SendAlertEmail)")
+	t.Log("1. Export sendWelcomeEmail as SendWelcomeEmail")
 	t.Log("2. Accept an SES client interface parameter")
 	t.Log("3. Or create a separate testable wrapper")
 	t.Log("This would enable proper unit testing with mocked AWS SES calls")

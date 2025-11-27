@@ -1,60 +1,63 @@
 package auth
 
 import (
+	"RichDocter/logger"
+	"context"
 	"errors"
-	"log"
 	"os"
 
+	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sesv2"
+	sesv2types "github.com/aws/aws-sdk-go-v2/service/sesv2/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ses"
 )
 
-func sendWelcomeEmail(toEmail string) error {
+func SendWelcomeEmail(toEmail string) error {
 	region := os.Getenv("AWS_REGION")
 	if region == "" {
 		return errors.New("unable to send welcome email due to missing aws region param")
 	}
 
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(region),
-	})
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
 	if err != nil {
 		return err
 	}
 
-	svc := ses.New(sess)
+	svc := sesv2.NewFromConfig(cfg)
 
-	// Set up the email parameters.
-	input := &ses.SendEmailInput{
-		Source: aws.String("no-reply@docter.io"), // Verified email in SES
-		Destination: &ses.Destination{
-			ToAddresses: []*string{
-				aws.String(toEmail),
-			},
+	input := &sesv2.SendEmailInput{
+		FromEmailAddress: awsv2.String("no-reply@docter.io"),
+		Destination: &sesv2types.Destination{
+			ToAddresses: []string{toEmail},
 		},
-		Message: &ses.Message{
-			Subject: &ses.Content{
-				Data: aws.String("Welcome to RichDocter"),
-			},
-			Body: &ses.Body{
-				Text: &ses.Content{
-					Data: aws.String("Thank you for signing up for RichDocter. We're excited to have you on board!"),
+		Content: &sesv2types.EmailContent{
+			Simple: &sesv2types.Message{
+				Subject: &sesv2types.Content{
+					Data: awsv2.String("Welcome to RichDocter"),
+				},
+				Body: &sesv2types.Body{
+					Text: &sesv2types.Content{
+						Data: awsv2.String("Thank you for signing up for RichDocter. We're excited to have you on board!"),
+					},
 				},
 			},
 		},
 	}
 
-	// Send the email.
-	result, err := svc.SendEmail(input)
+	result, err := svc.SendEmail(context.TODO(), input)
 	if err != nil {
 		return err
 	}
-	log.Printf("Email sent to %s, Message ID: %s\n", toEmail, *result.MessageId)
+	logger.Info("Welcome email sent",
+		"email", toEmail,
+		"messageId", *result.MessageId)
 	return nil
 }
 
-func sendAlertEmail(userEmail string) error {
+func SendAlertEmail(userEmail string) error {
 
 	region := os.Getenv("AWS_REGION")
 	if region == "" {
