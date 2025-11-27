@@ -402,6 +402,7 @@ export const ThreadWriter = () => {
   }, [chapter, story]);
 
   const writeEpochRef = useRef(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: We intentionally only depend on story?.story_id and chapter?.id to avoid re-running when story/chapter properties change. This should only run when switching stories/chapters.
   useEffect(() => {
     if (!chapter) {
       // Clear storyBlocks when chapter becomes undefined (navigating away)
@@ -420,7 +421,8 @@ export const ThreadWriter = () => {
       isQueuePausedRef.current = false;
     }, 0);
     writeEpochRef.current += 1;
-  }, [chapter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chapter?.id]);
 
   const loadChapterIntoEditor = useCallback(
     (
@@ -466,6 +468,7 @@ export const ThreadWriter = () => {
     []
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: We intentionally only depend on story?.story_id and chapter?.id to avoid re-running when story/chapter properties change. This should only run when switching stories/chapters.
   useEffect(() => {
     if (!story || !chapter) return;
     if (!storyBlocks) return;
@@ -476,7 +479,8 @@ export const ThreadWriter = () => {
     });
     // refresh the "no-change" hash after a programmatic load
     previousTextHashRef.current = generateTextHash(editorRef.current);
-  }, [story, chapter, storyBlocks, loadChapterIntoEditor]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [story?.story_id, chapter?.id, storyBlocks, loadChapterIntoEditor]);
 
   const queueParagraphForDeletion = useCallback(
     (chapterID: string, customKey: string, place?: string) => {
@@ -547,14 +551,18 @@ export const ThreadWriter = () => {
         paragraphs.forEach((paragraph, index) => {
           const key_id = paragraph.getKeyId();
           if (!key_id) {
-            logger.warn(`ThreadWriter - Paragraph at index ${index} is missing a key_id.`);
+            logger.warn(
+              `ThreadWriter - Paragraph at index ${index} is missing a key_id.`
+            );
             return;
           }
 
           // Serialize the paragraph
           const serialized = serializeWithChildren(paragraph);
           if (!serialized) {
-            logger.warn(`ThreadWriter - Failed to serialize paragraph with key_id: ${key_id}`);
+            logger.warn(
+              `ThreadWriter - Failed to serialize paragraph with key_id: ${key_id}`
+            );
             return;
           }
 
@@ -627,6 +635,7 @@ export const ThreadWriter = () => {
     }
   }, [story?.story_id, chapter?.id, getBatchedStoryBlocks]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: We intentionally only depend on story?.story_id and chapter?.id to avoid re-running when story/chapter properties change. This should only run when switching stories/chapters.
   useEffect(() => {
     if (!chapter) return;
     if (editorRef.current) {
@@ -686,7 +695,8 @@ export const ThreadWriter = () => {
         unregisterCustomTransform();
       };
     }
-  }, [chapter, queueParagraphForSave, documentSettings?.autotab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chapter?.id, queueParagraphForSave, documentSettings?.autotab]);
 
   useEffect(() => {
     const processInterval = setInterval(() => {
@@ -765,11 +775,20 @@ export const ThreadWriter = () => {
                   ? customParagraph.getKeyId()
                   : null;
 
+              const isSelected = id === selectedNodeKey;
+              const isNew = newParagraphKeys.has(id);
+              const isEmpty = currentText.trim() === "";
+
+              // Don't save new paragraphs if they're empty, even if selected
+              // Only save once they have actual content
+              const shouldSkipNewEmpty = isNew && isEmpty;
+
               if (
-                pastedParagraphKeys.current.has(id) ||
-                newParagraphKeys.has(id) ||
-                id === selectedNodeKey ||
-                textHasChanged
+                !shouldSkipNewEmpty &&
+                (pastedParagraphKeys.current.has(id) ||
+                  isNew ||
+                  isSelected ||
+                  textHasChanged)
               ) {
                 const serialized = serializeWithChildren(node);
                 paragraphsToSave.push({
