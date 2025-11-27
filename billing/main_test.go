@@ -75,6 +75,13 @@ func TestSubscribeCustomerEndpoint(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
+			// Suppress Stripe SDK error logs for test cases expecting errors
+			if c.spec.CreateSubShouldError {
+				origStderr := os.Stderr
+				os.Stderr, _ = os.Open(os.DevNull)
+				defer func() { os.Stderr = origStderr }()
+			}
+
 			srv := newStripeServer(t, c.spec)
 			defer srv.Close()
 			restore := setStripeBackendToServer(t, srv)
@@ -336,6 +343,13 @@ func TestBillingPortalSessionEndpoint(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
+			// Suppress Stripe SDK error logs for test cases expecting errors
+			if c.spec.PortalShouldError || c.spec.CreateSubShouldError {
+				origStderr := os.Stderr
+				os.Stderr, _ = os.Open(os.DevNull)
+				defer func() { os.Stderr = origStderr }()
+			}
+
 			if c.userErr != nil {
 				getUserEmailFn = func(r *http.Request) (string, error) { return "", c.userErr }
 			} else {
