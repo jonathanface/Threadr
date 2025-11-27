@@ -80,16 +80,26 @@ func (d *DAO) CreateUser(email string) (*models.UserInfo, error) {
 }
 
 func (d *DAO) GetUserDetails(email string) (user *models.UserInfo, err error) {
+	tableName := "users" + GetTableSuffix()
+	logger.Debug("GetUserDetails called",
+		"email", email,
+		"tableName", tableName)
+
 	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
-		TableName:        aws.String("users" + GetTableSuffix()),
+		TableName:        aws.String(tableName),
 		FilterExpression: aws.String("email=:eml AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
 		},
 	})
 	if err != nil {
+		logger.Error("DynamoDB Scan failed in GetUserDetails",
+			"email", email,
+			"tableName", tableName,
+			"error", err)
 		return nil, err
 	}
+	logger.Debug("DynamoDB Scan succeeded", "email", email, "itemCount", len(out.Items))
 
 	userFromMap := []models.UserInfo{}
 
