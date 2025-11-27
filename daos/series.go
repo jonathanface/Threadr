@@ -3,7 +3,7 @@ package daos
 import (
 	"RichDocter/models"
 	"context"
-	"fmt"
+	"errors"
 	"net/url"
 	"strconv"
 	"time"
@@ -12,6 +12,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+)
+
+// Sentinel errors for series operations
+var (
+	ErrSeriesNotFound = errors.New("series not found")
 )
 
 func (d *DAO) GetSeriesByID(email, seriesID string) (series *models.Series, err error) {
@@ -36,7 +41,7 @@ func (d *DAO) GetSeriesByID(email, seriesID string) (series *models.Series, err 
 		return series, err
 	}
 	if len(seriesFromMap) == 0 {
-		return series, fmt.Errorf("no series found")
+		return series, ErrSeriesNotFound
 	}
 	seriesFromMap[0].Stories, err = d.GetSeriesVolumes(email, seriesID)
 	if err != nil {

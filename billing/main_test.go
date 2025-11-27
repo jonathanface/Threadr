@@ -25,7 +25,7 @@ func TestSubscribeCustomerEndpoint(t *testing.T) {
 		ensureCustomerFn = ensureCustomer
 	})
 	getUserEmailFn = func(r *http.Request) (string, error) { return "user@example.com", nil }
-	ensureCustomerFn = func(u *models.UserInfo, s *models.Subscription) string { return "cus_123" }
+	ensureCustomerFn = func(u *models.UserInfo, s *models.Subscription) (string, error) { return "cus_123", nil }
 
 	daoMock := daos.NewMockDAO()
 	daoMock.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
@@ -120,7 +120,7 @@ func TestBillingSummaryEndpoint(t *testing.T) {
 	t.Cleanup(func() { getUserEmailFn = getUserEmail; ensureCustomerFn = ensureCustomer })
 
 	getUserEmailFn = func(r *http.Request) (string, error) { return "user@example.com", nil }
-	ensureCustomerFn = func(u *models.UserInfo, s *models.Subscription) string { return "cus_123" }
+	ensureCustomerFn = func(u *models.UserInfo, s *models.Subscription) (string, error) { return "cus_123", nil }
 
 	// Happy-path DAO
 	daoMock := daos.NewMockDAO()
@@ -268,7 +268,7 @@ func TestBillingSummaryEndpoint(t *testing.T) {
 func TestBillingPortalSessionEndpoint(t *testing.T) {
 	t.Cleanup(func() { getUserEmailFn = getUserEmail; ensureCustomerFn = ensureCustomer })
 	getUserEmailFn = func(r *http.Request) (string, error) { return "user@example.com", nil }
-	ensureCustomerFn = func(u *models.UserInfo, s *models.Subscription) string { return "cus_123" }
+	ensureCustomerFn = func(u *models.UserInfo, s *models.Subscription) (string, error) { return "cus_123", nil }
 
 	daoMock := daos.NewMockDAO()
 	daoMock.MockGetUserDetails = func(email string) (*models.UserInfo, error) {

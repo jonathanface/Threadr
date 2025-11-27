@@ -292,14 +292,11 @@ func TestGetUserEmail(t *testing.T) {
 }
 
 // Test ensureCustomer panic on nil user
-func TestEnsureCustomer_NilUserPanics(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("expected panic for nil user, got none")
-		}
-	}()
-
-	ensureCustomer(nil, &models.Subscription{})
+func TestEnsureCustomer_NilUserReturnsError(t *testing.T) {
+	_, err := ensureCustomer(nil, &models.Subscription{})
+	if err == nil {
+		t.Errorf("expected error for nil user, got none")
+	}
 }
 
 // Test RespondWithJson with unmarshalable data

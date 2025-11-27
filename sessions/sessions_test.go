@@ -6,17 +6,17 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
-
-	gsessions "github.com/gorilla/sessions"
 )
 
 func init() {
-	// Set up a test session secret
+	// Set up a test session secret (must be at least 32 characters)
 	if os.Getenv("SESSION_SECRET") == "" {
 		os.Setenv("SESSION_SECRET", "test-secret-key-for-testing-purposes-only-32bytes")
 	}
-	// Reinitialize the store with the test secret
-	Store = gsessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))
+	// Initialize the store using the Initialize function
+	if err := Initialize(); err != nil {
+		panic("Failed to initialize sessions in tests: " + err.Error())
+	}
 }
 
 // Tests for Get function

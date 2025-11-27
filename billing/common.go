@@ -29,12 +29,12 @@ func getenv(k, def string) string {
 	return def
 }
 
-func ensureCustomer(u *models.UserInfo, s *models.Subscription) string {
+func ensureCustomer(u *models.UserInfo, s *models.Subscription) (string, error) {
 	if u == nil {
-		panic("empty user passed to ensureCustomer")
+		return "", errors.New("empty user passed to ensureCustomer")
 	}
 	if s != nil && s.CustomerID != "" {
-		return s.CustomerID
+		return s.CustomerID, nil
 	}
 	// 1) try to find by email
 	lp := &stripe.CustomerListParams{
@@ -44,7 +44,7 @@ func ensureCustomer(u *models.UserInfo, s *models.Subscription) string {
 
 	it := customer.List(lp)
 	if it.Next() {
-		return it.Customer().ID
+		return it.Customer().ID, nil
 	}
 
 	// 2) otherwise create
@@ -52,10 +52,9 @@ func ensureCustomer(u *models.UserInfo, s *models.Subscription) string {
 		Email: stripe.String(u.Email),
 	})
 	if err != nil {
-		// handle/log error appropriately
-		panic(err)
+		return "", err
 	}
-	return c.ID
+	return c.ID, nil
 }
 
 func RespondWithError(w http.ResponseWriter, code int, msg string) {

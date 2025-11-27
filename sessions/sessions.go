@@ -2,6 +2,7 @@
 package sessions
 
 import (
+	"errors"
 	"net/http"
 	"os"
 	"strings"
@@ -10,7 +11,20 @@ import (
 	gsessions "github.com/gorilla/sessions"
 )
 
-var Store = gsessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))
+var Store *gsessions.CookieStore
+
+// Initialize validates and initializes the session store. Must be called at startup.
+func Initialize() error {
+	secret := os.Getenv("SESSION_SECRET")
+	if secret == "" {
+		return errors.New("SESSION_SECRET environment variable is required")
+	}
+	if len(secret) < 32 {
+		return errors.New("SESSION_SECRET must be at least 32 characters for security")
+	}
+	Store = gsessions.NewCookieStore([]byte(secret))
+	return nil
+}
 
 func Get(req *http.Request, key string) (*gsessions.Session, error) {
 	return Store.Get(req, key)
