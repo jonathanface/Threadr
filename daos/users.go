@@ -285,15 +285,28 @@ func (d *DAO) AddCustomerID(email, customerID *string) error {
 func sendWelcomeEmail(userEmail string) error {
 	region := os.Getenv("AWS_REGION")
 	if region == "" {
+		logger.Error("Unable to send welcome email - missing AWS_REGION environment variable")
 		return errors.New("unable to send welcome email due to missing aws region param")
 	}
 
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+	logger.Debug("Loading AWS config for welcome email",
+		"region", region,
+		"email", userEmail)
+
+	// Load AWS config with explicit region and default credential chain
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion(region),
+	)
 	if err != nil {
-		return err
+		logger.Error("Failed to load AWS config for welcome email",
+			"error", err,
+			"region", region,
+			"email", userEmail)
+		return fmt.Errorf("failed to load AWS config: %w", err)
 	}
 
 	svc := sesv2.NewFromConfig(cfg)
+	logger.Debug("Created SES v2 client for welcome email", "email", userEmail)
 
 	emailBody := `Welcome to Docter!
 
@@ -334,8 +347,13 @@ The Docter Team`
 
 	_, err = svc.SendEmail(context.TODO(), input)
 	if err != nil {
-		return err
+		logger.Error("Failed to send welcome email via SES",
+			"error", err,
+			"email", userEmail,
+			"region", region)
+		return fmt.Errorf("failed to send welcome email: %w", err)
 	}
+	logger.Debug("Welcome email sent successfully", "email", userEmail)
 	return nil
 }
 
@@ -343,15 +361,28 @@ The Docter Team`
 func sendNewUserNotificationEmail(userEmail string) error {
 	region := os.Getenv("AWS_REGION")
 	if region == "" {
+		logger.Error("Unable to send notification email - missing AWS_REGION environment variable")
 		return errors.New("unable to send alert email due to missing aws region param")
 	}
 
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+	logger.Debug("Loading AWS config for notification email",
+		"region", region,
+		"userEmail", userEmail)
+
+	// Load AWS config with explicit region and default credential chain
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion(region),
+	)
 	if err != nil {
-		return err
+		logger.Error("Failed to load AWS config for notification email",
+			"error", err,
+			"region", region,
+			"userEmail", userEmail)
+		return fmt.Errorf("failed to load AWS config: %w", err)
 	}
 
 	svc := sesv2.NewFromConfig(cfg)
+	logger.Debug("Created SES v2 client for notification email", "userEmail", userEmail)
 
 	emailBody := "A new user has signed up for docter: " + userEmail
 
@@ -376,7 +407,12 @@ func sendNewUserNotificationEmail(userEmail string) error {
 
 	_, err = svc.SendEmail(context.TODO(), input)
 	if err != nil {
-		return err
+		logger.Error("Failed to send notification email via SES",
+			"error", err,
+			"userEmail", userEmail,
+			"region", region)
+		return fmt.Errorf("failed to send notification email: %w", err)
 	}
+	logger.Debug("Notification email sent successfully", "userEmail", userEmail)
 	return nil
 }
