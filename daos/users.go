@@ -1,9 +1,11 @@
 package daos
 
 import (
+	"RichDocter/logger"
 	"RichDocter/models"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -11,9 +13,12 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/aws-sdk-go-v2/service/sesv2"
+	sesv2types "github.com/aws/aws-sdk-go-v2/service/sesv2/types"
 	"github.com/stripe/stripe-go/v79"
 )
 
@@ -107,7 +112,27 @@ func (d *DAO) UpsertUser(email string) (*models.UserInfo, error) {
 	attributevalue.Unmarshal(out.Attributes["created_at"], &createdAt)
 
 	if createdAt == now {
-		fmt.Println("new account created")
+		logger.Info("New account created", "email", email)
+		// Send emails asynchronously to avoid blocking user creation
+		go func() {
+			// Send welcome email to user
+			if err := sendWelcomeEmail(email); err != nil {
+				logger.Error("Failed to send welcome email",
+					"email", email,
+					"error", err)
+			} else {
+				logger.Info("Welcome email sent successfully", "email", email)
+			}
+
+			// Send notification email to support
+			if err := sendNewUserNotificationEmail(email); err != nil {
+				logger.Error("Failed to send new user notification email",
+					"email", email,
+					"error", err)
+			} else {
+				logger.Info("New user notification email sent successfully", "email", email)
+			}
+		}()
 	}
 	return &user, nil
 }
@@ -251,6 +276,106 @@ func (d *DAO) AddCustomerID(email, customerID *string) error {
 	_, err := d.DynamoClient.UpdateItem(context.Background(), updateInput)
 	if err != nil {
 		fmt.Println("error saving", err)
+		return err
+	}
+	return nil
+}
+
+// sendWelcomeEmail sends a welcome email to a new user
+func sendWelcomeEmail(userEmail string) error {
+	region := os.Getenv("AWS_REGION")
+	if region == "" {
+		return errors.New("unable to send welcome email due to missing aws region param")
+	}
+
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+	if err != nil {
+		return err
+	}
+
+	svc := sesv2.NewFromConfig(cfg)
+
+	emailBody := `Welcome to Docter!
+
+Thank you for signing up. We're excited to help you organize your story and keep track of all your characters, places, and events.
+
+Getting Started:
+
+1. Create your first story or series
+2. Add chapters and start writing
+3. Highlight text to create references to characters, places, and events
+4. Click any reference to view its details without losing your place
+
+Visit Docter: https://docter.io
+
+Need help? Have questions or feedback? Email us at support@docter.io - we'd love to hear from you!
+
+Happy writing!
+The Docter Team`
+
+	input := &sesv2.SendEmailInput{
+		FromEmailAddress: aws.String("no-reply@docter.io"),
+		Destination: &sesv2types.Destination{
+			ToAddresses: []string{userEmail},
+		},
+		Content: &sesv2types.EmailContent{
+			Simple: &sesv2types.Message{
+				Subject: &sesv2types.Content{
+					Data: aws.String("Welcome to Docter"),
+				},
+				Body: &sesv2types.Body{
+					Text: &sesv2types.Content{
+						Data: aws.String(emailBody),
+					},
+				},
+			},
+		},
+	}
+
+	_, err = svc.SendEmail(context.TODO(), input)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// sendNewUserNotificationEmail sends an email notification to support when a new user signs up
+func sendNewUserNotificationEmail(userEmail string) error {
+	region := os.Getenv("AWS_REGION")
+	if region == "" {
+		return errors.New("unable to send alert email due to missing aws region param")
+	}
+
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+	if err != nil {
+		return err
+	}
+
+	svc := sesv2.NewFromConfig(cfg)
+
+	emailBody := "A new user has signed up for docter: " + userEmail
+
+	input := &sesv2.SendEmailInput{
+		FromEmailAddress: aws.String("no-reply@docter.io"),
+		Destination: &sesv2types.Destination{
+			ToAddresses: []string{"support@docter.io"},
+		},
+		Content: &sesv2types.EmailContent{
+			Simple: &sesv2types.Message{
+				Subject: &sesv2types.Content{
+					Data: aws.String("New User Signup"),
+				},
+				Body: &sesv2types.Body{
+					Text: &sesv2types.Content{
+						Data: aws.String(emailBody),
+					},
+				},
+			},
+		},
+	}
+
+	_, err = svc.SendEmail(context.TODO(), input)
+	if err != nil {
 		return err
 	}
 	return nil
