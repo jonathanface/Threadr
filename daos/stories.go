@@ -48,12 +48,23 @@ func (d *DAO) GetAllStories(email string) (stories []*models.Story, err error) {
 		return stories[i].CreatedAt < stories[j].CreatedAt // oldest first
 	})
 
-	for i := 0; i < len(stories); i++ {
-		stories[i].Chapters, err = d.GetChaptersByStoryID(stories[i].ID)
-		if err != nil {
-			return nil, err
-		}
+	// Batch fetch chapters for all stories to avoid N+1 queries
+	storyIDs := make([]string, len(stories))
+	for i, story := range stories {
+		storyIDs[i] = story.ID
 	}
+
+	chaptersByStory, err := d.GetChaptersByStoryIDs(storyIDs)
+	if err != nil {
+		logger.Error("Failed to batch fetch chapters for stories", "error", err, "storyCount", len(stories))
+		return nil, err
+	}
+
+	// Assign chapters to each story
+	for i := range stories {
+		stories[i].Chapters = chaptersByStory[stories[i].ID]
+	}
+
 	return stories, nil
 }
 
@@ -75,11 +86,21 @@ func (d *DAO) GetAllStandalone(email string, adminRequest bool) (stories []model
 		return nil, err
 	}
 
+	// Batch fetch chapters for all stories to avoid N+1 queries
+	storyIDs := make([]string, len(stories))
+	for i, story := range stories {
+		storyIDs[i] = story.ID
+	}
+
+	chaptersByStory, err := d.GetChaptersByStoryIDs(storyIDs)
+	if err != nil {
+		logger.Error("Failed to batch fetch chapters for standalone stories", "error", err, "storyCount", len(stories))
+		return nil, err
+	}
+
+	// Assign chapters to each story
 	for i := range stories {
-		stories[i].Chapters, err = d.GetChaptersByStoryID(stories[i].ID)
-		if err != nil {
-			return nil, err
-		}
+		stories[i].Chapters = chaptersByStory[stories[i].ID]
 	}
 
 	sort.Slice(stories, func(i, j int) bool {
@@ -179,17 +200,8 @@ func (d *DAO) GetStoryByID(email, storyID string) (story *models.Story, err erro
 	return &storyFromMap[0], nil
 }
 
-// ResetBlockOrder reorders blocks by deleting and recreating them with new place values
-// This is necessary because place is part of the primary key and cannot be updated
-func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (err error) {
-	compositeKey := buildCompositeKey(storyID, storyBlocks.ChapterID)
-
-	logger.Info("ResetBlockOrder started",
-		"storyId", storyID,
-		"chapterId", storyBlocks.ChapterID,
-		"blockCount", len(storyBlocks.Blocks))
-
-	// Step 1: Query all existing blocks to get their current data
+// queryExistingBlocks queries all blocks for a chapter from the unified table
+func (d *DAO) queryExistingBlocks(compositeKey, storyID, chapterID string) ([]map[string]types.AttributeValue, error) {
 	queryInput := &dynamodb.QueryInput{
 		TableName:              aws.String(GetStoryBlocksTableName()),
 		KeyConditionExpression: aws.String("composite_key = :pk"),
@@ -207,43 +219,240 @@ func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (
 			logger.Error("Failed to query existing blocks",
 				"error", err,
 				"storyId", storyID,
-				"chapterId", storyBlocks.ChapterID)
-			return err
+				"chapterId", chapterID)
+			return nil, err
 		}
 		existingItems = append(existingItems, page.Items...)
 	}
 
 	logger.Debug("Queried existing blocks",
 		"storyId", storyID,
-		"chapterId", storyBlocks.ChapterID,
+		"chapterId", chapterID,
 		"existingItemCount", len(existingItems))
 
-	// Step 2: Create a map of key_id -> full item for quick lookup
+	return existingItems, nil
+}
+
+// buildItemMapByKeyID creates a map of key_id -> full item for quick lookup
+func buildItemMapByKeyID(existingItems []map[string]types.AttributeValue) map[string]map[string]types.AttributeValue {
 	itemsByKeyID := make(map[string]map[string]types.AttributeValue)
 	for _, item := range existingItems {
 		if keyID, ok := item["key_id"].(*types.AttributeValueMemberS); ok {
 			itemsByKeyID[keyID.Value] = item
 		}
 	}
+	return itemsByKeyID
+}
 
-	// Step 3: Delete all existing items and put them back with new place values
-	// Each block requires 2 operations (delete + put), so batch size is half the transaction limit
+// buildItemMaps creates both key_id and place lookup maps
+func buildItemMaps(existingItems []map[string]types.AttributeValue) (
+	itemsByKeyID map[string]map[string]types.AttributeValue,
+	itemsByPlace map[int64]map[string]types.AttributeValue,
+) {
+	itemsByKeyID = make(map[string]map[string]types.AttributeValue)
+	itemsByPlace = make(map[int64]map[string]types.AttributeValue)
+
+	for _, item := range existingItems {
+		if keyID, ok := item["key_id"].(*types.AttributeValueMemberS); ok {
+			itemsByKeyID[keyID.Value] = item
+			if place, ok := item["place"].(*types.AttributeValueMemberN); ok {
+				if placeNum, err := strconv.ParseInt(place.Value, 10, 64); err == nil {
+					itemsByPlace[placeNum] = item
+				}
+			}
+		}
+	}
+	return itemsByKeyID, itemsByPlace
+}
+
+// createBatches splits blocks into batches based on batch size
+func createBatches(blocks []models.StoryBlock, batchSize int) [][]models.StoryBlock {
+	batches := make([][]models.StoryBlock, 0, (len(blocks)+(batchSize-1))/batchSize)
+	for i := 0; i < len(blocks); i += batchSize {
+		end := i + batchSize
+		if end > len(blocks) {
+			end = len(blocks)
+		}
+		batches = append(batches, blocks[i:end])
+	}
+	return batches
+}
+
+// buildReorderTransactions builds delete and put transaction items for block reordering
+func buildReorderTransactions(
+	batch []models.StoryBlock,
+	compositeKey string,
+	storyID string,
+	chapterID string,
+	itemsByKeyID map[string]map[string]types.AttributeValue,
+) (deleteItems, putItems []types.TransactWriteItem, err error) {
+	for _, item := range batch {
+		newPlaceNum, err := strconv.ParseInt(item.Place, 10, 64)
+		if err != nil {
+			return nil, nil, fmt.Errorf("invalid new place value %s: %w", item.Place, err)
+		}
+
+		existingItem, exists := itemsByKeyID[item.KeyID]
+
+		if exists {
+			// Block exists - check if it needs to move
+			oldPlace, ok := existingItem["place"].(*types.AttributeValueMemberN)
+			if !ok {
+				return nil, nil, fmt.Errorf("invalid place attribute for key_id %s", item.KeyID)
+			}
+
+			oldPlaceNum, _ := strconv.ParseInt(oldPlace.Value, 10, 64)
+			if oldPlaceNum != newPlaceNum {
+				// Delete the item from its old location
+				deleteKey := map[string]types.AttributeValue{
+					"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
+					"place":         oldPlace,
+				}
+				deleteItems = append(deleteItems, types.TransactWriteItem{
+					Delete: &types.Delete{
+						TableName: aws.String(GetStoryBlocksTableName()),
+						Key:       deleteKey,
+					},
+				})
+
+				// Create new item with updated place value
+				newItem := make(map[string]types.AttributeValue)
+				for k, v := range existingItem {
+					newItem[k] = v
+				}
+				newItem["place"] = &types.AttributeValueMemberN{Value: strconv.FormatInt(newPlaceNum, 10)}
+
+				putItems = append(putItems, types.TransactWriteItem{
+					Put: &types.Put{
+						TableName: aws.String(GetStoryBlocksTableName()),
+						Item:      newItem,
+					},
+				})
+			}
+		} else {
+			// Block doesn't exist yet - create it
+			newItem := map[string]types.AttributeValue{
+				"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
+				"place":         &types.AttributeValueMemberN{Value: strconv.FormatInt(newPlaceNum, 10)},
+				"story_id":      &types.AttributeValueMemberS{Value: storyID},
+				"chapter_id":    &types.AttributeValueMemberS{Value: chapterID},
+				"key_id":        &types.AttributeValueMemberS{Value: item.KeyID},
+			}
+
+			if len(item.Chunk) > 0 {
+				newItem["chunk"] = &types.AttributeValueMemberS{Value: string(item.Chunk)}
+			}
+
+			putItems = append(putItems, types.TransactWriteItem{
+				Put: &types.Put{
+					TableName: aws.String(GetStoryBlocksTableName()),
+					Item:      newItem,
+				},
+			})
+		}
+	}
+	return deleteItems, putItems, nil
+}
+
+// identifyOrphanedBlocks finds blocks that exist in DB but not in the new block list
+func identifyOrphanedBlocks(
+	itemsByKeyID map[string]map[string]types.AttributeValue,
+	newBlocks []models.StoryBlock,
+) []map[string]types.AttributeValue {
+	newBlockKeyIDs := make(map[string]bool)
+	for _, block := range newBlocks {
+		newBlockKeyIDs[block.KeyID] = true
+	}
+
+	var blocksToDelete []map[string]types.AttributeValue
+	for keyID, item := range itemsByKeyID {
+		if !newBlockKeyIDs[keyID] {
+			blocksToDelete = append(blocksToDelete, item)
+		}
+	}
+	return blocksToDelete
+}
+
+// deleteOrphanedBlocks deletes blocks in batches using transactions
+func (d *DAO) deleteOrphanedBlocks(
+	blocksToDelete []map[string]types.AttributeValue,
+	storyID string,
+	chapterID string,
+) error {
+	deleteBatches := make([][]map[string]types.AttributeValue, 0, (len(blocksToDelete)+(d.writeBatchSize-1))/d.writeBatchSize)
+	for i := 0; i < len(blocksToDelete); i += d.writeBatchSize {
+		end := i + d.writeBatchSize
+		if end > len(blocksToDelete) {
+			end = len(blocksToDelete)
+		}
+		deleteBatches = append(deleteBatches, blocksToDelete[i:end])
+	}
+
+	for _, batch := range deleteBatches {
+		deleteInput := &dynamodb.TransactWriteItemsInput{
+			ClientRequestToken: nil,
+			TransactItems:      make([]types.TransactWriteItem, len(batch)),
+		}
+
+		for i, item := range batch {
+			deleteKey := map[string]types.AttributeValue{
+				"composite_key": item["composite_key"],
+				"place":         item["place"],
+			}
+			deleteInput.TransactItems[i] = types.TransactWriteItem{
+				Delete: &types.Delete{
+					TableName: aws.String(GetStoryBlocksTableName()),
+					Key:       deleteKey,
+				},
+			}
+		}
+
+		awsErr, err := d.awsWriteTransaction(deleteInput)
+		if err != nil {
+			logger.Error("Phase 3 delete transaction failed",
+				"error", err,
+				"storyId", storyID,
+				"chapterId", chapterID)
+			return err
+		}
+		if !awsErr.IsNil() {
+			logger.Error("Phase 3 AWS error",
+				"awsCode", awsErr.Code,
+				"awsErrorType", awsErr.ErrorType,
+				"awsText", awsErr.Text,
+				"storyId", storyID,
+				"chapterId", chapterID)
+			return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
+		}
+	}
+	return nil
+}
+
+// ResetBlockOrder reorders blocks by deleting and recreating them with new place values
+// This is necessary because place is part of the primary key and cannot be updated
+func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (err error) {
+	compositeKey := buildCompositeKey(storyID, storyBlocks.ChapterID)
+
+	logger.Info("ResetBlockOrder started",
+		"storyId", storyID,
+		"chapterId", storyBlocks.ChapterID,
+		"blockCount", len(storyBlocks.Blocks))
+
+	// Step 1: Query all existing blocks
+	existingItems, err := d.queryExistingBlocks(compositeKey, storyID, storyBlocks.ChapterID)
+	if err != nil {
+		return err
+	}
+
+	// Step 2: Create lookup map by key_id
+	itemsByKeyID := buildItemMapByKeyID(existingItems)
+
+	// Step 3: Process blocks in batches
 	batchSize := d.writeBatchSize / 2
 	if batchSize == 0 {
-		batchSize = 50 // Default to 50 blocks (100 operations) if writeBatchSize is too small
+		batchSize = 50
 	}
-	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(batchSize-1))/batchSize)
-	for i := 0; i < len(storyBlocks.Blocks); i += batchSize {
-		end := i + batchSize
-		if end > len(storyBlocks.Blocks) {
-			end = len(storyBlocks.Blocks)
-		}
-		batches = append(batches, storyBlocks.Blocks[i:end])
-	}
-
-	// Process in two phases to avoid conflicts:
-	// Phase 1: Delete all existing blocks that are moving
-	// Phase 2: Put all blocks at their new positions
+	batches := createBatches(storyBlocks.Blocks, batchSize)
 
 	logger.Debug("Processing batches",
 		"storyId", storyID,
@@ -251,6 +460,7 @@ func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (
 		"batchCount", len(batches),
 		"batchSize", batchSize)
 
+	// Process each batch in two phases: delete then put
 	for batchIndex, batch := range batches {
 		logger.Debug("Processing batch",
 			"storyId", storyID,
@@ -258,98 +468,23 @@ func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (
 			"batchNumber", batchIndex+1,
 			"totalBatches", len(batches),
 			"itemsInBatch", len(batch))
-		// Phase 1: Delete existing blocks that need to move
-		deleteItems := &dynamodb.TransactWriteItemsInput{
-			ClientRequestToken: nil,
-			TransactItems:      make([]types.TransactWriteItem, 0, len(batch)),
-		}
 
-		// Phase 2: Put all blocks at their new positions
-		putItems := &dynamodb.TransactWriteItemsInput{
-			ClientRequestToken: nil,
-			TransactItems:      make([]types.TransactWriteItem, 0, len(batch)),
-		}
-
-		for _, item := range batch {
-			newPlaceNum, err := strconv.ParseInt(item.Place, 10, 64)
-			if err != nil {
-				return fmt.Errorf("invalid new place value %s: %w", item.Place, err)
-			}
-
-			// Check if this block exists in the database
-			existingItem, exists := itemsByKeyID[item.KeyID]
-
-			if exists {
-				// Block exists - check if it needs to move
-
-				// Get the old place value from the existing item
-				oldPlace, ok := existingItem["place"].(*types.AttributeValueMemberN)
-				if !ok {
-					return fmt.Errorf("invalid place attribute for key_id %s", item.KeyID)
-				}
-
-				// Check if the place value is actually changing
-				oldPlaceNum, _ := strconv.ParseInt(oldPlace.Value, 10, 64)
-				if oldPlaceNum != newPlaceNum {
-					// Delete the item from its old location
-					deleteKey := map[string]types.AttributeValue{
-						"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
-						"place":         oldPlace,
-					}
-					deleteItems.TransactItems = append(deleteItems.TransactItems, types.TransactWriteItem{
-						Delete: &types.Delete{
-							TableName: aws.String(GetStoryBlocksTableName()),
-							Key:       deleteKey,
-						},
-					})
-
-					// Create new item with updated place value
-					newItem := make(map[string]types.AttributeValue)
-					for k, v := range existingItem {
-						newItem[k] = v
-					}
-					newItem["place"] = &types.AttributeValueMemberN{Value: strconv.FormatInt(newPlaceNum, 10)}
-
-					// Put the item at its new location
-					putItems.TransactItems = append(putItems.TransactItems, types.TransactWriteItem{
-						Put: &types.Put{
-							TableName: aws.String(GetStoryBlocksTableName()),
-							Item:      newItem,
-						},
-					})
-				}
-				// If place hasn't changed, skip this block entirely
-			} else {
-				// Block doesn't exist yet - just create it with the correct place value
-				newItem := map[string]types.AttributeValue{
-					"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
-					"place":         &types.AttributeValueMemberN{Value: strconv.FormatInt(newPlaceNum, 10)},
-					"story_id":      &types.AttributeValueMemberS{Value: storyID},
-					"chapter_id":    &types.AttributeValueMemberS{Value: storyBlocks.ChapterID},
-					"key_id":        &types.AttributeValueMemberS{Value: item.KeyID},
-				}
-
-				// Add chunk if provided
-				if len(item.Chunk) > 0 {
-					newItem["chunk"] = &types.AttributeValueMemberS{Value: string(item.Chunk)}
-				}
-
-				putItems.TransactItems = append(putItems.TransactItems, types.TransactWriteItem{
-					Put: &types.Put{
-						TableName: aws.String(GetStoryBlocksTableName()),
-						Item:      newItem,
-					},
-				})
-			}
+		deleteItems, putItems, err := buildReorderTransactions(batch, compositeKey, storyID, storyBlocks.ChapterID, itemsByKeyID)
+		if err != nil {
+			return err
 		}
 
 		// Execute Phase 1: Delete all items that are moving
-		if len(deleteItems.TransactItems) > 0 {
+		if len(deleteItems) > 0 {
 			logger.Debug("Phase 1: Deleting blocks from old positions",
 				"storyId", storyID,
 				"chapterId", storyBlocks.ChapterID,
-				"deleteCount", len(deleteItems.TransactItems))
-			awsErr, err := d.awsWriteTransaction(deleteItems)
+				"deleteCount", len(deleteItems))
+
+			deleteInput := &dynamodb.TransactWriteItemsInput{
+				TransactItems: deleteItems,
+			}
+			awsErr, err := d.awsWriteTransaction(deleteInput)
 			if err != nil {
 				logger.Error("Phase 1 delete transaction failed",
 					"error", err,
@@ -369,12 +504,16 @@ func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (
 		}
 
 		// Execute Phase 2: Put all items at their new positions
-		if len(putItems.TransactItems) > 0 {
+		if len(putItems) > 0 {
 			logger.Debug("Phase 2: Writing blocks to new positions",
 				"storyId", storyID,
 				"chapterId", storyBlocks.ChapterID,
-				"putCount", len(putItems.TransactItems))
-			awsErr, err := d.awsWriteTransaction(putItems)
+				"putCount", len(putItems))
+
+			putInput := &dynamodb.TransactWriteItemsInput{
+				TransactItems: putItems,
+			}
+			awsErr, err := d.awsWriteTransaction(putInput)
 			if err != nil {
 				logger.Error("Phase 2 put transaction failed",
 					"error", err,
@@ -389,80 +528,21 @@ func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (
 					"awsText", awsErr.Text,
 					"storyId", storyID,
 					"chapterId", storyBlocks.ChapterID)
-				return err
-			}
-			if !awsErr.IsNil() {
 				return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 			}
 		}
 	}
 
-	// Phase 3: Delete blocks that exist in the database but aren't in the new order list
-	// This handles blocks that were deleted from the editor
-	newBlockKeyIDs := make(map[string]bool)
-	for _, block := range storyBlocks.Blocks {
-		newBlockKeyIDs[block.KeyID] = true
-	}
-
-	var blocksToDelete []map[string]types.AttributeValue
-	for keyID, item := range itemsByKeyID {
-		if !newBlockKeyIDs[keyID] {
-			blocksToDelete = append(blocksToDelete, item)
-		}
-	}
-
+	// Phase 3: Delete blocks that exist in DB but aren't in the new order list
+	blocksToDelete := identifyOrphanedBlocks(itemsByKeyID, storyBlocks.Blocks)
 	if len(blocksToDelete) > 0 {
 		logger.Info("Phase 3: Deleting blocks not in new order list",
 			"storyId", storyID,
 			"chapterId", storyBlocks.ChapterID,
 			"deleteCount", len(blocksToDelete))
 
-		// Batch delete orphaned blocks
-		deleteBatches := make([][]map[string]types.AttributeValue, 0, (len(blocksToDelete)+(d.writeBatchSize-1))/d.writeBatchSize)
-		for i := 0; i < len(blocksToDelete); i += d.writeBatchSize {
-			end := i + d.writeBatchSize
-			if end > len(blocksToDelete) {
-				end = len(blocksToDelete)
-			}
-			deleteBatches = append(deleteBatches, blocksToDelete[i:end])
-		}
-
-		for _, batch := range deleteBatches {
-			deleteInput := &dynamodb.TransactWriteItemsInput{
-				ClientRequestToken: nil,
-				TransactItems:      make([]types.TransactWriteItem, len(batch)),
-			}
-
-			for i, item := range batch {
-				deleteKey := map[string]types.AttributeValue{
-					"composite_key": item["composite_key"],
-					"place":         item["place"],
-				}
-				deleteInput.TransactItems[i] = types.TransactWriteItem{
-					Delete: &types.Delete{
-						TableName: aws.String(GetStoryBlocksTableName()),
-						Key:       deleteKey,
-					},
-				}
-			}
-
-			awsErr, err := d.awsWriteTransaction(deleteInput)
-			if err != nil {
-				logger.Error("Phase 3 delete transaction failed",
-					"error", err,
-					"storyId", storyID,
-					"chapterId", storyBlocks.ChapterID)
-				return err
-			}
-			if !awsErr.IsNil() {
-				logger.Error("Phase 3 AWS error",
-					"awsCode", awsErr.Code,
-					"awsErrorType", awsErr.ErrorType,
-					"awsText", awsErr.Text,
-					"storyId", storyID,
-					"chapterId", storyBlocks.ChapterID)
-				return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
-			}
+		if err := d.deleteOrphanedBlocks(blocksToDelete, storyID, storyBlocks.ChapterID); err != nil {
+			return err
 		}
 	}
 
@@ -471,6 +551,105 @@ func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (
 		"chapterId", storyBlocks.ChapterID,
 		"blocksProcessed", len(storyBlocks.Blocks))
 	return
+}
+
+// buildWriteTransactions builds delete and put transaction items for block writing
+func buildWriteTransactions(
+	batch []models.StoryBlock,
+	compositeKey string,
+	storyID string,
+	chapterID string,
+	itemsByKeyID map[string]map[string]types.AttributeValue,
+	itemsByPlace map[int64]map[string]types.AttributeValue,
+) (deleteItems, putItems []types.TransactWriteItem, err error) {
+	for _, item := range batch {
+		newPlaceNum, err := strconv.ParseInt(item.Place, 10, 64)
+		if err != nil {
+			return nil, nil, fmt.Errorf("invalid place value %s: %w", item.Place, err)
+		}
+
+		existingItem, exists := itemsByKeyID[item.KeyID]
+
+		if exists {
+			// Block exists - check if place changed
+			oldPlace, ok := existingItem["place"].(*types.AttributeValueMemberN)
+			if !ok {
+				return nil, nil, fmt.Errorf("invalid place attribute for key_id %s", item.KeyID)
+			}
+
+			oldPlaceNum, _ := strconv.ParseInt(oldPlace.Value, 10, 64)
+
+			// Build new item with updated content
+			newItem := map[string]types.AttributeValue{
+				"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
+				"place":         &types.AttributeValueMemberN{Value: strconv.FormatInt(newPlaceNum, 10)},
+				"story_id":      &types.AttributeValueMemberS{Value: storyID},
+				"chapter_id":    &types.AttributeValueMemberS{Value: chapterID},
+				"key_id":        &types.AttributeValueMemberS{Value: item.KeyID},
+				"chunk":         &types.AttributeValueMemberS{Value: string(item.Chunk)},
+			}
+
+			// Preserve other attributes from existing item
+			for k, v := range existingItem {
+				if k != "composite_key" && k != "place" && k != "story_id" && k != "chapter_id" && k != "key_id" && k != "chunk" {
+					newItem[k] = v
+				}
+			}
+
+			if oldPlaceNum != newPlaceNum {
+				// Place changed - need to delete from old position first
+				deleteKey := map[string]types.AttributeValue{
+					"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
+					"place":         oldPlace,
+				}
+				deleteItems = append(deleteItems, types.TransactWriteItem{
+					Delete: &types.Delete{
+						TableName: aws.String(GetStoryBlocksTableName()),
+						Key:       deleteKey,
+					},
+				})
+			}
+
+			// Always put at the (potentially new) position with updated content
+			putItems = append(putItems, types.TransactWriteItem{
+				Put: &types.Put{
+					TableName: aws.String(GetStoryBlocksTableName()),
+					Item:      newItem,
+				},
+			})
+		} else {
+			// New block - check if the place is already occupied
+			actualPlace := newPlaceNum
+			if _, placeOccupied := itemsByPlace[newPlaceNum]; placeOccupied {
+				// There's already a different block at this place
+				// Assign a temporary high place value to avoid conflicts
+				actualPlace = 1000000 + newPlaceNum
+				logger.Warn("Place conflict detected for new block",
+					"storyId", storyID,
+					"chapterId", chapterID,
+					"keyId", item.KeyID,
+					"requestedPlace", newPlaceNum,
+					"temporaryPlace", actualPlace)
+			}
+
+			newItem := map[string]types.AttributeValue{
+				"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
+				"place":         &types.AttributeValueMemberN{Value: strconv.FormatInt(actualPlace, 10)},
+				"story_id":      &types.AttributeValueMemberS{Value: storyID},
+				"chapter_id":    &types.AttributeValueMemberS{Value: chapterID},
+				"key_id":        &types.AttributeValueMemberS{Value: item.KeyID},
+				"chunk":         &types.AttributeValueMemberS{Value: string(item.Chunk)},
+			}
+
+			putItems = append(putItems, types.TransactWriteItem{
+				Put: &types.Put{
+					TableName: aws.String(GetStoryBlocksTableName()),
+					Item:      newItem,
+				},
+			})
+		}
+	}
+	return deleteItems, putItems, nil
 }
 
 // WriteBlocks writes or updates blocks in the unified table
@@ -483,63 +662,21 @@ func (d *DAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) (err 
 		"chapterId", storyBlocks.ChapterID,
 		"blockCount", len(storyBlocks.Blocks))
 
-	// Step 1: Query existing blocks to find their current positions by key_id
-	queryInput := &dynamodb.QueryInput{
-		TableName:              aws.String(GetStoryBlocksTableName()),
-		KeyConditionExpression: aws.String("composite_key = :pk"),
-		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":pk": &types.AttributeValueMemberS{Value: compositeKey},
-		},
+	// Step 1: Query existing blocks
+	existingItems, err := d.queryExistingBlocks(compositeKey, storyID, storyBlocks.ChapterID)
+	if err != nil {
+		return err
 	}
 
-	var existingItems []map[string]types.AttributeValue
-	paginator := dynamodb.NewQueryPaginator(d.DynamoClient, queryInput)
+	// Step 2: Create lookup maps
+	itemsByKeyID, itemsByPlace := buildItemMaps(existingItems)
 
-	for paginator.HasMorePages() {
-		page, err := paginator.NextPage(context.Background())
-		if err != nil {
-			logger.Error("Failed to query existing blocks",
-				"error", err,
-				"storyId", storyID,
-				"chapterId", storyBlocks.ChapterID)
-			return err
-		}
-		existingItems = append(existingItems, page.Items...)
-	}
-
-	logger.Debug("Queried existing blocks",
-		"storyId", storyID,
-		"chapterId", storyBlocks.ChapterID,
-		"existingItemCount", len(existingItems))
-
-	// Create maps for lookups
-	itemsByKeyID := make(map[string]map[string]types.AttributeValue)  // key_id -> item
-	itemsByPlace := make(map[int64]map[string]types.AttributeValue)   // place -> item
-	for _, item := range existingItems {
-		if keyID, ok := item["key_id"].(*types.AttributeValueMemberS); ok {
-			itemsByKeyID[keyID.Value] = item
-			if place, ok := item["place"].(*types.AttributeValueMemberN); ok {
-				if placeNum, err := strconv.ParseInt(place.Value, 10, 64); err == nil {
-					itemsByPlace[placeNum] = item
-				}
-			}
-		}
-	}
-
-	// Step 2: Process blocks in batches
-	// Each block may need 2 operations (delete old + put new) so batch accordingly
+	// Step 3: Process blocks in batches
 	batchSize := d.writeBatchSize / 2
 	if batchSize == 0 {
 		batchSize = 50
 	}
-	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(batchSize-1))/batchSize)
-	for i := 0; i < len(storyBlocks.Blocks); i += batchSize {
-		end := i + batchSize
-		if end > len(storyBlocks.Blocks) {
-			end = len(storyBlocks.Blocks)
-		}
-		batches = append(batches, storyBlocks.Blocks[i:end])
-	}
+	batches := createBatches(storyBlocks.Blocks, batchSize)
 
 	logger.Debug("Processing batches",
 		"storyId", storyID,
@@ -547,7 +684,7 @@ func (d *DAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) (err 
 		"batchCount", len(batches),
 		"batchSize", batchSize)
 
-	// Process in two phases like ResetBlockOrder
+	// Process each batch in two phases: delete then put
 	for batchIndex, batch := range batches {
 		logger.Debug("Processing batch",
 			"storyId", storyID,
@@ -555,112 +692,23 @@ func (d *DAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) (err 
 			"batchNumber", batchIndex+1,
 			"totalBatches", len(batches),
 			"itemsInBatch", len(batch))
-		deleteItems := &dynamodb.TransactWriteItemsInput{
-			ClientRequestToken: nil,
-			TransactItems:      make([]types.TransactWriteItem, 0, len(batch)),
-		}
-		putItems := &dynamodb.TransactWriteItemsInput{
-			ClientRequestToken: nil,
-			TransactItems:      make([]types.TransactWriteItem, 0, len(batch)),
-		}
 
-		for _, item := range batch {
-			newPlaceNum, err := strconv.ParseInt(item.Place, 10, 64)
-			if err != nil {
-				return fmt.Errorf("invalid place value %s: %w", item.Place, err)
-			}
-
-			existingItem, exists := itemsByKeyID[item.KeyID]
-
-			if exists {
-				// Block exists - check if place changed
-				oldPlace, ok := existingItem["place"].(*types.AttributeValueMemberN)
-				if !ok {
-					return fmt.Errorf("invalid place attribute for key_id %s", item.KeyID)
-				}
-
-				oldPlaceNum, _ := strconv.ParseInt(oldPlace.Value, 10, 64)
-
-				// Build new item with updated content
-				newItem := map[string]types.AttributeValue{
-					"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
-					"place":         &types.AttributeValueMemberN{Value: strconv.FormatInt(newPlaceNum, 10)},
-					"story_id":      &types.AttributeValueMemberS{Value: storyID},
-					"chapter_id":    &types.AttributeValueMemberS{Value: storyBlocks.ChapterID},
-					"key_id":        &types.AttributeValueMemberS{Value: item.KeyID},
-					"chunk":         &types.AttributeValueMemberS{Value: string(item.Chunk)},
-				}
-
-				// Preserve other attributes from existing item
-				for k, v := range existingItem {
-					if k != "composite_key" && k != "place" && k != "story_id" && k != "chapter_id" && k != "key_id" && k != "chunk" {
-						newItem[k] = v
-					}
-				}
-
-				if oldPlaceNum != newPlaceNum {
-					// Place changed - need to delete from old position first
-					deleteKey := map[string]types.AttributeValue{
-						"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
-						"place":         oldPlace,
-					}
-					deleteItems.TransactItems = append(deleteItems.TransactItems, types.TransactWriteItem{
-						Delete: &types.Delete{
-							TableName: aws.String(GetStoryBlocksTableName()),
-							Key:       deleteKey,
-						},
-					})
-				}
-
-				// Always put at the (potentially new) position with updated content
-				putItems.TransactItems = append(putItems.TransactItems, types.TransactWriteItem{
-					Put: &types.Put{
-						TableName: aws.String(GetStoryBlocksTableName()),
-						Item:      newItem,
-					},
-				})
-			} else {
-				// New block - check if the place is already occupied by another block
-				actualPlace := newPlaceNum
-				if _, placeOccupied := itemsByPlace[newPlaceNum]; placeOccupied {
-					// There's already a different block at this place
-					// Assign a temporary high place value to avoid conflicts
-					// ResetBlockOrder will fix this later
-					actualPlace = 1000000 + newPlaceNum
-					logger.Warn("Place conflict detected for new block",
-						"storyId", storyID,
-						"chapterId", storyBlocks.ChapterID,
-						"keyId", item.KeyID,
-						"requestedPlace", newPlaceNum,
-						"temporaryPlace", actualPlace)
-				}
-
-				// Create the new block (at temporary place if there was a conflict)
-				newItem := map[string]types.AttributeValue{
-					"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
-					"place":         &types.AttributeValueMemberN{Value: strconv.FormatInt(actualPlace, 10)},
-					"story_id":      &types.AttributeValueMemberS{Value: storyID},
-					"chapter_id":    &types.AttributeValueMemberS{Value: storyBlocks.ChapterID},
-					"key_id":        &types.AttributeValueMemberS{Value: item.KeyID},
-					"chunk":         &types.AttributeValueMemberS{Value: string(item.Chunk)},
-				}
-
-				putItems.TransactItems = append(putItems.TransactItems, types.TransactWriteItem{
-					Put: &types.Put{
-						TableName: aws.String(GetStoryBlocksTableName()),
-						Item:      newItem,
-					},
-				})
-			}
+		deleteItems, putItems, err := buildWriteTransactions(batch, compositeKey, storyID, storyBlocks.ChapterID, itemsByKeyID, itemsByPlace)
+		if err != nil {
+			return err
 		}
 
 		// Execute Phase 1: Delete
-		if len(deleteItems.TransactItems) > 0 {
+		if len(deleteItems) > 0 {
 			logger.Debug("Phase 1: Deleting blocks from old positions",
 				"storyId", storyID,
 				"chapterId", storyBlocks.ChapterID,
-				"deleteCount", len(deleteItems.TransactItems))
-			awsErr, err := d.awsWriteTransaction(deleteItems)
+				"deleteCount", len(deleteItems))
+
+			deleteInput := &dynamodb.TransactWriteItemsInput{
+				TransactItems: deleteItems,
+			}
+			awsErr, err := d.awsWriteTransaction(deleteInput)
 			if err != nil {
 				logger.Error("Phase 1 delete transaction failed",
 					"error", err,
@@ -680,12 +728,16 @@ func (d *DAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) (err 
 		}
 
 		// Execute Phase 2: Put
-		if len(putItems.TransactItems) > 0 {
+		if len(putItems) > 0 {
 			logger.Debug("Phase 2: Writing blocks to new positions",
 				"storyId", storyID,
 				"chapterId", storyBlocks.ChapterID,
-				"putCount", len(putItems.TransactItems))
-			awsErr, err := d.awsWriteTransaction(putItems)
+				"putCount", len(putItems))
+
+			putInput := &dynamodb.TransactWriteItemsInput{
+				TransactItems: putItems,
+			}
+			awsErr, err := d.awsWriteTransaction(putInput)
 			if err != nil {
 				logger.Error("Phase 2 put transaction failed",
 					"error", err,

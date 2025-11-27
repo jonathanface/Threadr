@@ -139,9 +139,12 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 
 	tokenSess, err := sessions.Get(r, "token")
 	if err != nil {
-		logger.Error("Failed to get token session", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
-		api.RespondWithError(w, http.StatusBadGateway, err.Error())
-		return
+		// Log the error but continue - gorilla/sessions returns a new valid session
+		// even when it can't decrypt the old cookie (e.g., after SESSION_SECRET change)
+		logger.Warn("Could not read existing token session, creating new one",
+			"error", err,
+			"email", info.Email,
+			"remoteAddr", r.RemoteAddr)
 	}
 	tokenSess.Values["token_data"] = toJSON
 

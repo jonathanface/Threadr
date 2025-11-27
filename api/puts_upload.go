@@ -3,6 +3,7 @@ package api
 import (
 	ctxkey "RichDocter/ctxkeys"
 	"RichDocter/daos"
+	"RichDocter/logger"
 	"RichDocter/models"
 	"context"
 	"io"
@@ -122,6 +123,24 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	if storyOrSeriesID == "" {
 		storyOrSeriesID = storyID
+	}
+
+	// Get the old portrait URL to delete it before uploading new one
+	oldAssociation, err := dao.GetAssociationDetails(email, storyID, associationID)
+	if err != nil {
+		logger.Warn("Failed to get old association details, continuing with upload",
+			"error", err,
+			"storyId", storyID,
+			"associationId", associationID)
+	} else if oldAssociation != nil {
+		// Delete the old portrait image
+		if err := deleteS3Image(oldAssociation.Portrait, S3_CUSTOM_PORTRAIT_BUCKET); err != nil {
+			logger.Warn("Failed to delete old portrait image, continuing with upload",
+				"error", err,
+				"storyId", storyID,
+				"associationId", associationID,
+				"oldPortraitURL", oldAssociation.Portrait)
+		}
 	}
 
 	ext := filepath.Ext(handler.Filename)

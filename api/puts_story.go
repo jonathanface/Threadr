@@ -3,6 +3,7 @@ package api
 import (
 	ctxkey "RichDocter/ctxkeys"
 	"RichDocter/daos"
+	"RichDocter/logger"
 	"RichDocter/models"
 	"context"
 	"encoding/json"
@@ -19,6 +20,57 @@ import (
 	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
 )
+
+// deleteS3Image deletes an image from S3 given its full URL
+// Returns nil if successful or if the URL is empty/default
+func deleteS3Image(imageURL, bucket string) error {
+	if imageURL == "" {
+		return nil
+	}
+
+	// Don't delete default images
+	if strings.Contains(imageURL, "default") {
+		logger.Debug("Skipping deletion of default image", "url", imageURL)
+		return nil
+	}
+
+	// Extract the key (filename) from the URL
+	// URL format: https://bucket.s3.region.amazonaws.com/filename
+	parts := strings.Split(imageURL, "/")
+	if len(parts) < 4 {
+		logger.Warn("Invalid S3 URL format, skipping deletion", "url", imageURL)
+		return nil
+	}
+	key := parts[len(parts)-1]
+
+	// Load AWS config
+	awsCfg, err := config.LoadDefaultConfig(context.TODO(), func(opts *config.LoadOptions) error {
+		opts.Region = os.Getenv("AWS_REGION")
+		return nil
+	})
+	if err != nil {
+		logger.Error("Failed to load AWS config for S3 deletion", "error", err)
+		return err
+	}
+
+	s3Client := s3.NewFromConfig(awsCfg)
+	_, err = s3Client.DeleteObject(context.Background(), &s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		logger.Error("Failed to delete S3 image",
+			"error", err,
+			"bucket", bucket,
+			"key", key)
+		return err
+	}
+
+	logger.Info("Successfully deleted old S3 image",
+		"bucket", bucket,
+		"key", key)
+	return nil
+}
 
 func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
@@ -110,8 +162,15 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if file != nil {
-		// TODO delete previous image
 		defer file.Close()
+
+		// Delete the old image before uploading the new one
+		if err := deleteS3Image(series.ImageURL, S3_SERIES_IMAGE_BUCKET); err != nil {
+			logger.Warn("Failed to delete old series image, continuing with upload",
+				"error", err,
+				"seriesId", seriesID,
+				"oldImageURL", series.ImageURL)
+		}
 
 		if handler.Size < 0 || handler.Size > maxFileSize {
 			RespondWithError(w, http.StatusBadRequest, "File size exceeds allowed limit")
@@ -329,8 +388,15 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if file != nil {
-		// TODO delete previous image
 		defer file.Close()
+
+		// Delete the old image before uploading the new one
+		if err := deleteS3Image(story.ImageURL, S3_STORY_IMAGE_BUCKET); err != nil {
+			logger.Warn("Failed to delete old story image, continuing with upload",
+				"error", err,
+				"storyId", storyID,
+				"oldImageURL", story.ImageURL)
+		}
 
 		allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
 		if handler.Size < 0 || handler.Size > int64(maxFileSize) {

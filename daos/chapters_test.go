@@ -34,6 +34,67 @@ func TestGetChaptersByStoryID(t *testing.T) {
 	}
 }
 
+// Tests for GetChaptersByStoryIDs - batch method to avoid N+1 queries
+func TestGetChaptersByStoryIDs(t *testing.T) {
+	testCases := []struct {
+		name     string
+		storyIDs []string
+		wantErr  bool
+	}{
+		{
+			name:     "EmptyStoryIDs",
+			storyIDs: []string{},
+			wantErr:  false,
+		},
+		{
+			name:     "SingleStoryID_RequiresMockDB",
+			storyIDs: []string{"story123"},
+			wantErr:  false,
+		},
+		{
+			name:     "MultipleStoryIDs_RequiresMockDB",
+			storyIDs: []string{"story123", "story456", "story789"},
+			wantErr:  false,
+		},
+		{
+			name:     "ManyStoryIDs_RequiresMockDB",
+			storyIDs: []string{"story1", "story2", "story3", "story4", "story5", "story6", "story7", "story8", "story9", "story10"},
+			wantErr:  false,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			mockDao := NewMockDAO()
+
+			chaptersByStory, err := mockDao.GetChaptersByStoryIDs(tc.storyIDs)
+
+			if tc.wantErr {
+				if err == nil {
+					t.Errorf("Expected error but got nil")
+				}
+			} else {
+				if err != nil {
+					t.Logf("Got error: %v (acceptable without full DB mock)", err)
+				} else {
+					t.Logf("GetChaptersByStoryIDs returned map with %d stories", len(chaptersByStory))
+
+					// Verify structure
+					if chaptersByStory == nil {
+						t.Errorf("Expected non-nil map")
+					}
+
+					// For empty input, should return empty map
+					if len(tc.storyIDs) == 0 && len(chaptersByStory) != 0 {
+						t.Errorf("Expected empty map for empty input, got %d items", len(chaptersByStory))
+					}
+				}
+			}
+		})
+	}
+}
+
 // Tests for GetChapterTableStatus
 func TestGetChapterTableStatus(t *testing.T) {
 	testCases := []struct {
@@ -261,5 +322,15 @@ func BenchmarkGetChaptersByStoryID(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _ = mockDao.GetChaptersByStoryID("story123")
+	}
+}
+
+func BenchmarkGetChaptersByStoryIDs(b *testing.B) {
+	mockDao := NewMockDAO()
+	storyIDs := []string{"story1", "story2", "story3", "story4", "story5"}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = mockDao.GetChaptersByStoryIDs(storyIDs)
 	}
 }

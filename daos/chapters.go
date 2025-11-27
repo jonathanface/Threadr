@@ -54,6 +54,67 @@ func (d *DAO) GetChaptersByStoryID(storyID string) (chapters []models.Chapter, e
 	return chapters, nil
 }
 
+// GetChaptersByStoryIDs fetches chapters for multiple stories in a single query (batch operation)
+// Returns a map of storyID -> chapters to avoid N+1 queries
+func (d *DAO) GetChaptersByStoryIDs(storyIDs []string) (map[string][]models.Chapter, error) {
+	if len(storyIDs) == 0 {
+		return make(map[string][]models.Chapter), nil
+	}
+
+	// Build filter expression with IN clause for story_id
+	// FilterExpression: "story_id IN (:sid0, :sid1, :sid2, ...) AND attribute_not_exists(deleted_at)"
+	filterExpr := "story_id IN ("
+	expressionValues := make(map[string]types.AttributeValue)
+
+	for i, storyID := range storyIDs {
+		placeholder := fmt.Sprintf(":sid%d", i)
+		if i > 0 {
+			filterExpr += ", "
+		}
+		filterExpr += placeholder
+		expressionValues[placeholder] = &types.AttributeValueMemberS{Value: storyID}
+	}
+	filterExpr += ") AND attribute_not_exists(deleted_at)"
+
+	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+		TableName:                 aws.String("chapters" + GetTableSuffix()),
+		FilterExpression:          aws.String(filterExpr),
+		ExpressionAttributeValues: expressionValues,
+	})
+	if err != nil {
+		logger.Error("Failed to batch fetch chapters", "error", err, "storyCount", len(storyIDs))
+		return nil, err
+	}
+
+	// Unmarshal all chapters
+	allChapters := []models.Chapter{}
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &allChapters); err != nil {
+		logger.Error("Failed to unmarshal batch chapters", "error", err)
+		return nil, err
+	}
+
+	// Group chapters by story_id
+	chaptersByStory := make(map[string][]models.Chapter)
+	for _, chapter := range allChapters {
+		chaptersByStory[chapter.StoryID] = append(chaptersByStory[chapter.StoryID], chapter)
+	}
+
+	// Sort chapters within each story by place
+	for storyID := range chaptersByStory {
+		chapters := chaptersByStory[storyID]
+		sort.Slice(chapters, func(i, j int) bool {
+			return chapters[i].Place < chapters[j].Place
+		})
+		chaptersByStory[storyID] = chapters
+	}
+
+	logger.Debug("Batch fetched chapters",
+		"storyCount", len(storyIDs),
+		"chapterCount", len(allChapters))
+
+	return chaptersByStory, nil
+}
+
 // GetChapterTableStatus now always returns true since we use a unified table
 // This maintains backwards compatibility with code checking table readiness
 func (d *DAO) GetChapterTableStatus(storyID, chapterID string) (bool, error) {

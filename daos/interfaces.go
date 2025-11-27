@@ -14,6 +14,7 @@ type DaoInterface interface {
 	GetAllStandalone(email string, adminRequest bool) ([]models.Story, error)
 	GetAllSeriesWithStories(email string, adminRequest bool) ([]models.Series, error)
 	GetChaptersByStoryID(storyID string) ([]models.Chapter, error)
+	GetChaptersByStoryIDs(storyIDs []string) (map[string][]models.Chapter, error)
 	GetStoryByID(email string, storyID string) (*models.Story, error)
 	GetStorySettingsByID(email string, storyID string) (*models.StorySettings, error)
 	GetSeriesByID(email string, seriesID string) (*models.Series, error)
