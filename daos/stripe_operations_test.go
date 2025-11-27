@@ -3,8 +3,11 @@ package daos
 import (
 	"context"
 	"errors"
+	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -81,6 +84,16 @@ func TestAddStripeData(t *testing.T) {
 
 // Tests for verifyStripeSubscription
 func TestVerifyStripeSubscription(t *testing.T) {
+	// Suppress Stripe SDK error logs to stderr (expected errors in tests)
+	origStderr := os.Stderr
+	os.Stderr, _ = os.Open(os.DevNull)
+	defer func() { os.Stderr = origStderr }()
+
+	// Also suppress standard log output from Stripe
+	origLogOutput := log.Writer()
+	log.SetOutput(io.Discard)
+	defer log.SetOutput(origLogOutput)
+
 	testCases := []struct {
 		name           string
 		subID          string
