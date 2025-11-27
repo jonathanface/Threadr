@@ -3,6 +3,7 @@ package daos
 import (
 	"RichDocter/models"
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 	"time"
@@ -361,11 +362,12 @@ func TestToStatus(t *testing.T) {
 func TestIsUserSubscribed(t *testing.T) {
 	// Note: This function has complex dependencies on GetSubscription, verifyStripeSubscription,
 	// UpdateSubscription, GetAllStories, SoftDeleteStory, CheckForSuspendedStories, kickoffRestoreAsync
-	// With STRIPE_SECRET set in CI, basic cases will work but full testing requires extensive mocking
+	// We mock GetSubscription to avoid real Stripe API calls
 
 	testCases := []struct {
 		name             string
 		user             models.UserInfo
+		mockGetSub       func(email string) (*models.Subscription, error)
 		wantErr          bool
 		wantSubscriber   bool
 	}{
@@ -375,7 +377,10 @@ func TestIsUserSubscribed(t *testing.T) {
 				Email:      "user@example.com",
 				Subscriber: false,
 			},
-			wantErr:        false, // With STRIPE_SECRET set, GetSubscription returns no rows -> success
+			mockGetSub: func(email string) (*models.Subscription, error) {
+				return nil, sql.ErrNoRows
+			},
+			wantErr:        false,
 			wantSubscriber: false,
 		},
 	}
@@ -384,6 +389,7 @@ func TestIsUserSubscribed(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
+			mockDao.MockGetSubscription = tc.mockGetSub
 
 			result, err := mockDao.IsUserSubscribed(tc.user)
 

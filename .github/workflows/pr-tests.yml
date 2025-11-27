@@ -11,6 +11,9 @@ jobs:
   test:
     name: Run unit tests
     runs-on: ubuntu-latest
+    env:
+      STRIPE_SECRET: sk_test_dummy_key_for_ci
+      SESSION_SECRET: test_session_secret_at_least_32_chars_long_for_security
 
     steps:
       - name: Checkout code
@@ -35,9 +38,6 @@ jobs:
         run: go mod download
 
       - name: Run Go unit tests
-        env:
-          STRIPE_SECRET: sk_test_dummy_key_for_ci
-          SESSION_SECRET: test_session_secret_at_least_32_chars_long_for_security
         run: go test ./... -v
 
       - name: Set up Node.js
