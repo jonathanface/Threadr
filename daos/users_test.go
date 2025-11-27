@@ -361,20 +361,22 @@ func TestToStatus(t *testing.T) {
 func TestIsUserSubscribed(t *testing.T) {
 	// Note: This function has complex dependencies on GetSubscription, verifyStripeSubscription,
 	// UpdateSubscription, GetAllStories, SoftDeleteStory, CheckForSuspendedStories, kickoffRestoreAsync
-	// Full testing requires extensive mocking
+	// With STRIPE_SECRET set in CI, basic cases will work but full testing requires extensive mocking
 
 	testCases := []struct {
-		name    string
-		user    models.UserInfo
-		wantErr bool
+		name             string
+		user             models.UserInfo
+		wantErr          bool
+		wantSubscriber   bool
 	}{
 		{
-			name: "RequiresStripeAndDBMock",
+			name: "NoSubscriptionOnFile",
 			user: models.UserInfo{
 				Email:      "user@example.com",
 				Subscriber: false,
 			},
-			wantErr: true, // Will fail without STRIPE_SECRET and full DB mock
+			wantErr:        false, // With STRIPE_SECRET set, GetSubscription returns no rows -> success
+			wantSubscriber: false,
 		},
 	}
 
@@ -383,17 +385,17 @@ func TestIsUserSubscribed(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			_, err := mockDao.IsUserSubscribed(tc.user)
+			result, err := mockDao.IsUserSubscribed(tc.user)
 
 			if tc.wantErr {
 				if err == nil {
 					t.Errorf("Expected error but got nil")
-				} else {
-					t.Logf("Got expected error (no Stripe/DB mock): %v", err)
 				}
 			} else {
 				if err != nil {
 					t.Errorf("Unexpected error: %v", err)
+				} else if result.Subscriber != tc.wantSubscriber {
+					t.Errorf("Expected Subscriber=%v, got %v", tc.wantSubscriber, result.Subscriber)
 				}
 			}
 		})

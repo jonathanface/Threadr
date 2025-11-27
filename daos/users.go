@@ -190,9 +190,12 @@ func toStatus(s *stripe.Subscription, found bool) SubscriptionStatus {
 }
 
 func (d *DAO) IsUserSubscribed(user models.UserInfo) (*models.UserInfo, error) {
-	stripe.Key = os.Getenv("STRIPE_SECRET")
+	// Only set stripe.Key from environment if not already set (preserves test mocks)
 	if stripe.Key == "" {
-		return nil, fmt.Errorf("missing stripe secret")
+		stripe.Key = os.Getenv("STRIPE_SECRET")
+		if stripe.Key == "" {
+			return nil, fmt.Errorf("missing stripe secret")
+		}
 	}
 	sub, err := d.GetSubscription(user.Email)
 	if err != nil {
