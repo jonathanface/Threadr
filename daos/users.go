@@ -53,6 +53,29 @@ func (d *DAO) CreateUser(email string) (*models.UserInfo, error) {
 		Admin:      false,
 		Subscriber: false,
 	}
+
+	logger.Info("New account created", "email", email)
+	// Send emails asynchronously to avoid blocking user creation
+	go func() {
+		// Send welcome email to user
+		if err := sendWelcomeEmail(email); err != nil {
+			logger.Error("Failed to send welcome email",
+				"email", email,
+				"error", err)
+		} else {
+			logger.Info("Welcome email sent successfully", "email", email)
+		}
+
+		// Send notification email to support
+		if err := sendNewUserNotificationEmail(email); err != nil {
+			logger.Error("Failed to send new user notification email",
+				"email", email,
+				"error", err)
+		} else {
+			logger.Info("New user notification email sent successfully", "email", email)
+		}
+	}()
+
 	return &user, nil
 }
 
@@ -108,32 +131,6 @@ func (d *DAO) UpsertUser(email string) (*models.UserInfo, error) {
 		}
 	}
 
-	var createdAt string
-	attributevalue.Unmarshal(out.Attributes["created_at"], &createdAt)
-
-	if createdAt == now {
-		logger.Info("New account created", "email", email)
-		// Send emails asynchronously to avoid blocking user creation
-		go func() {
-			// Send welcome email to user
-			if err := sendWelcomeEmail(email); err != nil {
-				logger.Error("Failed to send welcome email",
-					"email", email,
-					"error", err)
-			} else {
-				logger.Info("Welcome email sent successfully", "email", email)
-			}
-
-			// Send notification email to support
-			if err := sendNewUserNotificationEmail(email); err != nil {
-				logger.Error("Failed to send new user notification email",
-					"email", email,
-					"error", err)
-			} else {
-				logger.Info("New user notification email sent successfully", "email", email)
-			}
-		}()
-	}
 	return &user, nil
 }
 
