@@ -81,7 +81,7 @@ func (d *DAO) CreateUser(email string) (*models.UserInfo, error) {
 
 func (d *DAO) GetUserDetails(email string) (user *models.UserInfo, err error) {
 	tableName := "users" + GetTableSuffix()
-	logger.Debug("GetUserDetails called",
+	logger.Info("GetUserDetails called",
 		"email", email,
 		"tableName", tableName)
 
@@ -96,10 +96,11 @@ func (d *DAO) GetUserDetails(email string) (user *models.UserInfo, err error) {
 		logger.Error("DynamoDB Scan failed in GetUserDetails",
 			"email", email,
 			"tableName", tableName,
-			"error", err)
+			"error", err,
+			"errorType", fmt.Sprintf("%T", err))
 		return nil, err
 	}
-	logger.Debug("DynamoDB Scan succeeded", "email", email, "itemCount", len(out.Items))
+	logger.Info("DynamoDB Scan succeeded", "email", email, "itemCount", len(out.Items))
 
 	userFromMap := []models.UserInfo{}
 
