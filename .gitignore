@@ -51,4 +51,3 @@ yarn-error.log*
 .aider*
 bootstrap
 bin/richdocter
-richdocter

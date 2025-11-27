@@ -24,6 +24,10 @@ const (
 func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.OauthOptions) *mux.Router {
 	rtr := mux.NewRouter()
 
+	// Apply rate limiting middleware (600 req/min per IP, excludes /health)
+	limiter := newRateLimiter()
+	rtr.Use(rateLimitMiddleware(limiter))
+
 	rtr.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}).Methods("GET", "OPTIONS")

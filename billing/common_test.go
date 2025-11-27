@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path"
 	"strings"
 	"testing"
@@ -255,12 +256,12 @@ func setStripeBackendToServer(t *testing.T, srv *httptest.Server) func() {
 
 func TestEnsureCustomer(t *testing.T) {
 	type tc struct {
-		name     string
-		user     models.UserInfo
-		sub      models.Subscription
-		spec     stripeRouteSpec
-		wantID   string
-		wantErr  bool
+		name    string
+		user    models.UserInfo
+		sub     models.Subscription
+		spec    stripeRouteSpec
+		wantID  string
+		wantErr bool
 	}
 
 	cases := []tc{
@@ -296,6 +297,13 @@ func TestEnsureCustomer(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
+			// Suppress Stripe SDK error logs for test cases expecting errors
+			if c.spec.CreateShouldError {
+				origStderr := os.Stderr
+				os.Stderr, _ = os.Open(os.DevNull)
+				defer func() { os.Stderr = origStderr }()
+			}
+
 			// If the user already has a CustomerID, we don't need a server; but setting one is harmless.
 			srv := newStripeServer(t, c.spec)
 			defer srv.Close()

@@ -3,6 +3,7 @@ package daos
 import (
 	"RichDocter/models"
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 	"time"
@@ -361,20 +362,26 @@ func TestToStatus(t *testing.T) {
 func TestIsUserSubscribed(t *testing.T) {
 	// Note: This function has complex dependencies on GetSubscription, verifyStripeSubscription,
 	// UpdateSubscription, GetAllStories, SoftDeleteStory, CheckForSuspendedStories, kickoffRestoreAsync
-	// Full testing requires extensive mocking
+	// We mock GetSubscription to avoid real Stripe API calls
 
 	testCases := []struct {
-		name    string
-		user    models.UserInfo
-		wantErr bool
+		name             string
+		user             models.UserInfo
+		mockGetSub       func(email string) (*models.Subscription, error)
+		wantErr          bool
+		wantSubscriber   bool
 	}{
 		{
-			name: "RequiresStripeAndDBMock",
+			name: "NoSubscriptionOnFile",
 			user: models.UserInfo{
 				Email:      "user@example.com",
 				Subscriber: false,
 			},
-			wantErr: true, // Will fail without STRIPE_SECRET and full DB mock
+			mockGetSub: func(email string) (*models.Subscription, error) {
+				return nil, sql.ErrNoRows
+			},
+			wantErr:        false,
+			wantSubscriber: false,
 		},
 	}
 
@@ -382,18 +389,19 @@ func TestIsUserSubscribed(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
+			mockDao.MockGetSubscription = tc.mockGetSub
 
-			_, err := mockDao.IsUserSubscribed(tc.user)
+			result, err := mockDao.IsUserSubscribed(tc.user)
 
 			if tc.wantErr {
 				if err == nil {
 					t.Errorf("Expected error but got nil")
-				} else {
-					t.Logf("Got expected error (no Stripe/DB mock): %v", err)
 				}
 			} else {
 				if err != nil {
 					t.Errorf("Unexpected error: %v", err)
+				} else if result.Subscriber != tc.wantSubscriber {
+					t.Errorf("Expected Subscriber=%v, got %v", tc.wantSubscriber, result.Subscriber)
 				}
 			}
 		})
