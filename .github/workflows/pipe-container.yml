@@ -26,10 +26,11 @@ jobs:
     steps:
       - name: Load VITE vars (staging/prod aware)
         run: |
+          STRIPE_KEY_VALUE="${{ github.ref == 'refs/heads/production' && secrets.STRIPE_PUB_KEY_PROD || secrets.STRIPE_PUB_KEY_STAGE }}"
+          echo "::add-mask::$STRIPE_KEY_VALUE"
           echo "APP_VERSION=${GITHUB_SHA}" >> "$GITHUB_ENV"
           echo "MODE=${GITHUB_REF_NAME}"   >> "$GITHUB_ENV"
-          echo "STRIPE_KEY=${{ github.ref == 'refs/heads/production' && secrets.STRIPE_PUB_KEY_PROD || secrets.STRIPE_PUB_KEY_STAGE }}" >> "$GITHUB_ENV"
-          echo "::add-mask::${{ github.ref == 'refs/heads/production' && secrets.STRIPE_PUB_KEY_PROD || secrets.STRIPE_PUB_KEY_STAGE }}"
+          echo "STRIPE_KEY=$STRIPE_KEY_VALUE" >> "$GITHUB_ENV"
 
       - name: Checkout
         uses: actions/checkout@v4
