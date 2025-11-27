@@ -5,6 +5,7 @@ import (
 	"RichDocter/daos"
 	"RichDocter/logger"
 	"RichDocter/models"
+	"RichDocter/sessions"
 	"context"
 	"os/signal"
 	"strconv"
@@ -68,6 +69,11 @@ func main() {
 	addr := normalizeAddr(port)
 	version := getenv("VERSION", DEFAULT_VERSION)
 	stripe.Key = getenv("STRIPE_SECRET", "")
+
+	// Initialize and validate session store
+	if err := sessions.Initialize(); err != nil {
+		log.Fatalf("Failed to initialize sessions: %v", err)
+	}
 
 	initCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

@@ -5,6 +5,7 @@ import (
 	"RichDocter/models"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/url"
 	"sort"
@@ -738,8 +739,7 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 			series, err := d.GetSeriesByID(email, story.SeriesID)
 			var seriesID string
 			if err != nil {
-				// TODO this is hack
-				if err.Error() != "no series found" {
+				if !errors.Is(err, ErrSeriesNotFound) {
 					return updatedStory, err
 				} else {
 					updatedStory.Place = 1
@@ -776,8 +776,7 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 			// story was removed from series OR new series
 			_, err := d.GetSeriesByID(email, story.SeriesID)
 			if err != nil {
-				// TODO this is hack
-				if err.Error() != "no series found" {
+				if !errors.Is(err, ErrSeriesNotFound) {
 					return updatedStory, err
 				} else if story.SeriesID != "" {
 					// new series

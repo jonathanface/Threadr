@@ -213,7 +213,11 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	custID := ensureCustomerFn(user, sub)
+	custID, err := ensureCustomerFn(user, sub)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "unable to ensure Stripe customer: "+err.Error())
+		return
+	}
 
 	// Create (or reuse) a subscription in incomplete state
 	params := &stripe.SubscriptionParams{
@@ -292,7 +296,10 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ensureCustomerFn(user, sub)
+	if _, err := ensureCustomerFn(user, sub); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "unable to ensure Stripe customer: "+err.Error())
+		return
+	}
 
 	if sub != nil && sub.SubscriptionID != "" {
 		stripeSub, err := subscription.Get(sub.SubscriptionID, nil)
@@ -366,7 +373,11 @@ func BillingPortalSessionEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 4) Ensure Stripe customer exists / get ID
-	custID := ensureCustomerFn(user, sub)
+	custID, err := ensureCustomerFn(user, sub)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "unable to ensure Stripe customer: "+err.Error())
+		return
+	}
 
 	// 5) Determine return URL (from header or fallback)
 	retURL := r.Header.Get("X-Return-Url")

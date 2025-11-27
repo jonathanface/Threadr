@@ -255,12 +255,12 @@ func setStripeBackendToServer(t *testing.T, srv *httptest.Server) func() {
 
 func TestEnsureCustomer(t *testing.T) {
 	type tc struct {
-		name    string
-		user    models.UserInfo
-		sub     models.Subscription
-		spec    stripeRouteSpec
-		wantID  string
-		wanPnic bool
+		name     string
+		user     models.UserInfo
+		sub      models.Subscription
+		spec     stripeRouteSpec
+		wantID   string
+		wantErr  bool
 	}
 
 	cases := []tc{
@@ -286,11 +286,11 @@ func TestEnsureCustomer(t *testing.T) {
 			wantID: "cus_created",
 		},
 		{
-			name:    "create error → function panics",
+			name:    "create error → function returns error",
 			user:    models.UserInfo{Email: "d@example.com"},
 			sub:     models.Subscription{Email: "c@example.com"},
 			spec:    stripeRouteSpec{CreateShouldError: true},
-			wanPnic: true,
+			wantErr: true,
 		},
 	}
 
@@ -302,21 +302,16 @@ func TestEnsureCustomer(t *testing.T) {
 			restore := setStripeBackendToServer(t, srv)
 			defer restore()
 
-			var got string
-			var panicked any
-			func() {
-				defer func() { panicked = recover() }()
-				got = ensureCustomer(&c.user, &c.sub) // through a small shim (below) to access unexported ensureCustomer
-			}()
+			got, err := ensureCustomer(&c.user, &c.sub)
 
-			if c.wanPnic {
-				if panicked == nil {
-					t.Fatalf("expected panic, got none")
+			if c.wantErr {
+				if err == nil {
+					t.Fatalf("expected error, got none")
 				}
 				return
 			}
-			if panicked != nil {
-				t.Fatalf("unexpected panic: %v", panicked)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
 			}
 
 			if got != c.wantID {
