@@ -78,62 +78,58 @@ func safeTimestamp() string {
 }
 
 // validateImageURL checks if a URL is safe to fetch (prevents SSRF attacks)
-func validateImageURL(imageURL string) error {
+func ValidateImageURL(imageURL string) (string, error) {
 	// Parse the URL
 	parsedURL, err := url.Parse(imageURL)
 	if err != nil {
-		return fmt.Errorf("invalid URL: %w", err)
+		return "", fmt.Errorf("invalid URL: %w", err)
 	}
 
 	// Only allow HTTP and HTTPS schemes
 	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
-		return fmt.Errorf("invalid URL scheme: only http and https are allowed")
+		return "", fmt.Errorf("invalid URL scheme: only http and https are allowed")
 	}
 
 	// Extract hostname
 	hostname := parsedURL.Hostname()
 	if hostname == "" {
-		return fmt.Errorf("invalid URL: missing hostname")
+		return "", fmt.Errorf("invalid URL: missing hostname")
 	}
 
 	// Resolve hostname to IP addresses
 	ips, err := net.LookupIP(hostname)
 	if err != nil {
-		return fmt.Errorf("failed to resolve hostname: %w", err)
+		return "", fmt.Errorf("failed to resolve hostname: %w", err)
 	}
 
 	// Check each resolved IP address
 	for _, ip := range ips {
 		// Block loopback addresses (127.0.0.0/8, ::1)
 		if ip.IsLoopback() {
-			return fmt.Errorf("access to loopback addresses is not allowed")
+			return "", fmt.Errorf("access to loopback addresses is not allowed")
 		}
 
 		// Block private IP ranges (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fc00::/7)
 		if ip.IsPrivate() {
-			return fmt.Errorf("access to private IP addresses is not allowed")
+			return "", fmt.Errorf("access to private IP addresses is not allowed")
 		}
 
 		// Block link-local addresses (169.254.0.0/16, fe80::/10)
 		if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
-			return fmt.Errorf("access to link-local addresses is not allowed")
+			return "", fmt.Errorf("access to link-local addresses is not allowed")
 		}
 
 		// Block multicast addresses
 		if ip.IsMulticast() {
-			return fmt.Errorf("access to multicast addresses is not allowed")
+			return "", fmt.Errorf("access to multicast addresses is not allowed")
 		}
 	}
 
-	return nil
+	return imageURL, nil
 }
 
 // DownloadCoverImage downloads an image from a URL to a temporary file
 func DownloadCoverImage(imageURL string) (string, error) {
-	// Validate the URL to prevent SSRF attacks
-	if err := validateImageURL(imageURL); err != nil {
-		return "", fmt.Errorf("invalid image URL: %w", err)
-	}
 
 	// Create a GET request with a timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

@@ -14,8 +14,8 @@ import (
 	"testing"
 
 	"github.com/gorilla/mux"
-	"github.com/markbates/goth"
 	gsessions "github.com/gorilla/sessions"
+	"github.com/markbates/goth"
 )
 
 func init() {

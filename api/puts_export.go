@@ -77,7 +77,12 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	// If cover image URL is provided for EPUB, download it temporarily
 	var coverImagePath string
 	if export.CoverImage != nil && *export.CoverImage != "" && models.ExportFormat(typeOf) == models.FormatEPUB {
-		coverImagePath, err = converters.DownloadCoverImage(*export.CoverImage)
+		var imageURL string
+		if imageURL, err = converters.ValidateImageURL(*export.CoverImage); err != nil {
+			RespondWithError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		coverImagePath, err = converters.DownloadCoverImage(imageURL)
 		if err != nil {
 			// Log error but continue without cover
 			coverImagePath = ""
