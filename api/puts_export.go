@@ -8,15 +8,67 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gorilla/mux"
 )
+
+// validateExportRequest validates the DocumentExportRequest fields
+func validateExportRequest(export models.DocumentExportRequest) error {
+	// Validate Title
+	if strings.TrimSpace(export.Title) == "" {
+		return fmt.Errorf("title is required")
+	}
+	if len(export.Title) > 500 {
+		return fmt.Errorf("title too long: maximum 500 characters")
+	}
+
+	// Validate StoryID
+	if strings.TrimSpace(export.StoryID) == "" {
+		return fmt.Errorf("story ID is required")
+	}
+	if len(export.StoryID) > 100 {
+		return fmt.Errorf("story ID too long: maximum 100 characters")
+	}
+
+	// Validate HtmlByChapter
+	if len(export.HtmlByChapter) == 0 {
+		return fmt.Errorf("at least one chapter is required")
+	}
+	if len(export.HtmlByChapter) > 1000 {
+		return fmt.Errorf("too many chapters: maximum 1000")
+	}
+
+	// Validate each chapter
+	for i, chapter := range export.HtmlByChapter {
+		if strings.TrimSpace(chapter.Chapter) == "" {
+			return fmt.Errorf("chapter %d: chapter title is required", i+1)
+		}
+		if len(chapter.Chapter) > 500 {
+			return fmt.Errorf("chapter %d: chapter title too long (maximum 500 characters)", i+1)
+		}
+		// Allow empty HTML content, but validate length if present
+		if len(chapter.HTML) > 10*1024*1024 { // 10MB per chapter
+			return fmt.Errorf("chapter %d: content too large (maximum 10MB per chapter)", i+1)
+		}
+	}
+
+	// Validate Author if provided
+	if export.Author != nil && len(*export.Author) > 200 {
+		return fmt.Errorf("author name too long: maximum 200 characters")
+	}
+
+	// CoverImage URL validation happens later in the flow with ValidateImageURL
+
+	return nil
+}
 
 func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	// this should be transactified
@@ -42,6 +94,13 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
+
+	// Validate export request
+	if err := validateExportRequest(export); err != nil {
+		RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story ID")
 		return
