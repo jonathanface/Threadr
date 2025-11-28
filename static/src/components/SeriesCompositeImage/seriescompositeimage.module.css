@@ -1,0 +1,88 @@
+/* Image wrapper with badge */
+.imageWrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* Regular series image */
+.seriesImage {
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(2px 2px 2px #1a1a1a);
+  vertical-align: top;
+  max-height: 100%;
+  border-radius: 20px;
+  cursor: initial;
+  display: block;
+}
+
+/* Series badge overlay */
+.seriesBadge {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: rgba(200, 200, 200, 0.95);
+  backdrop-filter: blur(4px);
+  color: #1a1a1a;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Composite container */
+.compositeContainer {
+  width: 100%;
+  aspect-ratio: 1;
+  display: grid;
+  gap: 4px;
+  border-radius: 20px;
+  overflow: hidden;
+  filter: drop-shadow(2px 2px 2px #1a1a1a);
+  background: #1a1a1a;
+  position: relative;
+}
+
+/* Individual composite images */
+.compositeImage {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Layouts based on story count */
+
+/* 1 story - full size */
+.count1 {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+}
+
+/* 2 stories - side by side */
+.count2 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+}
+
+/* 3 stories - 2 on top, 1 on bottom */
+.count3 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.count3 .compositeImage:last-child {
+  grid-column: 1 / -1;
+}
+
+/* 4 stories - 2x2 grid */
+.count4 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}

@@ -98,8 +98,8 @@ export const StoryBox = (props: StoryBoxProps) => {
   return !wasDeleted ? (
     <button
       disabled={props.story.inactive}
-      onMouseOver={showSlider}
-      onMouseOut={hideSlider}
+      onMouseEnter={showSlider}
+      onMouseLeave={hideSlider}
       className={styles.storyBoxContainer}
       onClick={(event) => {
         handleClick(event, props.story.story_id);

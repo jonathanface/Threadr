@@ -1,29 +1,56 @@
+/* Story Box Card */
 .storyBoxContainer {
-  max-width: 300px;
-  background: none;
-  border: none;
-  color: #eaeaea;
-  filter: drop-shadow(2px 2px 2px #1a1a1a);
-  letter-spacing: 1.5px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  color: #f0f0f0;
+  letter-spacing: 0.5px;
   text-align: center;
-  margin-right: 20px;
-  margin-bottom: 20px;
-  min-width: 300px;
-  min-height: 300px;
+  min-height: 450px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+}
+
+.storyBoxContainer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
 }
 
 .storyBoxContainer:hover {
   cursor: pointer;
   color: #fff;
+  transform: translateY(-8px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.storyBoxContainer:hover::before {
+  opacity: 1;
 }
 
 .storyBoxContainer img {
   width: 100%;
   height: auto;
-  filter: drop-shadow(2px 2px 2px #1a1a1a);
-  vertical-align: top;
-  max-height: 100%;
+  object-fit: cover;
+  display: block;
   border-radius: 20px;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.storyBoxContainer:hover img {
+  transform: scale(1.05);
 }
 
 .storyBoxContainer img.seriesImage {
@@ -33,57 +60,105 @@
 .storyBoxContainer .storyText {
   display: flex;
   align-content: center;
+  padding: 16px;
 }
 
 .storyBoxContainer .storyText .iconDeleteBtn {
   margin-left: auto;
 }
 
+/* Story Label Overlay */
 .storyBoxContainer .storyLabel {
   position: absolute;
-  right: 10px;
-  top: 10px;
-  padding: 10px;
-  border-radius: 10px;
-  background: #282828;
-  opacity: 0.9;
+  right: 12px;
+  top: 12px;
+  left: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(10px);
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  width: 80%;
-  margin: 0 auto;
+  align-items: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.storyBoxContainer:hover .storyLabel {
+  background: rgba(0, 0, 0, 0.85);
+  transform: translateY(-4px);
 }
 
 .storyBoxContainer .storyLabel .title {
-  margin-right: 15px;
-  font-size: 0.8rem;
+  margin-right: 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+  text-align: left;
+  letter-spacing: 0;
 }
 
 .storyBoxContainer .storyLabel .buttons {
   white-space: nowrap;
+  display: flex;
+  gap: 4px;
+}
+
+.storyBoxContainer .storyLabel .buttons :global(.MuiIconButton-root) {
+  padding: 6px;
+  transition: all 0.2s ease;
+  border-radius: 8px;
+}
+
+.storyBoxContainer .storyLabel .buttons :global(.MuiIconButton-root:hover) {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
 }
 
 .storyBoxContainer .storyBubble {
   position: relative;
   overflow: hidden;
+  border-radius: 20px;
 }
 
+/* Drag Handle */
 .storyBoxContainer .dragHandle {
   cursor: grab;
+  transition: all 0.2s ease;
+  padding: 4px;
+  border-radius: 8px;
 }
 
 .storyBoxContainer .dragHandle:hover {
-  opacity: 0.8;
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
 }
 
+.storyBoxContainer .dragHandle:active {
+  cursor: grabbing;
+  transform: scale(0.95);
+}
+
+/* Mobile Responsive */
 @media only screen and (max-width: 600px) {
   .storyBoxContainer {
-    min-width: 0;
-    width: 100%;
-    margin: 0 auto;
-    margin-bottom: 20px;
+    min-height: 400px;
   }
+
+  .storyBoxContainer .storyLabel {
+    padding: 10px 12px;
+  }
+
+  .storyBoxContainer .storyLabel .title {
+    font-size: 0.8125rem;
+  }
+}
+
+/* Focus visible for accessibility */
+.storyBoxContainer:focus-visible {
+  outline: 2px solid rgba(0, 122, 255, 0.8);
+  outline-offset: 2px;
 }

@@ -10,6 +10,7 @@ import { useLoader } from "../../hooks/useLoader";
 import { useWorksList } from "../../hooks/useWorksList";
 import { StoryOrSeriesDetailsSlider } from "../StoryOrSeriesDetailsSlider";
 import { StoryListSlider } from "../StoryListSlider";
+import { SeriesCompositeImage } from "../SeriesCompositeImage";
 import axios from "axios";
 import { api } from "../../api";
 
@@ -115,15 +116,11 @@ export const SeriesBox: React.FC<SeriesBoxProps> = ({ series }) => {
     setIsListSliderVisible(true);
   };
 
-  const imageURL = series.image_url
-    ? series.image_url
-    : "/img/icons/story_series_icon.jpg";
-
   return !wasDeleted ? (
     <div
       className={styles.seriesBoxContainer}
-      onMouseOver={showDetailsSlider}
-      onMouseOut={hideDetailsSlider}
+      onMouseEnter={showDetailsSlider}
+      onMouseLeave={hideDetailsSlider}
     >
       <div
         className="loading-screen"
@@ -135,10 +132,8 @@ export const SeriesBox: React.FC<SeriesBoxProps> = ({ series }) => {
         </Box>
       </div>
       <div className={styles.seriesBubble}>
-        <img
-          className={styles.seriesImage}
-          src={imageURL}
-          alt={series.series_title}
+        <SeriesCompositeImage
+          series={series}
           onLoad={() => {
             setIsSeriesLoaderVisible(false);
           }}
