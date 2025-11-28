@@ -1,8 +1,8 @@
 header {
     display: grid;
-    z-index: 5;
+    z-index: 1000;
     width: 100%;
-    background-color: #4F6464;
+    background: linear-gradient(135deg, #1a1f2e 0%, #2c3e50 100%);
     grid-template-columns: auto auto;
     /* Two columns with automatic width */
     justify-content: space-between;
@@ -14,11 +14,10 @@ header {
     height: 100px;
     padding: 0px 20px;
     box-sizing: border-box;
-    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
     position: sticky;
     top: 0;
     line-height: 1rem;
-    background-color: #495960;
 }
 
 header .leftPane {

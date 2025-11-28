@@ -18,7 +18,7 @@ import { useToaster } from "../../hooks/useToaster";
 import { AlertState, AlertToastType } from "../../types/AlertToasts";
 import { useSelections } from "../../hooks/useSelections";
 import { useNavigate, useParams } from "react-router-dom";
-import { PortraitDropper } from "../../components/PortraitDropper";
+import { SeriesImageUpload } from "../../components/SeriesImageUpload";
 import CloseIcon from "@mui/icons-material/Close";
 import { AddStoryModal } from "../../components/AddStoryModal";
 import { ImportExport } from "@mui/icons-material";
@@ -114,14 +114,7 @@ export const EditSeries = () => {
     link: undefined,
   };
 
-  const resetForm = () => {
-    seriesFormMessage.title = "Cannot edit series";
-    seriesFormMessage.message = "";
-    seriesFormMessage.severity = AlertToastType.error;
-  };
-
   const handleClose = () => {
-    resetForm();
     navigate(-1);
   };
 
@@ -218,8 +211,17 @@ export const EditSeries = () => {
       }
 
       propagateSeriesUpdates(json);
+
+      // Show success message
+      seriesFormMessage.title = "Edit Action Complete";
+      seriesFormMessage.message = "Your changes were saved.";
+      seriesFormMessage.severity = AlertToastType.success;
+      setAlertState(seriesFormMessage);
+
       handleClose();
     } catch (error) {
+      let errorMessage = "Unable to edit your series at this time. Please try again later or contact support.";
+
       if (axios.isAxiosError(error)) {
         const status = error.response?.status;
         const statusText = error.response?.statusText || error.message;
@@ -230,20 +232,29 @@ export const EditSeries = () => {
         console.error(
           `Error updating series: ${status} ${statusText} ${payload}`,
         );
+
+        // Extract error message from response if available
+        if (error.response?.data) {
+          if (typeof error.response.data === "object") {
+            // Check for common error message fields
+            if (error.response.data.error) {
+              errorMessage = error.response.data.error;
+            } else if (error.response.data.message) {
+              errorMessage = error.response.data.message;
+            }
+          } else if (typeof error.response.data === "string") {
+            errorMessage = error.response.data;
+          }
+        }
       } else {
         console.error("Error fetching data: ", error);
       }
 
-      seriesFormMessage.message =
-        "Unable to edit your series at this time. Please try again later or contact support.";
+      seriesFormMessage.message = errorMessage;
       setAlertState(seriesFormMessage);
     } finally {
       hideLoader();
     }
-    seriesFormMessage.title = "Edit Action Complete";
-    seriesFormMessage.message = "Your changes were saved.";
-    seriesFormMessage.severity = AlertToastType.success;
-    setAlertState(seriesFormMessage);
   };
 
   const removeStory = async (
@@ -289,6 +300,8 @@ export const EditSeries = () => {
           stories: json.stories,
         }));
       } catch (error) {
+        let errorMessage = "Unable to edit your series at this time. Please try again later or contact support.";
+
         if (axios.isAxiosError(error)) {
           const status = error.response?.status;
           const statusText = error.response?.statusText || error.message;
@@ -299,12 +312,25 @@ export const EditSeries = () => {
           console.error(
             `Error updating series: ${status} ${statusText} ${payload}`,
           );
+
+          // Extract error message from response if available
+          if (error.response?.data) {
+            if (typeof error.response.data === "object") {
+              // Check for common error message fields
+              if (error.response.data.error) {
+                errorMessage = error.response.data.error;
+              } else if (error.response.data.message) {
+                errorMessage = error.response.data.message;
+              }
+            } else if (typeof error.response.data === "string") {
+              errorMessage = error.response.data;
+            }
+          }
         } else {
           console.error("Error fetching data: ", error);
         }
 
-        seriesFormMessage.message =
-          "Unable to edit your series at this time. Please try again later or contact support.";
+        seriesFormMessage.message = errorMessage;
         setAlertState(seriesFormMessage);
       } finally {
         hideLoader();
@@ -337,9 +363,10 @@ export const EditSeries = () => {
       </Typography>
       <Box className={styles.content}>
         <Box className={`${styles.column} ${styles.left}`}>
-          <PortraitDropper
+          <SeriesImageUpload
             imageURL={seriesBuild.image_url || ""}
             name={seriesBuild.series_title || ""}
+            stories={seriesBuild.stories}
             onImageLoaded={() => {}}
             onComplete={processImage}
           />

@@ -6,7 +6,7 @@
 .heroSection {
   text-align: center;
   padding: 60px 20px;
-  background: linear-gradient(135deg, #1b2828 0%, #2d4545 100%);
+  background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
   color: #f9f9f9;
 }
 
@@ -102,7 +102,7 @@
 }
 
 .splash .blurb {
-  background-color: azure;
+  background-color: #d4dce5;
   width: 60%;
   margin: 0 auto;
   border-radius: 15px;
@@ -252,7 +252,7 @@
 .finalCTA {
   padding: 80px 20px;
   text-align: center;
-  background: linear-gradient(135deg, #1b2828 0%, #2d4545 100%);
+  background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
   color: #f9f9f9;
 }
 
@@ -309,7 +309,7 @@
   border-radius: 15px;
   padding: 15px;
   position: relative;
-  background-color: #1b2828;
+  background-color: #2d3748;
   filter: drop-shadow(2px 2px 2px #1a1a1a);
   z-index: 10;
 }

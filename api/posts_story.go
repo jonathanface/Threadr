@@ -6,6 +6,7 @@ import (
 	"RichDocter/models"
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -30,7 +31,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	const maxFileSize = 1024 * 1024 // 1 MB
+	const maxFileSize = 5 * 1024 * 1024 // 5 MB
 	// image upload
 	err = r.ParseMultipartForm(10 << 20)
 	if err != nil {
@@ -47,7 +48,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
 	if handler.Size < 0 || handler.Size > int64(maxFileSize) {
-		RespondWithError(w, http.StatusBadRequest, "File size exceeds maximum allowed")
+		RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("File size exceeds allowed limit of %dMB", maxFileSize/(1024*1024)))
 		return
 	}
 	fileBytes := make([]byte, handler.Size)
@@ -81,7 +82,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	// Check the size of the scaled image
 	if scaledImageBuf.Len() > maxFileSize {
-		RespondWithError(w, http.StatusBadRequest, "Filesize must be < 1MB")
+		RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Filesize must be < %dMB", maxFileSize/(1024*1024)))
 		return
 	}
 
@@ -93,13 +94,12 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	story := models.Story{}
 	story.ID = uuid.New().String()
 	story.Title = strings.TrimSpace(r.FormValue("title"))
-	if story.Title == "" {
-		RespondWithError(w, http.StatusBadRequest, "Missing story name")
-		return
-	}
 	story.Description = strings.TrimSpace(r.FormValue("description"))
-	if story.Description == "" {
-		RespondWithError(w, http.StatusBadRequest, "Missing story description")
+
+	// Validate story input (matches frontend validation)
+	if validationErrors := ValidateStoryInput(story.Title, story.Description); len(validationErrors) > 0 {
+		// Return first validation error
+		RespondWithError(w, http.StatusBadRequest, validationErrors[0].Message)
 		return
 	}
 	story.SeriesID = strings.TrimSpace(r.FormValue("series_id"))

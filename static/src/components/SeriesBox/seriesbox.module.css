@@ -1,69 +1,147 @@
+/* Series Box Card */
 .seriesBoxContainer {
-    max-width: 300px;
-    background: none;
-    border: none;
-    color: #eaeaea;
-    filter: drop-shadow(2px 2px 2px #1a1a1a);
-    letter-spacing: 1.5px;
-    text-align: center;
-    margin-right: 20px;
-    margin-bottom: 20px;
-    min-width: 300px;
-    min-height: 300px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  color: #f0f0f0;
+  letter-spacing: 0.5px;
+  text-align: center;
+  min-height: 450px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+}
 
+.seriesBoxContainer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.seriesBoxContainer:hover {
+  cursor: pointer;
+  color: #fff;
+  transform: translateY(-8px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.seriesBoxContainer:hover::before {
+  opacity: 1;
 }
 
 .seriesBoxContainer .seriesBubble {
-    position: relative;
-    overflow: hidden;
-    cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  border-radius: 20px;
 }
 
 .seriesBoxContainer img {
-    width: 100%;
-    height: auto;
-    filter: drop-shadow(2px 2px 2px #1a1a1a);
-    vertical-align: top;
-    max-height: 100%;
-    border-radius: 20px;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  display: block;
+  border-radius: 20px;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.seriesBoxContainer:hover img {
+  transform: scale(1.05);
 }
 
 .seriesBoxContainer img.seriesImage {
-    cursor: initial;
+  cursor: initial;
 }
 
+/* Support for composite image container */
+.seriesBoxContainer > div > div[role="img"] {
+  cursor: initial;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.seriesBoxContainer:hover > div > div[role="img"] {
+  transform: scale(1.05);
+}
+
+/* Series Label Overlay */
 .seriesBoxContainer .seriesLabel {
-    position: absolute;
-    right: 10px;
-    top: 10px;
-    padding: 10px;
-    border-radius: 10px;
-    background: #282828;
-    opacity: 0.9;
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    width: 80%;
-    margin: 0 auto;
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  left: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.seriesBoxContainer:hover .seriesLabel {
+  background: rgba(0, 0, 0, 0.85);
+  transform: translateY(-4px);
 }
 
 .seriesBoxContainer .seriesLabel .title {
-    margin-right: 15px;
-    font-size: 0.8rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  margin-right: 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  text-align: left;
+  letter-spacing: 0;
 }
 
 .seriesBoxContainer .seriesLabel .buttons {
-    white-space: nowrap;
+  white-space: nowrap;
+  display: flex;
+  gap: 4px;
 }
 
+.seriesBoxContainer .seriesLabel .buttons :global(.MuiIconButton-root) {
+  padding: 6px;
+  transition: all 0.2s ease;
+  border-radius: 8px;
+}
+
+.seriesBoxContainer .seriesLabel .buttons :global(.MuiIconButton-root:hover) {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
+}
+
+/* Mobile Responsive */
 @media only screen and (max-width: 600px) {
-    .seriesBoxContainer {
-        min-width: 0;
-        width: 100%;
-        margin: 0 auto;
-        margin-bottom: 20px;
-    }
+  .seriesBoxContainer {
+    min-height: 400px;
+  }
+
+  .seriesBoxContainer .seriesLabel {
+    padding: 10px 12px;
+  }
+
+  .seriesBoxContainer .seriesLabel .title {
+    font-size: 0.8125rem;
+  }
+}
+
+/* Focus visible for accessibility */
+.seriesBoxContainer:focus-visible {
+  outline: 2px solid rgba(0, 122, 255, 0.8);
+  outline-offset: 2px;
 }

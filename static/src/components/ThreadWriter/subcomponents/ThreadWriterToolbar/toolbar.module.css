@@ -2,14 +2,14 @@
 .toolbar {
     display: flex;
     gap: 8px;
-    border-bottom: 1px solid #333;
-    border-top: 1px solid #333;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
     padding: 16px 20px;
     position: sticky;
     top: 100px;
     left: 0;
-    background: gray;
-    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+    background: #374151;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
     align-items: center;
 }
 
@@ -21,19 +21,23 @@
 }
 
 .toolbar button {
-    background: #f4f4f4;
-    border: 1px solid #ccc;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     padding: 4px 8px;
-    border-radius: 4px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 12px;
     width: 40px;
     height: 40px;
     font-size: 1rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .toolbar button:hover {
-    background: #eaeaea;
+    background: rgba(255, 255, 255, 1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .toolbar button.active {
@@ -45,10 +49,22 @@
 .toolbar .chapterTitle {
     font-size: 1.4rem;
     margin-right: 10px;
+    color: #f5f7fa;
 }
 
 .toolbar .chapterTitle input {
     font-size: 1.4rem;
+    color: #f5f7fa;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 8px 12px;
+}
+
+.toolbar .chapterTitle input:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    outline: none;
 }
 
 .toolbar .extraButtons {

@@ -1,74 +1,533 @@
+/* Modern Design System Variables */
+:root {
+  --primary: #007AFF;
+  --primary-hover: #0051D5;
+  --primary-light: #E5F1FF;
+  --success: #34C759;
+  --warning: #FF9500;
+  --danger: #FF3B30;
+
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F8F9FA;
+  --bg-tertiary: #F2F4F7;
+
+  --text-primary: #1A1A1A;
+  --text-secondary: #6B7280;
+  --text-tertiary: #9CA3AF;
+
+  --border-light: #E5E7EB;
+  --border-medium: #D1D5DB;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+}
+
+/* Header */
 .storyCreateHeaderText {
-    color: #F9F9F9;
-    padding-top: 20px;
+  color: var(--text-primary);
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 var(--spacing-xl) 0;
+  padding: 0;
+  letter-spacing: -0.02em;
 }
 
+/* Main Container */
 .storyContainer {
-    padding: 20px;
-    background-color: #F9F9F9;
-    max-width: 800px;
-    margin: 20px auto;
-    border: 1px solid #333;
-    border-radius: 15px;
-    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+  max-width: 80vw;
+  margin: 0 auto;
+  padding: var(--spacing-xl);
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  min-height: calc(100vh - 200px);
+  border-radius: var(--radius-xl);
+  position: relative;
 }
 
-.storyContainer .leftPanel {
-    display: flex;
-    flex-wrap: nowrap !important;
-    gap: 20px;
+/* Header with close button */
+.header {
+  position: absolute;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  z-index: 10;
 }
 
-.storyContainer .header {
-    width: 100%;
-    text-align: right;
-    position: relative;
-    left: 1.5rem;
-    top: -1rem;
+.header button {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-md);
 }
 
-/* Left panel (Form) styles */
+.header button:hover {
+  background: var(--bg-primary);
+  transform: scale(1.05);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Layout Grid */
+.leftPanel {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: var(--spacing-xl);
+  align-items: start;
+}
+
+/* Form Section */
 .storyForm {
-    flex-basis: 70%;
-    padding: 16px;
-    background-color: #f9f9f9;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
 }
 
+/* Image Upload Section */
 .portraitWrapper {
-    width: 200px;
-    margin: 20px auto;
-    position: relative;
+  width: 100%;
+  max-width: 280px;
+  margin: var(--spacing-lg) 0;
+  position: relative;
 }
 
-/* Right panel (Preview) styles */
+.portraitWrapper .loading-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  z-index: 2;
+}
+
+/* Image Upload Hero Style */
+.portraitWrapper :global(.portrait-dropper) {
+  width: 100%;
+  aspect-ratio: 2/3;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-md);
+  position: relative;
+}
+
+.portraitWrapper :global(.portrait-dropper):hover {
+  box-shadow: var(--shadow-xl);
+  transform: translateY(-2px);
+}
+
+.portraitWrapper :global(.portrait-dropper figure) {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  cursor: pointer;
+}
+
+.portraitWrapper :global(.portrait-dropper img) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.portraitWrapper :global(.portrait-dropper):hover img {
+  transform: scale(1.05);
+}
+
+.portraitWrapper :global(.portrait-dropper figcaption) {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+  color: white;
+  padding: var(--spacing-md);
+  font-size: 0.875rem;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.portraitWrapper :global(.portrait-dropper):hover figcaption {
+  opacity: 1;
+}
+
+/* Preview Card */
 .previewCard {
-    flex-basis: 30%;
-    padding: 16px;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  position: sticky;
+  top: var(--spacing-lg);
+  max-height: calc(100vh - 100px);
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
-/* Title preview styling */
+.previewCard:hover {
+  box-shadow: var(--shadow-xl);
+  transform: translateY(-2px);
+}
+
+/* Preview Image Upload Wrapper */
+.previewImageWrapper {
+  width: 100%;
+  position: relative;
+}
+
+.previewImageWrapper .loading-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.previewImageWrapper :global(.prog-anim-holder) {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.previewImageWrapper :global(.MuiCircularProgress-root) {
+  color: var(--primary) !important;
+}
+
+.previewImageWrapper :global(.portrait-dropper) {
+  width: 100%;
+  aspect-ratio: 2/3;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.previewImageWrapper :global(.portrait-dropper figure) {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  cursor: pointer;
+}
+
+.previewImageWrapper :global(.portrait-dropper img) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.previewImageWrapper :global(.portrait-dropper):hover img {
+  transform: scale(1.05);
+}
+
+.previewImageWrapper :global(.portrait-dropper figcaption) {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+  color: white;
+  padding: var(--spacing-md);
+  font-size: 0.875rem;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.previewImageWrapper :global(.portrait-dropper):hover figcaption {
+  opacity: 1;
+}
+
+/* Preview Card Content */
+.previewCard :global(.MuiCard-root) {
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.previewCard :global(.MuiCardContent-root) {
+  padding: var(--spacing-lg) !important;
+}
+
 .previewTitle {
-    margin-top: 8px !important;
-    margin-bottom: 8px !important;
-    font-size: 1rem !important;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+  color: var(--text-primary) !important;
+  margin: 0 0 var(--spacing-sm) 0 !important;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  letter-spacing: -0.01em;
 }
 
-/* Description preview styling */
 .previewDescription {
-    font-size: 1rem;
-    color: #666;
-    margin-top: 8px;
-    display: -webkit-box;
-    -webkit-line-clamp: 10;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+  font-size: 0.9375rem !important;
+  line-height: 1.6 !important;
+  color: var(--text-secondary) !important;
+  margin: 0 !important;
+  display: -webkit-box;
+  -webkit-line-clamp: 8;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.previewCard :global(.MuiChip-root) {
+  margin-top: var(--spacing-md) !important;
+  background: var(--primary-light) !important;
+  color: var(--primary) !important;
+  font-weight: 600 !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+/* Form Field Enhancements */
+.storyForm :global(.MuiTextField-root) {
+  margin: 0 !important;
+}
+
+.storyForm :global(.MuiOutlinedInput-root) {
+  border-radius: var(--radius-md) !important;
+  background: var(--bg-secondary);
+  transition: all 0.2s ease;
+}
+
+.storyForm :global(.MuiOutlinedInput-root:hover) {
+  background: var(--bg-primary);
+}
+
+.storyForm :global(.MuiOutlinedInput-root.Mui-focused) {
+  background: var(--bg-primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.storyForm :global(.MuiOutlinedInput-notchedOutline) {
+  border-color: var(--border-light) !important;
+  transition: border-color 0.2s ease;
+}
+
+.storyForm :global(.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline) {
+  border-color: var(--border-medium) !important;
+}
+
+.storyForm :global(.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline) {
+  border-color: var(--primary) !important;
+  border-width: 2px !important;
+}
+
+/* Button Styling */
+.storyForm :global(.MuiButton-root) {
+  margin-top: var(--spacing-md) !important;
+  padding: 14px 28px !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: 600 !important;
+  font-size: 1rem !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  box-shadow: var(--shadow-md) !important;
+  transition: all 0.2s ease !important;
+}
+
+.storyForm :global(.MuiButton-root:hover) {
+  box-shadow: var(--shadow-lg) !important;
+  transform: translateY(-1px);
+}
+
+.storyForm :global(.MuiButton-root:active) {
+  transform: translateY(0);
+}
+
+/* Character Counter */
+.storyForm :global(.MuiTypography-caption) {
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+  transition: color 0.2s ease;
+}
+
+/* Autocomplete Styling */
+.storyForm :global(.MuiAutocomplete-root .MuiChip-root) {
+  background: var(--success) !important;
+  color: white !important;
+  font-weight: 600 !important;
+  height: 20px !important;
+  font-size: 0.75rem !important;
+}
+
+/* Mobile Responsive Design */
+@media (max-width: 1024px) {
+  .storyContainer {
+    max-width: 95vw;
+    padding: var(--spacing-lg);
+  }
+
+  .leftPanel {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+  }
+
+  .previewCard {
+    position: relative;
+    top: 0;
+    max-height: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .storyCreateHeaderText {
+    font-size: 1.75rem;
+  }
+
+  .storyContainer {
+    max-width: 98vw;
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    min-height: auto;
+  }
+
+  .leftPanel {
+    gap: var(--spacing-md);
+  }
+
+  .storyForm {
+    padding: var(--spacing-lg);
+    gap: var(--spacing-md);
+  }
+
+  .portraitWrapper {
+    max-width: 100%;
+  }
+
+  .header {
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
+  }
+
+  .header button {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  .storyCreateHeaderText {
+    font-size: 1.5rem;
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .storyContainer {
+    max-width: 100vw;
+    padding: var(--spacing-sm);
+    background: var(--bg-secondary);
+  }
+
+  .storyForm {
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+  }
+
+  .previewCard {
+    border-radius: var(--radius-md);
+  }
+
+  .previewTitle {
+    font-size: 1.25rem !important;
+  }
+
+  .previewDescription {
+    font-size: 0.875rem !important;
+  }
+
+  .storyForm :global(.MuiButton-root) {
+    width: 100%;
+    padding: 12px 24px !important;
+  }
+
+  .portraitWrapper {
+    margin: var(--spacing-md) 0;
+  }
+}
+
+/* Dark mode support (if needed in future) */
+@media (prefers-color-scheme: dark) {
+  /* Can add dark theme variables here */
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Focus visible for accessibility */
+.storyForm :global(*:focus-visible) {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Loading spinner styling */
+.portraitWrapper :global(.prog-anim-holder) {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.portraitWrapper :global(.MuiCircularProgress-root) {
+  color: var(--primary) !important;
+}
+
+/* Disable tooltip animations */
+:global(.MuiTooltip-tooltip) {
+  transition: none !important;
+}
+
+:global(.MuiTooltip-popper) {
+  transition: none !important;
+}
+
+/* Smooth transitions for all interactive elements */
+* {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-duration: 0.2s;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Remove transition from transform for better performance */
+*:has(img) {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow;
 }

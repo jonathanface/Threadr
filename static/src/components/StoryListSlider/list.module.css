@@ -17,6 +17,7 @@
     cursor: default;
     visibility: hidden;
     opacity: 0;
+    pointer-events: none;
 }
 
 .detailsSlider .header {
@@ -38,6 +39,7 @@
     margin-top: -300px;
     opacity: 1;
     visibility: visible;
+    pointer-events: auto;
 }
 
 .detailsSlider .avatars {

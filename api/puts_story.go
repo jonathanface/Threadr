@@ -7,6 +7,7 @@ import (
 	"RichDocter/models"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -146,7 +147,7 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	const maxFileSize = 1024 * 1024 // 1 MB
+	const maxFileSize = 5 * 1024 * 1024 // 5 MB
 	// image upload
 	err = r.ParseMultipartForm(10 << 20)
 	if err != nil {
@@ -173,7 +174,7 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if handler.Size < 0 || handler.Size > maxFileSize {
-			RespondWithError(w, http.StatusBadRequest, "File size exceeds allowed limit")
+			RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("File size exceeds allowed limit of %dMB", maxFileSize/(1024*1024)))
 			return
 		}
 		allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
@@ -207,7 +208,7 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 		// Check the size of the scaled image
 		if scaledImageBuf.Len() > maxFileSize {
-			RespondWithError(w, http.StatusBadRequest, "Filesize must be < 1MB")
+			RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Filesize must be < %dMB", maxFileSize/(1024*1024)))
 			return
 		}
 
@@ -350,16 +351,18 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(strings.TrimSpace(r.FormValue("title"))) > 0 {
 		story.Title = strings.TrimSpace(r.FormValue("title"))
-		if story.Title == "" {
-			RespondWithError(w, http.StatusBadRequest, "Missing story name")
+		// Validate title (matches frontend validation)
+		if err := ValidateStoryTitle(story.Title); err != nil {
+			RespondWithError(w, http.StatusBadRequest, err.Message)
 			return
 		}
 	}
 
 	if len(strings.TrimSpace(r.FormValue("description"))) > 0 {
 		story.Description = strings.TrimSpace(r.FormValue("description"))
-		if story.Description == "" {
-			RespondWithError(w, http.StatusBadRequest, "Missing story description")
+		// Validate description (matches frontend validation)
+		if err := ValidateStoryDescription(story.Description); err != nil {
+			RespondWithError(w, http.StatusBadRequest, err.Message)
 			return
 		}
 	}
@@ -372,7 +375,7 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		story.SeriesID = ""
 	}
 
-	const maxFileSize = 1024 * 1024 // 1 MB
+	const maxFileSize = 5 * 1024 * 1024 // 5 MB
 	// image upload
 	err = r.ParseMultipartForm(10 << 20)
 	if err != nil {
@@ -400,7 +403,7 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 
 		allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
 		if handler.Size < 0 || handler.Size > int64(maxFileSize) {
-			RespondWithError(w, http.StatusBadRequest, "File is too large")
+			RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("File size exceeds allowed limit of %dMB", maxFileSize/(1024*1024)))
 			return
 		}
 		fileBytes := make([]byte, handler.Size)
@@ -433,7 +436,7 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 		// Check the size of the scaled image
 		if scaledImageBuf.Len() > maxFileSize {
-			RespondWithError(w, http.StatusBadRequest, "Filesize must be < 1MB")
+			RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Filesize must be < %dMB", maxFileSize/(1024*1024)))
 			return
 		}
 

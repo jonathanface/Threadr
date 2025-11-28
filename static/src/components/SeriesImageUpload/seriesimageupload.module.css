@@ -1,0 +1,96 @@
+/* Upload wrapper */
+.uploadWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+/* Composite background */
+.compositeBackground {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  gap: 4px;
+  background: #1a1a1a;
+  z-index: 1;
+}
+
+/* Individual composite images */
+.compositeImage {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Layouts based on story count */
+.count1 {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+}
+
+.count2 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+}
+
+.count3 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.count3 .compositeImage:last-child {
+  grid-column: 1 / -1;
+}
+
+.count4 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+/* Uploader overlay */
+.uploaderOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.3);
+  transition: background 0.2s ease;
+  cursor: pointer;
+}
+
+.uploaderOverlay:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.uploaderOverlay input {
+  display: none;
+}
+
+/* Upload hint */
+.uploadHint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  color: white;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  pointer-events: none;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.uploadWrapper:hover .uploadHint {
+  background: rgba(0, 0, 0, 0.85);
+}
