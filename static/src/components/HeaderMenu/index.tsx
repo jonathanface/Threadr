@@ -6,6 +6,7 @@ import { AlertToastType } from "../../types/AlertToasts";
 import { Story } from "../../types/Story";
 import { UserMenu } from "..//UserMenu";
 import { EditableText } from "../EditableText";
+import { ThemeToggle } from "../ThemeToggle";
 
 import styles from "./headermenu.module.css";
 import { api } from "../../api";
@@ -151,7 +152,10 @@ export const HeaderMenu = () => {
           </div>
         </span>
       </span>
-      <UserMenu />
+      <span className={styles.rightPane}>
+        <ThemeToggle />
+        <UserMenu />
+      </span>
     </header>
   );
 };

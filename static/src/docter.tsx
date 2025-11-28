@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import "./css/main.css";
+import "./css/themes.css";
 import { DocumentEditorPage } from "./sections/DocumentEditor";
 import { SplashPage } from "./sections/SplashPage";
 import { StoryAndSeriesListing } from "./sections/StoryAndSeriesListing";

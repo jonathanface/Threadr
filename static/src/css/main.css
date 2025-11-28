@@ -34,9 +34,10 @@ a:hover {
 
 body {
   min-height: 100%;
-  background: linear-gradient(135deg, #1a1f2e 0%, #2c3e50 100%);
+  background: var(--bg-body);
   display: flex;
   flex-direction: column;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 #root {

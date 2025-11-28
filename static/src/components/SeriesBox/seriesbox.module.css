@@ -1,9 +1,9 @@
 /* Series Box Card */
 .seriesBoxContainer {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  color: #f0f0f0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  color: var(--text-primary);
   letter-spacing: 0.5px;
   text-align: center;
   min-height: 450px;
@@ -11,7 +11,7 @@
   position: relative;
   overflow: hidden;
   backdrop-filter: blur(10px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-card);
 }
 
 .seriesBoxContainer::before {
@@ -29,10 +29,10 @@
 
 .seriesBoxContainer:hover {
   cursor: pointer;
-  color: #fff;
+  color: var(--text-primary);
   transform: translateY(-8px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
-  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: var(--shadow-xl);
+  border-color: var(--border-medium);
 }
 
 .seriesBoxContainer:hover::before {
@@ -51,9 +51,9 @@
   height: auto;
   object-fit: cover;
   display: block;
-  border-radius: 20px;
+  border-radius: var(--radius-xl);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-dark);
 }
 
 .seriesBoxContainer:hover img {
@@ -106,6 +106,7 @@
   flex: 1;
   text-align: left;
   letter-spacing: 0;
+  color: #ffffff;
 }
 
 .seriesBoxContainer .seriesLabel .buttons {

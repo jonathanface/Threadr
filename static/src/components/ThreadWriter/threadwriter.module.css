@@ -30,7 +30,7 @@
   /* Align with padding */
   font-size: 16px;
   font-style: italic;
-  color: #888;
+  color: var(--text-tertiary);
   pointer-events: none;
   /* Prevent interactions */
 }
@@ -42,12 +42,12 @@
   -webkit-user-select: text;
   font-family: Arial, sans-serif;
   font-size: 16px;
-  color: #333;
+  color: var(--text-on-light);
   padding: 1in;
-  border: 2px solid #333;
+  border: 2px solid var(--border-medium);
   border-radius: 4px;
-  background-color: #fff;
-  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: var(--bg-editor);
+  box-shadow: var(--shadow-dark);
   outline: none;
   line-height: 2em;
   overflow: auto;
@@ -57,13 +57,22 @@
   min-height: 279mm;
 }
 
+[data-theme="dark"] .editorInput {
+  color: #ffffff;
+}
+
+[data-theme="light"] .editorInput {
+  color: #2a2a2a;
+}
+
 .editorInput>p {
   margin: 0;
 }
 
 /* Styling for focused state */
 .editorInput:focus {
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.4);
+  border-color: var(--primary);
 }
 
 /* Paragraph styling */
@@ -78,21 +87,23 @@
 
 /* Links */
 a {
-  color: #007bff;
+  color: #66b3ff;
   text-decoration: none;
 }
 
 a:hover {
   text-decoration: underline;
+  color: #99ccff;
 }
 
 /* Custom blockquote styling */
 .blockquote {
   margin: 1em 0;
   padding: 0.5em 1em;
-  background-color: #f9f9f9;
-  border-left: 4px solid #ccc;
+  background-color: var(--bg-editor-blockquote);
+  border-left: 4px solid var(--primary);
   font-style: italic;
+  color: var(--text-secondary);
 }
 
 /* List styles */

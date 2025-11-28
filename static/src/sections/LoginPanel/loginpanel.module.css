@@ -2,11 +2,17 @@
     padding: 2rem;
     max-width: 500px;
     margin: 3rem auto;
-    color: #ddd;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    box-shadow: 2px 2px 2px #1a1a1a;
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-dark);
     text-align: center;
+    background: var(--bg-card);
+}
+
+.loginPanel h1 {
+    color: #ffffff;
+    margin: 0 0 2rem 0;
 }
 
 .loginPanel .option {
@@ -14,7 +20,7 @@
 }
 
 .loginPanel .option img {
-    box-shadow: 2px 2px 2px #1a1a1a;
+    box-shadow: var(--shadow-dark);
 }
 
 .loginPanel .option img:hover {
