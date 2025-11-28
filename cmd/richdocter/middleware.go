@@ -88,8 +88,8 @@ func strictMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 			ctx = context.WithValue(ctx, ctxkey.Subscriber, userDetails.Subscriber)
 			ctx = context.WithValue(ctx, ctxkey.DAO, d)
 
-			needsSub := (r.Method == "POST" && strings.HasSuffix(r.URL.Path, "/stories")) ||
-				(r.Method == "PUT" && strings.HasSuffix(r.URL.Path, "/export"))
+			// Only block exports for non-subscribers, not story creation
+			needsSub := (r.Method == "PUT" && strings.HasSuffix(r.URL.Path, "/export"))
 			log.Println("subbed", needsSub, userDetails.Subscriber)
 			if needsSub && !userDetails.Subscriber {
 				api.RespondWithError(w, http.StatusPaymentRequired, "insufficient subscription")

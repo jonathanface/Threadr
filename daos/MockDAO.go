@@ -17,6 +17,7 @@ var (
 type MockDAO struct {
 	*DAO
 	MockGetUserDetails func(email string) (*models.UserInfo, error)
+	MockUpsertUser     func(email string) (*models.UserInfo, error)
 
 	// billing
 	MockGetSubscription    func(email string) (*models.Subscription, error)
@@ -59,6 +60,14 @@ var _ DaoInterface = (*MockDAO)(nil)
 func (m *MockDAO) GetUserDetails(email string) (*models.UserInfo, error) {
 	if m.MockGetUserDetails != nil {
 		return m.MockGetUserDetails(email)
+	}
+	// sensible default for tests:
+	return &models.UserInfo{Email: email}, nil
+}
+
+func (m *MockDAO) UpsertUser(email string) (*models.UserInfo, error) {
+	if m.MockUpsertUser != nil {
+		return m.MockUpsertUser(email)
 	}
 	// sensible default for tests:
 	return &models.UserInfo{Email: email}, nil

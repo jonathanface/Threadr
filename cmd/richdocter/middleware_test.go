@@ -289,9 +289,15 @@ func TestStrictMiddleware(t *testing.T) {
 		}
 	})
 
-	t.Run("non-subscribed user on POST /stories returns 402", func(t *testing.T) {
+	t.Run("non-subscribed user on POST /stories succeeds", func(t *testing.T) {
 		mockDAONoSub := daos.NewMockDAO()
 		mockDAONoSub.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+			return &models.UserInfo{
+				Email:      email,
+				Subscriber: false,
+			}, nil
+		}
+		mockDAONoSub.MockUpsertUser = func(email string) (*models.UserInfo, error) {
 			return &models.UserInfo{
 				Email:      email,
 				Subscriber: false,
@@ -307,17 +313,24 @@ func TestStrictMiddleware(t *testing.T) {
 
 		handler.ServeHTTP(w, req)
 
-		if w.Code != http.StatusPaymentRequired {
-			t.Errorf("expected status 402, got %d", w.Code)
+		// Free users can now create stories
+		if w.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %d", w.Code)
 		}
-		if handlerCalled {
-			t.Error("next handler should not be called for non-subscribed user on POST /stories")
+		if !handlerCalled {
+			t.Error("next handler should be called for non-subscribed user on POST /stories")
 		}
 	})
 
 	t.Run("non-subscribed user on PUT /export returns 402", func(t *testing.T) {
 		mockDAONoSub := daos.NewMockDAO()
 		mockDAONoSub.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+			return &models.UserInfo{
+				Email:      email,
+				Subscriber: false,
+			}, nil
+		}
+		mockDAONoSub.MockUpsertUser = func(email string) (*models.UserInfo, error) {
 			return &models.UserInfo{
 				Email:      email,
 				Subscriber: false,
@@ -344,6 +357,12 @@ func TestStrictMiddleware(t *testing.T) {
 	t.Run("non-subscribed user on GET request succeeds", func(t *testing.T) {
 		mockDAONoSub := daos.NewMockDAO()
 		mockDAONoSub.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+			return &models.UserInfo{
+				Email:      email,
+				Subscriber: false,
+			}, nil
+		}
+		mockDAONoSub.MockUpsertUser = func(email string) (*models.UserInfo, error) {
 			return &models.UserInfo{
 				Email:      email,
 				Subscriber: false,
