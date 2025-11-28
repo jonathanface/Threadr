@@ -48,6 +48,13 @@ export const DocumentExporter = () => {
       }
 
       try {
+        // Build author name from first and last name, fallback to email
+        const authorName = userDetails?.first_name
+          ? `${userDetails.first_name}${
+              userDetails.last_name ? ` ${userDetails.last_name}` : ""
+            }`
+          : userDetails?.email;
+
         const { data: json } = await api.put<{ url: string }>(
           `/stories/${story.story_id}/export`,
           {
@@ -55,6 +62,8 @@ export const DocumentExporter = () => {
             title: story.title,
             storyID: story.story_id,
             type,
+            author: authorName,
+            cover_image: story.image_url || undefined,
           },
           {
             headers: { "Content-Type": "application/json" },

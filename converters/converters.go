@@ -3,7 +3,10 @@ package converters
 import (
 	"RichDocter/models"
 	"context"
+	"fmt"
 	"html"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -70,6 +73,58 @@ func detab(s string, tabWidth int) string {
 
 func safeTimestamp() string {
 	return time.Now().UTC().Format("20060102T150405Z")
+}
+
+// DownloadCoverImage downloads an image from a URL to a temporary file
+func DownloadCoverImage(imageURL string) (string, error) {
+	// Create a GET request with a timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", imageURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to download image: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to download image: status %d", resp.StatusCode)
+	}
+
+	// Determine file extension from content type
+	ext := ".jpg"
+	contentType := resp.Header.Get("Content-Type")
+	switch contentType {
+	case "image/png":
+		ext = ".png"
+	case "image/jpeg", "image/jpg":
+		ext = ".jpg"
+	case "image/gif":
+		ext = ".gif"
+	case "image/webp":
+		ext = ".webp"
+	}
+
+	// Create temporary file
+	tmpFile, err := os.CreateTemp("", "cover_*"+ext)
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp file: %w", err)
+	}
+	defer tmpFile.Close()
+
+	// Copy image data to file
+	_, err = io.Copy(tmpFile, resp.Body)
+	if err != nil {
+		os.Remove(tmpFile.Name())
+		return "", fmt.Errorf("failed to write image: %w", err)
+	}
+
+	return tmpFile.Name(), nil
 }
 
 func HTMLToEPUB(export models.DocumentExportRequest) (string, error) {

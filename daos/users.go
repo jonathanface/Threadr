@@ -152,6 +152,17 @@ func (d *DAO) UpdateUser(user models.UserInfo) (err error) {
 		":t": &types.AttributeValueMemberN{Value: now},
 		":s": &types.AttributeValueMemberBOOL{Value: user.Subscriber},
 	}
+
+	// Optionally update first_name and last_name if provided
+	if user.FirstName != "" {
+		queryString += ", first_name=:fn"
+		attributes[":fn"] = &types.AttributeValueMemberS{Value: user.FirstName}
+	}
+	if user.LastName != "" {
+		queryString += ", last_name=:ln"
+		attributes[":ln"] = &types.AttributeValueMemberS{Value: user.LastName}
+	}
+
 	input := &dynamodb.UpdateItemInput{
 		TableName: aws.String("users" + GetTableSuffix()),
 		Key: map[string]types.AttributeValue{
