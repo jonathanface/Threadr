@@ -1,76 +1,114 @@
 .userMenu {
-  z-index: 100;
-  margin-left: -45px;
+  z-index: 1;
   display: flex;
   align-items: center;
+  position: relative;
 }
 
 .userMenu>a {
   font-size: 0.8rem;
-  color: #f0f0f0;
+  color: #1565c0;
   cursor: pointer;
-  border: 1px solid #f0f0f0;
+  border: 1px solid var(--border-light);
   border-radius: 15px;
   padding: 15px;
   position: relative;
-  background-color: #1b2828;
-  filter: drop-shadow(2px 2px 2px #1a1a1a);
+  background-color: #ffffff;
+  box-shadow: var(--shadow-dark);
   z-index: 10;
 }
 
 .userMenu>a:hover {
-  color: #fff;
-  background-color: #131c1c;
+  color: #1565c0;
+  background-color: #e3f2fd;
+}
+
+[data-theme="dark"] .userMenu>a {
+  color: #ffffff;
+  background-color: var(--bg-user-menu);
+}
+
+[data-theme="dark"] .userMenu>a:hover {
+  color: #ffffff;
+  background-color: var(--bg-user-menu-hover);
 }
 
 .menuContainer {
-  position: absolute;
+  position: relative;
   text-align: left;
-  z-index: 50;
+  z-index: 1;
 }
 
 .userMenu .menuContainer .icon {
   text-align: center;
-  border: 1px solid #fff;
+  border: 1px solid var(--border-light);
   border-radius: 50%;
-  width: 35.5px;
-  height: 32.5px;
-  display: inline-block;
-  color: #FFF;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1a1a1a;
+  background-color: var(--bg-user-menu-dropdown);
+  cursor: pointer;
+}
+
+.userMenu .menuContainer .icon:hover {
+  background-color: var(--bg-user-menu-hover);
+}
+
+[data-theme="light"] .userMenu .menuContainer .icon {
+  background-color: #ffffff;
+  color: #1565c0;
+  border-color: #90caf9;
+}
+
+[data-theme="light"] .userMenu .menuContainer .icon:hover {
+  background-color: #e3f2fd;
 }
 
 .userMenu .menuContainer .icon button {
-  background-color: #515d57;
-  color: #000;
+  background-color: transparent;
+  color: inherit;
 }
 
 .userMenu .menuContainer ul {
-  text-align: center;
+  text-align: left;
   list-style: none;
-  color: #fff;
-  border-top: 1px solid #333;
-  border-left: 1px solid #333;
-  border-right: 1px solid #333;
-  font-size: 0.8rem;
-  padding: 0;
+  color: var(--text-primary);
+  border: 1px solid var(--border-medium);
+  font-size: 0.875rem;
+  padding: 10px 0 8px 0;
   margin: 0;
   position: absolute;
-  top: 35px;
+  top: 100%;
+  right: 0;
   z-index: 150;
-  margin-left: -75px;
-  background: #515d57;
+  background: var(--bg-user-menu-dropdown);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  min-width: 140px;
+  overflow: hidden;
 }
 
 .userMenu .menuContainer ul li {
-  border-bottom: 1px solid #333;
-  width: 100px;
-  background-color: #515d57;
+  width: 100%;
+  background-color: transparent;
   cursor: pointer;
   position: relative;
-  padding: 5px;
+  padding: 10px 20px;
   margin: 0;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  font-weight: 500;
 }
 
 .userMenu .menuContainer ul li:hover {
-  background-color: #493123;
+  background-color: var(--bg-user-menu-item-hover);
+  color: var(--text-primary);
+  padding-left: 24px;
+}
+
+.userMenu .menuContainer ul li:last-child {
+  border-radius: 0 0 8px 8px;
 }

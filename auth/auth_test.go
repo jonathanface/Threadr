@@ -14,8 +14,8 @@ import (
 	"testing"
 
 	"github.com/gorilla/mux"
-	"github.com/markbates/goth"
 	gsessions "github.com/gorilla/sessions"
+	"github.com/markbates/goth"
 )
 
 func init() {
@@ -30,54 +30,75 @@ func setupTestSession() {
 	sessions.Store = gsessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))
 }
 
-// Tests for determineName
-func TestDetermineName_WithFirstName(t *testing.T) {
+// Tests for determineFirstName
+func TestDetermineFirstName_WithFirstName(t *testing.T) {
 	user := goth.User{
 		FirstName: "John",
-		Name:      "John Doe",
 		NickName:  "johnny",
 	}
 
-	result := determineName(user)
+	result := determineFirstName(user)
 	if result != "John" {
 		t.Errorf("Expected 'John', got '%s'", result)
 	}
 }
 
-func TestDetermineName_WithNameOnly(t *testing.T) {
+func TestDetermineFirstName_WithNickNameOnly(t *testing.T) {
 	user := goth.User{
 		FirstName: "",
-		Name:      "Jane Doe",
-		NickName:  "janey",
+		NickName:  "johnny",
 	}
 
-	result := determineName(user)
+	result := determineFirstName(user)
+	if result != "johnny" {
+		t.Errorf("Expected 'johnny', got '%s'", result)
+	}
+}
+
+func TestDetermineFirstName_AllEmpty(t *testing.T) {
+	user := goth.User{
+		FirstName: "",
+		NickName:  "",
+	}
+
+	result := determineFirstName(user)
+	if result != "Unknown" {
+		t.Errorf("Expected 'Unknown', got '%s'", result)
+	}
+}
+
+// Tests for determineLastName
+func TestDetermineLastName_WithLastName(t *testing.T) {
+	user := goth.User{
+		LastName: "Doe",
+		Name:     "John Doe",
+	}
+
+	result := determineLastName(user)
+	if result != "Doe" {
+		t.Errorf("Expected 'Doe', got '%s'", result)
+	}
+}
+
+func TestDetermineLastName_WithNameOnly(t *testing.T) {
+	user := goth.User{
+		LastName: "",
+		Name:     "Jane Doe",
+	}
+
+	result := determineLastName(user)
 	if result != "Jane Doe" {
 		t.Errorf("Expected 'Jane Doe', got '%s'", result)
 	}
 }
 
-func TestDetermineName_WithNickNameOnly(t *testing.T) {
+func TestDetermineLastName_AllEmpty(t *testing.T) {
 	user := goth.User{
-		FirstName: "",
-		Name:      "",
-		NickName:  "cooluser",
+		LastName: "",
+		Name:     "",
 	}
 
-	result := determineName(user)
-	if result != "cooluser" {
-		t.Errorf("Expected 'cooluser', got '%s'", result)
-	}
-}
-
-func TestDetermineName_AllEmpty(t *testing.T) {
-	user := goth.User{
-		FirstName: "",
-		Name:      "",
-		NickName:  "",
-	}
-
-	result := determineName(user)
+	result := determineLastName(user)
 	if result != "Stranger" {
 		t.Errorf("Expected 'Stranger', got '%s'", result)
 	}

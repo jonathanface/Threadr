@@ -291,3 +291,112 @@ func TestHTMLToPDF_Smoke(t *testing.T) {
 	}
 	_ = os.Remove(outPath)
 }
+
+// --- Tests for URL validation ------------------------------------------------
+
+func TestValidateImageURL_ValidHTTPSURL(t *testing.T) {
+	// Valid public URL should pass
+	result, err := ValidateImageURL("https://example.com/image.jpg")
+	if err != nil {
+		t.Errorf("Expected valid HTTPS URL to pass, got error: %v", err)
+	}
+	if result != "https://example.com/image.jpg" {
+		t.Errorf("Expected URL to be returned unchanged, got: %s", result)
+	}
+}
+
+func TestValidateImageURL_ValidHTTPURL(t *testing.T) {
+	// Valid HTTP URL should pass
+	result, err := ValidateImageURL("http://example.com/image.png")
+	if err != nil {
+		t.Errorf("Expected valid HTTP URL to pass, got error: %v", err)
+	}
+	if result != "http://example.com/image.png" {
+		t.Errorf("Expected URL to be returned unchanged, got: %s", result)
+	}
+}
+
+func TestValidateImageURL_InvalidScheme(t *testing.T) {
+	tests := []string{
+		"file:///etc/passwd",
+		"ftp://example.com/file",
+		"javascript:alert(1)",
+		"data:image/png;base64,iVBORw0KG",
+	}
+
+	for _, url := range tests {
+		_, err := ValidateImageURL(url)
+		if err == nil {
+			t.Errorf("Expected URL with invalid scheme to fail: %s", url)
+		}
+		if !strings.Contains(err.Error(), "invalid URL scheme") {
+			t.Errorf("Expected 'invalid URL scheme' error, got: %v", err)
+		}
+	}
+}
+
+func TestValidateImageURL_Localhost(t *testing.T) {
+	tests := []string{
+		"http://localhost/image.jpg",
+		"http://127.0.0.1/image.jpg",
+		"http://127.0.0.2/image.jpg",
+		"http://[::1]/image.jpg",
+	}
+
+	for _, url := range tests {
+		_, err := ValidateImageURL(url)
+		if err == nil {
+			t.Errorf("Expected localhost URL to fail: %s", url)
+		}
+		if !strings.Contains(err.Error(), "loopback") {
+			t.Errorf("Expected 'loopback' error for %s, got: %v", url, err)
+		}
+	}
+}
+
+func TestValidateImageURL_PrivateIP(t *testing.T) {
+	tests := []string{
+		"http://10.0.0.1/image.jpg",
+		"http://172.16.0.1/image.jpg",
+		"http://192.168.1.1/image.jpg",
+	}
+
+	for _, url := range tests {
+		_, err := ValidateImageURL(url)
+		if err == nil {
+			t.Errorf("Expected private IP URL to fail: %s", url)
+		}
+		if !strings.Contains(err.Error(), "private IP") {
+			t.Errorf("Expected 'private IP' error for %s, got: %v", url, err)
+		}
+	}
+}
+
+func TestValidateImageURL_MissingHostname(t *testing.T) {
+	_, err := ValidateImageURL("http:///path/to/image.jpg")
+	if err == nil {
+		t.Errorf("Expected URL without hostname to fail")
+	}
+	if !strings.Contains(err.Error(), "missing hostname") {
+		t.Errorf("Expected 'missing hostname' error, got: %v", err)
+	}
+}
+
+func TestValidateImageURL_InvalidURL(t *testing.T) {
+	_, err := ValidateImageURL("not a url at all")
+	if err == nil {
+		t.Errorf("Expected invalid URL to fail")
+	}
+}
+
+func TestDownloadCoverImage_InvalidURL(t *testing.T) {
+	// DownloadCoverImage should fail when trying to connect to a non-existent server
+	// (validation happens at API level, this just tests network errors are handled)
+	_, err := DownloadCoverImage("http://192.0.2.1/image.jpg") // TEST-NET-1 (non-routable)
+	if err == nil {
+		t.Errorf("Expected download from non-routable IP to fail")
+	}
+	if !strings.Contains(err.Error(), "failed to download image") {
+		t.Errorf("Expected 'failed to download image' error, got: %v", err)
+	}
+}

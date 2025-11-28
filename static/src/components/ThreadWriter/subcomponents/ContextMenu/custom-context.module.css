@@ -7,29 +7,29 @@
 }
 
 .customContext a {
-  color: #333;
+  color: var(--text-primary);
   text-decoration: none;
   cursor: pointer;
 }
 
 .customContext a:hover {
-  color: #f0f0f0;
+  color: var(--primary);
 }
 
 .customContext .menu,
 .customContext .submenu {
   list-style-type: none;
   padding: 0;
-  box-shadow: 0 2px 12px 0 #0000001a;
+  box-shadow: var(--shadow-dark);
 }
 
 .customContext .menuItem {
   padding: 8px;
   position: relative;
-  border-left: 0.5px solid #333;
-  border-right: 0.5px solid #333;
-  background-color: #fff;
-  color: #333;
+  border-left: 0.5px solid var(--border-medium);
+  border-right: 0.5px solid var(--border-medium);
+  background-color: var(--bg-toolbar);
+  color: var(--text-primary);
   margin-bottom: 0px;
 }
 
@@ -39,31 +39,31 @@
 }
 
 .customContext .menuItem:first-child {
-  border-top: 0.5px solid #333;
+  border-top: 0.5px solid var(--border-medium);
   border-top-left-radius: 5px;
   border-top-right-radius: 5px;
 }
 
 .customContext .menuItem:last-child {
-  border-bottom: 0.5px solid #333;
+  border-bottom: 0.5px solid var(--border-medium);
   border-bottom-left-radius: 5px;
   border-bottom-right-radius: 5px;
 }
 
 .customContext .menuItem:hover {
-  color: #f0f0f0;
-  background-color: #515d57;
+  color: var(--text-primary);
+  background-color: var(--bg-card-hover);
 }
 
 .menuItem.has-submenu>.submenu .menuItem {
-  color: #333;
+  color: var(--text-primary);
   /* Reset background for sub-menu items */
-  background-color: #fff;
+  background-color: var(--bg-toolbar);
 }
 
 .menuItem.has-submenu>.submenu .menuItem:hover {
-  background-color: #515d57;
-  color: #f0f0f0;
+  background-color: var(--bg-card-hover);
+  color: var(--text-primary);
 }
 
 .customContext .menuItem.has-submenu:last-child:hover {
@@ -101,7 +101,7 @@
   }
 
   .customContext .submenu .menuItem:first-child {
-    border-left: 0.5px solid #333;
+    border-left: 0.5px solid var(--border-medium);
     border-top-left-radius: 5px;
   }
 }

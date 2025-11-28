@@ -1,0 +1,55 @@
+.themeToggle {
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+}
+
+.toggleButton {
+  position: relative;
+  z-index: 1;
+}
+
+/* Animated ripple effect when toggling */
+.themeToggle.animating::before {
+  content: '';
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+  transform: translate(-50%, -50%);
+  animation: rippleExpand 0.6s ease-out forwards;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+@keyframes rippleExpand {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 1;
+  }
+  100% {
+    width: 300vmax;
+    height: 300vmax;
+    opacity: 0;
+  }
+}
+
+/* Add smooth transitions to all themed elements */
+:global(*) {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Prevent transition on initial load */
+:global(body.no-transition *) {
+  transition: none !important;
+}

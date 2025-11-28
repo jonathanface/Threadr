@@ -1,6 +1,6 @@
 .sideMenu {
-    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
-    border: 2px solid #333;
+    box-shadow: var(--shadow-dark);
+    border: 2px solid var(--border-medium);
     border-radius: 5px;
     padding: 5px;
     position: fixed;
@@ -11,6 +11,7 @@
     align-items: center;
     min-height: 200px;
     box-sizing: border-box;
+    background-color: var(--bg-toolbar);
 }
 
 .flyoutMenu {

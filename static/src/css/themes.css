@@ -1,0 +1,121 @@
+/* Theme System - Dark Mode (Default) */
+:root {
+  /* Brand Colors */
+  --primary: #007AFF;
+  --primary-hover: #0051D5;
+  --primary-light: #E5F1FF;
+  --success: #34C759;
+  --warning: #FF9500;
+  --danger: #FF3B30;
+
+  /* Background Colors - Dark Theme */
+  --bg-body: linear-gradient(135deg, #1a1f2e 0%, #2c3e50 100%);
+  --bg-body-solid: #1a1f2e;
+  --bg-header: linear-gradient(135deg, #1a1f2e 0%, #2c3e50 100%);
+  --bg-footer: linear-gradient(135deg, #1a1f2e 0%, #2c3e50 100%);
+  --bg-toolbar: #374151;
+  --bg-hero: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+  --bg-card: rgba(255, 255, 255, 0.05);
+  --bg-card-hover: rgba(255, 255, 255, 0.08);
+  --bg-modal-light: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  --bg-splash-blurb: #d4dce5;
+  --bg-editor: #2a2e3a;
+  --bg-editor-blockquote: #3a3e4a;
+  --bg-secondary-light: #F8F9FA;
+  --bg-user-menu: #2d3748;
+  --bg-user-menu-hover: #4a5568;
+  --bg-user-menu-dropdown: #515d57;
+  --bg-user-menu-item-hover: #493123;
+
+  /* Surface Colors */
+  --surface-primary: #FFFFFF;
+  --surface-secondary: #F8F9FA;
+  --surface-tertiary: #F2F4F7;
+
+  /* Text Colors - Dark Theme */
+  --text-primary: #f5f7fa;
+  --text-secondary: #d0d0d0;
+  --text-tertiary: #9CA3AF;
+  --text-on-light: #1A1A1A;
+  --text-primary-light: #1A1A1A;
+  --text-tertiary-light: #888888;
+
+  /* Border Colors */
+  --border-light: rgba(255, 255, 255, 0.1);
+  --border-medium: rgba(255, 255, 255, 0.2);
+  --border-dark: #333;
+
+  /* Shadow System */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-dark: 0 4px 8px rgba(0, 0, 0, 0.3);
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  /* Spacing Scale */
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+}
+
+/* Light Mode Theme */
+[data-theme="light"] {
+  /* Background Colors - Light Theme */
+  --bg-body: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  --bg-body-solid: #e3f2fd;
+  --bg-header: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  --bg-footer: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  --bg-toolbar: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%);
+  --bg-hero: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%);
+  --bg-card: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+  --bg-card-hover: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  --bg-modal-light: linear-gradient(135deg, #ffffff 0%, #f5faff 100%);
+  --bg-splash-blurb: linear-gradient(135deg, #ffffff 0%, #e8f4ff 100%);
+  --bg-editor: #ffffff;
+  --bg-editor-blockquote: #e3f2fd;
+  --bg-secondary-light: #e3f2fd;
+  --bg-user-menu: #42a5f5;
+  --bg-user-menu-hover: #1e88e5;
+  --bg-user-menu-dropdown: #ffffff;
+  --bg-user-menu-item-hover: #e3f2fd;
+
+  /* Text Colors - Light Theme */
+  --text-primary: #1565c0;
+  --text-secondary: #1976d2;
+  --text-tertiary: #42a5f5;
+  --text-on-light: #1565c0;
+  --text-primary-light: #1565c0;
+  --text-tertiary-light: #42a5f5;
+
+  /* Border Colors - Light Theme */
+  --border-light: #90caf9;
+  --border-medium: #64b5f6;
+  --border-dark: #42a5f5;
+
+  /* Shadow System - Light Theme */
+  --shadow-sm: 0 1px 2px 0 rgba(25, 118, 210, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(25, 118, 210, 0.15), 0 2px 4px -1px rgba(25, 118, 210, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(25, 118, 210, 0.2), 0 4px 6px -2px rgba(25, 118, 210, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(25, 118, 210, 0.2), 0 10px 10px -5px rgba(25, 118, 210, 0.1);
+  --shadow-dark: 0 4px 8px rgba(25, 118, 210, 0.25);
+  --shadow-card: 0 4px 6px -1px rgba(25, 118, 210, 0.15), 0 2px 4px -1px rgba(25, 118, 210, 0.1);
+}
+
+/* Theme Toggle Class (can be applied to body or root element) */
+.dark-theme {
+  color-scheme: dark;
+}
+
+.light-theme {
+  color-scheme: light;
+}

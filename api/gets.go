@@ -601,5 +601,7 @@ func GetUserData(w http.ResponseWriter, r *http.Request) {
 	}
 	user.Admin = details.Admin
 	user.Subscriber = details.Subscriber
+	user.FirstName = details.FirstName
+	user.LastName = details.LastName
 	RespondWithJson(w, http.StatusOK, user)
 }

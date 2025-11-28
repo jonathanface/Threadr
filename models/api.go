@@ -111,6 +111,7 @@ type Series struct {
 type UserInfo struct {
 	Email          string `json:"email" dynamodbav:"email"`
 	FirstName      string `json:"first_name" dynamodbav:"first_name"`
+	LastName       string `json:"last_name" dynamodbav:"last_name"`
 	Admin          bool   `json:"admin" dynamodbav:"admin"`
 	AuthType       string `json:"auth_type"`
 	Subscriber     bool   `json:"subscriber" dynamodbav:"subscriber"`

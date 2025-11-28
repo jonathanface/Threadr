@@ -52,10 +52,10 @@ export default class Exporter {
       const chapterBlocks = chapter.blocks?.items.map(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (paragraph: { chunk: any; key_id: any }) => {
-          const fixed: CustomSerializedParagraphNode = paragraph.chunk.Value
+          const fixed: CustomSerializedParagraphNode = paragraph.chunk?.Value
             ? JSON.parse(paragraph.chunk.Value)
             : this.generateBlankLine(); // Use blank line if missing
-          fixed.key_id = paragraph.key_id.Value;
+          fixed.key_id = paragraph.key_id?.Value || uuidv4();
 
           if (fixed.type !== CustomParagraphNode.getType()) {
             fixed.type = CustomParagraphNode.getType();

@@ -39,13 +39,21 @@ func CallbackHandler(options OauthOptions) http.HandlerFunc {
 	}
 }
 
-func determineName(info goth.User) string {
+func determineFirstName(info goth.User) string {
 	name := info.FirstName
 	if name == "" {
-		name = info.Name
+		name = info.NickName
 	}
 	if name == "" {
-		name = info.NickName
+		name = "Unknown"
+	}
+	return name
+}
+
+func determineLastName(info goth.User) string {
+	name := info.LastName
+	if name == "" {
+		name = info.Name
 	}
 	if name == "" {
 		name = "Stranger"
@@ -104,7 +112,8 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	info := models.UserInfo{
 		AuthType:  mux.Vars(r)["provider"],
 		Email:     user.Email,
-		FirstName: determineName(user),
+		FirstName: determineFirstName(user),
+		LastName:  determineLastName(user),
 	}
 
 	dao, ok := r.Context().Value(ctxkey.DAO).(daos.DaoInterface)
@@ -127,6 +136,20 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 			logger.Error("Failed to retrieve user details", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
 			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
+		}
+	}
+
+	// Update user's name information from OAuth provider
+	if info.FirstName != "" || info.LastName != "" {
+		updateInfo := models.UserInfo{
+			Email:      info.Email,
+			FirstName:  info.FirstName,
+			LastName:   info.LastName,
+			Subscriber: userDetails.Subscriber,
+		}
+		if err := dao.UpdateUser(updateInfo); err != nil {
+			logger.Warn("Failed to update user name information", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
+			// Continue even if name update fails - not critical
 		}
 	}
 

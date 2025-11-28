@@ -56,8 +56,19 @@ export const UserMenu = () => {
       onMouseLeave={() => setIsOpen(false)}
     >
       <span className={styles.icon}>
-        <IconButton size="small" sx={{ zIndex: 99 }} aria-label="user menu">
-          <Person4Icon fontSize="small" />
+        <IconButton
+          size="small"
+          sx={{
+            zIndex: 99,
+            padding: 0,
+            color: "#1a1a1a",
+            "&:hover": {
+              backgroundColor: "transparent",
+            },
+          }}
+          aria-label="user menu"
+        >
+          <Person4Icon sx={{ fontSize: 18 }} />
         </IconButton>
       </span>
       {isOpen && (
