@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -75,8 +77,64 @@ func safeTimestamp() string {
 	return time.Now().UTC().Format("20060102T150405Z")
 }
 
+// validateImageURL checks if a URL is safe to fetch (prevents SSRF attacks)
+func validateImageURL(imageURL string) error {
+	// Parse the URL
+	parsedURL, err := url.Parse(imageURL)
+	if err != nil {
+		return fmt.Errorf("invalid URL: %w", err)
+	}
+
+	// Only allow HTTP and HTTPS schemes
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return fmt.Errorf("invalid URL scheme: only http and https are allowed")
+	}
+
+	// Extract hostname
+	hostname := parsedURL.Hostname()
+	if hostname == "" {
+		return fmt.Errorf("invalid URL: missing hostname")
+	}
+
+	// Resolve hostname to IP addresses
+	ips, err := net.LookupIP(hostname)
+	if err != nil {
+		return fmt.Errorf("failed to resolve hostname: %w", err)
+	}
+
+	// Check each resolved IP address
+	for _, ip := range ips {
+		// Block loopback addresses (127.0.0.0/8, ::1)
+		if ip.IsLoopback() {
+			return fmt.Errorf("access to loopback addresses is not allowed")
+		}
+
+		// Block private IP ranges (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fc00::/7)
+		if ip.IsPrivate() {
+			return fmt.Errorf("access to private IP addresses is not allowed")
+		}
+
+		// Block link-local addresses (169.254.0.0/16, fe80::/10)
+		if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+			return fmt.Errorf("access to link-local addresses is not allowed")
+		}
+
+		// Block multicast addresses
+		if ip.IsMulticast() {
+			return fmt.Errorf("access to multicast addresses is not allowed")
+		}
+	}
+
+	return nil
+}
+
 // DownloadCoverImage downloads an image from a URL to a temporary file
 func DownloadCoverImage(imageURL string) (string, error) {
+	// Validate the URL to prevent SSRF attacks
+	if err := validateImageURL(imageURL); err != nil {
+		return "", fmt.Errorf("invalid image URL: %w", err)
+	}
+
 	// Create a GET request with a timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -96,9 +154,9 @@ func DownloadCoverImage(imageURL string) (string, error) {
 		return "", fmt.Errorf("failed to download image: status %d", resp.StatusCode)
 	}
 
-	// Determine file extension from content type
-	ext := ".jpg"
+	// Validate content type is an image
 	contentType := resp.Header.Get("Content-Type")
+	var ext string
 	switch contentType {
 	case "image/png":
 		ext = ".png"
@@ -108,6 +166,8 @@ func DownloadCoverImage(imageURL string) (string, error) {
 		ext = ".gif"
 	case "image/webp":
 		ext = ".webp"
+	default:
+		return "", fmt.Errorf("invalid content type: expected image, got %s", contentType)
 	}
 
 	// Create temporary file
@@ -117,11 +177,21 @@ func DownloadCoverImage(imageURL string) (string, error) {
 	}
 	defer tmpFile.Close()
 
+	// Limit file size to 10MB to prevent abuse
+	maxSize := int64(10 * 1024 * 1024) // 10MB
+	limitedReader := io.LimitReader(resp.Body, maxSize+1)
+
 	// Copy image data to file
-	_, err = io.Copy(tmpFile, resp.Body)
+	written, err := io.Copy(tmpFile, limitedReader)
 	if err != nil {
 		os.Remove(tmpFile.Name())
 		return "", fmt.Errorf("failed to write image: %w", err)
+	}
+
+	// Check if file exceeded size limit
+	if written > maxSize {
+		os.Remove(tmpFile.Name())
+		return "", fmt.Errorf("image file too large: maximum 10MB allowed")
 	}
 
 	return tmpFile.Name(), nil
