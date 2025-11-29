@@ -4,12 +4,23 @@
   justify-content: space-between;
   text-align: left;
   width: 100%;
+  color: var(--text-primary);
+}
+
+/* Light mode */
+:global([data-theme="light"]) .chapterMenuItem {
+  color: var(--text-primary-light);
 }
 
 .activeChapter {
   border: 1px dashed var(--primary);
   border-radius: 5px;
   background-color: var(--bg-card);
+}
+
+/* Light mode - active chapter */
+:global([data-theme="light"]) .activeChapter {
+  background-color: rgba(0, 122, 255, 0.1);
 }
 
 .leftItems {

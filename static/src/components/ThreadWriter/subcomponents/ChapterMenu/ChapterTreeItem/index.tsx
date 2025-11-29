@@ -37,14 +37,34 @@ const quantizedHue = (key: string, buckets = 12) =>
 const makeColors = (key: string) => {
   const h = quantizedHue(key, 12);
   const supportsOKLCH = CSS.supports?.("color", "oklch(0.8 0.12 0)");
+
+  // Check if light mode (default is dark mode)
+  const isLightMode = document.documentElement.getAttribute('data-theme') === 'light';
+
   if (supportsOKLCH) {
-    const base = `oklch(0.62 0.11 ${h})`; // saturated for text/border
-    const bg = `oklch(0.90 0.06 ${h})`; // softer fill (but not washed out)
-    return { bg, fg: base, border: base };
+    if (isLightMode) {
+      // Light mode: original colors
+      const base = `oklch(0.62 0.11 ${h})`; // saturated for text/border
+      const bg = `oklch(0.90 0.06 ${h})`; // softer fill
+      return { bg, fg: base, border: base };
+    } else {
+      // Dark mode: darker background, lighter text
+      const base = `oklch(0.75 0.15 ${h})`; // lighter, more saturated text
+      const bg = `oklch(0.35 0.08 ${h})`; // darker background
+      return { bg, fg: base, border: base };
+    }
   } else {
-    const base = `hsl(${h} 85% 35%)`;
-    const bg = `hsl(${h} 80% 88%)`; // darker than 92% so it pops
-    return { bg, fg: base, border: base };
+    if (isLightMode) {
+      // Light mode: original colors
+      const base = `hsl(${h} 85% 35%)`;
+      const bg = `hsl(${h} 80% 88%)`;
+      return { bg, fg: base, border: base };
+    } else {
+      // Dark mode: darker background, lighter text
+      const base = `hsl(${h} 90% 70%)`;
+      const bg = `hsl(${h} 60% 25%)`;
+      return { bg, fg: base, border: base };
+    }
   }
 };
 

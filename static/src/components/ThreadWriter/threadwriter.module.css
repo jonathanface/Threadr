@@ -153,6 +153,6 @@ li {
 
   .editorInput {
     padding: 10px;
-    min-height: 200px;
+    min-height: calc(100vh - 150px);
   }
 }

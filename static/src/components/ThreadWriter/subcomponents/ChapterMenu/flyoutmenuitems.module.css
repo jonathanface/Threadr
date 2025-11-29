@@ -9,5 +9,10 @@
 }
 
 .activeChapter {
+    background-color: var(--bg-card);
+}
+
+/* Light mode - active chapter */
+:global([data-theme="light"]) .activeChapter {
     background-color: #f4f4f4;
 }

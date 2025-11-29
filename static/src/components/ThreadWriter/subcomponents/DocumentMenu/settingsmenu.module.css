@@ -14,8 +14,200 @@
     background-color: var(--bg-toolbar);
 }
 
+/* Dark mode - icon colors */
+.sideMenu :global(.MuiIconButton-root) {
+    color: var(--text-primary);
+}
+
+/* Light mode - icon colors */
+:global([data-theme="light"]) .sideMenu :global(.MuiIconButton-root) {
+    color: var(--text-primary-light);
+}
+
 .flyoutMenu {
     width: 400px;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    padding: 20px;
+}
+
+/* Light mode - flyout menu */
+:global([data-theme="light"]) .flyoutMenu {
+    background-color: #ffffff;
+    color: var(--text-primary-light);
+}
+
+/* Dark mode - MUI components in flyout */
+.flyoutMenu :global(.MuiTypography-root) {
+    color: var(--text-primary);
+}
+
+.flyoutMenu :global(.MuiTreeItem-label) {
+    color: var(--text-primary);
+}
+
+.flyoutMenu :global(.MuiTreeItem-content) {
+    color: var(--text-primary);
+}
+
+.flyoutMenu :global(.MuiIconButton-root) {
+    color: var(--text-primary);
+}
+
+.flyoutMenu :global(.MuiButton-root) {
+    color: var(--text-primary);
+}
+
+.flyoutMenu :global(.MuiBox-root) {
+    background-color: transparent;
+}
+
+.flyoutMenu :global(.MuiStack-root) {
+    background-color: transparent;
+}
+
+.flyoutMenu :global(.MuiDivider-root) {
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.flyoutMenu :global(.MuiChip-root) {
+    color: var(--text-primary);
+}
+
+.flyoutMenu :global(.MuiCollapse-root) {
+    background-color: transparent;
+}
+
+.flyoutMenu :global(.MuiCard-root) {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary);
+}
+
+.flyoutMenu :global(.MuiCardHeader-root) {
+    background-color: transparent;
+}
+
+.flyoutMenu :global(.MuiCardContent-root) {
+    background-color: transparent;
+    color: var(--text-primary);
+}
+
+.flyoutMenu :global(.MuiTextField-root) {
+    background-color: transparent;
+}
+
+.flyoutMenu :global(.MuiInputBase-root) {
+    color: var(--text-primary);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.flyoutMenu :global(.MuiInputBase-input) {
+    color: var(--text-primary);
+}
+
+.flyoutMenu :global(.MuiOutlinedInput-notchedOutline) {
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.flyoutMenu :global(.MuiMenu-paper) {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.flyoutMenu :global(.MuiMenuItem-root) {
+    color: var(--text-primary);
+}
+
+/* Light mode - MUI components */
+:global([data-theme="light"]) .flyoutMenu :global(.MuiTypography-root),
+:global([data-theme="light"]) .flyoutMenu :global(.MuiTreeItem-label),
+:global([data-theme="light"]) .flyoutMenu :global(.MuiTreeItem-content),
+:global([data-theme="light"]) .flyoutMenu :global(.MuiIconButton-root),
+:global([data-theme="light"]) .flyoutMenu :global(.MuiButton-root),
+:global([data-theme="light"]) .flyoutMenu :global(.MuiChip-root),
+:global([data-theme="light"]) .flyoutMenu :global(.MuiInputBase-root),
+:global([data-theme="light"]) .flyoutMenu :global(.MuiInputBase-input),
+:global([data-theme="light"]) .flyoutMenu :global(.MuiMenuItem-root) {
+    color: var(--text-primary-light);
+}
+
+:global([data-theme="light"]) .flyoutMenu :global(.MuiDivider-root) {
+    background-color: rgba(0, 0, 0, 0.12);
+}
+
+:global([data-theme="light"]) .flyoutMenu :global(.MuiCard-root) {
+    background-color: #ffffff !important;
+}
+
+:global([data-theme="light"]) .flyoutMenu :global(.MuiCardContent-root) {
+    color: var(--text-primary-light);
+}
+
+:global([data-theme="light"]) .flyoutMenu :global(.MuiInputBase-root) {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+:global([data-theme="light"]) .flyoutMenu :global(.MuiOutlinedInput-notchedOutline) {
+    border-color: rgba(0, 0, 0, 0.23);
+}
+
+:global([data-theme="light"]) .flyoutMenu :global(.MuiMenu-paper) {
+    background-color: #ffffff;
+    color: var(--text-primary-light);
+}
+
+/* Settings Dialog dark mode */
+:global(.MuiDialog-paper) {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+:global([data-theme="light"]) :global(.MuiDialog-paper) {
+    background-color: #ffffff;
+    color: var(--text-primary-light);
+}
+
+:global(.MuiDialogTitle-root) {
+    color: var(--text-primary);
+}
+
+:global([data-theme="light"]) :global(.MuiDialogTitle-root) {
+    color: var(--text-primary-light);
+}
+
+:global(.MuiDialogContent-root) {
+    color: var(--text-primary);
+}
+
+:global([data-theme="light"]) :global(.MuiDialogContent-root) {
+    color: var(--text-primary-light);
+}
+
+:global(.MuiListItemText-root) {
+    color: var(--text-primary);
+}
+
+:global([data-theme="light"]) :global(.MuiListItemText-root) {
+    color: var(--text-primary-light);
+}
+
+:global(.MuiCheckbox-root) {
+    color: var(--text-primary);
+}
+
+:global([data-theme="light"]) :global(.MuiCheckbox-root) {
+    color: var(--text-primary-light);
+}
+
+/* MUI Drawer background for dark mode */
+:global(.MuiDrawer-paper) {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+:global([data-theme="light"]) :global(.MuiDrawer-paper) {
+    background-color: #ffffff;
+    color: var(--text-primary-light);
 }
 
 @media only screen and (max-width: 600px) {

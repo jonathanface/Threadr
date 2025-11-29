@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Autocomplete, TextField, Chip, Box, Typography } from "@mui/material";
 import { Series } from "../../../types/Series";
 
@@ -18,6 +18,27 @@ export const StorySeriesSelector: React.FC<StorySeriesSelectorProps> = ({
   selectedSeries,
   onSeriesChange,
 }) => {
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
+
+  useEffect(() => {
+    // Get initial theme
+    const currentTheme = document.documentElement.getAttribute('data-theme') as "light" | "dark" || "dark";
+    setTheme(currentTheme);
+
+    // Watch for theme changes
+    const observer = new MutationObserver(() => {
+      const newTheme = document.documentElement.getAttribute('data-theme') as "light" | "dark" || "dark";
+      setTheme(newTheme);
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   const availableSeries: AvailableSeries[] = seriesList.map((series) => ({
     series_id: series.series_id,
     series_name: series.series_title,
@@ -52,6 +73,24 @@ export const StorySeriesSelector: React.FC<StorySeriesSelectorProps> = ({
         value={selectedSeries}
         onInputChange={handleInputChange}
         onChange={(_event, newValue) => onSeriesChange(newValue)}
+        slotProps={{
+          paper: {
+            sx: {
+              background: theme === 'light'
+                ? 'linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%)'
+                : '#2d3748',
+              '& .MuiPaper-root': {
+                transitionProperty: 'none !important',
+              },
+            },
+          },
+        }}
+        componentsProps={{
+          popper: {
+            disablePortal: false,
+            placement: 'bottom-start',
+          },
+        }}
         renderInput={(params) => (
           <TextField
             {...params}

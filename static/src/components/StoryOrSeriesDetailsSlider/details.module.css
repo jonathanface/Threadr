@@ -1,11 +1,11 @@
 .detailsSlider {
     filter: none;
     border-radius: 10px;
-    border: 1px solid #000;
+    border: 1px solid var(--border-light);
     top: 100%;
     position: absolute;
     transition: all 0.2s ease-in-out;
-    background: #1e1e20;
+    background: var(--bg-primary);
     height: 150px;
     width: 100%;
     z-index: 30;
@@ -21,6 +21,12 @@
     pointer-events: none;
 }
 
+/* Light mode override */
+:global([data-theme="light"]) .detailsSlider {
+    background: linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%);
+    border: 1px solid var(--border-medium);
+}
+
 .detailsSlider .detailsTitle {
     display: flex;
     justify-content: space-between;
@@ -29,7 +35,7 @@
 
 .detailsSlider .detailsDescription {
     font-size: 0.7rem;
-    color: #e0e0e0;
+    color: var(--text-secondary);
 }
 
 .detailsSlider .detailsTitle h4 {
@@ -38,7 +44,7 @@
     white-space: nowrap;
     text-overflow: ellipsis;
     margin: 0px;
-    color: #ffffff;
+    color: var(--text-primary);
 }
 
 .detailsSlider .seriesListing>div {
@@ -51,11 +57,31 @@
     margin-top: 10px;
 }
 
+.detailsSlider .separator {
+    border: none;
+    border-top: 1px solid var(--border-medium);
+    margin: 8px 0;
+    opacity: 0.8;
+}
+
+:global([data-theme="light"]) .detailsSlider .separator {
+    border-top: 1px solid var(--border-light);
+    opacity: 0.5;
+}
+
+.detailsSlider .storiesLabel {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
 .detailsSlider .seriesListing ul {
     line-height: 1.25rem;
     margin: 0;
     padding-left: 20px;
-    color: #e0e0e0;
+    color: var(--text-secondary);
 }
 
 .detailsSlider .seriesListing li {
@@ -97,6 +123,14 @@
     /* Optional: add padding or a background to improve readability */
     padding: 5px;
     text-align: center;
+}
+
+.detailsSlider .moreClicker {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
 }
 
 .detailsSlider .avatar:hover,

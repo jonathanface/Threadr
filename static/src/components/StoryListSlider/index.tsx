@@ -8,6 +8,7 @@ import {
   ListItemAvatar,
   ListItemButton,
   ListItemText,
+  Tooltip,
 } from "@mui/material";
 import { Series } from "../../types/Series";
 import CloseIcon from "@mui/icons-material/Close";
@@ -59,28 +60,27 @@ export const StoryListSlider = (props: StoryListSliderProps) => {
       <List>
         {stories
           ? stories.map((story) => (
-              <ListItemButton
-                disabled={story.inactive}
-                className={styles.storyItem}
-                key={story.story_id}
-                onClick={(event) => {
-                  props.onStoryClick(event, story.story_id);
-                }}
-              >
-                <ListItemAvatar>
-                  <Avatar
-                    title={story.description}
-                    className={styles.avatar}
-                    alt={story.title}
-                    src={story.image_url}
+              <Tooltip key={story.story_id} title={story.title} placement="left">
+                <ListItemButton
+                  disabled={story.inactive}
+                  className={styles.storyItem}
+                  onClick={(event) => {
+                    props.onStoryClick(event, story.story_id);
+                  }}
+                >
+                  <ListItemAvatar>
+                    <Avatar
+                      className={styles.avatar}
+                      alt={story.title}
+                      src={story.image_url}
+                    />
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={story.title}
+                    className={styles.storyItemText}
                   />
-                </ListItemAvatar>
-                <ListItemText
-                  title={story.description}
-                  primary={story.title}
-                  className={styles.storyItemText}
-                />
-              </ListItemButton>
+                </ListItemButton>
+              </Tooltip>
             ))
           : "No stories added yet"}
       </List>

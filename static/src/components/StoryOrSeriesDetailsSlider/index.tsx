@@ -1,8 +1,8 @@
+import { Avatar, AvatarGroup, Tooltip } from "@mui/material";
 import { useEffect, useState } from "react";
+import type { Chapter } from "../../types/Chapter";
+import type { Story } from "../../types/Story";
 import styles from "./details.module.css";
-import { Story } from "../../types/Story";
-import { Chapter } from "../../types/Chapter";
-import { Avatar, AvatarGroup } from "@mui/material";
 
 interface DetailsSliderProps {
   id: string;
@@ -33,7 +33,7 @@ export const StoryOrSeriesDetailsSlider = (props: DetailsSliderProps) => {
     setDescription(
       props.description.length ? props.description : "No description"
     );
-    if (props.stories && props.stories.length) {
+    if (props.stories?.length) {
       const newStories = [...props.stories].sort((a, b) => {
         if (a.place && b.place) {
           return a.place - b.place;
@@ -48,33 +48,54 @@ export const StoryOrSeriesDetailsSlider = (props: DetailsSliderProps) => {
   }, [props.stories, props.title, props.description, props.isSeries]);
 
   return (
-    <div className={`${styles.detailsSlider} ${isVisible ? styles.visible : ""}`}>
+    <div
+      className={`${styles.detailsSlider} ${isVisible ? styles.visible : ""}`}
+    >
       <div className={styles.detailsDescription}>{description}</div>
+      {isSeries && stories?.length ? <hr className={styles.separator} /> : null}
       <div className={styles.seriesListing}>
         {isSeries ? (
-          stories && stories.length ? (
+          stories?.length ? (
             <div>
-              <AvatarGroup renderSurplus={(surplus) => (
-                <span className={styles.moreClicker} title="Click for more" onClick={(event) => {
-                  if (props.onShowMoreClick) {
-                    props.onShowMoreClick(event);
-                  }
-                }}>+{surplus.toString()[0]}</span>
-              )} max={4} total={props.stories ? props.stories.length : 0} className={styles.avatars}>
-                {
-                  props.stories?.map((story, index) => (
+              <div className={styles.storiesLabel}>Stories in this series:</div>
+              <AvatarGroup
+                renderSurplus={(surplus) => (
+                  <button
+                    type="button"
+                    className={styles.moreClicker}
+                    title="Click for more"
+                    onClick={(event) => {
+                      if (props.onShowMoreClick) {
+                        props.onShowMoreClick(event);
+                      }
+                    }}
+                  >
+                    +{surplus.toString()[0]}
+                  </button>
+                )}
+                max={4}
+                total={props.stories ? props.stories.length : 0}
+                className={styles.avatars}
+              >
+                {props.stories?.map((story) => (
+                  <Tooltip
+                    key={story.story_id}
+                    title={story.title}
+                    placement="top"
+                  >
                     <Avatar
-                      onClick={(event) => props.onStoryClick ? props.onStoryClick(event, story.story_id) : null}
-                      title={story.title}
+                      onClick={(event) =>
+                        props.onStoryClick
+                          ? props.onStoryClick(event, story.story_id)
+                          : null
+                      }
                       alt={story.title}
                       className={styles.avatar}
-                      key={index}
                       src={story.image_url}
                     />
-                  ))
-                }
+                  </Tooltip>
+                ))}
               </AvatarGroup>
-
             </div>
           ) : (
             "No stories assigned."

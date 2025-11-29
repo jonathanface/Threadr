@@ -1,31 +1,31 @@
-import { useEffect, useMemo, useState } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import FormatAlignCenterIcon from "@mui/icons-material/FormatAlignCenter";
+import FormatAlignJustifyIcon from "@mui/icons-material/FormatAlignJustify";
+import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
+import FormatAlignRightIcon from "@mui/icons-material/FormatAlignRight";
+import { useMediaQuery, Tooltip } from "@mui/material";
+import IconButton from "@mui/material/IconButton";
+import axios from "axios";
 import {
-  FORMAT_TEXT_COMMAND,
-  FORMAT_ELEMENT_COMMAND,
   $getSelection,
   $isRangeSelection,
-  TextFormatType,
-  ElementFormatType,
+  type ElementFormatType,
+  FORMAT_ELEMENT_COMMAND,
+  FORMAT_TEXT_COMMAND,
+  type TextFormatType,
 } from "lexical";
-import IconButton from "@mui/material/IconButton";
-import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
-import FormatAlignCenterIcon from "@mui/icons-material/FormatAlignCenter";
-import FormatAlignRightIcon from "@mui/icons-material/FormatAlignRight";
-import FormatAlignJustifyIcon from "@mui/icons-material/FormatAlignJustify";
-import styles from "./toolbar.module.css";
-import { DocumentExporter } from "./DocumentExporter";
-import { EditableText } from "../../../EditableText";
+import { useEffect, useMemo, useState } from "react";
+import { api } from "../../../../api";
 import { useSelections } from "../../../../hooks/useSelections";
-import { AlertToastType } from "../../../../types/AlertToasts";
 import { useToaster } from "../../../../hooks/useToaster";
-import { useMediaQuery } from "@mui/material";
+import { AlertToastType } from "../../../../types/AlertToasts";
 import {
   BlockAlignmentType,
   DocterTextFormatType,
 } from "../../../../types/Document";
-import { api } from "../../../../api";
-import axios from "axios";
+import { EditableText } from "../../../EditableText";
+import { DocumentExporter } from "./DocumentExporter";
+import styles from "./toolbar.module.css";
 
 export const Toolbar = () => {
   const [editor] = useLexicalComposerContext();
@@ -54,7 +54,7 @@ export const Toolbar = () => {
       3: BlockAlignmentType.RIGHT,
       4: BlockAlignmentType.JUSTIFY,
     }),
-    [],
+    []
   );
 
   useEffect(() => {
@@ -66,7 +66,7 @@ export const Toolbar = () => {
           setIsItalic(selection.hasFormat(DocterTextFormatType.ITALIC));
           setIsUnderline(selection.hasFormat(DocterTextFormatType.UNDERLINE));
           setIsStrikethrough(
-            selection.hasFormat(DocterTextFormatType.STRIKETHROUGH),
+            selection.hasFormat(DocterTextFormatType.STRIKETHROUGH)
           );
           const anchorNode = selection.anchor.getNode();
           const parentNode =
@@ -104,7 +104,7 @@ export const Toolbar = () => {
             updatedChapter,
             {
               headers: { "Content-Type": "application/json" },
-            },
+            }
           );
 
           setChapter(updatedChapter);
@@ -136,66 +136,86 @@ export const Toolbar = () => {
     <div className={styles.toolbar}>
       {/* Text formatting buttons */}
       <div className={styles.buttonContainer}>
-        <button
-          className={isBold ? styles.active : ""}
-          onClick={() => toggleTextFormat(DocterTextFormatType.BOLD)}
-        >
-          <b>B</b>
-        </button>
-        <button
-          className={isItalic ? styles.active : ""}
-          onClick={() => toggleTextFormat(DocterTextFormatType.ITALIC)}
-        >
-          <i>I</i>
-        </button>
-        <button
-          className={isUnderline ? styles.active : ""}
-          onClick={() => toggleTextFormat(DocterTextFormatType.UNDERLINE)}
-        >
-          <u>U</u>
-        </button>
-        <button
-          className={isStrikethrough ? styles.active : ""}
-          onClick={() => toggleTextFormat(DocterTextFormatType.STRIKETHROUGH)}
-        >
-          <s>S</s>
-        </button>
+        <Tooltip title="Bold" placement="top">
+          <button
+            type="button"
+            className={isBold ? styles.active : ""}
+            onClick={() => toggleTextFormat(DocterTextFormatType.BOLD)}
+          >
+            <b>B</b>
+          </button>
+        </Tooltip>
+        <Tooltip title="Italic" placement="top">
+          <button
+            type="button"
+            className={isItalic ? styles.active : ""}
+            onClick={() => toggleTextFormat(DocterTextFormatType.ITALIC)}
+          >
+            <i>I</i>
+          </button>
+        </Tooltip>
+        <Tooltip title="Underline" placement="top">
+          <button
+            type="button"
+            className={isUnderline ? styles.active : ""}
+            onClick={() => toggleTextFormat(DocterTextFormatType.UNDERLINE)}
+          >
+            <u>U</u>
+          </button>
+        </Tooltip>
+        <Tooltip title="Strikethrough" placement="top">
+          <button
+            type="button"
+            className={isStrikethrough ? styles.active : ""}
+            onClick={() => toggleTextFormat(DocterTextFormatType.STRIKETHROUGH)}
+          >
+            <s>S</s>
+          </button>
+        </Tooltip>
 
         {/* Alignment buttons */}
-        <IconButton
-          className={alignment === BlockAlignmentType.LEFT ? styles.active : ""}
-          aria-label={BlockAlignmentType.LEFT}
-          onClick={() => applyAlignment(BlockAlignmentType.LEFT)}
-        >
-          <FormatAlignLeftIcon fontSize="small" />
-        </IconButton>
-        <IconButton
-          className={
-            alignment === BlockAlignmentType.CENTER ? styles.active : ""
-          }
-          aria-label={BlockAlignmentType.CENTER}
-          onClick={() => applyAlignment(BlockAlignmentType.CENTER)}
-        >
-          <FormatAlignCenterIcon fontSize="small" />
-        </IconButton>
-        <IconButton
-          className={
-            alignment === BlockAlignmentType.RIGHT ? styles.active : ""
-          }
-          aria-label={BlockAlignmentType.RIGHT}
-          onClick={() => applyAlignment(BlockAlignmentType.RIGHT)}
-        >
-          <FormatAlignRightIcon fontSize="small" />
-        </IconButton>
-        <IconButton
-          className={
-            alignment === BlockAlignmentType.JUSTIFY ? styles.active : ""
-          }
-          aria-label={BlockAlignmentType.JUSTIFY}
-          onClick={() => applyAlignment(BlockAlignmentType.JUSTIFY)}
-        >
-          <FormatAlignJustifyIcon fontSize="small" />
-        </IconButton>
+        <Tooltip title="Align Left" placement="top">
+          <IconButton
+            className={alignment === BlockAlignmentType.LEFT ? styles.active : ""}
+            aria-label={BlockAlignmentType.LEFT}
+            onClick={() => applyAlignment(BlockAlignmentType.LEFT)}
+          >
+            <FormatAlignLeftIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Align Center" placement="top">
+          <IconButton
+            className={
+              alignment === BlockAlignmentType.CENTER ? styles.active : ""
+            }
+            aria-label={BlockAlignmentType.CENTER}
+            onClick={() => applyAlignment(BlockAlignmentType.CENTER)}
+          >
+            <FormatAlignCenterIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Align Right" placement="top">
+          <IconButton
+            className={
+              alignment === BlockAlignmentType.RIGHT ? styles.active : ""
+            }
+            aria-label={BlockAlignmentType.RIGHT}
+            onClick={() => applyAlignment(BlockAlignmentType.RIGHT)}
+          >
+            <FormatAlignRightIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Justify" placement="top">
+          <IconButton
+            className={
+              alignment === BlockAlignmentType.JUSTIFY ? styles.active : ""
+            }
+            aria-label={BlockAlignmentType.JUSTIFY}
+            onClick={() => applyAlignment(BlockAlignmentType.JUSTIFY)}
+          >
+            <FormatAlignJustifyIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
       </div>
       <div className={styles.extraButtons}>
         <span className={styles.chapterTitle}>

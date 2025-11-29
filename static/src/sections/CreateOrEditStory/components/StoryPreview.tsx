@@ -30,6 +30,9 @@ export const StoryPreview: React.FC<StoryPreviewProps> = ({
   return (
     <Card role="region" aria-label="Story preview" sx={{ overflow: 'visible' }}>
       <div className={styles.previewImageWrapper}>
+        <Typography variant="overline" component="div" sx={{ textAlign: 'center', fontWeight: 600, letterSpacing: '0.1em', marginBottom: '16px', color: 'var(--text-primary)' }}>
+          Story Preview
+        </Typography>
         <div
           className="loading-screen"
           style={{

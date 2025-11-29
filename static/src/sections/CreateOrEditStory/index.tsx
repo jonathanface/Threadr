@@ -2,6 +2,7 @@ import {
   Box,
   Button,
   IconButton,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import React, { useCallback, useRef, useEffect } from "react";
@@ -222,13 +223,15 @@ export const CreateOrEditStory: React.FC = () => {
   return (
     <Box className={styles.storyContainer}>
       <Box className={styles.header}>
-        <IconButton
-          onClick={handleClose}
-          sx={{ mr: 1 }}
-          aria-label="Close and return"
-        >
-          <CloseIcon />
-        </IconButton>
+        <Tooltip title="Close" placement="left">
+          <IconButton
+            onClick={handleClose}
+            sx={{ mr: 1 }}
+            aria-label="Close and return"
+          >
+            <CloseIcon />
+          </IconButton>
+        </Tooltip>
       </Box>
 
       <Typography

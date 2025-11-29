@@ -3,7 +3,8 @@
 }
 
 .portraitDropper .portrait {
-  margin: 0;
+  margin: 0 auto;
+  display: table;
 }
 
 .portraitDropper .portrait img {
@@ -16,6 +17,12 @@
 .portraitDropper .portrait figcaption {
   font-size: 0.8rem;
   text-align: center;
+  color: white;
+}
+
+/* Light mode - gray text for figcaption to match character counter */
+:global([data-theme="light"]) .portraitDropper .portrait figcaption {
+  color: rgba(0, 0, 0, 0.6);
 }
 
 @media only screen and (max-width: 600px) {}

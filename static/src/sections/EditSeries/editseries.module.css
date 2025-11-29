@@ -19,7 +19,7 @@
 }
 
 .editSeriesContainer .header .closer {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   border-radius: 50%;
   width: 40px;
@@ -30,12 +30,25 @@
   transition: all 0.2s ease;
   box-shadow: var(--shadow-md);
   padding: 0;
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .editSeriesContainer .header .closer:hover {
-  background: var(--bg-primary);
+  background: rgba(255, 255, 255, 0.2);
   transform: scale(1.05);
   box-shadow: var(--shadow-lg);
+}
+
+/* Light mode - close button */
+:global([data-theme="light"]) .editSeriesContainer .header .closer {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text-primary-light);
+  border: none;
+}
+
+:global([data-theme="light"]) .editSeriesContainer .header .closer:hover {
+  background: var(--bg-primary);
 }
 
 /* Typography */
@@ -47,12 +60,20 @@
   letter-spacing: -0.02em;
 }
 
+:global([data-theme="light"]) .editSeriesContainer h2 {
+  color: var(--text-primary-light);
+}
+
 .editSeriesContainer h6 {
   color: var(--text-primary);
   font-size: 1.25rem;
   font-weight: 600;
   margin: var(--spacing-xl) 0 var(--spacing-md) 0;
   letter-spacing: -0.01em;
+}
+
+:global([data-theme="light"]) .editSeriesContainer h6 {
+  color: var(--text-primary-light);
 }
 
 /* Content Layout */
@@ -74,6 +95,10 @@
   padding: var(--spacing-lg);
   box-shadow: var(--shadow-md);
   transition: all 0.2s ease;
+}
+
+:global([data-theme="light"]) .editSeriesContainer .column.left {
+  background: linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%);
 }
 
 .editSeriesContainer .column.left:hover {
@@ -100,6 +125,11 @@
   font-weight: 600;
   font-size: 0.9375rem;
   letter-spacing: -0.01em;
+  text-align: left;
+}
+
+:global([data-theme="light"]) .editSeriesContainer label {
+  color: var(--text-primary-light);
 }
 
 .editSeriesContainer input[type="text"],
@@ -116,6 +146,12 @@
   box-sizing: border-box;
   transition: all 0.2s ease;
   box-shadow: var(--shadow-sm);
+}
+
+:global([data-theme="light"]) .editSeriesContainer input[type="text"],
+:global([data-theme="light"]) .editSeriesContainer textarea {
+  color: var(--text-primary-light);
+  background: linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%);
 }
 
 .editSeriesContainer input[type="text"]:hover,
@@ -144,17 +180,18 @@
   margin: var(--spacing-xl) 0;
 }
 
-/* Stories Section */
+/* Stories Section Container */
 .editSeriesVolumes {
   list-style: none;
   padding: 0;
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: 8px;
 }
 
-.editSeriesVolumes > div {
+/* Individual Story Entry */
+.editSeriesVolumeItem > div {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
@@ -163,35 +200,54 @@
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   transition: all 0.2s ease;
-  border: 2px solid transparent;
+  border: 1px solid var(--border-light);
 }
 
-.editSeriesVolumes > div:hover {
+/* Light mode - story entries with complementing light blue background */
+:global([data-theme="light"]) .editSeriesVolumeItem > div {
+  background: linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%);
+  border: 1px solid rgba(100, 181, 246, 0.3);
+}
+
+.editSeriesVolumeItem > div:hover {
   box-shadow: var(--shadow-md);
-  border-color: var(--border-light);
+  border-color: var(--border-medium);
   transform: translateX(4px);
 }
 
+:global([data-theme="light"]) .editSeriesVolumeItem > div:hover {
+  border-color: rgba(100, 181, 246, 0.6);
+}
+
 /* Drag Handle */
-.editSeriesVolumes .dragHandle {
+.editSeriesVolumeItem .dragHandle {
   cursor: grab;
   padding: var(--spacing-xs);
-  color: var(--text-tertiary);
+  color: var(--text-primary);
   transition: all 0.2s ease;
   border-radius: var(--radius-sm);
 }
 
-.editSeriesVolumes .dragHandle:hover {
+.editSeriesVolumeItem .dragHandle:hover {
   color: var(--text-primary);
-  background: var(--bg-secondary);
+  background: rgba(0, 122, 255, 0.2);
 }
 
-.editSeriesVolumes .dragHandle:active {
+:global([data-theme="light"]) .editSeriesVolumeItem .dragHandle:hover {
+  background: var(--primary-light);
+}
+
+.editSeriesVolumeItem .dragHandle:active {
   cursor: grabbing;
 }
 
+/* Light mode - drag handle uses tertiary color */
+:global([data-theme="light"]) .editSeriesVolumeItem .dragHandle {
+  color: var(--text-tertiary);
+}
+
 /* Story Icon */
-.editSeriesVolumes .seriesIcon {
+.editSeriesVolumeItem .seriesIcon {
   width: 50px;
   height: 50px;
   flex-shrink: 0;
@@ -204,7 +260,7 @@
   vertical-align: middle;
 }
 
-.editSeriesVolumes img {
+.editSeriesVolumeItem img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -213,41 +269,44 @@
   vertical-align: middle;
 }
 
-.editSeriesVolumes > div:hover img {
+.editSeriesVolumeItem > div:hover img {
   transform: scale(1.1);
 }
 
-/* Story Title */
-.editSeriesVolumes > div > div > span {
-  flex: 1;
-  color: var(--text-primary);
-  font-size: 0.9375rem;
-  font-weight: 500;
-  line-height: 1.4;
-}
+/* Story Title - inline styled in component */
 
 /* Action Buttons */
-.editSeriesVolumes .storyButtons {
+.editSeriesVolumeItem .storyButtons {
   display: flex;
   gap: var(--spacing-xs);
   margin-left: auto;
 }
 
-.editSeriesVolumes .storyButtons button {
+.editSeriesVolumeItem .storyButtons button {
   padding: var(--spacing-xs);
   border-radius: var(--radius-sm);
   transition: all 0.2s ease;
   background: transparent;
 }
 
-.editSeriesVolumes .editSeriesStory:hover {
+.editSeriesVolumeItem .editSeriesStory:hover {
+  background: rgba(0, 122, 255, 0.2);
+  color: var(--primary);
+}
+
+:global([data-theme="light"]) .editSeriesVolumeItem .editSeriesStory:hover {
   background: var(--primary-light);
   color: var(--primary);
 }
 
-.editSeriesVolumes .removeSeriesStory:hover {
-  background: rgba(255, 59, 48, 0.1);
-  color: var(--danger);
+.editSeriesVolumeItem .removeSeriesStory:hover {
+  background: rgba(0, 122, 255, 0.2);
+  color: var(--primary);
+}
+
+:global([data-theme="light"]) .editSeriesVolumeItem .removeSeriesStory:hover {
+  background: var(--primary-light);
+  color: var(--primary);
 }
 
 /* Button Container */
@@ -333,7 +392,7 @@
     padding: var(--spacing-md);
   }
 
-  .editSeriesVolumes > div {
+  .editSeriesVolumeItem > div {
     padding: var(--spacing-sm) var(--spacing-md);
   }
 }
@@ -370,12 +429,12 @@
     min-height: 120px;
   }
 
-  .editSeriesVolumes > div {
+  .editSeriesVolumeItem > div {
     flex-wrap: wrap;
     gap: var(--spacing-sm);
   }
 
-  .editSeriesVolumes > div > div > span {
+  .editSeriesVolumeItem > div > div > span {
     font-size: 0.875rem;
   }
 

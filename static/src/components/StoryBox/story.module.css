@@ -33,6 +33,7 @@
   transform: translateY(-8px);
   box-shadow: var(--shadow-xl);
   border-color: var(--border-medium);
+  background: var(--bg-card-hover);
 }
 
 .storyBoxContainer:hover::before {
@@ -123,6 +124,7 @@
   position: relative;
   overflow: hidden;
   border-radius: 20px;
+  border: 1px solid var(--border-light);
 }
 
 /* Drag Handle */

@@ -69,8 +69,8 @@ func (m *MockDAO) UpsertUser(email string) (*models.UserInfo, error) {
 	if m.MockUpsertUser != nil {
 		return m.MockUpsertUser(email)
 	}
-	// sensible default for tests:
-	return &models.UserInfo{Email: email}, nil
+	// Fall back to real implementation to use mocked DynamoClient
+	return m.DAO.UpsertUser(email)
 }
 
 func (m *MockDAO) GetSubscription(email string) (*models.Subscription, error) {
