@@ -57,6 +57,18 @@
     margin-top: 10px;
 }
 
+.detailsSlider .separator {
+    border: none;
+    border-top: 1px solid var(--border-medium);
+    margin: 8px 0;
+    opacity: 0.8;
+}
+
+:global([data-theme="light"]) .detailsSlider .separator {
+    border-top: 1px solid var(--border-light);
+    opacity: 0.5;
+}
+
 .detailsSlider .storiesLabel {
     font-size: 0.7rem;
     color: var(--text-secondary);
@@ -111,6 +123,14 @@
     /* Optional: add padding or a background to improve readability */
     padding: 5px;
     text-align: center;
+}
+
+.detailsSlider .moreClicker {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
 }
 
 .detailsSlider .avatar:hover,
