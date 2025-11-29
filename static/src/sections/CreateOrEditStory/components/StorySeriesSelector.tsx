@@ -18,16 +18,16 @@ export const StorySeriesSelector: React.FC<StorySeriesSelectorProps> = ({
   selectedSeries,
   onSeriesChange,
 }) => {
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [theme, setTheme] = useState<"light" | "dark">("light");
 
   useEffect(() => {
     // Get initial theme
-    const currentTheme = document.documentElement.getAttribute('data-theme') as "light" | "dark" || "dark";
+    const currentTheme = document.documentElement.getAttribute('data-theme') as "light" | "dark" || "light";
     setTheme(currentTheme);
 
     // Watch for theme changes
     const observer = new MutationObserver(() => {
-      const newTheme = document.documentElement.getAttribute('data-theme') as "light" | "dark" || "dark";
+      const newTheme = document.documentElement.getAttribute('data-theme') as "light" | "dark" || "light";
       setTheme(newTheme);
     });
 

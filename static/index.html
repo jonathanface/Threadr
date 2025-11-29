@@ -103,6 +103,13 @@
     <script>
       /*to prevent Firefox FOUC, this must be here*/
       let FF_FOUC_FIX;
+
+      // Set theme before page renders to prevent flash
+      (function() {
+        const savedTheme = localStorage.getItem('theme');
+        const theme = savedTheme || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
     </script>
   </head>
 
