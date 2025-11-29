@@ -62,7 +62,8 @@
     max-height: 150px;
     min-height: 100px;
     display: inline-block;
-    background-color: #6f6f6f;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-medium);
     border-radius: 10px;
     position: absolute;
     padding: 8px;
@@ -70,11 +71,16 @@
     opacity: 0;
     transition: opacity 0.2s ease;
     font-size: 0.7rem;
-    color: #F9F9F9;
+    color: var(--text-primary);
+    box-shadow: var(--shadow-xl);
 }
 
 .associationTooltipBody.show {
     opacity: 0.95;
+}
+
+[data-theme="light"] .associationTooltipBody {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
 }
 
 .associationTooltipBody .column {
@@ -102,4 +108,5 @@
     max-height: 100px;
     margin: auto;
     filter: drop-shadow(1px 1px 1px #1a1a1a);
+    border-radius: 8px;
 }

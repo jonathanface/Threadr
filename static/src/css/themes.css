@@ -11,13 +11,15 @@
   /* Background Colors - Dark Theme */
   --bg-body: linear-gradient(135deg, #1a1f2e 0%, #2c3e50 100%);
   --bg-body-solid: #1a1f2e;
+  --bg-primary: #2d3748;
+  --bg-secondary: #374151;
   --bg-header: linear-gradient(135deg, #1a1f2e 0%, #2c3e50 100%);
   --bg-footer: linear-gradient(135deg, #1a1f2e 0%, #2c3e50 100%);
   --bg-toolbar: #374151;
   --bg-hero: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
   --bg-card: rgba(255, 255, 255, 0.05);
   --bg-card-hover: rgba(255, 255, 255, 0.08);
-  --bg-modal-light: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  --bg-modal-light: linear-gradient(135deg, #2d3748 0%, #374151 100%);
   --bg-splash-blurb: #d4dce5;
   --bg-editor: #2a2e3a;
   --bg-editor-blockquote: #3a3e4a;
@@ -73,13 +75,15 @@
   /* Background Colors - Light Theme */
   --bg-body: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
   --bg-body-solid: #e3f2fd;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5faff;
   --bg-header: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
   --bg-footer: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
   --bg-toolbar: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%);
   --bg-hero: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%);
-  --bg-card: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
-  --bg-card-hover: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-  --bg-modal-light: linear-gradient(135deg, #ffffff 0%, #f5faff 100%);
+  --bg-card: linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%);
+  --bg-card-hover: linear-gradient(135deg, #bbdefb 0%, #90caf9 100%);
+  --bg-modal-light: linear-gradient(135deg, #f8f9fa 0%, #f0f4f8 100%);
   --bg-splash-blurb: linear-gradient(135deg, #ffffff 0%, #e8f4ff 100%);
   --bg-editor: #ffffff;
   --bg-editor-blockquote: #e3f2fd;

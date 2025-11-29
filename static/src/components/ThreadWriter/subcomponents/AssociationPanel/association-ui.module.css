@@ -1,13 +1,76 @@
 .associationPanel {
   width: 500px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Dark mode - MUI component overrides */
+.associationPanel :global(.MuiDrawer-paper) {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+
+.associationPanel :global(.MuiTextField-root) {
+  background-color: var(--bg-secondary) !important;
+}
+
+.associationPanel :global(.MuiFilledInput-root) {
+  background-color: var(--bg-secondary) !important;
+  color: #f5f7fa !important;
+}
+
+.associationPanel :global(.MuiFilledInput-input) {
+  color: #f5f7fa !important;
+}
+
+/* Light mode - darker text for input fields */
+:global([data-theme="light"]) .associationPanel :global(.MuiFilledInput-root) {
+  color: var(--text-primary-light) !important;
+}
+
+:global([data-theme="light"]) .associationPanel :global(.MuiFilledInput-input) {
+  color: var(--text-primary-light) !important;
+}
+
+.associationPanel :global(.MuiFilledInput-root:hover) {
+  background-color: var(--bg-primary) !important;
+}
+
+.associationPanel :global(.MuiInputLabel-root) {
+  color: var(--text-secondary) !important;
+}
+
+.associationPanel :global(.MuiTypography-root) {
+  color: var(--text-primary) !important;
+}
+
+.associationPanel :global(.MuiSwitch-root) {
+  color: var(--text-primary) !important;
+}
+
+.associationPanel :global(.MuiFormControlLabel-label) {
+  color: var(--text-primary) !important;
+}
+
+.associationPanel :global(.MuiBox-root) {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+.associationPanel :global(.MuiIconButton-root) {
+  color: var(--text-primary) !important;
 }
 
 .associationPanel .contentContainer {
   width: 500px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .associationPanel .associationHeader {
   padding: 20px;
+  background-color: var(--bg-primary);
 }
 
 .associationPanel .associationHeader .associationName {
@@ -19,6 +82,7 @@
   font-weight: bold;
   width: 100%;
   margin: 0;
+  color: var(--text-primary);
 }
 
 .associationPanel .associationHeader .associationNameField {
@@ -36,10 +100,12 @@
 .associationPanel .associationDetails {
   margin: 10px;
   margin-bottom: 100px;
+  background-color: var(--bg-primary);
 }
 
 .associationPanel .detailBubble h4 {
   margin: 0;
+  color: var(--text-primary);
 }
 
 .associationPanel .detailBubble .activeLabel {
@@ -98,6 +164,7 @@
   font-size: 0.7rem;
   margin-top: -1rem;
   text-align: right;
+  color: var(--text-secondary);
 }
 
 .associationPanel .remainingChars .exceeded {

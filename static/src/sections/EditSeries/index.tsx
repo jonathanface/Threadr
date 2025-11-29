@@ -1,6 +1,6 @@
 import EditIcon from "@mui/icons-material/Edit";
 import RemoveIcon from "@mui/icons-material/Remove";
-import { Box, IconButton, Typography } from "@mui/material";
+import { Box, IconButton, Tooltip, Typography } from "@mui/material";
 import Button from "@mui/material/Button";
 import React, { useEffect, useState } from "react";
 import {
@@ -354,9 +354,11 @@ export const EditSeries = () => {
   return (
     <Box className={styles.editSeriesContainer}>
       <Box className={styles.header}>
-        <IconButton onClick={handleClose} className={styles.closer}>
-          <CloseIcon />
-        </IconButton>
+        <Tooltip title="Close" placement="left">
+          <IconButton onClick={handleClose} className={styles.closer}>
+            <CloseIcon />
+          </IconButton>
+        </Tooltip>
       </Box>
       <Typography variant="h5" component="h2" sx={{ marginBottom: 2 }}>
         Edit Series
@@ -408,7 +410,7 @@ export const EditSeries = () => {
         <DragDropContext onDragEnd={onDragEnd}>
           <Droppable droppableId="droppable">
             {(provided) => (
-              <Box ref={provided.innerRef} {...provided.droppableProps}>
+              <Box ref={provided.innerRef} {...provided.droppableProps} className={styles.editSeriesVolumes}>
                 {seriesBuild.stories &&
                   seriesBuild.stories.map((entry, index) => (
                     <Draggable
@@ -418,54 +420,76 @@ export const EditSeries = () => {
                     >
                       {(provided) => (
                         <Box
-                          className={styles.editSeriesVolumes}
+                          className={styles.editSeriesVolumeItem}
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                         >
                           <Box>
                             <Box {...provided.dragHandleProps}>
-                              <IconButton className={styles.dragHandle}>
-                                <ImportExport />
-                              </IconButton>
+                              <Tooltip title="Change order" placement="top">
+                                <IconButton
+                                  className={styles.dragHandle}
+                                  sx={{
+                                    color: 'var(--text-primary)',
+                                    '&:hover': {
+                                      backgroundColor: 'rgba(0, 122, 255, 0.2)',
+                                    }
+                                  }}
+                                >
+                                  <ImportExport />
+                                </IconButton>
+                              </Tooltip>
                             </Box>
                             <span className={styles.seriesIcon}>
                               <img src={entry.image_url} alt={entry.title} />
                             </span>
-                            <span>{entry.title}</span>
+                            <span style={{ color: 'var(--text-primary)' }}>{entry.title}</span>
                             <span className={styles.storyButtons}>
-                              <IconButton
-                                className={styles.editSeriesStory}
-                                aria-label="edit story"
-                                sx={{ padding: 0 }}
-                                onClick={(event) =>
-                                  editStory(event, entry.story_id)
-                                }
-                                title="Edit"
-                              >
-                                <EditIcon
+                              <Tooltip title="Edit" placement="top">
+                                <IconButton
+                                  className={styles.editSeriesStory}
+                                  aria-label="edit story"
                                   sx={{
-                                    fontSize: 18,
-                                    color: "#000",
-                                    padding: 1,
+                                    padding: 0,
+                                    '&:hover': {
+                                      backgroundColor: 'rgba(0, 122, 255, 0.2)',
+                                    }
                                   }}
-                                />
-                              </IconButton>
-                              <IconButton
-                                className={styles.removeSeriesStory}
-                                aria-label="remove story"
-                                onClick={(event) =>
-                                  removeStory(
-                                    event,
-                                    entry.story_id,
-                                    entry.title,
-                                  )
-                                }
-                                title="Remove"
-                              >
-                                <RemoveIcon
-                                  sx={{ fontSize: 18, color: "#000" }}
-                                />
-                              </IconButton>
+                                  onClick={(event) =>
+                                    editStory(event, entry.story_id)
+                                  }
+                                >
+                                  <EditIcon
+                                    sx={{
+                                      fontSize: 18,
+                                      color: 'var(--text-primary)',
+                                      padding: 1,
+                                    }}
+                                  />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Remove from series" placement="top">
+                                <IconButton
+                                  className={styles.removeSeriesStory}
+                                  aria-label="remove story"
+                                  sx={{
+                                    '&:hover': {
+                                      backgroundColor: 'rgba(0, 122, 255, 0.2)',
+                                    }
+                                  }}
+                                  onClick={(event) =>
+                                    removeStory(
+                                      event,
+                                      entry.story_id,
+                                      entry.title,
+                                    )
+                                  }
+                                >
+                                  <RemoveIcon
+                                    sx={{ fontSize: 18, color: 'var(--text-primary)' }}
+                                  />
+                                </IconButton>
+                              </Tooltip>
                             </span>
                           </Box>
                         </Box>

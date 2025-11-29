@@ -1,0 +1,29 @@
+/* Dark mode styling for Settings Modal */
+.chapterAssignment {
+    background-color: transparent;
+}
+
+.chapterList {
+    background-color: transparent;
+}
+
+.listItem {
+    color: var(--text-primary);
+}
+
+/* Light mode */
+:global([data-theme="light"]) .listItem {
+    color: var(--text-primary-light);
+}
+
+.label {
+    color: inherit;
+}
+
+.checkbox {
+    color: var(--text-primary);
+}
+
+:global([data-theme="light"]) .checkbox {
+    color: var(--text-primary-light);
+}

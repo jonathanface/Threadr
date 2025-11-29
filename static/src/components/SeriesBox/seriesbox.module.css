@@ -33,6 +33,7 @@
   transform: translateY(-8px);
   box-shadow: var(--shadow-xl);
   border-color: var(--border-medium);
+  background: var(--bg-card-hover);
 }
 
 .seriesBoxContainer:hover::before {
@@ -44,6 +45,7 @@
   overflow: hidden;
   cursor: pointer;
   border-radius: 20px;
+  border: 1px solid var(--border-light);
 }
 
 .seriesBoxContainer img {

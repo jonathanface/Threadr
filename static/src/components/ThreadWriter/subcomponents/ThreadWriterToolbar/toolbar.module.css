@@ -21,8 +21,8 @@
 }
 
 .toolbar button {
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     padding: 4px 8px;
     border-radius: 8px;
     cursor: pointer;
@@ -32,18 +32,36 @@
     font-size: 1rem;
     transition: all 0.2s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    color: var(--text-primary);
 }
 
 .toolbar button:hover {
-    background: rgba(255, 255, 255, 1);
+    background: rgba(255, 255, 255, 0.25);
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .toolbar button.active {
-    background: #007bff;
+    background: var(--primary);
     color: white;
-    border-color: #007bff;
+    border-color: var(--primary);
+}
+
+/* Light mode - toolbar buttons */
+:global([data-theme="light"]) .toolbar button {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text-primary-light);
+}
+
+:global([data-theme="light"]) .toolbar button:hover {
+    background: rgba(255, 255, 255, 1);
+}
+
+:global([data-theme="light"]) .toolbar button.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
 }
 
 .toolbar .chapterTitle {

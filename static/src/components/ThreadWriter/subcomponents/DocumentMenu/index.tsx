@@ -41,9 +41,16 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
 
   return (
     <div>
-      <Paper className={styles.sideMenu} elevation={3}>
+      <Paper
+        className={styles.sideMenu}
+        elevation={3}
+        sx={{
+          backgroundColor: 'var(--bg-toolbar)',
+          color: 'var(--text-primary)',
+        }}
+      >
         <Tooltip title="Close this Document" placement="right">
-          <IconButton onClick={closeDoc}>
+          <IconButton onClick={closeDoc} sx={{ color: 'var(--text-primary)' }}>
             <CancelPresentationIcon />
           </IconButton>
         </Tooltip>
@@ -52,6 +59,7 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
             onClick={() => {
               setIsEditorChapterMenuOpen(true);
             }}
+            sx={{ color: 'var(--text-primary)' }}
           >
             <FormatListNumberedIcon />
           </IconButton>
@@ -61,6 +69,7 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
             onClick={() => {
               setIsEditorOutlineMenuOpen(true);
             }}
+            sx={{ color: 'var(--text-primary)' }}
           >
             <MenuBookTwoToneIcon />
           </IconButton>
@@ -70,6 +79,7 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
             onClick={() => {
               setIsSettingsMenuOpen(true);
             }}
+            sx={{ color: 'var(--text-primary)' }}
           >
             <Settings />
           </IconButton>
@@ -89,6 +99,12 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
           }
         }}
         ModalProps={{ keepMounted: true }}
+        PaperProps={{
+          sx: {
+            backgroundColor: 'var(--bg-primary)',
+            color: 'var(--text-primary)',
+          }
+        }}
       >
         <Box
           className={styles.flyoutMenu}
@@ -108,6 +124,12 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
           }
         }}
         ModalProps={{ keepMounted: true }}
+        PaperProps={{
+          sx: {
+            backgroundColor: 'var(--bg-primary)',
+            color: 'var(--text-primary)',
+          }
+        }}
       >
         <Box
           className={styles.flyoutMenu}

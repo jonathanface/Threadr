@@ -1,11 +1,16 @@
 /* Header */
 .storyCreateHeaderText {
-  color: var(--text-primary-light);
+  color: var(--text-primary);
   font-size: 2rem;
   font-weight: 700;
   margin: 0 0 var(--spacing-xl) 0;
   padding: 0;
   letter-spacing: -0.02em;
+}
+
+/* Light mode - use dark text */
+:global([data-theme="light"]) .storyCreateHeaderText {
+  color: var(--text-primary-light);
 }
 
 /* Main Container */
@@ -28,7 +33,7 @@
 }
 
 .header button {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   border-radius: 50%;
   width: 40px;
@@ -38,12 +43,25 @@
   justify-content: center;
   transition: all 0.2s ease;
   box-shadow: var(--shadow-md);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .header button:hover {
-  background: var(--bg-primary);
+  background: rgba(255, 255, 255, 0.2);
   transform: scale(1.05);
   box-shadow: var(--shadow-lg);
+}
+
+/* Light mode - close button */
+:global([data-theme="light"]) .header button {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text-primary-light);
+  border: none;
+}
+
+:global([data-theme="light"]) .header button:hover {
+  background: var(--bg-primary);
 }
 
 /* Layout Grid */
@@ -65,12 +83,25 @@
   gap: var(--spacing-lg);
 }
 
+/* Light mode - form section with white background to match page */
+:global([data-theme="light"]) .storyForm {
+  background: transparent;
+}
+
 /* Image Upload Section */
 .portraitWrapper {
   width: 100%;
   max-width: 280px;
   margin: var(--spacing-lg) 0;
   position: relative;
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+}
+
+/* Light mode - image upload with blue gradient background */
+:global([data-theme="light"]) .portraitWrapper {
+  background: linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%);
 }
 
 .portraitWrapper .loading-screen {
@@ -129,7 +160,7 @@
   left: 0;
   right: 0;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
-  color: white;
+  color: white !important;
   padding: var(--spacing-md);
   font-size: 0.875rem;
   text-align: center;
@@ -139,6 +170,11 @@
 
 .portraitWrapper :global(.portrait-dropper):hover figcaption {
   opacity: 1;
+}
+
+/* Ensure figcaption text is white in dark mode */
+:global(.portrait-dropper) figcaption {
+  color: white !important;
 }
 
 /* Preview Card */
@@ -153,6 +189,11 @@
   transition: all 0.3s ease;
 }
 
+/* Light mode - preview card with transparent background */
+:global([data-theme="light"]) .previewCard {
+  background: transparent;
+}
+
 .previewCard:hover {
   box-shadow: var(--shadow-xl);
   transform: translateY(-2px);
@@ -160,8 +201,19 @@
 
 /* Preview Image Upload Wrapper */
 .previewImageWrapper {
-  width: 100%;
   position: relative;
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Light mode - preview image wrapper with blue gradient background */
+:global([data-theme="light"]) .previewImageWrapper {
+  background: linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%);
 }
 
 .previewImageWrapper .loading-screen {
@@ -191,8 +243,6 @@
 }
 
 .previewImageWrapper :global(.portrait-dropper) {
-  width: 100%;
-  aspect-ratio: 2/3;
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -200,17 +250,17 @@
 
 .previewImageWrapper :global(.portrait-dropper figure) {
   margin: 0;
-  width: 100%;
-  height: 100%;
   position: relative;
   cursor: pointer;
 }
 
 .previewImageWrapper :global(.portrait-dropper img) {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  max-width: 100%;
+  max-height: 300px;
+  height: auto;
   transition: transform 0.3s ease;
+  border-radius: 15px;
+  display: inline-block;
 }
 
 .previewImageWrapper :global(.portrait-dropper):hover img {
@@ -223,7 +273,7 @@
   left: 0;
   right: 0;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
-  color: white;
+  color: white !important;
   padding: var(--spacing-md);
   font-size: 0.875rem;
   text-align: center;
@@ -244,6 +294,13 @@
 
 .previewCard :global(.MuiCardContent-root) {
   padding: var(--spacing-lg) !important;
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+}
+
+/* Light mode - preview card content with blue gradient background */
+:global([data-theme="light"]) .previewCard :global(.MuiCardContent-root) {
+  background: linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%);
 }
 
 .previewTitle {
@@ -259,6 +316,11 @@
   letter-spacing: -0.01em;
 }
 
+/* Light mode preview title */
+:global([data-theme="light"]) .previewTitle {
+  color: var(--text-primary-light) !important;
+}
+
 .previewDescription {
   font-size: 0.9375rem !important;
   line-height: 1.6 !important;
@@ -268,6 +330,11 @@
   -webkit-line-clamp: 8;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Light mode preview description */
+:global([data-theme="light"]) .previewDescription {
+  color: rgba(0, 0, 0, 0.7) !important;
 }
 
 .previewCard :global(.MuiChip-root) {
@@ -283,14 +350,51 @@
   margin: 0 !important;
 }
 
+/* TextField label colors for dark mode */
+.storyForm :global(.MuiInputLabel-root) {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.storyForm :global(.MuiInputLabel-root.Mui-focused) {
+  color: var(--primary) !important;
+}
+
+/* Light mode - use default label colors */
+:global([data-theme="light"]) .storyForm :global(.MuiInputLabel-root) {
+  color: rgba(0, 0, 0, 0.6) !important;
+}
+
+:global([data-theme="light"]) .storyForm :global(.MuiInputLabel-root.Mui-focused) {
+  color: var(--primary) !important;
+}
+
+/* Input text color for dark mode */
+.storyForm :global(.MuiOutlinedInput-input) {
+  color: var(--text-primary) !important;
+}
+
+/* Light mode - use dark text */
+:global([data-theme="light"]) .storyForm :global(.MuiOutlinedInput-input) {
+  color: var(--text-primary-light) !important;
+}
+
 .storyForm :global(.MuiOutlinedInput-root) {
   border-radius: var(--radius-md) !important;
   background: var(--bg-secondary);
   transition: all 0.2s ease;
 }
 
+/* Light mode - text fields with blue gradient background */
+:global([data-theme="light"]) .storyForm :global(.MuiOutlinedInput-root) {
+  background: linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%);
+}
+
 .storyForm :global(.MuiOutlinedInput-root:hover) {
   background: var(--bg-primary);
+}
+
+:global([data-theme="light"]) .storyForm :global(.MuiOutlinedInput-root:hover) {
+  background: linear-gradient(135deg, #d6eafc 0%, #e3f2fd 100%);
 }
 
 .storyForm :global(.MuiOutlinedInput-root.Mui-focused) {
@@ -298,12 +402,29 @@
   box-shadow: 0 0 0 3px var(--primary-light);
 }
 
+:global([data-theme="light"]) .storyForm :global(.MuiOutlinedInput-root.Mui-focused) {
+  background: linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
 .storyForm :global(.MuiOutlinedInput-notchedOutline) {
-  border-color: var(--border-light) !important;
+  border-color: rgba(255, 255, 255, 0.6) !important;
+  border-width: 2px !important;
   transition: border-color 0.2s ease;
 }
 
+/* Light mode - use theme border color */
+:global([data-theme="light"]) .storyForm :global(.MuiOutlinedInput-notchedOutline) {
+  border-color: var(--border-light) !important;
+  border-width: 1px !important;
+}
+
 .storyForm :global(.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline) {
+  border-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Light mode - use theme hover border color */
+:global([data-theme="light"]) .storyForm :global(.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline) {
   border-color: var(--border-medium) !important;
 }
 
@@ -338,7 +459,33 @@
 .storyForm :global(.MuiTypography-caption) {
   font-size: 0.8125rem !important;
   font-weight: 500 !important;
+  color: rgba(255, 255, 255, 0.7) !important;
   transition: color 0.2s ease;
+}
+
+/* Light mode - caption text */
+:global([data-theme="light"]) .storyForm :global(.MuiTypography-caption) {
+  color: rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Helper text color for dark mode */
+.storyForm :global(.MuiFormHelperText-root) {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Light mode - use default helper text color */
+:global([data-theme="light"]) .storyForm :global(.MuiFormHelperText-root) {
+  color: rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Typography with text.secondary color - for "Select an existing series..." */
+.storyForm :global(.MuiTypography-root) {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Light mode - typography */
+:global([data-theme="light"]) .storyForm :global(.MuiTypography-root) {
+  color: rgba(0, 0, 0, 0.6) !important;
 }
 
 /* Autocomplete Styling */
@@ -348,6 +495,52 @@
   font-weight: 600 !important;
   height: 20px !important;
   font-size: 0.75rem !important;
+}
+
+/* Autocomplete dropdown - Global styles (popper renders in portal) */
+:global(.MuiAutocomplete-popper .MuiPaper-root) {
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  transition-property: none !important;
+}
+
+:global(.MuiAutocomplete-listbox) {
+  background: var(--bg-primary) !important;
+}
+
+:global(.MuiAutocomplete-listbox .MuiAutocomplete-option) {
+  color: var(--text-primary) !important;
+  background: var(--bg-primary) !important;
+}
+
+:global(.MuiAutocomplete-listbox .MuiAutocomplete-option:hover) {
+  background: var(--bg-secondary) !important;
+}
+
+:global(.MuiAutocomplete-listbox .MuiAutocomplete-option[aria-selected="true"]) {
+  background: var(--bg-secondary) !important;
+}
+
+/* Light mode autocomplete */
+:global([data-theme="light"]) :global(.MuiAutocomplete-popper .MuiPaper-root) {
+  background: linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%) !important;
+}
+
+:global([data-theme="light"]) :global(.MuiAutocomplete-listbox) {
+  background: transparent !important;
+}
+
+:global([data-theme="light"]) :global(.MuiAutocomplete-listbox .MuiAutocomplete-option) {
+  color: var(--text-primary-light) !important;
+  background: transparent !important;
+}
+
+:global([data-theme="light"]) :global(.MuiAutocomplete-listbox .MuiAutocomplete-option:hover) {
+  background: rgba(100, 181, 246, 0.2) !important;
+}
+
+:global([data-theme="light"]) :global(.MuiAutocomplete-listbox .MuiAutocomplete-option[aria-selected="true"]) {
+  background: rgba(100, 181, 246, 0.3) !important;
 }
 
 /* Mobile Responsive Design */

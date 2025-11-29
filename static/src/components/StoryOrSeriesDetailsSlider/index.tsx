@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import styles from "./details.module.css";
 import { Story } from "../../types/Story";
 import { Chapter } from "../../types/Chapter";
-import { Avatar, AvatarGroup } from "@mui/material";
+import { Avatar, AvatarGroup, Tooltip } from "@mui/material";
 
 interface DetailsSliderProps {
   id: string;
@@ -54,6 +54,7 @@ export const StoryOrSeriesDetailsSlider = (props: DetailsSliderProps) => {
         {isSeries ? (
           stories && stories.length ? (
             <div>
+              <div className={styles.storiesLabel}>Stories in this series:</div>
               <AvatarGroup renderSurplus={(surplus) => (
                 <span className={styles.moreClicker} title="Click for more" onClick={(event) => {
                   if (props.onShowMoreClick) {
@@ -63,14 +64,14 @@ export const StoryOrSeriesDetailsSlider = (props: DetailsSliderProps) => {
               )} max={4} total={props.stories ? props.stories.length : 0} className={styles.avatars}>
                 {
                   props.stories?.map((story, index) => (
-                    <Avatar
-                      onClick={(event) => props.onStoryClick ? props.onStoryClick(event, story.story_id) : null}
-                      title={story.title}
-                      alt={story.title}
-                      className={styles.avatar}
-                      key={index}
-                      src={story.image_url}
-                    />
+                    <Tooltip key={index} title={story.title} placement="top">
+                      <Avatar
+                        onClick={(event) => props.onStoryClick ? props.onStoryClick(event, story.story_id) : null}
+                        alt={story.title}
+                        className={styles.avatar}
+                        src={story.image_url}
+                      />
+                    </Tooltip>
                   ))
                 }
               </AvatarGroup>

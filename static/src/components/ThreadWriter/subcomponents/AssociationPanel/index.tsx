@@ -3,7 +3,6 @@ import {
   CircularProgress,
   Drawer,
   FormControlLabel,
-  IconButton,
   Switch,
   TextField,
   Typography,
@@ -29,7 +28,6 @@ import {
 import { ClickData } from "../../plugins/DocumentClickPlugin";
 import { CharacterLimitPlugin } from "@lexical/react/LexicalCharacterLimitPlugin";
 import { OverflowNode } from "@lexical/overflow";
-import CloseIcon from "@mui/icons-material/Close";
 import { TextTransformPlugin } from "../../plugins/TextTransformPlugin";
 import { AssociationInlineNode } from "../../customNodes/AssociationInlineNode";
 import { InfoHover } from "../../../InfoHover";
@@ -338,13 +336,17 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
       anchor={"right"}
       open={props.isAssociationPanelOpen}
       onClose={handleClose}
-      className={styles.associationPanel}
+      ModalProps={{
+        BackdropProps: {
+          sx: {
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          },
+        },
+      }}
+      PaperProps={{
+        className: styles.associationPanel,
+      }}
     >
-      <Box className={styles.header}>
-        <IconButton onClick={handleClose} sx={{ mr: 1 }}>
-          <CloseIcon />
-        </IconButton>
-      </Box>
       <Box
         role="presentation"
         component="section"

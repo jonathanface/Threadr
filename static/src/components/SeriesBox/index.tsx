@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import styles from "./seriesbox.module.css";
 import { Series } from "../../types/Series";
-import { Box, CircularProgress, IconButton } from "@mui/material";
+import { Box, CircularProgress, IconButton, Tooltip } from "@mui/material";
 
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
@@ -141,47 +141,49 @@ export const SeriesBox: React.FC<SeriesBoxProps> = ({ series }) => {
         <div className={styles.seriesLabel}>
           <span className={styles.title}>{series.series_title}</span>
           <span className={styles.buttons}>
-            <IconButton
-              aria-label="edit series"
-              sx={{ padding: "0" }}
-              component="label"
-              title={`Edit ${series.series_title}`}
-              onClick={(event) => {
-                editSeries(event, series.series_id);
-              }}
-            >
-              <EditIcon
-                sx={{
-                  padding: "0",
-                  fontSize: "18px",
-                  color: "#F0F0F0",
-                  "&:hover": {
-                    fontWeight: "bold",
-                    color: "#2a57e3",
-                  },
+            <Tooltip title={`Edit ${series.series_title}`} placement="top">
+              <IconButton
+                aria-label="edit series"
+                sx={{ padding: "0" }}
+                component="label"
+                onClick={(event) => {
+                  editSeries(event, series.series_id);
                 }}
-              />
-            </IconButton>
-            <IconButton
-              aria-label="delete"
-              component="label"
-              title={`Delete ${series.series_title}`}
-              onClick={(event) => {
-                deleteSeries(event, series.series_id, series.series_title);
-              }}
-            >
-              <DeleteIcon
-                sx={{
-                  fontSize: "18px",
-                  padding: "0",
-                  color: "#F0F0F0",
-                  "&:hover": {
-                    fontWeight: "bold",
-                    color: "#2a57e3",
-                  },
+              >
+                <EditIcon
+                  sx={{
+                    padding: "0",
+                    fontSize: "18px",
+                    color: "#F0F0F0",
+                    "&:hover": {
+                      fontWeight: "bold",
+                      color: "#2a57e3",
+                    },
+                  }}
+                />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={`Delete ${series.series_title}`} placement="top">
+              <IconButton
+                aria-label="delete"
+                component="label"
+                onClick={(event) => {
+                  deleteSeries(event, series.series_id, series.series_title);
                 }}
-              />
-            </IconButton>
+              >
+                <DeleteIcon
+                  sx={{
+                    fontSize: "18px",
+                    padding: "0",
+                    color: "#F0F0F0",
+                    "&:hover": {
+                      fontWeight: "bold",
+                      color: "#2a57e3",
+                    },
+                  }}
+                />
+              </IconButton>
+            </Tooltip>
           </span>
         </div>
       </div>

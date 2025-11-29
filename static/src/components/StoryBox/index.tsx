@@ -1,16 +1,16 @@
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
-import { IconButton } from "@mui/material";
+import { IconButton, Tooltip } from "@mui/material";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
+import axios from "axios";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { api } from "../../api";
+import { useLoader } from "../../hooks/useLoader";
+import type { Story } from "../../types/Story";
 import { StoryOrSeriesDetailsSlider } from "../StoryOrSeriesDetailsSlider";
 import styles from "./story.module.css";
-import { Story } from "../../types/Story";
-import { useLoader } from "../../hooks/useLoader";
-import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import { api } from "../../api";
 
 interface StoryBoxProps {
   story: Story;
@@ -38,7 +38,7 @@ export const StoryBox = (props: StoryBoxProps) => {
   const deleteStory = async (
     event: React.MouseEvent,
     id: string,
-    title: string,
+    title: string
   ) => {
     event.stopPropagation();
 
@@ -66,7 +66,7 @@ export const StoryBox = (props: StoryBoxProps) => {
         setWasDeleted(true);
         if (axios.isAxiosError(error)) {
           console.error(
-            `Error deleting story: ${error.response?.status} ${error.message}`,
+            `Error deleting story: ${error.response?.status} ${error.message}`
           );
         } else {
           console.error(`Error deleting story: ${error}`);
@@ -89,14 +89,15 @@ export const StoryBox = (props: StoryBoxProps) => {
   const id = props.story.story_id;
   const title = props.story.title;
   const description = props.story.description;
-  const editHoverText = "Edit " + title;
-  const deleteHoverText = "Delete " + title;
+  const editHoverText = `Edit ${title}`;
+  const deleteHoverText = `Delete ${title}`;
 
   const imageURL = props.story.image_url
     ? props.story.image_url
     : "/img/icons/story_standalone_icon.jpg";
   return !wasDeleted ? (
     <button
+      type="button"
       disabled={props.story.inactive}
       onMouseEnter={showSlider}
       onMouseLeave={hideSlider}
@@ -127,47 +128,49 @@ export const StoryBox = (props: StoryBoxProps) => {
             {title}
           </div>
           <span className={styles.buttons}>
-            <IconButton
-              aria-label="edit story"
-              sx={{ padding: "0" }}
-              component="label"
-              title={editHoverText}
-              onClick={(event) => {
-                editStory(event, props.story.story_id);
-              }}
-            >
-              <EditIcon
-                sx={{
-                  padding: "0",
-                  fontSize: "18px",
-                  color: "#F0F0F0",
-                  "&:hover": {
-                    fontWeight: "bold",
-                    color: "#2a57e3",
-                  },
+            <Tooltip title={editHoverText} placement="top">
+              <IconButton
+                aria-label="edit story"
+                sx={{ padding: "0" }}
+                component="label"
+                onClick={(event) => {
+                  editStory(event, props.story.story_id);
                 }}
-              />
-            </IconButton>
-            <IconButton
-              aria-label="delete"
-              component="label"
-              title={deleteHoverText}
-              onClick={(event) => {
-                deleteStory(event, id, title);
-              }}
-            >
-              <DeleteIcon
-                sx={{
-                  fontSize: "18px",
-                  padding: "0",
-                  color: "#F0F0F0",
-                  "&:hover": {
-                    fontWeight: "bold",
-                    color: "#2a57e3",
-                  },
+              >
+                <EditIcon
+                  sx={{
+                    padding: "0",
+                    fontSize: "18px",
+                    color: "#F0F0F0",
+                    "&:hover": {
+                      fontWeight: "bold",
+                      color: "#2a57e3",
+                    },
+                  }}
+                />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={deleteHoverText} placement="top">
+              <IconButton
+                aria-label="delete"
+                component="label"
+                onClick={(event) => {
+                  deleteStory(event, id, title);
                 }}
-              />
-            </IconButton>
+              >
+                <DeleteIcon
+                  sx={{
+                    fontSize: "18px",
+                    padding: "0",
+                    color: "#F0F0F0",
+                    "&:hover": {
+                      fontWeight: "bold",
+                      color: "#2a57e3",
+                    },
+                  }}
+                />
+              </IconButton>
+            </Tooltip>
           </span>
         </div>
         <StoryOrSeriesDetailsSlider

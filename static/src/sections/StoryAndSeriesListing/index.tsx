@@ -1,5 +1,5 @@
 import AddIcon from "@mui/icons-material/Add";
-import { IconButton } from "@mui/material";
+import { IconButton, Tooltip } from "@mui/material";
 import React, { useContext, useEffect } from "react";
 import { StoryBox } from "../../components/StoryBox";
 import styles from "./storyAndSeries.module.css";
@@ -79,24 +79,25 @@ export const StoryAndSeriesListing = () => {
           <h2>Stories</h2>
           <div className={styles.iconBox}>
             <span className={styles.createStoryButton}>
-              <IconButton
-                aria-label="add new story"
-                sx={{ margin: "0 auto" }}
-                component="label"
-                onClick={createNewStory}
-                title="Create Story"
-              >
-                <AddIcon
-                  sx={{
-                    color: "#F0F0F0",
-                    fontSize: 100,
-                    "&:hover": {
-                      fontWeight: "bold",
-                      color: "#2a57e3",
-                    },
-                  }}
-                />
-              </IconButton>
+              <Tooltip title="Create Story" placement="top">
+                <IconButton
+                  aria-label="add new story"
+                  sx={{ margin: "0 auto" }}
+                  component="label"
+                  onClick={createNewStory}
+                >
+                  <AddIcon
+                    sx={{
+                      color: "#F0F0F0",
+                      fontSize: 100,
+                      "&:hover": {
+                        fontWeight: "bold",
+                        color: "#2a57e3",
+                      },
+                    }}
+                  />
+                </IconButton>
+              </Tooltip>
             </span>
             {content}
           </div>

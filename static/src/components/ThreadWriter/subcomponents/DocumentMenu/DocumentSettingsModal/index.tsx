@@ -44,9 +44,20 @@ export const DocumentSettingsModal = ({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-      <DialogTitle>Document Settings</DialogTitle>
-      <DialogContent>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      fullWidth
+      maxWidth="sm"
+      PaperProps={{
+        sx: {
+          backgroundColor: 'var(--bg-primary)',
+          color: 'var(--text-primary)',
+        }
+      }}
+    >
+      <DialogTitle sx={{ color: 'var(--text-primary)' }}>Document Settings</DialogTitle>
+      <DialogContent sx={{ color: 'var(--text-primary)' }}>
         <Box className={styles.chapterAssignment} sx={{ padding: "6px" }}>
           <List dense={true} className={styles.chapterList}>
             <ListItem key="spellcheck" className={styles.listItem}>
@@ -57,8 +68,13 @@ export const DocumentSettingsModal = ({
                 className={styles.checkbox}
                 tabIndex={-1}
                 disableRipple
+                sx={{ color: 'var(--text-primary)' }}
               />
-              <ListItemText primary="Spell Check" className={styles.label} />
+              <ListItemText
+                primary="Spell Check"
+                className={styles.label}
+                sx={{ color: 'var(--text-primary)' }}
+              />
             </ListItem>
             <ListItem key="tabs" className={styles.listItem}>
               <Checkbox
@@ -68,10 +84,12 @@ export const DocumentSettingsModal = ({
                 className={styles.checkbox}
                 tabIndex={-1}
                 disableRipple
+                sx={{ color: 'var(--text-primary)' }}
               />
               <ListItemText
                 primary="Auto-insert tab in new paragraphs"
                 className={styles.label}
+                sx={{ color: 'var(--text-primary)' }}
               />
             </ListItem>
           </List>
