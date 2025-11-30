@@ -104,7 +104,13 @@ func main() {
 
 	auth.New(authOptions)
 
-	rtr := setupRouter(mode, dao, authOptions)
+	// Check if maintenance mode is enabled
+	maintenanceMode := strings.ToLower(getenv("MAINTENANCE_MODE", "false")) == "true"
+	if maintenanceMode {
+		logger.Warn("MAINTENANCE MODE ENABLED - Site will show maintenance page to all users")
+	}
+
+	rtr := setupRouter(mode, dao, authOptions, maintenanceMode)
 	srv := &http.Server{
 		Addr:              addr,
 		Handler:           rtr,

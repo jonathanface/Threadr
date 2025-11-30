@@ -55,8 +55,8 @@ static/node_modules/
 
 # Build artifacts (will be built in container)
 static/dist/
-bin/
 *.exe
+# Note: bin/ contains wkhtmltox binaries that must be included
 
 # Temporary files
 tmp/
