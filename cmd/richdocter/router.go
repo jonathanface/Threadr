@@ -24,6 +24,9 @@ const (
 func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.OauthOptions) *mux.Router {
 	rtr := mux.NewRouter()
 
+	// Apply CORS middleware first (must be before other middleware to handle preflight)
+	rtr.Use(corsMiddleware(authOptions.FrontEndURL))
+
 	// Apply rate limiting middleware (600 req/min per IP, excludes /health)
 	limiter := newRateLimiter()
 	rtr.Use(rateLimitMiddleware(limiter))

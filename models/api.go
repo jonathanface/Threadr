@@ -33,6 +33,17 @@ type StoryBlocks struct {
 	Blocks    []StoryBlock `json:"blocks" dynamodbav:"blocks"`
 }
 
+// BlockOrder is used for reordering blocks (no content, just position)
+type BlockOrder struct {
+	KeyID string `json:"key_id"`
+	Place string `json:"place"`
+}
+type BlocksOrder struct {
+	StoryID   string       `json:"story_id"`
+	ChapterID string       `json:"chapter_id"`
+	Blocks    []BlockOrder `json:"blocks"`
+}
+
 type AssociationDetails struct {
 	ExtendedDescription string `json:"extended_description" dynamodbav:"extended_description"`
 }

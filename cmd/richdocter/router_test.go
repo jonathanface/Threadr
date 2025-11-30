@@ -43,11 +43,11 @@ func TestSetupRouter(t *testing.T) {
 			expectStatus: http.StatusOK,
 		},
 		{
-			name:         "health endpoint with OPTIONS returns 200",
+			name:         "health endpoint with OPTIONS returns 204 (CORS preflight)",
 			mode:         models.ModeProduction,
 			method:       "OPTIONS",
 			path:         "/health",
-			expectStatus: http.StatusOK,
+			expectStatus: http.StatusNoContent,
 		},
 		{
 			name:           "pprof enabled in development mode",

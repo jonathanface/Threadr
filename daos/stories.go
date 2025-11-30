@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -18,6 +19,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/google/uuid"
 )
+
+// truncateString truncates a string to maxLen characters, adding "..." if truncated
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
+}
 
 func (d *DAO) GetAllStories(ctx context.Context, email string) (stories []*models.Story, err error) {
 	logger.Debug("GetAllStories called", "email", email)
@@ -302,6 +311,23 @@ func buildReorderTransactions(
 			}
 
 			oldPlaceNum, _ := strconv.ParseInt(oldPlace.Value, 10, 64)
+
+			// Check if incoming has empty chunk but existing has content
+			hasExistingChunk := false
+			if existingChunk, ok := existingItem["chunk"]; ok {
+				if s, ok := existingChunk.(*types.AttributeValueMemberS); ok && len(s.Value) > 10 {
+					hasExistingChunk = true
+				}
+			}
+			if hasExistingChunk && len(item.Chunk) == 0 {
+				logger.Debug("ResetBlockOrder: Preserving existing chunk (incoming chunk is empty)",
+					"storyId", storyID,
+					"chapterId", chapterID,
+					"keyId", item.KeyID,
+					"oldPlace", oldPlaceNum,
+					"newPlace", newPlaceNum)
+			}
+
 			if oldPlaceNum != newPlaceNum {
 				// Delete the item from its old location
 				deleteKey := map[string]types.AttributeValue{
@@ -316,6 +342,7 @@ func buildReorderTransactions(
 				})
 
 				// Create new item with updated place value
+				// This preserves ALL attributes including chunk from existing item
 				newItem := make(map[string]types.AttributeValue)
 				for k, v := range existingItem {
 					newItem[k] = v
@@ -330,17 +357,31 @@ func buildReorderTransactions(
 				})
 			}
 		} else {
-			// Block doesn't exist yet - create it
+			// Block doesn't exist yet
+			// WARNING: This should rarely happen in ResetBlockOrder (which is for reordering existing blocks)
+			// If this happens frequently with empty chunks, it indicates a frontend bug
+			if len(item.Chunk) == 0 {
+				logger.Warn("ResetBlockOrder: Skipping creation of new block with empty chunk (possible frontend bug - sending wrong keyIDs)",
+					"storyId", storyID,
+					"chapterId", chapterID,
+					"keyId", item.KeyID,
+					"place", item.Place)
+				continue
+			}
+
+			logger.Debug("ResetBlockOrder: Creating new block",
+				"storyId", storyID,
+				"chapterId", chapterID,
+				"keyId", item.KeyID,
+				"place", item.Place)
+
 			newItem := map[string]types.AttributeValue{
 				"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
 				"place":         &types.AttributeValueMemberN{Value: strconv.FormatInt(newPlaceNum, 10)},
 				"story_id":      &types.AttributeValueMemberS{Value: storyID},
 				"chapter_id":    &types.AttributeValueMemberS{Value: chapterID},
 				"key_id":        &types.AttributeValueMemberS{Value: item.KeyID},
-			}
-
-			if len(item.Chunk) > 0 {
-				newItem["chunk"] = &types.AttributeValueMemberS{Value: string(item.Chunk)}
+				"chunk":         &types.AttributeValueMemberS{Value: string(item.Chunk)},
 			}
 
 			putItems = append(putItems, types.TransactWriteItem{
@@ -431,16 +472,17 @@ func (d *DAO) deleteOrphanedBlocks(
 
 // ResetBlockOrder reorders blocks by deleting and recreating them with new place values
 // This is necessary because place is part of the primary key and cannot be updated
-func (d *DAO) ResetBlockOrder(ctx context.Context, storyID string, storyBlocks *models.StoryBlocks) (err error) {
-	compositeKey := buildCompositeKey(storyID, storyBlocks.ChapterID)
+// Note: This only changes block positions, NOT content
+func (d *DAO) ResetBlockOrder(ctx context.Context, storyID string, blocksOrder *models.BlocksOrder) (err error) {
+	compositeKey := buildCompositeKey(storyID, blocksOrder.ChapterID)
 
 	logger.Info("ResetBlockOrder started",
 		"storyId", storyID,
-		"chapterId", storyBlocks.ChapterID,
-		"blockCount", len(storyBlocks.Blocks))
+		"chapterId", blocksOrder.ChapterID,
+		"blockCount", len(blocksOrder.Blocks))
 
 	// Step 1: Query all existing blocks
-	existingItems, err := d.queryExistingBlocks(ctx, compositeKey, storyID, storyBlocks.ChapterID)
+	existingItems, err := d.queryExistingBlocks(ctx, compositeKey, storyID, blocksOrder.ChapterID)
 	if err != nil {
 		return err
 	}
@@ -448,16 +490,26 @@ func (d *DAO) ResetBlockOrder(ctx context.Context, storyID string, storyBlocks *
 	// Step 2: Create lookup map by key_id
 	itemsByKeyID := buildItemMapByKeyID(existingItems)
 
-	// Step 3: Process blocks in batches
+	// Step 3: Convert BlockOrder to StoryBlock (without chunk data - will be preserved from existing)
+	blocks := make([]models.StoryBlock, len(blocksOrder.Blocks))
+	for i, bo := range blocksOrder.Blocks {
+		blocks[i] = models.StoryBlock{
+			KeyID: bo.KeyID,
+			Place: bo.Place,
+			// Chunk intentionally omitted - will be preserved from existing blocks
+		}
+	}
+
+	// Step 4: Process blocks in batches
 	batchSize := d.writeBatchSize / 2
 	if batchSize == 0 {
 		batchSize = 50
 	}
-	batches := createBatches(storyBlocks.Blocks, batchSize)
+	batches := createBatches(blocks, batchSize)
 
 	logger.Debug("Processing batches",
 		"storyId", storyID,
-		"chapterId", storyBlocks.ChapterID,
+		"chapterId", blocksOrder.ChapterID,
 		"batchCount", len(batches),
 		"batchSize", batchSize)
 
@@ -465,12 +517,12 @@ func (d *DAO) ResetBlockOrder(ctx context.Context, storyID string, storyBlocks *
 	for batchIndex, batch := range batches {
 		logger.Debug("Processing batch",
 			"storyId", storyID,
-			"chapterId", storyBlocks.ChapterID,
+			"chapterId", blocksOrder.ChapterID,
 			"batchNumber", batchIndex+1,
 			"totalBatches", len(batches),
 			"itemsInBatch", len(batch))
 
-		deleteItems, putItems, err := buildReorderTransactions(batch, compositeKey, storyID, storyBlocks.ChapterID, itemsByKeyID)
+		deleteItems, putItems, err := buildReorderTransactions(batch, compositeKey, storyID, blocksOrder.ChapterID, itemsByKeyID)
 		if err != nil {
 			return err
 		}
@@ -479,7 +531,7 @@ func (d *DAO) ResetBlockOrder(ctx context.Context, storyID string, storyBlocks *
 		if len(deleteItems) > 0 {
 			logger.Debug("Phase 1: Deleting blocks from old positions",
 				"storyId", storyID,
-				"chapterId", storyBlocks.ChapterID,
+				"chapterId", blocksOrder.ChapterID,
 				"deleteCount", len(deleteItems))
 
 			deleteInput := &dynamodb.TransactWriteItemsInput{
@@ -490,7 +542,7 @@ func (d *DAO) ResetBlockOrder(ctx context.Context, storyID string, storyBlocks *
 				logger.Error("Phase 1 delete transaction failed",
 					"error", err,
 					"storyId", storyID,
-					"chapterId", storyBlocks.ChapterID)
+					"chapterId", blocksOrder.ChapterID)
 				return err
 			}
 			if !awsErr.IsNil() {
@@ -499,7 +551,7 @@ func (d *DAO) ResetBlockOrder(ctx context.Context, storyID string, storyBlocks *
 					"awsErrorType", awsErr.ErrorType,
 					"awsText", awsErr.Text,
 					"storyId", storyID,
-					"chapterId", storyBlocks.ChapterID)
+					"chapterId", blocksOrder.ChapterID)
 				return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 			}
 		}
@@ -508,7 +560,7 @@ func (d *DAO) ResetBlockOrder(ctx context.Context, storyID string, storyBlocks *
 		if len(putItems) > 0 {
 			logger.Debug("Phase 2: Writing blocks to new positions",
 				"storyId", storyID,
-				"chapterId", storyBlocks.ChapterID,
+				"chapterId", blocksOrder.ChapterID,
 				"putCount", len(putItems))
 
 			putInput := &dynamodb.TransactWriteItemsInput{
@@ -519,7 +571,7 @@ func (d *DAO) ResetBlockOrder(ctx context.Context, storyID string, storyBlocks *
 				logger.Error("Phase 2 put transaction failed",
 					"error", err,
 					"storyId", storyID,
-					"chapterId", storyBlocks.ChapterID)
+					"chapterId", blocksOrder.ChapterID)
 				return err
 			}
 			if !awsErr.IsNil() {
@@ -528,29 +580,29 @@ func (d *DAO) ResetBlockOrder(ctx context.Context, storyID string, storyBlocks *
 					"awsErrorType", awsErr.ErrorType,
 					"awsText", awsErr.Text,
 					"storyId", storyID,
-					"chapterId", storyBlocks.ChapterID)
+					"chapterId", blocksOrder.ChapterID)
 				return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 			}
 		}
 	}
 
 	// Phase 3: Delete blocks that exist in DB but aren't in the new order list
-	blocksToDelete := identifyOrphanedBlocks(itemsByKeyID, storyBlocks.Blocks)
+	blocksToDelete := identifyOrphanedBlocks(itemsByKeyID, blocks)
 	if len(blocksToDelete) > 0 {
 		logger.Info("Phase 3: Deleting blocks not in new order list",
 			"storyId", storyID,
-			"chapterId", storyBlocks.ChapterID,
+			"chapterId", blocksOrder.ChapterID,
 			"deleteCount", len(blocksToDelete))
 
-		if err := d.deleteOrphanedBlocks(ctx, blocksToDelete, storyID, storyBlocks.ChapterID); err != nil {
+		if err := d.deleteOrphanedBlocks(ctx, blocksToDelete, storyID, blocksOrder.ChapterID); err != nil {
 			return err
 		}
 	}
 
 	logger.Info("ResetBlockOrder completed successfully",
 		"storyId", storyID,
-		"chapterId", storyBlocks.ChapterID,
-		"blocksProcessed", len(storyBlocks.Blocks))
+		"chapterId", blocksOrder.ChapterID,
+		"blocksProcessed", len(blocks))
 	return
 }
 
@@ -587,7 +639,63 @@ func buildWriteTransactions(
 				"story_id":      &types.AttributeValueMemberS{Value: storyID},
 				"chapter_id":    &types.AttributeValueMemberS{Value: chapterID},
 				"key_id":        &types.AttributeValueMemberS{Value: item.KeyID},
-				"chunk":         &types.AttributeValueMemberS{Value: string(item.Chunk)},
+			}
+
+			// Update chunk - with data loss protection
+			if len(item.Chunk) > 0 {
+				chunkStr := string(item.Chunk)
+
+				// Check if we're overwriting content with empty data
+				if existingChunk, ok := existingItem["chunk"]; ok {
+					existingChunkStr := ""
+					if s, ok := existingChunk.(*types.AttributeValueMemberS); ok {
+						existingChunkStr = s.Value
+					}
+
+					// Detect potential data loss from malformed/broken chunks
+					// A properly serialized Lexical paragraph (even empty) is ~100+ chars with structure
+					// Malformed data from race conditions would be very short or literal empty values
+					existingHasContent := len(existingChunkStr) > 50 // reasonable threshold for min Lexical JSON
+
+					// Check for clearly malformed data (not properly serialized Lexical JSON)
+					newIsMalformed := chunkStr == "null" ||
+						chunkStr == "[]" ||
+						chunkStr == `""` ||
+						chunkStr == "{}" ||
+						len(chunkStr) < 30 || // Properly serialized paragraph is ~100+ chars minimum
+						(!strings.Contains(chunkStr, "type") && !strings.Contains(chunkStr, "key_id")) // Must have basic structure
+
+					if existingHasContent && newIsMalformed {
+						// PREVENT data loss by preserving existing content
+						// This catches race conditions where malformed/broken data is sent
+						// but allows properly serialized paragraphs (including intentionally empty ones) through
+						logger.Warn("DATA LOSS PREVENTED: Preserving existing chunk - incoming chunk is malformed",
+							"storyId", storyID,
+							"chapterId", chapterID,
+							"keyId", item.KeyID,
+							"existingLength", len(existingChunkStr),
+							"incomingLength", len(chunkStr),
+							"incomingChunk", chunkStr,
+							"existingChunkPreview", truncateString(existingChunkStr, 100))
+						// Preserve existing chunk instead of overwriting with malformed data
+						newItem["chunk"] = existingChunk
+					} else {
+						// Safe update - accept the new chunk (including intentionally empty paragraphs)
+						newItem["chunk"] = &types.AttributeValueMemberS{Value: chunkStr}
+					}
+				} else {
+					// No existing chunk, accept the new one
+					newItem["chunk"] = &types.AttributeValueMemberS{Value: chunkStr}
+				}
+			} else {
+				// Zero-length chunk (likely a bug) - preserve existing to prevent data loss
+				if existingChunk, ok := existingItem["chunk"]; ok {
+					newItem["chunk"] = existingChunk
+					logger.Warn("DATA LOSS PREVENTED: Preserving existing chunk due to zero-length incoming chunk",
+						"storyId", storyID,
+						"chapterId", chapterID,
+						"keyId", item.KeyID)
+				}
 			}
 
 			// Preserve other attributes from existing item
@@ -619,7 +727,18 @@ func buildWriteTransactions(
 				},
 			})
 		} else {
-			// New block - check if the place is already occupied
+			// New block - skip only if chunk is truly zero-length (likely a bug)
+			// Allow creation with valid empty JSON (intentional blank paragraphs)
+			if len(item.Chunk) == 0 {
+				logger.Warn("Skipping creation of new block with zero-length chunk (possible frontend bug)",
+					"storyId", storyID,
+					"chapterId", chapterID,
+					"keyId", item.KeyID,
+					"place", item.Place)
+				continue
+			}
+
+			// Check if the place is already occupied
 			actualPlace := newPlaceNum
 			if _, placeOccupied := itemsByPlace[newPlaceNum]; placeOccupied {
 				// There's already a different block at this place
@@ -640,6 +759,15 @@ func buildWriteTransactions(
 				"chapter_id":    &types.AttributeValueMemberS{Value: chapterID},
 				"key_id":        &types.AttributeValueMemberS{Value: item.KeyID},
 				"chunk":         &types.AttributeValueMemberS{Value: string(item.Chunk)},
+			}
+
+			chunkStr := string(item.Chunk)
+			if chunkStr == "null" || chunkStr == "[]" || chunkStr == `""` || chunkStr == "{}" {
+				logger.Debug("Creating new block with intentional empty chunk",
+					"storyId", storyID,
+					"chapterId", chapterID,
+					"keyId", item.KeyID,
+					"chunkValue", chunkStr)
 			}
 
 			putItems = append(putItems, types.TransactWriteItem{

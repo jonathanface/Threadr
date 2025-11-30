@@ -33,7 +33,7 @@ type MockDAO struct {
 	MockRemoveStoryFromSeries                   func(email, storyID string, series models.Series) (models.Series, error)
 	MockUpdateStorySettings                     func(email, storyID string, settings models.StorySettings) error
 	MockEditChapter                             func(storyID string, chapter models.Chapter) (models.Chapter, error)
-	MockResetBlockOrder                         func(storyID string, storyBlocks *models.StoryBlocks) error
+	MockResetBlockOrder                         func(storyID string, blocksOrder *models.BlocksOrder) error
 	MockWriteBlocks                             func(storyID string, storyBlocks *models.StoryBlocks) error
 	MockWriteAssociations                       func(email, storyOrSeriesID string, associations []*models.Association) error
 	MockUpdateAssociationPortraitEntryInDB      func(email, storyOrSeriesID, associationID, url string) error
@@ -274,11 +274,11 @@ func (m *MockDAO) EditChapter(ctx context.Context, storyID string, chapter model
 	return m.DAO.EditChapter(ctx, storyID, chapter)
 }
 
-func (m *MockDAO) ResetBlockOrder(ctx context.Context, storyID string, storyBlocks *models.StoryBlocks) error {
+func (m *MockDAO) ResetBlockOrder(ctx context.Context, storyID string, blocksOrder *models.BlocksOrder) error {
 	if m.MockResetBlockOrder != nil {
-		return m.MockResetBlockOrder(storyID, storyBlocks)
+		return m.MockResetBlockOrder(storyID, blocksOrder)
 	}
-	return m.DAO.ResetBlockOrder(ctx, storyID, storyBlocks)
+	return m.DAO.ResetBlockOrder(ctx, storyID, blocksOrder)
 }
 
 func (m *MockDAO) WriteBlocks(ctx context.Context, storyID string, storyBlocks *models.StoryBlocks) error {

@@ -200,14 +200,14 @@ func TestResetBlockOrder(t *testing.T) {
 	testCases := []struct {
 		name        string
 		storyID     string
-		storyBlocks *models.StoryBlocks
+		blocksOrder *models.BlocksOrder
 		wantErr     bool
 	}{
 		{
 			name:    "SuccessfulReset",
 			storyID: "story123",
-			storyBlocks: &models.StoryBlocks{
-				Blocks: []models.StoryBlock{
+			blocksOrder: &models.BlocksOrder{
+				Blocks: []models.BlockOrder{
 					{KeyID: "block1", Place: "2"},
 					{KeyID: "block2", Place: "1"},
 				},
@@ -222,14 +222,14 @@ func TestResetBlockOrder(t *testing.T) {
 			mockDao := NewMockDAO()
 
 			// Mock the ResetBlockOrder function since it requires DynamoDB Query operations
-			mockDao.MockResetBlockOrder = func(storyID string, storyBlocks *models.StoryBlocks) error {
+			mockDao.MockResetBlockOrder = func(storyID string, blocksOrder *models.BlocksOrder) error {
 				if tc.wantErr {
 					return errors.New("mock error")
 				}
 				return nil
 			}
 
-			err := mockDao.ResetBlockOrder(context.Background(), tc.storyID, tc.storyBlocks)
+			err := mockDao.ResetBlockOrder(context.Background(), tc.storyID, tc.blocksOrder)
 
 			if tc.wantErr {
 				if err == nil {

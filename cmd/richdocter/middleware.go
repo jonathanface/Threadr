@@ -15,13 +15,35 @@ import (
 	"time"
 )
 
+// corsMiddleware adds CORS headers to all responses
+func corsMiddleware(allowedOrigin string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			origin := r.Header.Get("Origin")
+
+			// Allow requests from the configured frontend origin
+			if origin == allowedOrigin {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
+			}
+
+			// Handle preflight requests
+			if r.Method == "OPTIONS" {
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin")
+				w.Header().Set("Access-Control-Max-Age", "86400") // 24 hours
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 func looseMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == "OPTIONS" {
-				w.WriteHeader(http.StatusOK)
-				return
-			}
 			ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
 			defer cancel()
 			ctx = context.WithValue(ctx, ctxkey.DAO, d)
@@ -34,10 +56,6 @@ func looseMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 func billingMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == "OPTIONS" {
-				w.WriteHeader(http.StatusOK)
-				return
-			}
 			token, err := sessions.Get(r, "token")
 			if err != nil || token.IsNew {
 				api.RespondWithError(w, http.StatusUnauthorized, "cannot find token")
@@ -59,11 +77,6 @@ func billingMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 func strictMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == "OPTIONS" {
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-
 			token, err := sessions.Get(r, "token")
 			if err != nil || token.IsNew {
 				api.RespondWithError(w, http.StatusUnauthorized, "cannot find token")

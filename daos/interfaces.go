@@ -37,7 +37,7 @@ type DaoInterface interface {
 	UpdateUser(ctx context.Context, user models.UserInfo) error
 	RestoreAutomaticallyDeletedStories(ctx context.Context, email string) (<-chan RestoreStoryEvent, error)
 	restoreOneStory(ctx context.Context, email string, story models.Story) error
-	ResetBlockOrder(ctx context.Context, storyID string, storyBlocks *models.StoryBlocks) error
+	ResetBlockOrder(ctx context.Context, storyID string, blocksOrder *models.BlocksOrder) error
 	WriteBlocks(ctx context.Context, storyID string, storyBlocks *models.StoryBlocks) error
 	WriteAssociations(ctx context.Context, email, storyOrSeriesID string, associations []*models.Association) error
 	UpdateAssociationPortraitEntryInDB(ctx context.Context, email, storyOrSeriesID, associationID, url string) error
