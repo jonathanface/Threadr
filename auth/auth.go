@@ -68,6 +68,10 @@ func safeRedirect(dest, defaultURL string, allowed []string) string {
 	if strings.HasPrefix(dest, "/") {
 		base, _ := url.Parse(defaultURL)
 		rel, _ := url.Parse(dest)
+		// Reject protocol-relative URLs (e.g., "//evil.com/path")
+		if rel.Host != "" {
+			return defaultURL
+		}
 		base.Path = rel.Path
 		base.RawQuery = rel.RawQuery
 		base.Fragment = rel.Fragment

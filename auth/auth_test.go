@@ -180,6 +180,22 @@ func TestSafeRedirect_SchemeMismatch(t *testing.T) {
 	}
 }
 
+func TestSafeRedirect_ProtocolRelativeURL(t *testing.T) {
+	allowed := []string{"https://example.com"}
+	result := safeRedirect("//evil.com/phishing", "https://example.com", allowed)
+	if result != "https://example.com" {
+		t.Errorf("Expected default URL for protocol-relative URL to disallowed domain, got '%s'", result)
+	}
+}
+
+func TestSafeRedirect_BackslashPath(t *testing.T) {
+	allowed := []string{"https://example.com"}
+	result := safeRedirect("\\/\\/evil.com", "https://example.com", allowed)
+	if result != "https://example.com" {
+		t.Errorf("Expected default URL for backslash path bypass attempt, got '%s'", result)
+	}
+}
+
 // Tests for Logout
 func TestLogout_Success(t *testing.T) {
 	// Create request with session

@@ -1,0 +1,76 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# CI/CD
+.github
+
+# Environment files - NEVER include in images
+.env
+.env.*
+*.env
+!.env.example
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+README*
+LICENSE
+CHANGELOG*
+docs/
+
+# Test files
+*_test.go
+**/*_test.go
+*test.go
+**/*test.go
+*.test.js
+**/*.test.js
+*.spec.js
+**/*.spec.js
+*.test.ts
+**/*.test.ts
+*.test.tsx
+**/*.test.tsx
+
+# Coverage reports
+coverage/
+*.coverage
+.nyc_output/
+
+# Node modules (will be installed in container)
+node_modules/
+static/node_modules/
+
+# Build artifacts (will be built in container)
+static/dist/
+bin/
+*.exe
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.log
+
+# AWS credentials
+.aws/credentials
+.aws/config
+
+# Lambda artifacts
+lambdas/
+
+# Backups
+*.bak
+*.backup

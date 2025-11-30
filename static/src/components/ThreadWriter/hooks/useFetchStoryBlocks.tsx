@@ -38,12 +38,14 @@ export const useFetchStoryBlocks = (
   const [previousTableStatus, setPreviousTableStatus] = useState("ok");
 
   const getBatchedStoryBlocks = useCallback(
-    async (startKey: string) => {
+    async (startKey: string, showLoadingIndicator = false) => {
       if (!storyId || !chapterId || !previousNodeKeysRef || !setStoryBlocks)
         return;
 
       try {
-        showLoader();
+        if (showLoadingIndicator) {
+          showLoader();
+        }
 
         const { data } = await api.get<{
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -128,7 +130,9 @@ export const useFetchStoryBlocks = (
           logger.error("Unexpected error retrieving story content:", error);
         }
       } finally {
-        hideLoader();
+        if (showLoadingIndicator) {
+          hideLoader();
+        }
       }
     },
     [

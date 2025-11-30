@@ -11,7 +11,7 @@
 }
 
 .loginPanel h1 {
-    color: #ffffff;
+    color: var(--text-primary);
     margin: 0 0 2rem 0;
 }
 

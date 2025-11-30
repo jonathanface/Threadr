@@ -111,7 +111,7 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
           role="presentation"
           component="section"
         >
-          <ChapterMenu />
+          <ChapterMenu onChapterSelect={() => setIsEditorChapterMenuOpen(false)} />
         </Box>
       </Drawer>
       <Drawer
