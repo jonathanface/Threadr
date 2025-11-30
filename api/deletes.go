@@ -14,12 +14,16 @@ import (
 
 func DeleteBlocksFromStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
+		email   string
 		err     error
 		storyID string
 		dao     daos.DaoInterface
 		ok      bool
 	)
-
+	if email, err = getUserEmail(r); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
 		return
@@ -36,6 +40,11 @@ func DeleteBlocksFromStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
+		return
+	}
+	// Verify the user owns this story before allowing deletion
+	if _, err = dao.GetStoryByID(email, storyID); err != nil {
+		RespondWithError(w, http.StatusForbidden, "You do not have permission to delete content from this story")
 		return
 	}
 	if err = dao.DeleteChapterParagraphs(storyID, &storyBlocks); err != nil {
@@ -104,12 +113,17 @@ func DeleteAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 func DeleteChaptersEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
+		email     string
 		err       error
 		storyID   string
 		chapterID string
 		dao       daos.DaoInterface
 		ok        bool
 	)
+	if email, err = getUserEmail(r); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story ID")
 		return
@@ -129,6 +143,11 @@ func DeleteChaptersEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
+		return
+	}
+	// Verify the user owns this story before allowing chapter deletion
+	if _, err = dao.GetStoryByID(email, storyID); err != nil {
+		RespondWithError(w, http.StatusForbidden, "You do not have permission to delete chapters from this story")
 		return
 	}
 	var chapters []models.Chapter

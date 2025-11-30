@@ -19,9 +19,9 @@ const root = ReactDOM.createRoot(rootElement);
 const mode = import.meta.env.VITE_MODE;
 
 const cognitoAuthConfig = {
-  authority: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_z7a7yvNuO",
-  client_id: "3767p133npflnb4c9r0p3tlasb",
-  redirect_uri: "https://stage.docter.io",
+  authority: import.meta.env.VITE_COGNITO_AUTHORITY,
+  client_id: import.meta.env.VITE_COGNITO_CLIENT_ID,
+  redirect_uri: import.meta.env.VITE_COGNITO_REDIRECT_URI,
   response_type: "code",
   scope: "email",
 };

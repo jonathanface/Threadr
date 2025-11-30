@@ -104,6 +104,11 @@ func ValidateImageURL(imageURL string) (string, error) {
 
 	// Check each resolved IP address
 	for _, ip := range ips {
+		// Block AWS metadata service IP explicitly
+		if ip.String() == "169.254.169.254" {
+			return "", fmt.Errorf("access to cloud metadata services is not allowed")
+		}
+
 		// Block loopback addresses (127.0.0.0/8, ::1)
 		if ip.IsLoopback() {
 			return "", fmt.Errorf("access to loopback addresses is not allowed")
