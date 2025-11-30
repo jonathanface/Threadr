@@ -21,11 +21,14 @@ const (
 	authPath       = "/auth"
 )
 
-func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.OauthOptions) *mux.Router {
+func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.OauthOptions, maintenanceMode bool) *mux.Router {
 	rtr := mux.NewRouter()
 
 	// Apply CORS middleware first (must be before other middleware to handle preflight)
 	rtr.Use(corsMiddleware(authOptions.FrontEndURL))
+
+	// Apply maintenance mode middleware (allows /health to pass through)
+	rtr.Use(maintenanceModeMiddleware(maintenanceMode))
 
 	// Apply rate limiting middleware (600 req/min per IP, excludes /health)
 	limiter := newRateLimiter()
