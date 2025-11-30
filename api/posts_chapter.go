@@ -51,7 +51,7 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		chapter.Place = 1
 	}
 
-	if newChapter, err = dao.CreateChapter(storyID, chapter, email); err != nil {
+	if newChapter, err = dao.CreateChapter(r.Context(), storyID, chapter, email); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {

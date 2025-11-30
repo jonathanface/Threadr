@@ -117,7 +117,7 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var storyOrSeriesID string
-	if storyOrSeriesID, err = dao.IsStoryInASeries(email, storyID); err != nil {
+	if storyOrSeriesID, err = dao.IsStoryInASeries(r.Context(), email, storyID); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -126,7 +126,7 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the old portrait URL to delete it before uploading new one
-	oldAssociation, err := dao.GetAssociationDetails(email, storyID, associationID)
+	oldAssociation, err := dao.GetAssociationDetails(r.Context(), email, storyID, associationID)
 	if err != nil {
 		logger.Warn("Failed to get old association details, continuing with upload",
 			"error", err,
@@ -165,7 +165,7 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	portraitURL := "https://" + S3_CUSTOM_PORTRAIT_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
-	if err = dao.UpdateAssociationPortraitEntryInDB(email, storyOrSeriesID, associationID, portraitURL); err != nil {
+	if err = dao.UpdateAssociationPortraitEntryInDB(r.Context(), email, storyOrSeriesID, associationID, portraitURL); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

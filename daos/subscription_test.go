@@ -1,6 +1,7 @@
 package daos
 
 import (
+	"context"
 	"testing"
 )
 
@@ -21,7 +22,7 @@ func TestGetSubscription(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			sub, err := mockDao.GetSubscription(tc.email)
+			sub, err := mockDao.GetSubscription(context.Background(), tc.email)
 
 			t.Logf("GetSubscription(%q) returned sub=%v, err=%v", tc.email, sub != nil, err)
 		})
@@ -45,7 +46,7 @@ func TestGetEmailByCustomerId(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			email, err := mockDao.GetEmailByCustomerId(tc.customerID)
+			email, err := mockDao.GetEmailByCustomerId(context.Background(), tc.customerID)
 
 			t.Logf("GetEmailByCustomerId(%q) returned email=%q, err=%v", tc.customerID, email, err)
 		})
@@ -58,7 +59,7 @@ func BenchmarkGetSubscription(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = mockDao.GetSubscription("bench@example.com")
+		_, _ = mockDao.GetSubscription(context.Background(), "bench@example.com")
 	}
 }
 

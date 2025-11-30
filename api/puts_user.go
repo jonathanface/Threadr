@@ -26,7 +26,7 @@ func UpdateUserEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := dao.GetUserDetails(email)
+	user, err := dao.GetUserDetails(r.Context(), email)
 	if err != nil {
 		RespondWithError(w, http.StatusNotFound, "Unable to locate user")
 		return
@@ -38,7 +38,7 @@ func UpdateUserEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = dao.UpdateUser(*user); err != nil {
+	if err = dao.UpdateUser(r.Context(), *user); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {

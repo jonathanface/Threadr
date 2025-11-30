@@ -14,7 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-func (d *DAO) awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsInput) (awsError models.AwsError, err error) {
+func (d *DAO) awsWriteTransaction(ctx context.Context, writeItemsInput *dynamodb.TransactWriteItemsInput) (awsError models.AwsError, err error) {
 	if writeItemsInput == nil || len(writeItemsInput.TransactItems) == 0 {
 		logger.Error("awsWriteTransaction called with nil or empty input")
 		return awsError, fmt.Errorf("writeItemsInput is nil or empty")
@@ -49,7 +49,7 @@ func (d *DAO) awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsIn
 
 		// **Step 2: Retry logic with exponential backoff**
 		for numRetries := 0; numRetries < d.maxRetries; numRetries++ {
-			_, err := d.DynamoClient.TransactWriteItems(context.Background(), chunk)
+			_, err := d.DynamoClient.TransactWriteItems(ctx, chunk)
 			if err == nil {
 				logger.Debug("Transaction chunk succeeded",
 					"chunkNum", chunkNum,

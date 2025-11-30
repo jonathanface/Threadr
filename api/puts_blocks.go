@@ -32,17 +32,17 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	decoder := json.NewDecoder(r.Body)
-	storyBlocks := models.StoryBlocks{}
-	if err := decoder.Decode(&storyBlocks); err != nil {
-		logger.Error("Failed to decode story blocks", "error", err, "storyId", storyID, "remoteAddr", r.RemoteAddr)
+	blocksOrder := models.BlocksOrder{}
+	if err := decoder.Decode(&blocksOrder); err != nil {
+		logger.Error("Failed to decode blocks order", "error", err, "storyId", storyID, "remoteAddr", r.RemoteAddr)
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	logger.Info("RewriteBlockOrder request received",
 		"storyId", storyID,
-		"chapterId", storyBlocks.ChapterID,
-		"blockCount", len(storyBlocks.Blocks),
+		"chapterId", blocksOrder.ChapterID,
+		"blockCount", len(blocksOrder.Blocks),
 		"remoteAddr", r.RemoteAddr)
 
 	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
@@ -51,15 +51,15 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = dao.ResetBlockOrder(storyID, &storyBlocks); err != nil {
+	if err = dao.ResetBlockOrder(r.Context(), storyID, &blocksOrder); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("ResetBlockOrder AWS error",
 					"error", err,
 					"storyId", storyID,
-					"chapterId", storyBlocks.ChapterID,
-					"blockCount", len(storyBlocks.Blocks))
+					"chapterId", blocksOrder.ChapterID,
+					"blockCount", len(blocksOrder.Blocks))
 				RespondWithError(w, http.StatusInternalServerError, err.Error())
 				return
 			}
@@ -67,22 +67,22 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 				"awsCode", awsResponse.Code,
 				"awsMessage", awsResponse.Message,
 				"storyId", storyID,
-				"chapterId", storyBlocks.ChapterID)
+				"chapterId", blocksOrder.ChapterID)
 			RespondWithError(w, awsResponse.Code, awsResponse.Message)
 			return
 		}
 		logger.Error("ResetBlockOrder failed",
 			"error", err,
 			"storyId", storyID,
-			"chapterId", storyBlocks.ChapterID,
-			"blockCount", len(storyBlocks.Blocks))
+			"chapterId", blocksOrder.ChapterID,
+			"blockCount", len(blocksOrder.Blocks))
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	logger.Info("RewriteBlockOrder completed successfully",
 		"storyId", storyID,
-		"chapterId", storyBlocks.ChapterID,
-		"blockCount", len(storyBlocks.Blocks))
+		"chapterId", blocksOrder.ChapterID,
+		"blockCount", len(blocksOrder.Blocks))
 	RespondWithJson(w, http.StatusOK, nil)
 }
 
@@ -112,11 +112,29 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Count empty chunks to track potential blank paragraph issues
+	emptyChunkCount := 0
+	for _, block := range storyBlocks.Blocks {
+		if len(block.Chunk) == 0 {
+			emptyChunkCount++
+		}
+	}
+
 	logger.Info("WriteBlocks request received",
 		"storyId", storyID,
 		"chapterId", storyBlocks.ChapterID,
 		"blockCount", len(storyBlocks.Blocks),
+		"emptyChunkCount", emptyChunkCount,
 		"remoteAddr", r.RemoteAddr)
+
+	if emptyChunkCount > 0 {
+		logger.Warn("WriteBlocks request contains empty chunks",
+			"storyId", storyID,
+			"chapterId", storyBlocks.ChapterID,
+			"emptyChunkCount", emptyChunkCount,
+			"totalBlocks", len(storyBlocks.Blocks),
+			"remoteAddr", r.RemoteAddr)
+	}
 
 	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		logger.Error("Failed to get DAO from context", "storyId", storyID, "remoteAddr", r.RemoteAddr)
@@ -124,7 +142,7 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = dao.WriteBlocks(storyID, &storyBlocks); err != nil {
+	if err = dao.WriteBlocks(r.Context(), storyID, &storyBlocks); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {

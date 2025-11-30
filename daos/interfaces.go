@@ -10,68 +10,68 @@ import (
 
 type DaoInterface interface {
 	// GETs
-	GetAllStories(email string) ([]*models.Story, error)
-	GetAllStandalone(email string, adminRequest bool) ([]models.Story, error)
-	GetAllSeriesWithStories(email string, adminRequest bool) ([]models.Series, error)
-	GetChaptersByStoryID(storyID string) ([]models.Chapter, error)
-	GetChaptersByStoryIDs(storyIDs []string) (map[string][]models.Chapter, error)
-	GetStoryByID(email string, storyID string) (*models.Story, error)
-	GetStorySettingsByID(email string, storyID string) (*models.StorySettings, error)
-	GetSeriesByID(email string, seriesID string) (*models.Series, error)
-	GetStoryCountByUser(email string) (int, error)
-	GetChapterParagraphs(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error)
-	GetStoryOrSeriesAssociationThumbnails(email, storyID string) ([]*models.SimplifiedAssociation, error)
-	GetAssociationDetails(email, storyID, associationID string) (*models.Association, error)
-	GetSeriesVolumes(email string, seriesID string) ([]*models.Story, error)
-	GetUserDetails(email string) (*models.UserInfo, error)
-	GetChapterByID(chapterID string) (*models.Chapter, error)
-	GetOutlineByStoryID(storyID string, chapters []models.Chapter) (*models.OutlineResponse, error)
-	GetChapterTableStatus(storyID, chapterID string) (bool, error)
-	GetSubscription(email string) (*models.Subscription, error)
-	GetEmailByCustomerId(customerID string) (string, error)
+	GetAllStories(ctx context.Context, email string) ([]*models.Story, error)
+	GetAllStandalone(ctx context.Context, email string, adminRequest bool) ([]models.Story, error)
+	GetAllSeriesWithStories(ctx context.Context, email string, adminRequest bool) ([]models.Series, error)
+	GetChaptersByStoryID(ctx context.Context, storyID string) ([]models.Chapter, error)
+	GetChaptersByStoryIDs(ctx context.Context, storyIDs []string) (map[string][]models.Chapter, error)
+	GetStoryByID(ctx context.Context, email string, storyID string) (*models.Story, error)
+	GetStorySettingsByID(ctx context.Context, email string, storyID string) (*models.StorySettings, error)
+	GetSeriesByID(ctx context.Context, email string, seriesID string) (*models.Series, error)
+	GetStoryCountByUser(ctx context.Context, email string) (int, error)
+	GetChapterParagraphs(ctx context.Context, storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error)
+	GetStoryOrSeriesAssociationThumbnails(ctx context.Context, email, storyID string) ([]*models.SimplifiedAssociation, error)
+	GetAssociationDetails(ctx context.Context, email, storyID, associationID string) (*models.Association, error)
+	GetSeriesVolumes(ctx context.Context, email string, seriesID string) ([]*models.Story, error)
+	GetUserDetails(ctx context.Context, email string) (*models.UserInfo, error)
+	GetChapterByID(ctx context.Context, chapterID string) (*models.Chapter, error)
+	GetOutlineByStoryID(ctx context.Context, storyID string, chapters []models.Chapter) (*models.OutlineResponse, error)
+	GetChapterTableStatus(ctx context.Context, storyID, chapterID string) (bool, error)
+	GetSubscription(ctx context.Context, email string) (*models.Subscription, error)
+	GetEmailByCustomerId(ctx context.Context, customerID string) (string, error)
 	ensureBlocksTableFromBackup(ctx context.Context, backupARN, oldTableName, chapterName string) error
 	kickoffRestoreAsync(email string)
 
 	// PUTs
-	UpsertUser(email string) (*models.UserInfo, error)
-	UpdateUser(user models.UserInfo) error
+	UpsertUser(ctx context.Context, email string) (*models.UserInfo, error)
+	UpdateUser(ctx context.Context, user models.UserInfo) error
 	RestoreAutomaticallyDeletedStories(ctx context.Context, email string) (<-chan RestoreStoryEvent, error)
-	restoreOneStory(email string, story models.Story) error
-	ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) error
-	WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) error
-	WriteAssociations(email, storyOrSeriesID string, associations []*models.Association) error
-	UpdateAssociationPortraitEntryInDB(email, storyOrSeriesID, associationID, url string) error
-	AddCustomerID(email, customerID *string) error
-	AddStripeData(email, subscriptionID, customerID *string) error
-	EditStory(email string, story models.Story) (models.Story, error)
-	UpdateStorySettings(email, storyID string, settings models.StorySettings) error
-	EditSeries(email string, series models.Series) (models.Series, error)
-	EditChapter(storyID string, chapter models.Chapter) (models.Chapter, error)
-	RemoveStoryFromSeries(email, storyID string, series models.Series) (models.Series, error)
-	UpdateOutline(outline models.OutlineRequest) (*models.OutlineResponse, error)
-	UpdateSubscription(subscription models.Subscription) error
+	restoreOneStory(ctx context.Context, email string, story models.Story) error
+	ResetBlockOrder(ctx context.Context, storyID string, blocksOrder *models.BlocksOrder) error
+	WriteBlocks(ctx context.Context, storyID string, storyBlocks *models.StoryBlocks) error
+	WriteAssociations(ctx context.Context, email, storyOrSeriesID string, associations []*models.Association) error
+	UpdateAssociationPortraitEntryInDB(ctx context.Context, email, storyOrSeriesID, associationID, url string) error
+	AddCustomerID(ctx context.Context, email, customerID *string) error
+	AddStripeData(ctx context.Context, email, subscriptionID, customerID *string) error
+	EditStory(ctx context.Context, email string, story models.Story) (models.Story, error)
+	UpdateStorySettings(ctx context.Context, email, storyID string, settings models.StorySettings) error
+	EditSeries(ctx context.Context, email string, series models.Series) (models.Series, error)
+	EditChapter(ctx context.Context, storyID string, chapter models.Chapter) (models.Chapter, error)
+	RemoveStoryFromSeries(ctx context.Context, email, storyID string, series models.Series) (models.Series, error)
+	UpdateOutline(ctx context.Context, outline models.OutlineRequest) (*models.OutlineResponse, error)
+	UpdateSubscription(ctx context.Context, subscription models.Subscription) error
 
 	// POSTs
-	CreateChapter(storyID string, chapter models.Chapter, email string) (models.Chapter, error)
-	CreateStory(email string, story models.Story, newSeriesTitle string) (storyID string, err error)
-	CreateUser(email string) (*models.UserInfo, error)
-	CreateOutline(outline models.OutlineRequest) (*models.OutlineRequest, error)
+	CreateChapter(ctx context.Context, storyID string, chapter models.Chapter, email string) (models.Chapter, error)
+	CreateStory(ctx context.Context, email string, story models.Story, newSeriesTitle string) (storyID string, err error)
+	CreateUser(ctx context.Context, email string) (*models.UserInfo, error)
+	CreateOutline(ctx context.Context, outline models.OutlineRequest) (*models.OutlineRequest, error)
 
 	// DELETEs
-	DeleteChapterParagraphs(storyID string, storyBlocks *models.StoryBlocks) error
-	DeleteAssociations(email, storyID string, associations []*models.Association) error
-	DeleteChapters(storyID string, chapters []models.Chapter) error
-	SoftDeleteStory(email, storyID string, isAutomated bool) error
-	hardDeleteStory(email, storyID string) error
-	DeleteSeries(email string, series models.Series) error
+	DeleteChapterParagraphs(ctx context.Context, storyID string, storyBlocks *models.StoryBlocks) error
+	DeleteAssociations(ctx context.Context, email, storyID string, associations []*models.Association) error
+	DeleteChapters(ctx context.Context, storyID string, chapters []models.Chapter) error
+	SoftDeleteStory(ctx context.Context, email, storyID string, isAutomated bool) error
+	hardDeleteStory(ctx context.Context, email, storyID string) error
+	DeleteSeries(ctx context.Context, email string, series models.Series) error
 
 	// HELPERS
-	WasStoryDeleted(email string, storyID string) (bool, error)
-	IsStoryInASeries(email string, storyID string) (string, error)
-	IsUserSubscribed(models.UserInfo) (*models.UserInfo, error)
+	WasStoryDeleted(ctx context.Context, email string, storyID string) (bool, error)
+	IsStoryInASeries(ctx context.Context, email string, storyID string) (string, error)
+	IsUserSubscribed(ctx context.Context, user models.UserInfo) (*models.UserInfo, error)
 	verifyStripeSubscription(subID, customerID string) (SubscriptionStatus, error)
-	GetTotalCreatedStories(email string) (int, error)
-	CheckForSuspendedStories(email string) (bool, error)
-	CheckTableStatus(tableName string) (string, error)
-	awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsInput) (awsError models.AwsError, err error)
+	GetTotalCreatedStories(ctx context.Context, email string) (int, error)
+	CheckForSuspendedStories(ctx context.Context, email string) (bool, error)
+	CheckTableStatus(ctx context.Context, tableName string) (string, error)
+	awsWriteTransaction(ctx context.Context, writeItemsInput *dynamodb.TransactWriteItemsInput) (awsError models.AwsError, err error)
 }

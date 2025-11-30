@@ -2,6 +2,7 @@ package daos
 
 import (
 	"RichDocter/models"
+	"context"
 	"testing"
 )
 
@@ -26,7 +27,7 @@ func TestGetChaptersByStoryID(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			chapters, err := mockDao.GetChaptersByStoryID(tc.storyID)
+			chapters, err := mockDao.GetChaptersByStoryID(context.Background(), tc.storyID)
 
 			// Mock Scan returns empty result successfully
 			t.Logf("GetChaptersByStoryID(%q) returned %d chapters, err=%v", tc.storyID, len(chapters), err)
@@ -68,7 +69,7 @@ func TestGetChaptersByStoryIDs(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			chaptersByStory, err := mockDao.GetChaptersByStoryIDs(tc.storyIDs)
+			chaptersByStory, err := mockDao.GetChaptersByStoryIDs(context.Background(), tc.storyIDs)
 
 			if tc.wantErr {
 				if err == nil {
@@ -119,7 +120,7 @@ func TestGetChapterTableStatus(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			exists, err := mockDao.GetChapterTableStatus(tc.storyID, tc.chapterID)
+			exists, err := mockDao.GetChapterTableStatus(context.Background(), tc.storyID, tc.chapterID)
 
 			t.Logf("GetChapterTableStatus(%q, %q) returned exists=%v, err=%v", tc.storyID, tc.chapterID, exists, err)
 		})
@@ -147,7 +148,7 @@ func TestGetChapterByID(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			chapter, err := mockDao.GetChapterByID(tc.chapterID)
+			chapter, err := mockDao.GetChapterByID(context.Background(), tc.chapterID)
 
 			t.Logf("GetChapterByID(%q) returned chapter=%v, err=%v", tc.chapterID, chapter != nil, err)
 		})
@@ -173,7 +174,7 @@ func TestGetChapterParagraphs(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			blocksData, err := mockDao.GetChapterParagraphs(tc.storyID, tc.chapterID, nil)
+			blocksData, err := mockDao.GetChapterParagraphs(context.Background(), tc.storyID, tc.chapterID, nil)
 
 			t.Logf("GetChapterParagraphs returned blocksData=%v, err=%v", blocksData != nil, err)
 		})
@@ -214,7 +215,7 @@ func TestDeleteChapterParagraphs(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			err := mockDao.DeleteChapterParagraphs(tc.storyID, tc.storyBlocks)
+			err := mockDao.DeleteChapterParagraphs(context.Background(), tc.storyID, tc.storyBlocks)
 
 			if tc.wantErr {
 				if err == nil {
@@ -259,7 +260,7 @@ func TestDeleteChapters(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			err := mockDao.DeleteChapters(tc.storyID, tc.chapters)
+			err := mockDao.DeleteChapters(context.Background(), tc.storyID, tc.chapters)
 
 			if tc.wantErr {
 				if err == nil {
@@ -295,7 +296,7 @@ func TestGetBlockCountByChapter(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			count, err := mockDao.GetBlockCountByChapter(tc.email, tc.storyID, tc.chapterID)
+			count, err := mockDao.GetBlockCountByChapter(context.Background(), tc.email, tc.storyID, tc.chapterID)
 
 			t.Logf("GetBlockCountByChapter returned count=%d, err=%v", count, err)
 		})
@@ -312,7 +313,7 @@ func BenchmarkCreateChapter(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = mockDao.CreateChapter("story123", chapter, "bench@example.com")
+		_, _ = mockDao.CreateChapter(context.Background(), "story123", chapter, "bench@example.com")
 	}
 }
 
@@ -321,7 +322,7 @@ func BenchmarkGetChaptersByStoryID(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = mockDao.GetChaptersByStoryID("story123")
+		_, _ = mockDao.GetChaptersByStoryID(context.Background(), "story123")
 	}
 }
 
@@ -331,6 +332,6 @@ func BenchmarkGetChaptersByStoryIDs(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = mockDao.GetChaptersByStoryIDs(storyIDs)
+		_, _ = mockDao.GetChaptersByStoryIDs(context.Background(), storyIDs)
 	}
 }

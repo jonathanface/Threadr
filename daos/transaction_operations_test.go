@@ -58,7 +58,7 @@ func TestAwsWriteTransaction(t *testing.T) {
 				}
 			}
 
-			awsErr, err := mockDao.awsWriteTransaction(tc.input)
+			awsErr, err := mockDao.awsWriteTransaction(context.Background(), tc.input)
 
 			if tc.expectErr {
 				if err == nil {
@@ -168,7 +168,7 @@ func BenchmarkAwsWriteTransaction(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = mockDao.awsWriteTransaction(input)
+		_, _ = mockDao.awsWriteTransaction(context.Background(), input)
 	}
 }
 

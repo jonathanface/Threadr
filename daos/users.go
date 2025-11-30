@@ -22,7 +22,7 @@ import (
 	"github.com/stripe/stripe-go/v79"
 )
 
-func (d *DAO) CreateUser(email string) (*models.UserInfo, error) {
+func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, error) {
 	twii := &dynamodb.TransactWriteItemsInput{}
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	attributes := map[string]types.AttributeValue{
@@ -40,7 +40,7 @@ func (d *DAO) CreateUser(email string) (*models.UserInfo, error) {
 	}
 
 	twii.TransactItems = append(twii.TransactItems, twi)
-	awsErr, err := d.awsWriteTransaction(twii)
+	awsErr, err := d.awsWriteTransaction(ctx, twii)
 	if err != nil {
 		return nil, err
 	}
@@ -79,13 +79,13 @@ func (d *DAO) CreateUser(email string) (*models.UserInfo, error) {
 	return &user, nil
 }
 
-func (d *DAO) GetUserDetails(email string) (user *models.UserInfo, err error) {
+func (d *DAO) GetUserDetails(ctx context.Context, email string) (user *models.UserInfo, err error) {
 	tableName := "users" + GetTableSuffix()
 	logger.Info("GetUserDetails called",
 		"email", email,
 		"tableName", tableName)
 
-	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
 		TableName:        aws.String(tableName),
 		FilterExpression: aws.String("email=:eml AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -116,7 +116,7 @@ func (d *DAO) GetUserDetails(email string) (user *models.UserInfo, err error) {
 /**
  * Either create a user, or update user with last login time
 **/
-func (d *DAO) UpsertUser(email string) (*models.UserInfo, error) {
+func (d *DAO) UpsertUser(ctx context.Context, email string) (*models.UserInfo, error) {
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	input := &dynamodb.UpdateItemInput{
 		TableName: aws.String("users" + GetTableSuffix()),
@@ -131,7 +131,7 @@ func (d *DAO) UpsertUser(email string) (*models.UserInfo, error) {
 	}
 	var out *dynamodb.UpdateItemOutput
 	var err error
-	if out, err = d.DynamoClient.UpdateItem(context.TODO(), input); err != nil {
+	if out, err = d.DynamoClient.UpdateItem(ctx, input); err != nil {
 		return nil, err
 	}
 
@@ -145,7 +145,7 @@ func (d *DAO) UpsertUser(email string) (*models.UserInfo, error) {
 	return &user, nil
 }
 
-func (d *DAO) UpdateUser(user models.UserInfo) (err error) {
+func (d *DAO) UpdateUser(ctx context.Context, user models.UserInfo) (err error) {
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	queryString := "set last_accessed=:t, subscriber=:s"
 	attributes := map[string]types.AttributeValue{
@@ -173,7 +173,7 @@ func (d *DAO) UpdateUser(user models.UserInfo) (err error) {
 		ExpressionAttributeValues: attributes,
 	}
 	var out *dynamodb.UpdateItemOutput
-	if out, err = d.DynamoClient.UpdateItem(context.TODO(), input); err != nil {
+	if out, err = d.DynamoClient.UpdateItem(ctx, input); err != nil {
 		return err
 	}
 	var createdAt string
@@ -200,7 +200,7 @@ func toStatus(s *stripe.Subscription, found bool) SubscriptionStatus {
 	}
 }
 
-func (d *DAO) IsUserSubscribed(user models.UserInfo) (*models.UserInfo, error) {
+func (d *DAO) IsUserSubscribed(ctx context.Context, user models.UserInfo) (*models.UserInfo, error) {
 	// Only set stripe.Key from environment if not already set (preserves test mocks)
 	if stripe.Key == "" {
 		stripe.Key = os.Getenv("STRIPE_SECRET")
@@ -208,7 +208,7 @@ func (d *DAO) IsUserSubscribed(user models.UserInfo) (*models.UserInfo, error) {
 			return nil, fmt.Errorf("missing stripe secret")
 		}
 	}
-	sub, err := d.GetSubscription(user.Email)
+	sub, err := d.GetSubscription(ctx, user.Email)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// No subscription on file: treat as not subscribed, not an error
@@ -235,7 +235,7 @@ func (d *DAO) IsUserSubscribed(user models.UserInfo) (*models.UserInfo, error) {
 			isSubscribed = status.Active
 			sub.CurrentSubscriptionEnd = status.CurrentPeriodEnd
 			sub.LastSubCheck = time.Now().UTC()
-			if err := d.UpdateSubscription(*sub); err != nil {
+			if err := d.UpdateSubscription(ctx, *sub); err != nil {
 				return nil, err
 			}
 		} else if stripeErr != nil {
@@ -247,27 +247,27 @@ func (d *DAO) IsUserSubscribed(user models.UserInfo) (*models.UserInfo, error) {
 	if !isSubscribed && user.Subscriber {
 		user.NotifyExpired = true
 
-		stories, err := d.GetAllStories(user.Email)
+		stories, err := d.GetAllStories(ctx, user.Email)
 		if err != nil && err != sql.ErrNoRows {
 			return nil, err
 		}
 		for idx, s := range stories {
 			if idx > 0 {
-				go d.SoftDeleteStory(user.Email, s.ID, true)
+				go d.SoftDeleteStory(ctx, user.Email, s.ID, true)
 			}
 		}
 		sub.CurrentSubscriptionEnd = time.Now()
-		err = d.UpdateSubscription(*sub)
+		err = d.UpdateSubscription(ctx, *sub)
 		if err != nil {
 			return nil, err
 		}
 		user.Subscriber = false
-		err = d.UpdateUser(user)
+		err = d.UpdateUser(ctx, user)
 		if err != nil {
 			return nil, err
 		}
 	} else if isSubscribed {
-		wasSuspended, err := d.CheckForSuspendedStories(user.Email) // bool
+		wasSuspended, err := d.CheckForSuspendedStories(ctx, user.Email) // bool
 		if err != nil {
 			return nil, err
 		}
@@ -282,7 +282,7 @@ func (d *DAO) IsUserSubscribed(user models.UserInfo) (*models.UserInfo, error) {
 	return &user, nil
 }
 
-func (d *DAO) AddCustomerID(email, customerID *string) error {
+func (d *DAO) AddCustomerID(ctx context.Context, email, customerID *string) error {
 	key := map[string]types.AttributeValue{
 		"email": &types.AttributeValueMemberS{Value: *email},
 	}
@@ -295,7 +295,7 @@ func (d *DAO) AddCustomerID(email, customerID *string) error {
 		},
 		ReturnValues: types.ReturnValueAllNew,
 	}
-	_, err := d.DynamoClient.UpdateItem(context.Background(), updateInput)
+	_, err := d.DynamoClient.UpdateItem(ctx, updateInput)
 	if err != nil {
 		fmt.Println("error saving", err)
 		return err
@@ -316,7 +316,7 @@ func sendWelcomeEmail(userEmail string) error {
 		"email", userEmail)
 
 	// Load AWS config with explicit region and default credential chain
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
+	cfg, err := config.LoadDefaultConfig(context.Background(),
 		config.WithRegion(region),
 	)
 	if err != nil {
@@ -367,7 +367,7 @@ The Docter Team`
 		},
 	}
 
-	_, err = svc.SendEmail(context.TODO(), input)
+	_, err = svc.SendEmail(context.Background(), input)
 	if err != nil {
 		logger.Error("Failed to send welcome email via SES",
 			"error", err,
@@ -392,7 +392,7 @@ func sendNewUserNotificationEmail(userEmail string) error {
 		"userEmail", userEmail)
 
 	// Load AWS config with explicit region and default credential chain
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
+	cfg, err := config.LoadDefaultConfig(context.Background(),
 		config.WithRegion(region),
 	)
 	if err != nil {
@@ -427,7 +427,7 @@ func sendNewUserNotificationEmail(userEmail string) error {
 		},
 	}
 
-	_, err = svc.SendEmail(context.TODO(), input)
+	_, err = svc.SendEmail(context.Background(), input)
 	if err != nil {
 		logger.Error("Failed to send notification email via SES",
 			"error", err,

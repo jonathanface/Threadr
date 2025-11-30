@@ -145,8 +145,8 @@ func CleanDynamoTagString(input string) string {
 }
 
 // Check if a story was "suspended" by an account's subscription not renewing
-func (d *DAO) CheckForSuspendedStories(email string) (bool, error) {
-	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+func (d *DAO) CheckForSuspendedStories(ctx context.Context, email string) (bool, error) {
+	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
 		TableName:        aws.String("stories" + GetTableSuffix()),
 		FilterExpression: aws.String("author=:eml AND attribute_exists(deleted_at) AND automated_deletion=:a"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -163,8 +163,8 @@ func (d *DAO) CheckForSuspendedStories(email string) (bool, error) {
 	return false, nil
 }
 
-func (d *DAO) WasStoryDeleted(email string, storyTitle string) (bool, error) {
-	exists, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+func (d *DAO) WasStoryDeleted(ctx context.Context, email string, storyTitle string) (bool, error) {
+	exists, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
 		TableName:        aws.String("stories" + GetTableSuffix()),
 		FilterExpression: aws.String("author=:eml AND story_title=:s AND attribute_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -183,20 +183,20 @@ func (d *DAO) WasStoryDeleted(email string, storyTitle string) (bool, error) {
 
 // check if passed story is a member of a series
 // return series ID if yes, blank if no
-func (d *DAO) IsStoryInASeries(email string, storyID string) (string, error) {
+func (d *DAO) IsStoryInASeries(ctx context.Context, email string, storyID string) (string, error) {
 	var (
 		err   error
 		story *models.Story
 	)
-	story, err = d.GetStoryByID(email, storyID)
+	story, err = d.GetStoryByID(ctx, email, storyID)
 	if err != nil {
 		return "", err
 	}
 	return story.SeriesID, nil
 }
 
-func (d *DAO) GetTotalCreatedStories(email string) (storiesCount int, err error) {
-	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+func (d *DAO) GetTotalCreatedStories(ctx context.Context, email string) (storiesCount int, err error) {
+	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
 		TableName:        aws.String("stories" + GetTableSuffix()),
 		FilterExpression: aws.String("author=:eml AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{

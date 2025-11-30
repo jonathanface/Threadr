@@ -12,7 +12,7 @@ import (
 	stripesub "github.com/stripe/stripe-go/v79/subscription"
 )
 
-func (d *DAO) AddStripeData(email, subscriptionID, customerID *string) error {
+func (d *DAO) AddStripeData(ctx context.Context, email, subscriptionID, customerID *string) error {
 	logger.Info("Adding Stripe data to user",
 		"email", *email,
 		"subscriptionId", *subscriptionID,
@@ -31,7 +31,7 @@ func (d *DAO) AddStripeData(email, subscriptionID, customerID *string) error {
 		},
 		ReturnValues: types.ReturnValueAllNew,
 	}
-	_, err := d.DynamoClient.UpdateItem(context.Background(), updateInput)
+	_, err := d.DynamoClient.UpdateItem(ctx, updateInput)
 	if err != nil {
 		logger.Error("Failed to add Stripe data to user",
 			"error", err,

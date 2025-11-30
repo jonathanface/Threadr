@@ -5,6 +5,7 @@ import (
 	"RichDocter/models"
 	"RichDocter/sessions"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -102,13 +103,13 @@ func processAWSError(opErr *smithy.OperationError) (err models.AwsStatusResponse
 	return err
 }
 
-func staggeredStoryBlockRetrieval(dao daos.DaoInterface, storyID string, chapterID string, key *map[string]types.AttributeValue, accumulatedBlocks *models.BlocksData) (*models.BlocksData, error) {
+func staggeredStoryBlockRetrieval(ctx context.Context, dao daos.DaoInterface, storyID string, chapterID string, key *map[string]types.AttributeValue, accumulatedBlocks *models.BlocksData) (*models.BlocksData, error) {
 	// If this is the first call, initialize accumulatedBlocks
 	if accumulatedBlocks == nil {
 		accumulatedBlocks = &models.BlocksData{}
 	}
 
-	blocks, err := dao.GetChapterParagraphs(storyID, chapterID, key)
+	blocks, err := dao.GetChapterParagraphs(ctx, storyID, chapterID, key)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +122,7 @@ func staggeredStoryBlockRetrieval(dao daos.DaoInterface, storyID string, chapter
 
 	// If there are more blocks to retrieve, make a recursive call
 	if blocks.LastEvaluated != nil {
-		return staggeredStoryBlockRetrieval(dao, storyID, chapterID, &blocks.LastEvaluated, accumulatedBlocks)
+		return staggeredStoryBlockRetrieval(ctx, dao, storyID, chapterID, &blocks.LastEvaluated, accumulatedBlocks)
 	}
 	return accumulatedBlocks, nil
 }

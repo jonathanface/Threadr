@@ -84,13 +84,13 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		email, err = dao.GetEmailByCustomerId(sub.Customer.ID)
+		email, err = dao.GetEmailByCustomerId(context.Background(), sub.Customer.ID)
 		if err != nil || email == "" {
 			RespondWithError(w, http.StatusBadRequest, "unknown customer")
 			return
 		}
 
-		if err := dao.UpdateSubscription(models.Subscription{
+		if err := dao.UpdateSubscription(context.Background(), models.Subscription{
 			Email:                  email,
 			CustomerID:             sub.Customer.ID,
 			SubscriptionID:         sub.ID,
@@ -101,7 +101,7 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		user, err = dao.GetUserDetails(email)
+		user, err = dao.GetUserDetails(context.Background(), email)
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -111,7 +111,7 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 
 		if isActive && !user.Subscriber {
 			user.Subscriber = true
-			if wasSuspended, err := dao.CheckForSuspendedStories(user.Email); err == nil && wasSuspended {
+			if wasSuspended, err := dao.CheckForSuspendedStories(context.Background(), user.Email); err == nil && wasSuspended {
 				needsRestore = true
 				user.NotifyRestored = true
 			} else if err != nil {
@@ -124,19 +124,19 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 			user.NotifyExpired = true
 
 			// suspend others (async fan-out OK)
-			stories, err := dao.GetAllStories(user.Email)
+			stories, err := dao.GetAllStories(context.Background(), user.Email)
 			if err != nil && err != sql.ErrNoRows {
 				RespondWithError(w, http.StatusInternalServerError, err.Error())
 				return
 			}
 			for idx, s := range stories {
 				if idx > 0 {
-					go dao.SoftDeleteStory(user.Email, s.ID, true)
+					go dao.SoftDeleteStory(context.Background(), user.Email, s.ID, true)
 				}
 			}
 		}
 
-		if err := dao.UpdateUser(*user); err != nil {
+		if err := dao.UpdateUser(context.Background(), *user); err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -160,9 +160,9 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 			}
 			for ev := range events {
 				if ev.Err == nil {
-					if story, err := dao.GetStoryByID(email, ev.StoryID); err == nil {
+					if story, err := dao.GetStoryByID(context.Background(), email, ev.StoryID); err == nil {
 						story.Inactive = false
-						if _, e2 := dao.EditStory(email, *story); e2 != nil {
+						if _, e2 := dao.EditStory(context.Background(), email, *story); e2 != nil {
 							log.Printf("post-restore EditStory failed %s: %v", ev.StoryID, e2)
 						}
 					} else {
@@ -201,13 +201,13 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := dao.GetUserDetails(email)
+	user, err := dao.GetUserDetails(r.Context(), email)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve user info")
 		return
 	}
 
-	sub, err := dao.GetSubscription(email)
+	sub, err := dao.GetSubscription(r.Context(), email)
 	if err != nil && err != sql.ErrNoRows {
 		RespondWithError(w, http.StatusInternalServerError, "unable to load subscription")
 		return
@@ -247,7 +247,7 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		periodEnd = time.Unix(s.CurrentPeriodEnd, 0).UTC()
 	}
 
-	err = dao.UpdateSubscription(models.Subscription{
+	err = dao.UpdateSubscription(r.Context(), models.Subscription{
 		Email:                  user.Email,
 		SubscriptionID:         s.ID,
 		CustomerID:             custID,
@@ -284,13 +284,13 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := dao.GetUserDetails(email)
+	user, err := dao.GetUserDetails(r.Context(), email)
 	if err != nil || user == nil {
 		RespondWithError(w, http.StatusInternalServerError, "unable to load user")
 		return
 	}
 
-	sub, err := dao.GetSubscription(email)
+	sub, err := dao.GetSubscription(r.Context(), email)
 	if err != nil && err != sql.ErrNoRows {
 		RespondWithError(w, http.StatusInternalServerError, "unable to load user")
 		return
@@ -319,7 +319,7 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 		sub.LastSubCheck = time.Now().UTC()
 		sub.CurrentSubscriptionEnd = cpeTime
 
-		err = dao.UpdateSubscription(*sub)
+		err = dao.UpdateSubscription(r.Context(), *sub)
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, "error updating subscription")
 			return
@@ -360,13 +360,13 @@ func BillingPortalSessionEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 3) Load app user
-	user, err := dao.GetUserDetails(email)
+	user, err := dao.GetUserDetails(r.Context(), email)
 	if err != nil || user == nil {
 		RespondWithError(w, http.StatusInternalServerError, "unable to load user")
 		return
 	}
 
-	sub, err := dao.GetSubscription(email)
+	sub, err := dao.GetSubscription(r.Context(), email)
 	if err != nil && err != sql.ErrNoRows {
 		RespondWithError(w, http.StatusInternalServerError, "unable to load user")
 		return
@@ -402,7 +402,7 @@ func BillingPortalSessionEndpoint(w http.ResponseWriter, r *http.Request) {
 	if sub != nil {
 		var zeroTime time.Time
 		sub.LastSubCheck = zeroTime
-		err = dao.UpdateSubscription(*sub)
+		err = dao.UpdateSubscription(r.Context(), *sub)
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, "error updating subscription: "+err.Error())
 			return

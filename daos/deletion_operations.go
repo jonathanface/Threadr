@@ -17,7 +17,7 @@ import (
 	"github.com/aws/smithy-go"
 )
 
-func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
+func (d *DAO) SoftDeleteStory(ctx context.Context, email, storyID string, automated bool) error {
 	logger.Info("SoftDeleteStory started",
 		"email", email,
 		"storyId", storyID,
@@ -26,7 +26,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 
 	// Get the story. If not found, return error.
-	story, err := d.GetStoryByID(email, storyID)
+	story, err := d.GetStoryByID(ctx, email, storyID)
 	if err != nil {
 		logger.Error("Failed to get story for soft delete",
 			"error", err,
@@ -54,7 +54,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 		},
 		Select: types.SelectAllAttributes,
 	}
-	chapterOut, err := d.DynamoClient.Scan(context.TODO(), chapterScanInput)
+	chapterOut, err := d.DynamoClient.Scan(ctx, chapterScanInput)
 	if err != nil {
 		logger.Error("Failed to scan chapters for soft delete",
 			"error", err,
@@ -94,7 +94,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 			"chapterId", chapterID,
 			"storyId", storyID)
 
-		buResponse, err := d.DynamoClient.CreateBackup(context.TODO(), input)
+		buResponse, err := d.DynamoClient.CreateBackup(ctx, input)
 		tableNotFound := false
 		if err != nil {
 			if opErr, ok := err.(*smithy.OperationError); ok {
@@ -126,7 +126,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 				"chapterId", chapterID,
 				"storyId", storyID)
 
-			err = d.checkBackupStatus(*buResponse.BackupDetails.BackupArn)
+			err = d.checkBackupStatus(ctx, *buResponse.BackupDetails.BackupArn)
 			if err != nil {
 				logger.Error("Backup status check failed",
 					"error", err,
@@ -134,7 +134,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 					"storyId", storyID)
 				return err
 			}
-			if err := waitForTableStatus(context.TODO(), d.DynamoClient, oldTableName, chapterTitle, "ACTIVE", 5*time.Minute); err != nil {
+			if err := waitForTableStatus(ctx, d.DynamoClient, oldTableName, chapterTitle, "ACTIVE", 5*time.Minute); err != nil {
 				logger.Error("Chapter blocks table not ACTIVE before delete",
 					"error", err,
 					"tableName", oldTableName,
@@ -153,7 +153,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 
 			for numRetries := 0; numRetries < d.maxRetries; numRetries++ {
 
-				if _, err = d.DynamoClient.DeleteTable(context.Background(), deleteTableInput); err != nil {
+				if _, err = d.DynamoClient.DeleteTable(ctx, deleteTableInput); err != nil {
 					if opErr, ok := err.(*smithy.OperationError); ok {
 						var useErr *types.ResourceInUseException
 						if errors.As(opErr.Unwrap(), &useErr) {
@@ -212,7 +212,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 			"storyId", storyID,
 			"email", email)
 
-		series, err := d.GetSeriesByID(email, seriesID)
+		series, err := d.GetSeriesByID(ctx, email, seriesID)
 		if err != nil {
 			logger.Error("Failed to get series for soft delete",
 				"error", err,
@@ -265,7 +265,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 			},
 			Select: types.SelectAllAttributes,
 		}
-		associationOut, err := d.DynamoClient.Scan(context.TODO(), associationScanInput)
+		associationOut, err := d.DynamoClient.Scan(ctx, associationScanInput)
 		if err != nil {
 			logger.Error("Failed to scan associations for soft delete",
 				"error", err,
@@ -341,7 +341,7 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 	transactions := &dynamodb.TransactWriteItemsInput{
 		TransactItems: transactItems,
 	}
-	awsErr, err := d.awsWriteTransaction((transactions))
+	awsErr, err := d.awsWriteTransaction(ctx, transactions)
 	if err != nil {
 		logger.Error("Soft delete transaction failed",
 			"error", err,
@@ -367,12 +367,12 @@ func (d *DAO) SoftDeleteStory(email, storyID string, automated bool) error {
 	return nil
 }
 
-func (d *DAO) hardDeleteStory(email, storyID string) error {
+func (d *DAO) hardDeleteStory(ctx context.Context, email, storyID string) error {
 	logger.Info("HardDeleteStory started",
 		"email", email,
 		"storyId", storyID)
 
-	originalStory, err := d.GetStoryByID(email, storyID)
+	originalStory, err := d.GetStoryByID(ctx, email, storyID)
 	if err != nil {
 		logger.Error("Failed to get story for hard delete",
 			"error", err,
@@ -395,7 +395,7 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 		},
 		Select: types.SelectAllAttributes,
 	}
-	chapterOut, err := d.DynamoClient.Scan(context.TODO(), chapterScanInput)
+	chapterOut, err := d.DynamoClient.Scan(ctx, chapterScanInput)
 	if err != nil {
 		logger.Error("Failed to scan chapters for hard delete",
 			"error", err,
@@ -420,7 +420,7 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 			TableName: aws.String("chapters" + GetTableSuffix()),
 			Key:       chapterKey,
 		}
-		_, err = d.DynamoClient.DeleteItem(context.Background(), chapterDeleteInput)
+		_, err = d.DynamoClient.DeleteItem(ctx, chapterDeleteInput)
 		if err != nil {
 			logger.Error("Failed to delete chapter",
 				"error", err,
@@ -447,7 +447,7 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 		TableName: aws.String("stories" + GetTableSuffix()),
 		Key:       storyKey,
 	}
-	_, err = d.DynamoClient.DeleteItem(context.Background(), storyDeleteInput)
+	_, err = d.DynamoClient.DeleteItem(ctx, storyDeleteInput)
 	if err != nil {
 		logger.Error("Failed to delete story",
 			"error", err,
@@ -467,7 +467,7 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 			"seriesId", originalStory.SeriesID,
 			"storyId", storyID)
 
-		series, err := d.GetSeriesByID(email, originalStory.SeriesID)
+		series, err := d.GetSeriesByID(ctx, email, originalStory.SeriesID)
 		if err != nil {
 			logger.Error("Failed to get series for hard delete",
 				"error", err,
@@ -489,7 +489,7 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 				"seriesId", originalStory.SeriesID,
 				"storyId", storyID)
 
-			_, err = d.DynamoClient.DeleteItem(context.Background(), seriesDeleteInput)
+			_, err = d.DynamoClient.DeleteItem(ctx, seriesDeleteInput)
 			if err != nil {
 				logger.Error("Failed to delete series",
 					"error", err,
@@ -514,7 +514,7 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 				"objectKey", objectKey,
 				"seriesId", originalStory.SeriesID)
 
-			_, err = d.s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
+			_, err = d.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
 				Bucket: &bucketName,
 				Key:    &objectKey,
 			})
@@ -547,7 +547,7 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 			},
 			Select: types.SelectAllAttributes,
 		}
-		associationOut, err := d.DynamoClient.Scan(context.TODO(), associationScanInput)
+		associationOut, err := d.DynamoClient.Scan(ctx, associationScanInput)
 		if err != nil {
 			logger.Error("Failed to scan associations for hard delete",
 				"error", err,
@@ -571,7 +571,7 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 				TableName: aws.String("associations" + GetTableSuffix()),
 				Key:       associationKey,
 			}
-			_, err = d.DynamoClient.DeleteItem(context.Background(), associationDeleteInput)
+			_, err = d.DynamoClient.DeleteItem(ctx, associationDeleteInput)
 			if err != nil {
 				return err
 			}
@@ -580,7 +580,7 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 				TableName: aws.String("association_details" + GetTableSuffix()),
 				Key:       associationKey,
 			}
-			_, err = d.DynamoClient.DeleteItem(context.Background(), associationDetailsDeleteInput)
+			_, err = d.DynamoClient.DeleteItem(ctx, associationDetailsDeleteInput)
 			if err != nil {
 				return err
 			}
@@ -600,7 +600,7 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 			}
 			objectKey := path.Base(parsedPath.Path)
 
-			_, err = d.s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
+			_, err = d.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
 				Bucket: &bucketName,
 				Key:    &objectKey,
 			})
@@ -629,7 +629,7 @@ func (d *DAO) hardDeleteStory(email, storyID string) error {
 			"objectKey", objectKey,
 			"storyId", storyID)
 
-		_, err = d.s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
+		_, err = d.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
 			Bucket: &bucketName,
 			Key:    &objectKey,
 		})

@@ -101,7 +101,7 @@ func TestWriteAssociations(t *testing.T) {
 					return nil, errors.New("AWSERROR-- Code:" + tc.mockAwsWriteAwsErr.Code + ", Type: " + tc.mockAwsWriteAwsErr.ErrorType + ", Message: " + tc.mockAwsWriteAwsErr.Text)
 				}
 			}
-			err := mockDao.WriteAssociations(tc.email, tc.storyOrSeriesID, tc.associations)
+			err := mockDao.WriteAssociations(context.Background(), tc.email, tc.storyOrSeriesID, tc.associations)
 			if tc.wantErr {
 				if err == nil {
 					t.Errorf("Expected error but got nil")
@@ -163,7 +163,7 @@ func TestUpdateAssociationPortraitEntryInDB(t *testing.T) {
 				}
 			}
 
-			err := mockDao.UpdateAssociationPortraitEntryInDB(tc.email, tc.storyOrID, tc.assocID, tc.newURL)
+			err := mockDao.UpdateAssociationPortraitEntryInDB(context.Background(), tc.email, tc.storyOrID, tc.assocID, tc.newURL)
 			if tc.wantErr {
 				if err == nil {
 					t.Errorf("Expected error but got nil")
@@ -213,7 +213,7 @@ func TestDeleteAssociations(t *testing.T) {
 
 			mockDao := NewMockDAO()
 
-			err := mockDao.DeleteAssociations(tc.email, tc.storyID, tc.associations)
+			err := mockDao.DeleteAssociations(context.Background(), tc.email, tc.storyID, tc.associations)
 			if tc.wantErr {
 				if err == nil {
 					t.Errorf("Expected error but got nil")
@@ -261,7 +261,7 @@ func TestGetAssociationDetails(t *testing.T) {
 			// Note: This function requires extensive mocking of Scan and Query operations
 			// Testing is limited without full DynamoDB mock infrastructure
 
-			_, err := mockDao.GetAssociationDetails(tc.email, tc.storyID, tc.associationID)
+			_, err := mockDao.GetAssociationDetails(context.Background(), tc.email, tc.storyID, tc.associationID)
 
 			if tc.wantErr {
 				if err == nil {
@@ -306,7 +306,7 @@ func TestGetStoryOrSeriesAssociationThumbnails(t *testing.T) {
 			// Note: This function requires mocking of multiple Scan operations
 			// Full testing requires comprehensive DB mock infrastructure
 
-			_, err := mockDao.GetStoryOrSeriesAssociationThumbnails(tc.email, tc.storyID)
+			_, err := mockDao.GetStoryOrSeriesAssociationThumbnails(context.Background(), tc.email, tc.storyID)
 
 			if tc.wantErr {
 				if err == nil {

@@ -31,8 +31,8 @@ func buildCompositeKey(storyID, chapterID string) string {
 	return fmt.Sprintf("%s#%s", storyID, chapterID)
 }
 
-func (d *DAO) GetChaptersByStoryID(storyID string) (chapters []models.Chapter, err error) {
-	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+func (d *DAO) GetChaptersByStoryID(ctx context.Context, storyID string) (chapters []models.Chapter, err error) {
+	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
 		TableName:        aws.String("chapters" + GetTableSuffix()),
 		FilterExpression: aws.String("story_id=:sid AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -56,7 +56,7 @@ func (d *DAO) GetChaptersByStoryID(storyID string) (chapters []models.Chapter, e
 
 // GetChaptersByStoryIDs fetches chapters for multiple stories in a single query (batch operation)
 // Returns a map of storyID -> chapters to avoid N+1 queries
-func (d *DAO) GetChaptersByStoryIDs(storyIDs []string) (map[string][]models.Chapter, error) {
+func (d *DAO) GetChaptersByStoryIDs(ctx context.Context, storyIDs []string) (map[string][]models.Chapter, error) {
 	if len(storyIDs) == 0 {
 		return make(map[string][]models.Chapter), nil
 	}
@@ -76,7 +76,7 @@ func (d *DAO) GetChaptersByStoryIDs(storyIDs []string) (map[string][]models.Chap
 	}
 	filterExpr += ") AND attribute_not_exists(deleted_at)"
 
-	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
 		TableName:                 aws.String("chapters" + GetTableSuffix()),
 		FilterExpression:          aws.String(filterExpr),
 		ExpressionAttributeValues: expressionValues,
@@ -117,10 +117,10 @@ func (d *DAO) GetChaptersByStoryIDs(storyIDs []string) (map[string][]models.Chap
 
 // GetChapterTableStatus now always returns true since we use a unified table
 // This maintains backwards compatibility with code checking table readiness
-func (d *DAO) GetChapterTableStatus(storyID, chapterID string) (bool, error) {
+func (d *DAO) GetChapterTableStatus(ctx context.Context, storyID, chapterID string) (bool, error) {
 	// With unified table, chapters are always "ready"
 	// Just verify the unified table exists
-	_, err := d.DynamoClient.DescribeTable(context.TODO(), &dynamodb.DescribeTableInput{
+	_, err := d.DynamoClient.DescribeTable(ctx, &dynamodb.DescribeTableInput{
 		TableName: aws.String(GetStoryBlocksTableName()),
 	})
 	if err != nil {
@@ -129,7 +129,7 @@ func (d *DAO) GetChapterTableStatus(storyID, chapterID string) (bool, error) {
 	return true, nil
 }
 
-func (d *DAO) GetChapterByID(chapterID string) (chapter *models.Chapter, err error) {
+func (d *DAO) GetChapterByID(ctx context.Context, chapterID string) (chapter *models.Chapter, err error) {
 	scanInput := &dynamodb.ScanInput{
 		TableName:        aws.String("chapters" + GetTableSuffix()),
 		FilterExpression: aws.String("chapter_id=:cid AND attribute_not_exists(deleted_at)"),
@@ -137,7 +137,7 @@ func (d *DAO) GetChapterByID(chapterID string) (chapter *models.Chapter, err err
 			":cid": &types.AttributeValueMemberS{Value: chapterID},
 		},
 	}
-	out, err := d.DynamoClient.Scan(context.TODO(), scanInput)
+	out, err := d.DynamoClient.Scan(ctx, scanInput)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func (d *DAO) GetChapterByID(chapterID string) (chapter *models.Chapter, err err
 }
 
 // GetChapterParagraphs queries the unified story_blocks table using composite key
-func (d *DAO) GetChapterParagraphs(storyID, chapterID string, startKey *map[string]types.AttributeValue) (*models.BlocksData, error) {
+func (d *DAO) GetChapterParagraphs(ctx context.Context, storyID, chapterID string, startKey *map[string]types.AttributeValue) (*models.BlocksData, error) {
 	var blocks models.BlocksData
 	compositeKey := buildCompositeKey(storyID, chapterID)
 
@@ -175,7 +175,7 @@ func (d *DAO) GetChapterParagraphs(storyID, chapterID string, startKey *map[stri
 
 	var lastKey map[string]types.AttributeValue
 	for paginator.HasMorePages() {
-		page, err := paginator.NextPage(context.Background())
+		page, err := paginator.NextPage(ctx)
 		if err != nil {
 			if opErr, ok := err.(*smithy.OperationError); ok {
 				var notFoundErr *types.ResourceNotFoundException
@@ -199,7 +199,7 @@ func (d *DAO) GetChapterParagraphs(storyID, chapterID string, startKey *map[stri
 }
 
 // CreateChapter no longer creates individual tables, just creates chapter metadata
-func (d *DAO) CreateChapter(storyID string, chapter models.Chapter, email string) (newChapter models.Chapter, err error) {
+func (d *DAO) CreateChapter(ctx context.Context, storyID string, chapter models.Chapter, email string) (newChapter models.Chapter, err error) {
 	newChapter = chapter
 	var chapTwi types.TransactWriteItem
 	if chapTwi, err = d.generateStoryChapterTransaction(storyID, chapter.ID, chapter.Title, chapter.Place); err != nil {
@@ -208,7 +208,7 @@ func (d *DAO) CreateChapter(storyID string, chapter models.Chapter, email string
 
 	twii := &dynamodb.TransactWriteItemsInput{}
 	twii.TransactItems = append(twii.TransactItems, chapTwi)
-	awsErr, err := d.awsWriteTransaction(twii)
+	awsErr, err := d.awsWriteTransaction(ctx, twii)
 	if err != nil {
 		return models.Chapter{}, err
 	}
@@ -220,7 +220,7 @@ func (d *DAO) CreateChapter(storyID string, chapter models.Chapter, email string
 	return newChapter, nil
 }
 
-func (d *DAO) EditChapter(storyID string, chapter models.Chapter) (updatedChapter models.Chapter, err error) {
+func (d *DAO) EditChapter(ctx context.Context, storyID string, chapter models.Chapter) (updatedChapter models.Chapter, err error) {
 	modifiedAtStr := strconv.FormatInt(time.Now().Unix(), 10)
 	item := map[string]types.AttributeValue{
 		"story_id":    &types.AttributeValueMemberS{Value: storyID},
@@ -234,7 +234,7 @@ func (d *DAO) EditChapter(storyID string, chapter models.Chapter) (updatedChapte
 		TableName: aws.String("chapters" + GetTableSuffix()),
 		Item:      item,
 	}
-	_, err = d.DynamoClient.PutItem(context.Background(), chapterUpdateInput)
+	_, err = d.DynamoClient.PutItem(ctx, chapterUpdateInput)
 	if err != nil {
 		return updatedChapter, err
 	}
@@ -242,7 +242,7 @@ func (d *DAO) EditChapter(storyID string, chapter models.Chapter) (updatedChapte
 }
 
 // DeleteChapterParagraphs deletes paragraph items from unified table
-func (d *DAO) DeleteChapterParagraphs(storyID string, storyBlocks *models.StoryBlocks) (err error) {
+func (d *DAO) DeleteChapterParagraphs(ctx context.Context, storyID string, storyBlocks *models.StoryBlocks) (err error) {
 	compositeKey := buildCompositeKey(storyID, storyBlocks.ChapterID)
 
 	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(d.writeBatchSize-1))/d.writeBatchSize)
@@ -287,7 +287,7 @@ func (d *DAO) DeleteChapterParagraphs(storyID string, storyBlocks *models.StoryB
 			writeItemsInput.TransactItems[i] = writeItem
 		}
 
-		awsErr, err := d.awsWriteTransaction(writeItemsInput)
+		awsErr, err := d.awsWriteTransaction(ctx, writeItemsInput)
 		if err != nil {
 			return err
 		}
@@ -299,7 +299,7 @@ func (d *DAO) DeleteChapterParagraphs(storyID string, storyBlocks *models.StoryB
 }
 
 // DeleteChapters deletes chapter metadata and all associated blocks
-func (d *DAO) DeleteChapters(storyID string, chapters []models.Chapter) (err error) {
+func (d *DAO) DeleteChapters(ctx context.Context, storyID string, chapters []models.Chapter) (err error) {
 	batches := make([][]models.Chapter, 0, (len(chapters)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(chapters); i += d.writeBatchSize {
 		end := i + d.writeBatchSize
@@ -340,7 +340,7 @@ func (d *DAO) DeleteChapters(storyID string, chapters []models.Chapter) (err err
 			// Note: This is done separately because transaction limit is 100 items
 			go func(chID string) {
 				compositeKey := buildCompositeKey(storyID, chID)
-				if err := d.deleteAllBlocksForChapter(compositeKey); err != nil {
+				if err := d.deleteAllBlocksForChapter(ctx, compositeKey); err != nil {
 					// Log error but don't fail the transaction
 					logger.Error("Failed to delete blocks for chapter",
 						"error", err,
@@ -351,7 +351,7 @@ func (d *DAO) DeleteChapters(storyID string, chapters []models.Chapter) (err err
 			}(item.ID)
 		}
 
-		awsErr, err := d.awsWriteTransaction(writeItemsInput)
+		awsErr, err := d.awsWriteTransaction(ctx, writeItemsInput)
 		if err != nil {
 			return err
 		}
@@ -363,7 +363,7 @@ func (d *DAO) DeleteChapters(storyID string, chapters []models.Chapter) (err err
 }
 
 // deleteAllBlocksForChapter is a helper to delete all blocks for a given chapter
-func (d *DAO) deleteAllBlocksForChapter(compositeKey string) error {
+func (d *DAO) deleteAllBlocksForChapter(ctx context.Context, compositeKey string) error {
 	// Query all blocks for this chapter
 	queryInput := &dynamodb.QueryInput{
 		TableName:              aws.String(GetStoryBlocksTableName()),
@@ -378,7 +378,7 @@ func (d *DAO) deleteAllBlocksForChapter(compositeKey string) error {
 	paginator := dynamodb.NewQueryPaginator(d.DynamoClient, queryInput)
 
 	for paginator.HasMorePages() {
-		page, err := paginator.NextPage(context.Background())
+		page, err := paginator.NextPage(ctx)
 		if err != nil {
 			return err
 		}
@@ -403,7 +403,7 @@ func (d *DAO) deleteAllBlocksForChapter(compositeKey string) error {
 			}
 		}
 
-		_, err := d.DynamoClient.TransactWriteItems(context.Background(), &dynamodb.TransactWriteItemsInput{
+		_, err := d.DynamoClient.TransactWriteItems(ctx, &dynamodb.TransactWriteItemsInput{
 			TransactItems: writeItems,
 		})
 		if err != nil {
@@ -415,7 +415,7 @@ func (d *DAO) deleteAllBlocksForChapter(compositeKey string) error {
 }
 
 // GetBlockCountByChapter counts blocks in the unified table for a specific chapter
-func (d *DAO) GetBlockCountByChapter(email, storyID, chapterID string) (count int, err error) {
+func (d *DAO) GetBlockCountByChapter(ctx context.Context, email, storyID, chapterID string) (count int, err error) {
 	compositeKey := buildCompositeKey(storyID, chapterID)
 
 	queryInput := &dynamodb.QueryInput{
@@ -431,7 +431,7 @@ func (d *DAO) GetBlockCountByChapter(email, storyID, chapterID string) (count in
 	paginator := dynamodb.NewQueryPaginator(d.DynamoClient, queryInput)
 
 	for paginator.HasMorePages() {
-		page, err := paginator.NextPage(context.Background())
+		page, err := paginator.NextPage(ctx)
 		if err != nil {
 			return 0, err
 		}

@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -19,10 +20,18 @@ import (
 	"github.com/google/uuid"
 )
 
-func (d *DAO) GetAllStories(email string) (stories []*models.Story, err error) {
+// truncateString truncates a string to maxLen characters, adding "..." if truncated
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
+}
+
+func (d *DAO) GetAllStories(ctx context.Context, email string) (stories []*models.Story, err error) {
 	logger.Debug("GetAllStories called", "email", email)
 
-	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
 		TableName:        aws.String("stories" + GetTableSuffix()),
 		FilterExpression: aws.String("author=:eml AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -54,7 +63,7 @@ func (d *DAO) GetAllStories(email string) (stories []*models.Story, err error) {
 		storyIDs[i] = story.ID
 	}
 
-	chaptersByStory, err := d.GetChaptersByStoryIDs(storyIDs)
+	chaptersByStory, err := d.GetChaptersByStoryIDs(ctx, storyIDs)
 	if err != nil {
 		logger.Error("Failed to batch fetch chapters for stories", "error", err, "storyCount", len(stories))
 		return nil, err
@@ -68,7 +77,7 @@ func (d *DAO) GetAllStories(email string) (stories []*models.Story, err error) {
 	return stories, nil
 }
 
-func (d *DAO) GetAllStandalone(email string, adminRequest bool) (stories []models.Story, err error) {
+func (d *DAO) GetAllStandalone(ctx context.Context, email string, adminRequest bool) (stories []models.Story, err error) {
 	input := &dynamodb.ScanInput{
 		TableName:        aws.String("stories" + GetTableSuffix()),
 		FilterExpression: aws.String("author=:eml AND attribute_not_exists(series_id) AND attribute_not_exists(deleted_at)"),
@@ -77,7 +86,7 @@ func (d *DAO) GetAllStandalone(email string, adminRequest bool) (stories []model
 		},
 	}
 
-	out, err := d.DynamoClient.Scan(context.TODO(), input)
+	out, err := d.DynamoClient.Scan(ctx, input)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +101,7 @@ func (d *DAO) GetAllStandalone(email string, adminRequest bool) (stories []model
 		storyIDs[i] = story.ID
 	}
 
-	chaptersByStory, err := d.GetChaptersByStoryIDs(storyIDs)
+	chaptersByStory, err := d.GetChaptersByStoryIDs(ctx, storyIDs)
 	if err != nil {
 		logger.Error("Failed to batch fetch chapters for standalone stories", "error", err, "storyCount", len(stories))
 		return nil, err
@@ -110,7 +119,7 @@ func (d *DAO) GetAllStandalone(email string, adminRequest bool) (stories []model
 	return stories, nil
 }
 
-func (d *DAO) GetStorySettingsByID(email, storyID string) (storySettings *models.StorySettings, err error) {
+func (d *DAO) GetStorySettingsByID(ctx context.Context, email, storyID string) (storySettings *models.StorySettings, err error) {
 	storyID, err = url.QueryUnescape(storyID)
 	if err != nil {
 		return storySettings, err
@@ -123,7 +132,7 @@ func (d *DAO) GetStorySettingsByID(email, storyID string) (storySettings *models
 			":s":   &types.AttributeValueMemberS{Value: storyID},
 		},
 	}
-	out, err := d.DynamoClient.Scan(context.TODO(), scanInput)
+	out, err := d.DynamoClient.Scan(ctx, scanInput)
 	if err != nil {
 		return storySettings, err
 	}
@@ -138,7 +147,7 @@ func (d *DAO) GetStorySettingsByID(email, storyID string) (storySettings *models
 	return &storySettingsFromMap[0], nil
 }
 
-func (d *DAO) GetStoryByID(email, storyID string) (story *models.Story, err error) {
+func (d *DAO) GetStoryByID(ctx context.Context, email, storyID string) (story *models.Story, err error) {
 	storyID, err = url.QueryUnescape(storyID)
 	if err != nil {
 		return story, err
@@ -151,7 +160,7 @@ func (d *DAO) GetStoryByID(email, storyID string) (story *models.Story, err erro
 			":s":   &types.AttributeValueMemberS{Value: storyID},
 		},
 	}
-	userDetails, err := d.GetUserDetails(email)
+	userDetails, err := d.GetUserDetails(ctx, email)
 	if err != nil {
 		return story, err
 	}
@@ -164,7 +173,7 @@ func (d *DAO) GetStoryByID(email, storyID string) (story *models.Story, err erro
 			},
 		}
 	}
-	out, err := d.DynamoClient.Scan(context.TODO(), scanInput)
+	out, err := d.DynamoClient.Scan(ctx, scanInput)
 	if err != nil {
 		return story, err
 	}
@@ -176,7 +185,7 @@ func (d *DAO) GetStoryByID(email, storyID string) (story *models.Story, err erro
 	if len(storyFromMap) == 0 {
 		return story, fmt.Errorf("no story found")
 	}
-	storyFromMap[0].Chapters, err = d.GetChaptersByStoryID(storyID)
+	storyFromMap[0].Chapters, err = d.GetChaptersByStoryID(ctx, storyID)
 	if err != nil {
 		return
 	}
@@ -187,13 +196,13 @@ func (d *DAO) GetStoryByID(email, storyID string) (story *models.Story, err erro
 		chap.Title = "Chapter 1"
 		chap.ID = uuid.New().String()
 		chap.StoryID = storyID
-		chapter, err := d.CreateChapter(storyID, chap, email)
+		chapter, err := d.CreateChapter(ctx, storyID, chap, email)
 		if err != nil {
 			return story, err
 		}
 		storyFromMap[0].Chapters = append(storyFromMap[0].Chapters, chapter)
 	}
-	storyFromMap[0].Outline, err = d.GetOutlineByStoryID(storyID, storyFromMap[0].Chapters)
+	storyFromMap[0].Outline, err = d.GetOutlineByStoryID(ctx, storyID, storyFromMap[0].Chapters)
 	if err != nil && err != sql.ErrNoRows {
 		return &storyFromMap[0], err
 	}
@@ -201,7 +210,7 @@ func (d *DAO) GetStoryByID(email, storyID string) (story *models.Story, err erro
 }
 
 // queryExistingBlocks queries all blocks for a chapter from the unified table
-func (d *DAO) queryExistingBlocks(compositeKey, storyID, chapterID string) ([]map[string]types.AttributeValue, error) {
+func (d *DAO) queryExistingBlocks(ctx context.Context, compositeKey, storyID, chapterID string) ([]map[string]types.AttributeValue, error) {
 	queryInput := &dynamodb.QueryInput{
 		TableName:              aws.String(GetStoryBlocksTableName()),
 		KeyConditionExpression: aws.String("composite_key = :pk"),
@@ -214,7 +223,7 @@ func (d *DAO) queryExistingBlocks(compositeKey, storyID, chapterID string) ([]ma
 	paginator := dynamodb.NewQueryPaginator(d.DynamoClient, queryInput)
 
 	for paginator.HasMorePages() {
-		page, err := paginator.NextPage(context.Background())
+		page, err := paginator.NextPage(ctx)
 		if err != nil {
 			logger.Error("Failed to query existing blocks",
 				"error", err,
@@ -302,6 +311,23 @@ func buildReorderTransactions(
 			}
 
 			oldPlaceNum, _ := strconv.ParseInt(oldPlace.Value, 10, 64)
+
+			// Check if incoming has empty chunk but existing has content
+			hasExistingChunk := false
+			if existingChunk, ok := existingItem["chunk"]; ok {
+				if s, ok := existingChunk.(*types.AttributeValueMemberS); ok && len(s.Value) > 10 {
+					hasExistingChunk = true
+				}
+			}
+			if hasExistingChunk && len(item.Chunk) == 0 {
+				logger.Debug("ResetBlockOrder: Preserving existing chunk (incoming chunk is empty)",
+					"storyId", storyID,
+					"chapterId", chapterID,
+					"keyId", item.KeyID,
+					"oldPlace", oldPlaceNum,
+					"newPlace", newPlaceNum)
+			}
+
 			if oldPlaceNum != newPlaceNum {
 				// Delete the item from its old location
 				deleteKey := map[string]types.AttributeValue{
@@ -316,6 +342,7 @@ func buildReorderTransactions(
 				})
 
 				// Create new item with updated place value
+				// This preserves ALL attributes including chunk from existing item
 				newItem := make(map[string]types.AttributeValue)
 				for k, v := range existingItem {
 					newItem[k] = v
@@ -330,17 +357,31 @@ func buildReorderTransactions(
 				})
 			}
 		} else {
-			// Block doesn't exist yet - create it
+			// Block doesn't exist yet
+			// WARNING: This should rarely happen in ResetBlockOrder (which is for reordering existing blocks)
+			// If this happens frequently with empty chunks, it indicates a frontend bug
+			if len(item.Chunk) == 0 {
+				logger.Warn("ResetBlockOrder: Skipping creation of new block with empty chunk (possible frontend bug - sending wrong keyIDs)",
+					"storyId", storyID,
+					"chapterId", chapterID,
+					"keyId", item.KeyID,
+					"place", item.Place)
+				continue
+			}
+
+			logger.Debug("ResetBlockOrder: Creating new block",
+				"storyId", storyID,
+				"chapterId", chapterID,
+				"keyId", item.KeyID,
+				"place", item.Place)
+
 			newItem := map[string]types.AttributeValue{
 				"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
 				"place":         &types.AttributeValueMemberN{Value: strconv.FormatInt(newPlaceNum, 10)},
 				"story_id":      &types.AttributeValueMemberS{Value: storyID},
 				"chapter_id":    &types.AttributeValueMemberS{Value: chapterID},
 				"key_id":        &types.AttributeValueMemberS{Value: item.KeyID},
-			}
-
-			if len(item.Chunk) > 0 {
-				newItem["chunk"] = &types.AttributeValueMemberS{Value: string(item.Chunk)}
+				"chunk":         &types.AttributeValueMemberS{Value: string(item.Chunk)},
 			}
 
 			putItems = append(putItems, types.TransactWriteItem{
@@ -375,6 +416,7 @@ func identifyOrphanedBlocks(
 
 // deleteOrphanedBlocks deletes blocks in batches using transactions
 func (d *DAO) deleteOrphanedBlocks(
+	ctx context.Context,
 	blocksToDelete []map[string]types.AttributeValue,
 	storyID string,
 	chapterID string,
@@ -407,7 +449,7 @@ func (d *DAO) deleteOrphanedBlocks(
 			}
 		}
 
-		awsErr, err := d.awsWriteTransaction(deleteInput)
+		awsErr, err := d.awsWriteTransaction(ctx, deleteInput)
 		if err != nil {
 			logger.Error("Phase 3 delete transaction failed",
 				"error", err,
@@ -430,16 +472,17 @@ func (d *DAO) deleteOrphanedBlocks(
 
 // ResetBlockOrder reorders blocks by deleting and recreating them with new place values
 // This is necessary because place is part of the primary key and cannot be updated
-func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (err error) {
-	compositeKey := buildCompositeKey(storyID, storyBlocks.ChapterID)
+// Note: This only changes block positions, NOT content
+func (d *DAO) ResetBlockOrder(ctx context.Context, storyID string, blocksOrder *models.BlocksOrder) (err error) {
+	compositeKey := buildCompositeKey(storyID, blocksOrder.ChapterID)
 
 	logger.Info("ResetBlockOrder started",
 		"storyId", storyID,
-		"chapterId", storyBlocks.ChapterID,
-		"blockCount", len(storyBlocks.Blocks))
+		"chapterId", blocksOrder.ChapterID,
+		"blockCount", len(blocksOrder.Blocks))
 
 	// Step 1: Query all existing blocks
-	existingItems, err := d.queryExistingBlocks(compositeKey, storyID, storyBlocks.ChapterID)
+	existingItems, err := d.queryExistingBlocks(ctx, compositeKey, storyID, blocksOrder.ChapterID)
 	if err != nil {
 		return err
 	}
@@ -447,16 +490,26 @@ func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (
 	// Step 2: Create lookup map by key_id
 	itemsByKeyID := buildItemMapByKeyID(existingItems)
 
-	// Step 3: Process blocks in batches
+	// Step 3: Convert BlockOrder to StoryBlock (without chunk data - will be preserved from existing)
+	blocks := make([]models.StoryBlock, len(blocksOrder.Blocks))
+	for i, bo := range blocksOrder.Blocks {
+		blocks[i] = models.StoryBlock{
+			KeyID: bo.KeyID,
+			Place: bo.Place,
+			// Chunk intentionally omitted - will be preserved from existing blocks
+		}
+	}
+
+	// Step 4: Process blocks in batches
 	batchSize := d.writeBatchSize / 2
 	if batchSize == 0 {
 		batchSize = 50
 	}
-	batches := createBatches(storyBlocks.Blocks, batchSize)
+	batches := createBatches(blocks, batchSize)
 
 	logger.Debug("Processing batches",
 		"storyId", storyID,
-		"chapterId", storyBlocks.ChapterID,
+		"chapterId", blocksOrder.ChapterID,
 		"batchCount", len(batches),
 		"batchSize", batchSize)
 
@@ -464,12 +517,12 @@ func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (
 	for batchIndex, batch := range batches {
 		logger.Debug("Processing batch",
 			"storyId", storyID,
-			"chapterId", storyBlocks.ChapterID,
+			"chapterId", blocksOrder.ChapterID,
 			"batchNumber", batchIndex+1,
 			"totalBatches", len(batches),
 			"itemsInBatch", len(batch))
 
-		deleteItems, putItems, err := buildReorderTransactions(batch, compositeKey, storyID, storyBlocks.ChapterID, itemsByKeyID)
+		deleteItems, putItems, err := buildReorderTransactions(batch, compositeKey, storyID, blocksOrder.ChapterID, itemsByKeyID)
 		if err != nil {
 			return err
 		}
@@ -478,18 +531,18 @@ func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (
 		if len(deleteItems) > 0 {
 			logger.Debug("Phase 1: Deleting blocks from old positions",
 				"storyId", storyID,
-				"chapterId", storyBlocks.ChapterID,
+				"chapterId", blocksOrder.ChapterID,
 				"deleteCount", len(deleteItems))
 
 			deleteInput := &dynamodb.TransactWriteItemsInput{
 				TransactItems: deleteItems,
 			}
-			awsErr, err := d.awsWriteTransaction(deleteInput)
+			awsErr, err := d.awsWriteTransaction(ctx, deleteInput)
 			if err != nil {
 				logger.Error("Phase 1 delete transaction failed",
 					"error", err,
 					"storyId", storyID,
-					"chapterId", storyBlocks.ChapterID)
+					"chapterId", blocksOrder.ChapterID)
 				return err
 			}
 			if !awsErr.IsNil() {
@@ -498,7 +551,7 @@ func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (
 					"awsErrorType", awsErr.ErrorType,
 					"awsText", awsErr.Text,
 					"storyId", storyID,
-					"chapterId", storyBlocks.ChapterID)
+					"chapterId", blocksOrder.ChapterID)
 				return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 			}
 		}
@@ -507,18 +560,18 @@ func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (
 		if len(putItems) > 0 {
 			logger.Debug("Phase 2: Writing blocks to new positions",
 				"storyId", storyID,
-				"chapterId", storyBlocks.ChapterID,
+				"chapterId", blocksOrder.ChapterID,
 				"putCount", len(putItems))
 
 			putInput := &dynamodb.TransactWriteItemsInput{
 				TransactItems: putItems,
 			}
-			awsErr, err := d.awsWriteTransaction(putInput)
+			awsErr, err := d.awsWriteTransaction(ctx, putInput)
 			if err != nil {
 				logger.Error("Phase 2 put transaction failed",
 					"error", err,
 					"storyId", storyID,
-					"chapterId", storyBlocks.ChapterID)
+					"chapterId", blocksOrder.ChapterID)
 				return err
 			}
 			if !awsErr.IsNil() {
@@ -527,29 +580,29 @@ func (d *DAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) (
 					"awsErrorType", awsErr.ErrorType,
 					"awsText", awsErr.Text,
 					"storyId", storyID,
-					"chapterId", storyBlocks.ChapterID)
+					"chapterId", blocksOrder.ChapterID)
 				return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 			}
 		}
 	}
 
 	// Phase 3: Delete blocks that exist in DB but aren't in the new order list
-	blocksToDelete := identifyOrphanedBlocks(itemsByKeyID, storyBlocks.Blocks)
+	blocksToDelete := identifyOrphanedBlocks(itemsByKeyID, blocks)
 	if len(blocksToDelete) > 0 {
 		logger.Info("Phase 3: Deleting blocks not in new order list",
 			"storyId", storyID,
-			"chapterId", storyBlocks.ChapterID,
+			"chapterId", blocksOrder.ChapterID,
 			"deleteCount", len(blocksToDelete))
 
-		if err := d.deleteOrphanedBlocks(blocksToDelete, storyID, storyBlocks.ChapterID); err != nil {
+		if err := d.deleteOrphanedBlocks(ctx, blocksToDelete, storyID, blocksOrder.ChapterID); err != nil {
 			return err
 		}
 	}
 
 	logger.Info("ResetBlockOrder completed successfully",
 		"storyId", storyID,
-		"chapterId", storyBlocks.ChapterID,
-		"blocksProcessed", len(storyBlocks.Blocks))
+		"chapterId", blocksOrder.ChapterID,
+		"blocksProcessed", len(blocks))
 	return
 }
 
@@ -586,7 +639,63 @@ func buildWriteTransactions(
 				"story_id":      &types.AttributeValueMemberS{Value: storyID},
 				"chapter_id":    &types.AttributeValueMemberS{Value: chapterID},
 				"key_id":        &types.AttributeValueMemberS{Value: item.KeyID},
-				"chunk":         &types.AttributeValueMemberS{Value: string(item.Chunk)},
+			}
+
+			// Update chunk - with data loss protection
+			if len(item.Chunk) > 0 {
+				chunkStr := string(item.Chunk)
+
+				// Check if we're overwriting content with empty data
+				if existingChunk, ok := existingItem["chunk"]; ok {
+					existingChunkStr := ""
+					if s, ok := existingChunk.(*types.AttributeValueMemberS); ok {
+						existingChunkStr = s.Value
+					}
+
+					// Detect potential data loss from malformed/broken chunks
+					// A properly serialized Lexical paragraph (even empty) is ~100+ chars with structure
+					// Malformed data from race conditions would be very short or literal empty values
+					existingHasContent := len(existingChunkStr) > 50 // reasonable threshold for min Lexical JSON
+
+					// Check for clearly malformed data (not properly serialized Lexical JSON)
+					newIsMalformed := chunkStr == "null" ||
+						chunkStr == "[]" ||
+						chunkStr == `""` ||
+						chunkStr == "{}" ||
+						len(chunkStr) < 30 || // Properly serialized paragraph is ~100+ chars minimum
+						(!strings.Contains(chunkStr, "type") && !strings.Contains(chunkStr, "key_id")) // Must have basic structure
+
+					if existingHasContent && newIsMalformed {
+						// PREVENT data loss by preserving existing content
+						// This catches race conditions where malformed/broken data is sent
+						// but allows properly serialized paragraphs (including intentionally empty ones) through
+						logger.Warn("DATA LOSS PREVENTED: Preserving existing chunk - incoming chunk is malformed",
+							"storyId", storyID,
+							"chapterId", chapterID,
+							"keyId", item.KeyID,
+							"existingLength", len(existingChunkStr),
+							"incomingLength", len(chunkStr),
+							"incomingChunk", chunkStr,
+							"existingChunkPreview", truncateString(existingChunkStr, 100))
+						// Preserve existing chunk instead of overwriting with malformed data
+						newItem["chunk"] = existingChunk
+					} else {
+						// Safe update - accept the new chunk (including intentionally empty paragraphs)
+						newItem["chunk"] = &types.AttributeValueMemberS{Value: chunkStr}
+					}
+				} else {
+					// No existing chunk, accept the new one
+					newItem["chunk"] = &types.AttributeValueMemberS{Value: chunkStr}
+				}
+			} else {
+				// Zero-length chunk (likely a bug) - preserve existing to prevent data loss
+				if existingChunk, ok := existingItem["chunk"]; ok {
+					newItem["chunk"] = existingChunk
+					logger.Warn("DATA LOSS PREVENTED: Preserving existing chunk due to zero-length incoming chunk",
+						"storyId", storyID,
+						"chapterId", chapterID,
+						"keyId", item.KeyID)
+				}
 			}
 
 			// Preserve other attributes from existing item
@@ -618,7 +727,18 @@ func buildWriteTransactions(
 				},
 			})
 		} else {
-			// New block - check if the place is already occupied
+			// New block - skip only if chunk is truly zero-length (likely a bug)
+			// Allow creation with valid empty JSON (intentional blank paragraphs)
+			if len(item.Chunk) == 0 {
+				logger.Warn("Skipping creation of new block with zero-length chunk (possible frontend bug)",
+					"storyId", storyID,
+					"chapterId", chapterID,
+					"keyId", item.KeyID,
+					"place", item.Place)
+				continue
+			}
+
+			// Check if the place is already occupied
 			actualPlace := newPlaceNum
 			if _, placeOccupied := itemsByPlace[newPlaceNum]; placeOccupied {
 				// There's already a different block at this place
@@ -641,6 +761,15 @@ func buildWriteTransactions(
 				"chunk":         &types.AttributeValueMemberS{Value: string(item.Chunk)},
 			}
 
+			chunkStr := string(item.Chunk)
+			if chunkStr == "null" || chunkStr == "[]" || chunkStr == `""` || chunkStr == "{}" {
+				logger.Debug("Creating new block with intentional empty chunk",
+					"storyId", storyID,
+					"chapterId", chapterID,
+					"keyId", item.KeyID,
+					"chunkValue", chunkStr)
+			}
+
 			putItems = append(putItems, types.TransactWriteItem{
 				Put: &types.Put{
 					TableName: aws.String(GetStoryBlocksTableName()),
@@ -654,7 +783,7 @@ func buildWriteTransactions(
 
 // WriteBlocks writes or updates blocks in the unified table
 // It identifies blocks by key_id and handles moving them if their place changed
-func (d *DAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) (err error) {
+func (d *DAO) WriteBlocks(ctx context.Context, storyID string, storyBlocks *models.StoryBlocks) (err error) {
 	compositeKey := buildCompositeKey(storyID, storyBlocks.ChapterID)
 
 	logger.Info("WriteBlocks started",
@@ -663,7 +792,7 @@ func (d *DAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) (err 
 		"blockCount", len(storyBlocks.Blocks))
 
 	// Step 1: Query existing blocks
-	existingItems, err := d.queryExistingBlocks(compositeKey, storyID, storyBlocks.ChapterID)
+	existingItems, err := d.queryExistingBlocks(ctx, compositeKey, storyID, storyBlocks.ChapterID)
 	if err != nil {
 		return err
 	}
@@ -708,7 +837,7 @@ func (d *DAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) (err 
 			deleteInput := &dynamodb.TransactWriteItemsInput{
 				TransactItems: deleteItems,
 			}
-			awsErr, err := d.awsWriteTransaction(deleteInput)
+			awsErr, err := d.awsWriteTransaction(ctx, deleteInput)
 			if err != nil {
 				logger.Error("Phase 1 delete transaction failed",
 					"error", err,
@@ -737,7 +866,7 @@ func (d *DAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) (err 
 			putInput := &dynamodb.TransactWriteItemsInput{
 				TransactItems: putItems,
 			}
-			awsErr, err := d.awsWriteTransaction(putInput)
+			awsErr, err := d.awsWriteTransaction(ctx, putInput)
 			if err != nil {
 				logger.Error("Phase 2 put transaction failed",
 					"error", err,
@@ -764,7 +893,7 @@ func (d *DAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) (err 
 	return
 }
 
-func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.Story, err error) {
+func (d *DAO) EditStory(ctx context.Context, email string, story models.Story) (updatedStory models.Story, err error) {
 	modifiedAtStr := strconv.FormatInt(time.Now().Unix(), 10)
 	item := map[string]types.AttributeValue{
 		"story_id":    &types.AttributeValueMemberS{Value: story.ID},
@@ -780,7 +909,7 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 		item["place"] = &types.AttributeValueMemberN{Value: intPlace}
 	}
 	updatedStory = story
-	storedStory, err := d.GetStoryByID(email, story.ID)
+	storedStory, err := d.GetStoryByID(ctx, email, story.ID)
 	if err != nil {
 		return updatedStory, err
 	}
@@ -788,7 +917,7 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 		// a change in series
 		if story.SeriesID != "" {
 			// check if this is a new or existing series
-			series, err := d.GetSeriesByID(email, story.SeriesID)
+			series, err := d.GetSeriesByID(ctx, email, story.SeriesID)
 			var seriesID string
 			if err != nil {
 				if !errors.Is(err, ErrSeriesNotFound) {
@@ -805,7 +934,7 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 						TableName: aws.String("series" + GetTableSuffix()),
 						Item:      seriesItem,
 					}
-					_, err = d.DynamoClient.PutItem(context.Background(), seriesUpdateInput)
+					_, err = d.DynamoClient.PutItem(ctx, seriesUpdateInput)
 					if err != nil {
 						return updatedStory, err
 					}
@@ -826,7 +955,7 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 			updatedStory.SeriesID = seriesID
 		} else {
 			// story was removed from series OR new series
-			_, err := d.GetSeriesByID(email, story.SeriesID)
+			_, err := d.GetSeriesByID(ctx, email, story.SeriesID)
 			if err != nil {
 				if !errors.Is(err, ErrSeriesNotFound) {
 					return updatedStory, err
@@ -843,13 +972,13 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 						TableName: aws.String("series" + GetTableSuffix()),
 						Item:      seriesItem,
 					}
-					_, err = d.DynamoClient.PutItem(context.Background(), seriesUpdateInput)
+					_, err = d.DynamoClient.PutItem(ctx, seriesUpdateInput)
 					if err != nil {
 						return updatedStory, err
 					}
 				} else {
 					// remove from series
-					storedSeries, err := d.GetSeriesByID(email, storedStory.SeriesID)
+					storedSeries, err := d.GetSeriesByID(ctx, email, storedStory.SeriesID)
 					if err != nil {
 						return updatedStory, err
 					}
@@ -860,7 +989,7 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 						}
 					}
 					storedSeries.Stories = newStories
-					_, err = d.EditSeries(email, *storedSeries)
+					_, err = d.EditSeries(ctx, email, *storedSeries)
 					if err != nil {
 						return updatedStory, err
 					}
@@ -874,14 +1003,14 @@ func (d *DAO) EditStory(email string, story models.Story) (updatedStory models.S
 		TableName: aws.String("stories" + GetTableSuffix()),
 		Item:      item,
 	}
-	_, err = d.DynamoClient.PutItem(context.Background(), storyUpdateInput)
+	_, err = d.DynamoClient.PutItem(ctx, storyUpdateInput)
 	if err != nil {
 		return updatedStory, err
 	}
 	return updatedStory, nil
 }
 
-func (d *DAO) UpdateStorySettings(email, storyID string, settings models.StorySettings) error {
+func (d *DAO) UpdateStorySettings(ctx context.Context, email, storyID string, settings models.StorySettings) error {
 	tableName := "story_settings" + GetTableSuffix()
 	twii := &dynamodb.TransactWriteItemsInput{}
 	now := strconv.FormatInt(time.Now().Unix(), 10)
@@ -912,7 +1041,7 @@ func (d *DAO) UpdateStorySettings(email, storyID string, settings models.StorySe
 	}
 	twii.TransactItems = append(twii.TransactItems, twi)
 
-	awsErr, err := d.awsWriteTransaction(twii)
+	awsErr, err := d.awsWriteTransaction(ctx, twii)
 	if err != nil {
 		return err
 	}
@@ -922,7 +1051,7 @@ func (d *DAO) UpdateStorySettings(email, storyID string, settings models.StorySe
 	return nil
 }
 
-func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle string) (storyID string, err error) {
+func (d *DAO) CreateStory(ctx context.Context, email string, story models.Story, newSeriesTitle string) (storyID string, err error) {
 	twii := &dynamodb.TransactWriteItemsInput{}
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	attributes := map[string]types.AttributeValue{
@@ -948,7 +1077,7 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 	}
 
 	twii.TransactItems = append(twii.TransactItems, twi)
-	awsErr, err := d.awsWriteTransaction(twii)
+	awsErr, err := d.awsWriteTransaction(ctx, twii)
 	if err != nil {
 		return "", err
 	}
@@ -969,7 +1098,7 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 
 		// Execute the scan operation and get the count
 		var resp *dynamodb.ScanOutput
-		if resp, err = d.DynamoClient.Scan(context.TODO(), params); err != nil {
+		if resp, err = d.DynamoClient.Scan(ctx, params); err != nil {
 			return
 		}
 
@@ -1006,7 +1135,7 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 			},
 		}
 		twii.TransactItems = append(twii.TransactItems, updateStoryTwi)
-		awsErr, err = d.awsWriteTransaction(twii)
+		awsErr, err = d.awsWriteTransaction(ctx, twii)
 		if err != nil {
 			return "", err
 		}
@@ -1017,7 +1146,7 @@ func (d *DAO) CreateStory(email string, story models.Story, newSeriesTitle strin
 	return story.ID, nil
 }
 
-func (d *DAO) GetStoryCountByUser(email string) (count int, err error) {
+func (d *DAO) GetStoryCountByUser(ctx context.Context, email string) (count int, err error) {
 	storyScanInput := &dynamodb.ScanInput{
 		TableName:        aws.String("stories" + GetTableSuffix()),
 		FilterExpression: aws.String("author = :eml AND attribute_not_exists(deleted_at)"),
@@ -1025,7 +1154,7 @@ func (d *DAO) GetStoryCountByUser(email string) (count int, err error) {
 			":eml": &types.AttributeValueMemberS{Value: email},
 		},
 	}
-	storyOut, err := d.DynamoClient.Scan(context.TODO(), storyScanInput)
+	storyOut, err := d.DynamoClient.Scan(ctx, storyScanInput)
 	if err != nil {
 		return
 	}

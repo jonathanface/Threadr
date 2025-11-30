@@ -2,6 +2,7 @@ package daos
 
 import (
 	"RichDocter/models"
+	"context"
 	"errors"
 	"testing"
 )
@@ -25,7 +26,7 @@ func TestGetAllStories(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			stories, err := mockDao.GetAllStories(tc.email)
+			stories, err := mockDao.GetAllStories(context.Background(), tc.email)
 
 			if tc.wantErr {
 				if err == nil {
@@ -69,7 +70,7 @@ func TestGetAllStandalone(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			stories, err := mockDao.GetAllStandalone(tc.email, tc.adminRequest)
+			stories, err := mockDao.GetAllStandalone(context.Background(), tc.email, tc.adminRequest)
 
 			if tc.wantErr {
 				if err == nil {
@@ -112,7 +113,7 @@ func TestGetStoryByID(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			story, err := mockDao.GetStoryByID(tc.email, tc.storyID)
+			story, err := mockDao.GetStoryByID(context.Background(), tc.email, tc.storyID)
 
 			if tc.wantErr {
 				if err == nil {
@@ -151,7 +152,7 @@ func TestGetStorySettingsByID(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			settings, err := mockDao.GetStorySettingsByID(tc.email, tc.storyID)
+			settings, err := mockDao.GetStorySettingsByID(context.Background(), tc.email, tc.storyID)
 
 			// Without full DB mock, this will likely fail
 			t.Logf("GetStorySettingsByID returned settings=%v, err=%v", settings != nil, err)
@@ -178,7 +179,7 @@ func TestGetStoryCountByUser(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			count, err := mockDao.GetStoryCountByUser(tc.email)
+			count, err := mockDao.GetStoryCountByUser(context.Background(), tc.email)
 
 			if tc.wantErr {
 				if err == nil {
@@ -199,14 +200,14 @@ func TestResetBlockOrder(t *testing.T) {
 	testCases := []struct {
 		name        string
 		storyID     string
-		storyBlocks *models.StoryBlocks
+		blocksOrder *models.BlocksOrder
 		wantErr     bool
 	}{
 		{
 			name:    "SuccessfulReset",
 			storyID: "story123",
-			storyBlocks: &models.StoryBlocks{
-				Blocks: []models.StoryBlock{
+			blocksOrder: &models.BlocksOrder{
+				Blocks: []models.BlockOrder{
 					{KeyID: "block1", Place: "2"},
 					{KeyID: "block2", Place: "1"},
 				},
@@ -221,14 +222,14 @@ func TestResetBlockOrder(t *testing.T) {
 			mockDao := NewMockDAO()
 
 			// Mock the ResetBlockOrder function since it requires DynamoDB Query operations
-			mockDao.MockResetBlockOrder = func(storyID string, storyBlocks *models.StoryBlocks) error {
+			mockDao.MockResetBlockOrder = func(storyID string, blocksOrder *models.BlocksOrder) error {
 				if tc.wantErr {
 					return errors.New("mock error")
 				}
 				return nil
 			}
 
-			err := mockDao.ResetBlockOrder(tc.storyID, tc.storyBlocks)
+			err := mockDao.ResetBlockOrder(context.Background(), tc.storyID, tc.blocksOrder)
 
 			if tc.wantErr {
 				if err == nil {
@@ -253,7 +254,7 @@ func BenchmarkCreateStory(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = mockDao.CreateStory("bench@example.com", story, "")
+		_, _ = mockDao.CreateStory(context.Background(), "bench@example.com", story, "")
 	}
 }
 
@@ -262,6 +263,6 @@ func BenchmarkGetAllStories(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = mockDao.GetAllStories("bench@example.com")
+		_, _ = mockDao.GetAllStories(context.Background(), "bench@example.com")
 	}
 }

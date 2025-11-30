@@ -51,7 +51,7 @@ func TestCheckBackupStatus(t *testing.T) {
 				}, nil
 			}
 
-			err := mockDao.checkBackupStatus(tc.arn)
+			err := mockDao.checkBackupStatus(context.Background(), tc.arn)
 
 			t.Logf("checkBackupStatus(%q) returned err=%v", tc.arn, err)
 			if tc.wantErr && err == nil {
@@ -135,7 +135,7 @@ func TestRestoreOneStory(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			err := mockDao.restoreOneStory(tc.email, tc.story)
+			err := mockDao.restoreOneStory(context.Background(), tc.email, tc.story)
 
 			// This requires actual backup ARN and AWS API
 			t.Logf("restoreOneStory returned err=%v", err)

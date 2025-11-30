@@ -40,7 +40,7 @@ func UpdateChaptersEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, chapter := range newChapters {
-		if _, err = dao.EditChapter(storyID, chapter); err != nil {
+		if _, err = dao.EditChapter(r.Context(), storyID, chapter); err != nil {
 			if opErr, ok := err.(*smithy.OperationError); ok {
 				awsResponse := processAWSError(opErr)
 				if awsResponse.Code == 0 {
@@ -95,7 +95,7 @@ func EditChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var updatedChapter models.Chapter
-	if updatedChapter, err = dao.EditChapter(storyID, newChapter); err != nil {
+	if updatedChapter, err = dao.EditChapter(r.Context(), storyID, newChapter); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {

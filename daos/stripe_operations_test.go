@@ -65,7 +65,7 @@ func TestAddStripeData(t *testing.T) {
 				}
 			}
 
-			err := mockDao.AddStripeData(tc.email, tc.subscriptionID, tc.customerID)
+			err := mockDao.AddStripeData(context.Background(), tc.email, tc.subscriptionID, tc.customerID)
 
 			if tc.wantErr {
 				if err == nil {
@@ -204,6 +204,6 @@ func BenchmarkAddStripeData(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = mockDao.AddStripeData(&email, &subID, &custID)
+		_ = mockDao.AddStripeData(context.Background(), &email, &subID, &custID)
 	}
 }

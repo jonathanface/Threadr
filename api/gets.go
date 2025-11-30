@@ -42,7 +42,7 @@ func ChapterTableStatusEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	isTableReady, err := dao.GetChapterTableStatus(storyID, chapterID)
+	isTableReady, err := dao.GetChapterTableStatus(r.Context(), storyID, chapterID)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -83,7 +83,7 @@ func ChapterDetailsEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var chapter *models.Chapter
-	chapter, err = dao.GetChapterByID(chapterID)
+	chapter, err = dao.GetChapterByID(r.Context(), chapterID)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -120,7 +120,7 @@ func StoryBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	if ok, err = dao.WasStoryDeleted(email, storyID); err != nil {
+	if ok, err = dao.WasStoryDeleted(r.Context(), email, storyID); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -128,7 +128,7 @@ func StoryBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusNotFound, "story not found")
 		return
 	}
-	blocks, err := dao.GetChapterParagraphs(storyID, chapterID, nil)
+	blocks, err := dao.GetChapterParagraphs(r.Context(), storyID, chapterID, nil)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
@@ -173,7 +173,7 @@ func FullStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	if ok, err = dao.WasStoryDeleted(email, storyID); err != nil {
+	if ok, err = dao.WasStoryDeleted(r.Context(), email, storyID); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -182,7 +182,7 @@ func FullStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	story, err := dao.GetStoryByID(email, storyID)
+	story, err := dao.GetStoryByID(r.Context(), email, storyID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			RespondWithError(w, http.StatusNotFound, "story not found")
@@ -197,7 +197,7 @@ func FullStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	for _, chap := range story.Chapters {
 		chapWithContents := models.ChapterWithContents{}
 		chapWithContents.Chapter = chap
-		chapWithContents.Blocks, err = staggeredStoryBlockRetrieval(dao, storyID, chap.ID, nil, nil)
+		chapWithContents.Blocks, err = staggeredStoryBlockRetrieval(r.Context(), dao, storyID, chap.ID, nil, nil)
 		if err != nil {
 			RespondWithError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -232,7 +232,7 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	if ok, err = dao.WasStoryDeleted(email, storyID); err != nil {
+	if ok, err = dao.WasStoryDeleted(r.Context(), email, storyID); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -240,7 +240,7 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusNotFound, "story not found")
 		return
 	}
-	story, err := dao.GetStoryByID(email, storyID)
+	story, err := dao.GetStoryByID(r.Context(), email, storyID)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
@@ -286,7 +286,7 @@ func StorySettingsEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	storySettings, err := dao.GetStorySettingsByID(email, storyID)
+	storySettings, err := dao.GetStorySettingsByID(r.Context(), email, storyID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			RespondWithError(w, http.StatusNotFound, "settings not found")
@@ -322,13 +322,13 @@ func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	userDetails, err := dao.GetUserDetails(email)
+	userDetails, err := dao.GetUserDetails(r.Context(), email)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	stories, err := dao.GetAllStandalone(email, userDetails.Admin)
+	stories, err := dao.GetAllStandalone(r.Context(), email, userDetails.Admin)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
@@ -379,7 +379,7 @@ func AssociationDetailsEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	association, err := dao.GetAssociationDetails(email, storyID, associationID)
+	association, err := dao.GetAssociationDetails(r.Context(), email, storyID, associationID)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
@@ -420,7 +420,7 @@ func AllAssociationThumbnailsByStoryEndPoint(w http.ResponseWriter, r *http.Requ
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	associations, err := dao.GetStoryOrSeriesAssociationThumbnails(email, storyID)
+	associations, err := dao.GetStoryOrSeriesAssociationThumbnails(r.Context(), email, storyID)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
@@ -465,7 +465,7 @@ func SingleSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing series id")
 		return
 	}
-	series, err := dao.GetSeriesByID(email, seriesID)
+	series, err := dao.GetSeriesByID(r.Context(), email, seriesID)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
@@ -497,12 +497,12 @@ func AllSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	userDetails, err := dao.GetUserDetails(email)
+	userDetails, err := dao.GetUserDetails(r.Context(), email)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	series, err := dao.GetAllSeriesWithStories(email, userDetails.Admin)
+	series, err := dao.GetAllSeriesWithStories(r.Context(), email, userDetails.Admin)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
@@ -543,7 +543,7 @@ func AllSeriesVolumesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	volumes, err := dao.GetSeriesVolumes(email, seriesTitle)
+	volumes, err := dao.GetSeriesVolumes(r.Context(), email, seriesTitle)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
@@ -561,7 +561,7 @@ func AllSeriesVolumesEndPoint(w http.ResponseWriter, r *http.Request) {
 	for _, story := range volumes {
 		allTablesReady := true
 		for _, chapter := range story.Chapters {
-			status, err := dao.CheckTableStatus(story.ID + "_" + chapter.ID + "_blocks" + daos.GetTableSuffix())
+			status, err := dao.CheckTableStatus(r.Context(), story.ID + "_" + chapter.ID + "_blocks" + daos.GetTableSuffix())
 			if err != nil {
 				RespondWithError(w, http.StatusInternalServerError, err.Error())
 			}
@@ -594,7 +594,7 @@ func GetUserData(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve daokey from context")
 		return
 	}
-	details, err := dao.GetUserDetails(user.Email)
+	details, err := dao.GetUserDetails(r.Context(), user.Email)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return

@@ -29,7 +29,7 @@ func CreateOutlineEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	outlineResponse, err := dao.CreateOutline(outline)
+	outlineResponse, err := dao.CreateOutline(r.Context(), outline)
 	if err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)

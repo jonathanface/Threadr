@@ -18,7 +18,7 @@ const (
 	MAX_SHORT_DESCRIPTION_LENGTH = 100
 )
 
-func (d DAO) WriteAssociations(email, storyOrSeriesID string, associations []*models.Association) (err error) {
+func (d DAO) WriteAssociations(ctx context.Context, email, storyOrSeriesID string, associations []*models.Association) (err error) {
 	if len(associations) == 0 {
 		return fmt.Errorf("empty associations array")
 	}
@@ -111,7 +111,7 @@ func (d DAO) WriteAssociations(email, storyOrSeriesID string, associations []*mo
 			writeItemsDetailsInput.TransactItems[i] = writeDetailsItem
 		}
 		var awsErr models.AwsError
-		awsErr, err = d.awsWriteTransaction(writeItemsInput)
+		awsErr, err = d.awsWriteTransaction(ctx, writeItemsInput)
 		if err != nil {
 			return err
 		}
@@ -119,7 +119,7 @@ func (d DAO) WriteAssociations(email, storyOrSeriesID string, associations []*mo
 			return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 		}
 
-		awsErr, err := d.awsWriteTransaction(writeItemsDetailsInput)
+		awsErr, err := d.awsWriteTransaction(ctx, writeItemsDetailsInput)
 		if err != nil {
 			return err
 		}
@@ -130,7 +130,7 @@ func (d DAO) WriteAssociations(email, storyOrSeriesID string, associations []*mo
 	return
 }
 
-func (d *DAO) UpdateAssociationPortraitEntryInDB(email, storyOrSeriesID, associationID, url string) (err error) {
+func (d *DAO) UpdateAssociationPortraitEntryInDB(ctx context.Context, email, storyOrSeriesID, associationID, url string) (err error) {
 	key := map[string]types.AttributeValue{
 		"association_id":     &types.AttributeValueMemberS{Value: associationID},
 		"story_or_series_id": &types.AttributeValueMemberS{Value: storyOrSeriesID},
@@ -148,14 +148,14 @@ func (d *DAO) UpdateAssociationPortraitEntryInDB(email, storyOrSeriesID, associa
 		},
 		ReturnValues: types.ReturnValueAllNew,
 	}
-	_, err = d.DynamoClient.UpdateItem(context.Background(), updateInput)
+	_, err = d.DynamoClient.UpdateItem(ctx, updateInput)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (d *DAO) DeleteAssociations(email, storyID string, associations []*models.Association) (err error) {
+func (d *DAO) DeleteAssociations(ctx context.Context, email, storyID string, associations []*models.Association) (err error) {
 	if len(associations) == 0 {
 		return fmt.Errorf(("no associations provided"))
 	}
@@ -169,7 +169,7 @@ func (d *DAO) DeleteAssociations(email, storyID string, associations []*models.A
 	}
 
 	var storyOrSeriesID string
-	if storyOrSeriesID, err = d.IsStoryInASeries(email, storyID); err != nil {
+	if storyOrSeriesID, err = d.IsStoryInASeries(ctx, email, storyID); err != nil {
 		return err
 	}
 	if storyOrSeriesID == "" {
@@ -223,7 +223,7 @@ func (d *DAO) DeleteAssociations(email, storyID string, associations []*models.A
 			writeItemsDetailsInput.TransactItems[i] = writeDetailsItem
 		}
 		var awsErr models.AwsError
-		awsErr, err = d.awsWriteTransaction(writeItemsInput)
+		awsErr, err = d.awsWriteTransaction(ctx, writeItemsInput)
 		if err != nil {
 			return err
 		}
@@ -231,7 +231,7 @@ func (d *DAO) DeleteAssociations(email, storyID string, associations []*models.A
 			return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 		}
 
-		awsErr, err := d.awsWriteTransaction(writeItemsDetailsInput)
+		awsErr, err := d.awsWriteTransaction(ctx, writeItemsDetailsInput)
 		if err != nil {
 			return err
 		}
@@ -242,12 +242,12 @@ func (d *DAO) DeleteAssociations(email, storyID string, associations []*models.A
 	return
 }
 
-func (d *DAO) GetAssociationDetails(email, storyID, associationID string) (*models.Association, error) {
+func (d *DAO) GetAssociationDetails(ctx context.Context, email, storyID, associationID string) (*models.Association, error) {
 	var (
 		association *models.Association
 		err         error
 	)
-	outStory, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+	outStory, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
 		TableName:        aws.String("stories" + GetTableSuffix()),
 		FilterExpression: aws.String("author=:eml AND story_id=:s"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -266,13 +266,13 @@ func (d *DAO) GetAssociationDetails(email, storyID, associationID string) (*mode
 		return nil, fmt.Errorf("no story found for id: %s", storyID)
 	}
 	var storyOrSeries string
-	if storyOrSeries, err = d.IsStoryInASeries(email, storyID); err != nil {
+	if storyOrSeries, err = d.IsStoryInASeries(ctx, email, storyID); err != nil {
 		return association, err
 	}
 	if storyOrSeries == "" {
 		storyOrSeries = storyID
 	}
-	outAssociation, err := d.DynamoClient.Query(context.TODO(), &dynamodb.QueryInput{
+	outAssociation, err := d.DynamoClient.Query(ctx, &dynamodb.QueryInput{
 		TableName:              aws.String("associations" + GetTableSuffix()),
 		KeyConditionExpression: aws.String("association_id = :aid AND story_or_series_id = :s"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -290,7 +290,7 @@ func (d *DAO) GetAssociationDetails(email, storyID, associationID string) (*mode
 	if err = attributevalue.UnmarshalMap(outAssociation.Items[0], &association); err != nil {
 		return association, err
 	}
-	outDetails, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+	outDetails, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
 		TableName:        aws.String("association_details" + GetTableSuffix()),
 		FilterExpression: aws.String("association_id=:aid"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -312,12 +312,12 @@ func (d *DAO) GetAssociationDetails(email, storyID, associationID string) (*mode
 	return association, nil
 }
 
-func (d *DAO) GetStoryOrSeriesAssociationThumbnails(email, storyID string) ([]*models.SimplifiedAssociation, error) {
+func (d *DAO) GetStoryOrSeriesAssociationThumbnails(ctx context.Context, email, storyID string) ([]*models.SimplifiedAssociation, error) {
 	var (
 		associations []*models.SimplifiedAssociation
 		err          error
 	)
-	outStory, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+	outStory, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
 		TableName:        aws.String("stories" + GetTableSuffix()),
 		FilterExpression: aws.String("author=:eml AND story_id=:s"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -333,7 +333,7 @@ func (d *DAO) GetStoryOrSeriesAssociationThumbnails(email, storyID string) ([]*m
 		return associations, err
 	}
 	var storyOrSeries string
-	if storyOrSeries, err = d.IsStoryInASeries(email, storyID); err != nil {
+	if storyOrSeries, err = d.IsStoryInASeries(ctx, email, storyID); err != nil {
 		return associations, err
 	}
 	if storyOrSeries == "" {
@@ -345,7 +345,7 @@ func (d *DAO) GetStoryOrSeriesAssociationThumbnails(email, storyID string) ([]*m
 		":s":   &types.AttributeValueMemberS{Value: storyOrSeries},
 	}
 
-	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
 		TableName:                 aws.String("associations" + GetTableSuffix()),
 		FilterExpression:          aws.String(filterString),
 		ExpressionAttributeValues: expressionValues,

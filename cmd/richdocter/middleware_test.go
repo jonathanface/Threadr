@@ -58,7 +58,7 @@ func createRequestWithSession(method, url, email string) *http.Request {
 func TestLooseMiddleware(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
-	t.Run("OPTIONS request returns 200 without calling next handler", func(t *testing.T) {
+	t.Run("OPTIONS request is handled by CORS middleware (passes through)", func(t *testing.T) {
 		handlerCalled := false
 		middleware := looseMiddleware(mockDAO)
 		handler := middleware(createTestHandler(&handlerCalled))
@@ -68,11 +68,10 @@ func TestLooseMiddleware(t *testing.T) {
 
 		handler.ServeHTTP(w, req)
 
-		if w.Code != http.StatusOK {
-			t.Errorf("expected status 200, got %d", w.Code)
-		}
-		if handlerCalled {
-			t.Error("next handler should not be called for OPTIONS request")
+		// looseMiddleware no longer handles OPTIONS specially - that's done by CORS middleware
+		// So the next handler should be called
+		if !handlerCalled {
+			t.Error("next handler should be called for OPTIONS request (CORS middleware handles it at router level)")
 		}
 	})
 
@@ -126,7 +125,9 @@ func TestLooseMiddleware(t *testing.T) {
 func TestBillingMiddleware(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
-	t.Run("OPTIONS request returns 200", func(t *testing.T) {
+	t.Run("OPTIONS request requires auth (CORS handles at router level)", func(t *testing.T) {
+		// billingMiddleware no longer short-circuits OPTIONS - CORS middleware handles it
+		// This means OPTIONS requests will go through auth checks like any other request
 		handlerCalled := false
 		middleware := billingMiddleware(mockDAO)
 		handler := middleware(createTestHandler(&handlerCalled))
@@ -136,11 +137,12 @@ func TestBillingMiddleware(t *testing.T) {
 
 		handler.ServeHTTP(w, req)
 
-		if w.Code != http.StatusOK {
-			t.Errorf("expected status 200, got %d", w.Code)
+		// Should return 401 because no token is present
+		if w.Code != http.StatusUnauthorized {
+			t.Errorf("expected status 401, got %d", w.Code)
 		}
 		if handlerCalled {
-			t.Error("next handler should not be called for OPTIONS request")
+			t.Error("next handler should not be called when auth fails")
 		}
 	})
 
@@ -227,7 +229,9 @@ func TestStrictMiddleware(t *testing.T) {
 		}, nil
 	}
 
-	t.Run("OPTIONS request returns 200", func(t *testing.T) {
+	t.Run("OPTIONS request requires auth (CORS handles at router level)", func(t *testing.T) {
+		// strictMiddleware no longer short-circuits OPTIONS - CORS middleware handles it
+		// This means OPTIONS requests will go through auth checks like any other request
 		handlerCalled := false
 		middleware := strictMiddleware(mockDAO)
 		handler := middleware(createTestHandler(&handlerCalled))
@@ -237,11 +241,12 @@ func TestStrictMiddleware(t *testing.T) {
 
 		handler.ServeHTTP(w, req)
 
-		if w.Code != http.StatusOK {
-			t.Errorf("expected status 200, got %d", w.Code)
+		// Should return 401 because no token is present
+		if w.Code != http.StatusUnauthorized {
+			t.Errorf("expected status 401, got %d", w.Code)
 		}
 		if handlerCalled {
-			t.Error("next handler should not be called for OPTIONS request")
+			t.Error("next handler should not be called when auth fails")
 		}
 	})
 
