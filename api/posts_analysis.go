@@ -54,7 +54,7 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blocks, err := staggeredStoryBlockRetrieval(dao, storyID, chapterID, nil, nil)
+	blocks, err := staggeredStoryBlockRetrieval(r.Context(), dao, storyID, chapterID, nil, nil)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return

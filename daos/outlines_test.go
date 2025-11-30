@@ -2,6 +2,7 @@ package daos
 
 import (
 	"RichDocter/models"
+	"context"
 	"testing"
 )
 
@@ -32,7 +33,7 @@ func TestGetOutlineByStoryID(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			outline, err := mockDao.GetOutlineByStoryID(tc.storyID, tc.chapters)
+			outline, err := mockDao.GetOutlineByStoryID(context.Background(), tc.storyID, tc.chapters)
 
 			t.Logf("GetOutlineByStoryID(%q) returned outline=%v, err=%v", tc.storyID, outline != nil, err)
 		})
@@ -47,7 +48,7 @@ func BenchmarkCreateOutline(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = mockDao.CreateOutline(outline)
+		_, _ = mockDao.CreateOutline(context.Background(), outline)
 	}
 }
 
@@ -57,6 +58,6 @@ func BenchmarkGetOutlineByStoryID(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = mockDao.GetOutlineByStoryID("story123", chapters)
+		_, _ = mockDao.GetOutlineByStoryID(context.Background(), "story123", chapters)
 	}
 }

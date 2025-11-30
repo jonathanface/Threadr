@@ -57,7 +57,7 @@ type MockDAO struct {
 
 var _ DaoInterface = (*MockDAO)(nil)
 
-func (m *MockDAO) GetUserDetails(email string) (*models.UserInfo, error) {
+func (m *MockDAO) GetUserDetails(ctx context.Context, email string) (*models.UserInfo, error) {
 	if m.MockGetUserDetails != nil {
 		return m.MockGetUserDetails(email)
 	}
@@ -65,22 +65,22 @@ func (m *MockDAO) GetUserDetails(email string) (*models.UserInfo, error) {
 	return &models.UserInfo{Email: email}, nil
 }
 
-func (m *MockDAO) UpsertUser(email string) (*models.UserInfo, error) {
+func (m *MockDAO) UpsertUser(ctx context.Context, email string) (*models.UserInfo, error) {
 	if m.MockUpsertUser != nil {
 		return m.MockUpsertUser(email)
 	}
 	// Fall back to real implementation to use mocked DynamoClient
-	return m.DAO.UpsertUser(email)
+	return m.DAO.UpsertUser(ctx, email)
 }
 
-func (m *MockDAO) GetSubscription(email string) (*models.Subscription, error) {
+func (m *MockDAO) GetSubscription(ctx context.Context, email string) (*models.Subscription, error) {
 	if m.MockGetSubscription != nil {
 		return m.MockGetSubscription(email)
 	}
 	return &models.Subscription{}, nil
 }
 
-func (m *MockDAO) UpdateSubscription(sub models.Subscription) error {
+func (m *MockDAO) UpdateSubscription(ctx context.Context, sub models.Subscription) error {
 	if m.MockUpdateSubscription != nil {
 		return m.MockUpdateSubscription(sub)
 	}
@@ -211,207 +211,207 @@ func (m *MockDynamoClient) RestoreTableFromBackup(ctx context.Context, input *dy
 }
 
 // API endpoint mock method implementations
-func (m *MockDAO) CreateStory(email string, story models.Story, newSeriesTitle string) (storyID string, err error) {
+func (m *MockDAO) CreateStory(ctx context.Context, email string, story models.Story, newSeriesTitle string) (storyID string, err error) {
 	if m.MockCreateStory != nil {
 		return m.MockCreateStory(email, story, newSeriesTitle)
 	}
-	return m.DAO.CreateStory(email, story, newSeriesTitle)
+	return m.DAO.CreateStory(ctx, email, story, newSeriesTitle)
 }
 
-func (m *MockDAO) CreateChapter(storyID string, chapter models.Chapter, email string) (models.Chapter, error) {
+func (m *MockDAO) CreateChapter(ctx context.Context, storyID string, chapter models.Chapter, email string) (models.Chapter, error) {
 	if m.MockCreateChapter != nil {
 		return m.MockCreateChapter(storyID, chapter, email)
 	}
-	return m.DAO.CreateChapter(storyID, chapter, email)
+	return m.DAO.CreateChapter(ctx, storyID, chapter, email)
 }
 
-func (m *MockDAO) CreateOutline(outline models.OutlineRequest) (*models.OutlineRequest, error) {
+func (m *MockDAO) CreateOutline(ctx context.Context, outline models.OutlineRequest) (*models.OutlineRequest, error) {
 	if m.MockCreateOutline != nil {
 		return m.MockCreateOutline(outline)
 	}
-	return m.DAO.CreateOutline(outline)
+	return m.DAO.CreateOutline(ctx, outline)
 }
 
-func (m *MockDAO) UpdateUser(user models.UserInfo) error {
+func (m *MockDAO) UpdateUser(ctx context.Context, user models.UserInfo) error {
 	if m.MockUpdateUser != nil {
 		return m.MockUpdateUser(user)
 	}
-	return m.DAO.UpdateUser(user)
+	return m.DAO.UpdateUser(ctx, user)
 }
 
-func (m *MockDAO) EditStory(email string, story models.Story) (models.Story, error) {
+func (m *MockDAO) EditStory(ctx context.Context, email string, story models.Story) (models.Story, error) {
 	if m.MockEditStory != nil {
 		return m.MockEditStory(email, story)
 	}
-	return m.DAO.EditStory(email, story)
+	return m.DAO.EditStory(ctx, email, story)
 }
 
-func (m *MockDAO) EditSeries(email string, series models.Series) (models.Series, error) {
+func (m *MockDAO) EditSeries(ctx context.Context, email string, series models.Series) (models.Series, error) {
 	if m.MockEditSeries != nil {
 		return m.MockEditSeries(email, series)
 	}
-	return m.DAO.EditSeries(email, series)
+	return m.DAO.EditSeries(ctx, email, series)
 }
 
-func (m *MockDAO) RemoveStoryFromSeries(email, storyID string, series models.Series) (models.Series, error) {
+func (m *MockDAO) RemoveStoryFromSeries(ctx context.Context, email, storyID string, series models.Series) (models.Series, error) {
 	if m.MockRemoveStoryFromSeries != nil {
 		return m.MockRemoveStoryFromSeries(email, storyID, series)
 	}
-	return m.DAO.RemoveStoryFromSeries(email, storyID, series)
+	return m.DAO.RemoveStoryFromSeries(ctx, email, storyID, series)
 }
 
-func (m *MockDAO) UpdateStorySettings(email, storyID string, settings models.StorySettings) error {
+func (m *MockDAO) UpdateStorySettings(ctx context.Context, email, storyID string, settings models.StorySettings) error {
 	if m.MockUpdateStorySettings != nil {
 		return m.MockUpdateStorySettings(email, storyID, settings)
 	}
-	return m.DAO.UpdateStorySettings(email, storyID, settings)
+	return m.DAO.UpdateStorySettings(ctx, email, storyID, settings)
 }
 
-func (m *MockDAO) EditChapter(storyID string, chapter models.Chapter) (models.Chapter, error) {
+func (m *MockDAO) EditChapter(ctx context.Context, storyID string, chapter models.Chapter) (models.Chapter, error) {
 	if m.MockEditChapter != nil {
 		return m.MockEditChapter(storyID, chapter)
 	}
-	return m.DAO.EditChapter(storyID, chapter)
+	return m.DAO.EditChapter(ctx, storyID, chapter)
 }
 
-func (m *MockDAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) error {
+func (m *MockDAO) ResetBlockOrder(ctx context.Context, storyID string, storyBlocks *models.StoryBlocks) error {
 	if m.MockResetBlockOrder != nil {
 		return m.MockResetBlockOrder(storyID, storyBlocks)
 	}
-	return m.DAO.ResetBlockOrder(storyID, storyBlocks)
+	return m.DAO.ResetBlockOrder(ctx, storyID, storyBlocks)
 }
 
-func (m *MockDAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) error {
+func (m *MockDAO) WriteBlocks(ctx context.Context, storyID string, storyBlocks *models.StoryBlocks) error {
 	if m.MockWriteBlocks != nil {
 		return m.MockWriteBlocks(storyID, storyBlocks)
 	}
-	return m.DAO.WriteBlocks(storyID, storyBlocks)
+	return m.DAO.WriteBlocks(ctx, storyID, storyBlocks)
 }
 
-func (m *MockDAO) WriteAssociations(email, storyOrSeriesID string, associations []*models.Association) error {
+func (m *MockDAO) WriteAssociations(ctx context.Context, email, storyOrSeriesID string, associations []*models.Association) error {
 	if m.MockWriteAssociations != nil {
 		return m.MockWriteAssociations(email, storyOrSeriesID, associations)
 	}
-	return m.DAO.WriteAssociations(email, storyOrSeriesID, associations)
+	return m.DAO.WriteAssociations(ctx, email, storyOrSeriesID, associations)
 }
 
-func (m *MockDAO) UpdateAssociationPortraitEntryInDB(email, storyOrSeriesID, associationID, url string) error {
+func (m *MockDAO) UpdateAssociationPortraitEntryInDB(ctx context.Context, email, storyOrSeriesID, associationID, url string) error {
 	if m.MockUpdateAssociationPortraitEntryInDB != nil {
 		return m.MockUpdateAssociationPortraitEntryInDB(email, storyOrSeriesID, associationID, url)
 	}
-	return m.DAO.UpdateAssociationPortraitEntryInDB(email, storyOrSeriesID, associationID, url)
+	return m.DAO.UpdateAssociationPortraitEntryInDB(ctx, email, storyOrSeriesID, associationID, url)
 }
 
-func (m *MockDAO) UpdateOutline(outline models.OutlineRequest) (*models.OutlineResponse, error) {
+func (m *MockDAO) UpdateOutline(ctx context.Context, outline models.OutlineRequest) (*models.OutlineResponse, error) {
 	if m.MockUpdateOutline != nil {
 		return m.MockUpdateOutline(outline)
 	}
-	return m.DAO.UpdateOutline(outline)
+	return m.DAO.UpdateOutline(ctx, outline)
 }
 
-func (m *MockDAO) GetStoryByID(email string, storyID string) (*models.Story, error) {
+func (m *MockDAO) GetStoryByID(ctx context.Context, email string, storyID string) (*models.Story, error) {
 	if m.MockGetStoryByID != nil {
 		return m.MockGetStoryByID(email, storyID)
 	}
-	return m.DAO.GetStoryByID(email, storyID)
+	return m.DAO.GetStoryByID(ctx, email, storyID)
 }
 
-func (m *MockDAO) GetSeriesByID(email string, seriesID string) (*models.Series, error) {
+func (m *MockDAO) GetSeriesByID(ctx context.Context, email string, seriesID string) (*models.Series, error) {
 	if m.MockGetSeriesByID != nil {
 		return m.MockGetSeriesByID(email, seriesID)
 	}
-	return m.DAO.GetSeriesByID(email, seriesID)
+	return m.DAO.GetSeriesByID(ctx, email, seriesID)
 }
 
-func (m *MockDAO) GetStoryOrSeriesAssociationThumbnails(email, storyID string) ([]*models.SimplifiedAssociation, error) {
+func (m *MockDAO) GetStoryOrSeriesAssociationThumbnails(ctx context.Context, email, storyID string) ([]*models.SimplifiedAssociation, error) {
 	if m.MockGetStoryOrSeriesAssociationThumbnails != nil {
 		return m.MockGetStoryOrSeriesAssociationThumbnails(email, storyID)
 	}
-	return m.DAO.GetStoryOrSeriesAssociationThumbnails(email, storyID)
+	return m.DAO.GetStoryOrSeriesAssociationThumbnails(ctx, email, storyID)
 }
 
-func (m *MockDAO) IsStoryInASeries(email string, storyID string) (string, error) {
+func (m *MockDAO) IsStoryInASeries(ctx context.Context, email string, storyID string) (string, error) {
 	if m.MockIsStoryInASeries != nil {
 		return m.MockIsStoryInASeries(email, storyID)
 	}
-	return m.DAO.IsStoryInASeries(email, storyID)
+	return m.DAO.IsStoryInASeries(ctx, email, storyID)
 }
 
-func (m *MockDAO) GetChapterParagraphs(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error) {
+func (m *MockDAO) GetChapterParagraphs(ctx context.Context, storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error) {
 	if m.MockGetChapterParagraphs != nil {
 		return m.MockGetChapterParagraphs(storyID, chapterID, key)
 	}
-	return m.DAO.GetChapterParagraphs(storyID, chapterID, key)
+	return m.DAO.GetChapterParagraphs(ctx, storyID, chapterID, key)
 }
 
-func (m *MockDAO) GetAssociationDetails(email, storyID, associationID string) (*models.Association, error) {
+func (m *MockDAO) GetAssociationDetails(ctx context.Context, email, storyID, associationID string) (*models.Association, error) {
 	if m.MockGetAssociationDetails != nil {
 		return m.MockGetAssociationDetails(email, storyID, associationID)
 	}
-	return m.DAO.GetAssociationDetails(email, storyID, associationID)
+	return m.DAO.GetAssociationDetails(ctx, email, storyID, associationID)
 }
 
-func (m *MockDAO) GetStorySettingsByID(email string, storyID string) (*models.StorySettings, error) {
+func (m *MockDAO) GetStorySettingsByID(ctx context.Context, email string, storyID string) (*models.StorySettings, error) {
 	if m.MockGetStorySettingsByID != nil {
 		return m.MockGetStorySettingsByID(email, storyID)
 	}
-	return m.DAO.GetStorySettingsByID(email, storyID)
+	return m.DAO.GetStorySettingsByID(ctx, email, storyID)
 }
 
-func (m *MockDAO) EditAssociation(email, storyID string, association models.Association) (*models.Association, error) {
+func (m *MockDAO) EditAssociation(ctx context.Context, email, storyID string, association models.Association) (*models.Association, error) {
 	if m.MockEditAssociation != nil {
 		return m.MockEditAssociation(email, storyID, association)
 	}
 	return &association, nil
 }
 
-func (m *MockDAO) DeleteChapterParagraphs(storyID string, storyBlocks *models.StoryBlocks) error {
+func (m *MockDAO) DeleteChapterParagraphs(ctx context.Context, storyID string, storyBlocks *models.StoryBlocks) error {
 	if m.MockDeleteChapterParagraphs != nil {
 		return m.MockDeleteChapterParagraphs(storyID, storyBlocks)
 	}
-	return m.DAO.DeleteChapterParagraphs(storyID, storyBlocks)
+	return m.DAO.DeleteChapterParagraphs(ctx, storyID, storyBlocks)
 }
 
-func (m *MockDAO) DeleteAssociations(email, storyID string, associations []*models.Association) error {
+func (m *MockDAO) DeleteAssociations(ctx context.Context, email, storyID string, associations []*models.Association) error {
 	if m.MockDeleteAssociations != nil {
 		return m.MockDeleteAssociations(email, storyID, associations)
 	}
-	return m.DAO.DeleteAssociations(email, storyID, associations)
+	return m.DAO.DeleteAssociations(ctx, email, storyID, associations)
 }
 
-func (m *MockDAO) DeleteChapters(storyID string, chapters []models.Chapter) error {
+func (m *MockDAO) DeleteChapters(ctx context.Context, storyID string, chapters []models.Chapter) error {
 	if m.MockDeleteChapters != nil {
 		return m.MockDeleteChapters(storyID, chapters)
 	}
-	return m.DAO.DeleteChapters(storyID, chapters)
+	return m.DAO.DeleteChapters(ctx, storyID, chapters)
 }
 
-func (m *MockDAO) SoftDeleteStory(email, storyID string, includeBlocks bool) error {
+func (m *MockDAO) SoftDeleteStory(ctx context.Context, email, storyID string, includeBlocks bool) error {
 	if m.MockSoftDeleteStory != nil {
 		return m.MockSoftDeleteStory(email, storyID, includeBlocks)
 	}
-	return m.DAO.SoftDeleteStory(email, storyID, includeBlocks)
+	return m.DAO.SoftDeleteStory(ctx, email, storyID, includeBlocks)
 }
 
-func (m *MockDAO) DeleteSeries(email string, series models.Series) error {
+func (m *MockDAO) DeleteSeries(ctx context.Context, email string, series models.Series) error {
 	if m.MockDeleteSeries != nil {
 		return m.MockDeleteSeries(email, series)
 	}
-	return m.DAO.DeleteSeries(email, series)
+	return m.DAO.DeleteSeries(ctx, email, series)
 }
 
-func (m *MockDAO) GetChapterTableStatus(storyID, chapterID string) (bool, error) {
+func (m *MockDAO) GetChapterTableStatus(ctx context.Context, storyID, chapterID string) (bool, error) {
 	if m.MockGetChapterTableStatus != nil {
 		return m.MockGetChapterTableStatus(storyID, chapterID)
 	}
-	return m.DAO.GetChapterTableStatus(storyID, chapterID)
+	return m.DAO.GetChapterTableStatus(ctx, storyID, chapterID)
 }
 
-func (m *MockDAO) GetChapterByID(chapterID string) (*models.Chapter, error) {
+func (m *MockDAO) GetChapterByID(ctx context.Context, chapterID string) (*models.Chapter, error) {
 	if m.MockGetChapterByID != nil {
 		return m.MockGetChapterByID(chapterID)
 	}
-	return m.DAO.GetChapterByID(chapterID)
+	return m.DAO.GetChapterByID(ctx, chapterID)
 }
 
 func NewMockDAO() *MockDAO {

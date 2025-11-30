@@ -19,12 +19,12 @@ var (
 	ErrSeriesNotFound = errors.New("series not found")
 )
 
-func (d *DAO) GetSeriesByID(email, seriesID string) (series *models.Series, err error) {
+func (d *DAO) GetSeriesByID(ctx context.Context, email, seriesID string) (series *models.Series, err error) {
 	seriesID, err = url.QueryUnescape(seriesID)
 	if err != nil {
 		return series, err
 	}
-	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
 		TableName:        aws.String("series" + GetTableSuffix()),
 		FilterExpression: aws.String("author=:eml AND series_id=:s AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -43,12 +43,12 @@ func (d *DAO) GetSeriesByID(email, seriesID string) (series *models.Series, err 
 	if len(seriesFromMap) == 0 {
 		return series, ErrSeriesNotFound
 	}
-	seriesFromMap[0].Stories, err = d.GetSeriesVolumes(email, seriesID)
+	seriesFromMap[0].Stories, err = d.GetSeriesVolumes(ctx, email, seriesID)
 	if err != nil {
 		return series, err
 	}
 	for _, story := range seriesFromMap[0].Stories {
-		story.Chapters, err = d.GetChaptersByStoryID(story.ID)
+		story.Chapters, err = d.GetChaptersByStoryID(ctx, story.ID)
 		if err != nil {
 			return series, err
 		}
@@ -57,7 +57,7 @@ func (d *DAO) GetSeriesByID(email, seriesID string) (series *models.Series, err 
 	return &seriesFromMap[0], nil
 }
 
-func (d *DAO) GetAllSeriesWithStories(email string, adminRequest bool) (series []models.Series, err error) {
+func (d *DAO) GetAllSeriesWithStories(ctx context.Context, email string, adminRequest bool) (series []models.Series, err error) {
 	scanInput := &dynamodb.ScanInput{
 		TableName:        aws.String("series" + GetTableSuffix()),
 		FilterExpression: aws.String("author=:eml AND attribute_not_exists(deleted_at)"),
@@ -67,7 +67,7 @@ func (d *DAO) GetAllSeriesWithStories(email string, adminRequest bool) (series [
 			},
 		},
 	}
-	scanOutput, err := d.DynamoClient.Scan(context.TODO(), scanInput)
+	scanOutput, err := d.DynamoClient.Scan(ctx, scanInput)
 	if err != nil {
 		return nil, err
 	}
@@ -77,13 +77,13 @@ func (d *DAO) GetAllSeriesWithStories(email string, adminRequest bool) (series [
 	}
 
 	for i := range series {
-		series[i].Stories, err = d.GetSeriesVolumes(email, series[i].ID)
+		series[i].Stories, err = d.GetSeriesVolumes(ctx, email, series[i].ID)
 		if err != nil {
 			return nil, err
 		}
 
 		for j := range series[i].Stories {
-			series[i].Stories[j].Chapters, err = d.GetChaptersByStoryID(series[i].Stories[j].ID)
+			series[i].Stories[j].Chapters, err = d.GetChaptersByStoryID(ctx, series[i].Stories[j].ID)
 			if err != nil {
 				return nil, err
 			}
@@ -92,7 +92,7 @@ func (d *DAO) GetAllSeriesWithStories(email string, adminRequest bool) (series [
 	return series, nil
 }
 
-func (d *DAO) GetSeriesVolumes(email, seriesID string) (volumes []*models.Story, err error) {
+func (d *DAO) GetSeriesVolumes(ctx context.Context, email, seriesID string) (volumes []*models.Story, err error) {
 	queryInput := &dynamodb.QueryInput{
 		TableName:              aws.String("stories" + GetTableSuffix()),
 		IndexName:              aws.String("series_id-place-index"),
@@ -109,7 +109,7 @@ func (d *DAO) GetSeriesVolumes(email, seriesID string) (volumes []*models.Story,
 	}
 
 	var seriesOutput *dynamodb.QueryOutput
-	if seriesOutput, err = d.DynamoClient.Query(context.TODO(), queryInput); err != nil {
+	if seriesOutput, err = d.DynamoClient.Query(ctx, queryInput); err != nil {
 		return volumes, err
 	}
 
@@ -119,7 +119,7 @@ func (d *DAO) GetSeriesVolumes(email, seriesID string) (volumes []*models.Story,
 	}
 
 	for idx, story := range stories {
-		chapters, err := d.GetChaptersByStoryID(story.ID)
+		chapters, err := d.GetChaptersByStoryID(ctx, story.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -129,7 +129,7 @@ func (d *DAO) GetSeriesVolumes(email, seriesID string) (volumes []*models.Story,
 	return volumes, nil
 }
 
-func (d *DAO) EditSeries(email string, series models.Series) (updatedSeries models.Series, err error) {
+func (d *DAO) EditSeries(ctx context.Context, email string, series models.Series) (updatedSeries models.Series, err error) {
 	modifiedAtStr := strconv.FormatInt(time.Now().Unix(), 10)
 	item := map[string]types.AttributeValue{
 		"series_id":   &types.AttributeValueMemberS{Value: series.ID},
@@ -143,7 +143,7 @@ func (d *DAO) EditSeries(email string, series models.Series) (updatedSeries mode
 
 	for _, story := range series.Stories {
 		// all we can change is the placement of stories
-		_, err := d.GetStoryByID(email, story.ID)
+		_, err := d.GetStoryByID(ctx, email, story.ID)
 		if err != nil {
 			return updatedSeries, err
 		}
@@ -159,7 +159,7 @@ func (d *DAO) EditSeries(email string, series models.Series) (updatedSeries mode
 				":p": &types.AttributeValueMemberN{Value: strconv.Itoa(story.Place)},
 			},
 		}
-		_, err = d.DynamoClient.UpdateItem(context.Background(), storyUpdateInput)
+		_, err = d.DynamoClient.UpdateItem(ctx, storyUpdateInput)
 		if err != nil {
 			return updatedSeries, err
 		}
@@ -169,14 +169,14 @@ func (d *DAO) EditSeries(email string, series models.Series) (updatedSeries mode
 		TableName: aws.String("series" + GetTableSuffix()),
 		Item:      item,
 	}
-	_, err = d.DynamoClient.PutItem(context.Background(), seriesUpdateInput)
+	_, err = d.DynamoClient.PutItem(ctx, seriesUpdateInput)
 	if err != nil {
 		return updatedSeries, err
 	}
 	return updatedSeries, nil
 }
 
-func (d *DAO) RemoveStoryFromSeries(email, storyID string, series models.Series) (updatedSeries models.Series, err error) {
+func (d *DAO) RemoveStoryFromSeries(ctx context.Context, email, storyID string, series models.Series) (updatedSeries models.Series, err error) {
 
 	storyKey := map[string]types.AttributeValue{
 		"story_id": &types.AttributeValueMemberS{Value: storyID},
@@ -191,7 +191,7 @@ func (d *DAO) RemoveStoryFromSeries(email, storyID string, series models.Series)
 			":n": &types.AttributeValueMemberN{Value: now},
 		},
 	}
-	_, err = d.DynamoClient.UpdateItem(context.Background(), storyUpdateInput)
+	_, err = d.DynamoClient.UpdateItem(ctx, storyUpdateInput)
 	if err != nil {
 		return updatedSeries, err
 	}
@@ -206,7 +206,7 @@ func (d *DAO) RemoveStoryFromSeries(email, storyID string, series models.Series)
 	return
 }
 
-func (d *DAO) DeleteSeries(email string, series models.Series) error {
+func (d *DAO) DeleteSeries(ctx context.Context, email string, series models.Series) error {
 
 	for _, story := range series.Stories {
 		storyKey := map[string]types.AttributeValue{
@@ -222,7 +222,7 @@ func (d *DAO) DeleteSeries(email string, series models.Series) error {
 				":n": &types.AttributeValueMemberN{Value: now},
 			},
 		}
-		_, err := d.DynamoClient.UpdateItem(context.Background(), storyUpdateInput)
+		_, err := d.DynamoClient.UpdateItem(ctx, storyUpdateInput)
 		if err != nil {
 			return err
 		}
@@ -240,7 +240,7 @@ func (d *DAO) DeleteSeries(email string, series models.Series) error {
 			":n": &types.AttributeValueMemberN{Value: now},
 		},
 	}
-	_, err := d.DynamoClient.UpdateItem(context.Background(), seriesUpdateInput)
+	_, err := d.DynamoClient.UpdateItem(ctx, seriesUpdateInput)
 	if err != nil {
 		return err
 	}

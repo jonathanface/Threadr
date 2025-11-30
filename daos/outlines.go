@@ -15,7 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-func (d *DAO) GetOutlineByStoryID(storyID string, chapters []models.Chapter) (*models.OutlineResponse, error) {
+func (d *DAO) GetOutlineByStoryID(ctx context.Context, storyID string, chapters []models.Chapter) (*models.OutlineResponse, error) {
 	tableName := "outlines" + GetTableSuffix()
 
 	// Define the query input
@@ -28,7 +28,7 @@ func (d *DAO) GetOutlineByStoryID(storyID string, chapters []models.Chapter) (*m
 	}
 
 	// Execute the query
-	result, err := d.DynamoClient.Query(context.TODO(), queryInput)
+	result, err := d.DynamoClient.Query(ctx, queryInput)
 	if err != nil {
 		return nil, fmt.Errorf("error querying outline sections: %v", err)
 	}
@@ -97,7 +97,7 @@ func (d *DAO) GetOutlineByStoryID(storyID string, chapters []models.Chapter) (*m
 	return &out, nil
 }
 
-func (d *DAO) DeleteOutline(storyID string) error {
+func (d *DAO) DeleteOutline(ctx context.Context, storyID string) error {
 	tableName := "outlines" + GetTableSuffix()
 	queryInput := &dynamodb.QueryInput{
 		TableName:              aws.String(tableName),
@@ -107,7 +107,7 @@ func (d *DAO) DeleteOutline(storyID string) error {
 		},
 	}
 
-	result, err := d.DynamoClient.Query(context.TODO(), queryInput)
+	result, err := d.DynamoClient.Query(ctx, queryInput)
 	if err != nil {
 		return fmt.Errorf("error querying items: %v", err)
 	}
@@ -136,7 +136,7 @@ func (d *DAO) DeleteOutline(storyID string) error {
 		twii.TransactItems = append(twii.TransactItems, twi)
 	}
 
-	awsErr, err := d.awsWriteTransaction(twii)
+	awsErr, err := d.awsWriteTransaction(ctx, twii)
 	if err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func (d *DAO) DeleteOutline(storyID string) error {
 	return err
 }
 
-func (d *DAO) UpdateOutline(outline models.OutlineRequest) (*models.OutlineResponse, error) {
+func (d *DAO) UpdateOutline(ctx context.Context, outline models.OutlineRequest) (*models.OutlineResponse, error) {
 	tableName := "outlines" + GetTableSuffix()
 	twii := &dynamodb.TransactWriteItemsInput{}
 	now := strconv.FormatInt(time.Now().Unix(), 10)
@@ -191,7 +191,7 @@ func (d *DAO) UpdateOutline(outline models.OutlineRequest) (*models.OutlineRespo
 		twii.TransactItems = append(twii.TransactItems, twi)
 	}
 
-	awsErr, err := d.awsWriteTransaction(twii)
+	awsErr, err := d.awsWriteTransaction(ctx, twii)
 	if err != nil {
 		return nil, err
 	}
@@ -199,20 +199,20 @@ func (d *DAO) UpdateOutline(outline models.OutlineRequest) (*models.OutlineRespo
 		return nil, fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 	}
 
-	allChapters, err := d.GetChaptersByStoryID(outline.StoryID)
+	allChapters, err := d.GetChaptersByStoryID(ctx, outline.StoryID)
 	if err != nil {
 		return nil, fmt.Errorf("refetch outline: %w", err)
 	}
-	resp, err := d.GetOutlineByStoryID(outline.StoryID, allChapters)
+	resp, err := d.GetOutlineByStoryID(ctx, outline.StoryID, allChapters)
 	if err != nil {
 		return nil, fmt.Errorf("refetch outline: %w", err)
 	}
 	return resp, nil
 }
 
-func (d *DAO) CreateOutline(outline models.OutlineRequest) (*models.OutlineRequest, error) {
+func (d *DAO) CreateOutline(ctx context.Context, outline models.OutlineRequest) (*models.OutlineRequest, error) {
 	twii := &dynamodb.TransactWriteItemsInput{}
-	err := d.DeleteOutline(outline.StoryID)
+	err := d.DeleteOutline(ctx, outline.StoryID)
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +238,7 @@ func (d *DAO) CreateOutline(outline models.OutlineRequest) (*models.OutlineReque
 		twii.TransactItems = append(twii.TransactItems, twi)
 	}
 
-	awsErr, err := d.awsWriteTransaction(twii)
+	awsErr, err := d.awsWriteTransaction(ctx, twii)
 	if err != nil {
 		return nil, err
 	}

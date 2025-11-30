@@ -114,7 +114,7 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Make sure the user actually owns this story
-	_, err = dao.GetStoryByID(email, storyID)
+	_, err = dao.GetStoryByID(r.Context(), email, storyID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			RespondWithError(w, http.StatusForbidden, "story doesn't belong to you")

@@ -22,7 +22,7 @@ func looseMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 				w.WriteHeader(http.StatusOK)
 				return
 			}
-			ctx, cancel := context.WithTimeout(r.Context(), time.Duration(time.Second*5))
+			ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
 			defer cancel()
 			ctx = context.WithValue(ctx, ctxkey.DAO, d)
 			r = r.WithContext(ctx)
@@ -48,7 +48,7 @@ func billingMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 				api.RespondWithError(w, http.StatusBadRequest, err.Error())
 				return
 			}
-			ctx, cancel := context.WithTimeout(r.Context(), time.Duration(time.Second*5))
+			ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
 			defer cancel()
 			ctx = context.WithValue(ctx, ctxkey.DAO, d)
 			r = r.WithContext(ctx)
@@ -76,11 +76,10 @@ func strictMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Timeout comment said 15s, code used 5s. Pick one; here we use 5s.
-			ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+			ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
 			defer cancel()
 
-			userDetails, err := d.UpsertUser(user.Email)
+			userDetails, err := d.UpsertUser(ctx, user.Email)
 			if err != nil {
 				api.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("unable to update user %s", user.Email))
 				return

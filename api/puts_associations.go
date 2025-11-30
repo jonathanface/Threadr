@@ -50,7 +50,7 @@ func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var storyOrSeriesID string
-	if storyOrSeriesID, err = dao.IsStoryInASeries(email, storyID); err != nil {
+	if storyOrSeriesID, err = dao.IsStoryInASeries(r.Context(), email, storyID); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "unable to check series membership of story")
 		return
 	}
@@ -58,7 +58,7 @@ func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		storyOrSeriesID = storyID
 	}
 
-	if err = dao.WriteAssociations(email, storyOrSeriesID, associations); err != nil {
+	if err = dao.WriteAssociations(r.Context(), email, storyOrSeriesID, associations); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {

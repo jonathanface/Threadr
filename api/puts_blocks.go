@@ -51,7 +51,7 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = dao.ResetBlockOrder(storyID, &storyBlocks); err != nil {
+	if err = dao.ResetBlockOrder(r.Context(), storyID, &storyBlocks); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
@@ -124,7 +124,7 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = dao.WriteBlocks(storyID, &storyBlocks); err != nil {
+	if err = dao.WriteBlocks(r.Context(), storyID, &storyBlocks); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {

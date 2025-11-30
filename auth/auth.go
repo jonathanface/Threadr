@@ -126,11 +126,11 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 		api.RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	userDetails, err := dao.GetUserDetails(info.Email)
+	userDetails, err := dao.GetUserDetails(r.Context(), info.Email)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			logger.Info("New user detected, creating account", "email", info.Email, "provider", provider, "remoteAddr", r.RemoteAddr)
-			if userDetails, err = dao.CreateUser(info.Email); err != nil {
+			if userDetails, err = dao.CreateUser(r.Context(), info.Email); err != nil {
 				logger.Error("Failed to create new user", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
 				api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 				return
@@ -151,7 +151,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 			LastName:   info.LastName,
 			Subscriber: userDetails.Subscriber,
 		}
-		if err := dao.UpdateUser(updateInfo); err != nil {
+		if err := dao.UpdateUser(r.Context(), updateInfo); err != nil {
 			logger.Warn("Failed to update user name information", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
 			// Continue even if name update fails - not critical
 		}
@@ -200,7 +200,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 		_ = sessions.Delete(w, r, "login_referral")
 	}
 
-	updated, err := dao.IsUserSubscribed(*userDetails)
+	updated, err := dao.IsUserSubscribed(r.Context(), *userDetails)
 	if err != nil {
 		logger.Error("Failed to check subscription status", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
 	} else {
@@ -212,7 +212,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 				"previousStatus", userDetails.Subscriber,
 				"newStatus", updated.Subscriber,
 				"remoteAddr", r.RemoteAddr)
-			if err := dao.UpdateUser(*updated); err != nil {
+			if err := dao.UpdateUser(r.Context(), *updated); err != nil {
 				logger.Error("Failed to update user subscription status", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
 				api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 				return

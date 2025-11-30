@@ -68,7 +68,7 @@ func TestCreateUser(t *testing.T) {
 				}
 			}
 
-			user, err := mockDao.CreateUser(tc.email)
+			user, err := mockDao.CreateUser(context.Background(), tc.email)
 
 			if tc.wantErr {
 				if err == nil {
@@ -119,7 +119,7 @@ func TestGetUserDetails(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			user, err := mockDao.GetUserDetails(tc.email)
+			user, err := mockDao.GetUserDetails(context.Background(), tc.email)
 
 			// Note: MockDynamoClient Scan behavior doesn't fully replicate DynamoDB
 			// In production, empty result -> sql.ErrNoRows
@@ -173,7 +173,7 @@ func TestUpsertUser(t *testing.T) {
 				}
 			}
 
-			user, err := mockDao.UpsertUser(tc.email)
+			user, err := mockDao.UpsertUser(context.Background(), tc.email)
 
 			if tc.wantErr {
 				if err == nil {
@@ -248,7 +248,7 @@ func TestUpdateUser(t *testing.T) {
 				}
 			}
 
-			err := mockDao.UpdateUser(tc.user)
+			err := mockDao.UpdateUser(context.Background(), tc.user)
 
 			if tc.wantErr {
 				if err == nil {
@@ -391,7 +391,7 @@ func TestIsUserSubscribed(t *testing.T) {
 			mockDao := NewMockDAO()
 			mockDao.MockGetSubscription = tc.mockGetSub
 
-			result, err := mockDao.IsUserSubscribed(tc.user)
+			result, err := mockDao.IsUserSubscribed(context.Background(), tc.user)
 
 			if tc.wantErr {
 				if err == nil {
@@ -455,7 +455,7 @@ func TestAddCustomerID(t *testing.T) {
 				}
 			}
 
-			err := mockDao.AddCustomerID(tc.email, tc.customerID)
+			err := mockDao.AddCustomerID(context.Background(), tc.email, tc.customerID)
 
 			if tc.wantErr {
 				if err == nil {
@@ -476,7 +476,7 @@ func TestAddCustomerID(t *testing.T) {
 func TestGetUserDetails_NoRows(t *testing.T) {
 	mockDao := NewMockDAO()
 
-	user, err := mockDao.GetUserDetails("nonexistent@example.com")
+	user, err := mockDao.GetUserDetails(context.Background(), "nonexistent@example.com")
 
 	// Note: Mock behavior may not perfectly match production DynamoDB behavior
 	// In production: empty Scan -> sql.ErrNoRows
@@ -492,7 +492,7 @@ func BenchmarkCreateUser(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		_, _ = mockDao.CreateUser("bench@example.com")
+		_, _ = mockDao.CreateUser(context.Background(), "bench@example.com")
 	}
 }
 

@@ -131,7 +131,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	story.ImageURL = "https://" + S3_STORY_IMAGE_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
-	if story.ID, err = dao.CreateStory(email, story, seriesTitle); err != nil {
+	if story.ID, err = dao.CreateStory(r.Context(), email, story, seriesTitle); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
@@ -150,7 +150,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	chap.ID = firstChapterID
 	chap.Title = "Chapter 1"
 	chap.Place = 1
-	newChapter, err := dao.CreateChapter(story.ID, chap, email)
+	newChapter, err := dao.CreateChapter(r.Context(), story.ID, chap, email)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return

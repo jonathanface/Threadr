@@ -99,7 +99,7 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	series, err := dao.GetSeriesByID(email, seriesID)
+	series, err := dao.GetSeriesByID(r.Context(), email, seriesID)
 	if err != nil {
 		RespondWithError(w, http.StatusNotFound, "Unable to locate series")
 		return
@@ -138,7 +138,7 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 				// new story was added
 				fromForm.SeriesID = seriesID
 				series.Stories = append(series.Stories, &fromForm)
-				_, err = dao.EditStory(email, fromForm)
+				_, err = dao.EditStory(r.Context(), email, fromForm)
 				if err != nil {
 					RespondWithError(w, http.StatusInternalServerError, err.Error())
 					return
@@ -239,7 +239,7 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var updatedSeries models.Series
-	if updatedSeries, err = dao.EditSeries(email, *series); err != nil {
+	if updatedSeries, err = dao.EditSeries(r.Context(), email, *series); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
@@ -290,19 +290,19 @@ func RemoveStoryFromSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Missing series ID")
 		return
 	}
-	story, err := dao.GetStoryByID(email, storyID)
+	story, err := dao.GetStoryByID(r.Context(), email, storyID)
 	if err != nil {
 		RespondWithError(w, http.StatusNotFound, "Unable to locate story")
 		return
 	}
-	series, err := dao.GetSeriesByID(email, seriesID)
+	series, err := dao.GetSeriesByID(r.Context(), email, seriesID)
 	if err != nil {
 		RespondWithError(w, http.StatusNotFound, "Unable to locate series")
 		return
 	}
 
 	var updatedSeries models.Series
-	if updatedSeries, err = dao.RemoveStoryFromSeries(email, story.ID, *series); err != nil {
+	if updatedSeries, err = dao.RemoveStoryFromSeries(r.Context(), email, story.ID, *series); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
@@ -344,7 +344,7 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	story, err := dao.GetStoryByID(email, storyID)
+	story, err := dao.GetStoryByID(r.Context(), email, storyID)
 	if err != nil {
 		RespondWithError(w, http.StatusNotFound, "Unable to locate story")
 		return
@@ -467,7 +467,7 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var updatedStory models.Story
-	if updatedStory, err = dao.EditStory(email, *story); err != nil {
+	if updatedStory, err = dao.EditStory(r.Context(), email, *story); err != nil {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
@@ -515,7 +515,7 @@ func EditStorySettingsEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = dao.UpdateStorySettings(email, storyID, updateSettings)
+	err = dao.UpdateStorySettings(r.Context(), email, storyID, updateSettings)
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return

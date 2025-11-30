@@ -13,7 +13,7 @@ import (
 	"github.com/aws/smithy-go"
 )
 
-func (d *DAO) createBlockTable(tableName string, tags *[]types.Tag) error {
+func (d *DAO) createBlockTable(ctx context.Context, tableName string, tags *[]types.Tag) error {
 	partitionKey := aws.String("key_id")
 	gsiPartKey := aws.String("story_id")
 	gsiSortKey := aws.String("place")
@@ -60,7 +60,7 @@ func (d *DAO) createBlockTable(tableName string, tags *[]types.Tag) error {
 		},
 	}
 
-	_, err := d.DynamoClient.CreateTable(context.TODO(), &dynamodb.CreateTableInput{
+	_, err := d.DynamoClient.CreateTable(ctx, &dynamodb.CreateTableInput{
 		TableName:              aws.String(tableName),
 		KeySchema:              tableSchema,
 		AttributeDefinitions:   attributes,
@@ -73,8 +73,10 @@ func (d *DAO) createBlockTable(tableName string, tags *[]types.Tag) error {
 	}
 
 	go func() {
+		// Use Background context as this goroutine needs to outlive the request
+		bgCtx := context.Background()
 		waiter := dynamodb.NewTableExistsWaiter(d.DynamoClient)
-		if err = waiter.Wait(context.TODO(), &dynamodb.DescribeTableInput{
+		if err = waiter.Wait(bgCtx, &dynamodb.DescribeTableInput{
 			TableName: aws.String(tableName),
 		}, 1*time.Minute); err != nil {
 			fmt.Println("error waiting for table creation", err)
@@ -89,7 +91,7 @@ func (d *DAO) createBlockTable(tableName string, tags *[]types.Tag) error {
 		}
 
 		for {
-			_, err := d.DynamoClient.UpdateContinuousBackups(context.TODO(), pitrInput)
+			_, err := d.DynamoClient.UpdateContinuousBackups(bgCtx, pitrInput)
 			if err == nil {
 				break // PITR enabled successfully
 			}
@@ -103,7 +105,7 @@ func (d *DAO) createBlockTable(tableName string, tags *[]types.Tag) error {
 			time.Sleep(10 * time.Second)
 		}
 
-		_, err := d.DynamoClient.UpdateContinuousBackups(context.Background(), pitrInput)
+		_, err := d.DynamoClient.UpdateContinuousBackups(bgCtx, pitrInput)
 		if err != nil {
 			fmt.Println("error enabling continuous backups", err)
 		}
@@ -111,8 +113,8 @@ func (d *DAO) createBlockTable(tableName string, tags *[]types.Tag) error {
 	return nil
 }
 
-func (d *DAO) CheckTableStatus(tableName string) (string, error) {
-	resp, err := d.DynamoClient.DescribeTable(context.TODO(), &dynamodb.DescribeTableInput{TableName: aws.String(tableName)})
+func (d *DAO) CheckTableStatus(ctx context.Context, tableName string) (string, error) {
+	resp, err := d.DynamoClient.DescribeTable(ctx, &dynamodb.DescribeTableInput{TableName: aws.String(tableName)})
 	if err != nil {
 		return "", err
 	}

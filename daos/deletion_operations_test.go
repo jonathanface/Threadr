@@ -41,7 +41,7 @@ func TestSoftDeleteStory(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			err := mockDao.SoftDeleteStory(tc.email, tc.storyID, tc.automated)
+			err := mockDao.SoftDeleteStory(context.Background(), tc.email, tc.storyID, tc.automated)
 
 			// This test acknowledges that full integration testing would require
 			// setting up stories, chapters, and associations in the mock database
@@ -113,6 +113,6 @@ func BenchmarkSoftDeleteStory(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = mockDao.SoftDeleteStory("bench@example.com", "story123", false)
+		_ = mockDao.SoftDeleteStory(context.Background(), "bench@example.com", "story123", false)
 	}
 }

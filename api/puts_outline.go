@@ -25,7 +25,7 @@ func UpdateOutlineEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newOutline, err := dao.UpdateOutline(updatedOutline)
+	newOutline, err := dao.UpdateOutline(r.Context(), updatedOutline)
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return

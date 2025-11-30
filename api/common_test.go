@@ -5,6 +5,7 @@ import (
 	"RichDocter/daos"
 	"RichDocter/models"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"image"
@@ -292,7 +293,7 @@ func TestStaggeredStoryBlockRetrieval_SinglePage(t *testing.T) {
 		}, nil
 	}
 
-	result, err := staggeredStoryBlockRetrieval(mockDAO, "story123", "chapter456", nil, nil)
+	result, err := staggeredStoryBlockRetrieval(context.Background(), mockDAO, "story123", "chapter456", nil, nil)
 
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -344,7 +345,7 @@ func TestStaggeredStoryBlockRetrieval_MultiplePages(t *testing.T) {
 		}
 	}
 
-	result, err := staggeredStoryBlockRetrieval(mockDAO, "story123", "chapter456", nil, nil)
+	result, err := staggeredStoryBlockRetrieval(context.Background(), mockDAO, "story123", "chapter456", nil, nil)
 
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -367,7 +368,7 @@ func TestStaggeredStoryBlockRetrieval_Error(t *testing.T) {
 		return nil, errors.New("database error")
 	}
 
-	result, err := staggeredStoryBlockRetrieval(mockDAO, "story123", "chapter456", nil, nil)
+	result, err := staggeredStoryBlockRetrieval(context.Background(), mockDAO, "story123", "chapter456", nil, nil)
 
 	if err == nil {
 		t.Errorf("Expected error, got nil")
@@ -383,7 +384,7 @@ func TestStaggeredStoryBlockRetrieval_NilResult(t *testing.T) {
 		return nil, nil
 	}
 
-	result, err := staggeredStoryBlockRetrieval(mockDAO, "story123", "chapter456", nil, nil)
+	result, err := staggeredStoryBlockRetrieval(context.Background(), mockDAO, "story123", "chapter456", nil, nil)
 
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)

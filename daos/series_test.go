@@ -2,6 +2,7 @@ package daos
 
 import (
 	"RichDocter/models"
+	"context"
 	"testing"
 )
 
@@ -24,7 +25,7 @@ func TestGetSeriesByID(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			series, err := mockDao.GetSeriesByID(tc.email, tc.seriesID)
+			series, err := mockDao.GetSeriesByID(context.Background(), tc.email, tc.seriesID)
 
 			t.Logf("GetSeriesByID returned series=%v, err=%v", series != nil, err)
 		})
@@ -55,7 +56,7 @@ func TestGetAllSeriesWithStories(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			series, err := mockDao.GetAllSeriesWithStories(tc.email, tc.adminRequest)
+			series, err := mockDao.GetAllSeriesWithStories(context.Background(), tc.email, tc.adminRequest)
 
 			t.Logf("GetAllSeriesWithStories returned %d series, err=%v", len(series), err)
 		})
@@ -81,7 +82,7 @@ func TestGetSeriesVolumes(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			volumes, err := mockDao.GetSeriesVolumes(tc.email, tc.seriesID)
+			volumes, err := mockDao.GetSeriesVolumes(context.Background(), tc.email, tc.seriesID)
 
 			t.Logf("GetSeriesVolumes returned %d volumes, err=%v", len(volumes), err)
 		})
@@ -112,7 +113,7 @@ func TestRemoveStoryFromSeries(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			updatedSeries, err := mockDao.RemoveStoryFromSeries(tc.email, tc.storyID, tc.series)
+			updatedSeries, err := mockDao.RemoveStoryFromSeries(context.Background(), tc.email, tc.storyID, tc.series)
 
 			t.Logf("RemoveStoryFromSeries returned series=%v, err=%v", updatedSeries.ID != "", err)
 		})
@@ -124,6 +125,6 @@ func BenchmarkGetAllSeriesWithStories(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = mockDao.GetAllSeriesWithStories("bench@example.com", false)
+		_, _ = mockDao.GetAllSeriesWithStories(context.Background(), "bench@example.com", false)
 	}
 }

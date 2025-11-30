@@ -72,7 +72,7 @@ func TestCreateBlockTable(t *testing.T) {
 				return &dynamodb.CreateTableOutput{}, nil
 			}
 
-			err := mockDao.createBlockTable(tc.tableName, tc.tags)
+			err := mockDao.createBlockTable(context.Background(), tc.tableName, tc.tags)
 
 			if tc.wantErr {
 				if err == nil {
@@ -161,7 +161,7 @@ func TestCheckTableStatus(t *testing.T) {
 				}, nil
 			}
 
-			status, err := mockDao.CheckTableStatus(tc.tableName)
+			status, err := mockDao.CheckTableStatus(context.Background(), tc.tableName)
 
 			if tc.wantErr {
 				if err == nil {
@@ -421,7 +421,7 @@ func BenchmarkCheckTableStatus(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = mockDao.CheckTableStatus("benchmark_table")
+		_, _ = mockDao.CheckTableStatus(context.Background(), "benchmark_table")
 	}
 }
 

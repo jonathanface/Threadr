@@ -13,12 +13,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-func (d *DAO) checkBackupStatus(arn string) error {
+func (d *DAO) checkBackupStatus(ctx context.Context, arn string) error {
 	for {
 		describeInput := &dynamodb.DescribeBackupInput{
 			BackupArn: aws.String(arn),
 		}
-		output, err := d.DynamoClient.DescribeBackup(context.Background(), describeInput)
+		output, err := d.DynamoClient.DescribeBackup(ctx, describeInput)
 		if err != nil {
 			return err
 		}
@@ -69,14 +69,14 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(ctx context.Context, email stri
 		defer close(ch)
 		for i, story := range stories {
 			story.Inactive = true
-			_, err := d.EditStory(email, story)
+			_, err := d.EditStory(ctx, email, story)
 			select {
 			case <-ctx.Done():
 				return
 			default:
 			}
 			log.Println("Starting restore on story", story.Title)
-			err = d.restoreOneStory(email, story)
+			err = d.restoreOneStory(ctx, email, story)
 			ev := RestoreStoryEvent{Index: i, Total: total, StoryID: story.ID, Err: err}
 			select {
 			case ch <- ev:
@@ -120,9 +120,7 @@ func (d *DAO) ensureBlocksTableFromBackup(
 	return waitForTableStatus(ctx, d.DynamoClient, tableName, chapterName, "ACTIVE", 10*time.Minute)
 }
 
-func (d *DAO) restoreOneStory(email string, story models.Story) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Minute)
-	defer cancel()
+func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.Story) error {
 	chapterScanInput := &dynamodb.ScanInput{
 		TableName:        aws.String("chapters" + GetTableSuffix()),
 		FilterExpression: aws.String("attribute_exists(deleted_at) AND story_id = :sid AND attribute_exists(bup_arn)"),
@@ -169,14 +167,12 @@ func (d *DAO) restoreOneStory(email string, story models.Story) error {
 		"story_id": &types.AttributeValueMemberS{Value: story.ID},
 		"author":   &types.AttributeValueMemberS{Value: email},
 	}
-	finCtx, finCancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	defer finCancel()
 	storyUpdateInput := &dynamodb.UpdateItemInput{
 		TableName:        aws.String("stories" + GetTableSuffix()),
 		Key:              storyKey,
 		UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 	}
-	_, err = d.DynamoClient.UpdateItem(finCtx, storyUpdateInput)
+	_, err = d.DynamoClient.UpdateItem(ctx, storyUpdateInput)
 	if err != nil {
 		return err
 	}
@@ -193,7 +189,7 @@ func (d *DAO) restoreOneStory(email string, story models.Story) error {
 			Key:              seriesKey,
 			UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 		}
-		_, err = d.DynamoClient.UpdateItem(finCtx, seriesUpdateInput)
+		_, err = d.DynamoClient.UpdateItem(ctx, seriesUpdateInput)
 		if err != nil {
 			return err
 		}
@@ -209,7 +205,7 @@ func (d *DAO) restoreOneStory(email string, story models.Story) error {
 		},
 		Select: types.SelectAllAttributes,
 	}
-	associationOut, err := d.DynamoClient.Scan(finCtx, associationScanInput)
+	associationOut, err := d.DynamoClient.Scan(ctx, associationScanInput)
 	if err != nil {
 		return err
 	}
@@ -225,7 +221,7 @@ func (d *DAO) restoreOneStory(email string, story models.Story) error {
 			Key:              associationKey,
 			UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 		}
-		_, err = d.DynamoClient.UpdateItem(finCtx, associationUpdateInput)
+		_, err = d.DynamoClient.UpdateItem(ctx, associationUpdateInput)
 		if err != nil {
 			return err
 		}
@@ -235,7 +231,7 @@ func (d *DAO) restoreOneStory(email string, story models.Story) error {
 			Key:              associationKey,
 			UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 		}
-		_, err = d.DynamoClient.UpdateItem(finCtx, associationDetailsUpdateInput)
+		_, err = d.DynamoClient.UpdateItem(ctx, associationDetailsUpdateInput)
 		if err != nil {
 			return err
 		}

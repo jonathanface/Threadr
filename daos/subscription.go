@@ -16,10 +16,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-func (d *DAO) GetSubscription(email string) (sub *models.Subscription, err error) {
+func (d *DAO) GetSubscription(ctx context.Context, email string) (sub *models.Subscription, err error) {
 	logger.Debug("Getting subscription", "email", email)
 
-	out, err := d.DynamoClient.Query(context.TODO(), &dynamodb.QueryInput{
+	out, err := d.DynamoClient.Query(ctx, &dynamodb.QueryInput{
 		TableName:              aws.String("subscriptions" + GetTableSuffix()),
 		KeyConditionExpression: aws.String("email = :eml"),
 		FilterExpression:       aws.String("subscriber = :t"),
@@ -54,7 +54,7 @@ func (d *DAO) GetSubscription(email string) (sub *models.Subscription, err error
 	return subFromMap[0], nil
 }
 
-func (d *DAO) UpdateSubscription(sub models.Subscription) error {
+func (d *DAO) UpdateSubscription(ctx context.Context, sub models.Subscription) error {
 	logger.Info("Updating subscription",
 		"email", sub.Email,
 		"subscriptionId", sub.SubscriptionID,
@@ -104,7 +104,7 @@ func (d *DAO) UpdateSubscription(sub models.Subscription) error {
 		ReturnValues:              types.ReturnValueUpdatedNew,
 	}
 
-	_, err := d.DynamoClient.UpdateItem(context.TODO(), input)
+	_, err := d.DynamoClient.UpdateItem(ctx, input)
 	if err != nil {
 		logger.Error("Failed to update subscription",
 			"error", err,
@@ -118,10 +118,10 @@ func (d *DAO) UpdateSubscription(sub models.Subscription) error {
 	return err
 }
 
-func (d *DAO) GetEmailByCustomerId(custId string) (string, error) {
+func (d *DAO) GetEmailByCustomerId(ctx context.Context, custId string) (string, error) {
 	logger.Debug("Looking up email by customer ID", "customerId", custId)
 
-	out, err := d.DynamoClient.Scan(context.TODO(), &dynamodb.ScanInput{
+	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
 		TableName:        aws.String("subscriptions" + GetTableSuffix()),
 		FilterExpression: aws.String("customer_id = :c"), // make sure matches your schema
 		ExpressionAttributeValues: map[string]types.AttributeValue{
