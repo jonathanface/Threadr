@@ -619,7 +619,7 @@ export const ThreadWriter = () => {
         if (isInitialLoad.current && editorRef.current) {
           logger.log("Initial load: fetching story blocks and associations");
           isProgrammaticChange.current = true; // Start programmatic change
-          await getBatchedStoryBlocks("");
+          await getBatchedStoryBlocks("", true); // Show loader on initial load
           const newHash = generateTextHash(editorRef.current);
           previousTextHashRef.current = newHash;
           isProgrammaticChange.current = false; // End programmatic change
@@ -627,7 +627,7 @@ export const ThreadWriter = () => {
         } else {
           logger.log("Chapter change: fetching new story blocks");
           isProgrammaticChange.current = true; // Start programmatic change
-          await getBatchedStoryBlocks("");
+          await getBatchedStoryBlocks("", false); // No loader when switching chapters
           isProgrammaticChange.current = false; // End programmatic change
         }
       };

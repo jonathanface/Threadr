@@ -14,7 +14,11 @@ import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { api } from "../../../../api";
 
-export const ChapterMenu = () => {
+interface ChapterMenuProps {
+  onChapterSelect?: () => void;
+}
+
+export const ChapterMenu = ({ onChapterSelect }: ChapterMenuProps) => {
   const { story, chapter, setChapter, setStory, series, setSeries } =
     useSelections();
   const { showLoader, hideLoader } = useLoader();
@@ -98,12 +102,17 @@ export const ChapterMenu = () => {
         setAlertState({
           title: "Creating chapter…",
           message:
-            "We’re setting things up. This chapter will activate automatically when ready.",
+            "We're setting things up. This chapter will activate automatically when ready.",
           severity: AlertToastType.info,
           open: true,
           origin: { horizontal: "left", vertical: "bottom" },
         });
         return;
+      }
+
+      // Close the drawer and update the chapter
+      if (onChapterSelect) {
+        onChapterSelect();
       }
 
       UpdateChapterQueryStringParameter(newChapter.id);
