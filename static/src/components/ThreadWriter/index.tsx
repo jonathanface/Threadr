@@ -1053,7 +1053,6 @@ export const ThreadWriter = () => {
             />
             <AssociationDecoratorPlugin
               isProgrammaticChange={isProgrammaticChange}
-              scrollToTop={true}
               customLeftClick={handleAssociationLeftClick}
               customRightClick={handleAssociationRightClick}
             />
