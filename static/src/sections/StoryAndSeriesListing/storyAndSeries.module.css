@@ -30,7 +30,7 @@
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 var(--spacing-lg);
-  align-items: start;
+  align-items: stretch;
 }
 
 /* Create Story Button */

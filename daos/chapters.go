@@ -256,16 +256,27 @@ func (d *DAO) DeleteChapterParagraphs(ctx context.Context, storyID string, story
 
 	// Loop through the items and create the transaction write items.
 	for _, batch := range batches {
-		writeItemsInput := &dynamodb.TransactWriteItemsInput{
-			ClientRequestToken: nil,
-			TransactItems:      make([]types.TransactWriteItem, len(batch)),
-		}
-		for i, item := range batch {
+		// Deduplicate blocks by place to avoid "multiple operations on one item" error
+		seenPlaces := make(map[int64]bool)
+		var deleteItems []types.TransactWriteItem
+
+		for _, item := range batch {
 			// Parse place value to number
 			placeNum, err := strconv.ParseInt(item.Place, 10, 64)
 			if err != nil {
 				return fmt.Errorf("invalid place value %s: %w", item.Place, err)
 			}
+
+			// Skip if we've already added a delete for this place in this batch
+			if seenPlaces[placeNum] {
+				logger.Warn("Skipping duplicate place value in delete batch",
+					"storyId", storyID,
+					"chapterId", storyBlocks.ChapterID,
+					"place", placeNum,
+					"keyId", item.KeyID)
+				continue
+			}
+			seenPlaces[placeNum] = true
 
 			// Create composite key for deletion
 			key := map[string]types.AttributeValue{
@@ -284,7 +295,17 @@ func (d *DAO) DeleteChapterParagraphs(ctx context.Context, storyID string, story
 			}
 
 			// Add the transaction write item to the list of transaction write items.
-			writeItemsInput.TransactItems[i] = writeItem
+			deleteItems = append(deleteItems, writeItem)
+		}
+
+		// Only execute transaction if we have items to delete
+		if len(deleteItems) == 0 {
+			continue
+		}
+
+		writeItemsInput := &dynamodb.TransactWriteItemsInput{
+			ClientRequestToken: nil,
+			TransactItems:      deleteItems,
 		}
 
 		awsErr, err := d.awsWriteTransaction(ctx, writeItemsInput)

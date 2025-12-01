@@ -83,6 +83,7 @@ export class AssociationInlineNode extends TextNode {
     }
 
     this.__handleLeftClick = (event: MouseEvent) => {
+      this.hideHovers();
       if (leftClickCallback) {
         leftClickCallback({
           id: this.__associationId,
@@ -95,6 +96,7 @@ export class AssociationInlineNode extends TextNode {
 
     this.__handleRightClick = (event: MouseEvent) => {
       event.preventDefault();
+      this.hideHovers();
       if (rightClickCallback) {
         rightClickCallback({
           id: this.__associationId,

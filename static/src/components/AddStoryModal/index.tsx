@@ -21,7 +21,17 @@ export const AddStoryModal: React.FC<AddStoryModalProps> = ({
     return (
         <>
             <Button className={styles.triggerButton} size="small" onClick={() => setIsAddStoryModalOpen(true)}>Add Story</Button>
-            <Dialog open={isAddStoryModalOpen} onClose={() => setIsAddStoryModalOpen(false)} fullWidth maxWidth="sm">
+            <Dialog
+                open={isAddStoryModalOpen}
+                onClose={() => setIsAddStoryModalOpen(false)}
+                fullWidth
+                maxWidth="sm"
+                sx={{
+                    '& .MuiDialog-container': {
+                        alignItems: 'center',
+                    },
+                }}
+            >
                 <DialogTitle>Select a Story to Add</DialogTitle>
                 <DialogContent>
                     {availableStories.length ? (

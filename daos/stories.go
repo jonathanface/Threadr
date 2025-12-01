@@ -615,6 +615,9 @@ func buildWriteTransactions(
 	itemsByKeyID map[string]map[string]types.AttributeValue,
 	itemsByPlace map[int64]map[string]types.AttributeValue,
 ) (deleteItems, putItems []types.TransactWriteItem, err error) {
+	// Track place values being used in this batch to detect conflicts
+	batchPlaceUsage := make(map[int64]string) // place -> key_id
+
 	for _, item := range batch {
 		newPlaceNum, err := strconv.ParseInt(item.Place, 10, 64)
 		if err != nil {
@@ -632,10 +635,28 @@ func buildWriteTransactions(
 
 			oldPlaceNum, _ := strconv.ParseInt(oldPlace.Value, 10, 64)
 
+			// Check for place conflicts within this batch
+			actualPlace := newPlaceNum
+			if conflictingKeyID, placeInUse := batchPlaceUsage[newPlaceNum]; placeInUse && conflictingKeyID != item.KeyID {
+				// Another block in this batch is already using this place
+				// Assign a temporary high place value to avoid transaction conflict
+				actualPlace = 1000000 + newPlaceNum
+				logger.Warn("Place conflict detected within batch for existing block",
+					"storyId", storyID,
+					"chapterId", chapterID,
+					"keyId", item.KeyID,
+					"conflictingKeyId", conflictingKeyID,
+					"requestedPlace", newPlaceNum,
+					"temporaryPlace", actualPlace)
+			} else {
+				// Mark this place as used by this key_id
+				batchPlaceUsage[newPlaceNum] = item.KeyID
+			}
+
 			// Build new item with updated content
 			newItem := map[string]types.AttributeValue{
 				"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
-				"place":         &types.AttributeValueMemberN{Value: strconv.FormatInt(newPlaceNum, 10)},
+				"place":         &types.AttributeValueMemberN{Value: strconv.FormatInt(actualPlace, 10)},
 				"story_id":      &types.AttributeValueMemberS{Value: storyID},
 				"chapter_id":    &types.AttributeValueMemberS{Value: chapterID},
 				"key_id":        &types.AttributeValueMemberS{Value: item.KeyID},
@@ -738,18 +759,30 @@ func buildWriteTransactions(
 				continue
 			}
 
-			// Check if the place is already occupied
+			// Check for place conflicts - both in database and within this batch
 			actualPlace := newPlaceNum
-			if _, placeOccupied := itemsByPlace[newPlaceNum]; placeOccupied {
-				// There's already a different block at this place
-				// Assign a temporary high place value to avoid conflicts
+			if conflictingKeyID, placeInUse := batchPlaceUsage[newPlaceNum]; placeInUse && conflictingKeyID != item.KeyID {
+				// Another block in this batch is already using this place
 				actualPlace = 1000000 + newPlaceNum
-				logger.Warn("Place conflict detected for new block",
+				logger.Warn("Place conflict detected within batch for new block",
+					"storyId", storyID,
+					"chapterId", chapterID,
+					"keyId", item.KeyID,
+					"conflictingKeyId", conflictingKeyID,
+					"requestedPlace", newPlaceNum,
+					"temporaryPlace", actualPlace)
+			} else if _, placeOccupied := itemsByPlace[newPlaceNum]; placeOccupied {
+				// There's already a different block at this place in the database
+				actualPlace = 1000000 + newPlaceNum
+				logger.Warn("Place conflict detected for new block with existing database entry",
 					"storyId", storyID,
 					"chapterId", chapterID,
 					"keyId", item.KeyID,
 					"requestedPlace", newPlaceNum,
 					"temporaryPlace", actualPlace)
+			} else {
+				// Mark this place as used by this key_id
+				batchPlaceUsage[newPlaceNum] = item.KeyID
 			}
 
 			newItem := map[string]types.AttributeValue{

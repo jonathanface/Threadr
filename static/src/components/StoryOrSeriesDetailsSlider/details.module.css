@@ -1,13 +1,15 @@
 .detailsSlider {
     filter: none;
-    border-radius: 10px;
+    border-radius: var(--radius-xl);
     border: 1px solid var(--border-light);
-    top: 100%;
     position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
     transition: all 0.2s ease-in-out;
     background: var(--bg-primary);
     height: 150px;
-    width: 100%;
+    width: calc(100% - 32px);
     z-index: 30;
     padding: 10px;
     box-sizing: border-box;
@@ -23,7 +25,7 @@
 
 /* Light mode override */
 :global([data-theme="light"]) .detailsSlider {
-    background: linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%);
+    background: rgba(255, 255, 255, 0.9);
     border: 1px solid var(--border-medium);
 }
 
@@ -38,6 +40,10 @@
     color: var(--text-secondary);
 }
 
+:global([data-theme="light"]) .detailsSlider .detailsDescription {
+    color: #1a1a1a;
+}
+
 .detailsSlider .detailsTitle h4 {
     overflow: hidden;
     word-wrap: break-word;
@@ -45,6 +51,10 @@
     text-overflow: ellipsis;
     margin: 0px;
     color: var(--text-primary);
+}
+
+:global([data-theme="light"]) .detailsSlider .detailsTitle h4 {
+    color: #1a1a1a;
 }
 
 .detailsSlider .seriesListing>div {
@@ -77,11 +87,19 @@
     letter-spacing: 0.5px;
 }
 
+:global([data-theme="light"]) .detailsSlider .storiesLabel {
+    color: #1a1a1a;
+}
+
 .detailsSlider .seriesListing ul {
     line-height: 1.25rem;
     margin: 0;
     padding-left: 20px;
     color: var(--text-secondary);
+}
+
+:global([data-theme="light"]) .detailsSlider .seriesListing ul {
+    color: #1a1a1a;
 }
 
 .detailsSlider .seriesListing li {
@@ -105,10 +123,10 @@
 
 
 .detailsSlider.visible {
-    margin-top: -150px;
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
+    transform: translateX(-50%) scale(1.05);
 }
 
 .detailsSlider .avatars {

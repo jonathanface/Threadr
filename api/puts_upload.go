@@ -6,6 +6,7 @@ import (
 	"RichDocter/logger"
 	"RichDocter/models"
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -30,7 +31,8 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok              bool
 		awsCfg          aws.Config
 	)
-	const maxFileSize = 1024 * 1024 // 1 MB
+	const maxUploadSize = 5 * 1024 * 1024  // 5 MB for original upload
+	const maxScaledSize = 1024 * 1024      // 1 MB for final scaled image
 	if email, err = getUserEmail(r); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -71,8 +73,9 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 
 	// Enforce maximum file size to protect against excessive memory allocation
-	if handler.Size <= 0 || handler.Size > maxFileSize {
-		RespondWithError(w, http.StatusBadRequest, "File is too large or invalid size")
+	if handler.Size <= 0 || handler.Size > maxUploadSize {
+		maxMB := maxUploadSize / (1024 * 1024)
+		RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("File is too large (max %dMB) or invalid size", maxMB))
 		return
 	}
 
@@ -106,8 +109,9 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Check the size of the scaled image
-	if scaledImageBuf.Len() > maxFileSize {
-		RespondWithError(w, http.StatusBadRequest, "Filesize must be < 1MB")
+	if scaledImageBuf.Len() > maxScaledSize {
+		maxMB := maxScaledSize / (1024 * 1024)
+		RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Scaled image must be < %dMB (try a simpler image)", maxMB))
 		return
 	}
 

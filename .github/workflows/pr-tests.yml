@@ -4,7 +4,7 @@ on:
   pull_request:
     branches:
       - staging
-      - production
+      # Note: Production PRs don't run tests since they come from staging where tests already passed
     types: [opened, synchronize, reopened]
 
 jobs:

@@ -7,11 +7,19 @@
   letter-spacing: 0.5px;
   text-align: center;
   min-height: 450px;
+  height: 100%;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
   backdrop-filter: blur(10px);
   box-shadow: var(--shadow-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:global([data-theme="light"]) .seriesBoxContainer {
+  background: rgba(187, 222, 251, 0.9);
 }
 
 .seriesBoxContainer::before {
@@ -45,7 +53,13 @@
   overflow: hidden;
   cursor: pointer;
   border-radius: 20px;
-  border: 1px solid var(--border-light);
+  width: 100%;
+  padding: 16px;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.seriesBoxContainer:hover .seriesBubble {
+  transform: translateY(-30px);
 }
 
 .seriesBoxContainer img {
@@ -79,9 +93,9 @@
 /* Series Label Overlay */
 .seriesBoxContainer .seriesLabel {
   position: absolute;
-  right: 12px;
-  top: 12px;
-  left: 12px;
+  right: 28px;
+  top: 28px;
+  left: 28px;
   padding: 12px 16px;
   border-radius: 12px;
   background: rgba(0, 0, 0, 0.75);
@@ -98,6 +112,16 @@
   transform: translateY(-4px);
 }
 
+/* Light mode override for label */
+:global([data-theme="light"]) .seriesBoxContainer .seriesLabel {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+:global([data-theme="light"]) .seriesBoxContainer:hover .seriesLabel {
+  background: rgba(255, 255, 255, 0.95);
+}
+
 .seriesBoxContainer .seriesLabel .title {
   margin-right: 16px;
   font-size: 0.875rem;
@@ -109,6 +133,10 @@
   text-align: left;
   letter-spacing: 0;
   color: #ffffff;
+}
+
+:global([data-theme="light"]) .seriesBoxContainer .seriesLabel .title {
+  color: #1a1a1a;
 }
 
 .seriesBoxContainer .seriesLabel .buttons {
@@ -126,6 +154,19 @@
 .seriesBoxContainer .seriesLabel .buttons :global(.MuiIconButton-root:hover) {
   background: rgba(255, 255, 255, 0.1);
   transform: scale(1.1);
+}
+
+/* Light mode icon colors */
+:global([data-theme="light"]) .seriesBoxContainer .seriesLabel .buttons :global(.MuiIconButton-root) :global(svg) {
+  color: #1a1a1a !important;
+}
+
+:global([data-theme="light"]) .seriesBoxContainer .seriesLabel .buttons :global(.MuiIconButton-root:hover) {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+:global([data-theme="light"]) .seriesBoxContainer .seriesLabel .buttons :global(.MuiIconButton-root:hover) :global(svg) {
+  color: #2a57e3 !important;
 }
 
 /* Mobile Responsive */
