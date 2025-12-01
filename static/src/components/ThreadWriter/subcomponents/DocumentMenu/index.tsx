@@ -1,17 +1,17 @@
-import { Box, Drawer, IconButton, Paper, Tooltip } from "@mui/material";
 import { Settings } from "@mui/icons-material";
-import styles from "./settingsmenu.module.css";
-import FormatListNumberedIcon from "@mui/icons-material/FormatListNumbered";
 import CancelPresentationIcon from "@mui/icons-material/CancelPresentation";
-import { useNavigate } from "react-router-dom";
+import FormatListNumberedIcon from "@mui/icons-material/FormatListNumbered";
+import MenuBookTwoToneIcon from "@mui/icons-material/MenuBookTwoTone";
+import { Box, Drawer, IconButton, Paper, Tooltip } from "@mui/material";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useFetchUserData } from "../../../../hooks/useFetchUserData";
 import { useSelections } from "../../../../hooks/useSelections";
-import { ClickData } from "../../plugins/DocumentClickPlugin";
-import { DocumentSettingsModal } from "./DocumentSettingsModal";
+import type { ClickData } from "../../plugins/DocumentClickPlugin";
 import { ChapterMenu } from "../ChapterMenu";
 import { OutlineMenu } from "../OutlineMenu";
-import { useFetchUserData } from "../../../../hooks/useFetchUserData";
-import MenuBookTwoToneIcon from "@mui/icons-material/MenuBookTwoTone";
+import { DocumentSettingsModal } from "./DocumentSettingsModal";
+import styles from "./settingsmenu.module.css";
 
 interface DocumentMenuProps {
   onAssociationClick: (data: ClickData) => void;
@@ -45,12 +45,12 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
         className={styles.sideMenu}
         elevation={3}
         sx={{
-          backgroundColor: 'var(--bg-toolbar)',
-          color: 'var(--text-primary)',
+          backgroundColor: "var(--bg-toolbar)",
+          color: "var(--text-primary)",
         }}
       >
         <Tooltip title="Close this Document" placement="right">
-          <IconButton onClick={closeDoc} sx={{ color: 'var(--text-primary)' }}>
+          <IconButton onClick={closeDoc} sx={{ color: "var(--text-primary)" }}>
             <CancelPresentationIcon />
           </IconButton>
         </Tooltip>
@@ -59,7 +59,7 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
             onClick={() => {
               setIsEditorChapterMenuOpen(true);
             }}
-            sx={{ color: 'var(--text-primary)' }}
+            sx={{ color: "var(--text-primary)" }}
           >
             <FormatListNumberedIcon />
           </IconButton>
@@ -69,7 +69,7 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
             onClick={() => {
               setIsEditorOutlineMenuOpen(true);
             }}
-            sx={{ color: 'var(--text-primary)' }}
+            sx={{ color: "var(--text-primary)" }}
           >
             <MenuBookTwoToneIcon />
           </IconButton>
@@ -79,7 +79,7 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
             onClick={() => {
               setIsSettingsMenuOpen(true);
             }}
-            sx={{ color: 'var(--text-primary)' }}
+            sx={{ color: "var(--text-primary)" }}
           >
             <Settings />
           </IconButton>
@@ -101,9 +101,9 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
         ModalProps={{ keepMounted: true }}
         PaperProps={{
           sx: {
-            backgroundColor: 'var(--bg-primary)',
-            color: 'var(--text-primary)',
-          }
+            backgroundColor: "var(--bg-primary)",
+            color: "var(--text-primary)",
+          },
         }}
       >
         <Box
@@ -111,7 +111,9 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
           role="presentation"
           component="section"
         >
-          <ChapterMenu onChapterSelect={() => setIsEditorChapterMenuOpen(false)} />
+          <ChapterMenu
+            onChapterSelect={() => setIsEditorChapterMenuOpen(false)}
+          />
         </Box>
       </Drawer>
       <Drawer
@@ -126,9 +128,9 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
         ModalProps={{ keepMounted: true }}
         PaperProps={{
           sx: {
-            backgroundColor: 'var(--bg-primary)',
-            color: 'var(--text-primary)',
-          }
+            backgroundColor: "var(--bg-primary)",
+            color: "var(--text-primary)",
+          },
         }}
       >
         <Box

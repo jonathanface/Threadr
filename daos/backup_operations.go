@@ -100,7 +100,7 @@ func (d *DAO) ensureBlocksTableFromBackup(
 		log.Println("waiting for table status")
 		return waitForTableStatus(ctx, d.DynamoClient, tableName, chapterName, "ACTIVE", 10*time.Minute)
 	}
-	if !isResourceNotFound(err) && err != nil {
+	if !isResourceNotFound(err) {
 		return err
 	}
 

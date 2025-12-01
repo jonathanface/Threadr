@@ -1,6 +1,6 @@
 // AssociationDecoratorPlugin.tsx
 
-import { useCallback, useEffect, useRef } from "react";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
   $createPoint,
   $createRangeSelection,
@@ -9,20 +9,19 @@ import {
   $isRangeSelection,
   $setSelection,
   ElementNode,
-  LexicalNode,
+  type LexicalNode,
   TextNode,
 } from "lexical";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { SimplifiedAssociation } from "../../../types/Associations";
-import styles from "../threadwriter.module.css";
+import { useCallback, useEffect, useRef } from "react";
 import { generateTextHash } from "../../../constants/constants";
-import { ClickData } from "./DocumentClickPlugin";
-import { useAssociations } from "../hooks/useAssociations";
+import type { SimplifiedAssociation } from "../../../types/Associations";
 import {
   $createAssociationInlineNode,
   $isAssociationInlineNode,
   AssociationInlineNode,
 } from "../customNodes/AssociationInlineNode";
+import { useAssociations } from "../hooks/useAssociations";
+import type { ClickData } from "./DocumentClickPlugin";
 
 // Utility to escape RegExp special characters
 const escapeRegExp = (string: string) => {
@@ -34,13 +33,11 @@ export const AssociationDecoratorPlugin = ({
   customLeftClick,
   customRightClick,
   exclusionList,
-  scrollToTop,
 }: {
   isProgrammaticChange?: React.RefObject<boolean>;
   customLeftClick?: (value: ClickData) => void | undefined;
   customRightClick?: (value: ClickData) => void | undefined;
   exclusionList?: string[];
-  scrollToTop?: boolean;
 }) => {
   const [editor] = useLexicalComposerContext();
   const previousHashRef = useRef<string | null>(null);
@@ -57,10 +54,46 @@ export const AssociationDecoratorPlugin = ({
     return descendants;
   }, []);
 
+  // Helper function to check for adjacent non-whitespace text nodes
+  const checkAdjacentNonWhitespaceOrPunctuation = useCallback(
+    (node: LexicalNode): boolean => {
+      const previousSibling = node.getPreviousSibling();
+      const nextSibling = node.getNextSibling();
+
+      // Check if the previous sibling does NOT end with whitespace or allowed punctuation
+      const previousDoesNotEndWithWhitespaceOrPunctuation =
+        previousSibling instanceof TextNode &&
+        // eslint-disable-next-line no-useless-escape
+        !/[\s.,:;"'’“…—–-]$/.test(previousSibling.getTextContent().slice(-1)); // Only check the last character
+      if (previousSibling && previousDoesNotEndWithWhitespaceOrPunctuation) {
+        //console.log("issue with", node.getTextContent());
+        //console.log("prev does not end with white space or allowed punctuation: ", previousSibling.getTextContent().slice(-1));
+      }
+
+      // Check if the next sibling does NOT start with whitespace or allowed punctuation
+      const nextDoesNotStartWithWhitespaceOrPunctuation =
+        nextSibling instanceof TextNode &&
+        // eslint-disable-next-line no-useless-escape
+        !/^[\s.,:;!"'’“?…—–-]/.test(nextSibling.getTextContent().charAt(0)); // Only check the first character
+      if (nextSibling && nextDoesNotStartWithWhitespaceOrPunctuation) {
+        //console.log("issue with", node.getTextContent());
+        //console.log("next does not start with whitespace or punctuation", nextSibling.getTextContent().charAt(0));
+      }
+
+      // Return true if either condition is met (i.e., either previous sibling doesn't end with whitespace/punctuation,
+      // or next sibling doesn't start with whitespace/punctuation)
+      return (
+        previousDoesNotEndWithWhitespaceOrPunctuation ||
+        nextDoesNotStartWithWhitespaceOrPunctuation
+      );
+    },
+    []
+  );
+
   const findObsoleteDecorators = useCallback(
     (
       root: ElementNode,
-      currentAssociations: SimplifiedAssociation[],
+      currentAssociations: SimplifiedAssociation[]
     ): AssociationInlineNode[] => {
       // Create a map from association id to association data for quick lookup.
       const currentAssociationMap = new Map<string, SimplifiedAssociation>();
@@ -127,43 +160,8 @@ export const AssociationDecoratorPlugin = ({
 
       return obsoleteNodes;
     },
-    [getAllDescendants],
+    [getAllDescendants, checkAdjacentNonWhitespaceOrPunctuation]
   );
-
-  // Helper function to check for adjacent non-whitespace text nodes
-  const checkAdjacentNonWhitespaceOrPunctuation = (
-    node: LexicalNode,
-  ): boolean => {
-    const previousSibling = node.getPreviousSibling();
-    const nextSibling = node.getNextSibling();
-
-    // Check if the previous sibling does NOT end with whitespace or allowed punctuation
-    const previousDoesNotEndWithWhitespaceOrPunctuation =
-      previousSibling instanceof TextNode &&
-      // eslint-disable-next-line no-useless-escape
-      !/[\s.,:;"'’“…—–\-]$/.test(previousSibling.getTextContent().slice(-1)); // Only check the last character
-    if (previousSibling && previousDoesNotEndWithWhitespaceOrPunctuation) {
-      //console.log("issue with", node.getTextContent());
-      //console.log("prev does not end with white space or allowed punctuation: ", previousSibling.getTextContent().slice(-1));
-    }
-
-    // Check if the next sibling does NOT start with whitespace or allowed punctuation
-    const nextDoesNotStartWithWhitespaceOrPunctuation =
-      nextSibling instanceof TextNode &&
-      // eslint-disable-next-line no-useless-escape
-      !/^[\s.,:;!"'’“?…—–\-]/.test(nextSibling.getTextContent().charAt(0)); // Only check the first character
-    if (nextSibling && nextDoesNotStartWithWhitespaceOrPunctuation) {
-      //console.log("issue with", node.getTextContent());
-      //console.log("next does not start with whitespace or punctuation", nextSibling.getTextContent().charAt(0));
-    }
-
-    // Return true if either condition is met (i.e., either previous sibling doesn't end with whitespace/punctuation,
-    // or next sibling doesn't start with whitespace/punctuation)
-    return (
-      previousDoesNotEndWithWhitespaceOrPunctuation ||
-      nextDoesNotStartWithWhitespaceOrPunctuation
-    );
-  };
 
   const processObsoleteAssociations = (node: AssociationInlineNode): void => {
     if (!node.isAttached()) return;
@@ -227,7 +225,7 @@ export const AssociationDecoratorPlugin = ({
     (
       associations: SimplifiedAssociation[],
       rootNode: ElementNode,
-      exclusionList?: string[],
+      exclusionList?: string[]
     ): void => {
       if (!associations.length) return;
       // Process obsolete inline nodes.
@@ -286,7 +284,7 @@ export const AssociationDecoratorPlugin = ({
               ? association.aliases.split(",").map((alias) => alias.trim())
               : [];
           const namesToMatch = Array.from(
-            new Set([association.association_name.trim(), ...aliases]),
+            new Set([association.association_name.trim(), ...aliases])
           ).sort((a, b) => b.length - a.length);
           namesToMatch.forEach((name) => {
             if (exclusionList?.includes(name)) return;
@@ -313,8 +311,8 @@ export const AssociationDecoratorPlugin = ({
           (m, _idx, arr) =>
             !arr.some(
               (other) =>
-                other !== m && other.start <= m.start && other.end >= m.end,
-            ),
+                other !== m && other.start <= m.start && other.end >= m.end
+            )
         );
 
         if (filteredMatches.length === 0) return;
@@ -345,7 +343,7 @@ export const AssociationDecoratorPlugin = ({
             match.association.portrait,
             customLeftClick,
             customRightClick,
-            format,
+            format
           );
           newNodes.push(inlineNode);
           currentIndex = match.end;
@@ -395,7 +393,7 @@ export const AssociationDecoratorPlugin = ({
             const point = $createPoint(
               newAnchorNode.getKey(),
               newOffset,
-              "text",
+              "text"
             );
             const rangeSelection = $createRangeSelection();
             rangeSelection.anchor = point;
@@ -405,7 +403,7 @@ export const AssociationDecoratorPlugin = ({
         }
       });
     },
-    [customLeftClick, customRightClick, findObsoleteDecorators],
+    [customLeftClick, customRightClick, findObsoleteDecorators]
   );
 
   // Process associations when associations prop changes (e.g., initial load)
@@ -436,7 +434,7 @@ export const AssociationDecoratorPlugin = ({
         });
       } catch (error) {
         console.error(
-          `AssociationPlugin - Error processing associations on prop change: ${error}`,
+          `AssociationPlugin - Error processing associations on prop change: ${error}`
         );
       }
     }
@@ -454,7 +452,7 @@ export const AssociationDecoratorPlugin = ({
     if (isProgrammaticChange?.current) {
       // If a programmatic change is in progress, skip processing
       console.warn(
-        "AssociationPlugin - Skipping user-initiated update due to ongoing programmatic change.",
+        "AssociationPlugin - Skipping user-initiated update due to ongoing programmatic change."
       );
       return;
     }
@@ -485,7 +483,7 @@ export const AssociationDecoratorPlugin = ({
       });
     } catch (error) {
       console.error(
-        `AssociationPlugin - Error processing associations on user update: ${error}`,
+        `AssociationPlugin - Error processing associations on user update: ${error}`
       );
     } finally {
       if (isProgrammaticChange) {

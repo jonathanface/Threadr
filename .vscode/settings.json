@@ -85,5 +85,8 @@
   // File Associations
   "files.associations": {
     "*.yml": "yaml"
-  }
+  },
+
+  // Spell Checker Settings
+  "cSpell.enabled": false
 }
