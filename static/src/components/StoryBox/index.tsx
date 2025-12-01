@@ -123,66 +123,66 @@ export const StoryBox = (props: StoryBoxProps) => {
             setIsStoryLoaderVisible(false);
           }}
         />
-        <div className={styles.storyLabel}>
-          <div className={styles.title} title={title}>
-            {title}
-          </div>
-          <span className={styles.buttons}>
-            <Tooltip title={editHoverText} placement="top">
-              <IconButton
-                aria-label="edit story"
-                sx={{ padding: "0" }}
-                component="label"
-                onClick={(event) => {
-                  editStory(event, props.story.story_id);
-                }}
-              >
-                <EditIcon
-                  sx={{
-                    padding: "0",
-                    fontSize: "18px",
-                    color: "#F0F0F0",
-                    "&:hover": {
-                      fontWeight: "bold",
-                      color: "#2a57e3",
-                    },
-                  }}
-                />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title={deleteHoverText} placement="top">
-              <IconButton
-                aria-label="delete"
-                component="label"
-                onClick={(event) => {
-                  deleteStory(event, id, title);
-                }}
-              >
-                <DeleteIcon
-                  sx={{
-                    fontSize: "18px",
-                    padding: "0",
-                    color: "#F0F0F0",
-                    "&:hover": {
-                      fontWeight: "bold",
-                      color: "#2a57e3",
-                    },
-                  }}
-                />
-              </IconButton>
-            </Tooltip>
-          </span>
-        </div>
-        <StoryOrSeriesDetailsSlider
-          id={id}
-          visible={isSliderVisible}
-          onStoryClick={handleClick}
-          setDeleted={setWasDeleted}
-          isSeries={false}
-          title={title}
-          description={description}
-        />
       </div>
+      <div className={styles.storyLabel}>
+        <div className={styles.title} title={title}>
+          {title}
+        </div>
+        <span className={styles.buttons}>
+          <Tooltip title={editHoverText} placement="top">
+            <IconButton
+              aria-label="edit story"
+              sx={{ padding: "0" }}
+              component="label"
+              onClick={(event) => {
+                editStory(event, props.story.story_id);
+              }}
+            >
+              <EditIcon
+                sx={{
+                  padding: "0",
+                  fontSize: "18px",
+                  color: "#F0F0F0",
+                  "&:hover": {
+                    fontWeight: "bold",
+                    color: "#2a57e3",
+                  },
+                }}
+              />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={deleteHoverText} placement="top">
+            <IconButton
+              aria-label="delete"
+              component="label"
+              onClick={(event) => {
+                deleteStory(event, id, title);
+              }}
+            >
+              <DeleteIcon
+                sx={{
+                  fontSize: "18px",
+                  padding: "0",
+                  color: "#F0F0F0",
+                  "&:hover": {
+                    fontWeight: "bold",
+                    color: "#2a57e3",
+                  },
+                }}
+              />
+            </IconButton>
+          </Tooltip>
+        </span>
+      </div>
+      <StoryOrSeriesDetailsSlider
+        id={id}
+        visible={isSliderVisible}
+        onStoryClick={handleClick}
+        setDeleted={setWasDeleted}
+        isSeries={false}
+        title={title}
+        description={description}
+      />
     </button>
   ) : (
     ""

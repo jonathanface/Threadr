@@ -427,14 +427,7 @@ export const AssociationDecoratorPlugin = ({
           const root = $getRoot();
           processAssociations(associations, root, exclusionList);
           //console.log("AssociationPlugin - Associations processed on associations prop change.");
-          if (scrollToTop) {
-            const contentEditableDiv = document.querySelector(
-              `.${styles.editorInput}`,
-            );
-            if (contentEditableDiv) {
-              contentEditableDiv.scrollTop = 0;
-            }
-          }
+          // Don't scroll to top - let the document maintain its scroll position
 
           previousHashRef.current = generateTextHash(editor);
           if (isProgrammaticChange) {
@@ -452,7 +445,6 @@ export const AssociationDecoratorPlugin = ({
     editor,
     processAssociations,
     exclusionList,
-    scrollToTop,
     previousHashRef,
     isProgrammaticChange,
   ]);
@@ -489,14 +481,7 @@ export const AssociationDecoratorPlugin = ({
         const root = $getRoot();
         processAssociations(associations!, root, exclusionList);
         // console.log("AssociationPlugin - Associations processed on user-initiated update.");
-        if (scrollToTop) {
-          const contentEditableDiv = document.querySelector(
-            `.${styles.editorInput}`,
-          );
-          if (contentEditableDiv) {
-            contentEditableDiv.scrollTop = 0;
-          }
-        }
+        // Don't scroll to top on user-initiated updates - only on initial load
       });
     } catch (error) {
       console.error(
@@ -512,7 +497,6 @@ export const AssociationDecoratorPlugin = ({
     editor,
     processAssociations,
     exclusionList,
-    scrollToTop,
     isProgrammaticChange,
   ]);
 

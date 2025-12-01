@@ -138,54 +138,54 @@ export const SeriesBox: React.FC<SeriesBoxProps> = ({ series }) => {
             setIsSeriesLoaderVisible(false);
           }}
         />
-        <div className={styles.seriesLabel}>
-          <span className={styles.title}>{series.series_title}</span>
-          <span className={styles.buttons}>
-            <Tooltip title={`Edit ${series.series_title}`} placement="top">
-              <IconButton
-                aria-label="edit series"
-                sx={{ padding: "0" }}
-                component="label"
-                onClick={(event) => {
-                  editSeries(event, series.series_id);
+      </div>
+      <div className={styles.seriesLabel}>
+        <span className={styles.title}>{series.series_title}</span>
+        <span className={styles.buttons}>
+          <Tooltip title={`Edit ${series.series_title}`} placement="top">
+            <IconButton
+              aria-label="edit series"
+              sx={{ padding: "0" }}
+              component="label"
+              onClick={(event) => {
+                editSeries(event, series.series_id);
+              }}
+            >
+              <EditIcon
+                sx={{
+                  padding: "0",
+                  fontSize: "18px",
+                  color: "#F0F0F0",
+                  "&:hover": {
+                    fontWeight: "bold",
+                    color: "#2a57e3",
+                  },
                 }}
-              >
-                <EditIcon
-                  sx={{
-                    padding: "0",
-                    fontSize: "18px",
-                    color: "#F0F0F0",
-                    "&:hover": {
-                      fontWeight: "bold",
-                      color: "#2a57e3",
-                    },
-                  }}
-                />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title={`Delete ${series.series_title}`} placement="top">
-              <IconButton
-                aria-label="delete"
-                component="label"
-                onClick={(event) => {
-                  deleteSeries(event, series.series_id, series.series_title);
+              />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={`Delete ${series.series_title}`} placement="top">
+            <IconButton
+              aria-label="delete"
+              component="label"
+              onClick={(event) => {
+                deleteSeries(event, series.series_id, series.series_title);
+              }}
+            >
+              <DeleteIcon
+                sx={{
+                  fontSize: "18px",
+                  padding: "0",
+                  color: "#F0F0F0",
+                  "&:hover": {
+                    fontWeight: "bold",
+                    color: "#2a57e3",
+                  },
                 }}
-              >
-                <DeleteIcon
-                  sx={{
-                    fontSize: "18px",
-                    padding: "0",
-                    color: "#F0F0F0",
-                    "&:hover": {
-                      fontWeight: "bold",
-                      color: "#2a57e3",
-                    },
-                  }}
-                />
-              </IconButton>
-            </Tooltip>
-          </span>
-        </div>
+              />
+            </IconButton>
+          </Tooltip>
+        </span>
       </div>
       <StoryOrSeriesDetailsSlider
         onShowMoreClick={showListSlider}

@@ -1,7 +1,8 @@
 name: Deploy to Amazon ECS
 
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches:
       - production
       - staging
@@ -10,30 +11,48 @@ env:
   ECR_REPOSITORY: richdocter
 
 jobs:
-  check_branch:
-    name: Safeguard production branch
+  check_merge:
+    name: Check if PR was merged
     runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
     steps:
-      - name: Check branch
-        if: github.base_ref == 'production' && github.head_ref != 'staging'
+      - name: Check if PR was merged (not just closed)
+        id: check
         run: |
-          echo "ERROR: You can only merge to production from staging."
-          exit 1
+          if [ "${{ github.event.pull_request.merged }}" == "true" ]; then
+            echo "PR was merged, proceeding with deployment"
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+          else
+            echo "PR was closed without merging, skipping deployment"
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check production merge source
+        if: steps.check.outputs.should_deploy == 'true' && github.base_ref == 'production'
+        run: |
+          if [ "${{ github.head_ref }}" != "staging" ]; then
+            echo "ERROR: You can only merge to production from staging branch."
+            echo "Attempted merge from: ${{ github.head_ref }}"
+            exit 1
+          fi
   build:
     name: Build
     runs-on: ubuntu-latest
+    needs: check_merge
+    if: needs.check_merge.outputs.should_deploy == 'true'
 
     steps:
       - name: Load VITE vars (staging/prod aware)
         run: |
-          STRIPE_KEY_VALUE="${{ github.ref == 'refs/heads/production' && secrets.STRIPE_PUB_KEY_PROD || secrets.STRIPE_PUB_KEY_STAGE }}"
-          COGNITO_REDIRECT_URI_VALUE="${{ github.ref == 'refs/heads/production' && secrets.COGNITO_REDIRECT_URI_PROD || secrets.COGNITO_REDIRECT_URI_STAGE }}"
-          COGNITO_LOGOUT_URI_VALUE="${{ github.ref == 'refs/heads/production' && secrets.COGNITO_LOGOUT_URI_PROD || secrets.COGNITO_LOGOUT_URI_STAGE }}"
+          STRIPE_KEY_VALUE="${{ github.base_ref == 'production' && secrets.STRIPE_PUB_KEY_PROD || secrets.STRIPE_PUB_KEY_STAGE }}"
+          COGNITO_REDIRECT_URI_VALUE="${{ github.base_ref == 'production' && secrets.COGNITO_REDIRECT_URI_PROD || secrets.COGNITO_REDIRECT_URI_STAGE }}"
+          COGNITO_LOGOUT_URI_VALUE="${{ github.base_ref == 'production' && secrets.COGNITO_LOGOUT_URI_PROD || secrets.COGNITO_LOGOUT_URI_STAGE }}"
           echo "::add-mask::$STRIPE_KEY_VALUE"
           echo "::add-mask::$COGNITO_REDIRECT_URI_VALUE"
           echo "::add-mask::$COGNITO_LOGOUT_URI_VALUE"
           echo "APP_VERSION=${GITHUB_SHA}" >> "$GITHUB_ENV"
-          echo "MODE=${GITHUB_REF_NAME}"   >> "$GITHUB_ENV"
+          echo "MODE=${{ github.base_ref }}"   >> "$GITHUB_ENV"
           echo "STRIPE_KEY=$STRIPE_KEY_VALUE" >> "$GITHUB_ENV"
           echo "COGNITO_REDIRECT_URI=$COGNITO_REDIRECT_URI_VALUE" >> "$GITHUB_ENV"
           echo "COGNITO_LOGOUT_URI=$COGNITO_LOGOUT_URI_VALUE" >> "$GITHUB_ENV"
@@ -81,10 +100,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     env:
-      ECS_SERVICE: ${{ github.ref == 'refs/heads/production' && secrets.AWS_ECS_SERVICE || secrets.AWS_ECS_SERVICE_STAGING }}
-      ECS_CLUSTER: ${{ github.ref == 'refs/heads/production' && secrets.AWS_ECS_CLUSTER || secrets.AWS_ECS_CLUSTER_STAGING }}
-      ECS_TASK_DEFINITION: ${{ github.ref == 'refs/heads/production' && '.aws/aws_ecs_task.json' || '.aws/aws_ecs_task_staging.json' }}
-      CONTAINER_NAME: ${{ github.ref == 'refs/heads/production' && 'richdocter' || 'web-container' }}
+      ECS_SERVICE: ${{ github.base_ref == 'production' && secrets.AWS_ECS_SERVICE || secrets.AWS_ECS_SERVICE_STAGING }}
+      ECS_CLUSTER: ${{ github.base_ref == 'production' && secrets.AWS_ECS_CLUSTER || secrets.AWS_ECS_CLUSTER_STAGING }}
+      ECS_TASK_DEFINITION: ${{ github.base_ref == 'production' && '.aws/aws_ecs_task.json' || '.aws/aws_ecs_task_staging.json' }}
+      CONTAINER_NAME: ${{ github.base_ref == 'production' && 'richdocter' || 'web-container' }}
 
     steps:
       - name: Checkout

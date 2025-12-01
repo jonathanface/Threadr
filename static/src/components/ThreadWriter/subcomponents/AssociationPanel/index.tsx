@@ -173,7 +173,7 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
   ]);
 
   useEffect(() => {
-    if (bgEditorRef.current) {
+    if (bgEditorRef.current && selectedAssociation) {
       bgEditorRef.current.setEditable(!isInitialLoad);
       bgEditorRef.current.update(() => {
         const root = $getRoot();
@@ -188,8 +188,19 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
           root.append(paragraphNode);
         });
       });
+      // Force a second update to trigger association processing
+      // Only do this if we have a selected association (not during cleanup)
+      if (props.isAssociationPanelOpen && selectedAssociation) {
+        setTimeout(() => {
+          if (bgEditorRef.current && selectedAssociation) {
+            bgEditorRef.current.update(() => {
+              // Trigger association detection by forcing a re-render
+            });
+          }
+        }, 0);
+      }
     }
-    if (descriptionEditorRef.current) {
+    if (descriptionEditorRef.current && selectedAssociation) {
       descriptionEditorRef.current.setEditable(!isInitialLoad);
       descriptionEditorRef.current.update(() => {
         const root = $getRoot();
@@ -203,8 +214,19 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
           root.append(paragraphNode);
         });
       });
+      // Force a second update to trigger association processing
+      // Only do this if we have a selected association (not during cleanup)
+      if (props.isAssociationPanelOpen && selectedAssociation) {
+        setTimeout(() => {
+          if (descriptionEditorRef.current && selectedAssociation) {
+            descriptionEditorRef.current.update(() => {
+              // Trigger association detection by forcing a re-render
+            });
+          }
+        }, 0);
+      }
     }
-  }, [selectedAssociation, descriptionEditorRef, isInitialLoad]);
+  }, [selectedAssociation, descriptionEditorRef, isInitialLoad, props.isAssociationPanelOpen]);
 
   useEffect(() => {
     clearData();
@@ -229,12 +251,16 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
-    saveEdits();
+
+    // Close the panel first
     setIsInitialLoad(true);
     props.setIsAssociationPanelOpen(false);
+
+    // Save edits after the panel closes to avoid scroll issues
     setTimeout(() => {
+      saveEdits();
       clearData();
-    }, 500);
+    }, 100);
   };
 
   const onAssociationClick = (value: ClickData) => {
@@ -337,6 +363,7 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
       open={props.isAssociationPanelOpen}
       onClose={handleClose}
       ModalProps={{
+        disableRestoreFocus: true,
         BackdropProps: {
           sx: {
             backgroundColor: 'rgba(0, 0, 0, 0.5)',

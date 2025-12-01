@@ -887,6 +887,8 @@ export const ThreadWriter = () => {
           open: true,
         });
       } finally {
+        // Mark as programmatic change to prevent scroll during association update
+        isProgrammaticChange.current = true;
         setAssociations((prevAssociations: SimplifiedAssociation[] = []) =>
           prevAssociations.map((storedAssociation) =>
             storedAssociation.association_id === assoc.association_id
@@ -894,6 +896,10 @@ export const ThreadWriter = () => {
               : storedAssociation
           )
         );
+        // Reset after a delay to allow the update to complete
+        setTimeout(() => {
+          isProgrammaticChange.current = false;
+        }, 100);
         hideLoader();
       }
     },
