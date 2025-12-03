@@ -666,33 +666,8 @@ export const ThreadWriter = () => {
           }
         );
 
-      // Handle empty CustomParagraphNodes
-      const unregisterCustomTransform = editorRef.current.registerNodeTransform(
-        CustomParagraphNode,
-        (node: CustomParagraphNode) => {
-          const existedBefore = !!previousNodeKeysRef.current.get(
-            node.getKeyId() ?? ""
-          );
-          if (node.getTextContent().trim() === "" && existedBefore) {
-            // Prevent redundant replacement of already empty nodes
-            const index = node.getIndexWithinParent();
-            if (index !== null) {
-              const id = node.getKeyId();
-              if (id) {
-                queueParagraphForSave(
-                  chapter.id,
-                  id,
-                  index.toString(),
-                  serializeWithChildren(node)
-                );
-              }
-            }
-          }
-        }
-      );
       return () => {
         unregisterParagraphTransform();
-        unregisterCustomTransform();
       };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
