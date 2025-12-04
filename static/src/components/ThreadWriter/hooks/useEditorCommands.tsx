@@ -186,7 +186,10 @@ export const useEditorCommands = (
                     const customNode = parent as CustomParagraphNode;
                     if (customNode) {
                       const customKey = customNode.getKeyId();
-                      if (customKey) pastedParagraphKeys.current.add(customKey);
+                      // Only track non-empty pasted paragraphs
+                      if (customKey && paragraphText.trim() !== "") {
+                        pastedParagraphKeys.current.add(customKey);
+                      }
                     }
                   } else if (index === 0) {
                     // Insert text at the current selection for the first paragraph
@@ -195,7 +198,10 @@ export const useEditorCommands = (
                     const customNode = parent as CustomParagraphNode;
                     if (customNode) {
                       const customKey = customNode.getKeyId();
-                      if (customKey) pastedParagraphKeys.current.add(customKey);
+                      // Only track non-empty pasted paragraphs
+                      if (customKey && paragraphText.trim() !== "") {
+                        pastedParagraphKeys.current.add(customKey);
+                      }
                     }
                   } else {
                     // Create and append new paragraphs for subsequent lines
@@ -208,7 +214,10 @@ export const useEditorCommands = (
                     } else {
                       parent.append(newParagraphNode);
                     }
-                    pastedParagraphKeys.current.add(customKey);
+                    // Only track non-empty pasted paragraphs to avoid saving blank lines from pasted content
+                    if (paragraphText.trim() !== "") {
+                      pastedParagraphKeys.current.add(customKey);
+                    }
                     lastInsertedNode = newParagraphNode; // Update reference
                   }
                 });
@@ -230,7 +239,10 @@ export const useEditorCommands = (
                   } else {
                     root.append(paragraphNode); // Append the first paragraph directly to the root
                   }
-                  pastedParagraphKeys.current.add(customKey);
+                  // Only track non-empty pasted paragraphs to avoid saving blank lines from pasted content
+                  if (paragraphText.trim() !== "") {
+                    pastedParagraphKeys.current.add(customKey);
+                  }
                   lastInsertedNode = paragraphNode; // Update reference
                 });
               }
