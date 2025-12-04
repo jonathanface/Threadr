@@ -775,6 +775,8 @@ export const ThreadWriter = () => {
                   text: currentText,
                   place: index.toString(),
                 });
+                // Remove from pastedParagraphKeys after saving to prevent re-saving on subsequent onChange calls
+                pastedParagraphKeys.current.delete(id);
               }
             }
           }
