@@ -383,11 +383,52 @@ func TestIsUserSubscribed(t *testing.T) {
 			wantErr:        false,
 			wantSubscriber: false,
 		},
+		{
+			name: "NoSubscriptionIDButHasRecord",
+			user: models.UserInfo{
+				Email:      "nosubid@example.com",
+				Subscriber: false,
+			},
+			mockGetSub: func(email string) (*models.Subscription, error) {
+				return &models.Subscription{
+					SubscriptionID:         "", // empty subscription ID
+					CustomerID:             "cus_789",
+					CurrentSubscriptionEnd: time.Now().Add(30 * 24 * time.Hour),
+					LastSubCheck:           time.Now(),
+				}, nil
+			},
+			wantErr:        false,
+			wantSubscriber: false,
+		},
+		{
+			name: "ExpiredSubscriptionNoID",
+			user: models.UserInfo{
+				Email:      "expired@example.com",
+				Subscriber: false,
+			},
+			mockGetSub: func(email string) (*models.Subscription, error) {
+				return &models.Subscription{
+					SubscriptionID:         "",                                   // no subscription ID
+					CustomerID:             "cus_456",
+					CurrentSubscriptionEnd: time.Now().Add(-7 * 24 * time.Hour), // 7 days ago
+					LastSubCheck:           time.Now().Add(-1 * time.Hour),
+				}, nil
+			},
+			wantErr:        false,
+			wantSubscriber: false,
+		},
 	}
 
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			// Save and set stripe key for tests
+			originalStripeKey := stripe.Key
+			stripe.Key = "sk_test_dummy_key_for_testing"
+			defer func() {
+				stripe.Key = originalStripeKey
+			}()
+
 			mockDao := NewMockDAO()
 			mockDao.MockGetSubscription = tc.mockGetSub
 

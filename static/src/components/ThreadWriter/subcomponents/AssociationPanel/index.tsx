@@ -33,6 +33,8 @@ import { AssociationInlineNode } from "../../customNodes/AssociationInlineNode";
 import { InfoHover } from "../../../InfoHover";
 import { api } from "../../../../api";
 import axios from "axios";
+import { AlertToastType } from "../../../../types/AlertToasts";
+import { useToaster } from "../../../../hooks/useToaster";
 
 interface AssociationProps {
   onEditCallback: (association: Association) => void;
@@ -89,6 +91,7 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
     props.selectedAssociationID,
   );
   const { story, chapter } = useSelections();
+  const { setAlertState } = useToaster();
 
   const clearData = () => {
     initialAssociation.current = null;
@@ -314,6 +317,8 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
     }
     acceptedFiles.forEach((file) => {
       const reader = new FileReader();
+      const originalPortrait = selectedAssociation.portrait;
+
       reader.onabort = () => console.log("file reading was aborted");
       reader.onerror = () => console.log("file reading has failed");
       reader.onload = async () => {
@@ -342,13 +347,33 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
 
           setSelectedAssociation(updatedAssociation);
         } catch (error) {
+          // Revert portrait to original on failure
+          const revertedAssociation = {
+            ...selectedAssociation,
+            portrait: originalPortrait,
+          };
+          setSelectedAssociation(revertedAssociation);
+
+          // Show error message to user
+          let errorMessage = "Failed to upload image. Please try again.";
           if (axios.isAxiosError(error)) {
+            if (error.response?.status === 400) {
+              errorMessage = error.response?.data?.error || "File does not meet requirements (check size and format).";
+            }
             console.error(
               `Upload failed: ${error.response?.status} ${error.message}`,
             );
           } else {
             console.error(error);
           }
+
+          setAlertState({
+            title: "Upload Failed",
+            message: errorMessage,
+            severity: AlertToastType.error,
+            open: true,
+            timeout: 8000,
+          });
         } finally {
           setIsAssociationLoaderVisible(false);
         }

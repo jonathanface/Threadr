@@ -2,8 +2,13 @@ package daos
 
 import (
 	"RichDocter/models"
+	"context"
+	"errors"
 	"os"
 	"testing"
+
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
 // Tests for GenerateStoryOutlineSections
@@ -412,5 +417,392 @@ func BenchmarkCleanDynamoTagString(b *testing.B) {
 		for _, input := range inputs {
 			_ = CleanDynamoTagString(input)
 		}
+	}
+}
+
+// Tests for CheckForSuspendedStories
+func TestCheckForSuspendedStories(t *testing.T) {
+	tests := []struct {
+		name           string
+		email          string
+		mockScanOutput *dynamodb.ScanOutput
+		mockScanError  error
+		expectedResult bool
+		expectedError  bool
+	}{
+		{
+			name:  "returns true when suspended stories exist",
+			email: "user@example.com",
+			mockScanOutput: &dynamodb.ScanOutput{
+				Items: []map[string]types.AttributeValue{
+					{
+						"story_id":          &types.AttributeValueMemberS{Value: "story-123"},
+						"author":            &types.AttributeValueMemberS{Value: "user@example.com"},
+						"deleted_at":        &types.AttributeValueMemberN{Value: "1234567890"},
+						"automated_deletion": &types.AttributeValueMemberBOOL{Value: true},
+					},
+				},
+				Count: 1,
+			},
+			mockScanError:  nil,
+			expectedResult: true,
+			expectedError:  false,
+		},
+		{
+			name:  "returns false when no suspended stories exist",
+			email: "user@example.com",
+			mockScanOutput: &dynamodb.ScanOutput{
+				Items: []map[string]types.AttributeValue{},
+				Count: 0,
+			},
+			mockScanError:  nil,
+			expectedResult: false,
+			expectedError:  false,
+		},
+		{
+			name:           "returns error on DynamoDB scan failure",
+			email:          "user@example.com",
+			mockScanOutput: nil,
+			mockScanError:  errors.New("DynamoDB scan failed"),
+			expectedResult: false,
+			expectedError:  true,
+		},
+		{
+			name:  "handles empty email gracefully",
+			email: "",
+			mockScanOutput: &dynamodb.ScanOutput{
+				Items: []map[string]types.AttributeValue{},
+				Count: 0,
+			},
+			mockScanError:  nil,
+			expectedResult: false,
+			expectedError:  false,
+		},
+		{
+			name:  "returns true when multiple suspended stories exist",
+			email: "user@example.com",
+			mockScanOutput: &dynamodb.ScanOutput{
+				Items: []map[string]types.AttributeValue{
+					{
+						"story_id":          &types.AttributeValueMemberS{Value: "story-1"},
+						"author":            &types.AttributeValueMemberS{Value: "user@example.com"},
+						"deleted_at":        &types.AttributeValueMemberN{Value: "1234567890"},
+						"automated_deletion": &types.AttributeValueMemberBOOL{Value: true},
+					},
+					{
+						"story_id":          &types.AttributeValueMemberS{Value: "story-2"},
+						"author":            &types.AttributeValueMemberS{Value: "user@example.com"},
+						"deleted_at":        &types.AttributeValueMemberN{Value: "1234567891"},
+						"automated_deletion": &types.AttributeValueMemberBOOL{Value: true},
+					},
+				},
+				Count: 2,
+			},
+			mockScanError:  nil,
+			expectedResult: true,
+			expectedError:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockDao := NewMockDAO()
+			mockClient := mockDao.DynamoClient.(*MockDynamoClient)
+
+			mockClient.MockScan = func(ctx context.Context, input *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+				// Verify the filter expression is correct
+				if input.FilterExpression != nil {
+					expectedExpr := "author=:eml AND attribute_exists(deleted_at) AND automated_deletion=:a"
+					if *input.FilterExpression != expectedExpr {
+						t.Errorf("Unexpected filter expression: got %q, want %q", *input.FilterExpression, expectedExpr)
+					}
+				}
+
+				if tt.mockScanError != nil {
+					return nil, tt.mockScanError
+				}
+				return tt.mockScanOutput, nil
+			}
+
+			result, err := mockDao.CheckForSuspendedStories(context.Background(), tt.email)
+
+			if tt.expectedError {
+				if err == nil {
+					t.Errorf("Expected error but got nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error: %v", err)
+				}
+				if result != tt.expectedResult {
+					t.Errorf("CheckForSuspendedStories() = %v, want %v", result, tt.expectedResult)
+				}
+			}
+		})
+	}
+}
+
+// Tests for WasStoryDeleted
+func TestWasStoryDeleted(t *testing.T) {
+	tests := []struct {
+		name           string
+		email          string
+		storyTitle     string
+		mockScanOutput *dynamodb.ScanOutput
+		mockScanError  error
+		expectedResult bool
+		expectedError  bool
+	}{
+		{
+			name:       "returns true when story was deleted",
+			email:      "user@example.com",
+			storyTitle: "Deleted Story",
+			mockScanOutput: &dynamodb.ScanOutput{
+				Items: []map[string]types.AttributeValue{
+					{
+						"story_id":    &types.AttributeValueMemberS{Value: "story-123"},
+						"author":      &types.AttributeValueMemberS{Value: "user@example.com"},
+						"story_title": &types.AttributeValueMemberS{Value: "Deleted Story"},
+						"deleted_at":  &types.AttributeValueMemberN{Value: "1234567890"},
+					},
+				},
+				Count: 1,
+			},
+			mockScanError:  nil,
+			expectedResult: true,
+			expectedError:  false,
+		},
+		{
+			name:       "returns false when story was not deleted",
+			email:      "user@example.com",
+			storyTitle: "Active Story",
+			mockScanOutput: &dynamodb.ScanOutput{
+				Items: []map[string]types.AttributeValue{},
+				Count: 0,
+			},
+			mockScanError:  nil,
+			expectedResult: false,
+			expectedError:  false,
+		},
+		{
+			name:           "returns error on DynamoDB scan failure",
+			email:          "user@example.com",
+			storyTitle:     "Test Story",
+			mockScanOutput: nil,
+			mockScanError:  errors.New("DynamoDB scan failed"),
+			expectedResult: false,
+			expectedError:  true,
+		},
+		{
+			name:       "handles empty email",
+			email:      "",
+			storyTitle: "Test Story",
+			mockScanOutput: &dynamodb.ScanOutput{
+				Items: []map[string]types.AttributeValue{},
+				Count: 0,
+			},
+			mockScanError:  nil,
+			expectedResult: false,
+			expectedError:  false,
+		},
+		{
+			name:       "handles empty story title",
+			email:      "user@example.com",
+			storyTitle: "",
+			mockScanOutput: &dynamodb.ScanOutput{
+				Items: []map[string]types.AttributeValue{},
+				Count: 0,
+			},
+			mockScanError:  nil,
+			expectedResult: false,
+			expectedError:  false,
+		},
+		{
+			name:       "returns true when story title matches exactly",
+			email:      "user@example.com",
+			storyTitle: "My Exact Story Title",
+			mockScanOutput: &dynamodb.ScanOutput{
+				Items: []map[string]types.AttributeValue{
+					{
+						"story_id":    &types.AttributeValueMemberS{Value: "story-456"},
+						"author":      &types.AttributeValueMemberS{Value: "user@example.com"},
+						"story_title": &types.AttributeValueMemberS{Value: "My Exact Story Title"},
+						"deleted_at":  &types.AttributeValueMemberN{Value: "1234567890"},
+					},
+				},
+				Count: 1,
+			},
+			mockScanError:  nil,
+			expectedResult: true,
+			expectedError:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockDao := NewMockDAO()
+			mockClient := mockDao.DynamoClient.(*MockDynamoClient)
+
+			mockClient.MockScan = func(ctx context.Context, input *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+				// Verify the filter expression is correct
+				if input.FilterExpression != nil {
+					expectedExpr := "author=:eml AND story_title=:s AND attribute_exists(deleted_at)"
+					if *input.FilterExpression != expectedExpr {
+						t.Errorf("Unexpected filter expression: got %q, want %q", *input.FilterExpression, expectedExpr)
+					}
+				}
+
+				if tt.mockScanError != nil {
+					return nil, tt.mockScanError
+				}
+				return tt.mockScanOutput, nil
+			}
+
+			result, err := mockDao.WasStoryDeleted(context.Background(), tt.email, tt.storyTitle)
+
+			if tt.expectedError {
+				if err == nil {
+					t.Errorf("Expected error but got nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error: %v", err)
+				}
+				if result != tt.expectedResult {
+					t.Errorf("WasStoryDeleted() = %v, want %v", result, tt.expectedResult)
+				}
+			}
+		})
+	}
+}
+
+// Tests for GetTotalCreatedStories
+func TestGetTotalCreatedStories(t *testing.T) {
+	tests := []struct {
+		name           string
+		email          string
+		mockScanOutput *dynamodb.ScanOutput
+		mockScanError  error
+		expectedCount  int
+		expectedError  bool
+	}{
+		{
+			name:  "returns correct count for multiple stories",
+			email: "user@example.com",
+			mockScanOutput: &dynamodb.ScanOutput{
+				Items: []map[string]types.AttributeValue{
+					{
+						"story_id": &types.AttributeValueMemberS{Value: "story-1"},
+						"author":   &types.AttributeValueMemberS{Value: "user@example.com"},
+					},
+					{
+						"story_id": &types.AttributeValueMemberS{Value: "story-2"},
+						"author":   &types.AttributeValueMemberS{Value: "user@example.com"},
+					},
+					{
+						"story_id": &types.AttributeValueMemberS{Value: "story-3"},
+						"author":   &types.AttributeValueMemberS{Value: "user@example.com"},
+					},
+				},
+				Count: 3,
+			},
+			mockScanError: nil,
+			expectedCount: 3,
+			expectedError: false,
+		},
+		{
+			name:  "returns zero when no stories exist",
+			email: "user@example.com",
+			mockScanOutput: &dynamodb.ScanOutput{
+				Items: []map[string]types.AttributeValue{},
+				Count: 0,
+			},
+			mockScanError: nil,
+			expectedCount: 0,
+			expectedError: false,
+		},
+		{
+			name:           "returns error on DynamoDB scan failure",
+			email:          "user@example.com",
+			mockScanOutput: nil,
+			mockScanError:  errors.New("DynamoDB scan failed"),
+			expectedCount:  0,
+			expectedError:  true,
+		},
+		{
+			name:  "handles empty email",
+			email: "",
+			mockScanOutput: &dynamodb.ScanOutput{
+				Items: []map[string]types.AttributeValue{},
+				Count: 0,
+			},
+			mockScanError: nil,
+			expectedCount: 0,
+			expectedError: false,
+		},
+		{
+			name:  "returns correct count for single story",
+			email: "user@example.com",
+			mockScanOutput: &dynamodb.ScanOutput{
+				Items: []map[string]types.AttributeValue{
+					{
+						"story_id": &types.AttributeValueMemberS{Value: "story-1"},
+						"author":   &types.AttributeValueMemberS{Value: "user@example.com"},
+					},
+				},
+				Count: 1,
+			},
+			mockScanError: nil,
+			expectedCount: 1,
+			expectedError: false,
+		},
+		{
+			name:  "returns correct count for many stories",
+			email: "prolific@example.com",
+			mockScanOutput: &dynamodb.ScanOutput{
+				Items: make([]map[string]types.AttributeValue, 50),
+				Count: 50,
+			},
+			mockScanError: nil,
+			expectedCount: 50,
+			expectedError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockDao := NewMockDAO()
+			mockClient := mockDao.DynamoClient.(*MockDynamoClient)
+
+			mockClient.MockScan = func(ctx context.Context, input *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+				// Verify the filter expression excludes deleted stories
+				if input.FilterExpression != nil {
+					expectedExpr := "author=:eml AND attribute_not_exists(deleted_at)"
+					if *input.FilterExpression != expectedExpr {
+						t.Errorf("Unexpected filter expression: got %q, want %q", *input.FilterExpression, expectedExpr)
+					}
+				}
+
+				if tt.mockScanError != nil {
+					return nil, tt.mockScanError
+				}
+				return tt.mockScanOutput, nil
+			}
+
+			count, err := mockDao.GetTotalCreatedStories(context.Background(), tt.email)
+
+			if tt.expectedError {
+				if err == nil {
+					t.Errorf("Expected error but got nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error: %v", err)
+				}
+				if count != tt.expectedCount {
+					t.Errorf("GetTotalCreatedStories() = %d, want %d", count, tt.expectedCount)
+				}
+			}
+		})
 	}
 }

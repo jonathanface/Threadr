@@ -21,6 +21,13 @@
   list-style-type: none;
   padding: 0;
   box-shadow: var(--shadow-dark);
+  background-color: var(--bg-toolbar);
+  border-radius: 5px;
+}
+
+:global([data-theme="light"]) .customContext .menu,
+:global([data-theme="light"]) .customContext .submenu {
+  background-color: #ffffff;
 }
 
 .customContext .menuItem {
@@ -31,6 +38,10 @@
   background-color: var(--bg-toolbar);
   color: var(--text-primary);
   margin-bottom: 0px;
+}
+
+:global([data-theme="light"]) .customContext .menuItem {
+  background-color: #ffffff;
 }
 
 .customContext .menuItem .label {
@@ -52,7 +63,13 @@
 
 .customContext .menuItem:hover {
   color: var(--text-primary);
-  background-color: var(--bg-card-hover);
+  background-color: var(--bg-toolbar);
+  filter: brightness(1.15);
+}
+
+:global([data-theme="light"]) .customContext .menuItem:hover {
+  background-color: #e3f2fd;
+  filter: none;
 }
 
 .menuItem.has-submenu>.submenu .menuItem {
@@ -61,9 +78,19 @@
   background-color: var(--bg-toolbar);
 }
 
+:global([data-theme="light"]) .menuItem.has-submenu>.submenu .menuItem {
+  background-color: #ffffff;
+}
+
 .menuItem.has-submenu>.submenu .menuItem:hover {
-  background-color: var(--bg-card-hover);
+  background-color: var(--bg-toolbar);
+  filter: brightness(1.15);
   color: var(--text-primary);
+}
+
+:global([data-theme="light"]) .menuItem.has-submenu>.submenu .menuItem:hover {
+  background-color: #e3f2fd;
+  filter: none;
 }
 
 .customContext .menuItem.has-submenu:last-child:hover {

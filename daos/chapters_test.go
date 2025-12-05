@@ -3,6 +3,7 @@ package daos
 import (
 	"RichDocter/models"
 	"context"
+	"errors"
 	"testing"
 )
 
@@ -303,12 +304,254 @@ func TestGetBlockCountByChapter(t *testing.T) {
 	}
 }
 
+// Tests for CreateChapter
+func TestCreateChapter(t *testing.T) {
+	testCases := []struct {
+		name        string
+		storyID     string
+		chapter     models.Chapter
+		email       string
+		mockChapter models.Chapter
+		mockErr     error
+		wantErr     bool
+	}{
+		{
+			name:    "SuccessfulCreate_FirstChapter",
+			storyID: "story123",
+			chapter: models.Chapter{
+				ID:    "chapter1",
+				Title: "Chapter 1",
+				Place: 1,
+			},
+			email: "user@example.com",
+			mockChapter: models.Chapter{
+				ID:    "chapter1",
+				Title: "Chapter 1",
+				Place: 1,
+			},
+			mockErr: nil,
+			wantErr: false,
+		},
+		{
+			name:    "SuccessfulCreate_SecondChapter",
+			storyID: "story456",
+			chapter: models.Chapter{
+				ID:    "chapter2",
+				Title: "Chapter 2: The Adventure Continues",
+				Place: 2,
+			},
+			email: "user@example.com",
+			mockChapter: models.Chapter{
+				ID:    "chapter2",
+				Title: "Chapter 2: The Adventure Continues",
+				Place: 2,
+			},
+			mockErr: nil,
+			wantErr: false,
+		},
+		{
+			name:    "SuccessfulCreate_LongTitle",
+			storyID: "story789",
+			chapter: models.Chapter{
+				ID:    "chapter3",
+				Title: "A Very Long Chapter Title That Tests The System's Ability To Handle Extended Text",
+				Place: 3,
+			},
+			email: "user@example.com",
+			mockChapter: models.Chapter{
+				ID:    "chapter3",
+				Title: "A Very Long Chapter Title That Tests The System's Ability To Handle Extended Text",
+				Place: 3,
+			},
+			mockErr: nil,
+			wantErr: false,
+		},
+		{
+			name:    "DatabaseError",
+			storyID: "story999",
+			chapter: models.Chapter{
+				ID:    "chapter_error",
+				Title: "Error Chapter",
+				Place: 1,
+			},
+			email:       "user@example.com",
+			mockChapter: models.Chapter{},
+			mockErr:     errors.New("database transaction failed"),
+			wantErr:     true,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			mockDao := NewMockDAO()
+
+			mockDao.MockCreateChapter = func(storyID string, chapter models.Chapter, email string) (models.Chapter, error) {
+				if storyID != tc.storyID {
+					t.Errorf("Expected storyID %s, got %s", tc.storyID, storyID)
+				}
+				if chapter.ID != tc.chapter.ID {
+					t.Errorf("Expected chapter ID %s, got %s", tc.chapter.ID, chapter.ID)
+				}
+				if chapter.Title != tc.chapter.Title {
+					t.Errorf("Expected title %s, got %s", tc.chapter.Title, chapter.Title)
+				}
+				if chapter.Place != tc.chapter.Place {
+					t.Errorf("Expected place %d, got %d", tc.chapter.Place, chapter.Place)
+				}
+				if email != tc.email {
+					t.Errorf("Expected email %s, got %s", tc.email, email)
+				}
+				return tc.mockChapter, tc.mockErr
+			}
+
+			newChapter, err := mockDao.CreateChapter(context.Background(), tc.storyID, tc.chapter, tc.email)
+
+			if tc.wantErr {
+				if err == nil {
+					t.Errorf("Expected error but got nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error: %v", err)
+				}
+				if newChapter.ID != tc.mockChapter.ID {
+					t.Errorf("Expected chapter ID %s, got %s", tc.mockChapter.ID, newChapter.ID)
+				}
+				if newChapter.Title != tc.mockChapter.Title {
+					t.Errorf("Expected title %s, got %s", tc.mockChapter.Title, newChapter.Title)
+				}
+				if newChapter.Place != tc.mockChapter.Place {
+					t.Errorf("Expected place %d, got %d", tc.mockChapter.Place, newChapter.Place)
+				}
+			}
+		})
+	}
+}
+
+// Tests for EditChapter
+func TestEditChapter(t *testing.T) {
+	testCases := []struct {
+		name        string
+		storyID     string
+		chapter     models.Chapter
+		mockChapter models.Chapter
+		mockErr     error
+		wantErr     bool
+	}{
+		{
+			name:    "SuccessfulEdit_TitleChange",
+			storyID: "story123",
+			chapter: models.Chapter{
+				ID:    "chapter1",
+				Title: "Updated Chapter Title",
+				Place: 1,
+			},
+			mockChapter: models.Chapter{
+				ID:    "chapter1",
+				Title: "Updated Chapter Title",
+				Place: 1,
+			},
+			mockErr: nil,
+			wantErr: false,
+		},
+		{
+			name:    "SuccessfulEdit_PlaceChange",
+			storyID: "story456",
+			chapter: models.Chapter{
+				ID:    "chapter2",
+				Title: "Chapter 2",
+				Place: 3,
+			},
+			mockChapter: models.Chapter{
+				ID:    "chapter2",
+				Title: "Chapter 2",
+				Place: 3,
+			},
+			mockErr: nil,
+			wantErr: false,
+		},
+		{
+			name:    "SuccessfulEdit_BothTitleAndPlace",
+			storyID: "story789",
+			chapter: models.Chapter{
+				ID:    "chapter3",
+				Title: "Completely Revised Chapter",
+				Place: 5,
+			},
+			mockChapter: models.Chapter{
+				ID:    "chapter3",
+				Title: "Completely Revised Chapter",
+				Place: 5,
+			},
+			mockErr: nil,
+			wantErr: false,
+		},
+		{
+			name:    "DatabaseError",
+			storyID: "story999",
+			chapter: models.Chapter{
+				ID:    "chapter_error",
+				Title: "Error Chapter",
+				Place: 1,
+			},
+			mockChapter: models.Chapter{},
+			mockErr:     errors.New("database update failed"),
+			wantErr:     true,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			mockDao := NewMockDAO()
+
+			mockDao.MockEditChapter = func(storyID string, chapter models.Chapter) (models.Chapter, error) {
+				if storyID != tc.storyID {
+					t.Errorf("Expected storyID %s, got %s", tc.storyID, storyID)
+				}
+				if chapter.ID != tc.chapter.ID {
+					t.Errorf("Expected chapter ID %s, got %s", tc.chapter.ID, chapter.ID)
+				}
+				if chapter.Title != tc.chapter.Title {
+					t.Errorf("Expected title %s, got %s", tc.chapter.Title, chapter.Title)
+				}
+				if chapter.Place != tc.chapter.Place {
+					t.Errorf("Expected place %d, got %d", tc.chapter.Place, chapter.Place)
+				}
+				return tc.mockChapter, tc.mockErr
+			}
+
+			updatedChapter, err := mockDao.EditChapter(context.Background(), tc.storyID, tc.chapter)
+
+			if tc.wantErr {
+				if err == nil {
+					t.Errorf("Expected error but got nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error: %v", err)
+				}
+				if updatedChapter.ID != tc.mockChapter.ID {
+					t.Errorf("Expected chapter ID %s, got %s", tc.mockChapter.ID, updatedChapter.ID)
+				}
+				if updatedChapter.Title != tc.mockChapter.Title {
+					t.Errorf("Expected title %s, got %s", tc.mockChapter.Title, updatedChapter.Title)
+				}
+				if updatedChapter.Place != tc.mockChapter.Place {
+					t.Errorf("Expected place %d, got %d", tc.mockChapter.Place, updatedChapter.Place)
+				}
+			}
+		})
+	}
+}
+
 // Benchmark tests
 func BenchmarkCreateChapter(b *testing.B) {
 	mockDao := NewMockDAO()
 	chapter := models.Chapter{
 		Title:       "Benchmark Chapter",
-		
+
 	}
 
 	b.ResetTimer()

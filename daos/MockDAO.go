@@ -40,6 +40,7 @@ type MockDAO struct {
 	MockUpdateOutline                           func(outline models.OutlineRequest) (*models.OutlineResponse, error)
 	MockGetStoryByID                            func(email string, storyID string) (*models.Story, error)
 	MockGetSeriesByID                           func(email string, seriesID string) (*models.Series, error)
+	MockGetSeriesVolumes                        func(email string, seriesID string) ([]*models.Story, error)
 	MockGetStoryOrSeriesAssociationThumbnails   func(email, storyID string) ([]*models.SimplifiedAssociation, error)
 	MockIsStoryInASeries                        func(email string, storyID string) (string, error)
 	MockGetChapterParagraphs                    func(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error)
@@ -321,6 +322,13 @@ func (m *MockDAO) GetSeriesByID(ctx context.Context, email string, seriesID stri
 		return m.MockGetSeriesByID(email, seriesID)
 	}
 	return m.DAO.GetSeriesByID(ctx, email, seriesID)
+}
+
+func (m *MockDAO) GetSeriesVolumes(ctx context.Context, email string, seriesID string) ([]*models.Story, error) {
+	if m.MockGetSeriesVolumes != nil {
+		return m.MockGetSeriesVolumes(email, seriesID)
+	}
+	return m.DAO.GetSeriesVolumes(ctx, email, seriesID)
 }
 
 func (m *MockDAO) GetStoryOrSeriesAssociationThumbnails(ctx context.Context, email, storyID string) ([]*models.SimplifiedAssociation, error) {

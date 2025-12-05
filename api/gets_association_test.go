@@ -163,3 +163,103 @@ func TestAssociationDetailsEndpoint_AWSError(t *testing.T) {
 		t.Errorf("Expected status 500, got %d. Body: %s", rr.Code, rr.Body.String())
 	}
 }
+
+// Tests for AllAssociationThumbnailsByStoryEndPoint
+func TestAllAssociationThumbnailsByStoryEndPoint_Success(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+	mockDAO.MockGetStoryOrSeriesAssociationThumbnails = func(email, storyID string) ([]*models.SimplifiedAssociation, error) {
+		if email != "test@example.com" {
+			t.Errorf("Expected email test@example.com, got %s", email)
+		}
+		if storyID != "story123" {
+			t.Errorf("Expected storyID story123, got %s", storyID)
+		}
+		return []*models.SimplifiedAssociation{
+			{ID: "assoc1", Name: "Association 1", Portrait: "https://example.com/img1.jpg"},
+			{ID: "assoc2", Name: "Association 2", Portrait: "https://example.com/img2.jpg"},
+		}, nil
+	}
+
+	req := createTestRequestWithSession("GET", "/story/story123/associations/thumbnails", nil)
+	req = mux.SetURLVars(req, map[string]string{"storyID": "story123"})
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
+
+	rr := httptest.NewRecorder()
+	AllAssociationThumbnailsByStoryEndPoint(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d. Body: %s", rr.Code, rr.Body.String())
+		return
+	}
+
+	var associations []*models.SimplifiedAssociation
+	err := json.NewDecoder(rr.Body).Decode(&associations)
+	if err != nil {
+		t.Errorf("Failed to decode response: %v", err)
+		return
+	}
+	if len(associations) != 2 {
+		t.Errorf("Expected 2 associations, got %d", len(associations))
+	}
+	if associations[0].ID != "assoc1" {
+		t.Errorf("Expected first association ID assoc1, got %s", associations[0].ID)
+	}
+}
+
+func TestAllAssociationThumbnailsByStoryEndPoint_MissingStoryID(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+
+	req := createTestRequestWithSession("GET", "/story//associations/thumbnails", nil)
+	req = mux.SetURLVars(req, map[string]string{"storyID": ""})
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
+
+	rr := httptest.NewRecorder()
+	AllAssociationThumbnailsByStoryEndPoint(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("Expected status 400, got %d", rr.Code)
+	}
+
+	var response map[string]string
+	json.Unmarshal(rr.Body.Bytes(), &response)
+	if response["error"] != "Missing story id" {
+		t.Errorf("Expected 'Missing story id' error, got '%s'", response["error"])
+	}
+}
+
+func TestAllAssociationThumbnailsByStoryEndPoint_NoDAO(t *testing.T) {
+	req := createTestRequestWithSession("GET", "/story/story123/associations/thumbnails", nil)
+	req = mux.SetURLVars(req, map[string]string{"storyID": "story123"})
+	// No DAO in context
+
+	rr := httptest.NewRecorder()
+	AllAssociationThumbnailsByStoryEndPoint(rr, req)
+
+	if rr.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status 500, got %d", rr.Code)
+	}
+
+	var response map[string]string
+	json.Unmarshal(rr.Body.Bytes(), &response)
+	if response["error"] != "unable to parse or retrieve dao from context" {
+		t.Errorf("Expected DAO error, got '%s'", response["error"])
+	}
+}
+
+func TestAllAssociationThumbnailsByStoryEndPoint_DAOError(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+	mockDAO.MockGetStoryOrSeriesAssociationThumbnails = func(email, storyID string) ([]*models.SimplifiedAssociation, error) {
+		return nil, errors.New("database error")
+	}
+
+	req := createTestRequestWithSession("GET", "/story/story123/associations/thumbnails", nil)
+	req = mux.SetURLVars(req, map[string]string{"storyID": "story123"})
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
+
+	rr := httptest.NewRecorder()
+	AllAssociationThumbnailsByStoryEndPoint(rr, req)
+
+	if rr.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status 500, got %d", rr.Code)
+	}
+}
