@@ -7,11 +7,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
 )
 
@@ -139,6 +142,59 @@ func TestRemoveStoryFromSeriesEndpoint_MissingStoryID(t *testing.T) {
 	}
 }
 
+func TestRemoveStoryFromSeriesEndpoint_MissingSeriesID(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+
+	req := createTestRequestWithSession("PUT", "/series//remove/story1", nil)
+	req = mux.SetURLVars(req, map[string]string{
+		"seriesID": "",
+		"storyID":  "story1",
+	})
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
+
+	rr := httptest.NewRecorder()
+	RemoveStoryFromSeriesEndpoint(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("Expected status 400, got %d", rr.Code)
+	}
+}
+
+func TestRemoveStoryFromSeriesEndpoint_NoDAO(t *testing.T) {
+	req := createTestRequestWithSession("PUT", "/series/series123/remove/story1", nil)
+	req = mux.SetURLVars(req, map[string]string{
+		"seriesID": "series123",
+		"storyID":  "story1",
+	})
+	// No DAO in context
+
+	rr := httptest.NewRecorder()
+	RemoveStoryFromSeriesEndpoint(rr, req)
+
+	if rr.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status 500, got %d", rr.Code)
+	}
+}
+
+func TestEditSeriesEndpoint_NoDAO(t *testing.T) {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	writer.WriteField("series_name", "New Series Title")
+	writer.Close()
+
+	req := createTestRequestWithSession("PUT", "/series/series123", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req = mux.SetURLVars(req, map[string]string{"seriesID": "series123"})
+	// No DAO in context
+
+	rr := httptest.NewRecorder()
+	EditSeriesEndpoint(rr, req)
+
+	if rr.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status 500, got %d", rr.Code)
+	}
+}
+
 func TestEditStoryEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
@@ -256,5 +312,186 @@ func TestEditStoryEndpoint_NoDAO(t *testing.T) {
 
 	if rr.Code != http.StatusInternalServerError {
 		t.Errorf("Expected status 500, got %d", rr.Code)
+	}
+}
+
+func TestEditStoryEndpoint_ParseMultipartFormError(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+		return &models.Story{
+			ID:    storyID,
+			Title: "Original Title",
+		}, nil
+	}
+
+	// Create a request with invalid content type for multipart form
+	body := &bytes.Buffer{}
+	req := createTestRequestWithSession("PUT", "/story/story123", body)
+	req.Header.Set("Content-Type", "text/plain") // Wrong content type
+	req = mux.SetURLVars(req, map[string]string{"story": "story123"})
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
+
+	rr := httptest.NewRecorder()
+	EditStoryEndpoint(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("Expected status 400, got %d. Body: %s", rr.Code, rr.Body.String())
+	}
+}
+
+func TestEditStoryEndpoint_InvalidTitle(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+		return &models.Story{
+			ID:    storyID,
+			Title: "Original Title",
+		}, nil
+	}
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	// Create a title that's too long (over 256 chars)
+	longTitle := strings.Repeat("a", 257)
+	writer.WriteField("title", longTitle)
+	writer.Close()
+
+	req := createTestRequestWithSession("PUT", "/story/story123", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req = mux.SetURLVars(req, map[string]string{"story": "story123"})
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
+
+	rr := httptest.NewRecorder()
+	EditStoryEndpoint(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("Expected status 400, got %d. Body: %s", rr.Code, rr.Body.String())
+	}
+}
+
+func TestEditStoryEndpoint_InvalidDescription(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+		return &models.Story{
+			ID:          storyID,
+			Title:       "Original Title",
+			Description: "Original Description",
+		}, nil
+	}
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	// Create a description that's too long (over 5000 chars)
+	longDesc := strings.Repeat("a", 5001)
+	writer.WriteField("description", longDesc)
+	writer.Close()
+
+	req := createTestRequestWithSession("PUT", "/story/story123", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req = mux.SetURLVars(req, map[string]string{"story": "story123"})
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
+
+	rr := httptest.NewRecorder()
+	EditStoryEndpoint(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("Expected status 400, got %d. Body: %s", rr.Code, rr.Body.String())
+	}
+}
+
+func TestEditStoryEndpoint_WithSeriesID(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+		return &models.Story{
+			ID:    storyID,
+			Title: "Original Title",
+		}, nil
+	}
+	mockDAO.MockEditStory = func(email string, story models.Story) (models.Story, error) {
+		// Verify that SeriesID was set
+		if story.SeriesID != "series456" {
+			t.Errorf("Expected SeriesID 'series456', got '%s'", story.SeriesID)
+		}
+		return story, nil
+	}
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	writer.WriteField("series_id", "series456")
+	writer.Close()
+
+	req := createTestRequestWithSession("PUT", "/story/story123", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req = mux.SetURLVars(req, map[string]string{"story": "story123"})
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
+
+	rr := httptest.NewRecorder()
+	EditStoryEndpoint(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d. Body: %s", rr.Code, rr.Body.String())
+	}
+}
+
+func TestEditStoryEndpoint_AWSError(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+		return &models.Story{
+			ID:    storyID,
+			Title: "Original Title",
+		}, nil
+	}
+	mockDAO.MockEditStory = func(email string, story models.Story) (models.Story, error) {
+		return models.Story{}, &smithy.OperationError{
+			ServiceID:     "DynamoDB",
+			OperationName: "PutItem",
+			Err:           daos.ErrMockDAO,
+		}
+	}
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	writer.WriteField("title", "Updated Title")
+	writer.Close()
+
+	req := createTestRequestWithSession("PUT", "/story/story123", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req = mux.SetURLVars(req, map[string]string{"story": "story123"})
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
+
+	rr := httptest.NewRecorder()
+	EditStoryEndpoint(rr, req)
+
+	if rr.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status 500, got %d. Body: %s", rr.Code, rr.Body.String())
+	}
+}
+
+func TestEditStoryEndpoint_DAOEditError(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+		return &models.Story{
+			ID:    storyID,
+			Title: "Original Title",
+		}, nil
+	}
+	mockDAO.MockEditStory = func(email string, story models.Story) (models.Story, error) {
+		return models.Story{}, errors.New("database error")
+	}
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	writer.WriteField("title", "Updated Title")
+	writer.Close()
+
+	req := createTestRequestWithSession("PUT", "/story/story123", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req = mux.SetURLVars(req, map[string]string{"story": "story123"})
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
+
+	rr := httptest.NewRecorder()
+	EditStoryEndpoint(rr, req)
+
+	if rr.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status 500, got %d. Body: %s", rr.Code, rr.Body.String())
 	}
 }

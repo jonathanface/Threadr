@@ -393,6 +393,76 @@ func TestBillingPortalSessionEndpoint(t *testing.T) {
 }
 
 // ------------------------------------------------------------
+// StripeWebhookEndpoint tests
+// ------------------------------------------------------------
+
+func TestStripeWebhookEndpoint(t *testing.T) {
+	type tc struct {
+		name         string
+		setupEnv     func()
+		payload      string
+		signature    string
+		wantStatus   int
+		wantContains string
+	}
+
+	cases := []tc{
+		{
+			name: "missing webhook secret",
+			setupEnv: func() {
+				os.Unsetenv("STRIPE_WEBHOOK_SECRET")
+			},
+			payload:      `{"type":"customer.subscription.updated"}`,
+			wantStatus:   http.StatusInternalServerError,
+			wantContains: `"error":"missing webhook secret"`,
+		},
+		{
+			name: "invalid signature verification",
+			setupEnv: func() {
+				os.Setenv("STRIPE_WEBHOOK_SECRET", "whsec_test_secret")
+				os.Setenv("AWS_REGION", "us-east-1")
+			},
+			signature:    "t=1,v1=invalid_signature",
+			payload:      `{"type":"customer.subscription.updated"}`,
+			wantStatus:   http.StatusBadRequest,
+			wantContains: "signature verification failed",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if c.setupEnv != nil {
+				c.setupEnv()
+			}
+
+			req := httptest.NewRequest(http.MethodPost, "/billing/webhook", strings.NewReader(c.payload))
+			if c.signature != "" {
+				req.Header.Set("Stripe-Signature", c.signature)
+			}
+
+			rec := httptest.NewRecorder()
+			StripeWebhookEndpoint(rec, req)
+
+			res := rec.Result()
+			defer res.Body.Close()
+
+			if res.StatusCode != c.wantStatus {
+				body, _ := io.ReadAll(res.Body)
+				t.Fatalf("status %d, want %d. Body: %s", res.StatusCode, c.wantStatus, string(body))
+			}
+
+			if c.wantContains != "" {
+				body, _ := io.ReadAll(res.Body)
+				bodyStr := string(body)
+				if !strings.Contains(bodyStr, c.wantContains) {
+					t.Fatalf("body %s, expected to contain %q", bodyStr, c.wantContains)
+				}
+			}
+		})
+	}
+}
+
+// ------------------------------------------------------------
 // Small helper to inject DAO in request context
 // ------------------------------------------------------------
 
