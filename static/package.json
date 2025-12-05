@@ -8,10 +8,10 @@
     "build": "tsc -b && vite build --config vite.config.ts",
     "lint": "eslint . --fix",
     "preview": "vite preview",
-    "test": "vitest --run",
-    "test-debug": "vitest --run --reporter=verbose",
-    "watch": "vitest",
-    "coverage": "vitest --coverage"
+    "test": "NODE_OPTIONS='--max-old-space-size=8192' vitest --run",
+    "test-debug": "NODE_OPTIONS='--max-old-space-size=8192 --expose-gc' vitest --run --reporter=verbose",
+    "watch": "NODE_OPTIONS='--max-old-space-size=8192 --expose-gc' vitest",
+    "coverage": "NODE_OPTIONS='--max-old-space-size=8192 --expose-gc' vitest --coverage"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.716.0",
