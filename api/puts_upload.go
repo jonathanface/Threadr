@@ -31,8 +31,8 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok              bool
 		awsCfg          aws.Config
 	)
-	const maxUploadSize = 5 * 1024 * 1024  // 5 MB for original upload
-	const maxScaledSize = 1024 * 1024      // 1 MB for final scaled image
+	const maxUploadSize = 5 * 1024 * 1024 // 5 MB for original upload
+	const maxScaledSize = 1024 * 1024     // 1 MB for final scaled image
 	if email, err = getUserEmail(r); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -75,7 +75,7 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 	// Enforce maximum file size to protect against excessive memory allocation
 	if handler.Size <= 0 || handler.Size > maxUploadSize {
 		maxMB := maxUploadSize / (1024 * 1024)
-		RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("File is too large (max %dMB) or invalid size", maxMB))
+		RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("File is too large (max %dMB) or invalid size. Final scaled size of your image: %d", maxMB, handler.Size))
 		return
 	}
 
