@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../../../api";
 import {
   Alert,
@@ -6,8 +7,10 @@ import {
   Box,
   Button,
   CircularProgress,
+  IconButton,
   Typography,
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import {
   Elements,
   PaymentElement,

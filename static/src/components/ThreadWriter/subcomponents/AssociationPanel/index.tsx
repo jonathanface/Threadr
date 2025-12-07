@@ -10,10 +10,12 @@ import {
   CircularProgress,
   Drawer,
   FormControlLabel,
+  IconButton,
   Switch,
   TextField,
   Typography,
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import axios from "axios";
 import {
   $createParagraphNode,
@@ -423,6 +425,18 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
           </Box>
         </div>
         <div className={styles.associationHeader}>
+          <IconButton
+            onClick={handleClose}
+            sx={{
+              position: "absolute",
+              right: 8,
+              top: 8,
+              color: "var(--text-primary)",
+            }}
+            aria-label="close"
+          >
+            <CloseIcon />
+          </IconButton>
           <h2 className={styles.associationName}>
             <TextField
               label=""
