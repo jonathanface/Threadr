@@ -60,7 +60,7 @@ export const DocumentExporter = () => {
           {
             html_by_chapter: htmlData,
             title: story.title,
-            storyID: story.story_id,
+            story_id: story.story_id,
             type,
             author: authorName,
             cover_image: story.image_url || undefined,
