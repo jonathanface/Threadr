@@ -46,16 +46,36 @@ jobs:
       - name: Load VITE vars (staging/prod aware)
         run: |
           STRIPE_KEY_VALUE="${{ github.base_ref == 'production' && secrets.STRIPE_PUB_KEY_PROD || secrets.STRIPE_PUB_KEY_STAGE }}"
-          COGNITO_REDIRECT_URI_VALUE="${{ github.base_ref == 'production' && secrets.COGNITO_REDIRECT_URI_PROD || secrets.COGNITO_REDIRECT_URI_STAGE }}"
-          COGNITO_LOGOUT_URI_VALUE="${{ github.base_ref == 'production' && secrets.COGNITO_LOGOUT_URI_PROD || secrets.COGNITO_LOGOUT_URI_STAGE }}"
           echo "::add-mask::$STRIPE_KEY_VALUE"
-          echo "::add-mask::$COGNITO_REDIRECT_URI_VALUE"
-          echo "::add-mask::$COGNITO_LOGOUT_URI_VALUE"
           echo "APP_VERSION=${GITHUB_SHA}" >> "$GITHUB_ENV"
           echo "MODE=${{ github.base_ref }}"   >> "$GITHUB_ENV"
           echo "STRIPE_KEY=$STRIPE_KEY_VALUE" >> "$GITHUB_ENV"
-          echo "COGNITO_REDIRECT_URI=$COGNITO_REDIRECT_URI_VALUE" >> "$GITHUB_ENV"
-          echo "COGNITO_LOGOUT_URI=$COGNITO_LOGOUT_URI_VALUE" >> "$GITHUB_ENV"
+
+          # Cognito is only used for staging
+          if [ "${{ github.base_ref }}" == "staging" ]; then
+            COGNITO_AUTHORITY_VALUE="${{ secrets.COGNITO_AUTHORITY }}"
+            COGNITO_CLIENT_ID_VALUE="${{ secrets.COGNITO_CLIENT_ID }}"
+            COGNITO_DOMAIN_VALUE="${{ secrets.COGNITO_DOMAIN }}"
+            COGNITO_REDIRECT_URI_VALUE="${{ secrets.COGNITO_REDIRECT_URI_STAGE }}"
+            COGNITO_LOGOUT_URI_VALUE="${{ secrets.COGNITO_LOGOUT_URI_STAGE }}"
+            echo "::add-mask::$COGNITO_AUTHORITY_VALUE"
+            echo "::add-mask::$COGNITO_CLIENT_ID_VALUE"
+            echo "::add-mask::$COGNITO_DOMAIN_VALUE"
+            echo "::add-mask::$COGNITO_REDIRECT_URI_VALUE"
+            echo "::add-mask::$COGNITO_LOGOUT_URI_VALUE"
+            echo "COGNITO_AUTHORITY=$COGNITO_AUTHORITY_VALUE" >> "$GITHUB_ENV"
+            echo "COGNITO_CLIENT_ID=$COGNITO_CLIENT_ID_VALUE" >> "$GITHUB_ENV"
+            echo "COGNITO_DOMAIN=$COGNITO_DOMAIN_VALUE" >> "$GITHUB_ENV"
+            echo "COGNITO_REDIRECT_URI=$COGNITO_REDIRECT_URI_VALUE" >> "$GITHUB_ENV"
+            echo "COGNITO_LOGOUT_URI=$COGNITO_LOGOUT_URI_VALUE" >> "$GITHUB_ENV"
+          else
+            # Production doesn't use Cognito - set empty values
+            echo "COGNITO_AUTHORITY=" >> "$GITHUB_ENV"
+            echo "COGNITO_CLIENT_ID=" >> "$GITHUB_ENV"
+            echo "COGNITO_DOMAIN=" >> "$GITHUB_ENV"
+            echo "COGNITO_REDIRECT_URI=" >> "$GITHUB_ENV"
+            echo "COGNITO_LOGOUT_URI=" >> "$GITHUB_ENV"
+          fi
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -81,10 +101,10 @@ jobs:
             --build-arg APP_VERSION=${{ env.APP_VERSION }} \
             --build-arg MODE=${{ env.MODE }} \
             --build-arg STRIPE_KEY=${{ env.STRIPE_KEY }} \
-            --build-arg COGNITO_AUTHORITY=${{ secrets.COGNITO_AUTHORITY }} \
-            --build-arg COGNITO_CLIENT_ID=${{ secrets.COGNITO_CLIENT_ID }} \
+            --build-arg COGNITO_AUTHORITY=${{ env.COGNITO_AUTHORITY }} \
+            --build-arg COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }} \
             --build-arg COGNITO_REDIRECT_URI=${{ env.COGNITO_REDIRECT_URI }} \
-            --build-arg COGNITO_DOMAIN=${{ secrets.COGNITO_DOMAIN }} \
+            --build-arg COGNITO_DOMAIN=${{ env.COGNITO_DOMAIN }} \
             --build-arg COGNITO_LOGOUT_URI=${{ env.COGNITO_LOGOUT_URI }}
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
           echo "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" > image.txt
