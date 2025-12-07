@@ -78,6 +78,7 @@ export const CheckoutPage = () => {
 };
 
 export const CheckoutForm = () => {
+  const navigate = useNavigate();
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
@@ -126,14 +127,27 @@ export const CheckoutForm = () => {
         mx: "auto",
         py: 6,
         bgcolor: alpha(t.palette.background.paper, 0.96),
-        padding: "24px",
+        padding: { xs: "16px", sm: "24px" },
+        paddingTop: { xs: "48px", sm: "56px" },
         borderRadius: "15px",
-        marginTop: "48px",
+        marginTop: { xs: "24px", sm: "48px" },
         border: "1px solid",
         borderColor: "divider",
         backdropFilter: "blur(6px)",
+        position: "relative",
       })}
     >
+      <IconButton
+        onClick={() => navigate(-1)}
+        sx={{
+          position: "absolute",
+          right: 8,
+          top: 8,
+        }}
+        aria-label="close"
+      >
+        <CloseIcon />
+      </IconButton>
       <Typography variant="h5" gutterBottom>
         Subscribe — $5/month
       </Typography>
