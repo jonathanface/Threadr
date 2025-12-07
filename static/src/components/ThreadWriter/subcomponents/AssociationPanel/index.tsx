@@ -1,3 +1,10 @@
+import { OverflowNode } from "@lexical/overflow";
+import { CharacterLimitPlugin } from "@lexical/react/LexicalCharacterLimitPlugin";
+import { LexicalComposer } from "@lexical/react/LexicalComposer";
+import { ContentEditable } from "@lexical/react/LexicalContentEditable";
+import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
+import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
+import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import {
   Box,
   CircularProgress,
@@ -7,17 +14,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { Association } from "../../../../types/Associations";
-import styles from "./association-ui.module.css";
-import { PortraitDropper } from "../../../PortraitDropper";
-import { FC, useEffect, useRef, useState } from "react";
-import { useSelections } from "../../../../hooks/useSelections";
-import { LexicalComposer } from "@lexical/react/LexicalComposer";
-import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
-import { ContentEditable } from "@lexical/react/LexicalContentEditable";
-import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
-import { AssociationDecoratorPlugin } from "../../plugins/AssociationDecoratorPlugin";
-import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
+import axios from "axios";
 import {
   $createParagraphNode,
   $createTextNode,
@@ -25,16 +22,19 @@ import {
   EditorState,
   LexicalEditor,
 } from "lexical";
-import { ClickData } from "../../plugins/DocumentClickPlugin";
-import { CharacterLimitPlugin } from "@lexical/react/LexicalCharacterLimitPlugin";
-import { OverflowNode } from "@lexical/overflow";
-import { TextTransformPlugin } from "../../plugins/TextTransformPlugin";
-import { AssociationInlineNode } from "../../customNodes/AssociationInlineNode";
-import { InfoHover } from "../../../InfoHover";
+import { FC, useEffect, useRef, useState } from "react";
 import { api } from "../../../../api";
-import axios from "axios";
-import { AlertToastType } from "../../../../types/AlertToasts";
+import { useSelections } from "../../../../hooks/useSelections";
 import { useToaster } from "../../../../hooks/useToaster";
+import { AlertToastType } from "../../../../types/AlertToasts";
+import { Association } from "../../../../types/Associations";
+import { InfoHover } from "../../../InfoHover";
+import { PortraitDropper } from "../../../PortraitDropper";
+import { AssociationInlineNode } from "../../customNodes/AssociationInlineNode";
+import { AssociationDecoratorPlugin } from "../../plugins/AssociationDecoratorPlugin";
+import { ClickData } from "../../plugins/DocumentClickPlugin";
+import { TextTransformPlugin } from "../../plugins/TextTransformPlugin";
+import styles from "./association-ui.module.css";
 
 interface AssociationProps {
   onEditCallback: (association: Association) => void;
@@ -88,7 +88,7 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
   const [isNameActive, setIsNameActive] = useState(false);
   const [aliasesError, setAliasesError] = useState("");
   const [selectedAssociationID, setSelectedAssociationID] = useState(
-    props.selectedAssociationID,
+    props.selectedAssociationID
   );
   const { story, chapter } = useSelections();
   const { setAlertState } = useToaster();
@@ -138,11 +138,11 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
         const { data: serverAssociation } = await api.get<Association>(
           `/stories/${story.story_id}/associations/${
             selectedAssociationID ?? props.selectedAssociationID
-          }`,
+          }`
         );
 
         initialAssociation.current = JSON.parse(
-          JSON.stringify(serverAssociation),
+          JSON.stringify(serverAssociation)
         );
 
         setSelectedAssociation(serverAssociation);
@@ -155,7 +155,7 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
       } catch (error) {
         if (axios.isAxiosError(error)) {
           console.error(
-            `error fetching association details: ${error.response?.status} ${error.message}`,
+            `error fetching association details: ${error.response?.status} ${error.message}`
           );
         } else {
           console.error("unexpected error", error);
@@ -229,7 +229,12 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
         }, 0);
       }
     }
-  }, [selectedAssociation, descriptionEditorRef, isInitialLoad, props.isAssociationPanelOpen]);
+  }, [
+    selectedAssociation,
+    descriptionEditorRef,
+    isInitialLoad,
+    props.isAssociationPanelOpen,
+  ]);
 
   useEffect(() => {
     clearData();
@@ -337,7 +342,7 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
               headers: {
                 "Content-Type": "multipart/form-data",
               },
-            },
+            }
           );
 
           const updatedAssociation = {
@@ -358,10 +363,12 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
           let errorMessage = "Failed to upload image. Please try again.";
           if (axios.isAxiosError(error)) {
             if (error.response?.status === 400) {
-              errorMessage = error.response?.data?.error || "File does not meet requirements (check size and format).";
+              errorMessage =
+                error.response?.data?.error ||
+                "File does not meet requirements (check size and format).";
             }
             console.error(
-              `Upload failed: ${error.response?.status} ${error.message}`,
+              `Upload failed: ${error.response?.status} ${error.message}`
             );
           } else {
             console.error(error);
@@ -391,7 +398,7 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
         disableRestoreFocus: true,
         BackdropProps: {
           sx: {
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
           },
         },
       }}

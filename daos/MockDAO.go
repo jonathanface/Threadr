@@ -54,6 +54,7 @@ type MockDAO struct {
 	MockDeleteSeries                            func(email string, series models.Series) error
 	MockGetChapterTableStatus                   func(storyID, chapterID string) (bool, error)
 	MockGetChapterByID                          func(chapterID string) (*models.Chapter, error)
+	MockWasStoryDeleted                         func(email, storyID string) (bool, error)
 }
 
 var _ DaoInterface = (*MockDAO)(nil)
@@ -420,6 +421,13 @@ func (m *MockDAO) GetChapterByID(ctx context.Context, chapterID string) (*models
 		return m.MockGetChapterByID(chapterID)
 	}
 	return m.DAO.GetChapterByID(ctx, chapterID)
+}
+
+func (m *MockDAO) WasStoryDeleted(ctx context.Context, email, storyID string) (bool, error) {
+	if m.MockWasStoryDeleted != nil {
+		return m.MockWasStoryDeleted(email, storyID)
+	}
+	return m.DAO.WasStoryDeleted(ctx, email, storyID)
 }
 
 func NewMockDAO() *MockDAO {

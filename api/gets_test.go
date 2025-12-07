@@ -12,6 +12,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
 )
 
@@ -474,6 +476,165 @@ func TestStoryBlocksEndPoint_MissingStoryID(t *testing.T) {
 
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("Expected status 400, got %d", rr.Code)
+	}
+}
+
+func TestStoryBlocksEndPoint_NoDAO(t *testing.T) {
+	req := createTestRequestWithSession("GET", "/story/story123/blocks?chapter=chapter1", nil)
+	req = mux.SetURLVars(req, map[string]string{"storyID": "story123"})
+	// No DAO in context
+
+	rr := httptest.NewRecorder()
+	StoryBlocksEndPoint(rr, req)
+
+	if rr.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status 500, got %d", rr.Code)
+	}
+}
+
+func TestStoryBlocksEndPoint_WasStoryDeletedError(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+	mockDAO.MockWasStoryDeleted = func(email, storyID string) (bool, error) {
+		return false, errors.New("database error")
+	}
+
+	req := createTestRequestWithSession("GET", "/story/story123/blocks?chapter=chapter1", nil)
+	req = mux.SetURLVars(req, map[string]string{"storyID": "story123"})
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
+
+	rr := httptest.NewRecorder()
+	StoryBlocksEndPoint(rr, req)
+
+	if rr.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status 500, got %d", rr.Code)
+	}
+}
+
+func TestStoryBlocksEndPoint_StoryWasDeleted(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+	mockDAO.MockWasStoryDeleted = func(email, storyID string) (bool, error) {
+		return true, nil
+	}
+
+	req := createTestRequestWithSession("GET", "/story/story123/blocks?chapter=chapter1", nil)
+	req = mux.SetURLVars(req, map[string]string{"storyID": "story123"})
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
+
+	rr := httptest.NewRecorder()
+	StoryBlocksEndPoint(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("Expected status 404, got %d", rr.Code)
+	}
+}
+
+func TestStoryBlocksEndPoint_GetChapterParagraphsError(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+	mockDAO.MockWasStoryDeleted = func(email, storyID string) (bool, error) {
+		return false, nil
+	}
+	mockDAO.MockGetChapterParagraphs = func(storyID, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error) {
+		return nil, errors.New("database error")
+	}
+
+	req := createTestRequestWithSession("GET", "/story/story123/blocks?chapter=chapter1", nil)
+	req = mux.SetURLVars(req, map[string]string{"storyID": "story123"})
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
+
+	rr := httptest.NewRecorder()
+	StoryBlocksEndPoint(rr, req)
+
+	if rr.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status 500, got %d", rr.Code)
+	}
+}
+
+func TestStoryBlocksEndPoint_GetChapterParagraphsAWSError(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+	mockDAO.MockWasStoryDeleted = func(email, storyID string) (bool, error) {
+		return false, nil
+	}
+	mockDAO.MockGetChapterParagraphs = func(storyID, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error) {
+		return nil, &smithy.OperationError{
+			ServiceID:     "DynamoDB",
+			OperationName: "Query",
+			Err:           daos.ErrMockDAO,
+		}
+	}
+
+	req := createTestRequestWithSession("GET", "/story/story123/blocks?chapter=chapter1", nil)
+	req = mux.SetURLVars(req, map[string]string{"storyID": "story123"})
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
+
+	rr := httptest.NewRecorder()
+	StoryBlocksEndPoint(rr, req)
+
+	if rr.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status 500, got %d", rr.Code)
+	}
+}
+
+func TestStoryBlocksEndPoint_NoBlocksFound(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+	mockDAO.MockWasStoryDeleted = func(email, storyID string) (bool, error) {
+		return false, nil
+	}
+	mockDAO.MockGetChapterParagraphs = func(storyID, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error) {
+		return &models.BlocksData{
+			Items: []map[string]types.AttributeValue{},
+		}, nil
+	}
+
+	req := createTestRequestWithSession("GET", "/story/story123/blocks?chapter=chapter1", nil)
+	req = mux.SetURLVars(req, map[string]string{"storyID": "story123"})
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
+
+	rr := httptest.NewRecorder()
+	StoryBlocksEndPoint(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("Expected status 404, got %d", rr.Code)
+	}
+}
+
+func TestStoryBlocksEndPoint_Success(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+	mockDAO.MockWasStoryDeleted = func(email, storyID string) (bool, error) {
+		return false, nil
+	}
+	mockDAO.MockGetChapterParagraphs = func(storyID, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error) {
+		return &models.BlocksData{
+			Items: []map[string]types.AttributeValue{
+				{
+					"story_id":   &types.AttributeValueMemberS{Value: "story123"},
+					"chapter_id": &types.AttributeValueMemberS{Value: "chapter1"},
+					"block_id":   &types.AttributeValueMemberS{Value: "block1"},
+					"content":    &types.AttributeValueMemberS{Value: "Test content"},
+				},
+				{
+					"story_id":   &types.AttributeValueMemberS{Value: "story123"},
+					"chapter_id": &types.AttributeValueMemberS{Value: "chapter1"},
+					"block_id":   &types.AttributeValueMemberS{Value: "block2"},
+					"content":    &types.AttributeValueMemberS{Value: "More content"},
+				},
+			},
+		}, nil
+	}
+
+	req := createTestRequestWithSession("GET", "/story/story123/blocks?chapter=chapter1", nil)
+	req = mux.SetURLVars(req, map[string]string{"storyID": "story123"})
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
+
+	rr := httptest.NewRecorder()
+	StoryBlocksEndPoint(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d. Body: %s", rr.Code, rr.Body.String())
+	}
+
+	// Verify response body is not empty
+	if rr.Body.Len() == 0 {
+		t.Error("Expected non-empty response body")
 	}
 }
 
