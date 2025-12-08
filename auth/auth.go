@@ -9,6 +9,7 @@ import (
 	"RichDocter/sessions"
 	"database/sql"
 	"encoding/base64"
+	"encoding/gob"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -25,6 +26,11 @@ import (
 const (
 	oneDay = 24 * time.Hour
 )
+
+func init() {
+	// Register types for gob encoding in sessions
+	gob.Register(models.UserInfo{})
+}
 
 func New(options OauthOptions) {
 	gothic.Store = sessions.Store
