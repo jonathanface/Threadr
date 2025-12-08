@@ -147,19 +147,29 @@ func billingMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 			authHeader := r.Header.Get("Authorization")
 			if strings.HasPrefix(authHeader, "Bearer ") {
 				sessionToken := strings.TrimPrefix(authHeader, "Bearer ")
-				sessionID, ok := sessions.GetSessionIDByToken(sessionToken)
+
+				// Verify token exists in our token map
+				_, ok := sessions.GetSessionIDByToken(sessionToken)
 				if !ok {
 					api.RespondWithError(w, http.StatusUnauthorized, "invalid session token")
 					return
 				}
 
-				// Load session by ID
+				// Load user_data session
 				userSession, err := sessions.Get(r, "user_data")
-				if err != nil || userSession.ID != sessionID {
+				if err != nil || userSession.IsNew {
 					api.RespondWithError(w, http.StatusUnauthorized, "session not found")
 					return
 				}
 
+				// Verify the token in the session matches
+				storedToken, ok := userSession.Values["mobile_token"].(string)
+				if !ok || storedToken != sessionToken {
+					api.RespondWithError(w, http.StatusUnauthorized, "session token mismatch")
+					return
+				}
+
+				// Get user data from session
 				userVal, ok := userSession.Values["user"]
 				if !ok {
 					api.RespondWithError(w, http.StatusUnauthorized, "user data not found in session")
@@ -201,19 +211,29 @@ func strictMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 			authHeader := r.Header.Get("Authorization")
 			if strings.HasPrefix(authHeader, "Bearer ") {
 				sessionToken := strings.TrimPrefix(authHeader, "Bearer ")
-				sessionID, ok := sessions.GetSessionIDByToken(sessionToken)
+
+				// Verify token exists in our token map
+				_, ok := sessions.GetSessionIDByToken(sessionToken)
 				if !ok {
 					api.RespondWithError(w, http.StatusUnauthorized, "invalid session token")
 					return
 				}
 
-				// Load session by ID
+				// Load user_data session
 				userSession, err := sessions.Get(r, "user_data")
-				if err != nil || userSession.ID != sessionID {
+				if err != nil || userSession.IsNew {
 					api.RespondWithError(w, http.StatusUnauthorized, "session not found")
 					return
 				}
 
+				// Verify the token in the session matches
+				storedToken, ok := userSession.Values["mobile_token"].(string)
+				if !ok || storedToken != sessionToken {
+					api.RespondWithError(w, http.StatusUnauthorized, "session token mismatch")
+					return
+				}
+
+				// Get user data from session
 				userVal, ok := userSession.Values["user"]
 				if !ok {
 					api.RespondWithError(w, http.StatusUnauthorized, "user data not found in session")
