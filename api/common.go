@@ -15,6 +15,7 @@ import (
 	"image/png"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/smithy-go"
@@ -31,6 +32,25 @@ const (
 )
 
 func getUserEmail(r *http.Request) (string, error) {
+	// Try mobile token-based auth first
+	authHeader := r.Header.Get("Authorization")
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		sessionToken := strings.TrimPrefix(authHeader, "Bearer ")
+
+		// Get user data from token map
+		userVal, ok := sessions.GetUserByToken(sessionToken)
+		if !ok {
+			return "", errors.New("invalid session token")
+		}
+
+		user, ok := userVal.(models.UserInfo)
+		if !ok {
+			return "", errors.New("invalid user data format")
+		}
+		return user.Email, nil
+	}
+
+	// Fall back to cookie-based auth for web
 	token, err := sessions.Get(r, "token")
 	if err != nil || token.IsNew {
 		return "", errors.New("unable to retrieve token")
