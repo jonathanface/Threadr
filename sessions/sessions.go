@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -16,8 +17,13 @@ import (
 
 var Store *gsessions.CookieStore
 
-// tokenMap stores mobile session tokens -> session IDs
+// tokenMap stores mobile session tokens -> user data
 var tokenMap sync.Map
+
+// tokenData holds user information for mobile sessions
+type tokenData struct {
+	UserInfo interface{}
+}
 
 // Initialize validates and initializes the session store. Must be called at startup.
 func Initialize() error {
@@ -89,19 +95,44 @@ func GenerateSessionToken() string {
 	return hex.EncodeToString(b)
 }
 
-// StoreTokenMapping stores a mobile token -> session ID mapping
-func StoreTokenMapping(token, sessionID string) {
-	tokenMap.Store(token, sessionID)
+// StoreTokenMapping stores a mobile token -> user data mapping
+func StoreTokenMapping(token string, userInfo interface{}) {
+	tokenMap.Store(token, &tokenData{UserInfo: userInfo})
+	tokenPreview := token
+	if len(tokenPreview) > 12 {
+		tokenPreview = tokenPreview[:12] + "..."
+	}
+	// Try to extract email for logging
+	email := "unknown"
+	if ui, ok := userInfo.(interface{ GetEmail() string }); ok {
+		email = ui.GetEmail()
+	} else if m, ok := userInfo.(map[string]interface{}); ok {
+		if e, ok := m["Email"].(string); ok {
+			email = e
+		}
+	}
+	log.Printf("[sessions] Stored token mapping: %s for user: %s", tokenPreview, email)
 }
 
-// GetSessionIDByToken retrieves the session ID for a mobile token
-func GetSessionIDByToken(token string) (string, bool) {
+// GetUserByToken retrieves the user data for a mobile token
+func GetUserByToken(token string) (interface{}, bool) {
+	tokenPreview := token
+	if len(tokenPreview) > 12 {
+		tokenPreview = tokenPreview[:12] + "..."
+	}
+
 	val, ok := tokenMap.Load(token)
 	if !ok {
-		return "", false
+		log.Printf("[sessions] Token not found in map: %s", tokenPreview)
+		return nil, false
 	}
-	sessionID, ok := val.(string)
-	return sessionID, ok
+	data, ok := val.(*tokenData)
+	if !ok {
+		log.Printf("[sessions] Invalid data format for token: %s", tokenPreview)
+		return nil, false
+	}
+	log.Printf("[sessions] Token found in map: %s", tokenPreview)
+	return data.UserInfo, true
 }
 
 // DeleteTokenMapping removes a token mapping (for logout)
