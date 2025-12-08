@@ -2,16 +2,22 @@
 package sessions
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	gsessions "github.com/gorilla/sessions"
 )
 
 var Store *gsessions.CookieStore
+
+// tokenMap stores mobile session tokens -> session IDs
+var tokenMap sync.Map
 
 // Initialize validates and initializes the session store. Must be called at startup.
 func Initialize() error {
@@ -72,4 +78,33 @@ func Delete(w http.ResponseWriter, r *http.Request, key string) error {
 	}
 
 	return nil
+}
+
+// GenerateSessionToken creates a cryptographically random session token
+func GenerateSessionToken() string {
+	b := make([]byte, 32) // 256 bits
+	if _, err := rand.Read(b); err != nil {
+		panic(err) // Should never happen
+	}
+	return hex.EncodeToString(b)
+}
+
+// StoreTokenMapping stores a mobile token -> session ID mapping
+func StoreTokenMapping(token, sessionID string) {
+	tokenMap.Store(token, sessionID)
+}
+
+// GetSessionIDByToken retrieves the session ID for a mobile token
+func GetSessionIDByToken(token string) (string, bool) {
+	val, ok := tokenMap.Load(token)
+	if !ok {
+		return "", false
+	}
+	sessionID, ok := val.(string)
+	return sessionID, ok
+}
+
+// DeleteTokenMapping removes a token mapping (for logout)
+func DeleteTokenMapping(token string) {
+	tokenMap.Delete(token)
 }
