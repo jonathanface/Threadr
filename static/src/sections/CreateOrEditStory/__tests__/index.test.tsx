@@ -46,19 +46,21 @@ vi.mock('../../../hooks/useToaster', () => ({
 }));
 
 // Mock custom hooks from ./hooks
+const mockUseStoryForm = vi.fn(() => ({
+  title: '',
+  description: '',
+  selectedSeries: null,
+  validationErrors: [],
+  isDirty: false,
+  handleTitleChange: vi.fn(),
+  handleDescriptionChange: vi.fn(),
+  handleSeriesChange: vi.fn(),
+  validate: vi.fn(() => true),
+  setFormData: vi.fn(),
+}));
+
 vi.mock('../hooks/useStoryForm', () => ({
-  useStoryForm: () => ({
-    title: '',
-    description: '',
-    selectedSeries: null,
-    validationErrors: [],
-    isDirty: false,
-    handleTitleChange: vi.fn(),
-    handleDescriptionChange: vi.fn(),
-    handleSeriesChange: vi.fn(),
-    validate: vi.fn(() => true),
-    setFormData: vi.fn(),
-  }),
+  useStoryForm: () => mockUseStoryForm(),
 }));
 
 vi.mock('../hooks/useStoryImage', () => ({
@@ -285,10 +287,10 @@ describe('CreateOrEditStory', () => {
     it('should show confirm dialog when closing with unsaved changes', async () => {
       const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
 
-      // Mock isDirty as true
-      vi.mocked(await import('../hooks/useStoryForm')).useStoryForm = vi.fn(() => ({
-        title: 'Test',
-        description: 'Test',
+      // Mock isDirty as true to simulate unsaved changes
+      mockUseStoryForm.mockReturnValueOnce({
+        title: '',
+        description: '',
         selectedSeries: null,
         validationErrors: [],
         isDirty: true,
@@ -297,7 +299,7 @@ describe('CreateOrEditStory', () => {
         handleSeriesChange: vi.fn(),
         validate: vi.fn(() => true),
         setFormData: vi.fn(),
-      })) as any;
+      });
 
       const user = userEvent.setup();
       render(<CreateOrEditStory />);
@@ -316,9 +318,10 @@ describe('CreateOrEditStory', () => {
     it('should not navigate if user cancels confirm dialog', async () => {
       const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
 
-      vi.mocked(await import('../hooks/useStoryForm')).useStoryForm = vi.fn(() => ({
-        title: 'Test',
-        description: 'Test',
+      // Mock isDirty as true to simulate unsaved changes
+      mockUseStoryForm.mockReturnValueOnce({
+        title: '',
+        description: '',
         selectedSeries: null,
         validationErrors: [],
         isDirty: true,
@@ -327,7 +330,7 @@ describe('CreateOrEditStory', () => {
         handleSeriesChange: vi.fn(),
         validate: vi.fn(() => true),
         setFormData: vi.fn(),
-      })) as any;
+      });
 
       const user = userEvent.setup();
       render(<CreateOrEditStory />);

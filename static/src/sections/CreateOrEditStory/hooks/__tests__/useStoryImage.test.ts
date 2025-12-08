@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useStoryImage } from '../useStoryImage';
-import * as useLoaderModule from '../../../../hooks/useLoader';
 
 // Mock useLoader
 const mockShowLoader = vi.fn();
@@ -25,12 +24,12 @@ class MockFileReader {
   onerror: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null = null;
   onabort: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null = null;
 
-  readAsArrayBuffer(file: Blob) {
+  readAsArrayBuffer(_file: Blob) {
     // Simulate async read
     setTimeout(() => {
       this.result = new ArrayBuffer(8);
       if (this.onload) {
-        this.onload({} as ProgressEvent<FileReader>);
+        this.onload.call(this as any, {} as ProgressEvent<FileReader>);
       }
     }, 0);
   }
@@ -233,9 +232,8 @@ describe('useStoryImage', () => {
 
       const { result } = renderHook(() => useStoryImage());
 
-      let url1 = '';
       await act(async () => {
-        url1 = await result.current.getRandomImageURL();
+        await result.current.getRandomImageURL();
       });
 
       let url2 = '';

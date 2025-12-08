@@ -15,11 +15,8 @@ const mockStory1: Story = {
   title: 'First Story',
   description: 'Description of first story',
   image_url: 'https://example.com/story1.jpg',
-  user_id: 'user-123',
+  chapters: [],
   inactive: false,
-  last_updated: new Date().toISOString(),
-  created: new Date().toISOString(),
-  words_per_page: 250,
 };
 
 const mockStory2: Story = {
@@ -27,11 +24,8 @@ const mockStory2: Story = {
   title: 'Second Story',
   description: 'Description of second story',
   image_url: 'https://example.com/story2.jpg',
-  user_id: 'user-123',
+  chapters: [],
   inactive: false,
-  last_updated: new Date().toISOString(),
-  created: new Date().toISOString(),
-  words_per_page: 250,
 };
 
 describe('AddStoryModal', () => {
@@ -360,7 +354,7 @@ describe('AddStoryModal', () => {
 
   describe('Edge Cases', () => {
     it('should handle story without image_url', async () => {
-      const storyWithoutImage = { ...mockStory1, image_url: undefined };
+      const storyWithoutImage = { ...mockStory1, image_url: '' };
 
       render(
         <AddStoryModal

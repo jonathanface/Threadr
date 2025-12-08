@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useLoader } from '../useLoader';
-import { LoaderContext, LoaderContextType } from '../../contexts/loader';
+import { LoaderContext } from '../../contexts/loader';
 import { ReactNode } from 'react';
 
 describe('useLoader', () => {

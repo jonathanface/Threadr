@@ -6,11 +6,8 @@ import type { UserDetails } from '../../types/User';
 import { ReactNode } from 'react';
 
 const mockUserDetails: UserDetails = {
-  user_id: 'user-123',
   email: 'test@example.com',
-  username: 'testuser',
-  created: '2024-01-01T00:00:00Z',
-  last_updated: '2024-01-01T00:00:00Z',
+  subscriber: false,
 };
 
 describe('useFetchUserData', () => {
@@ -93,9 +90,8 @@ describe('useFetchUserData', () => {
 
       const { result } = renderHook(() => useFetchUserData(), { wrapper });
 
-      expect(result.current.userDetails?.user_id).toBe('user-123');
       expect(result.current.userDetails?.email).toBe('test@example.com');
-      expect(result.current.userDetails?.username).toBe('testuser');
+      expect(result.current.userDetails?.subscriber).toBe(false);
     });
   });
 
@@ -266,11 +262,8 @@ describe('useFetchUserData', () => {
   describe('Edge Cases', () => {
     it('should handle user details with minimal data', () => {
       const minimalUserDetails: UserDetails = {
-        user_id: 'user-123',
         email: 'test@example.com',
-        username: 'test',
-        created: '2024-01-01T00:00:00Z',
-        last_updated: '2024-01-01T00:00:00Z',
+        subscriber: false,
       };
 
       const wrapper = ({ children }: { children: ReactNode }) => (

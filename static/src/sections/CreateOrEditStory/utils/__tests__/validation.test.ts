@@ -5,7 +5,6 @@ import {
   validateStoryForm,
   getRemainingChars,
   getCharCountColor,
-  ValidationError,
 } from '../validation';
 
 describe('validation', () => {

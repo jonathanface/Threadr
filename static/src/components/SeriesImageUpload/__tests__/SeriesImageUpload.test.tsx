@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { SeriesImageUpload } from '../index';
 import type { Story } from '../../../types/Story';
@@ -51,11 +51,8 @@ const mockStory1: Story = {
   title: 'First Story',
   description: 'Description',
   image_url: 'https://example.com/story1.jpg',
-  user_id: 'user-123',
+  chapters: [],
   inactive: false,
-  last_updated: new Date().toISOString(),
-  created: new Date().toISOString(),
-  words_per_page: 250,
 };
 
 const mockStory2: Story = {
@@ -211,7 +208,7 @@ describe('SeriesImageUpload', () => {
     });
 
     it('should render dropzone in composite mode', () => {
-      const { container } = render(
+      render(
         <SeriesImageUpload
           imageURL="/img/icons/story_series_icon.jpg"
           name="Test Series"

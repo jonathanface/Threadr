@@ -53,9 +53,11 @@ vi.mock('../../../components/SeriesBox', () => ({
 
 describe('StoryAndSeriesListing', () => {
   const mockUserData = {
+    userDetails: null,
     isLoggedIn: true,
-    userId: 'user-123',
-    username: 'testuser',
+    userLoading: false,
+    setIsLoggedIn: vi.fn(),
+    setUserDetails: vi.fn(),
   };
 
   const mockStories = [

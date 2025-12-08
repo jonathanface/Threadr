@@ -159,10 +159,10 @@ export const SubscribePage = () => {
               size="large"
               variant="contained"
               color="primary"
-              fullWidth={{ xs: true, sm: false }}
               endIcon={<ArrowForwardIosIcon fontSize="small" />}
               onClick={() => nav("/checkout")}
               sx={(t) => ({
+                width: { xs: '100%', sm: 'auto' },
                 py: { xs: 1.5, sm: 1 },
                 fontSize: { xs: "0.95rem", sm: "1rem" },
                 // Ensure good contrast in dark mode

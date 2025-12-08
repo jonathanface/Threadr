@@ -14,11 +14,10 @@ vi.mock('../useWorksList');
 
 const mockChapter: Chapter = {
   id: 'chapter-1',
-  chapter_title: 'Chapter 1',
-  chapter_number: 1,
-  word_count: 1000,
-  created: '2024-01-01',
-  last_updated: '2024-01-01',
+  story_id: 'story-1',
+  place: 1,
+  title: 'Chapter 1',
+  tableNotReady: false,
 };
 
 const mockStory: Story = {
@@ -27,11 +26,7 @@ const mockStory: Story = {
   description: 'Description',
   image_url: 'https://example.com/image.jpg',
   chapters: [mockChapter],
-  user_id: 'user-123',
   inactive: false,
-  last_updated: '2024-01-01',
-  created: '2024-01-01',
-  words_per_page: 250,
 };
 
 const mockSeries: Series = {
@@ -44,8 +39,12 @@ const mockSeries: Series = {
 
 const mockAssociation: SimplifiedAssociation = {
   association_id: 'assoc-1',
-  name: 'Test Association',
-  type: 'character',
+  association_name: 'Test Association',
+  association_type: 'character',
+  short_description: '',
+  portrait: '',
+  aliases: '',
+  case_sensitive: false,
 };
 
 describe('useSelections', () => {
@@ -546,8 +545,7 @@ describe('useSelections', () => {
       const mockSetStory = vi.fn();
       const updatedChapter: Chapter = {
         ...mockChapter,
-        chapter_title: 'Updated Chapter 1',
-        word_count: 2000,
+        title: 'Updated Chapter 1',
       };
 
       const wrapper = ({ children }: { children: ReactNode }) => (
@@ -586,11 +584,10 @@ describe('useSelections', () => {
       const mockSetStory = vi.fn();
       const differentChapter: Chapter = {
         id: 'chapter-999',
-        chapter_title: 'Different Chapter',
-        chapter_number: 2,
-        word_count: 1000,
-        created: '2024-01-01',
-        last_updated: '2024-01-01',
+        story_id: 'story-1',
+        place: 2,
+        title: 'Different Chapter',
+        tableNotReady: false,
       };
 
       const wrapper = ({ children }: { children: ReactNode }) => (

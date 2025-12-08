@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { InfoHover } from '../index';
 
@@ -48,8 +47,6 @@ describe('InfoHover', () => {
     it('should hide tooltip when not hovering', async () => {
       const tooltipText = 'This is helpful information';
       render(<InfoHover text={tooltipText} />);
-
-      const button = screen.getByRole('button');
 
       // Initially tooltip should not be visible
       expect(screen.queryByText(tooltipText)).not.toBeInTheDocument();
@@ -218,7 +215,7 @@ describe('InfoHover', () => {
     });
 
     it('should set icon fontSize to inherit', () => {
-      const { container } = render(<InfoHover text="Font size test" />);
+      render(<InfoHover text="Font size test" />);
 
       const icon = screen.getByTestId('InfoOutlinedIcon');
       expect(icon).toBeInTheDocument();

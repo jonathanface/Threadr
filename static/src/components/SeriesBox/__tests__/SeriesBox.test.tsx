@@ -97,35 +97,28 @@ const mockStory1: Story = {
   story_id: 'story-1',
   title: 'Story One',
   description: 'First story',
-  user_id: 'user-123',
+  image_url: '',
+  chapters: [],
   inactive: false,
-  last_updated: new Date().toISOString(),
-  created: new Date().toISOString(),
   series_id: 'series-123',
-  words_per_page: 250,
 };
 
 const mockStory2: Story = {
   story_id: 'story-2',
   title: 'Story Two',
   description: 'Second story',
-  user_id: 'user-123',
+  image_url: '',
+  chapters: [],
   inactive: false,
-  last_updated: new Date().toISOString(),
-  created: new Date().toISOString(),
   series_id: 'series-123',
-  words_per_page: 250,
 };
 
 const mockSeries: Series = {
   series_id: 'series-123',
   series_title: 'Test Series',
   series_description: 'A test series',
-  user_id: 'user-123',
   image_url: 'https://example.com/series.jpg',
   stories: [mockStory1, mockStory2],
-  created: new Date().toISOString(),
-  last_updated: new Date().toISOString(),
 };
 
 describe('SeriesBox', () => {

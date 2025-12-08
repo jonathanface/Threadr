@@ -12,11 +12,7 @@ const mockStory1: Story = {
   description: 'Description 1',
   image_url: 'https://example.com/story1.jpg',
   chapters: [],
-  user_id: 'user-123',
   inactive: false,
-  last_updated: '2024-01-01',
-  created: '2024-01-01',
-  words_per_page: 250,
 };
 
 const mockStory2: Story = {
@@ -25,11 +21,7 @@ const mockStory2: Story = {
   description: 'Description 2',
   image_url: 'https://example.com/story2.jpg',
   chapters: [],
-  user_id: 'user-123',
   inactive: false,
-  last_updated: '2024-01-01',
-  created: '2024-01-01',
-  words_per_page: 250,
 };
 
 const mockSeries1: Series = {
