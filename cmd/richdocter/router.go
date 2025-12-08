@@ -46,6 +46,7 @@ func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.OauthOptio
 	// DEV ONLY!!
 	//rtr.HandleFunc("/auth/logout", auth.DeleteToken).Methods("GET", "OPTIONS")
 	authRtr.HandleFunc("/logout", auth.Logout).Methods("DELETE", "OPTIONS")
+	authRtr.HandleFunc("/session", auth.MobileSessionHandler()).Methods("POST", "OPTIONS")
 	authRtr.HandleFunc("/{provider}", auth.LoginHandler(authOptions)).Methods("GET", "PUT", "OPTIONS")
 	authRtr.HandleFunc("/{provider}/callback", auth.CallbackHandler(authOptions)).Methods("POST", "GET", "OPTIONS")
 
