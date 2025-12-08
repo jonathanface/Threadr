@@ -331,8 +331,8 @@ func MobileSessionHandler() http.HandlerFunc {
 			return
 		}
 
-		// Also store the token -> session ID mapping for header-based auth
-		sessions.StoreTokenMapping(sessionToken, sess.ID)
+		// Also store the token -> user data mapping for header-based auth
+		sessions.StoreTokenMapping(sessionToken, userData)
 
 		logger.Info("Mobile session created", "email", userData.Email, "token", sessionToken[:8]+"...")
 
