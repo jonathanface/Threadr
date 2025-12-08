@@ -279,7 +279,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	http.Redirect(w, r, next, http.StatusTemporaryRedirect)
 }
 
-// MobileSessionHandler exchanges a mobile token for a session cookie
+// MobileSessionHandler exchanges a mobile token for a session token
 func MobileSessionHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Get token from request body
@@ -309,7 +309,7 @@ func MobileSessionHandler() http.HandlerFunc {
 			return
 		}
 
-		// Create a session and store the user data
+		// Create a session and store the user data with a session token
 		sess, err := sessions.Get(r, "user_data")
 		if err != nil {
 			logger.Error("Failed to get user_data session", "error", err)
@@ -317,8 +317,12 @@ func MobileSessionHandler() http.HandlerFunc {
 			return
 		}
 
-		// Store user data in session
+		// Generate a unique session token for mobile
+		sessionToken := sessions.GenerateSessionToken()
+
+		// Store user data in session with the token
 		sess.Values["user"] = userData
+		sess.Values["mobile_token"] = sessionToken
 		sess.Options = sessions.OptionsFor(r)
 
 		if err := sess.Save(r, w); err != nil {
@@ -327,13 +331,17 @@ func MobileSessionHandler() http.HandlerFunc {
 			return
 		}
 
-		logger.Info("Mobile session created", "email", userData.Email)
+		// Also store the token -> session ID mapping for header-based auth
+		sessions.StoreTokenMapping(sessionToken, sess.ID)
 
-		// Return success
+		logger.Info("Mobile session created", "email", userData.Email, "token", sessionToken[:8]+"...")
+
+		// Return success with session token
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": true,
-			"user":    userData,
+			"success":      true,
+			"user":         userData,
+			"sessionToken": sessionToken,
 		})
 	}
 }

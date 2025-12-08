@@ -141,16 +141,49 @@ func looseMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 func billingMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			token, err := sessions.Get(r, "token")
-			if err != nil || token.IsNew {
-				api.RespondWithError(w, http.StatusUnauthorized, "cannot find token")
-				return
-			}
 			var user models.UserInfo
-			if err = json.Unmarshal(token.Values["token_data"].([]byte), &user); err != nil {
-				api.RespondWithError(w, http.StatusBadRequest, err.Error())
-				return
+
+			// Try mobile token-based auth first
+			authHeader := r.Header.Get("Authorization")
+			if strings.HasPrefix(authHeader, "Bearer ") {
+				sessionToken := strings.TrimPrefix(authHeader, "Bearer ")
+				sessionID, ok := sessions.GetSessionIDByToken(sessionToken)
+				if !ok {
+					api.RespondWithError(w, http.StatusUnauthorized, "invalid session token")
+					return
+				}
+
+				// Load session by ID
+				userSession, err := sessions.Get(r, "user_data")
+				if err != nil || userSession.ID != sessionID {
+					api.RespondWithError(w, http.StatusUnauthorized, "session not found")
+					return
+				}
+
+				userVal, ok := userSession.Values["user"]
+				if !ok {
+					api.RespondWithError(w, http.StatusUnauthorized, "user data not found in session")
+					return
+				}
+
+				user, ok = userVal.(models.UserInfo)
+				if !ok {
+					api.RespondWithError(w, http.StatusInternalServerError, "invalid user data format")
+					return
+				}
+			} else {
+				// Fall back to cookie-based auth for web
+				token, err := sessions.Get(r, "token")
+				if err != nil || token.IsNew {
+					api.RespondWithError(w, http.StatusUnauthorized, "cannot find token")
+					return
+				}
+				if err = json.Unmarshal(token.Values["token_data"].([]byte), &user); err != nil {
+					api.RespondWithError(w, http.StatusBadRequest, err.Error())
+					return
+				}
 			}
+
 			ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
 			defer cancel()
 			ctx = context.WithValue(ctx, ctxkey.DAO, d)
@@ -162,16 +195,48 @@ func billingMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 func strictMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			token, err := sessions.Get(r, "token")
-			if err != nil || token.IsNew {
-				api.RespondWithError(w, http.StatusUnauthorized, "cannot find token")
-				return
-			}
-
 			var user models.UserInfo
-			if err = json.Unmarshal(token.Values["token_data"].([]byte), &user); err != nil {
-				api.RespondWithError(w, http.StatusBadRequest, err.Error())
-				return
+
+			// Try mobile token-based auth first
+			authHeader := r.Header.Get("Authorization")
+			if strings.HasPrefix(authHeader, "Bearer ") {
+				sessionToken := strings.TrimPrefix(authHeader, "Bearer ")
+				sessionID, ok := sessions.GetSessionIDByToken(sessionToken)
+				if !ok {
+					api.RespondWithError(w, http.StatusUnauthorized, "invalid session token")
+					return
+				}
+
+				// Load session by ID
+				userSession, err := sessions.Get(r, "user_data")
+				if err != nil || userSession.ID != sessionID {
+					api.RespondWithError(w, http.StatusUnauthorized, "session not found")
+					return
+				}
+
+				userVal, ok := userSession.Values["user"]
+				if !ok {
+					api.RespondWithError(w, http.StatusUnauthorized, "user data not found in session")
+					return
+				}
+
+				user, ok = userVal.(models.UserInfo)
+				if !ok {
+					api.RespondWithError(w, http.StatusInternalServerError, "invalid user data format")
+					return
+				}
+			} else {
+				// Fall back to cookie-based auth for web
+				token, err := sessions.Get(r, "token")
+				if err != nil || token.IsNew {
+					api.RespondWithError(w, http.StatusUnauthorized, "cannot find token")
+					return
+				}
+
+				if err = json.Unmarshal(token.Values["token_data"].([]byte), &user); err != nil {
+					api.RespondWithError(w, http.StatusBadRequest, err.Error())
+					return
+				}
 			}
 
 			ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
