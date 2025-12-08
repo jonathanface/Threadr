@@ -1,11 +1,28 @@
 // src/sections/billing/__tests__/AccountSubscriptionPage.test.tsx
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
+import { MemoryRouter } from "react-router-dom";
 
 // Component under test (adjust path if yours differs)
 import { AccountSubscriptionPage } from "../AccountSubscription";
+
+const mockNavigate = vi.fn();
+vi.mock("react-router-dom", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-router-dom")>();
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
+function renderWithRouter(ui: React.ReactElement) {
+  return render(
+    <MemoryRouter initialEntries={["/account/subscription"]}>{ui}</MemoryRouter>,
+  );
+}
 
 // ---- API mocks ----
 const getMock = vi.fn();
@@ -52,6 +69,7 @@ function createDeferred<T>() {
 beforeEach(() => {
   getMock.mockReset();
   postMock.mockReset();
+  mockNavigate.mockReset();
   restoreLocation();
 });
 
@@ -60,10 +78,10 @@ describe("<AccountSubscriptionPage />", () => {
     const d = createDeferred<{ data: { status: string } }>();
     getMock.mockReturnValueOnce(d.promise);
 
-    render(<AccountSubscriptionPage />);
+    renderWithRouter(<AccountSubscriptionPage />);
 
     expect(screen.getByRole("progressbar")).toBeInTheDocument();
-    const button = screen.getByRole("button");
+    const button = screen.getByRole("button", { name: /join now/i });
     expect(button).toBeDisabled();
 
     // finish the request to avoid leaking pending promises
@@ -76,19 +94,19 @@ describe("<AccountSubscriptionPage />", () => {
   it("renders an error chip when the summary request fails and disables the button", async () => {
     getMock.mockRejectedValueOnce(new Error("boom"));
 
-    render(<AccountSubscriptionPage />);
+    renderWithRouter(<AccountSubscriptionPage />);
 
     await waitFor(() =>
       expect(screen.getByText(/^error$/i)).toBeInTheDocument(),
     );
-    const button = screen.getByRole("button");
+    const button = screen.getByRole("button", { name: /join now/i });
     expect(button).toBeDisabled();
   });
 
   it("shows ACTIVE status and a 'MANAGE BILLING' CTA when status is active", async () => {
     getMock.mockResolvedValueOnce({ data: { status: "active" } });
 
-    render(<AccountSubscriptionPage />);
+    renderWithRouter(<AccountSubscriptionPage />);
 
     await waitFor(() =>
       expect(screen.getByText(/^ACTIVE$/)).toBeInTheDocument(),
@@ -101,7 +119,7 @@ describe("<AccountSubscriptionPage />", () => {
   it("shows NONE status and a 'JOIN NOW' CTA when not subscribed", async () => {
     getMock.mockResolvedValueOnce({ data: { status: "none" } });
 
-    render(<AccountSubscriptionPage />);
+    renderWithRouter(<AccountSubscriptionPage />);
 
     await waitFor(() => expect(screen.getByText(/^NONE$/)).toBeInTheDocument());
     expect(
@@ -117,7 +135,7 @@ describe("<AccountSubscriptionPage />", () => {
     const d = createDeferred<{ data: { url: string } }>();
     postMock.mockReturnValueOnce(d.promise);
 
-    render(<AccountSubscriptionPage />);
+    renderWithRouter(<AccountSubscriptionPage />);
 
     await waitFor(() =>
       expect(screen.getByText(/^ACTIVE$/)).toBeInTheDocument(),
@@ -149,7 +167,7 @@ describe("<AccountSubscriptionPage />", () => {
     const user = userEvent.setup();
     getMock.mockResolvedValueOnce({ data: { status: "none" } });
 
-    render(<AccountSubscriptionPage />);
+    renderWithRouter(<AccountSubscriptionPage />);
 
     await waitFor(() => expect(screen.getByText(/^NONE$/)).toBeInTheDocument());
 
@@ -165,7 +183,7 @@ describe("<AccountSubscriptionPage />", () => {
     getMock.mockResolvedValueOnce({ data: { status: "trialing" } });
     postMock.mockRejectedValueOnce(new Error("nope"));
 
-    render(<AccountSubscriptionPage />);
+    renderWithRouter(<AccountSubscriptionPage />);
 
     await waitFor(() =>
       expect(screen.getByText(/^TRIALING$/)).toBeInTheDocument(),
