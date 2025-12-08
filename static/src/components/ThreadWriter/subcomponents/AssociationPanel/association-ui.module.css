@@ -184,6 +184,45 @@
 
 @media only screen and (max-width: 600px) {
   .associationPanel {
-    width: 100%;
+    width: 100% !important;
+    max-width: 100vw;
+  }
+
+  .associationPanel .contentContainer {
+    width: 100% !important;
+    max-width: 100vw;
+    box-sizing: border-box;
+  }
+
+  .associationPanel .associationHeader {
+    padding: 16px 12px;
+    padding-right: 48px; /* Make room for close button */
+  }
+
+  .associationPanel .associationHeader .associationName {
+    font-size: 1rem;
+    max-width: 100%;
+    overflow-wrap: break-word;
+  }
+
+  .associationPanel .associationDetails {
+    margin: 8px;
+    margin-bottom: 80px;
+  }
+
+  .associationPanel .textInput {
+    margin-top: 20px;
+    margin-bottom: 16px;
+    font-size: 0.85rem;
+  }
+
+  .associationPanel .editorInput {
+    padding: 12px;
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+  }
+
+  .associationPanel .backgroundDescription {
+    height: 300px;
   }
 }

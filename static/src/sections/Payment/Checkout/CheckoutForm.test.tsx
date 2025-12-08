@@ -4,9 +4,25 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
+import { MemoryRouter } from "react-router-dom";
 
 // Adjust path if needed
 import { CheckoutForm } from "../Checkout";
+
+const mockNavigate = vi.fn();
+vi.mock("react-router-dom", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-router-dom")>();
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
+function renderWithRouter(ui: React.ReactElement) {
+  return render(
+    <MemoryRouter initialEntries={["/checkout"]}>{ui}</MemoryRouter>,
+  );
+}
 
 // ---- Stripe hook state we can tweak per-test ----
 type SubmitResult = { error?: { message?: string } } | object;
@@ -75,12 +91,13 @@ vi.mock("@stripe/react-stripe-js", async (importOriginal) => {
 
 beforeEach(() => {
   setStripeNotReady();
+  mockNavigate.mockReset();
   vi.restoreAllMocks();
 });
 
 describe("<CheckoutForm />", () => {
   it("disables the submit button until stripe/elements are ready", () => {
-    render(<CheckoutForm />);
+    renderWithRouter(<CheckoutForm />);
     const btn = screen.getByRole("button", { name: /start membership/i });
     expect(btn).toBeDisabled();
   });
@@ -89,7 +106,7 @@ describe("<CheckoutForm />", () => {
     setStripeReady({ submitResult: { error: { message: "Fix your fields" } } });
     const user = userEvent.setup();
 
-    render(<CheckoutForm />);
+    renderWithRouter(<CheckoutForm />);
     const btn = screen.getByRole("button", { name: /start membership/i });
     expect(btn).toBeEnabled();
 
@@ -110,7 +127,7 @@ describe("<CheckoutForm />", () => {
     });
     const user = userEvent.setup();
 
-    render(<CheckoutForm />);
+    renderWithRouter(<CheckoutForm />);
     await user.click(screen.getByRole("button", { name: /start membership/i }));
 
     await waitFor(() =>
@@ -124,7 +141,7 @@ describe("<CheckoutForm />", () => {
       setStripeReady({ submitResult: {}, confirmResult: {} });
       const user = userEvent.setup();
 
-      render(<CheckoutForm />);
+      renderWithRouter(<CheckoutForm />);
       await user.click(
         screen.getByRole("button", { name: /start membership/i }),
       );
@@ -147,7 +164,7 @@ describe("<CheckoutForm />", () => {
     });
 
     const user = userEvent.setup();
-    render(<CheckoutForm />);
+    renderWithRouter(<CheckoutForm />);
 
     const btn = screen.getByRole("button", { name: /start membership/i });
 

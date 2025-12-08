@@ -14,7 +14,11 @@ export class AssociationInlineNode extends TextNode {
   __rightClickCallback: ((value: ClickData) => void) | undefined;
   __handleLeftClick: (event: MouseEvent) => void;
   __handleRightClick: (event: MouseEvent) => void;
+  __handleTouchStart: (event: TouchEvent) => void;
+  __handleTouchEnd: (event: TouchEvent) => void;
+  __handleTouchMove: () => void;
   __decorator: HTMLSpanElement | null = null;
+  __longPressTimer: NodeJS.Timeout | null = null;
 
   static getType() {
     return "association-inline";
@@ -104,6 +108,40 @@ export class AssociationInlineNode extends TextNode {
           x: event.pageX,
           y: event.pageY,
         });
+      }
+    };
+
+    this.__handleTouchStart = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      // Start a timer for long press (500ms)
+      this.__longPressTimer = setTimeout(() => {
+        event.preventDefault();
+        this.hideHovers();
+        if (rightClickCallback) {
+          rightClickCallback({
+            id: this.__associationId,
+            text: this.__text,
+            x: touch.pageX,
+            y: touch.pageY,
+          });
+        }
+        this.__longPressTimer = null;
+      }, 500);
+    };
+
+    this.__handleTouchEnd = () => {
+      // If timer is still active, it was a short tap - treat as left click
+      if (this.__longPressTimer) {
+        clearTimeout(this.__longPressTimer);
+        this.__longPressTimer = null;
+      }
+    };
+
+    this.__handleTouchMove = () => {
+      // Cancel long press if finger moves
+      if (this.__longPressTimer) {
+        clearTimeout(this.__longPressTimer);
+        this.__longPressTimer = null;
       }
     };
   }
@@ -201,6 +239,11 @@ export class AssociationInlineNode extends TextNode {
     if (this.__leftClickCallback) {
       dom.addEventListener("click", this.__handleLeftClick.bind(this));
     }
+
+    // Add touch event listeners for mobile long-press support
+    dom.addEventListener("touchstart", this.__handleTouchStart.bind(this), { passive: true });
+    dom.addEventListener("touchend", this.__handleTouchEnd.bind(this));
+    dom.addEventListener("touchmove", this.__handleTouchMove.bind(this));
 
     dom.addEventListener("mouseenter", (event: MouseEvent) => {
       console.log("enter", this.__text);

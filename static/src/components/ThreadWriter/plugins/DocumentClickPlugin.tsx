@@ -136,7 +136,7 @@ export default function DocumentClickPlugin(props: DocumentClickPluginProps) {
 
 
         const handleLeftClick = (event: MouseEvent) => {
-            event.preventDefault();
+            // Don't preventDefault - let browser handle cursor positioning naturally
             props.onLeftClick(event);
         };
 
@@ -177,11 +177,19 @@ export default function DocumentClickPlugin(props: DocumentClickPluginProps) {
             }, 500);
         };
 
-        const handleTouchEnd = () => {
+        const handleTouchEnd = (event: TouchEvent) => {
             if (longPressTimer.current) {
                 clearTimeout(longPressTimer.current);
                 longPressTimer.current = null;
-                props.onLeftClick(new MouseEvent("click"));
+
+                // Convert touch event to mouse-like event for onLeftClick
+                const touch = event.changedTouches[0];
+                const mouseEvent = new MouseEvent("click", {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    bubbles: true,
+                });
+                props.onLeftClick(mouseEvent);
             }
         };
 

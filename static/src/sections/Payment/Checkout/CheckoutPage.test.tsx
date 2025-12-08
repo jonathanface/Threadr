@@ -3,9 +3,25 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
+import { MemoryRouter } from "react-router-dom";
 
 // IMPORTANT: adjust the import to where your component lives
 import { CheckoutPage } from "../Checkout";
+
+const mockNavigate = vi.fn();
+vi.mock("react-router-dom", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-router-dom")>();
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
+function renderWithRouter(ui: React.ReactElement) {
+  return render(
+    <MemoryRouter initialEntries={["/checkout"]}>{ui}</MemoryRouter>,
+  );
+}
 
 // ---- Mocks ----
 
@@ -37,6 +53,7 @@ vi.mock("@stripe/react-stripe-js", async (importOriginal) => {
 
 beforeEach(() => {
   postMock.mockReset();
+  mockNavigate.mockReset();
 });
 
 describe("<CheckoutPage />", () => {
@@ -44,14 +61,14 @@ describe("<CheckoutPage />", () => {
     // keep the promise pending so loader remains visible for this assertion
     postMock.mockReturnValue(new Promise(() => {}));
 
-    render(<CheckoutPage />);
+    renderWithRouter(<CheckoutPage />);
     expect(screen.getByRole("progressbar")).toBeInTheDocument();
   });
 
   it("renders the payment form when clientSecret is returned", async () => {
     postMock.mockResolvedValueOnce({ data: { client_secret: "cs_test_123" } });
 
-    render(<CheckoutPage />);
+    renderWithRouter(<CheckoutPage />);
 
     // Wait for loader to go away and the PaymentElement to appear
     await waitFor(() =>
@@ -70,7 +87,7 @@ describe("<CheckoutPage />", () => {
   it("shows an error alert if the server call fails", async () => {
     postMock.mockRejectedValueOnce(new Error("boom"));
 
-    render(<CheckoutPage />);
+    renderWithRouter(<CheckoutPage />);
 
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent("boom"),
@@ -80,7 +97,7 @@ describe("<CheckoutPage />", () => {
   it("shows a 'missing client secret' error if API response has none", async () => {
     postMock.mockResolvedValueOnce({ data: {} });
 
-    render(<CheckoutPage />);
+    renderWithRouter(<CheckoutPage />);
 
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(
@@ -92,7 +109,7 @@ describe("<CheckoutPage />", () => {
   it("only calls the subscribe endpoint once (StrictMode guard)", async () => {
     postMock.mockResolvedValueOnce({ data: { client_secret: "cs_123" } });
 
-    render(<CheckoutPage />);
+    renderWithRouter(<CheckoutPage />);
 
     await waitFor(() =>
       expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),

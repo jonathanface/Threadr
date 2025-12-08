@@ -1,5 +1,6 @@
 import { Settings } from "@mui/icons-material";
 import CancelPresentationIcon from "@mui/icons-material/CancelPresentation";
+import CloseIcon from "@mui/icons-material/Close";
 import FormatListNumberedIcon from "@mui/icons-material/FormatListNumbered";
 import MenuBookTwoToneIcon from "@mui/icons-material/MenuBookTwoTone";
 import { Box, Drawer, IconButton, Paper, Tooltip } from "@mui/material";
@@ -110,7 +111,21 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
           className={styles.flyoutMenu}
           role="presentation"
           component="section"
+          sx={{ paddingTop: "48px" }}
         >
+          <IconButton
+            onClick={() => setIsEditorChapterMenuOpen(false)}
+            sx={{
+              position: "absolute",
+              right: 8,
+              top: 8,
+              color: "var(--text-primary)",
+              zIndex: 1,
+            }}
+            aria-label="close"
+          >
+            <CloseIcon />
+          </IconButton>
           <ChapterMenu
             onChapterSelect={() => setIsEditorChapterMenuOpen(false)}
           />
@@ -137,7 +152,21 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
           className={styles.flyoutMenu}
           role="presentation"
           component="section"
+          sx={{ paddingTop: "48px" }}
         >
+          <IconButton
+            onClick={() => setIsEditorOutlineMenuOpen(false)}
+            sx={{
+              position: "absolute",
+              right: 8,
+              top: 8,
+              color: "var(--text-primary)",
+              zIndex: 1,
+            }}
+            aria-label="close"
+          >
+            <CloseIcon />
+          </IconButton>
           <OutlineMenu onAssociationClick={props.onAssociationClick} />
         </Box>
       </Drawer>

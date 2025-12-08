@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Button,
@@ -6,12 +7,15 @@ import {
   Chip,
   CircularProgress,
   Container,
+  IconButton,
   alpha,
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import { api } from "../../../api";
 import { SubscriptionSummary } from "../../../types/billing";
 
 export const AccountSubscriptionPage = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState<SubscriptionSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,19 +66,37 @@ export const AccountSubscriptionPage = () => {
     >
       <Container
         sx={(t) => ({
-          width: 520,
+          width: { xs: "calc(100% - 32px)", sm: 520 },
+          maxWidth: { xs: "100%", sm: 520 },
           mx: "auto",
-          py: 6,
+          py: { xs: 3, sm: 6 },
           bgcolor: alpha(t.palette.background.paper, 0.96),
-          padding: "24px",
+          padding: { xs: "16px", sm: "24px" },
+          paddingTop: { xs: "48px", sm: "56px" },
           borderRadius: "15px",
-          marginTop: "48px",
+          marginTop: { xs: "24px", sm: "48px" },
           border: "1px solid",
           borderColor: "divider",
           backdropFilter: "blur(6px)",
+          position: "relative",
         })}
       >
-        <Typography variant="h5" gutterBottom>
+        <IconButton
+          onClick={() => navigate(-1)}
+          sx={{
+            position: "absolute",
+            right: 8,
+            top: 8,
+          }}
+          aria-label="close"
+        >
+          <CloseIcon />
+        </IconButton>
+        <Typography
+          variant="h5"
+          gutterBottom
+          sx={{ fontSize: { xs: "1.5rem", sm: "2rem" } }}
+        >
           Membership
         </Typography>
 
@@ -94,11 +116,18 @@ export const AccountSubscriptionPage = () => {
           />
         )}
 
-        <Typography>$5/month • cancel anytime</Typography>
+        <Typography sx={{ fontSize: { xs: "0.9rem", sm: "1rem" } }}>
+          $5/month • cancel anytime
+        </Typography>
 
         <Button
           variant="outlined"
-          sx={{ mt: 2 }}
+          fullWidth
+          sx={{
+            mt: 2,
+            fontSize: { xs: "0.9rem", sm: "1rem" },
+            py: { xs: 1.5, sm: 1 },
+          }}
           onClick={
             status.toUpperCase() !== "NONE"
               ? openPortal
