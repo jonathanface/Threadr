@@ -11,6 +11,7 @@ import (
 	"encoding/base64"
 	"encoding/gob"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -274,6 +275,82 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 		}
 		next = next + separator + "token=" + url.QueryEscape(tokenB64)
 		logger.Info("Appended token to mobile deep link", "email", info.Email)
+
+		// For mobile deep links, render an HTML page with JavaScript redirect
+		// because HTTP redirects to custom schemes don't work reliably in Chrome Custom Tabs
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		html := fmt.Sprintf(`<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting...</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%);
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 { color: #333; margin-bottom: 20px; }
+        p { color: #666; }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0%% { transform: rotate(0deg); }
+            100%% { transform: rotate(360deg); }
+        }
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Success!</h1>
+        <div class="spinner"></div>
+        <p>Returning to app...</p>
+        <p><a href="%s" id="deepLink">Tap here if not redirected automatically</a></p>
+    </div>
+    <script>
+        // Attempt redirect immediately
+        setTimeout(function() {
+            window.location.href = "%s";
+        }, 100);
+
+        // Also try clicking the link programmatically
+        setTimeout(function() {
+            document.getElementById('deepLink').click();
+        }, 500);
+    </script>
+</body>
+</html>`, next, next)
+		w.Write([]byte(html))
+		return
 	}
 
 	http.Redirect(w, r, next, http.StatusTemporaryRedirect)
