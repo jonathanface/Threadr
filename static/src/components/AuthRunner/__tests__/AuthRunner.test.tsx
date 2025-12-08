@@ -5,7 +5,12 @@ import { AuthRunner } from '../index';
 
 // Mock react-oidc-context
 const mockSigninRedirect = vi.fn();
-const mockAuth = {
+const mockAuth: {
+  isLoading: boolean;
+  error: Error | null;
+  isAuthenticated: boolean;
+  signinRedirect: typeof mockSigninRedirect;
+} = {
   isLoading: false,
   error: null,
   isAuthenticated: false,
@@ -57,7 +62,7 @@ describe('AuthRunner', () => {
   describe('Error State', () => {
     it('should show error message when auth has error', () => {
       mockAuth.isLoading = false;
-      mockAuth.error = { message: 'Authentication failed' } as Error;
+      mockAuth.error = new Error('Authentication failed');
       mockAuth.isAuthenticated = false;
 
       render(<AuthRunner />);
@@ -68,7 +73,7 @@ describe('AuthRunner', () => {
 
     it('should not render children when there is an error', () => {
       mockAuth.isLoading = false;
-      mockAuth.error = { message: 'Auth error' } as Error;
+      mockAuth.error = new Error('Auth error');
       mockAuth.isAuthenticated = false;
 
       render(
@@ -212,7 +217,7 @@ describe('AuthRunner', () => {
 
     it('should handle error without message', () => {
       mockAuth.isLoading = false;
-      mockAuth.error = {} as Error;
+      mockAuth.error = new Error();
       mockAuth.isAuthenticated = false;
 
       render(<AuthRunner />);

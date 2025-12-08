@@ -53,11 +53,7 @@ const mockSavedStory: Story = {
   description: 'Test Description',
   image_url: '/image.jpg',
   chapters: [],
-  user_id: 'user-123',
   inactive: false,
-  last_updated: '2024-01-01',
-  created: '2024-01-01',
-  words_per_page: 250,
 };
 
 describe('useStorySave', () => {

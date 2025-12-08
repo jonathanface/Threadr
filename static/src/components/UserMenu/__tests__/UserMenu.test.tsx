@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { UserMenu } from '../index';
 import { UserContext } from '../../../contexts/user';
@@ -42,6 +41,14 @@ vi.mock('../../../api', () => ({
   },
 }));
 
+const createMockUserContext = (isLoggedIn: boolean) => ({
+  userDetails: null,
+  isLoggedIn,
+  userLoading: false,
+  setIsLoggedIn: vi.fn(),
+  setUserDetails: vi.fn(),
+});
+
 describe('UserMenu', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -52,7 +59,7 @@ describe('UserMenu', () => {
   describe('When logged out', () => {
     it('should show Register / SignIn link', () => {
       render(
-        <UserContext.Provider value={{ isLoggedIn: false }}>
+        <UserContext.Provider value={createMockUserContext(false)}>
           <UserMenu />
         </UserContext.Provider>
       );
@@ -62,7 +69,7 @@ describe('UserMenu', () => {
 
     it('should navigate to signin when Register / SignIn clicked', () => {
       render(
-        <UserContext.Provider value={{ isLoggedIn: false }}>
+        <UserContext.Provider value={createMockUserContext(false)}>
           <UserMenu />
         </UserContext.Provider>
       );
@@ -77,7 +84,7 @@ describe('UserMenu', () => {
       (window as any).location = { pathname: '/signin' };
 
       render(
-        <UserContext.Provider value={{ isLoggedIn: false }}>
+        <UserContext.Provider value={createMockUserContext(false)}>
           <UserMenu />
         </UserContext.Provider>
       );
@@ -89,7 +96,7 @@ describe('UserMenu', () => {
   describe('When logged in', () => {
     it('should show user menu icon', () => {
       render(
-        <UserContext.Provider value={{ isLoggedIn: true }}>
+        <UserContext.Provider value={createMockUserContext(true)}>
           <UserMenu />
         </UserContext.Provider>
       );
@@ -99,7 +106,7 @@ describe('UserMenu', () => {
 
     it('should not show menu items initially', () => {
       render(
-        <UserContext.Provider value={{ isLoggedIn: true }}>
+        <UserContext.Provider value={createMockUserContext(true)}>
           <UserMenu />
         </UserContext.Provider>
       );
@@ -110,7 +117,7 @@ describe('UserMenu', () => {
 
     it('should show menu on mouse enter', async () => {
       render(
-        <UserContext.Provider value={{ isLoggedIn: true }}>
+        <UserContext.Provider value={createMockUserContext(true)}>
           <UserMenu />
         </UserContext.Provider>
       );
@@ -128,7 +135,7 @@ describe('UserMenu', () => {
 
     it('should hide menu on mouse leave', async () => {
       render(
-        <UserContext.Provider value={{ isLoggedIn: true }}>
+        <UserContext.Provider value={createMockUserContext(true)}>
           <UserMenu />
         </UserContext.Provider>
       );
@@ -151,7 +158,7 @@ describe('UserMenu', () => {
 
     it('should toggle menu on click', async () => {
       render(
-        <UserContext.Provider value={{ isLoggedIn: true }}>
+        <UserContext.Provider value={createMockUserContext(true)}>
           <UserMenu />
         </UserContext.Provider>
       );
@@ -176,7 +183,7 @@ describe('UserMenu', () => {
 
     it('should navigate to settings when Settings clicked', async () => {
       render(
-        <UserContext.Provider value={{ isLoggedIn: true }}>
+        <UserContext.Provider value={createMockUserContext(true)}>
           <UserMenu />
         </UserContext.Provider>
       );
@@ -194,7 +201,7 @@ describe('UserMenu', () => {
       vi.mocked(api.api.delete).mockResolvedValue({ status: 200, data: {} } as any);
 
       render(
-        <UserContext.Provider value={{ isLoggedIn: true }}>
+        <UserContext.Provider value={createMockUserContext(true)}>
           <UserMenu />
         </UserContext.Provider>
       );
@@ -215,7 +222,7 @@ describe('UserMenu', () => {
       vi.mocked(api.api.delete).mockResolvedValue({ status: 200, data: {} } as any);
 
       render(
-        <UserContext.Provider value={{ isLoggedIn: true }}>
+        <UserContext.Provider value={createMockUserContext(true)}>
           <UserMenu />
         </UserContext.Provider>
       );
@@ -239,7 +246,7 @@ describe('UserMenu', () => {
       vi.mocked(api.api.delete).mockRejectedValue(new Error('Network error'));
 
       render(
-        <UserContext.Provider value={{ isLoggedIn: true }}>
+        <UserContext.Provider value={createMockUserContext(true)}>
           <UserMenu />
         </UserContext.Provider>
       );
@@ -269,7 +276,7 @@ describe('UserMenu', () => {
       vi.mocked(api.api.delete).mockRejectedValue(axiosError);
 
       render(
-        <UserContext.Provider value={{ isLoggedIn: true }}>
+        <UserContext.Provider value={createMockUserContext(true)}>
           <UserMenu />
         </UserContext.Provider>
       );
@@ -306,7 +313,7 @@ describe('UserMenu', () => {
       (window as any).location = { pathname: '/stories/123' };
 
       render(
-        <UserContext.Provider value={{ isLoggedIn: false }}>
+        <UserContext.Provider value={createMockUserContext(false)}>
           <UserMenu />
         </UserContext.Provider>
       );
@@ -316,7 +323,7 @@ describe('UserMenu', () => {
 
     it('should handle rapid menu toggle', async () => {
       render(
-        <UserContext.Provider value={{ isLoggedIn: true }}>
+        <UserContext.Provider value={createMockUserContext(true)}>
           <UserMenu />
         </UserContext.Provider>
       );
@@ -335,7 +342,7 @@ describe('UserMenu', () => {
 
     it('should handle mouse enter and leave rapidly', async () => {
       render(
-        <UserContext.Provider value={{ isLoggedIn: true }}>
+        <UserContext.Provider value={createMockUserContext(true)}>
           <UserMenu />
         </UserContext.Provider>
       );
@@ -357,7 +364,7 @@ describe('UserMenu', () => {
   describe('Accessibility', () => {
     it('should have aria-label for user menu icon', () => {
       render(
-        <UserContext.Provider value={{ isLoggedIn: true }}>
+        <UserContext.Provider value={createMockUserContext(true)}>
           <UserMenu />
         </UserContext.Provider>
       );
@@ -367,7 +374,7 @@ describe('UserMenu', () => {
 
     it('should have clickable menu items', async () => {
       render(
-        <UserContext.Provider value={{ isLoggedIn: true }}>
+        <UserContext.Provider value={createMockUserContext(true)}>
           <UserMenu />
         </UserContext.Provider>
       );
@@ -384,7 +391,7 @@ describe('UserMenu', () => {
 
     it('should have clickable Register / SignIn link when logged out', () => {
       render(
-        <UserContext.Provider value={{ isLoggedIn: false }}>
+        <UserContext.Provider value={createMockUserContext(false)}>
           <UserMenu />
         </UserContext.Provider>
       );

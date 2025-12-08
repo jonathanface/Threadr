@@ -41,11 +41,8 @@ describe('StoryBox', () => {
     title: 'Test Story',
     description: 'A test story description',
     image_url: 'https://example.com/image.jpg',
-    user_id: 'user-123',
+    chapters: [],
     inactive: false,
-    last_updated: new Date().toISOString(),
-    created: new Date().toISOString(),
-    words_per_page: 250,
   };
 
   const renderStoryBox = (story: Story = mockStory) => {

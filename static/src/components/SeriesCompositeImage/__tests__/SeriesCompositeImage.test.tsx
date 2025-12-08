@@ -10,11 +10,8 @@ const mockStory1: Story = {
   title: 'First Story',
   description: 'Description',
   image_url: 'https://example.com/story1.jpg',
-  user_id: 'user-123',
+  chapters: [],
   inactive: false,
-  last_updated: new Date().toISOString(),
-  created: new Date().toISOString(),
-  words_per_page: 250,
 };
 
 const mockStory2: Story = {

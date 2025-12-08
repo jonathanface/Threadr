@@ -119,7 +119,7 @@ describe('LoginPanel', () => {
 
   describe('Structure', () => {
     it('should render both login options in separate containers', () => {
-      const { container } = render(<LoginPanel />);
+      render(<LoginPanel />);
 
       const googleLink = screen.getByRole('link', { name: /login with google/i });
       const amazonLink = screen.getByRole('link', { name: /login with amazon/i });

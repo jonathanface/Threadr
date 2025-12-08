@@ -3,7 +3,7 @@ import { createContext } from "react";
 import { UserDetails } from "../types/User";
 
 
-interface UserContextType {
+export interface UserContextType {
   userDetails: UserDetails | null;
   isLoggedIn: boolean;
   userLoading: boolean;

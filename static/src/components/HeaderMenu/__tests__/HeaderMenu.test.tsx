@@ -22,22 +22,16 @@ const mockStory: Story = {
   title: 'Test Story',
   description: 'A test story',
   image_url: 'https://example.com/story.jpg',
-  user_id: 'user-123',
+  chapters: [],
   inactive: false,
-  last_updated: new Date().toISOString(),
-  created: new Date().toISOString(),
-  words_per_page: 250,
 };
 
 const mockSeries: Series = {
   series_id: 'series-123',
   series_title: 'Test Series',
   series_description: 'A test series',
-  user_id: 'user-123',
   image_url: 'https://example.com/series.jpg',
   stories: [],
-  created: new Date().toISOString(),
-  last_updated: new Date().toISOString(),
 };
 
 vi.mock('../../../hooks/useSelections', () => ({

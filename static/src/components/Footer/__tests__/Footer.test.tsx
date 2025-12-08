@@ -129,7 +129,7 @@ describe('Footer', () => {
 
   describe('Structure', () => {
     it('should have three main content sections', () => {
-      const { container } = render(<Footer />);
+      render(<Footer />);
 
       // Copyright paragraph
       expect(screen.getByText(/©.*Docter\.io/)).toBeInTheDocument();

@@ -9,26 +9,23 @@ describe('StorySeriesSelector', () => {
     {
       series_id: 'series-1',
       series_title: 'Adventure Chronicles',
-      author_id: 'author-1',
       series_description: 'An epic adventure',
-      created_at: '2024-01-01',
-      updated_at: '2024-01-01',
+      image_url: '',
+      stories: [],
     },
     {
       series_id: 'series-2',
       series_title: 'Mystery Tales',
-      author_id: 'author-1',
       series_description: 'Mysterious stories',
-      created_at: '2024-01-02',
-      updated_at: '2024-01-02',
+      image_url: '',
+      stories: [],
     },
     {
       series_id: 'series-3',
       series_title: 'Sci-Fi Saga',
-      author_id: 'author-1',
       series_description: 'Science fiction',
-      created_at: '2024-01-03',
-      updated_at: '2024-01-03',
+      image_url: '',
+      stories: [],
     },
   ];
 
@@ -233,7 +230,7 @@ describe('StorySeriesSelector', () => {
       render(<StorySeriesSelector {...defaultProps} onSeriesChange={onSeriesChange} />);
 
       const input = screen.getByLabelText(/series assignment/i);
-      await user.type(input, 'QuickTyping', { delay: 10 });
+      await user.type(input, 'QuickTyping');
 
       expect(onSeriesChange).toHaveBeenCalled();
     });
@@ -360,10 +357,10 @@ describe('StorySeriesSelector', () => {
         {
           series_id: 'series-special',
           series_title: 'Series: "The <Adventure>" & More!',
-          author_id: 'author-1',
+          
           series_description: 'Special chars',
-          created_at: '2024-01-01',
-          updated_at: '2024-01-01',
+          image_url: "", stories: [],
+          
         },
       ];
       const onSeriesChange = vi.fn();
@@ -382,10 +379,10 @@ describe('StorySeriesSelector', () => {
         {
           series_id: 'series-unicode',
           series_title: '测试 🎭 العربية',
-          author_id: 'author-1',
+          
           series_description: 'Unicode test',
-          created_at: '2024-01-01',
-          updated_at: '2024-01-01',
+          image_url: "", stories: [],
+          
         },
       ];
       const user = userEvent.setup();
@@ -403,10 +400,10 @@ describe('StorySeriesSelector', () => {
         {
           series_id: 'series-long',
           series_title: longName,
-          author_id: 'author-1',
+          
           series_description: 'Long name',
-          created_at: '2024-01-01',
-          updated_at: '2024-01-01',
+          image_url: "", stories: [],
+          
         },
       ];
       render(
@@ -434,18 +431,18 @@ describe('StorySeriesSelector', () => {
         {
           series_id: 'series-1',
           series_title: 'Adventure',
-          author_id: 'author-1',
+          
           series_description: 'First',
-          created_at: '2024-01-01',
-          updated_at: '2024-01-01',
+          image_url: "", stories: [],
+          
         },
         {
           series_id: 'series-2',
           series_title: 'adventure',
-          author_id: 'author-1',
+          
           series_description: 'Second',
-          created_at: '2024-01-02',
-          updated_at: '2024-01-02',
+          image_url: "", stories: [],
+          
         },
       ];
       const onSeriesChange = vi.fn();

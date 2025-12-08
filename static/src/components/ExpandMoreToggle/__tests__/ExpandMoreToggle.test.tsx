@@ -203,7 +203,7 @@ describe('ExpandMoreToggle', () => {
 
   describe('Ref Forwarding', () => {
     it('should forward ref to button element', () => {
-      const ref = { current: null } as React.RefObject<HTMLButtonElement>;
+      const ref = { current: null as HTMLButtonElement | null } as React.RefObject<HTMLButtonElement>;
 
       render(
         <ExpandMoreToggle expand={false} ref={ref}>
@@ -215,7 +215,7 @@ describe('ExpandMoreToggle', () => {
     });
 
     it('should allow accessing button methods through ref', () => {
-      const ref = { current: null } as React.RefObject<HTMLButtonElement>;
+      const ref = { current: null as HTMLButtonElement | null } as React.RefObject<HTMLButtonElement>;
 
       render(
         <ExpandMoreToggle expand={false} ref={ref}>

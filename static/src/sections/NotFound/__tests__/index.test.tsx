@@ -235,7 +235,7 @@ describe('NotFoundPage', () => {
     });
 
     it('should render buttons in a row', () => {
-      const { container } = renderNotFoundPage();
+      renderNotFoundPage();
 
       // Should have a Stack with direction="row" for buttons
       const buttons = screen.getAllByRole('button');
