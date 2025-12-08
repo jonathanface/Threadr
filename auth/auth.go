@@ -8,6 +8,7 @@ import (
 	"RichDocter/models"
 	"RichDocter/sessions"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -62,7 +63,9 @@ func determineLastName(info goth.User) string {
 }
 
 func safeRedirect(dest, defaultURL string, allowed []string) string {
+	logger.Debug("safeRedirect called", "dest", dest, "defaultURL", defaultURL, "allowed", allowed)
 	if dest == "" {
+		logger.Debug("safeRedirect: dest is empty, returning default")
 		return defaultURL
 	}
 	if strings.HasPrefix(dest, "/") {
@@ -70,6 +73,7 @@ func safeRedirect(dest, defaultURL string, allowed []string) string {
 		rel, _ := url.Parse(dest)
 		// Reject protocol-relative URLs (e.g., "//evil.com/path")
 		if rel.Host != "" {
+			logger.Debug("safeRedirect: rejecting protocol-relative URL")
 			return defaultURL
 		}
 		base.Path = rel.Path
@@ -78,20 +82,31 @@ func safeRedirect(dest, defaultURL string, allowed []string) string {
 		return base.String()
 	}
 	u, err := url.Parse(dest)
-	if err != nil || u.Host == "" {
+	if err != nil {
+		logger.Debug("safeRedirect: failed to parse dest URL", "error", err)
 		return defaultURL
 	}
+	if u.Host == "" {
+		logger.Debug("safeRedirect: dest has no host")
+		return defaultURL
+	}
+	logger.Debug("safeRedirect: checking against allowed origins", "destScheme", u.Scheme, "destHost", u.Host)
 	for _, origin := range allowed {
 		a, _ := url.Parse(origin)
+		logger.Debug("safeRedirect: comparing", "destScheme", u.Scheme, "allowedScheme", a.Scheme, "destHost", u.Host, "allowedHost", a.Host)
 		if strings.EqualFold(u.Scheme, a.Scheme) && strings.EqualFold(u.Host, a.Host) {
 			// ok: preserve path/query from dest
+			logger.Info("safeRedirect: MATCH found, allowing redirect", "dest", u.String())
 			return u.String()
 		}
 	}
+	logger.Info("safeRedirect: no match found, returning default", "dest", dest, "default", defaultURL)
 	return defaultURL
 }
 
 func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOptions) {
+	logger.Info("=== CALLBACK STARTED ===", "url", r.URL.String(), "remoteAddr", r.RemoteAddr)
+
 	provider, err := url.PathUnescape(mux.Vars(r)["provider"])
 	if err != nil {
 		logger.Error("Failed to parse provider in callback", "error", err, "remoteAddr", r.RemoteAddr)
@@ -188,16 +203,25 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	logger.Debug("Token session saved successfully", "email", info.Email, "remoteAddr", r.RemoteAddr)
 
 	frontend := options.FrontEndURL
-	allowedOrigins := []string{options.FrontEndURL}
+	allowedOrigins := []string{
+		options.FrontEndURL,
+		"minidocter://auth", // Allow mobile app deep link
+	}
 	next := frontend
 	if rdx := r.URL.Query().Get("next"); rdx != "" {
+		logger.Info("Found next parameter in callback query", "next", rdx, "remoteAddr", r.RemoteAddr)
 		next = safeRedirect(rdx, frontend, allowedOrigins)
+		logger.Info("After safeRedirect from query", "next", next, "remoteAddr", r.RemoteAddr)
 	} else if loginSess, _ := sessions.Get(r, "login_referral"); loginSess != nil && !loginSess.IsNew {
 		if ref, _ := loginSess.Values["referrer"].(string); ref != "" {
+			logger.Info("Found referrer in login_referral session", "referrer", ref, "remoteAddr", r.RemoteAddr)
 			next = safeRedirect(ref, frontend, allowedOrigins)
+			logger.Info("After safeRedirect from session", "next", next, "frontend", frontend, "remoteAddr", r.RemoteAddr)
 		}
-		// Clear the one-time referral cookie now that we’ve used it
+		// Clear the one-time referral cookie now that we've used it
 		_ = sessions.Delete(w, r, "login_referral")
+	} else {
+		logger.Info("No next parameter or referrer found, using default frontend", "frontend", frontend, "remoteAddr", r.RemoteAddr)
 	}
 
 	updated, err := dao.IsUserSubscribed(r.Context(), *userDetails)
@@ -232,6 +256,20 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	}
 
 	logger.Info("OAuth login successful", "email", info.Email, "provider", provider, "remoteAddr", r.RemoteAddr)
+	logger.Info("=== FINAL REDIRECT ===", "redirectTo", next, "email", info.Email)
+
+	// For mobile deep links, append the session token as a query parameter
+	// since mobile apps can't access browser cookies
+	if strings.HasPrefix(next, "minidocter://") {
+		tokenB64 := base64.URLEncoding.EncodeToString(toJSON)
+		separator := "?"
+		if strings.Contains(next, "?") {
+			separator = "&"
+		}
+		next = next + separator + "token=" + url.QueryEscape(tokenB64)
+		logger.Info("Appended token to mobile deep link", "email", info.Email)
+	}
+
 	http.Redirect(w, r, next, http.StatusTemporaryRedirect)
 }
 
