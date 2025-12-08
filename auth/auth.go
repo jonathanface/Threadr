@@ -273,6 +273,65 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	http.Redirect(w, r, next, http.StatusTemporaryRedirect)
 }
 
+// MobileSessionHandler exchanges a mobile token for a session cookie
+func MobileSessionHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Get token from request body
+		var reqBody struct {
+			Token string `json:"token"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+			logger.Error("Failed to decode mobile session request", "error", err)
+			api.RespondWithError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+
+		// Decode the base64 token
+		tokenJSON, err := base64.URLEncoding.DecodeString(reqBody.Token)
+		if err != nil {
+			logger.Error("Failed to decode mobile token", "error", err)
+			api.RespondWithError(w, http.StatusBadRequest, "Invalid token")
+			return
+		}
+
+		// Parse the user data
+		var userData models.UserInfo
+		if err := json.Unmarshal(tokenJSON, &userData); err != nil {
+			logger.Error("Failed to unmarshal user data from token", "error", err)
+			api.RespondWithError(w, http.StatusBadRequest, "Invalid token format")
+			return
+		}
+
+		// Create a session and store the user data
+		sess, err := sessions.Get(r, "user_data")
+		if err != nil {
+			logger.Error("Failed to get user_data session", "error", err)
+			api.RespondWithError(w, http.StatusInternalServerError, "Failed to create session")
+			return
+		}
+
+		// Store user data in session
+		sess.Values["user"] = userData
+		sess.Options = sessions.OptionsFor(r)
+
+		if err := sess.Save(r, w); err != nil {
+			logger.Error("Failed to save user_data session", "error", err)
+			api.RespondWithError(w, http.StatusInternalServerError, "Failed to save session")
+			return
+		}
+
+		logger.Info("Mobile session created", "email", userData.Email)
+
+		// Return success
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"user":    userData,
+		})
+	}
+}
+
 func LoginHandler(options OauthOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		loginWithOptions(w, r, options)
