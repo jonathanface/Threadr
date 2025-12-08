@@ -4,10 +4,7 @@ import (
 	"RichDocter/api"
 	ctxkey "RichDocter/ctxkeys"
 	"RichDocter/daos"
-	"RichDocter/models"
-	"RichDocter/sessions"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -142,50 +139,16 @@ func billingMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			log.Printf("[billingMiddleware] %s %s", r.Method, r.URL.Path)
-			var user models.UserInfo
 
-			// Try mobile token-based auth first
-			authHeader := r.Header.Get("Authorization")
-			if strings.HasPrefix(authHeader, "Bearer ") {
-				log.Printf("[billingMiddleware] Using mobile token-based auth")
-				sessionToken := strings.TrimPrefix(authHeader, "Bearer ")
-				tokenPreview := sessionToken
-				if len(tokenPreview) > 12 {
-					tokenPreview = tokenPreview[:12] + "..."
-				}
-				log.Printf("[billingMiddleware] Token: %s", tokenPreview)
-
-				// Get user data from token map
-				userVal, ok := sessions.GetUserByToken(sessionToken)
-				if !ok {
-					log.Printf("[billingMiddleware] Token not found in map")
-					api.RespondWithError(w, http.StatusUnauthorized, "invalid session token")
-					return
-				}
-
-				user, ok = userVal.(models.UserInfo)
-				if !ok {
-					log.Printf("[billingMiddleware] Invalid user data format in token map")
-					api.RespondWithError(w, http.StatusInternalServerError, "invalid user data format")
-					return
-				}
-				log.Printf("[billingMiddleware] Mobile auth successful for user: %s", user.Email)
-			} else {
-				log.Printf("[billingMiddleware] Using cookie-based auth for web")
-				// Fall back to cookie-based auth for web
-				token, err := sessions.Get(r, "token")
-				if err != nil || token.IsNew {
-					log.Printf("[billingMiddleware] Cookie not found or invalid, err=%v, isNew=%v", err, token.IsNew)
-					api.RespondWithError(w, http.StatusUnauthorized, "cannot find token")
-					return
-				}
-				if err = json.Unmarshal(token.Values["token_data"].([]byte), &user); err != nil {
-					log.Printf("[billingMiddleware] Failed to unmarshal cookie data: %v", err)
-					api.RespondWithError(w, http.StatusBadRequest, err.Error())
-					return
-				}
-				log.Printf("[billingMiddleware] Cookie auth successful for user: %s", user.Email)
+			// Use the common auth helper
+			userPtr, err := api.GetAuthenticatedUser(r)
+			if err != nil {
+				log.Printf("[billingMiddleware] Authentication failed: %v", err)
+				api.RespondWithError(w, http.StatusUnauthorized, err.Error())
+				return
 			}
+			user := *userPtr
+			log.Printf("[billingMiddleware] Auth successful for user: %s", user.Email)
 
 			ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
 			defer cancel()
@@ -199,51 +162,16 @@ func strictMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			log.Printf("[strictMiddleware] %s %s", r.Method, r.URL.Path)
-			var user models.UserInfo
 
-			// Try mobile token-based auth first
-			authHeader := r.Header.Get("Authorization")
-			if strings.HasPrefix(authHeader, "Bearer ") {
-				log.Printf("[strictMiddleware] Using mobile token-based auth")
-				sessionToken := strings.TrimPrefix(authHeader, "Bearer ")
-				tokenPreview := sessionToken
-				if len(tokenPreview) > 12 {
-					tokenPreview = tokenPreview[:12] + "..."
-				}
-				log.Printf("[strictMiddleware] Token: %s", tokenPreview)
-
-				// Get user data from token map
-				userVal, ok := sessions.GetUserByToken(sessionToken)
-				if !ok {
-					log.Printf("[strictMiddleware] Token not found in map")
-					api.RespondWithError(w, http.StatusUnauthorized, "invalid session token")
-					return
-				}
-
-				user, ok = userVal.(models.UserInfo)
-				if !ok {
-					log.Printf("[strictMiddleware] Invalid user data format in token map")
-					api.RespondWithError(w, http.StatusInternalServerError, "invalid user data format")
-					return
-				}
-				log.Printf("[strictMiddleware] Mobile auth successful for user: %s", user.Email)
-			} else {
-				log.Printf("[strictMiddleware] Using cookie-based auth for web")
-				// Fall back to cookie-based auth for web
-				token, err := sessions.Get(r, "token")
-				if err != nil || token.IsNew {
-					log.Printf("[strictMiddleware] Cookie not found or invalid, err=%v, isNew=%v", err, token.IsNew)
-					api.RespondWithError(w, http.StatusUnauthorized, "cannot find token")
-					return
-				}
-
-				if err = json.Unmarshal(token.Values["token_data"].([]byte), &user); err != nil {
-					log.Printf("[strictMiddleware] Failed to unmarshal cookie data: %v", err)
-					api.RespondWithError(w, http.StatusBadRequest, err.Error())
-					return
-				}
-				log.Printf("[strictMiddleware] Cookie auth successful for user: %s", user.Email)
+			// Use the common auth helper
+			userPtr, err := api.GetAuthenticatedUser(r)
+			if err != nil {
+				log.Printf("[strictMiddleware] Authentication failed: %v", err)
+				api.RespondWithError(w, http.StatusUnauthorized, err.Error())
+				return
 			}
+			user := *userPtr
+			log.Printf("[strictMiddleware] Auth successful for user: %s", user.Email)
 
 			ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
 			defer cancel()
