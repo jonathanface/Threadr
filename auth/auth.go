@@ -466,6 +466,24 @@ func loginWithOptions(w http.ResponseWriter, r *http.Request, options OauthOptio
 func Logout(w http.ResponseWriter, r *http.Request) {
 	logger.Info("Logout initiated", "remoteAddr", r.RemoteAddr)
 
+	// Check for mobile token-based auth
+	authHeader := r.Header.Get("Authorization")
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		sessionToken := strings.TrimPrefix(authHeader, "Bearer ")
+		tokenPreview := sessionToken
+		if len(tokenPreview) > 12 {
+			tokenPreview = tokenPreview[:12] + "..."
+		}
+		logger.Info("Logging out mobile session", "token", tokenPreview)
+
+		// Delete the token from the token map
+		sessions.DeleteTokenMapping(sessionToken)
+		logger.Info("Mobile logout successful", "token", tokenPreview)
+		api.RespondWithJson(w, http.StatusOK, nil)
+		return
+	}
+
+	// Fall back to cookie-based logout for web
 	if err := sessions.Delete(w, r, "token"); err != nil {
 		logger.Error("Failed to delete token session during logout", "error", err, "remoteAddr", r.RemoteAddr)
 		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -474,6 +492,6 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	_ = sessions.Delete(w, r, "login_referral") // clear if exists
 	_ = gothic.Logout(w, r)
 
-	logger.Info("Logout successful", "remoteAddr", r.RemoteAddr)
+	logger.Info("Web logout successful", "remoteAddr", r.RemoteAddr)
 	api.RespondWithJson(w, http.StatusOK, nil)
 }

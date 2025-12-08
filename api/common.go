@@ -31,7 +31,9 @@ const (
 	NON_SUBSCRIBER_MAX_ASSOC  = 20
 )
 
-func getUserEmail(r *http.Request) (string, error) {
+// GetAuthenticatedUser extracts user info from either mobile token (Authorization header)
+// or web cookie. This is the primary authentication helper used throughout the API.
+func GetAuthenticatedUser(r *http.Request) (*models.UserInfo, error) {
 	// Try mobile token-based auth first
 	authHeader := r.Header.Get("Authorization")
 	if strings.HasPrefix(authHeader, "Bearer ") {
@@ -40,23 +42,33 @@ func getUserEmail(r *http.Request) (string, error) {
 		// Get user data from token map
 		userVal, ok := sessions.GetUserByToken(sessionToken)
 		if !ok {
-			return "", errors.New("invalid session token")
+			return nil, errors.New("invalid session token")
 		}
 
 		user, ok := userVal.(models.UserInfo)
 		if !ok {
-			return "", errors.New("invalid user data format")
+			return nil, errors.New("invalid user data format")
 		}
-		return user.Email, nil
+		return &user, nil
 	}
 
 	// Fall back to cookie-based auth for web
 	token, err := sessions.Get(r, "token")
 	if err != nil || token.IsNew {
-		return "", errors.New("unable to retrieve token")
+		return nil, errors.New("unable to retrieve token")
 	}
 	user := models.UserInfo{}
 	if err = json.Unmarshal(token.Values["token_data"].([]byte), &user); err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+// getUserEmail is a convenience wrapper around getAuthenticatedUser
+// for handlers that only need the email address
+func getUserEmail(r *http.Request) (string, error) {
+	user, err := GetAuthenticatedUser(r)
+	if err != nil {
 		return "", err
 	}
 	return user.Email, nil
