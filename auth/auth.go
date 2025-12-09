@@ -213,13 +213,13 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 
 	// Determine mobile app scheme based on environment
 	// Staging uses Expo Go (exp://), production uses standalone app (minidocter://)
-	mobileScheme := "minidocter://auth"
+	mobileScheme := "minidocter://auth/callback"
 	isStaging := strings.Contains(options.FrontEndURL, "stage") || strings.Contains(options.FrontEndURL, "staging") ||
 		strings.Contains(options.FrontEndURL, "localhost") || strings.Contains(options.FrontEndURL, "127.0.0.1")
 
 	if isStaging {
-		// Use Expo Go for staging/development
-		mobileScheme = "exp://192.168.1.74:8081" // Expo dev server
+		// Use Expo Go for staging/development - include the callback path
+		mobileScheme = "exp://192.168.1.74:8081/--/auth/callback" // Expo dev server with path
 		logger.Info("Using Expo Go scheme for staging/development", "scheme", mobileScheme)
 	} else {
 		logger.Info("Using standalone app scheme for production", "scheme", mobileScheme)
