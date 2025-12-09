@@ -214,8 +214,10 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	// Determine mobile app scheme based on environment
 	// Staging uses Expo Go (exp://), production uses standalone app (minidocter://)
 	mobileScheme := "minidocter://auth"
-	if strings.Contains(options.FrontEndURL, "stage") || strings.Contains(options.FrontEndURL, "staging") ||
-	   strings.Contains(options.FrontEndURL, "localhost") || strings.Contains(options.FrontEndURL, "127.0.0.1") {
+	isStaging := strings.Contains(options.FrontEndURL, "stage") || strings.Contains(options.FrontEndURL, "staging") ||
+		strings.Contains(options.FrontEndURL, "localhost") || strings.Contains(options.FrontEndURL, "127.0.0.1")
+
+	if isStaging {
 		// Use Expo Go for staging/development
 		mobileScheme = "exp://192.168.1.74:8081" // Expo dev server
 		logger.Info("Using Expo Go scheme for staging/development", "scheme", mobileScheme)
@@ -226,16 +228,31 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	allowedOrigins := []string{
 		options.FrontEndURL,
 		mobileScheme,
+		"minidocter://auth", // Always allow this for the mobile app's initial request
 	}
 	next := frontend
 	if rdx := r.URL.Query().Get("next"); rdx != "" {
 		logger.Info("Found next parameter in callback query", "next", rdx, "remoteAddr", r.RemoteAddr)
-		next = safeRedirect(rdx, frontend, allowedOrigins)
+
+		// If the redirect is to a mobile app scheme, override it with the environment-appropriate scheme
+		if strings.HasPrefix(rdx, "minidocter://") || strings.HasPrefix(rdx, "exp://") {
+			logger.Info("Overriding mobile redirect with environment scheme", "original", rdx, "override", mobileScheme)
+			next = mobileScheme
+		} else {
+			next = safeRedirect(rdx, frontend, allowedOrigins)
+		}
 		logger.Info("After safeRedirect from query", "next", next, "remoteAddr", r.RemoteAddr)
 	} else if loginSess, _ := sessions.Get(r, "login_referral"); loginSess != nil && !loginSess.IsNew {
 		if ref, _ := loginSess.Values["referrer"].(string); ref != "" {
 			logger.Info("Found referrer in login_referral session", "referrer", ref, "remoteAddr", r.RemoteAddr)
-			next = safeRedirect(ref, frontend, allowedOrigins)
+
+			// If the referrer is to a mobile app scheme, override it with the environment-appropriate scheme
+			if strings.HasPrefix(ref, "minidocter://") || strings.HasPrefix(ref, "exp://") {
+				logger.Info("Overriding mobile redirect with environment scheme", "original", ref, "override", mobileScheme)
+				next = mobileScheme
+			} else {
+				next = safeRedirect(ref, frontend, allowedOrigins)
+			}
 			logger.Info("After safeRedirect from session", "next", next, "frontend", frontend, "remoteAddr", r.RemoteAddr)
 		}
 		// Clear the one-time referral cookie now that we've used it
