@@ -210,9 +210,22 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	logger.Debug("Token session saved successfully", "email", info.Email, "remoteAddr", r.RemoteAddr)
 
 	frontend := options.FrontEndURL
+
+	// Determine mobile app scheme based on environment
+	// Staging uses Expo Go (exp://), production uses standalone app (minidocter://)
+	mobileScheme := "minidocter://auth"
+	if strings.Contains(options.FrontEndURL, "stage") || strings.Contains(options.FrontEndURL, "staging") ||
+	   strings.Contains(options.FrontEndURL, "localhost") || strings.Contains(options.FrontEndURL, "127.0.0.1") {
+		// Use Expo Go for staging/development
+		mobileScheme = "exp://192.168.1.74:8081" // Expo dev server
+		logger.Info("Using Expo Go scheme for staging/development", "scheme", mobileScheme)
+	} else {
+		logger.Info("Using standalone app scheme for production", "scheme", mobileScheme)
+	}
+
 	allowedOrigins := []string{
 		options.FrontEndURL,
-		"minidocter://auth", // Allow mobile app deep link
+		mobileScheme,
 	}
 	next := frontend
 	if rdx := r.URL.Query().Get("next"); rdx != "" {
@@ -267,7 +280,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 
 	// For mobile deep links, append the session token as a query parameter
 	// since mobile apps can't access browser cookies
-	if strings.HasPrefix(next, "minidocter://") {
+	if strings.HasPrefix(next, "minidocter://") || strings.HasPrefix(next, "exp://") {
 		tokenB64 := base64.URLEncoding.EncodeToString(toJSON)
 		separator := "?"
 		if strings.Contains(next, "?") {
