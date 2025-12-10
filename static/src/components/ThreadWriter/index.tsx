@@ -752,18 +752,13 @@ export const ThreadWriter = () => {
 
               const isSelected = id === selectedNodeKey;
               const isNew = newParagraphKeys.has(id);
-              const isEmpty = currentText.trim() === "";
 
-              // Don't save new paragraphs if they're empty, even if selected
-              // Only save once they have actual content
-              const shouldSkipNewEmpty = isNew && isEmpty;
-
+              // Allow saving empty paragraphs (blank lines) - user expectation
               if (
-                !shouldSkipNewEmpty &&
-                (pastedParagraphKeys.current.has(id) ||
-                  isNew ||
-                  isSelected ||
-                  textHasChanged)
+                pastedParagraphKeys.current.has(id) ||
+                isNew ||
+                isSelected ||
+                textHasChanged
               ) {
                 const serialized = serializeWithChildren(node);
                 paragraphsToSave.push({
