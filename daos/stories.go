@@ -683,7 +683,7 @@ func buildWriteTransactions(
 						chunkStr == "[]" ||
 						chunkStr == `""` ||
 						chunkStr == "{}" ||
-						len(chunkStr) < 30 || // Properly serialized paragraph is ~100+ chars minimum
+						(len(chunkStr) < 30 && (!strings.Contains(chunkStr, "type") || !strings.Contains(chunkStr, "key_id"))) || // Short content must have structure
 						(!strings.Contains(chunkStr, "type") && !strings.Contains(chunkStr, "key_id")) // Must have basic structure
 
 					if existingHasContent && newIsMalformed {
