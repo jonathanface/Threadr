@@ -31,3 +31,13 @@ coverage-html:
 	@echo "Opening in browser..."
 	@open coverage.html || xdg-open coverage.html || echo "Please open coverage.html manually"
 
+dev-mobile: build
+	@echo "Setting up local mobile development environment..."
+	@./scripts/dev-mobile.sh
+
+dev-local: build
+	@echo "Stopping mobile development environment..."
+	@./scripts/stop-mobile.sh
+	@echo "Starting backend in local mode..."
+	@./bin/$(APP_NAME)
+
