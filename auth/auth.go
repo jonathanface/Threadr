@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -212,17 +213,17 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	frontend := options.FrontEndURL
 
 	// Determine mobile app scheme based on environment
-	// Staging uses Expo Go (exp://), production uses standalone app (minidocter://)
+	// Check explicit USE_EXPO_GO flag first, then fall back to MODE
 	mobileScheme := "minidocter://auth/callback"
-	isStaging := strings.Contains(options.FrontEndURL, "stage") || strings.Contains(options.FrontEndURL, "staging") ||
-		strings.Contains(options.FrontEndURL, "localhost") || strings.Contains(options.FrontEndURL, "127.0.0.1")
+	useExpoGo := strings.ToLower(os.Getenv("USE_EXPO_GO")) == "true"
 
-	if isStaging {
-		// Use Expo Go for staging/development - include the callback path
+	if useExpoGo || options.Mode == models.ModeDevelopment {
+		// Use Expo Go for development - include the callback path
 		mobileScheme = "exp://192.168.1.74:8081/--/auth/callback" // Expo dev server with path
-		logger.Info("Using Expo Go scheme for staging/development", "scheme", mobileScheme)
+		logger.Info("Using Expo Go scheme for development", "scheme", mobileScheme, "mode", options.Mode, "useExpoGo", useExpoGo)
 	} else {
-		logger.Info("Using standalone app scheme for production", "scheme", mobileScheme)
+		// Use standalone app scheme for staging and production
+		logger.Info("Using standalone app scheme", "scheme", mobileScheme, "mode", options.Mode)
 	}
 
 	allowedOrigins := []string{
