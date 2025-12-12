@@ -92,14 +92,28 @@ func main() {
 	}
 	logger.Info("DAO initialized successfully")
 
+	// Determine OAuth redirect URLs based on USE_NGROK flag
+	useNgrok := strings.ToLower(getenv("USE_NGROK", "false")) == "true"
+	googleUrl := getenv("GOOGLE_OAUTH_REDIRECT_URL", "")
+	amazonUrl := getenv("AMAZON_OAUTH_REDIRECT_URL", "")
+
+	if useNgrok {
+		if ngrokGoogle := getenv("GOOGLE_OAUTH_REDIRECT_URL_NGROK", ""); ngrokGoogle != "" {
+			googleUrl = ngrokGoogle
+		}
+		if ngrokAmazon := getenv("AMAZON_OAUTH_REDIRECT_URL_NGROK", ""); ngrokAmazon != "" {
+			amazonUrl = ngrokAmazon
+		}
+	}
+
 	authOptions := auth.OauthOptions{
 		Mode:         mode,
 		GoogleId:     getenv("GOOGLE_OAUTH_CLIENT_ID", ""),
 		GoogleSecret: getenv("GOOGLE_OAUTH_CLIENT_SECRET", ""),
-		GoogleUrl:    getenv("GOOGLE_OAUTH_REDIRECT_URL", ""),
+		GoogleUrl:    googleUrl,
 		AmazonId:     getenv("AMAZON_OAUTH_CLIENT_ID", ""),
 		AmazonSecret: getenv("AMAZON_OAUTH_CLIENT_SECRET", ""),
-		AmazonUrl:    getenv("AMAZON_OAUTH_REDIRECT_URL", ""),
+		AmazonUrl:    amazonUrl,
 		FrontEndURL:  getenv("FRONTEND_URL", ""),
 	}
 
