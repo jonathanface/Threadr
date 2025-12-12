@@ -93,6 +93,7 @@ func main() {
 	logger.Info("DAO initialized successfully")
 
 	authOptions := auth.OauthOptions{
+		Mode:         mode,
 		GoogleId:     getenv("GOOGLE_OAUTH_CLIENT_ID", ""),
 		GoogleSecret: getenv("GOOGLE_OAUTH_CLIENT_SECRET", ""),
 		GoogleUrl:    getenv("GOOGLE_OAUTH_REDIRECT_URL", ""),
