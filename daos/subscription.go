@@ -119,10 +119,13 @@ func (d *DAO) UpdateSubscription(ctx context.Context, sub models.Subscription) e
 }
 
 func (d *DAO) GetEmailByCustomerId(ctx context.Context, custId string) (string, error) {
-	logger.Debug("Looking up email by customer ID", "customerId", custId)
+	tableName := "subscriptions" + GetTableSuffix()
+	logger.Debug("Looking up email by customer ID",
+		"customerId", custId,
+		"tableName", tableName)
 
 	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
-		TableName:        aws.String("subscriptions" + GetTableSuffix()),
+		TableName:        aws.String(tableName),
 		FilterExpression: aws.String("customer_id = :c"), // make sure matches your schema
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":c": &types.AttributeValueMemberS{Value: custId},
@@ -132,11 +135,18 @@ func (d *DAO) GetEmailByCustomerId(ctx context.Context, custId string) (string, 
 	if err != nil {
 		logger.Error("Failed to scan subscriptions by customer ID",
 			"error", err,
-			"customerId", custId)
+			"customerId", custId,
+			"tableName", tableName)
 		return "", err
 	}
+	logger.Info("Scan completed",
+		"customerId", custId,
+		"itemsFound", len(out.Items),
+		"tableName", tableName)
 	if len(out.Items) == 0 {
-		logger.Warn("No subscription found for customer ID", "customerId", custId)
+		logger.Warn("No subscription found for customer ID",
+			"customerId", custId,
+			"tableName", tableName)
 		return "", fmt.Errorf("no subscription found for customer %s", custId)
 	}
 

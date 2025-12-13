@@ -84,11 +84,16 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		log.Printf("[StripeWebhook] Processing %s event for subscription %s, customer %s, MODE=%s",
+			event.Type, sub.ID, sub.Customer.ID, os.Getenv("MODE"))
+
 		email, err = dao.GetEmailByCustomerId(context.Background(), sub.Customer.ID)
 		if err != nil || email == "" {
+			log.Printf("[StripeWebhook] Failed to find email for customer %s: %v", sub.Customer.ID, err)
 			RespondWithError(w, http.StatusBadRequest, "unknown customer")
 			return
 		}
+		log.Printf("[StripeWebhook] Found email %s for customer %s", email, sub.Customer.ID)
 
 		if err := dao.UpdateSubscription(context.Background(), models.Subscription{
 			Email:                  email,
@@ -302,11 +307,15 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if sub != nil && sub.SubscriptionID != "" {
+		log.Printf("[BillingSummary] Fetching subscription %s from Stripe API for %s", sub.SubscriptionID, email)
 		stripeSub, err := subscription.Get(sub.SubscriptionID, nil)
 		if err != nil {
+			log.Printf("[BillingSummary] Failed to get subscription from Stripe for %s: %v", email, err)
 			RespondWithError(w, http.StatusInternalServerError, "unable to retrieve subscription from stripe")
 			return
 		}
+		log.Printf("[BillingSummary] Retrieved subscription %s for %s - Status: %s, Customer: %s", stripeSub.ID, email, stripeSub.Status, stripeSub.Customer.ID)
+
 		var custID string
 		if stripeSub.Customer != nil && stripeSub.Customer.ID != "" {
 			custID = stripeSub.Customer.ID
@@ -328,6 +337,7 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 		if !cpeTime.IsZero() {
 			cpe = cpeTime.Format(time.RFC3339)
 		}
+		log.Printf("[BillingSummary] Returning subscription status: %s, CancelAtPeriodEnd: %v", stripeSub.Status, stripeSub.CancelAtPeriodEnd)
 		RespondWithJson(w, http.StatusOK, map[string]any{
 			"id":                stripeSub.ID,
 			"status":            stripeSub.Status,

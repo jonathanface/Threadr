@@ -1,8 +1,8 @@
 package billing
 
 import (
+	"RichDocter/api"
 	"RichDocter/models"
-	"RichDocter/sessions"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -78,12 +78,9 @@ func RespondWithJson(w http.ResponseWriter, code int, payload interface{}) {
 }
 
 func getUserEmail(r *http.Request) (string, error) {
-	token, err := sessions.Get(r, "token")
-	if err != nil || token.IsNew {
-		return "", errors.New("unable to retrieve token")
-	}
-	user := models.UserInfo{}
-	if err = json.Unmarshal(token.Values["token_data"].([]byte), &user); err != nil {
+	// Use the common authentication helper that supports both Bearer tokens and cookies
+	user, err := api.GetAuthenticatedUser(r)
+	if err != nil {
 		return "", err
 	}
 	return user.Email, nil
