@@ -173,7 +173,7 @@ describe("<AccountSubscriptionPage />", () => {
 
     await user.click(screen.getByRole("button", { name: /join now/i }));
 
-    expect(window.location.assign).toHaveBeenCalledWith("/subscribe");
+    expect(mockNavigate).toHaveBeenCalledWith("/subscribe");
     expect(postMock).not.toHaveBeenCalled(); // no portal call on NONE
   });
 

@@ -41,12 +41,15 @@ export const AccountSubscriptionPage = () => {
   }, []);
 
   const status = data?.status || "none";
+  const cancelAtPeriodEnd = data?.cancelAtPeriodEnd || false;
   const hasExpiredSubscription =
     status === "canceled" ||
     status === "incomplete_expired" ||
     status === "unpaid";
   const hasActiveSubscription = status === "active" || status === "trialing";
+  const hasIncompleteSubscription = status === "incomplete";
   const hasNeverSubscribed = status === "none";
+  const isScheduledToCancel = hasActiveSubscription && cancelAtPeriodEnd;
 
   const openPortal = async () => {
     try {
@@ -68,21 +71,23 @@ export const AccountSubscriptionPage = () => {
 
   const getStatusColor = () => {
     if (hasActiveSubscription) return "success";
+    if (hasIncompleteSubscription) return "info";
     if (hasExpiredSubscription) return "warning";
     return "default";
   };
 
   const getButtonText = () => {
     if (hasNeverSubscribed) return "JOIN NOW";
+    if (hasIncompleteSubscription) return "COMPLETE PAYMENT";
     if (hasExpiredSubscription) return "REACTIVATE";
     return "MANAGE BILLING";
   };
 
   const getButtonAction = () => {
-    if (hasNeverSubscribed || hasExpiredSubscription) {
-      return handleSubscribe; // Both need to go through checkout
+    if (hasNeverSubscribed || hasExpiredSubscription || hasIncompleteSubscription) {
+      return handleSubscribe; // All need to go through checkout
     }
-    return openPortal; // Active subscriptions can manage via portal
+    return openPortal; // Only active subscriptions can manage via portal
   };
 
   return (
@@ -144,6 +149,33 @@ export const AccountSubscriptionPage = () => {
         <Typography sx={{ fontSize: { xs: "0.9rem", sm: "1rem" }, mb: 1 }}>
           $5/month • cancel anytime
         </Typography>
+
+        {isScheduledToCancel && data?.currentPeriodEnd && (
+          <Typography
+            sx={{
+              fontSize: { xs: "0.85rem", sm: "0.9rem" },
+              color: "warning.main",
+              mb: 2,
+            }}
+          >
+            Your subscription will end on{" "}
+            {new Date(data.currentPeriodEnd).toLocaleDateString()}. You can
+            reactivate anytime before then.
+          </Typography>
+        )}
+
+        {hasIncompleteSubscription && (
+          <Typography
+            sx={{
+              fontSize: { xs: "0.85rem", sm: "0.9rem" },
+              color: "info.main",
+              mb: 2,
+            }}
+          >
+            Your payment is being processed. Complete payment to activate your
+            subscription.
+          </Typography>
+        )}
 
         {hasExpiredSubscription && (
           <Typography

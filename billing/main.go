@@ -77,7 +77,7 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 		user         *models.UserInfo
 	)
 	switch event.Type {
-	case "customer.subscription.updated", "customer.subscription.deleted":
+	case "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted":
 		var sub stripe.Subscription
 		if err := json.NewDecoder(bytes.NewReader(event.Data.Raw)).Decode(&sub); err != nil {
 			RespondWithError(w, http.StatusBadRequest, err.Error())
@@ -224,22 +224,53 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create (or reuse) a subscription in incomplete state
-	params := &stripe.SubscriptionParams{
-		Customer:        stripe.String(custID),
-		Items:           []*stripe.SubscriptionItemsParams{{Price: stripe.String(priceID)}},
-		PaymentBehavior: stripe.String("default_incomplete"),
-		PaymentSettings: &stripe.SubscriptionPaymentSettingsParams{
-			SaveDefaultPaymentMethod: stripe.String("on_subscription"),
-		},
-		Expand: []*string{
-			stripe.String("latest_invoice.payment_intent"),
-		},
+	// Check if there's an existing incomplete subscription for this customer
+	var s *stripe.Subscription
+	if sub != nil && sub.SubscriptionID != "" {
+		log.Printf("[SubscribeCustomer] Checking existing subscription %s for %s", sub.SubscriptionID, email)
+		existingSub, err := subscription.Get(sub.SubscriptionID, nil)
+		if err == nil && existingSub.Status == stripe.SubscriptionStatusIncomplete {
+			log.Printf("[SubscribeCustomer] Reusing existing incomplete subscription %s for %s", sub.SubscriptionID, email)
+			// Reuse the existing incomplete subscription
+			s = existingSub
+		} else if err != nil {
+			log.Printf("[SubscribeCustomer] Could not fetch existing subscription %s: %v", sub.SubscriptionID, err)
+		}
 	}
-	s, err := subscription.New(params)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
+
+	// If no incomplete subscription found, create a new one
+	if s == nil {
+		log.Printf("[SubscribeCustomer] Creating new subscription for %s", email)
+		params := &stripe.SubscriptionParams{
+			Customer:        stripe.String(custID),
+			Items:           []*stripe.SubscriptionItemsParams{{Price: stripe.String(priceID)}},
+			PaymentBehavior: stripe.String("default_incomplete"),
+			PaymentSettings: &stripe.SubscriptionPaymentSettingsParams{
+				SaveDefaultPaymentMethod: stripe.String("on_subscription"),
+			},
+			Expand: []*string{
+				stripe.String("latest_invoice.payment_intent"),
+			},
+		}
+		s, err = subscription.New(params)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		log.Printf("[SubscribeCustomer] Created new subscription %s for %s", s.ID, email)
+	} else {
+		// Expand the latest invoice for the existing subscription
+		s, err = subscription.Get(s.ID, &stripe.SubscriptionParams{
+			Params: stripe.Params{
+				Expand: []*string{
+					stripe.String("latest_invoice.payment_intent"),
+				},
+			},
+		})
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
 	}
 
 	inv := s.LatestInvoice
