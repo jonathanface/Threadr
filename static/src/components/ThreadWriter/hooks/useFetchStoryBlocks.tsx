@@ -29,7 +29,7 @@ export const useFetchStoryBlocks = (
   chapterId: string,
   setStoryBlocks?: (blocks: SerializedEditorState) => void,
   previousNodeKeysRef?: React.RefObject<
-    Map<string, { text: string; place: string }>
+    Map<string, { text: string; place: string; format?: number | string }>
   >
 ) => {
   const { showLoader, hideLoader } = useLoader();
@@ -77,6 +77,7 @@ export const useFetchStoryBlocks = (
             previousNodeKeysRef.current.set(key, {
               text: textContent,
               place: index.toString(),
+              format: fixed.format || 0,
             });
 
             if (fixed.type !== CustomParagraphNode.getType()) {

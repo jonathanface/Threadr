@@ -172,15 +172,8 @@ func (d *DAO) UpdateUser(ctx context.Context, user models.UserInfo) (err error) 
 		UpdateExpression:          aws.String(queryString),
 		ExpressionAttributeValues: attributes,
 	}
-	var out *dynamodb.UpdateItemOutput
-	if out, err = d.DynamoClient.UpdateItem(ctx, input); err != nil {
+	if _, err = d.DynamoClient.UpdateItem(ctx, input); err != nil {
 		return err
-	}
-	var createdAt string
-	attributevalue.Unmarshal(out.Attributes["created_at"], &createdAt)
-
-	if createdAt == now {
-		fmt.Println("accountUpdated")
 	}
 	return
 }
@@ -297,7 +290,7 @@ func (d *DAO) AddCustomerID(ctx context.Context, email, customerID *string) erro
 	}
 	_, err := d.DynamoClient.UpdateItem(ctx, updateInput)
 	if err != nil {
-		fmt.Println("error saving", err)
+		logger.Error("Failed to add customer ID", "error", err, "email", *email)
 		return err
 	}
 	return nil

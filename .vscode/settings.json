@@ -88,5 +88,6 @@
   },
 
   // Spell Checker Settings
-  "cSpell.enabled": false
+  "cSpell.enabled": false,
+  "makefile.configureOnOpen": false
 }

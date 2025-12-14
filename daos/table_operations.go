@@ -1,6 +1,7 @@
 package daos
 
 import (
+	"RichDocter/logger"
 	"context"
 	"errors"
 	"fmt"
@@ -79,7 +80,7 @@ func (d *DAO) createBlockTable(ctx context.Context, tableName string, tags *[]ty
 		if err = waiter.Wait(bgCtx, &dynamodb.DescribeTableInput{
 			TableName: aws.String(tableName),
 		}, 1*time.Minute); err != nil {
-			fmt.Println("error waiting for table creation", err)
+			logger.Error("Error waiting for table creation", "error", err, "tableName", tableName)
 			return
 		}
 		// Enable Point-in-Time Recovery (PITR)
@@ -98,16 +99,16 @@ func (d *DAO) createBlockTable(ctx context.Context, tableName string, tags *[]ty
 
 			// Check if the error indicates ongoing backup enablement
 			if err.Error() == "ContinuousBackupsUnavailableException: Backups are being enabled for the table" {
-				fmt.Println("enabling backups error", err)
+				logger.Warn("Backups being enabled for table", "tableName", tableName)
 				return
 			}
-			fmt.Println("Backups are being enabled for the table. Retrying in 10 seconds...")
+			logger.Info("Waiting for backups to be enabled", "tableName", tableName)
 			time.Sleep(10 * time.Second)
 		}
 
 		_, err := d.DynamoClient.UpdateContinuousBackups(bgCtx, pitrInput)
 		if err != nil {
-			fmt.Println("error enabling continuous backups", err)
+			logger.Error("Error enabling continuous backups", "error", err, "tableName", tableName)
 		}
 	}()
 	return nil

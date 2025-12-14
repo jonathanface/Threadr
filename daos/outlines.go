@@ -113,7 +113,6 @@ func (d *DAO) DeleteOutline(ctx context.Context, storyID string) error {
 	}
 
 	if len(result.Items) == 0 {
-		fmt.Println("No items found for story_id:", storyID)
 		return nil
 	}
 
@@ -121,7 +120,6 @@ func (d *DAO) DeleteOutline(ctx context.Context, storyID string) error {
 	for _, item := range result.Items {
 		placeAttr, ok := item["place"].(*types.AttributeValueMemberN)
 		if !ok {
-			fmt.Println("Skipping item: missing or invalid 'place' value")
 			continue
 		}
 		twi := types.TransactWriteItem{
