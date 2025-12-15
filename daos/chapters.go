@@ -32,21 +32,33 @@ func buildCompositeKey(storyID, chapterID string) string {
 }
 
 func (d *DAO) GetChaptersByStoryID(ctx context.Context, storyID string) (chapters []models.Chapter, err error) {
-	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
-		TableName:        aws.String("chapters" + GetTableSuffix()),
-		FilterExpression: aws.String("story_id=:sid AND attribute_not_exists(deleted_at)"),
+	tableName := "chapters" + GetTableSuffix()
+
+	scanInput := &dynamodb.ScanInput{
+		TableName:        aws.String(tableName),
+		FilterExpression: aws.String("story_id = :sid AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":sid": &types.AttributeValueMemberS{Value: storyID},
 		},
-	})
-	if err != nil {
-		return nil, err
 	}
 
+	// Use paginator to handle results that span multiple pages
+	paginator := dynamodb.NewScanPaginator(d.DynamoClient, scanInput)
 	chapters = []models.Chapter{}
-	if err = attributevalue.UnmarshalListOfMaps(out.Items, &chapters); err != nil {
-		return nil, err
+
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		var pageChapters []models.Chapter
+		if err = attributevalue.UnmarshalListOfMaps(page.Items, &pageChapters); err != nil {
+			return nil, err
+		}
+		chapters = append(chapters, pageChapters...)
 	}
+
 	sort.Slice(chapters, func(i, j int) bool {
 		return chapters[i].Place < chapters[j].Place
 	})
@@ -76,21 +88,29 @@ func (d *DAO) GetChaptersByStoryIDs(ctx context.Context, storyIDs []string) (map
 	}
 	filterExpr += ") AND attribute_not_exists(deleted_at)"
 
-	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
+	scanInput := &dynamodb.ScanInput{
 		TableName:                 aws.String("chapters" + GetTableSuffix()),
 		FilterExpression:          aws.String(filterExpr),
 		ExpressionAttributeValues: expressionValues,
-	})
-	if err != nil {
-		logger.Error("Failed to batch fetch chapters", "error", err, "storyCount", len(storyIDs))
-		return nil, err
 	}
 
-	// Unmarshal all chapters
+	// Use paginator to handle results that span multiple pages
+	paginator := dynamodb.NewScanPaginator(d.DynamoClient, scanInput)
 	allChapters := []models.Chapter{}
-	if err = attributevalue.UnmarshalListOfMaps(out.Items, &allChapters); err != nil {
-		logger.Error("Failed to unmarshal batch chapters", "error", err)
-		return nil, err
+
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			logger.Error("Failed to batch fetch chapters", "error", err, "storyCount", len(storyIDs))
+			return nil, err
+		}
+
+		var pageChapters []models.Chapter
+		if err = attributevalue.UnmarshalListOfMaps(page.Items, &pageChapters); err != nil {
+			logger.Error("Failed to unmarshal batch chapters", "error", err)
+			return nil, err
+		}
+		allChapters = append(allChapters, pageChapters...)
 	}
 
 	// Group chapters by story_id
@@ -107,10 +127,6 @@ func (d *DAO) GetChaptersByStoryIDs(ctx context.Context, storyIDs []string) (map
 		})
 		chaptersByStory[storyID] = chapters
 	}
-
-	logger.Debug("Batch fetched chapters",
-		"storyCount", len(storyIDs),
-		"chapterCount", len(allChapters))
 
 	return chaptersByStory, nil
 }

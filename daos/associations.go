@@ -305,7 +305,6 @@ func (d *DAO) GetAssociationDetails(ctx context.Context, email, storyID, associa
 		return association, err
 	}
 	if len(deets) == 0 {
-		fmt.Println("no details found for association id:", associationID)
 		return association, nil
 	}
 	association.Details = deets[0]

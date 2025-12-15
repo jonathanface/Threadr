@@ -557,24 +557,8 @@ func AllSeriesVolumesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	var readyStories []*models.Story
-	for _, story := range volumes {
-		allTablesReady := true
-		for _, chapter := range story.Chapters {
-			status, err := dao.CheckTableStatus(r.Context(), story.ID + "_" + chapter.ID + "_blocks" + daos.GetTableSuffix())
-			if err != nil {
-				RespondWithError(w, http.StatusInternalServerError, err.Error())
-			}
-			if status != "ACTIVE" {
-				// only return stories with all its tables in active status
-				allTablesReady = false
-			}
-		}
-		if allTablesReady {
-			readyStories = append(readyStories, story)
-		}
-	}
-	RespondWithJson(w, http.StatusOK, readyStories)
+	// All chapters now use the unified story_blocks table, no need to check individual table status
+	RespondWithJson(w, http.StatusOK, volumes)
 }
 
 func GetUserData(w http.ResponseWriter, r *http.Request) {

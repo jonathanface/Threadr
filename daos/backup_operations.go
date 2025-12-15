@@ -1,6 +1,7 @@
 package daos
 
 import (
+	"RichDocter/logger"
 	"RichDocter/models"
 	"context"
 	"fmt"
@@ -121,11 +122,13 @@ func (d *DAO) ensureBlocksTableFromBackup(
 }
 
 func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.Story) error {
+	// Find all chapters that were automatically deleted (subscription expired)
 	chapterScanInput := &dynamodb.ScanInput{
 		TableName:        aws.String("chapters" + GetTableSuffix()),
-		FilterExpression: aws.String("attribute_exists(deleted_at) AND story_id = :sid AND attribute_exists(bup_arn)"),
+		FilterExpression: aws.String("story_id = :sid AND attribute_exists(deleted_at) AND automated_deletion = :a"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":sid": &types.AttributeValueMemberS{Value: story.ID},
+			":a":   &types.AttributeValueMemberBOOL{Value: true},
 		},
 		Select: types.SelectAllAttributes,
 	}
@@ -137,19 +140,9 @@ func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.St
 	if err = attributevalue.UnmarshalListOfMaps(chapterOut.Items, &chapters); err != nil {
 		return err
 	}
+	// Restore all chapters by removing the deleted_at flag
+	// Chapter content remains in the story_blocks table and doesn't need restoration
 	for _, chapter := range chapters {
-		if len(chapter.BackupARN) == 0 {
-			continue
-		}
-		oldTableName := story.ID + "_" + chapter.ID + "_blocks" + GetTableSuffix()
-		if len(chapter.BackupARN) > 0 {
-			if err := d.ensureBlocksTableFromBackup(ctx, chapter.BackupARN, oldTableName, chapter.Title); err != nil {
-				return err // only real errors bubble up; races are absorbed
-			}
-		} else {
-			fmt.Printf("no backup arn for chapter: %s\n", chapter.ID)
-		}
-
 		chapterUpdateInput := &dynamodb.UpdateItemInput{
 			TableName: aws.String("chapters" + GetTableSuffix()),
 			Key: map[string]types.AttributeValue{
@@ -160,7 +153,10 @@ func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.St
 		}
 		_, err = d.DynamoClient.UpdateItem(ctx, chapterUpdateInput)
 		if err != nil {
-			fmt.Printf("failed to update deletion flag for chapter: %s\n", chapter.ID)
+			logger.Error("Failed to restore chapter",
+				"error", err,
+				"chapterId", chapter.ID,
+				"storyId", story.ID)
 		}
 	}
 	storyKey := map[string]types.AttributeValue{

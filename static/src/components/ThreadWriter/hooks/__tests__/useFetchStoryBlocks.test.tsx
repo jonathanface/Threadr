@@ -116,6 +116,7 @@ describe('useFetchStoryBlocks', () => {
         expect(mockPreviousNodeKeysRef.current.get('para-1')).toEqual({
           text: 'Test content',
           place: '0',
+          format: 0,
         });
       });
     });
