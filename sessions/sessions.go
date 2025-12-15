@@ -98,40 +98,22 @@ func GenerateSessionToken() string {
 // StoreTokenMapping stores a mobile token -> user data mapping
 func StoreTokenMapping(token string, userInfo interface{}) {
 	tokenMap.Store(token, &tokenData{UserInfo: userInfo})
-	tokenPreview := token
-	if len(tokenPreview) > 12 {
-		tokenPreview = tokenPreview[:12] + "..."
-	}
-	// Try to extract email for logging
-	email := "unknown"
-	if ui, ok := userInfo.(interface{ GetEmail() string }); ok {
-		email = ui.GetEmail()
-	} else if m, ok := userInfo.(map[string]interface{}); ok {
-		if e, ok := m["Email"].(string); ok {
-			email = e
-		}
-	}
-	log.Printf("[sessions] Stored token mapping: %s for user: %s", tokenPreview, email)
 }
 
 // GetUserByToken retrieves the user data for a mobile token
 func GetUserByToken(token string) (interface{}, bool) {
-	tokenPreview := token
-	if len(tokenPreview) > 12 {
-		tokenPreview = tokenPreview[:12] + "..."
-	}
 
 	val, ok := tokenMap.Load(token)
 	if !ok {
-		log.Printf("[sessions] Token not found in map: %s", tokenPreview)
+		log.Printf("[sessions] Token not found in map")
 		return nil, false
 	}
 	data, ok := val.(*tokenData)
 	if !ok {
-		log.Printf("[sessions] Invalid data format for token: %s", tokenPreview)
+		log.Printf("[sessions] Invalid data format for token")
 		return nil, false
 	}
-	log.Printf("[sessions] Token found in map: %s", tokenPreview)
+	log.Printf("[sessions] Token found in map")
 	return data.UserInfo, true
 }
 
