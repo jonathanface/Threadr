@@ -499,17 +499,13 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 
 	// Check for mobile token-based auth
 	authHeader := r.Header.Get("Authorization")
-	if strings.HasPrefix(authHeader, "Bearer ") {
-		sessionToken := strings.TrimPrefix(authHeader, "Bearer ")
-		tokenPreview := sessionToken
-		if len(tokenPreview) > 12 {
-			tokenPreview = tokenPreview[:12] + "..."
-		}
-		logger.Info("Logging out mobile session", "token", tokenPreview)
+	if after, ok := strings.CutPrefix(authHeader, "Bearer "); ok {
+		sessionToken := after
+		logger.Info("Logging out mobile session")
 
 		// Delete the token from the token map
 		sessions.DeleteTokenMapping(sessionToken)
-		logger.Info("Mobile logout successful", "token", tokenPreview)
+		logger.Info("Mobile logout successful")
 		api.RespondWithJson(w, http.StatusOK, nil)
 		return
 	}
