@@ -49,6 +49,25 @@
   overflow: hidden;
 }
 
+/* Pulse animation for new users */
+.pulse {
+  animation: pulseRing 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  border-color: rgba(42, 87, 227, 0.8);
+  box-shadow: 0 0 0 0 rgba(42, 87, 227, 0.7);
+}
+
+@keyframes pulseRing {
+  0% {
+    box-shadow: 0 0 0 0 rgba(42, 87, 227, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 15px rgba(42, 87, 227, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(42, 87, 227, 0);
+  }
+}
+
 .createStoryButton::before {
   content: '';
   position: absolute;
@@ -97,6 +116,33 @@
 
 :global([data-theme="light"]) .createStoryButton:hover :global(.MuiSvgIcon-root) {
   color: #0d47a1 !important;
+}
+
+/* Empty State Message - Inline with button */
+.emptyStateInline {
+  text-align: center;
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md);
+  position: relative;
+  z-index: 1;
+}
+
+.emptyStateInline h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-xs) 0;
+  letter-spacing: -0.01em;
+}
+
+.emptyStateInline p {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+  max-width: 280px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Logo Container */

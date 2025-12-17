@@ -577,8 +577,21 @@ func GetUserData(w http.ResponseWriter, r *http.Request) {
 	// Fetch fresh user details from database
 	details, err := dao.GetUserDetails(r.Context(), user.Email)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			RespondWithError(w, http.StatusNotFound, "user not found")
+			return
+		}
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
+	}
+
+	// Check URL parameters for new/returning user flags (set by auth callback)
+	queryParams := r.URL.Query()
+	if queryParams.Get("new_user") == "true" {
+		details.NewUser = true
+	}
+	if queryParams.Get("returning_user") == "true" {
+		details.ReturningUser = true
 	}
 
 	// Return the fresh details from database (not the cached session data)

@@ -129,8 +129,8 @@ type UserInfo struct {
 	NotifyExpired  bool   `json:"notify_expired,omitempty"`
 	NotifyRestored bool   `json:"notify_restored,omitempty"`
 	DeletedAt      string `json:"deleted_at,omitempty" dynamodbav:"deleted_at"`
-	NewUser        bool   `json:"new_user,omitempty"`        // Transient flag for brand new users (not stored in DB)
-	ReturningUser  bool   `json:"returning_user,omitempty"`  // Transient flag for returning deleted users (not stored in DB)
+	NewUser        bool   `json:"showWelcome,omitempty"`        // Transient flag for brand new users (not stored in DB) - mapped to showWelcome in frontend
+	ReturningUser  bool   `json:"isReturningUser,omitempty"`   // Transient flag for returning deleted users (not stored in DB)
 }
 
 type Subscription struct {

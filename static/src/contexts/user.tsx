@@ -9,6 +9,7 @@ export interface UserContextType {
   userLoading: boolean;
   setIsLoggedIn: (value: boolean) => void;
   setUserDetails: (value: UserDetails | null) => void;
+  clearWelcomeFlags: () => void;
 }
 
 export const UserContext = createContext<UserContextType | undefined>(undefined);

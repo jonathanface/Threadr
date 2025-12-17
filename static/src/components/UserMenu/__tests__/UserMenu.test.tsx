@@ -46,6 +46,7 @@ const createMockUserContext = (isLoggedIn: boolean) => ({
   isLoggedIn,
   userLoading: false,
   setIsLoggedIn: vi.fn(),
+        clearWelcomeFlags: vi.fn(),
   setUserDetails: vi.fn(),
 });
 

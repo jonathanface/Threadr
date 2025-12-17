@@ -4,6 +4,8 @@ export interface UserDetails {
   last_name?: string;
   subscriber: boolean;
   admin?: boolean;
+  showWelcome?: boolean;
+  isReturningUser?: boolean;
 }
 
 export interface User {

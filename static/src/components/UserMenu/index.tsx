@@ -73,7 +73,7 @@ export const UserMenu = () => {
       </span>
       {isOpen && (
         <ul>
-          <li onClick={showSettingsPanel}>Settings</li>
+          <li onClick={showSettingsPanel}>Account</li>
           <li onClick={signout}>Signout</li>
         </ul>
       )}

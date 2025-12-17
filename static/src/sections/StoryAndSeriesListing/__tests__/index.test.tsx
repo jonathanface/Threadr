@@ -57,6 +57,7 @@ describe('StoryAndSeriesListing', () => {
     isLoggedIn: true,
     userLoading: false,
     setIsLoggedIn: vi.fn(),
+        clearWelcomeFlags: vi.fn(),
     setUserDetails: vi.fn(),
   };
 
