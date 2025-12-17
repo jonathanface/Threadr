@@ -3,6 +3,7 @@ package converters
 import (
 	"RichDocter/models"
 	"context"
+	"encoding/json"
 	"fmt"
 	"html"
 	"io"
@@ -196,6 +197,193 @@ func DownloadCoverImage(imageURL string) (string, error) {
 	}
 
 	return tmpFile.Name(), nil
+}
+
+// LexicalNode represents a node in the Lexical editor state
+type LexicalNode struct {
+	Type       string         `json:"type"`
+	Children   []LexicalNode  `json:"children,omitempty"`
+	Text       string         `json:"text,omitempty"`
+	Format     interface{}    `json:"format,omitempty"`
+	TextFormat int            `json:"textFormat,omitempty"`
+	TextStyle  string         `json:"textStyle,omitempty"`
+	Direction  string         `json:"direction,omitempty"`
+	Indent     int            `json:"indent,omitempty"`
+	Version    int            `json:"version,omitempty"`
+}
+
+// LexicalEditorState represents the root structure of Lexical JSON
+type LexicalEditorState struct {
+	Root struct {
+		Children  []LexicalNode `json:"children"`
+		Direction string        `json:"direction"`
+		Format    string        `json:"format"`
+		Indent    int           `json:"indent"`
+		Type      string        `json:"type"`
+		Version   int           `json:"version"`
+	} `json:"root"`
+}
+
+// DynamoDBValue represents a DynamoDB AttributeValue with a Value field
+type DynamoDBValue struct {
+	Value interface{} `json:"Value"`
+}
+
+// LexicalToHTML converts Lexical JSON format to HTML
+// The input can be either a full editor state or a BlocksData structure from the mobile API
+func LexicalToHTML(lexicalJSON string) (string, error) {
+	// First try to parse as BlocksData (mobile app format with DynamoDB AttributeValues)
+	var rawData struct {
+		Items []map[string]json.RawMessage `json:"items"`
+	}
+
+	if err := json.Unmarshal([]byte(lexicalJSON), &rawData); err == nil && len(rawData.Items) > 0 {
+		// This is BlocksData format - extract chunks and convert
+		var htmlBuilder strings.Builder
+
+		for _, item := range rawData.Items {
+			// Extract the chunk attribute (it's wrapped in DynamoDB AttributeValue format)
+			if chunkRaw, ok := item["chunk"]; ok {
+				// Parse the DynamoDB AttributeValue wrapper
+				var chunkWrapper DynamoDBValue
+				if err := json.Unmarshal(chunkRaw, &chunkWrapper); err == nil {
+					// The Value field contains the Lexical JSON as a string
+					var chunkStr string
+					if str, ok := chunkWrapper.Value.(string); ok {
+						chunkStr = str
+					} else {
+						// Try to marshal and unmarshal if it's not a string
+						chunkBytes, _ := json.Marshal(chunkWrapper.Value)
+						chunkStr = string(chunkBytes)
+					}
+
+					// Parse the Lexical node from the chunk
+					var node LexicalNode
+					if err := json.Unmarshal([]byte(chunkStr), &node); err == nil {
+						html := nodeToHTML(node)
+						htmlBuilder.WriteString(html)
+					}
+				}
+			}
+		}
+
+		return htmlBuilder.String(), nil
+	}
+
+	// Try to parse as a full editor state
+	var editorState LexicalEditorState
+	if err := json.Unmarshal([]byte(lexicalJSON), &editorState); err == nil {
+		var htmlBuilder strings.Builder
+		for _, child := range editorState.Root.Children {
+			htmlBuilder.WriteString(nodeToHTML(child))
+		}
+		return htmlBuilder.String(), nil
+	}
+
+	// Try to parse as a single node
+	var node LexicalNode
+	if err := json.Unmarshal([]byte(lexicalJSON), &node); err != nil {
+		return "", fmt.Errorf("failed to parse Lexical JSON: %w", err)
+	}
+
+	return nodeToHTML(node), nil
+}
+
+// nodeToHTML converts a single Lexical node to HTML
+func nodeToHTML(node LexicalNode) string {
+	var html strings.Builder
+
+	switch node.Type {
+	case "paragraph", "custom-paragraph":
+		// Get text alignment style
+		var style string
+		if node.Format != nil {
+			switch fmt.Sprint(node.Format) {
+			case "center":
+				style = ` style="text-align:center;"`
+			case "right":
+				style = ` style="text-align:right;"`
+			case "justify":
+				style = ` style="text-align:justify;"`
+			}
+		}
+
+		html.WriteString("<div" + style + ">")
+		for _, child := range node.Children {
+			html.WriteString(nodeToHTML(child))
+		}
+		html.WriteString("</div>")
+
+	case "text":
+		text := node.Text
+
+		// Apply text formatting based on textFormat bitmask
+		// Lexical uses bitmask: 1=bold, 2=italic, 4=strikethrough, 8=underline
+		textFormat := node.TextFormat
+		if textFormat&1 != 0 {
+			text = "<strong>" + text + "</strong>"
+		}
+		if textFormat&2 != 0 {
+			text = "<em>" + text + "</em>"
+		}
+		if textFormat&8 != 0 {
+			text = "<u>" + text + "</u>"
+		}
+		if textFormat&4 != 0 {
+			text = "<s>" + text + "</s>"
+		}
+
+		html.WriteString(text)
+
+	case "linebreak":
+		html.WriteString("<br>")
+
+	case "heading":
+		// Default to h1 if no specific heading level
+		html.WriteString("<h1>")
+		for _, child := range node.Children {
+			html.WriteString(nodeToHTML(child))
+		}
+		html.WriteString("</h1>")
+
+	case "list":
+		// Check if ordered or unordered (default to ul)
+		listTag := "ul"
+		html.WriteString("<" + listTag + ">")
+		for _, child := range node.Children {
+			html.WriteString(nodeToHTML(child))
+		}
+		html.WriteString("</" + listTag + ">")
+
+	case "listitem":
+		html.WriteString("<li>")
+		for _, child := range node.Children {
+			html.WriteString(nodeToHTML(child))
+		}
+		html.WriteString("</li>")
+
+	case "link":
+		html.WriteString("<a>")
+		for _, child := range node.Children {
+			html.WriteString(nodeToHTML(child))
+		}
+		html.WriteString("</a>")
+
+	case "quote":
+		html.WriteString("<blockquote>")
+		for _, child := range node.Children {
+			html.WriteString(nodeToHTML(child))
+		}
+		html.WriteString("</blockquote>")
+
+	default:
+		// For unknown node types, just process children
+		for _, child := range node.Children {
+			html.WriteString(nodeToHTML(child))
+		}
+	}
+
+	return html.String()
 }
 
 func HTMLToEPUB(export models.DocumentExportRequest) (string, error) {

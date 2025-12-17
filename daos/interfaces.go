@@ -64,6 +64,7 @@ type DaoInterface interface {
 	SoftDeleteStory(ctx context.Context, email, storyID string, isAutomated bool) error
 	hardDeleteStory(ctx context.Context, email, storyID string) error
 	DeleteSeries(ctx context.Context, email string, series models.Series) error
+	DeleteUser(ctx context.Context, email string) error
 
 	// HELPERS
 	WasStoryDeleted(ctx context.Context, email string, storyID string) (bool, error)

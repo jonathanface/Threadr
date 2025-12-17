@@ -5,11 +5,9 @@ import { BrowserRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import { StoryAndSeriesListing } from '../index';
 import { UserContext } from '../../../contexts/user';
-import { AlertToastType } from '../../../types/AlertToasts';
 
 // Mock navigate
 const mockNavigate = vi.fn();
-const mockSetAlertState = vi.fn();
 const mockDeselectAll = vi.fn();
 
 vi.mock('react-router-dom', async () => {
@@ -21,12 +19,6 @@ vi.mock('react-router-dom', async () => {
 });
 
 // Mock hooks
-vi.mock('../../../hooks/useToaster', () => ({
-  useToaster: () => ({
-    setAlertState: mockSetAlertState,
-  }),
-}));
-
 const mockUseWorksList = vi.fn();
 vi.mock('../../../hooks/useWorksList', () => ({
   useWorksList: () => mockUseWorksList(),
@@ -35,6 +27,13 @@ vi.mock('../../../hooks/useWorksList', () => ({
 vi.mock('../../../hooks/useSelections', () => ({
   useSelections: () => ({
     deselectAll: mockDeselectAll,
+  }),
+}));
+
+vi.mock('../../../hooks/useFetchUserData', () => ({
+  useFetchUserData: () => ({
+    userDetails: null,
+    clearWelcomeFlags: vi.fn(),
   }),
 }));
 
@@ -51,12 +50,18 @@ vi.mock('../../../components/SeriesBox', () => ({
   ),
 }));
 
+vi.mock('../../Welcome', () => ({
+  WelcomeModal: ({ open, isReturningUser, onClose }: any) =>
+    open ? <div data-testid="welcome-modal">Welcome Modal</div> : null,
+}));
+
 describe('StoryAndSeriesListing', () => {
   const mockUserData = {
     userDetails: null,
     isLoggedIn: true,
     userLoading: false,
     setIsLoggedIn: vi.fn(),
+        clearWelcomeFlags: vi.fn(),
     setUserDetails: vi.fn(),
   };
 
@@ -227,7 +232,7 @@ describe('StoryAndSeriesListing', () => {
   });
 
   describe('Empty State', () => {
-    it('should show info toast when both lists are empty', async () => {
+    it('should show empty state message when both lists are empty', async () => {
       mockUseWorksList.mockReturnValue({
         seriesList: [],
         storiesList: [],
@@ -236,17 +241,12 @@ describe('StoryAndSeriesListing', () => {
       renderStoryAndSeriesListing();
 
       await waitFor(() => {
-        expect(mockSetAlertState).toHaveBeenCalledWith({
-          title: 'The Docter is In',
-          message: '...but you haven\'t created any stories yet. Hit the big plus button to make one.',
-          open: true,
-          severity: AlertToastType.info,
-          timeout: null,
-        });
+        expect(screen.getByText('No Stories Yet')).toBeInTheDocument();
+        expect(screen.getByText(/Click the plus button to start writing your first story!/i)).toBeInTheDocument();
       });
     });
 
-    it('should not show toast if stories exist', async () => {
+    it('should not show empty state message if stories exist', async () => {
       mockUseWorksList.mockReturnValue({
         seriesList: [],
         storiesList: mockStories,
@@ -255,11 +255,11 @@ describe('StoryAndSeriesListing', () => {
       renderStoryAndSeriesListing();
 
       await waitFor(() => {
-        expect(mockSetAlertState).not.toHaveBeenCalled();
+        expect(screen.queryByText('No Stories Yet')).not.toBeInTheDocument();
       });
     });
 
-    it('should not show toast if series exist', async () => {
+    it('should not show empty state message if series exist', async () => {
       mockUseWorksList.mockReturnValue({
         seriesList: mockSeries,
         storiesList: [],
@@ -268,7 +268,7 @@ describe('StoryAndSeriesListing', () => {
       renderStoryAndSeriesListing();
 
       await waitFor(() => {
-        expect(mockSetAlertState).not.toHaveBeenCalled();
+        expect(screen.queryByText('No Stories Yet')).not.toBeInTheDocument();
       });
     });
 
@@ -400,7 +400,7 @@ describe('StoryAndSeriesListing', () => {
   });
 
   describe('Effect Dependencies', () => {
-    it('should re-run effect when storiesList changes', async () => {
+    it('should show empty state message when storiesList becomes empty', async () => {
       const { rerender } = renderStoryAndSeriesListing();
 
       mockUseWorksList.mockReturnValue({
@@ -417,7 +417,7 @@ describe('StoryAndSeriesListing', () => {
       );
 
       await waitFor(() => {
-        expect(mockSetAlertState).toHaveBeenCalled();
+        expect(screen.getByText('No Stories Yet')).toBeInTheDocument();
       });
     });
   });

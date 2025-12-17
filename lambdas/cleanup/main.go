@@ -42,6 +42,7 @@ func HandleRequest(ctx context.Context) (Response, error) {
 		"series",
 		"story_settings",
 		"outlines",
+		"users",
 	}
 
 	// Which variants to run. Default: prod + _staging.
@@ -67,7 +68,7 @@ func HandleRequest(ctx context.Context) (Response, error) {
 	}
 	client := dynamodb.NewFromConfig(cfg)
 
-	cutoff := time.Now().AddDate(0, 0, -35).Unix()
+	cutoff := time.Now().AddDate(0, 0, -30).Unix()
 
 	total := 0
 	for _, tbl := range tables {
@@ -126,6 +127,8 @@ func keyNamesForTable(table string) keySpec {
 		return keySpec{pk: "story_id", sk: "chapter_id", hasSK: true}
 	case "outlines", "outlines_staging":
 		return keySpec{pk: "story_id", sk: "place", hasSK: true}
+	case "users", "users_staging":
+		return keySpec{pk: "email", hasSK: false}
 	default:
 		// fallback to your legacy names; adjust if you know others
 		return keySpec{pk: "key_id", hasSK: false}

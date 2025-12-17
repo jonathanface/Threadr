@@ -46,6 +46,7 @@ const createMockUserContext = (isLoggedIn: boolean) => ({
   isLoggedIn,
   userLoading: false,
   setIsLoggedIn: vi.fn(),
+        clearWelcomeFlags: vi.fn(),
   setUserDetails: vi.fn(),
 });
 
@@ -111,7 +112,7 @@ describe('UserMenu', () => {
         </UserContext.Provider>
       );
 
-      expect(screen.queryByText('Settings')).not.toBeInTheDocument();
+      expect(screen.queryByText('Account')).not.toBeInTheDocument();
       expect(screen.queryByText('Signout')).not.toBeInTheDocument();
     });
 
@@ -128,7 +129,7 @@ describe('UserMenu', () => {
       fireEvent.mouseEnter(menuIcon!);
 
       await waitFor(() => {
-        expect(screen.getByText('Settings')).toBeInTheDocument();
+        expect(screen.getByText('Account')).toBeInTheDocument();
         expect(screen.getByText('Signout')).toBeInTheDocument();
       });
     });
@@ -146,13 +147,13 @@ describe('UserMenu', () => {
       fireEvent.mouseEnter(menuIcon!);
 
       await waitFor(() => {
-        expect(screen.getByText('Settings')).toBeInTheDocument();
+        expect(screen.getByText('Account')).toBeInTheDocument();
       });
 
       fireEvent.mouseLeave(menuIcon!);
 
       await waitFor(() => {
-        expect(screen.queryByText('Settings')).not.toBeInTheDocument();
+        expect(screen.queryByText('Account')).not.toBeInTheDocument();
       });
     });
 
@@ -170,18 +171,18 @@ describe('UserMenu', () => {
       fireEvent.click(menuIcon!);
 
       await waitFor(() => {
-        expect(screen.getByText('Settings')).toBeInTheDocument();
+        expect(screen.getByText('Account')).toBeInTheDocument();
       });
 
       // Click to close
       fireEvent.click(menuIcon!);
 
       await waitFor(() => {
-        expect(screen.queryByText('Settings')).not.toBeInTheDocument();
+        expect(screen.queryByText('Account')).not.toBeInTheDocument();
       });
     });
 
-    it('should navigate to settings when Settings clicked', async () => {
+    it('should navigate to settings when Account clicked', async () => {
       render(
         <UserContext.Provider value={createMockUserContext(true)}>
           <UserMenu />
@@ -191,8 +192,8 @@ describe('UserMenu', () => {
       const menuIcon = screen.getByLabelText('user menu').closest('span')?.parentElement;
       fireEvent.mouseEnter(menuIcon!);
 
-      const settingsLink = await screen.findByText('Settings');
-      fireEvent.click(settingsLink);
+      const accountLink = await screen.findByText('Account');
+      fireEvent.click(accountLink);
 
       expect(mockNavigate).toHaveBeenCalledWith('/account/subscription');
     });
@@ -382,10 +383,10 @@ describe('UserMenu', () => {
       const menuIcon = screen.getByLabelText('user menu').closest('span')?.parentElement;
       fireEvent.mouseEnter(menuIcon!);
 
-      const settingsLink = await screen.findByText('Settings');
+      const accountLink = await screen.findByText('Account');
       const signoutLink = await screen.findByText('Signout');
 
-      expect(settingsLink).toBeInTheDocument();
+      expect(accountLink).toBeInTheDocument();
       expect(signoutLink).toBeInTheDocument();
     });
 

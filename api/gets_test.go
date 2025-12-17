@@ -61,6 +61,24 @@ func TestGetUserData_Success(t *testing.T) {
 	}
 }
 
+func TestGetUserData_UserNotFound(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+
+	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+		return nil, sql.ErrNoRows
+	}
+
+	req := createTestRequestWithSession("GET", "/user/data", nil)
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
+
+	rr := httptest.NewRecorder()
+	GetUserData(rr, req)
+
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("Expected status 404, got %d", rr.Code)
+	}
+}
+
 func TestGetUserData_DatabaseError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
@@ -76,6 +94,68 @@ func TestGetUserData_DatabaseError(t *testing.T) {
 
 	if rr.Code != http.StatusInternalServerError {
 		t.Errorf("Expected status 500, got %d", rr.Code)
+	}
+}
+
+func TestGetUserData_WithNewUserFlag(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+	testEmail := "test@example.com"
+
+	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+		return &models.UserInfo{
+			Email:      testEmail,
+			Subscriber: false,
+		}, nil
+	}
+
+	req := createTestRequestWithSession("GET", "/user/data?new_user=true", nil)
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
+
+	rr := httptest.NewRecorder()
+	GetUserData(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", rr.Code)
+	}
+
+	var response models.UserInfo
+	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
+		t.Errorf("Failed to unmarshal response: %v", err)
+	}
+
+	if !response.NewUser {
+		t.Errorf("Expected NewUser to be true")
+	}
+}
+
+func TestGetUserData_WithReturningUserFlag(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+	testEmail := "test@example.com"
+
+	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+		return &models.UserInfo{
+			Email:      testEmail,
+			Subscriber: false,
+		}, nil
+	}
+
+	req := createTestRequestWithSession("GET", "/user/data?returning_user=true", nil)
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
+
+	rr := httptest.NewRecorder()
+	GetUserData(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", rr.Code)
+	}
+
+	var response models.UserInfo
+	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
+		t.Errorf("Failed to unmarshal response: %v", err)
+	}
+
+	if !response.ReturningUser {
+		t.Errorf("Expected ReturningUser to be true")
 	}
 }
 

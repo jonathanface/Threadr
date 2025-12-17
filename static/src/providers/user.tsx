@@ -13,9 +13,49 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
   const { showLoader, hideLoader } = useLoader();
 
   const fetchUserData = async (): Promise<UserDetails> => {
-    const { data } = await api.get<UserDetails>("/user", {
+    // Check URL for new_user or returning_user flags from auth callback
+    const urlParams = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams();
+
+    // Check URL parameters first
+    const newUserFromUrl = urlParams.get('new_user') === 'true';
+    const returningUserFromUrl = urlParams.get('returning_user') === 'true';
+
+    console.log('fetchUserData - URL params:', {
+      newUserFromUrl,
+      returningUserFromUrl,
+      currentUrl: window.location.href
+    });
+
+    // Store in sessionStorage for persistence across navigations
+    if (newUserFromUrl) {
+      console.log('Setting new_user in sessionStorage');
+      sessionStorage.setItem('new_user', 'true');
+      params.append('new_user', 'true');
+    } else if (sessionStorage.getItem('new_user') === 'true') {
+      console.log('Using cached new_user from sessionStorage');
+      params.append('new_user', 'true');
+    }
+
+    if (returningUserFromUrl) {
+      console.log('Setting returning_user in sessionStorage');
+      sessionStorage.setItem('returning_user', 'true');
+      params.append('returning_user', 'true');
+    } else if (sessionStorage.getItem('returning_user') === 'true') {
+      console.log('Using cached returning_user from sessionStorage');
+      params.append('returning_user', 'true');
+    }
+
+    const queryString = params.toString();
+    const url = queryString ? `/user?${queryString}` : '/user';
+
+    console.log('Fetching user data from:', url);
+
+    const { data } = await api.get<UserDetails>(url, {
       withCredentials: true,
     });
+
+    console.log('User data received:', data);
     return data;
   };
 
@@ -37,6 +77,29 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
     loadData();
   }, [hideLoader, showLoader]);
 
+  const clearWelcomeFlags = () => {
+    console.log('clearWelcomeFlags called');
+    if (userDetails) {
+      setUserDetails({
+        ...userDetails,
+        showWelcome: false,
+        isReturningUser: false,
+      });
+    }
+
+    // Clear sessionStorage flags
+    sessionStorage.removeItem('new_user');
+    sessionStorage.removeItem('returning_user');
+
+    // Clean up URL parameters after a short delay to ensure modal has closed
+    setTimeout(() => {
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.delete('new_user');
+      currentUrl.searchParams.delete('returning_user');
+      window.history.replaceState({}, '', currentUrl.toString());
+    }, 100);
+  };
+
   const userValue = useMemo(
     () => ({
       userDetails,
@@ -44,6 +107,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
       userLoading,
       setUserDetails,
       setIsLoggedIn,
+      clearWelcomeFlags,
     }),
     [userDetails, setUserDetails, isLoggedIn, userLoading, setIsLoggedIn],
   );

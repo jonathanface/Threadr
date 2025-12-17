@@ -8,12 +8,13 @@ export const useFetchUserData = () => {
     throw new Error("UserContext must be used within a UserContext.Provider");
   }
 
-  const { userDetails, isLoggedIn, userLoading, setUserDetails, setIsLoggedIn } = userContext;
+  const { userDetails, isLoggedIn, userLoading, setUserDetails, setIsLoggedIn, clearWelcomeFlags } = userContext;
   return {
     userDetails,
     isLoggedIn,
     userLoading,
     setIsLoggedIn,
-    setUserDetails
+    setUserDetails,
+    clearWelcomeFlags
   };
 };

@@ -1,6 +1,7 @@
 package daos
 
 import (
+	"RichDocter/logger"
 	"RichDocter/models"
 	"context"
 	"errors"
@@ -89,6 +90,35 @@ func (d *DAO) GetAllSeriesWithStories(ctx context.Context, email string, adminRe
 			}
 		}
 	}
+	return series, nil
+}
+
+// GetAllSeriesIncludingDeleted fetches all soft-deleted series for a user (for restoration purposes)
+// Note: This does NOT populate the Stories field for performance reasons during restoration
+func (d *DAO) GetAllSeriesIncludingDeleted(ctx context.Context, email string) (series []models.Series, err error) {
+	logger.Debug("GetAllSeriesIncludingDeleted called", "email", email)
+
+	scanInput := &dynamodb.ScanInput{
+		TableName:        aws.String("series" + GetTableSuffix()),
+		FilterExpression: aws.String("author=:eml AND attribute_exists(deleted_at)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":eml": &types.AttributeValueMemberS{
+				Value: email,
+			},
+		},
+	}
+	scanOutput, err := d.DynamoClient.Scan(ctx, scanInput)
+	if err != nil {
+		logger.Error("Failed to scan series table for deleted series", "error", err, "email", email)
+		return nil, err
+	}
+
+	if err = attributevalue.UnmarshalListOfMaps(scanOutput.Items, &series); err != nil {
+		logger.Error("Failed to unmarshal deleted series", "error", err, "email", email, "itemCount", len(scanOutput.Items))
+		return nil, err
+	}
+
+	logger.Info("Found deleted series", "email", email, "count", len(series))
 	return series, nil
 }
 

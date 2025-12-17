@@ -24,6 +24,7 @@ describe('useFetchUserData', () => {
             userLoading: false,
             setIsLoggedIn: mockSetIsLoggedIn,
             setUserDetails: mockSetUserDetails,
+            clearWelcomeFlags: vi.fn(),
           }}
         >
           {children}
@@ -62,6 +63,7 @@ describe('useFetchUserData', () => {
             userLoading: false,
             setIsLoggedIn: vi.fn(),
             setUserDetails: vi.fn(),
+            clearWelcomeFlags: vi.fn(),
           }}
         >
           {children}
@@ -82,6 +84,7 @@ describe('useFetchUserData', () => {
             userLoading: false,
             setIsLoggedIn: vi.fn(),
             setUserDetails: vi.fn(),
+            clearWelcomeFlags: vi.fn(),
           }}
         >
           {children}
@@ -105,6 +108,7 @@ describe('useFetchUserData', () => {
             userLoading: false,
             setIsLoggedIn: vi.fn(),
             setUserDetails: vi.fn(),
+            clearWelcomeFlags: vi.fn(),
           }}
         >
           {children}
@@ -125,6 +129,7 @@ describe('useFetchUserData', () => {
             userLoading: false,
             setIsLoggedIn: vi.fn(),
             setUserDetails: vi.fn(),
+            clearWelcomeFlags: vi.fn(),
           }}
         >
           {children}
@@ -147,6 +152,7 @@ describe('useFetchUserData', () => {
             userLoading: true,
             setIsLoggedIn: vi.fn(),
             setUserDetails: vi.fn(),
+            clearWelcomeFlags: vi.fn(),
           }}
         >
           {children}
@@ -167,6 +173,7 @@ describe('useFetchUserData', () => {
             userLoading: false,
             setIsLoggedIn: vi.fn(),
             setUserDetails: vi.fn(),
+            clearWelcomeFlags: vi.fn(),
           }}
         >
           {children}
@@ -191,6 +198,7 @@ describe('useFetchUserData', () => {
             userLoading: false,
             setIsLoggedIn: mockSetIsLoggedIn,
             setUserDetails: vi.fn(),
+            clearWelcomeFlags: vi.fn(),
           }}
         >
           {children}
@@ -214,6 +222,7 @@ describe('useFetchUserData', () => {
             userLoading: false,
             setIsLoggedIn: vi.fn(),
             setUserDetails: mockSetUserDetails,
+            clearWelcomeFlags: vi.fn(),
           }}
         >
           {children}
@@ -240,6 +249,7 @@ describe('useFetchUserData', () => {
             userLoading: false,
             setIsLoggedIn: mockSetIsLoggedIn,
             setUserDetails: mockSetUserDetails,
+            clearWelcomeFlags: vi.fn(),
           }}
         >
           {children}
@@ -274,6 +284,7 @@ describe('useFetchUserData', () => {
             userLoading: false,
             setIsLoggedIn: vi.fn(),
             setUserDetails: vi.fn(),
+            clearWelcomeFlags: vi.fn(),
           }}
         >
           {children}
@@ -294,6 +305,7 @@ describe('useFetchUserData', () => {
             userLoading: true,
             setIsLoggedIn: vi.fn(),
             setUserDetails: vi.fn(),
+            clearWelcomeFlags: vi.fn(),
           }}
         >
           {children}

@@ -23,8 +23,94 @@ import (
 )
 
 func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, error) {
-	twii := &dynamodb.TransactWriteItemsInput{}
 	now := strconv.FormatInt(time.Now().Unix(), 10)
+
+	// First, check if this is a re-registration of a deleted account
+	existingUser, err := d.GetUserByEmailIncludingDeleted(ctx, email)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, err
+	}
+
+	// If user exists and was deleted, we need to use Update instead of Put
+	if existingUser != nil && existingUser.DeletedAt != "" {
+		// 1. Restore user account
+		input := &dynamodb.UpdateItemInput{
+			TableName: aws.String("users" + GetTableSuffix()),
+			Key: map[string]types.AttributeValue{
+				"email": &types.AttributeValueMemberS{Value: email},
+			},
+			UpdateExpression: aws.String("set created_at=:t, last_accessed=:t, admin=:a, subscriber=:s REMOVE deleted_at, customer_id, first_name, last_name"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":t": &types.AttributeValueMemberN{Value: now},
+				":a": &types.AttributeValueMemberBOOL{Value: false},
+				":s": &types.AttributeValueMemberBOOL{Value: false},
+			},
+			ReturnValues: types.ReturnValueAllNew,
+		}
+
+		if _, err := d.DynamoClient.UpdateItem(ctx, input); err != nil {
+			return nil, err
+		}
+
+		// 2. Restore all soft-deleted stories (undelete them)
+		stories, err := d.GetAllStoriesIncludingDeleted(ctx, email)
+		if err != nil && err != sql.ErrNoRows {
+			logger.Warn("Failed to get deleted stories for restoration", "email", email, "error", err)
+			// Continue anyway - don't fail account recreation
+		} else {
+			for _, story := range stories {
+				// Undelete the story by removing deleted_at
+				if err := d.RestoreStory(ctx, email, story.ID); err != nil {
+					logger.Warn("Failed to restore story", "email", email, "storyID", story.ID, "error", err)
+					// Continue with other stories
+				}
+			}
+			logger.Info("Restored stories for returning user", "email", email, "count", len(stories))
+		}
+
+		// 3. Restore all soft-deleted series
+		series, err := d.GetAllSeriesIncludingDeleted(ctx, email)
+		if err != nil && err != sql.ErrNoRows {
+			logger.Warn("Failed to get deleted series for restoration", "email", email, "error", err)
+			// Continue anyway
+		} else {
+			for _, s := range series {
+				// Undelete the series by removing deleted_at
+				if err := d.RestoreSeries(ctx, email, s.ID); err != nil {
+					logger.Warn("Failed to restore series", "email", email, "seriesID", s.ID, "error", err)
+					// Continue with other series
+				}
+			}
+			logger.Info("Restored series for returning user", "email", email, "count", len(series))
+		}
+
+		user := models.UserInfo{
+			Email:         email,
+			Admin:         false,
+			Subscriber:    false,
+			ReturningUser: true, // Flag for returning deleted user
+		}
+
+		logger.Info("Account re-created (was previously deleted)", "email", email)
+		// Send emails asynchronously
+		go func() {
+			if err := sendWelcomeEmail(email); err != nil {
+				logger.Error("Failed to send welcome email", "email", email, "error", err)
+			} else {
+				logger.Info("Welcome email sent successfully", "email", email)
+			}
+			if err := sendNewUserNotificationEmail(email); err != nil {
+				logger.Error("Failed to send new user notification email", "email", email, "error", err)
+			} else {
+				logger.Info("New user notification email sent successfully", "email", email)
+			}
+		}()
+
+		return &user, nil
+	}
+
+	// Normal new user creation
+	twii := &dynamodb.TransactWriteItemsInput{}
 	attributes := map[string]types.AttributeValue{
 		"email":      &types.AttributeValueMemberS{Value: email},
 		"admin":      &types.AttributeValueMemberBOOL{Value: false},
@@ -52,6 +138,7 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 		Email:      email,
 		Admin:      false,
 		Subscriber: false,
+		NewUser:    true, // Flag for brand new user
 	}
 
 	logger.Info("New account created", "email", email)
@@ -102,15 +189,55 @@ func (d *DAO) GetUserDetails(ctx context.Context, email string) (user *models.Us
 	}
 	logger.Info("DynamoDB Scan succeeded", "email", email, "itemCount", len(out.Items))
 
+	// Log raw items for debugging subscriber field issue
+	if len(out.Items) > 0 {
+		logger.Info("Raw DynamoDB item for user", "email", email, "rawItem", out.Items[0])
+	}
+
 	userFromMap := []models.UserInfo{}
 
 	if err = attributevalue.UnmarshalListOfMaps(out.Items, &userFromMap); err != nil {
+		logger.Error("Failed to unmarshal user data", "email", email, "error", err)
 		return nil, err
 	}
 	if len(userFromMap) == 0 {
 		return nil, sql.ErrNoRows
 	}
+
+	logger.Info("GetUserDetails result",
+		"email", email,
+		"subscriber", userFromMap[0].Subscriber,
+		"admin", userFromMap[0].Admin,
+		"firstName", userFromMap[0].FirstName,
+		"lastName", userFromMap[0].LastName)
+
 	return &userFromMap[0], nil
+}
+
+// GetUserByEmailIncludingDeleted retrieves a user including deleted users
+func (d *DAO) GetUserByEmailIncludingDeleted(ctx context.Context, email string) (*models.UserInfo, error) {
+	tableName := "users" + GetTableSuffix()
+
+	out, err := d.DynamoClient.GetItem(ctx, &dynamodb.GetItemInput{
+		TableName: aws.String(tableName),
+		Key: map[string]types.AttributeValue{
+			"email": &types.AttributeValueMemberS{Value: email},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if out.Item == nil {
+		return nil, sql.ErrNoRows
+	}
+
+	var user models.UserInfo
+	if err := attributevalue.UnmarshalMap(out.Item, &user); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 /**
@@ -369,6 +496,60 @@ The Docter Team`
 		return fmt.Errorf("failed to send welcome email: %w", err)
 	}
 	logger.Debug("Welcome email sent successfully", "email", userEmail)
+	return nil
+}
+
+// DeleteUser soft deletes a user account and all associated data
+func (d *DAO) DeleteUser(ctx context.Context, email string) error {
+	now := strconv.FormatInt(time.Now().Unix(), 10)
+
+	// 1. Cancel Stripe subscription if exists
+	sub, err := d.GetSubscription(ctx, email)
+	if err == nil && sub.SubscriptionID != "" {
+		// Subscription cancellation is handled via Stripe webhook
+		// We just mark it for cancellation here
+		logger.Info("User has active subscription, will be cancelled", "email", email, "subscriptionID", sub.SubscriptionID)
+	}
+
+	// 2. Soft delete all user's stories
+	stories, err := d.GetAllStories(ctx, email)
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+	for _, story := range stories {
+		if err := d.SoftDeleteStory(ctx, email, story.ID, false); err != nil {
+			return err
+		}
+	}
+
+	// 3. Soft delete all user's series
+	series, err := d.GetAllSeriesWithStories(ctx, email, false)
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+	for _, s := range series {
+		if err := d.DeleteSeries(ctx, email, s); err != nil {
+			return err
+		}
+	}
+
+	// 4. Mark user as deleted
+	input := &dynamodb.UpdateItemInput{
+		TableName: aws.String("users" + GetTableSuffix()),
+		Key: map[string]types.AttributeValue{
+			"email": &types.AttributeValueMemberS{Value: email},
+		},
+		UpdateExpression: aws.String("set deleted_at=:t"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":t": &types.AttributeValueMemberN{Value: now},
+		},
+	}
+
+	if _, err := d.DynamoClient.UpdateItem(ctx, input); err != nil {
+		return err
+	}
+
+	logger.Info("User account deleted", "email", email)
 	return nil
 }
 

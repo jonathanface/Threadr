@@ -151,6 +151,23 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Convert Lexical JSON to HTML if needed (for mobile app exports)
+	for i := range export.HtmlByChapter {
+		if strings.HasPrefix(export.HtmlByChapter[i].HTML, "__LEXICAL__") {
+			// Extract the Lexical JSON
+			lexicalJSON := strings.TrimPrefix(export.HtmlByChapter[i].HTML, "__LEXICAL__")
+
+			// Convert Lexical JSON to HTML using the converters package
+			html, err := converters.LexicalToHTML(lexicalJSON)
+			if err != nil {
+				RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Failed to convert Lexical JSON for chapter %s: %v", export.HtmlByChapter[i].Chapter, err))
+				return
+			}
+
+			export.HtmlByChapter[i].HTML = html
+		}
+	}
+
 	var generatedFile string
 	filetype := "application/pdf"
 

@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
@@ -149,6 +148,9 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 		api.RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
+	isNewUser := false
+	isReturningUser := false
+
 	userDetails, err := dao.GetUserDetails(r.Context(), info.Email)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -158,7 +160,10 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 				api.RespondWithError(w, http.StatusInternalServerError, err.Error())
 				return
 			}
-			logger.Info("New user created successfully", "email", info.Email, "remoteAddr", r.RemoteAddr)
+			// Check if this is a brand new user or a returning deleted user
+			isNewUser = userDetails.NewUser
+			isReturningUser = userDetails.ReturningUser
+			logger.Info("User created successfully", "email", info.Email, "newUser", isNewUser, "returningUser", isReturningUser, "remoteAddr", r.RemoteAddr)
 		} else {
 			logger.Error("Failed to retrieve user details", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
 			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -179,6 +184,10 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 			// Continue even if name update fails - not critical
 		}
 	}
+
+	// Copy database fields to info before marshaling into token
+	info.Subscriber = userDetails.Subscriber
+	info.Admin = userDetails.Admin
 
 	toJSON, err := json.Marshal(info)
 	if err != nil {
@@ -212,33 +221,25 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 
 	frontend := options.FrontEndURL
 
-	// Determine mobile app scheme based on environment
-	// Check explicit USE_EXPO_GO flag first, then fall back to MODE
-	mobileScheme := "minidocter://auth/callback"
-	useExpoGo := strings.ToLower(os.Getenv("USE_EXPO_GO")) == "true"
-
-	if useExpoGo || options.Mode == models.ModeDevelopment {
-		// Use Expo Go for development - include the callback path
-		mobileScheme = "exp://192.168.1.74:8081/--/auth/callback" // Expo dev server with path
-		logger.Info("Using Expo Go scheme for development", "scheme", mobileScheme, "mode", options.Mode, "useExpoGo", useExpoGo)
-	} else {
-		// Use standalone app scheme for staging and production
-		logger.Info("Using standalone app scheme", "scheme", mobileScheme, "mode", options.Mode)
-	}
-
+	// Build allowed origins list for mobile deep links
 	allowedOrigins := []string{
 		options.FrontEndURL,
-		mobileScheme,
 		"minidocter://auth", // Always allow this for the mobile app's initial request
 	}
+
+	// Allow any exp:// scheme for Expo Go development
+	// Allow minidocter:// scheme for production builds
+	// These will be validated by the safeRedirect function
+
 	next := frontend
 	if rdx := r.URL.Query().Get("next"); rdx != "" {
 		logger.Info("Found next parameter in callback query", "next", rdx, "remoteAddr", r.RemoteAddr)
 
-		// If the redirect is to a mobile app scheme, override it with the environment-appropriate scheme
+		// For mobile app schemes (exp:// or minidocter://), use the provided redirect URL as-is
+		// This allows the mobile app to specify the correct host/port for Expo Go
 		if strings.HasPrefix(rdx, "minidocter://") || strings.HasPrefix(rdx, "exp://") {
-			logger.Info("Overriding mobile redirect with environment scheme", "original", rdx, "override", mobileScheme)
-			next = mobileScheme
+			logger.Info("Using mobile redirect URL from query parameter", "url", rdx)
+			next = rdx
 		} else {
 			next = safeRedirect(rdx, frontend, allowedOrigins)
 		}
@@ -247,10 +248,10 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 		if ref, _ := loginSess.Values["referrer"].(string); ref != "" {
 			logger.Info("Found referrer in login_referral session", "referrer", ref, "remoteAddr", r.RemoteAddr)
 
-			// If the referrer is to a mobile app scheme, override it with the environment-appropriate scheme
+			// For mobile app schemes, use the provided redirect URL as-is
 			if strings.HasPrefix(ref, "minidocter://") || strings.HasPrefix(ref, "exp://") {
-				logger.Info("Overriding mobile redirect with environment scheme", "original", ref, "override", mobileScheme)
-				next = mobileScheme
+				logger.Info("Using mobile redirect URL from session", "url", ref)
+				next = ref
 			} else {
 				next = safeRedirect(ref, frontend, allowedOrigins)
 			}
@@ -296,14 +297,24 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	logger.Info("OAuth login successful", "email", info.Email, "provider", provider, "remoteAddr", r.RemoteAddr)
 	logger.Info("=== FINAL REDIRECT ===", "redirectTo", next, "email", info.Email)
 
+	// Add user status query parameters
+	separator := "?"
+	if strings.Contains(next, "?") {
+		separator = "&"
+	}
+	if isNewUser {
+		next = next + separator + "new_user=true"
+		separator = "&"
+	}
+	if isReturningUser {
+		next = next + separator + "returning_user=true"
+		separator = "&"
+	}
+
 	// For mobile deep links, append the session token as a query parameter
 	// since mobile apps can't access browser cookies
 	if strings.HasPrefix(next, "minidocter://") || strings.HasPrefix(next, "exp://") {
 		tokenB64 := base64.URLEncoding.EncodeToString(toJSON)
-		separator := "?"
-		if strings.Contains(next, "?") {
-			separator = "&"
-		}
 		next = next + separator + "token=" + url.QueryEscape(tokenB64)
 		logger.Info("Appended token to mobile deep link", "email", info.Email)
 
@@ -311,6 +322,14 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 		// because HTTP redirects to custom schemes don't work reliably in Chrome Custom Tabs
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
+
+		// Check if this is an Expo Go deep link (exp://)
+		isExpoGo := strings.HasPrefix(next, "exp://")
+		instructions := "Tap the link below to return to the app"
+		if isExpoGo {
+			instructions = "Tap the link below to return to Expo Go"
+		}
+
 		html := fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <head>
@@ -333,9 +352,16 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
             padding: 40px;
             text-align: center;
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            max-width: 90%%;
         }
         h1 { color: #333; margin-bottom: 20px; }
-        p { color: #666; }
+        p { color: #666; margin: 10px 0; }
+        .instructions {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin: 30px 0 20px 0;
+        }
         .spinner {
             border: 4px solid #f3f3f3;
             border-top: 4px solid #667eea;
@@ -352,34 +378,58 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
         a {
             display: inline-block;
             margin-top: 20px;
-            padding: 10px 20px;
+            padding: 15px 30px;
             background: #667eea;
             color: white;
             text-decoration: none;
-            border-radius: 5px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        a:active {
+            background: #5568d3;
+        }
+        .note {
+            font-size: 14px;
+            color: #999;
+            margin-top: 30px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Success!</h1>
+        <h1>✅ Authentication Successful!</h1>
         <div class="spinner"></div>
-        <p>Returning to app...</p>
-        <p><a href="%s" id="deepLink">Tap here if not redirected automatically</a></p>
+        <p class="instructions">%s:</p>
+        <p><a href="%s" id="deepLink">Return to App</a></p>
+        <p class="note">You can close this page after tapping the link above</p>
     </div>
     <script>
-        // Attempt redirect immediately
-        setTimeout(function() {
-            window.location.href = "%s";
-        }, 100);
+        var redirectUrl = "%s";
+        var attempts = 0;
+        var maxAttempts = 3;
 
-        // Also try clicking the link programmatically
-        setTimeout(function() {
-            document.getElementById('deepLink').click();
-        }, 500);
+        // Try automatic redirect for non-Expo deep links
+        var isExpoGo = redirectUrl.startsWith('exp://');
+
+        if (!isExpoGo) {
+            // For standard deep links (minidocter://), try auto-redirect
+            setTimeout(function() {
+                window.location.href = redirectUrl;
+            }, 100);
+
+            // Also try clicking the link programmatically
+            setTimeout(function() {
+                document.getElementById('deepLink').click();
+            }, 500);
+        } else {
+            // For Expo Go, don't auto-redirect - user must tap manually
+            // This is because exp:// links often don't work with auto-redirect
+            document.querySelector('.spinner').style.display = 'none';
+        }
     </script>
 </body>
-</html>`, next, next)
+</html>`, instructions, next, next)
 		w.Write([]byte(html))
 		return
 	}

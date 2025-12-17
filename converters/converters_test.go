@@ -400,3 +400,179 @@ func TestDownloadCoverImage_InvalidURL(t *testing.T) {
 		t.Errorf("Expected 'failed to download image' error, got: %v", err)
 	}
 }
+
+// --- Tests for LexicalToHTML -------------------------------------------------
+
+func TestLexicalToHTML_BoldTextInEditorState(t *testing.T) {
+	// Bold text in editor state format
+	lexicalJSON := `{
+		"root": {
+			"children": [
+				{
+					"type": "custom-paragraph",
+					"children": [
+						{
+							"type": "text",
+							"text": "Bold Text",
+							"textFormat": 1
+						}
+					]
+				}
+			],
+			"type": "root"
+		}
+	}`
+
+	html, err := LexicalToHTML(lexicalJSON)
+	if err != nil {
+		t.Fatalf("LexicalToHTML failed: %v", err)
+	}
+
+	if !strings.Contains(html, "<strong>Bold Text</strong>") {
+		t.Errorf("Expected bold text, got: %s", html)
+	}
+}
+
+func TestLexicalToHTML_ItalicTextInBlocksData(t *testing.T) {
+	// Italic text in BlocksData format
+	lexicalJSON := `{
+		"items": [
+			{
+				"chunk": {
+					"Value": "{\"children\":[{\"type\":\"text\",\"text\":\"Italic Text\",\"textFormat\":2}],\"type\":\"custom-paragraph\"}"
+				}
+			}
+		]
+	}`
+
+	html, err := LexicalToHTML(lexicalJSON)
+	if err != nil {
+		t.Fatalf("LexicalToHTML failed: %v", err)
+	}
+
+	if !strings.Contains(html, "<em>Italic Text</em>") {
+		t.Errorf("Expected italic text, got: %s", html)
+	}
+}
+
+func TestLexicalToHTML_CenteredParagraphInBlocksData(t *testing.T) {
+	// Centered paragraph in BlocksData format
+	lexicalJSON := `{
+		"items": [
+			{
+				"chunk": {
+					"Value": "{\"children\":[{\"type\":\"text\",\"text\":\"Centered\",\"textFormat\":0}],\"format\":\"center\",\"type\":\"custom-paragraph\"}"
+				}
+			}
+		]
+	}`
+
+	html, err := LexicalToHTML(lexicalJSON)
+	if err != nil {
+		t.Fatalf("LexicalToHTML failed: %v", err)
+	}
+
+	if !strings.Contains(html, `style="text-align:center;"`) {
+		t.Errorf("Expected centered text, got: %s", html)
+	}
+}
+
+func TestLexicalToHTML_BlocksDataFormat(t *testing.T) {
+	// Simulates the DynamoDB AttributeValue format
+	lexicalJSON := `{
+		"items": [
+			{
+				"chunk": {
+					"Value": "{\"children\":[{\"type\":\"text\",\"text\":\"From DynamoDB\",\"textFormat\":0}],\"type\":\"custom-paragraph\"}"
+				}
+			}
+		]
+	}`
+
+	html, err := LexicalToHTML(lexicalJSON)
+	if err != nil {
+		t.Fatalf("LexicalToHTML failed: %v", err)
+	}
+
+	if !strings.Contains(html, "From DynamoDB") {
+		t.Errorf("Expected text from DynamoDB format, got: %s", html)
+	}
+}
+
+func TestLexicalToHTML_MultipleChunks(t *testing.T) {
+	// Multiple paragraphs in BlocksData format
+	lexicalJSON := `{
+		"items": [
+			{
+				"chunk": {
+					"Value": "{\"children\":[{\"type\":\"text\",\"text\":\"First paragraph\",\"textFormat\":0}],\"type\":\"custom-paragraph\"}"
+				}
+			},
+			{
+				"chunk": {
+					"Value": "{\"children\":[{\"type\":\"text\",\"text\":\"Second paragraph\",\"textFormat\":0}],\"type\":\"custom-paragraph\"}"
+				}
+			}
+		]
+	}`
+
+	html, err := LexicalToHTML(lexicalJSON)
+	if err != nil {
+		t.Fatalf("LexicalToHTML failed: %v", err)
+	}
+
+	if !strings.Contains(html, "First paragraph") {
+		t.Errorf("Expected first paragraph, got: %s", html)
+	}
+	if !strings.Contains(html, "Second paragraph") {
+		t.Errorf("Expected second paragraph, got: %s", html)
+	}
+}
+
+func TestLexicalToHTML_EditorStateFormat(t *testing.T) {
+	// Full editor state format
+	lexicalJSON := `{
+		"root": {
+			"children": [
+				{
+					"type": "custom-paragraph",
+					"children": [
+						{
+							"type": "text",
+							"text": "Editor state text",
+							"textFormat": 0
+						}
+					]
+				}
+			],
+			"direction": "ltr",
+			"format": "",
+			"indent": 0,
+			"type": "root",
+			"version": 1
+		}
+	}`
+
+	html, err := LexicalToHTML(lexicalJSON)
+	if err != nil {
+		t.Fatalf("LexicalToHTML failed: %v", err)
+	}
+
+	if !strings.Contains(html, "Editor state text") {
+		t.Errorf("Expected editor state text, got: %s", html)
+	}
+}
+
+func TestLexicalToHTML_EmptyInput(t *testing.T) {
+	_, err := LexicalToHTML("")
+	if err == nil {
+		t.Error("Expected error for empty input")
+	}
+}
+
+func TestLexicalToHTML_InvalidJSON(t *testing.T) {
+	_, err := LexicalToHTML("{invalid json")
+	if err == nil {
+		t.Error("Expected error for invalid JSON")
+	}
+}
