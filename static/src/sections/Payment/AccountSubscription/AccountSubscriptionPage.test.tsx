@@ -8,6 +8,9 @@ import { MemoryRouter } from "react-router-dom";
 
 // Component under test (adjust path if yours differs)
 import { AccountSubscriptionPage } from "../AccountSubscription";
+import { UserContext } from "../../../contexts/user";
+import { WorksListContext } from "../../../contexts/worksList";
+import { SelectionsContext } from "../../../contexts/selections";
 
 const mockNavigate = vi.fn();
 vi.mock("react-router-dom", async (importOriginal) => {
@@ -18,9 +21,47 @@ vi.mock("react-router-dom", async (importOriginal) => {
   };
 });
 
+const mockUserContext = {
+  userDetails: null,
+  isLoggedIn: true,
+  userLoading: false,
+  setIsLoggedIn: vi.fn(),
+  setUserDetails: vi.fn(),
+  clearWelcomeFlags: vi.fn(),
+};
+
+const mockWorksListContext = {
+  seriesList: null,
+  storiesList: null,
+  setSeriesList: vi.fn(),
+  setStoriesList: vi.fn(),
+};
+
+const mockSelectionsContext = {
+  story: undefined,
+  setStory: vi.fn(),
+  deselectStory: vi.fn(),
+  series: undefined,
+  setSeries: vi.fn(),
+  deselectSeries: vi.fn(),
+  association: undefined,
+  setAssociation: vi.fn(),
+  deselectAssociation: vi.fn(),
+  chapter: undefined,
+  setChapter: vi.fn(),
+  deselectChapter: vi.fn(),
+  deselectAll: vi.fn(),
+};
+
 function renderWithRouter(ui: React.ReactElement) {
   return render(
-    <MemoryRouter initialEntries={["/account/subscription"]}>{ui}</MemoryRouter>,
+    <UserContext.Provider value={mockUserContext}>
+      <WorksListContext.Provider value={mockWorksListContext}>
+        <SelectionsContext.Provider value={mockSelectionsContext}>
+          <MemoryRouter initialEntries={["/account/subscription"]}>{ui}</MemoryRouter>
+        </SelectionsContext.Provider>
+      </WorksListContext.Provider>
+    </UserContext.Provider>,
   );
 }
 
