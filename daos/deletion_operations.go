@@ -488,3 +488,47 @@ func (d *DAO) hardDeleteStory(ctx context.Context, email, storyID string) error 
 		"seriesDeleted", deletedSeries)
 	return nil
 }
+
+// RestoreStory removes the deleted_at flag from a soft-deleted story
+func (d *DAO) RestoreStory(ctx context.Context, email, storyID string) error {
+	logger.Info("RestoreStory started", "email", email, "storyID", storyID)
+
+	input := &dynamodb.UpdateItemInput{
+		TableName: aws.String("stories" + GetTableSuffix()),
+		Key: map[string]types.AttributeValue{
+			"story_id": &types.AttributeValueMemberS{Value: storyID},
+			"author":   &types.AttributeValueMemberS{Value: email},
+		},
+		UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
+	}
+
+	if _, err := d.DynamoClient.UpdateItem(ctx, input); err != nil {
+		logger.Error("Failed to restore story", "error", err, "email", email, "storyID", storyID)
+		return err
+	}
+
+	logger.Info("Story restored successfully", "email", email, "storyID", storyID)
+	return nil
+}
+
+// RestoreSeries removes the deleted_at flag from a soft-deleted series
+func (d *DAO) RestoreSeries(ctx context.Context, email, seriesID string) error {
+	logger.Info("RestoreSeries started", "email", email, "seriesID", seriesID)
+
+	input := &dynamodb.UpdateItemInput{
+		TableName: aws.String("series" + GetTableSuffix()),
+		Key: map[string]types.AttributeValue{
+			"series_id": &types.AttributeValueMemberS{Value: seriesID},
+			"author":    &types.AttributeValueMemberS{Value: email},
+		},
+		UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
+	}
+
+	if _, err := d.DynamoClient.UpdateItem(ctx, input); err != nil {
+		logger.Error("Failed to restore series", "error", err, "email", email, "seriesID", seriesID)
+		return err
+	}
+
+	logger.Info("Series restored successfully", "email", email, "seriesID", seriesID)
+	return nil
+}

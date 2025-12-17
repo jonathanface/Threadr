@@ -77,6 +77,31 @@ func (d *DAO) GetAllStories(ctx context.Context, email string) (stories []*model
 	return stories, nil
 }
 
+// GetAllStoriesIncludingDeleted fetches all soft-deleted stories for a user (for restoration purposes)
+func (d *DAO) GetAllStoriesIncludingDeleted(ctx context.Context, email string) (stories []*models.Story, err error) {
+	logger.Debug("GetAllStoriesIncludingDeleted called", "email", email)
+
+	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
+		TableName:        aws.String("stories" + GetTableSuffix()),
+		FilterExpression: aws.String("author=:eml AND attribute_exists(deleted_at)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":eml": &types.AttributeValueMemberS{Value: email},
+		},
+	})
+	if err != nil {
+		logger.Error("Failed to scan stories table for deleted stories", "error", err, "email", email)
+		return nil, err
+	}
+
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &stories); err != nil {
+		logger.Error("Failed to unmarshal deleted stories", "error", err, "email", email, "itemCount", len(out.Items))
+		return nil, err
+	}
+
+	logger.Info("Found deleted stories", "email", email, "count", len(stories))
+	return stories, nil
+}
+
 func (d *DAO) GetAllStandalone(ctx context.Context, email string, adminRequest bool) (stories []models.Story, err error) {
 	input := &dynamodb.ScanInput{
 		TableName:        aws.String("stories" + GetTableSuffix()),

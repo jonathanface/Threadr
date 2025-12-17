@@ -34,7 +34,6 @@ const (
 )
 
 func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
-	log.Println("stripe hook hit")
 	const tolerance = 300 * time.Second
 
 	payload, _ := io.ReadAll(r.Body)
@@ -302,7 +301,6 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
-	log.Println("billing portal summary")
 	var (
 		email string
 		err   error
@@ -385,7 +383,6 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func BillingPortalSessionEndpoint(w http.ResponseWriter, r *http.Request) {
-	log.Println("in billing portal endpoint")
 	// 1) Who is the user?
 	email, err := getUserEmailFn(r)
 	if err != nil {

@@ -52,6 +52,7 @@ type MockDAO struct {
 	MockDeleteChapters                          func(storyID string, chapters []models.Chapter) error
 	MockSoftDeleteStory                         func(email, storyID string, includeBlocks bool) error
 	MockDeleteSeries                            func(email string, series models.Series) error
+	MockDeleteUser                              func(email string) error
 	MockGetChapterTableStatus                   func(storyID, chapterID string) (bool, error)
 	MockGetChapterByID                          func(chapterID string) (*models.Chapter, error)
 	MockWasStoryDeleted                         func(email, storyID string) (bool, error)
@@ -94,6 +95,7 @@ type MockDynamoClient struct {
 	MockDescribeTable           func(ctx context.Context, input *dynamodb.DescribeTableInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DescribeTableOutput, error)
 	MockCreateTable             func(ctx context.Context, input *dynamodb.CreateTableInput, optFns ...func(*dynamodb.Options)) (*dynamodb.CreateTableOutput, error)
 	MockCreateBackup            func(ctx context.Context, input *dynamodb.CreateBackupInput, optFns ...func(*dynamodb.Options)) (*dynamodb.CreateBackupOutput, error)
+	MockGetItem                 func(ctx context.Context, input *dynamodb.GetItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.GetItemOutput, error)
 	MockPutItem                 func(ctx context.Context, input *dynamodb.PutItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error)
 	MockQuery                   func(ctx context.Context, input *dynamodb.QueryInput, optFns ...func(*dynamodb.Options)) (*dynamodb.QueryOutput, error)
 	MockScan                    func(ctx context.Context, input *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error)
@@ -138,6 +140,14 @@ func (m *MockDynamoClient) CreateBackup(ctx context.Context, input *dynamodb.Cre
 		return m.MockCreateBackup(ctx, input, optFns...)
 	}
 	return &dynamodb.CreateBackupOutput{}, nil
+}
+
+// GetItem
+func (m *MockDynamoClient) GetItem(ctx context.Context, input *dynamodb.GetItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.GetItemOutput, error) {
+	if m.MockGetItem != nil {
+		return m.MockGetItem(ctx, input, optFns...)
+	}
+	return &dynamodb.GetItemOutput{}, nil
 }
 
 // PutItem
@@ -407,6 +417,13 @@ func (m *MockDAO) DeleteSeries(ctx context.Context, email string, series models.
 		return m.MockDeleteSeries(email, series)
 	}
 	return m.DAO.DeleteSeries(ctx, email, series)
+}
+
+func (m *MockDAO) DeleteUser(ctx context.Context, email string) error {
+	if m.MockDeleteUser != nil {
+		return m.MockDeleteUser(email)
+	}
+	return m.DAO.DeleteUser(ctx, email)
 }
 
 func (m *MockDAO) GetChapterTableStatus(ctx context.Context, storyID, chapterID string) (bool, error) {

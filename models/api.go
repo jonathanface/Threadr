@@ -128,6 +128,9 @@ type UserInfo struct {
 	Subscriber     bool   `json:"subscriber" dynamodbav:"subscriber"`
 	NotifyExpired  bool   `json:"notify_expired,omitempty"`
 	NotifyRestored bool   `json:"notify_restored,omitempty"`
+	DeletedAt      string `json:"deleted_at,omitempty" dynamodbav:"deleted_at"`
+	NewUser        bool   `json:"new_user,omitempty"`        // Transient flag for brand new users (not stored in DB)
+	ReturningUser  bool   `json:"returning_user,omitempty"`  // Transient flag for returning deleted users (not stored in DB)
 }
 
 type Subscription struct {

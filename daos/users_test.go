@@ -549,3 +549,91 @@ func BenchmarkToStatus(b *testing.B) {
 		_ = toStatus(sub, true)
 	}
 }
+
+// Tests for DeleteUser
+func TestDeleteUser(t *testing.T) {
+	testCases := []struct {
+		name                string
+		email               string
+		mockGetSubErr       error
+		mockGetStoriesErr   error
+		mockUpdateItemErr   error
+		wantErr             bool
+		expectedErrContains string
+	}{
+		{
+			name:    "SuccessfulUserDeletion",
+			email:   "delete@example.com",
+			wantErr: false,
+		},
+		{
+			name:                "GetStoriesError",
+			email:               "user@example.com",
+			mockGetStoriesErr:   errors.New("failed to get stories"),
+			wantErr:             true,
+			expectedErrContains: "failed to get stories",
+		},
+		{
+			name:                "UpdateItemError",
+			email:               "user@example.com",
+			mockUpdateItemErr:   errors.New("update failed"),
+			wantErr:             true,
+			expectedErrContains: "update failed",
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			mockDao := NewMockDAO()
+
+			// Mock GetSubscription to avoid dependency issues
+			mockDao.MockGetSubscription = func(email string) (*models.Subscription, error) {
+				if tc.mockGetSubErr != nil {
+					return nil, tc.mockGetSubErr
+				}
+				// Return empty subscription for GetStoriesError test
+				return &models.Subscription{}, nil
+			}
+
+			mockClient, ok := mockDao.DynamoClient.(*MockDynamoClient)
+			if !ok {
+				t.Fatalf("mockDao.DynamoClient is not a *MockDynamoClient")
+			}
+
+			// Mock Scan (used by GetAllStories)
+			if tc.mockGetStoriesErr != nil {
+				mockClient.MockScan = func(ctx context.Context,
+					input *dynamodb.ScanInput,
+					opts ...func(*dynamodb.Options),
+				) (*dynamodb.ScanOutput, error) {
+					return nil, tc.mockGetStoriesErr
+				}
+			}
+
+			// Mock UpdateItem for the user deletion
+			if tc.mockUpdateItemErr != nil {
+				mockClient.MockUpdateItem = func(ctx context.Context,
+					input *dynamodb.UpdateItemInput,
+					opts ...func(*dynamodb.Options),
+				) (*dynamodb.UpdateItemOutput, error) {
+					return nil, tc.mockUpdateItemErr
+				}
+			}
+
+			err := mockDao.DeleteUser(context.Background(), tc.email)
+
+			if tc.wantErr {
+				if err == nil {
+					t.Errorf("Expected error but got nil")
+				} else if tc.expectedErrContains != "" && !contains(err.Error(), tc.expectedErrContains) {
+					t.Errorf("Error %q does not contain %q", err.Error(), tc.expectedErrContains)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error: %v", err)
+				}
+			}
+		})
+	}
+}

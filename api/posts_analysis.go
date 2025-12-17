@@ -6,7 +6,6 @@ import (
 	"RichDocter/models"
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -64,7 +63,6 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	for _, block := range blocks.Items {
 		chunkAttributeValue, ok := block["chunk"].(*types.AttributeValueMemberS)
 		if !ok {
-			fmt.Println("Chunk attribute is not a string; unable to unmarshal.")
 			continue // Skip this item or handle the error as appropriate
 		}
 		chk := models.Chunk{}
@@ -121,7 +119,6 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	// Create a new HTTP request with the appropriate method, URL, and payload
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		fmt.Println("bad gateway from openAI request", err)
 		RespondWithError(w, http.StatusBadGateway, err.Error())
 		return
 	}
@@ -142,7 +139,6 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadGateway, err.Error())
 		return
 	}
-	fmt.Println("str", string(body))
 	var response models.OpenAIResponse
 	err = json.Unmarshal(body, &response)
 	if err != nil {

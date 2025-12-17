@@ -129,11 +129,22 @@ export class AssociationInlineNode extends TextNode {
       }, 500);
     };
 
-    this.__handleTouchEnd = () => {
+    this.__handleTouchEnd = (event: TouchEvent) => {
       // If timer is still active, it was a short tap - treat as left click
       if (this.__longPressTimer) {
         clearTimeout(this.__longPressTimer);
         this.__longPressTimer = null;
+
+        // Trigger left click callback for short taps
+        if (leftClickCallback) {
+          const touch = event.changedTouches[0];
+          leftClickCallback({
+            id: this.__associationId,
+            text: this.__text,
+            x: touch.pageX,
+            y: touch.pageY,
+          });
+        }
       }
     };
 

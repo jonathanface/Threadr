@@ -4,9 +4,7 @@ import (
 	ctxkey "RichDocter/ctxkeys"
 	"RichDocter/daos"
 	"RichDocter/models"
-	"RichDocter/sessions"
 	"database/sql"
-	"encoding/json"
 	"net/http"
 	"net/url"
 
@@ -562,30 +560,27 @@ func AllSeriesVolumesEndPoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUserData(w http.ResponseWriter, r *http.Request) {
-	session, err := sessions.Get(r, "token")
+	// Use GetAuthenticatedUser to handle both mobile (Bearer token) and web (cookie) auth
+	user, err := GetAuthenticatedUser(r)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
-	var user models.UserInfo
-	if err = json.Unmarshal(session.Values["token_data"].([]byte), &user); err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error())
-		return
-	}
+
 	var ok bool
 	var dao daos.DaoInterface
 	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve daokey from context")
 		return
 	}
+
+	// Fetch fresh user details from database
 	details, err := dao.GetUserDetails(r.Context(), user.Email)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	user.Admin = details.Admin
-	user.Subscriber = details.Subscriber
-	user.FirstName = details.FirstName
-	user.LastName = details.LastName
-	RespondWithJson(w, http.StatusOK, user)
+
+	// Return the fresh details from database (not the cached session data)
+	RespondWithJson(w, http.StatusOK, details)
 }
