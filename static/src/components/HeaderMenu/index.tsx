@@ -8,8 +8,8 @@ import { UserMenu } from "..//UserMenu";
 import { EditableText } from "../EditableText";
 import { ThemeToggle } from "../ThemeToggle";
 
-import styles from "./headermenu.module.css";
 import { api } from "../../api";
+import styles from "./headermenu.module.css";
 
 export const HeaderMenu = () => {
   const {
@@ -35,7 +35,7 @@ export const HeaderMenu = () => {
           const value = (updatedStory as any)[key];
           formData.append(
             key,
-            value !== undefined && value !== null ? String(value) : "",
+            value !== undefined && value !== null ? String(value) : ""
           );
         });
 
@@ -90,7 +90,7 @@ export const HeaderMenu = () => {
           }
           formData.append(
             key,
-            value !== undefined && value !== null ? String(value) : "",
+            value !== undefined && value !== null ? String(value) : ""
           );
         });
         try {
@@ -131,9 +131,9 @@ export const HeaderMenu = () => {
         <a href={baseUrl}>
           <img
             className={styles.logoImage}
-            alt="RichDocter logo"
-            title="RichDocter - Organized Imagination"
-            src="/img/logo_trans_scaled.png"
+            alt="Docter.io logo"
+            title="Docter.io - Organized Imagination"
+            src="/img/slash-logo-trans-100.png"
           />
         </a>
         <span className={styles.storyInfo}>

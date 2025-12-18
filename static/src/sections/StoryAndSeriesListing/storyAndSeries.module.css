@@ -69,13 +69,17 @@
 }
 
 .createStoryButton::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at center, rgba(0, 122, 255, 0.1) 0%, transparent 70%);
+  background: radial-gradient(
+    circle at center,
+    rgba(0, 122, 255, 0.1) 0%,
+    transparent 70%
+  );
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -83,7 +87,11 @@
 .createStoryButton:hover {
   transform: translateY(-8px);
   border-color: rgba(0, 122, 255, 0.5);
-  background: linear-gradient(135deg, rgba(0, 122, 255, 0.1) 0%, rgba(0, 122, 255, 0.05) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(0, 122, 255, 0.1) 0%,
+    rgba(0, 122, 255, 0.05) 100%
+  );
   box-shadow: 0 20px 40px -10px rgba(0, 122, 255, 0.3);
 }
 
@@ -114,7 +122,9 @@
   color: #1565c0 !important;
 }
 
-:global([data-theme="light"]) .createStoryButton:hover :global(.MuiSvgIcon-root) {
+:global([data-theme="light"])
+  .createStoryButton:hover
+  :global(.MuiSvgIcon-root) {
   color: #0d47a1 !important;
 }
 
@@ -148,7 +158,6 @@
 /* Logo Container */
 .listingPage .logoContainer {
   margin-top: var(--spacing-2xl);
-  padding-top: var(--spacing-2xl);
   text-align: center;
   opacity: 0.6;
   transition: opacity 0.3s ease;
@@ -159,7 +168,7 @@
 }
 
 .listingPage .logoContainer img {
-  max-width: 200px;
+  max-width: 300px;
   height: auto;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
 }
