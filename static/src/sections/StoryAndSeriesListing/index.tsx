@@ -1,18 +1,17 @@
 import AddIcon from "@mui/icons-material/Add";
 import { IconButton, Tooltip } from "@mui/material";
 import React, { useContext, useEffect } from "react";
-import { StoryBox } from "../../components/StoryBox";
-import styles from "./storyAndSeries.module.css";
-import { Series } from "../../types/Series";
-import { Story } from "../../types/Story";
-import { UserContext } from "../../contexts/user";
-import { useWorksList } from "../../hooks/useWorksList";
 import { useNavigate } from "react-router-dom";
 import { SeriesBox } from "../../components/SeriesBox";
-import { useSelections } from "../../hooks/useSelections";
-import { WelcomeModal } from "../Welcome";
+import { StoryBox } from "../../components/StoryBox";
+import { UserContext } from "../../contexts/user";
 import { useFetchUserData } from "../../hooks/useFetchUserData";
-
+import { useSelections } from "../../hooks/useSelections";
+import { useWorksList } from "../../hooks/useWorksList";
+import { Series } from "../../types/Series";
+import { Story } from "../../types/Story";
+import { WelcomeModal } from "../Welcome";
+import styles from "./storyAndSeries.module.css";
 
 export const StoryAndSeriesListing = () => {
   const userData = useContext(UserContext);
@@ -22,19 +21,20 @@ export const StoryAndSeriesListing = () => {
   const { seriesList, storiesList } = useWorksList();
   const { deselectAll } = useSelections();
 
-  const showWelcome = userDetails?.showWelcome || userDetails?.isReturningUser || false;
+  const showWelcome =
+    userDetails?.showWelcome || userDetails?.isReturningUser || false;
   const isReturningUser = userDetails?.isReturningUser || false;
   const isNewUser = userDetails?.showWelcome && !userDetails?.isReturningUser;
 
-  console.log('StoryAndSeriesListing render:', {
+  console.log("StoryAndSeriesListing render:", {
     showWelcome,
     isReturningUser,
     isNewUser,
-    userDetails
+    userDetails,
   });
 
   const handleCloseWelcome = () => {
-    console.log('handleCloseWelcome called');
+    console.log("handleCloseWelcome called");
     clearWelcomeFlags();
   };
 
@@ -44,7 +44,7 @@ export const StoryAndSeriesListing = () => {
   }, [deselectAll]);
 
   const createNewStory = () => {
-    navigate('/stories/new');
+    navigate("/stories/new");
   };
 
   // If there are works, we prepare our series and stories components.
@@ -56,7 +56,9 @@ export const StoryAndSeriesListing = () => {
     return <StoryBox key={story.story_id} story={story} />;
   });
 
-  const hasNoContent = (!seriesList || seriesList.length === 0) && (!storiesList || storiesList.length === 0);
+  const hasNoContent =
+    (!seriesList || seriesList.length === 0) &&
+    (!storiesList || storiesList.length === 0);
 
   let content = <div />;
   if (seriesList?.length || storiesList?.length) {
@@ -81,19 +83,22 @@ export const StoryAndSeriesListing = () => {
           <div>
             <h2>Stories</h2>
             <div className={styles.iconBox}>
-              <span className={`${styles.createStoryButton} ${isNewUser ? styles.pulse : ''}`}>
+              <span
+                className={`${styles.createStoryButton} ${isNewUser ? styles.pulse : ""}`}
+              >
                 <Tooltip title="Create Story" placement="top">
                   <IconButton
                     aria-label="add new story"
                     sx={{
                       margin: "0 auto",
                       ...(isNewUser && {
-                        animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        '@keyframes pulse': {
-                          '0%, 100%': {
+                        animation:
+                          "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+                        "@keyframes pulse": {
+                          "0%, 100%": {
                             opacity: 1,
                           },
-                          '50%': {
+                          "50%": {
                             opacity: 0.7,
                           },
                         },
@@ -111,7 +116,8 @@ export const StoryAndSeriesListing = () => {
                           color: "#2a57e3",
                         },
                         ...(isNewUser && {
-                          filter: 'drop-shadow(0 0 20px rgba(42, 87, 227, 0.6))',
+                          filter:
+                            "drop-shadow(0 0 20px rgba(42, 87, 227, 0.6))",
                         }),
                       }}
                     />
@@ -134,9 +140,9 @@ export const StoryAndSeriesListing = () => {
         )}
         <div className={styles.logoContainer}>
           <img
-            alt="RichDocter logo"
-            title="RichDocter - Organized Imagination"
-            src="/img/logo_trans_scaled.png"
+            alt="Docter.io logo"
+            title="Docter.io - Organized Imagination"
+            src="/img/slash-logo-trans.png"
           />
         </div>
       </div>

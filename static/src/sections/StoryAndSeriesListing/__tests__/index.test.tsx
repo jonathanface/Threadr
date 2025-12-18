@@ -140,13 +140,13 @@ describe('StoryAndSeriesListing', () => {
       expect(screen.queryByText('Stories')).not.toBeInTheDocument();
     });
 
-    it('should render RichDocter logo', () => {
+    it('should render Docter.io logo', () => {
       renderStoryAndSeriesListing();
 
-      const logo = screen.getByAltText('RichDocter logo');
+      const logo = screen.getByAltText('Docter.io logo');
       expect(logo).toBeInTheDocument();
-      expect(logo).toHaveAttribute('src', '/img/logo_trans_scaled.png');
-      expect(logo).toHaveAttribute('title', 'RichDocter - Organized Imagination');
+      expect(logo).toHaveAttribute('src', '/img/slash-logo-trans.png');
+      expect(logo).toHaveAttribute('title', 'Docter.io - Organized Imagination');
     });
 
     it('should render create story button', () => {
@@ -310,7 +310,7 @@ describe('StoryAndSeriesListing', () => {
 
     it('should always render logo regardless of login state', () => {
       const { rerender } = renderStoryAndSeriesListing({ ...mockUserData, isLoggedIn: false });
-      expect(screen.getByAltText('RichDocter logo')).toBeInTheDocument();
+      expect(screen.getByAltText('Docter.io logo')).toBeInTheDocument();
 
       rerender(
         <UserContext.Provider value={{ ...mockUserData, isLoggedIn: true }}>
@@ -319,7 +319,7 @@ describe('StoryAndSeriesListing', () => {
           </BrowserRouter>
         </UserContext.Provider>
       );
-      expect(screen.getByAltText('RichDocter logo')).toBeInTheDocument();
+      expect(screen.getByAltText('Docter.io logo')).toBeInTheDocument();
     });
   });
 
@@ -394,7 +394,7 @@ describe('StoryAndSeriesListing', () => {
     it('should have accessible image with alt text', () => {
       renderStoryAndSeriesListing();
 
-      const logo = screen.getByAltText('RichDocter logo');
+      const logo = screen.getByAltText('Docter.io logo');
       expect(logo).toHaveAccessibleName();
     });
   });
