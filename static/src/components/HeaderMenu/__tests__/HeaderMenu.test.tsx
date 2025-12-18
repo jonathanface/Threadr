@@ -83,7 +83,7 @@ describe("HeaderMenu", () => {
 
       const logo = screen.getByAltText("Docter.io logo");
       expect(logo).toBeInTheDocument();
-      expect(logo).toHaveAttribute("src", "/img/logo_trans_scaled.png");
+      expect(logo).toHaveAttribute("src", "/img/slash-logo-trans-100.png");
       expect(logo).toHaveAttribute(
         "title",
         "Docter.io - Organized Imagination"
@@ -489,17 +489,17 @@ describe("HeaderMenu", () => {
     it("should have meaningful alt text for logo", () => {
       render(<HeaderMenu />);
 
-      const logo = screen.getByAltText("RichDocter logo");
+      const logo = screen.getByAltText("Docter.io logo");
       expect(logo).toBeInTheDocument();
     });
 
     it("should have title attribute for logo", () => {
       render(<HeaderMenu />);
 
-      const logo = screen.getByAltText("RichDocter logo");
+      const logo = screen.getByAltText("Docter.io logo");
       expect(logo).toHaveAttribute(
         "title",
-        "RichDocter - Organized Imagination"
+        "Docter.io - Organized Imagination"
       );
     });
 
