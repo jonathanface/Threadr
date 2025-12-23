@@ -24,7 +24,7 @@ export const NotFoundPage = ({ isLoggedIn }: NotFoundProps) => {
         alignItems="center"
         textAlign="center"
         sx={{
-          color: "#FFF",
+          color: "rgba(255, 255, 255, 0.9)",
         }}
       >
         <Typography
@@ -32,14 +32,15 @@ export const NotFoundPage = ({ isLoggedIn }: NotFoundProps) => {
           sx={{
             fontWeight: 900,
             letterSpacing: -1,
-            filter: "drop-shadow(2px 2px 2px #1a1a1a);",
+            filter: (theme) =>
+              `drop-shadow(2px 2px 2px ${theme.palette.mode === "dark" ? "#000" : "#1a1a1a"})`,
           }}
         >
           404
         </Typography>
         <Stack
           direction="row"
-          spacing={1.25}
+          spacing={0.25}
           alignItems="flex-start"
           justifyContent="center"
         >
@@ -53,11 +54,11 @@ export const NotFoundPage = ({ isLoggedIn }: NotFoundProps) => {
             }}
           />
           <Stack spacing={0.5}>
-            <Typography m={0} variant="body1">
+            <Typography m={0} variant="h6" fontWeight={400}>
               {quote.text}
             </Typography>
             {quote.source && (
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption">
                 — {quote.source}
               </Typography>
             )}
@@ -66,20 +67,22 @@ export const NotFoundPage = ({ isLoggedIn }: NotFoundProps) => {
             sx={{ verticalAlign: "text-top", opacity: 0.6, fontSize: 22 }}
           />
         </Stack>
-        <Typography variant="body2" color="#1d1c1cff" mt={"30px"}>
-          We couldn’t find <code>{pathname}</code>.
-        </Typography>
-        <Stack direction="row" spacing={1.5} sx={{ mt: 1 }}>
-          <Button
-            variant="contained"
-            onClick={() => nav(isLoggedIn ? "/stories" : "/")}
-          >
-            {isLoggedIn ? "Go to Stories" : "Go Home"}
-          </Button>
-          <Button variant="outlined" onClick={() => nav(-1)}>
-            Go Back
-          </Button>
-        </Stack>
+        <Box>
+          <Typography variant="body2" sx={{ mt: "16px", mb: "40px" }}>
+            We couldn't find <code style={{ fontWeight: 'bold' }}>{pathname}</code>.
+          </Typography>
+          <Stack direction="row" spacing={1.5} justifyContent="center">
+            <Button
+              variant="contained"
+              onClick={() => nav(isLoggedIn ? "/stories" : "/")}
+            >
+              {isLoggedIn ? "Go to Stories" : "Go Home"}
+            </Button>
+            <Button variant="outlined" onClick={() => nav(-1)}>
+              Go Back
+            </Button>
+          </Stack>
+        </Box>
       </Stack>
     </Box>
   );
