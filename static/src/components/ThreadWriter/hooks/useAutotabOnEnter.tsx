@@ -52,20 +52,35 @@ export const useAutotabOnEnter = (
               first.getTextContent().startsWith("\t");
 
             if (!hasLeadingTab) {
-              const tab = new TextNode("\t");
-              if (first) {
-                first.insertBefore(tab);
+              // If first child is a TextNode, prepend tab to its content
+              // This avoids creating separate nodes which causes cursor/backspace issues
+              if (first instanceof TextNode) {
+                const currentContent = first.getTextContent();
+                first.setTextContent("\t" + currentContent);
+                // Position cursor after the tab
+                if (sel.anchor.offset === 0) {
+                  const point = $createPoint(first.getKey(), 1, "text");
+                  const range = $createRangeSelection();
+                  range.anchor = point;
+                  range.focus = point;
+                  $setSelection(range);
+                }
               } else {
-                targetParagraph.append(tab);
-              }
-
-              // if caret is at paragraph start, put it just after the tab
-              if (sel.anchor.offset === 0) {
-                const point = $createPoint(tab.getKey(), 1, "text");
-                const range = $createRangeSelection();
-                range.anchor = point;
-                range.focus = point;
-                $setSelection(range);
+                // No TextNode child, create a new one
+                const tab = new TextNode("\t");
+                if (first) {
+                  first.insertBefore(tab);
+                } else {
+                  targetParagraph.append(tab);
+                }
+                // Position cursor after the tab
+                if (sel.anchor.offset === 0) {
+                  const point = $createPoint(tab.getKey(), 1, "text");
+                  const range = $createRangeSelection();
+                  range.anchor = point;
+                  range.focus = point;
+                  $setSelection(range);
+                }
               }
             }
           });

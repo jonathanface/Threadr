@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { LexicalEditor, $getRoot, $createTextNode } from 'lexical';
+import { $generateHtmlFromNodes } from '@lexical/html';
 import { CustomParagraphNode, CustomSerializedParagraphNode } from '../CustomParagraphNode';
 import { createTestEditor } from '../../__tests__/testUtils';
 
@@ -168,10 +169,15 @@ describe('CustomParagraphNode', () => {
         node.append(textNode);
         root.append(node);
 
+        // exportDOM returns just the container element - Lexical's HTML generation
+        // handles adding children after calling exportDOM
         const { element } = node.exportDOM(editor);
+        expect(element).toBeInstanceOf(HTMLElement);
+        expect((element as HTMLElement).tagName).toBe('P');
 
-        expect(element.tagName).toBe('P');
-        expect(element.textContent).toBe('Hello World');
+        // Use $generateHtmlFromNodes to test full HTML generation with children
+        const html = $generateHtmlFromNodes(editor);
+        expect(html).toContain('Hello World');
       });
     });
 
@@ -183,10 +189,12 @@ describe('CustomParagraphNode', () => {
         node.append($createTextNode('Second'));
         root.append(node);
 
-        const { element } = node.exportDOM(editor);
-
-        expect(element.textContent).toBe('First Second');
-        expect(element.childNodes.length).toBeGreaterThan(0);
+        // Use $generateHtmlFromNodes to test full HTML generation with children
+        // This is how copy/paste actually works in Lexical
+        const html = $generateHtmlFromNodes(editor);
+        expect(html).toContain('First ');
+        expect(html).toContain('Second');
+        expect(html).toContain('<p');
       });
     });
   });
