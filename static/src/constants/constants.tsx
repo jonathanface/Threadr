@@ -16,11 +16,6 @@ export const generateTextHash = (editor: LexicalEditor): string => {
     const root = $getRoot();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const traverseNode = (node: any) => {
-      if (typeof node.getKey !== "function") {
-        console.error("Node is missing getKey method:", node);
-        return;
-      }
-      const nodeKey = node.getKey();
       const nodeType = node.getType();
       const textContent = node.getTextContent();
 
@@ -33,8 +28,9 @@ export const generateTextHash = (editor: LexicalEditor): string => {
             })
           : "";
 
-      // Include node's serialized data in the hash
-      hash += `${nodeKey}:${nodeType}:${textContent}:${formatAttributes};`;
+      // Hash content and formatting only - not nodeKey, since Lexical may
+      // recreate nodes with new keys during reconciliation without content changes
+      hash += `${nodeType}:${textContent}:${formatAttributes};`;
 
       // Recursively process children (if any)
       if (node.getChildren) {

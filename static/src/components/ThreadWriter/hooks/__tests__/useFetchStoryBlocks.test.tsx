@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, Mock } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { createRef } from 'react';
 import { SerializedEditorState } from 'lexical';
 import { useFetchStoryBlocks } from '../useFetchStoryBlocks';
@@ -238,7 +238,9 @@ describe('useFetchStoryBlocks', () => {
         )
       );
 
-      await result.current.getBatchedStoryBlocks('');
+      await act(async () => {
+        await result.current.getBatchedStoryBlocks('');
+      });
 
       await waitFor(() => {
         expect(mockSetStoryBlocks).toHaveBeenCalledTimes(1);
@@ -267,7 +269,9 @@ describe('useFetchStoryBlocks', () => {
         )
       );
 
-      await result.current.getBatchedStoryBlocks('');
+      await act(async () => {
+        await result.current.getBatchedStoryBlocks('');
+      });
 
       await waitFor(() => {
         expect(result.current.previousTableStatus).toBe('501');
@@ -408,7 +412,9 @@ describe('useFetchStoryBlocks', () => {
         )
       );
 
-      await result.current.getBatchedStoryBlocks('');
+      await act(async () => {
+        await result.current.getBatchedStoryBlocks('');
+      });
 
       await waitFor(() => {
         expect(result.current.previousTableStatus).toBe('501');
@@ -421,7 +427,9 @@ describe('useFetchStoryBlocks', () => {
 
       (api.get as Mock).mockResolvedValueOnce(mockResponse);
 
-      await result.current.getBatchedStoryBlocks('');
+      await act(async () => {
+        await result.current.getBatchedStoryBlocks('');
+      });
 
       await waitFor(() => {
         expect(result.current.tableStatus).toBe('ok');

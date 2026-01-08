@@ -1,3 +1,4 @@
+import { $generateHtmlFromNodes } from "@lexical/html";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
@@ -23,6 +24,7 @@ import {
   type SerializedEditorState,
   type SerializedElementNode,
   type SerializedLexicalNode,
+  TextNode,
 } from "lexical";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
@@ -174,15 +176,35 @@ export const ThreadWriter = () => {
   };
 
   const handleTextCopy = () => {
-    const text = getSelectedText();
-    navigator.clipboard.writeText(text).then(
+    if (!editorRef.current) {
+      resetContextMenu();
+      return;
+    }
+
+    // Use update() instead of read() because $generateHtmlFromNodes clones nodes internally
+    editorRef.current.update(
       () => {
-        /* Resolved - text copied to clipboard successfully */
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection)) {
+          return;
+        }
+
+        const plainText = selection.getTextContent();
+        const htmlContent = $generateHtmlFromNodes(editorRef.current!, selection);
+
+        // Copy both plain text and HTML to preserve formatting when pasting into rich text editors
+        const clipboardItem = new ClipboardItem({
+          "text/plain": new Blob([plainText], { type: "text/plain" }),
+          "text/html": new Blob([htmlContent], { type: "text/html" }),
+        });
+
+        navigator.clipboard.write([clipboardItem]).catch(() => {
+          logger.error("Failed to copy");
+        });
       },
-      () => {
-        logger.error("Failed to copy");
-      }
+      { discrete: true }
     );
+
     resetContextMenu();
   };
 
@@ -649,18 +671,38 @@ export const ThreadWriter = () => {
               const replacement = new CustomParagraphNode(uuidv4());
               replacement.append(...node.getChildren());
               if (documentSettings?.autotab) {
-                const tabTextNode = $createTextNode("\t");
                 const firstChild = replacement.getFirstChild();
-                if (firstChild) {
-                  firstChild.insertBefore(tabTextNode);
-                } else {
-                  replacement.append(tabTextNode);
+                // Check if already has leading tab
+                const hasLeadingTab =
+                  firstChild instanceof TextNode &&
+                  firstChild.getTextContent().startsWith("\t");
+
+                if (!hasLeadingTab) {
+                  // If first child is a TextNode, prepend tab to its content
+                  // This avoids creating separate nodes which causes cursor/backspace issues
+                  if (firstChild instanceof TextNode) {
+                    const currentContent = firstChild.getTextContent();
+                    firstChild.setTextContent("\t" + currentContent);
+                    const point = $createPoint(firstChild.getKey(), 1, "text");
+                    const rangeSelection = $createRangeSelection();
+                    rangeSelection.anchor = point;
+                    rangeSelection.focus = point;
+                    $setSelection(rangeSelection);
+                  } else {
+                    // No TextNode child, create a new one
+                    const tabTextNode = $createTextNode("\t");
+                    if (firstChild) {
+                      firstChild.insertBefore(tabTextNode);
+                    } else {
+                      replacement.append(tabTextNode);
+                    }
+                    const point = $createPoint(tabTextNode.getKey(), 1, "text");
+                    const rangeSelection = $createRangeSelection();
+                    rangeSelection.anchor = point;
+                    rangeSelection.focus = point;
+                    $setSelection(rangeSelection);
+                  }
                 }
-                const point = $createPoint(tabTextNode.getKey(), 1, "text");
-                const rangeSelection = $createRangeSelection();
-                rangeSelection.anchor = point;
-                rangeSelection.focus = point;
-                $setSelection(rangeSelection);
               }
               node.replace(replacement);
             }

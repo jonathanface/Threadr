@@ -51,7 +51,7 @@ vi.mock('../../../components/SeriesBox', () => ({
 }));
 
 vi.mock('../../Welcome', () => ({
-  WelcomeModal: ({ open, isReturningUser, onClose }: any) =>
+  WelcomeModal: ({ open }: { open: boolean }) =>
     open ? <div data-testid="welcome-modal">Welcome Modal</div> : null,
 }));
 

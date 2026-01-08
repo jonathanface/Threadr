@@ -1,4 +1,4 @@
-import { EditorConfig, LexicalEditor, ParagraphNode, SerializedParagraphNode } from "lexical";
+import { DOMExportOutput, EditorConfig, LexicalEditor, ParagraphNode, SerializedParagraphNode } from "lexical";
 
 export interface CustomSerializedParagraphNode extends SerializedParagraphNode {
     key_id: string;
@@ -35,19 +35,15 @@ export class CustomParagraphNode extends ParagraphNode {
         };
     }
 
-    exportDOM(editor: LexicalEditor): { element: HTMLElement } {
-        const element = document.createElement("p");
-
-        // Iterate over child nodes and append their content
-        const children = this.getChildren();
-        children.forEach((child) => {
-            const { element: childElement } = child.exportDOM(editor);
-            if (childElement) {
-                element.appendChild(childElement);
-            }
-        });
-
-        return { element };
+    exportDOM(editor: LexicalEditor): DOMExportOutput {
+        // Let parent handle children and text-align style
+        const result = super.exportDOM(editor);
+        // Add legacy align attribute for better compatibility with apps like LibreOffice
+        const formatType = this.getFormatType();
+        if (formatType && result.element instanceof HTMLElement) {
+            result.element.setAttribute('align', formatType);
+        }
+        return result;
     }
 
     setKeyId(key_id: string): void {
