@@ -6,6 +6,8 @@ import {
   $isRangeSelection,
   $isTextNode,
   COMMAND_PRIORITY_CRITICAL,
+  COMMAND_PRIORITY_HIGH,
+  KEY_BACKSPACE_COMMAND,
   KEY_TAB_COMMAND,
   LexicalEditor,
   ParagraphNode,
@@ -125,6 +127,90 @@ export const useEditorCommands = (
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editorRef.current, handleTabPress]);
+
+  // Handle backspace when cursor is immediately after an AssociationInlineNode
+  useEffect(() => {
+    if (!editorRef.current) return;
+
+    const removeBackspaceHandler = editorRef.current.registerCommand(
+      KEY_BACKSPACE_COMMAND,
+      (event: KeyboardEvent) => {
+        const selection = $getSelection();
+        if (!$isRangeSelection(selection) || !selection.isCollapsed()) {
+          return false; // Let default handling proceed
+        }
+
+        const anchorNode = selection.anchor.getNode();
+        const anchorOffset = selection.anchor.offset;
+
+        // Check if cursor is at the start of a text node with association before it
+        if ($isTextNode(anchorNode) && anchorOffset === 0) {
+          const prevSibling = anchorNode.getPreviousSibling();
+          if ($isAssociationInlineNode(prevSibling)) {
+            // Delete the association node
+            event.preventDefault();
+            prevSibling.remove();
+            return true;
+          }
+        }
+
+        // Check if backspace would move cursor to position 0 with an association before
+        // This handles cases like " had decided" where cursor is at position 1
+        if ($isTextNode(anchorNode) && anchorOffset === 1) {
+          const prevSibling = anchorNode.getPreviousSibling();
+          if ($isAssociationInlineNode(prevSibling)) {
+            // Manually delete the first character to prevent Lexical from
+            // moving cursor to the association
+            event.preventDefault();
+            const textContent = anchorNode.getTextContent();
+            if (textContent.length === 1) {
+              // Single character - replace with empty text node
+              const emptyText = $createTextNode("");
+              anchorNode.replace(emptyText);
+              selection.anchor.set(emptyText.getKey(), 0, "text");
+              selection.focus.set(emptyText.getKey(), 0, "text");
+            } else {
+              // Multiple characters - remove first character and stay at position 0
+              anchorNode.setTextContent(textContent.slice(1));
+              selection.anchor.set(anchorNode.getKey(), 0, "text");
+              selection.focus.set(anchorNode.getKey(), 0, "text");
+            }
+            return true;
+          }
+        }
+
+        // Check if cursor is inside an association node at position 0
+        if ($isAssociationInlineNode(anchorNode) && anchorOffset === 0) {
+          const prevSibling = anchorNode.getPreviousSibling();
+          if (prevSibling) {
+            // Move cursor to end of previous sibling instead of jumping to front
+            event.preventDefault();
+            if ($isTextNode(prevSibling)) {
+              selection.anchor.set(
+                prevSibling.getKey(),
+                prevSibling.getTextContentSize(),
+                "text",
+              );
+              selection.focus.set(
+                prevSibling.getKey(),
+                prevSibling.getTextContentSize(),
+                "text",
+              );
+            }
+            return true;
+          }
+        }
+
+        return false; // Let default handling proceed
+      },
+      COMMAND_PRIORITY_HIGH,
+    );
+
+    return () => {
+      removeBackspaceHandler();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editorRef.current]);
 
   useEffect(() => {
     if (editorRef.current) {
