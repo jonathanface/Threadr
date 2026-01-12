@@ -7,11 +7,11 @@ import {
 } from "../components/ThreadWriter/customNodes/CustomParagraphNode";
 import { Story } from "../types/Story";
 import {
-  $getRoot,
   createEditor,
   SerializedEditorState,
   SerializedLexicalNode,
 } from "lexical";
+import { $generateHtmlFromNodes } from "@lexical/html";
 import { v4 as uuidv4 } from "uuid";
 
 interface returnHTML {
@@ -41,7 +41,7 @@ export default class Exporter {
   lexicalToHtml = async (): Promise<returnHTML[]> => {
     const editor = createEditor({
       namespace: "ExportEditor",
-      nodes: [CustomParagraphNode, AssociationInlineNode], // Register custom nodes
+      nodes: [CustomParagraphNode, AssociationInlineNode],
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const storyData: any = await this.getFullStory(this.story.story_id);
@@ -49,12 +49,12 @@ export default class Exporter {
 
     for (const chapter of storyData.chapters_with_contents) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const chapterBlocks = chapter.blocks?.items.map(
+      const chapterBlocks = chapter.blocks?.items?.map(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (paragraph: { chunk: any; key_id: any }) => {
           const fixed: CustomSerializedParagraphNode = paragraph.chunk?.Value
             ? JSON.parse(paragraph.chunk.Value)
-            : this.generateBlankLine(); // Use blank line if missing
+            : this.generateBlankLine();
           fixed.key_id = paragraph.key_id?.Value || uuidv4();
 
           if (fixed.type !== CustomParagraphNode.getType()) {
@@ -76,35 +76,14 @@ export default class Exporter {
           },
         };
 
-        // Update the editor state for this chapter
-        editor.update(() => {
-          editor.setEditorState(editor.parseEditorState(rootDoc));
-        });
+        // Set the editor state for this chapter
+        const editorState = editor.parseEditorState(rootDoc);
+        editor.setEditorState(editorState);
 
-        // Generate HTML for this chapter
-        const chapterHtml = await editor.read(() => {
-          const root = $getRoot();
-          return root
-            .getChildren()
-            .map((node) => {
-              const { element } = node.exportDOM(editor);
-
-              if (element instanceof HTMLElement) {
-                return element.outerHTML;
-              }
-              if (element instanceof Text) {
-                return element.textContent;
-              }
-              if (element instanceof DocumentFragment) {
-                const tempDiv = document.createElement("div");
-                tempDiv.appendChild(element.cloneNode(true));
-                return tempDiv.innerHTML;
-              }
-              return "";
-            })
-            .join("");
+        // Generate HTML using Lexical's official HTML generator
+        const chapterHtml = editor.read(() => {
+          return $generateHtmlFromNodes(editor);
         });
-        console.log("chap html", chapterHtml);
 
         chapters.push({
           chapter: chapter.chapter.title,
