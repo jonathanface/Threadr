@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ExpandMoreToggle } from '../index';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -307,7 +307,7 @@ describe('ExpandMoreToggle', () => {
   });
 
   describe('Accessibility', () => {
-    it('should be keyboard accessible', () => {
+    it('should be keyboard accessible', async () => {
       const handleClick = vi.fn();
 
       render(
@@ -317,7 +317,9 @@ describe('ExpandMoreToggle', () => {
       );
 
       const button = screen.getByRole('button');
-      button.focus();
+      await act(async () => {
+        button.focus();
+      });
 
       expect(button).toHaveFocus();
     });

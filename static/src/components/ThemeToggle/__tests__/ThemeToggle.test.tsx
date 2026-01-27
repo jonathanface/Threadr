@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ThemeToggle } from '../index';
 
@@ -216,22 +216,25 @@ describe('ThemeToggle', () => {
       expect(button).toHaveAttribute('aria-label', 'toggle theme');
     });
 
-    it('should be keyboard accessible', () => {
+    it('should be keyboard accessible', async () => {
       render(<ThemeToggle />);
 
       const button = screen.getByRole('button');
 
-      button.focus();
+      await act(async () => {
+        button.focus();
+      });
       expect(button).toHaveFocus();
     });
 
-    it('should toggle on Enter key', () => {
+    it('should toggle on Enter key', async () => {
       render(<ThemeToggle />);
 
       const button = screen.getByRole('button');
-      button.focus();
-
-      fireEvent.keyDown(button, { key: 'Enter', code: 'Enter' });
+      await act(async () => {
+        button.focus();
+        fireEvent.keyDown(button, { key: 'Enter', code: 'Enter' });
+      });
 
       // MUI IconButton handles Enter automatically
       expect(button).toBeInTheDocument();
