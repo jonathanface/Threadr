@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { InfoHover } from '../index';
 
@@ -230,13 +230,15 @@ describe('InfoHover', () => {
       expect(button).toBeInTheDocument();
     });
 
-    it('should be keyboard focusable', () => {
+    it('should be keyboard focusable', async () => {
       render(<InfoHover text="Keyboard accessible" />);
 
       const button = screen.getByRole('button');
 
       // Focus the button
-      button.focus();
+      await act(async () => {
+        button.focus();
+      });
       expect(button).toHaveFocus();
     });
 

@@ -292,8 +292,8 @@ describe('AssociationInlineNode', () => {
         expect(leftClick).toHaveBeenCalledWith({
           id: 'click-id',
           text: 'Clickable',
-          x: undefined,
-          y: undefined,
+          x: 100,
+          y: 200,
         });
       });
     });
@@ -331,8 +331,8 @@ describe('AssociationInlineNode', () => {
         expect(rightClick).toHaveBeenCalledWith({
           id: 'right-id',
           text: 'RightClick',
-          x: undefined,
-          y: undefined,
+          x: 100,
+          y: 200,
         });
       });
     });
