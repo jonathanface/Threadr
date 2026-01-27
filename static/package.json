@@ -15,6 +15,8 @@
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.716.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "@fortawesome/fontawesome-svg-core": "^6.7.2",
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
     "@fortawesome/react-fontawesome": "^0.2.2",
@@ -51,6 +53,7 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.16",
     "globals": "^15.14.0",
+    "jsdom": "^26.0.0",
     "prettier": "^3.6.2",
     "prettier-eslint": "^16.4.2",
     "ts-node": "^10.9.2",
