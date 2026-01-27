@@ -272,20 +272,19 @@ export const useEditorCommands = (
                     const customNode = parent as CustomParagraphNode;
                     if (customNode) {
                       const customKey = customNode.getKeyId();
-                      // Only track non-empty pasted paragraphs
-                      if (customKey && paragraphText.trim() !== "") {
+                      if (customKey) {
                         pastedParagraphKeys.current.add(customKey);
                       }
                     }
                   } else if (index === 0) {
                     // Insert text at the current selection for the first paragraph
                     selection.insertText(paragraphText);
-                    lastInsertedNode = selection.anchor.getNode(); // Update reference
+                    // Use parent (paragraph) not anchor node (TextNode) for subsequent insertAfter calls
+                    lastInsertedNode = parent;
                     const customNode = parent as CustomParagraphNode;
                     if (customNode) {
                       const customKey = customNode.getKeyId();
-                      // Only track non-empty pasted paragraphs
-                      if (customKey && paragraphText.trim() !== "") {
+                      if (customKey) {
                         pastedParagraphKeys.current.add(customKey);
                       }
                     }
@@ -300,10 +299,8 @@ export const useEditorCommands = (
                     } else {
                       parent.append(newParagraphNode);
                     }
-                    // Only track non-empty pasted paragraphs to avoid saving blank lines from pasted content
-                    if (paragraphText.trim() !== "") {
-                      pastedParagraphKeys.current.add(customKey);
-                    }
+                    // Track all pasted paragraphs including blank lines
+                    pastedParagraphKeys.current.add(customKey);
                     lastInsertedNode = newParagraphNode; // Update reference
                   }
                 });
@@ -325,10 +322,8 @@ export const useEditorCommands = (
                   } else {
                     root.append(paragraphNode); // Append the first paragraph directly to the root
                   }
-                  // Only track non-empty pasted paragraphs to avoid saving blank lines from pasted content
-                  if (paragraphText.trim() !== "") {
-                    pastedParagraphKeys.current.add(customKey);
-                  }
+                  // Track all pasted paragraphs including blank lines
+                  pastedParagraphKeys.current.add(customKey);
                   lastInsertedNode = paragraphNode; // Update reference
                 });
               }
