@@ -142,6 +142,86 @@ func determineLastName(info goth.User) string {
 	return name
 }
 
+// safeMobileRedirect validates mobile deep link URLs to prevent open redirect attacks.
+// For minidocter://, only allows the "auth" host (minidocter://auth/...)
+// For exp://, only allows localhost and private IP ranges (for development)
+func safeMobileRedirect(dest string) (string, bool) {
+	u, err := url.Parse(dest)
+	if err != nil {
+		return "", false
+	}
+
+	scheme := strings.ToLower(u.Scheme)
+
+	switch scheme {
+	case "minidocter":
+		// minidocter:// URLs use the host as the path identifier
+		// Only allow "auth" as the host (e.g., minidocter://auth or minidocter://auth/callback)
+		if strings.ToLower(u.Host) == "auth" {
+			return dest, true
+		}
+		return "", false
+
+	case "exp":
+		// exp:// is for Expo Go development only
+		// Only allow localhost and private IP ranges
+		host := u.Hostname()
+		if isLocalOrPrivateHost(host) {
+			return dest, true
+		}
+		return "", false
+
+	default:
+		return "", false
+	}
+}
+
+// isLocalOrPrivateHost checks if a host is localhost or a private IP address
+func isLocalOrPrivateHost(host string) bool {
+	// Allow localhost
+	if host == "localhost" || host == "127.0.0.1" || host == "::1" {
+		return true
+	}
+
+	// Parse as IP and check for private ranges
+	// Private ranges: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+	parts := strings.Split(host, ".")
+	if len(parts) != 4 {
+		return false
+	}
+
+	// Simple check for common private ranges
+	if parts[0] == "10" {
+		return true
+	}
+	if parts[0] == "192" && parts[1] == "168" {
+		return true
+	}
+	if parts[0] == "172" {
+		octet, err := parseOctet(parts[1])
+		if err == nil && octet >= 16 && octet <= 31 {
+			return true
+		}
+	}
+
+	return false
+}
+
+// parseOctet parses a string as an IP octet (0-255)
+func parseOctet(s string) (int, error) {
+	var n int
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return 0, errors.New("invalid octet")
+		}
+		n = n*10 + int(c-'0')
+		if n > 255 {
+			return 0, errors.New("octet overflow")
+		}
+	}
+	return n, nil
+}
+
 func safeRedirect(dest, defaultURL string, allowed []string) string {
 	logger.Debug("safeRedirect called", "dest", dest, "defaultURL", defaultURL, "allowed", allowed)
 	if dest == "" {
@@ -308,11 +388,15 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	if rdx := r.URL.Query().Get("next"); rdx != "" {
 		logger.Info("Found next parameter in callback query", "next", rdx, "remoteAddr", r.RemoteAddr)
 
-		// For mobile app schemes (exp:// or minidocter://), use the provided redirect URL as-is
-		// This allows the mobile app to specify the correct host/port for Expo Go
+		// For mobile app schemes, validate against allowed patterns
 		if strings.HasPrefix(rdx, "minidocter://") || strings.HasPrefix(rdx, "exp://") {
-			logger.Info("Using mobile redirect URL from query parameter", "url", rdx)
-			next = rdx
+			if validURL, ok := safeMobileRedirect(rdx); ok {
+				logger.Info("Validated mobile redirect URL from query parameter", "url", validURL)
+				next = validURL
+			} else {
+				logger.Warn("Rejected invalid mobile redirect URL", "url", rdx, "remoteAddr", r.RemoteAddr)
+				next = frontend
+			}
 		} else {
 			next = safeRedirect(rdx, frontend, allowedOrigins)
 		}
@@ -321,10 +405,15 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 		if ref, _ := loginSess.Values["referrer"].(string); ref != "" {
 			logger.Info("Found referrer in login_referral session", "referrer", ref, "remoteAddr", r.RemoteAddr)
 
-			// For mobile app schemes, use the provided redirect URL as-is
+			// For mobile app schemes, validate against allowed patterns
 			if strings.HasPrefix(ref, "minidocter://") || strings.HasPrefix(ref, "exp://") {
-				logger.Info("Using mobile redirect URL from session", "url", ref)
-				next = ref
+				if validURL, ok := safeMobileRedirect(ref); ok {
+					logger.Info("Validated mobile redirect URL from session", "url", validURL)
+					next = validURL
+				} else {
+					logger.Warn("Rejected invalid mobile redirect URL from session", "url", ref, "remoteAddr", r.RemoteAddr)
+					next = frontend
+				}
 			} else {
 				next = safeRedirect(ref, frontend, allowedOrigins)
 			}
