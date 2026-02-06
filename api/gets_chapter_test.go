@@ -22,6 +22,9 @@ func init() {
 
 func TestChapterTableStatusEndpoint_Success_TableReady(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
+	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+		return &models.Story{ID: storyID, Title: "Test Story"}, nil
+	}
 	mockDAO.MockGetChapterTableStatus = func(storyID, chapterID string) (bool, error) {
 		if storyID != "story123" {
 			t.Errorf("Expected storyID story123, got %s", storyID)
@@ -46,6 +49,9 @@ func TestChapterTableStatusEndpoint_Success_TableReady(t *testing.T) {
 
 func TestChapterTableStatusEndpoint_TableNotReady(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
+	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+		return &models.Story{ID: storyID, Title: "Test Story"}, nil
+	}
 	mockDAO.MockGetChapterTableStatus = func(storyID, chapterID string) (bool, error) {
 		return false, nil
 	}
@@ -131,6 +137,9 @@ func TestChapterTableStatusEndpoint_NoDAO(t *testing.T) {
 
 func TestChapterTableStatusEndpoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
+	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+		return &models.Story{ID: storyID, Title: "Test Story"}, nil
+	}
 	mockDAO.MockGetChapterTableStatus = func(storyID, chapterID string) (bool, error) {
 		return false, errors.New("database error")
 	}
@@ -147,10 +156,32 @@ func TestChapterTableStatusEndpoint_DAOError(t *testing.T) {
 	}
 }
 
+func TestChapterTableStatusEndpoint_UnauthorizedAccess(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+	// Return error to simulate user doesn't own the story
+	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+		return nil, errors.New("story not found")
+	}
+
+	req := createTestRequestWithSession("GET", "/story/story123/chapter/ch1/status", nil)
+	req = mux.SetURLVars(req, map[string]string{"storyID": "story123", "chapterID": "ch1"})
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
+
+	rr := httptest.NewRecorder()
+	ChapterTableStatusEndpoint(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("Expected status 403, got %d. Body: %s", rr.Code, rr.Body.String())
+	}
+}
+
 // ChapterDetailsEndpoint tests
 
 func TestChapterDetailsEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
+	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+		return &models.Story{ID: storyID, Title: "Test Story"}, nil
+	}
 	mockDAO.MockGetChapterByID = func(chapterID string) (*models.Chapter, error) {
 		if chapterID != "ch1" {
 			t.Errorf("Expected chapterID ch1, got %s", chapterID)
@@ -251,6 +282,9 @@ func TestChapterDetailsEndpoint_NoDAO(t *testing.T) {
 
 func TestChapterDetailsEndpoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
+	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+		return &models.Story{ID: storyID, Title: "Test Story"}, nil
+	}
 	mockDAO.MockGetChapterByID = func(chapterID string) (*models.Chapter, error) {
 		return nil, errors.New("database error")
 	}
@@ -264,5 +298,24 @@ func TestChapterDetailsEndpoint_DAOError(t *testing.T) {
 
 	if rr.Code != http.StatusInternalServerError {
 		t.Errorf("Expected status 500, got %d", rr.Code)
+	}
+}
+
+func TestChapterDetailsEndpoint_UnauthorizedAccess(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+	// Return error to simulate user doesn't own the story
+	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+		return nil, errors.New("story not found")
+	}
+
+	req := createTestRequestWithSession("GET", "/story/story123/chapter/ch1", nil)
+	req = mux.SetURLVars(req, map[string]string{"storyID": "story123", "chapterID": "ch1"})
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
+
+	rr := httptest.NewRecorder()
+	ChapterDetailsEndpoint(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("Expected status 403, got %d. Body: %s", rr.Code, rr.Body.String())
 	}
 }

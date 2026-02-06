@@ -4,6 +4,7 @@ import (
 	"RichDocter/api"
 	"RichDocter/logger"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -78,26 +79,29 @@ func (rl *rateLimiter) allow(ip string) bool {
 	return true
 }
 
-// getClientIP extracts the client IP from the request, considering proxies
+// getClientIP extracts the client IP from the request, considering proxies.
+// For AWS ALB, we use the RIGHTMOST IP in X-Forwarded-For because:
+//   - Clients can spoof the header by sending their own X-Forwarded-For
+//   - ALB APPENDS the real client IP to the end of the header
+//   - Format: "spoofed1, spoofed2, real-client-ip" (ALB adds the last one)
+//
+// We ignore X-Real-IP as it can be spoofed and ALB doesn't set it.
 func getClientIP(r *http.Request) string {
-	// Check X-Forwarded-For header (set by load balancers/proxies)
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		// X-Forwarded-For can contain multiple IPs, use the first one
-		// Format: "client, proxy1, proxy2"
-		for idx := 0; idx < len(xff); idx++ {
+		// Find the rightmost IP (added by ALB, not client-controllable)
+		// Walk backwards to find the last comma, then take everything after it
+		lastIP := xff
+		for idx := len(xff) - 1; idx >= 0; idx-- {
 			if xff[idx] == ',' {
-				return xff[:idx]
+				lastIP = xff[idx+1:]
+				break
 			}
 		}
-		return xff
+		// Trim any whitespace (X-Forwarded-For format is "ip1, ip2, ip3")
+		return strings.TrimSpace(lastIP)
 	}
 
-	// Check X-Real-IP header
-	if xri := r.Header.Get("X-Real-IP"); xri != "" {
-		return xri
-	}
-
-	// Fall back to RemoteAddr
+	// Fall back to RemoteAddr (direct connection, no proxy)
 	return r.RemoteAddr
 }
 
