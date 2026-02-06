@@ -51,13 +51,6 @@ export const WorksListProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [isLoggedIn, hideLoader, showLoader]);
 
-  // Log mounting for debugging
-  useEffect(() => {
-    console.log("WorksListProvider mounted");
-    return () => {
-      console.log("WorksListProvider unmounted");
-    };
-  }, []);
 
   const value = useMemo(
     () => ({

@@ -26,15 +26,7 @@ export const StoryAndSeriesListing = () => {
   const isReturningUser = userDetails?.isReturningUser || false;
   const isNewUser = userDetails?.showWelcome && !userDetails?.isReturningUser;
 
-  console.log("StoryAndSeriesListing render:", {
-    showWelcome,
-    isReturningUser,
-    isNewUser,
-    userDetails,
-  });
-
   const handleCloseWelcome = () => {
-    console.log("handleCloseWelcome called");
     clearWelcomeFlags();
   };
 

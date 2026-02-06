@@ -13,6 +13,7 @@ import { useToaster } from "./hooks/useToaster";
 
 import { CreateOrEditStory } from "./sections/CreateOrEditStory";
 import { Footer } from "./components/Footer";
+import { MobileAppBanner } from "./components/MobileAppBanner";
 import { SubscribePage } from "./sections/Payment/Subscribe";
 import { CheckoutPage } from "./sections/Payment/Checkout";
 import { SuccessPage } from "./sections/Payment/Success";
@@ -29,12 +30,6 @@ export const Docter = () => {
   const { isLoggedIn, userLoading } = useFetchUserData();
   const [searchParams] = useSearchParams();
 
-  useEffect(() => {
-    console.log("Docter mounted");
-    return () => {
-      console.log("Docter unmounted");
-    };
-  }, []);
 
   useEffect(() => {
     if (searchParams.get("restored") === "true") {
@@ -108,6 +103,7 @@ export const Docter = () => {
   return (
     <div className="App">
       <HeaderMenu />
+      <MobileAppBanner />
       <main>
         <Routes>
           <Route

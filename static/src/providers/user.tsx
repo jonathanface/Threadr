@@ -21,41 +21,28 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
     const newUserFromUrl = urlParams.get('new_user') === 'true';
     const returningUserFromUrl = urlParams.get('returning_user') === 'true';
 
-    console.log('fetchUserData - URL params:', {
-      newUserFromUrl,
-      returningUserFromUrl,
-      currentUrl: window.location.href
-    });
-
     // Store in sessionStorage for persistence across navigations
     if (newUserFromUrl) {
-      console.log('Setting new_user in sessionStorage');
       sessionStorage.setItem('new_user', 'true');
       params.append('new_user', 'true');
     } else if (sessionStorage.getItem('new_user') === 'true') {
-      console.log('Using cached new_user from sessionStorage');
       params.append('new_user', 'true');
     }
 
     if (returningUserFromUrl) {
-      console.log('Setting returning_user in sessionStorage');
       sessionStorage.setItem('returning_user', 'true');
       params.append('returning_user', 'true');
     } else if (sessionStorage.getItem('returning_user') === 'true') {
-      console.log('Using cached returning_user from sessionStorage');
       params.append('returning_user', 'true');
     }
 
     const queryString = params.toString();
     const url = queryString ? `/user?${queryString}` : '/user';
 
-    console.log('Fetching user data from:', url);
-
     const { data } = await api.get<UserDetails>(url, {
       withCredentials: true,
     });
 
-    console.log('User data received:', data);
     return data;
   };
 
@@ -78,7 +65,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
   }, [hideLoader, showLoader]);
 
   const clearWelcomeFlags = () => {
-    console.log('clearWelcomeFlags called');
     if (userDetails) {
       setUserDetails({
         ...userDetails,
@@ -111,13 +97,6 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
     }),
     [userDetails, setUserDetails, isLoggedIn, userLoading, setIsLoggedIn],
   );
-
-  useEffect(() => {
-    console.log("UserProvider mounted");
-    return () => {
-      console.log("UserProvider unmounted");
-    };
-  }, []);
 
   return (
     <UserContext.Provider value={userValue}>{children}</UserContext.Provider>

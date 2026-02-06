@@ -238,9 +238,6 @@ export const useEditorCommands = (
                 timeout: 10000,
               };
               setAlertState(newAlert);
-              console.log(
-                `Large paste operation detected. Total paragraphs: ${paragraphs.length}`,
-              );
             }
 
             editorRef.current?.update(() => {

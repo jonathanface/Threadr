@@ -257,7 +257,6 @@ export class AssociationInlineNode extends TextNode {
     dom.addEventListener("touchmove", this.__handleTouchMove.bind(this));
 
     dom.addEventListener("mouseenter", (event: MouseEvent) => {
-      console.log("enter", this.__text);
       this.showTooltip(event);
     });
     dom.addEventListener("mouseleave", () => {

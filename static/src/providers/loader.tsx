@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { ReactNode, useCallback, useMemo, useState } from "react";
 import { LoaderContext } from "../contexts/loader";
 
 export const LoaderProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -20,13 +20,6 @@ export const LoaderProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         }),
         [showLoader, hideLoader, loadingCount]
     );
-
-    useEffect(() => {
-        console.log("LoaderProvider mounted");
-        return () => {
-            console.log("LoaderProvider unmounted");
-        };
-    }, []);
 
     return (
         <LoaderContext.Provider value={loaderValue}>

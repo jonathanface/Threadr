@@ -25,7 +25,6 @@ export const BackstoryCard = ({
   onBackstoryEdit,
   text,
 }: BackstoryCardProps) => {
-  console.log("bstory", text);
   const [notes, setNotes] = useState(text || "");
   const [editing, setEditing] = useState(false);
 

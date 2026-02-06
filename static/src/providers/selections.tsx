@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { SelectionsContext } from "../contexts/selections";
 import { Chapter } from "../types/Chapter";
 import { Series } from "../types/Series";
@@ -9,12 +9,6 @@ export const SelectionsProvider: React.FC<{
     children: React.ReactNode;
 }> = ({ children }) => {
 
-    useEffect(() => {
-        console.log("SelectionsProvider mounted");
-        return () => {
-            console.log("SelectionsProvider unmounted");
-        };
-    }, []);
 
     const [story, setStory] = useState<Story | undefined>(
         undefined
