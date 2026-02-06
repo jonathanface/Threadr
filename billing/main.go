@@ -8,7 +8,9 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	stripe "github.com/stripe/stripe-go/v79"
@@ -25,6 +27,55 @@ import (
 // stubs to make these funcs mockable in tests
 var getUserEmailFn = getUserEmail
 var ensureCustomerFn = ensureCustomer
+
+// safeReturnURL validates and sanitizes return URLs to prevent open redirect attacks.
+// Only allows:
+//   - Relative paths starting with "/" (e.g., "/account/subscription")
+//   - Absolute URLs matching the request's host
+//
+// Returns the validated URL or the default if validation fails.
+func safeReturnURL(returnURL string, r *http.Request) string {
+	scheme := "https"
+	if r.TLS == nil && !strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https") {
+		scheme = "http"
+	}
+	defaultURL := scheme + "://" + r.Host + "/account/subscription"
+
+	if returnURL == "" {
+		return defaultURL
+	}
+
+	// Allow relative paths
+	if strings.HasPrefix(returnURL, "/") {
+		// Prevent protocol-relative URLs like "//evil.com"
+		if strings.HasPrefix(returnURL, "//") {
+			log.Printf("[safeReturnURL] Rejected protocol-relative URL: %s", returnURL)
+			return defaultURL
+		}
+		return scheme + "://" + r.Host + returnURL
+	}
+
+	// Validate absolute URLs - must match request host
+	parsed, err := url.Parse(returnURL)
+	if err != nil {
+		log.Printf("[safeReturnURL] Failed to parse URL: %s", returnURL)
+		return defaultURL
+	}
+
+	// Must be http or https
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		log.Printf("[safeReturnURL] Rejected non-http(s) scheme: %s", returnURL)
+		return defaultURL
+	}
+
+	// Host must match (case-insensitive)
+	if !strings.EqualFold(parsed.Host, r.Host) {
+		log.Printf("[safeReturnURL] Rejected mismatched host: got %s, expected %s", parsed.Host, r.Host)
+		return defaultURL
+	}
+
+	return returnURL
+}
 
 const (
 	DEFAULT_MAX_RETRIES              = 3
@@ -418,14 +469,8 @@ func BillingPortalSessionEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 5) Determine return URL (from header or fallback)
-	retURL := r.Header.Get("X-Return-Url")
-	if retURL == "" {
-		scheme := "https"
-		if r.TLS == nil {
-			scheme = "http"
-		}
-		retURL = scheme + "://" + r.Host + "/account/subscription"
-	}
+	// Validate to prevent open redirect attacks
+	retURL := safeReturnURL(r.Header.Get("X-Return-Url"), r)
 
 	// 6) Create Portal session
 	sess, err := session.New(&stripe.BillingPortalSessionParams{
