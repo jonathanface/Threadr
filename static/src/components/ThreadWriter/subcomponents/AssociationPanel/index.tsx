@@ -5,6 +5,7 @@ import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
+import CloseIcon from "@mui/icons-material/Close";
 import {
   Box,
   CircularProgress,
@@ -15,7 +16,6 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
 import axios from "axios";
 import {
   $createParagraphNode,
@@ -90,7 +90,7 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
   const [isNameActive, setIsNameActive] = useState(false);
   const [aliasesError, setAliasesError] = useState("");
   const [selectedAssociationID, setSelectedAssociationID] = useState(
-    props.selectedAssociationID
+    props.selectedAssociationID,
   );
   const { story, chapter } = useSelections();
   const { setAlertState } = useToaster();
@@ -140,11 +140,11 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
         const { data: serverAssociation } = await api.get<Association>(
           `/stories/${story.story_id}/associations/${
             selectedAssociationID ?? props.selectedAssociationID
-          }`
+          }`,
         );
 
         initialAssociation.current = JSON.parse(
-          JSON.stringify(serverAssociation)
+          JSON.stringify(serverAssociation),
         );
 
         setSelectedAssociation(serverAssociation);
@@ -157,7 +157,7 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
       } catch (error) {
         if (axios.isAxiosError(error)) {
           console.error(
-            `error fetching association details: ${error.response?.status} ${error.message}`
+            `error fetching association details: ${error.response?.status} ${error.message}`,
           );
         } else {
           console.error("unexpected error", error);
@@ -326,8 +326,8 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
       const reader = new FileReader();
       const originalPortrait = selectedAssociation.portrait;
 
-      reader.onabort = () => console.log("file reading was aborted");
-      reader.onerror = () => console.log("file reading has failed");
+      reader.onabort = () => {};
+      reader.onerror = () => console.error("file reading has failed");
       reader.onload = async () => {
         try {
           setIsAssociationLoaderVisible(true);
@@ -344,7 +344,7 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
               headers: {
                 "Content-Type": "multipart/form-data",
               },
-            }
+            },
           );
 
           const updatedAssociation = {
@@ -370,7 +370,7 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
                 "File does not meet requirements (check size and format).";
             }
             console.error(
-              `Upload failed: ${error.response?.status} ${error.message}`
+              `Upload failed: ${error.response?.status} ${error.message}`,
             );
           } else {
             console.error(error);

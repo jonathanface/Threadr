@@ -121,7 +121,7 @@ export const EditSeries = () => {
   const processImage = (acceptedFiles: File[]) => {
     acceptedFiles.forEach((file) => {
       const reader = new FileReader();
-      reader.onabort = () => console.log("file reading was aborted");
+      reader.onabort = () => {};
       reader.onerror = () => console.error("file reading has failed");
       reader.onload = () => {
         setSeriesBuild((prevBuild) => ({

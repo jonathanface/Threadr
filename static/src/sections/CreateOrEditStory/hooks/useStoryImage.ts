@@ -16,7 +16,7 @@ export const useStoryImage = () => {
   const processImage = useCallback((acceptedFiles: File[]) => {
     acceptedFiles.forEach((file) => {
       const reader = new FileReader();
-      reader.onabort = () => console.log("File reading was aborted");
+      reader.onabort = () => {};
       reader.onerror = () => console.error("File reading has failed");
       reader.onload = () => {
         const url = URL.createObjectURL(file);

@@ -120,8 +120,6 @@ export const DocumentEditorPage = () => {
         next.set("chapter", String(chapterToLoad));
         setSearchParams(next, { replace: true });
       }
-    } else {
-      console.log("[CHAPTER MEMORY] Chapter param already in URL, using it:", currentChapterParam);
     }
   }, [story, storyID, searchParams, setSearchParams]);
 

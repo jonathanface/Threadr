@@ -229,12 +229,7 @@ export const ChapterMenu = ({ onChapterSelect }: ChapterMenuProps) => {
   const reorderChapters = async (results: DropResult) => {
     const { source, destination } = results;
 
-    if (!destination) {
-      console.log("Dropped outside a valid drop target");
-      return;
-    }
-    if (!source) {
-      console.log("unknown source element");
+    if (!destination || !source) {
       return;
     }
 
