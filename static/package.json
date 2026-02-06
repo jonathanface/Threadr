@@ -14,7 +14,7 @@
     "coverage": "NODE_OPTIONS='--max-old-space-size=8192 --expose-gc' vitest --coverage"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.716.0",
+    "@aws-sdk/client-dynamodb": "^3.984.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@fortawesome/fontawesome-svg-core": "^6.7.2",
