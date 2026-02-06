@@ -8,15 +8,17 @@ import (
 	"RichDocter/models"
 	"RichDocter/sessions"
 	"database/sql"
-	"encoding/base64"
 	"encoding/gob"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
@@ -31,6 +33,77 @@ const (
 func init() {
 	// Register types for gob encoding in sessions
 	gob.Register(models.UserInfo{})
+}
+
+// MobileTokenClaims represents the JWT claims for mobile token exchange
+type MobileTokenClaims struct {
+	jwt.RegisteredClaims
+	Email      string `json:"email"`
+	FirstName  string `json:"first_name"`
+	LastName   string `json:"last_name"`
+	AuthType   string `json:"auth_type"`
+	Admin      bool   `json:"admin"`
+	Subscriber bool   `json:"subscriber"`
+}
+
+// createSignedMobileToken creates a signed JWT for mobile token exchange
+// The token is short-lived (5 minutes) as it's only used for the OAuth callback -> session exchange
+func createSignedMobileToken(info models.UserInfo) (string, error) {
+	secret := os.Getenv("SESSION_SECRET")
+	if secret == "" {
+		return "", errors.New("SESSION_SECRET not configured")
+	}
+
+	claims := MobileTokenClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(5 * time.Minute)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Issuer:    "docter.io",
+		},
+		Email:      info.Email,
+		FirstName:  info.FirstName,
+		LastName:   info.LastName,
+		AuthType:   info.AuthType,
+		Admin:      info.Admin,
+		Subscriber: info.Subscriber,
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(secret))
+}
+
+// verifyMobileToken verifies and parses a signed JWT mobile token
+func verifyMobileToken(tokenString string) (*models.UserInfo, error) {
+	secret := os.Getenv("SESSION_SECRET")
+	if secret == "" {
+		return nil, errors.New("SESSION_SECRET not configured")
+	}
+
+	token, err := jwt.ParseWithClaims(tokenString, &MobileTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+		// Validate signing method
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(secret), nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("invalid token: %w", err)
+	}
+
+	claims, ok := token.Claims.(*MobileTokenClaims)
+	if !ok || !token.Valid {
+		return nil, errors.New("invalid token claims")
+	}
+
+	return &models.UserInfo{
+		Email:      claims.Email,
+		FirstName:  claims.FirstName,
+		LastName:   claims.LastName,
+		AuthType:   claims.AuthType,
+		Admin:      claims.Admin,
+		Subscriber: claims.Subscriber,
+	}, nil
 }
 
 func New(options OauthOptions) {
@@ -311,12 +384,17 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 		separator = "&"
 	}
 
-	// For mobile deep links, append the session token as a query parameter
+	// For mobile deep links, append a signed JWT token as a query parameter
 	// since mobile apps can't access browser cookies
 	if strings.HasPrefix(next, "minidocter://") || strings.HasPrefix(next, "exp://") {
-		tokenB64 := base64.URLEncoding.EncodeToString(toJSON)
-		next = next + separator + "token=" + url.QueryEscape(tokenB64)
-		logger.Info("Appended token to mobile deep link", "email", info.Email)
+		signedToken, err := createSignedMobileToken(info)
+		if err != nil {
+			logger.Error("Failed to create signed mobile token", "error", err, "email", info.Email)
+			api.RespondWithError(w, http.StatusInternalServerError, "Failed to create mobile token")
+			return
+		}
+		next = next + separator + "token=" + url.QueryEscape(signedToken)
+		logger.Info("Appended signed JWT to mobile deep link", "email", info.Email)
 
 		// For mobile deep links, render an HTML page with JavaScript redirect
 		// because HTTP redirects to custom schemes don't work reliably in Chrome Custom Tabs
@@ -451,19 +529,11 @@ func MobileSessionHandler() http.HandlerFunc {
 			return
 		}
 
-		// Decode the base64 token
-		tokenJSON, err := base64.URLEncoding.DecodeString(reqBody.Token)
+		// Verify and parse the signed JWT token
+		userData, err := verifyMobileToken(reqBody.Token)
 		if err != nil {
-			logger.Error("Failed to decode mobile token", "error", err)
-			api.RespondWithError(w, http.StatusBadRequest, "Invalid token")
-			return
-		}
-
-		// Parse the user data
-		var userData models.UserInfo
-		if err := json.Unmarshal(tokenJSON, &userData); err != nil {
-			logger.Error("Failed to unmarshal user data from token", "error", err)
-			api.RespondWithError(w, http.StatusBadRequest, "Invalid token format")
+			logger.Error("Failed to verify mobile token", "error", err)
+			api.RespondWithError(w, http.StatusUnauthorized, "Invalid or expired token")
 			return
 		}
 
@@ -479,7 +549,7 @@ func MobileSessionHandler() http.HandlerFunc {
 		sessionToken := sessions.GenerateSessionToken()
 
 		// Store user data in session with the token
-		sess.Values["user"] = userData
+		sess.Values["user"] = *userData
 		sess.Values["mobile_token"] = sessionToken
 		sess.Options = sessions.OptionsFor(r)
 
@@ -490,7 +560,7 @@ func MobileSessionHandler() http.HandlerFunc {
 		}
 
 		// Also store the token -> user data mapping for header-based auth
-		sessions.StoreTokenMapping(sessionToken, userData)
+		sessions.StoreTokenMapping(sessionToken, *userData)
 
 		logger.Info("Mobile session created", "email", userData.Email, "token", sessionToken[:8]+"...")
 
