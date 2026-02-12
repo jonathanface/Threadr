@@ -48,6 +48,12 @@ export const UserMenu = () => {
     navigate("/account/subscription");
   };
 
+  const showAdminPanel = () => {
+    navigate("/admin");
+  };
+
+  const isAdmin = userData?.userDetails?.admin ?? false;
+
   const displayComponent = userData?.isLoggedIn ? (
     <span
       className={styles.menuContainer}
@@ -73,6 +79,7 @@ export const UserMenu = () => {
       </span>
       {isOpen && (
         <ul>
+          {isAdmin && <li onClick={showAdminPanel}>Admin</li>}
           <li onClick={showSettingsPanel}>Account</li>
           <li onClick={signout}>Signout</li>
         </ul>

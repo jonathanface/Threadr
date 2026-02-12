@@ -1,24 +1,34 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import { LoginPanel } from '../index';
+
+const renderWithRouter = (ui: React.ReactElement) => {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+};
+
+const mockWindowLocation = (search: string) => {
+  Object.defineProperty(window, 'location', {
+    value: { search },
+    writable: true,
+  });
+};
 
 describe('LoginPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock window.location.search
-    delete (window as any).location;
-    window.location = { search: '' } as any;
+    mockWindowLocation('');
   });
 
   describe('Rendering', () => {
     it('should render without crashing', () => {
-      render(<LoginPanel />);
+      renderWithRouter(<LoginPanel />);
       expect(screen.getByText('Sign In Options')).toBeInTheDocument();
     });
 
     it('should render Google login option', () => {
-      render(<LoginPanel />);
+      renderWithRouter(<LoginPanel />);
 
       const googleLink = screen.getByRole('link', { name: /login with google/i });
       expect(googleLink).toBeInTheDocument();
@@ -27,7 +37,7 @@ describe('LoginPanel', () => {
     });
 
     it('should render Amazon login option', () => {
-      render(<LoginPanel />);
+      renderWithRouter(<LoginPanel />);
 
       const amazonLink = screen.getByRole('link', { name: /login with amazon/i });
       expect(amazonLink).toBeInTheDocument();
@@ -36,7 +46,7 @@ describe('LoginPanel', () => {
     });
 
     it('should render Google login image', () => {
-      render(<LoginPanel />);
+      renderWithRouter(<LoginPanel />);
 
       const googleImg = screen.getByAltText('Login with Google');
       expect(googleImg).toBeInTheDocument();
@@ -45,7 +55,7 @@ describe('LoginPanel', () => {
     });
 
     it('should render Amazon login image', () => {
-      render(<LoginPanel />);
+      renderWithRouter(<LoginPanel />);
 
       const amazonImg = screen.getByAltText('Login with Amazon');
       expect(amazonImg).toBeInTheDocument();
@@ -56,24 +66,24 @@ describe('LoginPanel', () => {
 
   describe('Query String Handling', () => {
     it('should preserve query string in Google auth link', () => {
-      window.location = { search: '?redirect=/stories' } as any;
-      render(<LoginPanel />);
+      mockWindowLocation('?redirect=/stories');
+      renderWithRouter(<LoginPanel />);
 
       const googleLink = screen.getByRole('link', { name: /login with google/i });
       expect(googleLink).toHaveAttribute('href', '/auth/google?redirect=/stories');
     });
 
     it('should preserve query string in Amazon auth link', () => {
-      window.location = { search: '?redirect=/stories' } as any;
-      render(<LoginPanel />);
+      mockWindowLocation('?redirect=/stories');
+      renderWithRouter(<LoginPanel />);
 
       const amazonLink = screen.getByRole('link', { name: /login with amazon/i });
       expect(amazonLink).toHaveAttribute('href', '/auth/amazon?redirect=/stories');
     });
 
     it('should handle empty query string', () => {
-      window.location = { search: '' } as any;
-      render(<LoginPanel />);
+      mockWindowLocation('');
+      renderWithRouter(<LoginPanel />);
 
       const googleLink = screen.getByRole('link', { name: /login with google/i });
       const amazonLink = screen.getByRole('link', { name: /login with amazon/i });
@@ -83,8 +93,8 @@ describe('LoginPanel', () => {
     });
 
     it('should handle complex query strings', () => {
-      window.location = { search: '?redirect=/stories&token=abc123' } as any;
-      render(<LoginPanel />);
+      mockWindowLocation('?redirect=/stories&token=abc123');
+      renderWithRouter(<LoginPanel />);
 
       const googleLink = screen.getByRole('link', { name: /login with google/i });
       expect(googleLink).toHaveAttribute('href', '/auth/google?redirect=/stories&token=abc123');
@@ -93,21 +103,21 @@ describe('LoginPanel', () => {
 
   describe('Accessibility', () => {
     it('should have descriptive alt text for images', () => {
-      render(<LoginPanel />);
+      renderWithRouter(<LoginPanel />);
 
       expect(screen.getByAltText('Login with Google')).toBeInTheDocument();
       expect(screen.getByAltText('Login with Amazon')).toBeInTheDocument();
     });
 
     it('should have proper heading structure', () => {
-      render(<LoginPanel />);
+      renderWithRouter(<LoginPanel />);
 
       const heading = screen.getByRole('heading', { level: 1 });
       expect(heading).toHaveTextContent('Sign In Options');
     });
 
     it('should have valid links', () => {
-      render(<LoginPanel />);
+      renderWithRouter(<LoginPanel />);
 
       const links = screen.getAllByRole('link');
       expect(links).toHaveLength(2);
@@ -119,7 +129,7 @@ describe('LoginPanel', () => {
 
   describe('Structure', () => {
     it('should render both login options in separate containers', () => {
-      render(<LoginPanel />);
+      renderWithRouter(<LoginPanel />);
 
       const googleLink = screen.getByRole('link', { name: /login with google/i });
       const amazonLink = screen.getByRole('link', { name: /login with amazon/i });
@@ -130,6 +140,29 @@ describe('LoginPanel', () => {
 
       // Links should not be the same element
       expect(googleLink).not.toBe(amazonLink);
+    });
+  });
+
+  describe('Close Button', () => {
+    it('should render close button', () => {
+      renderWithRouter(<LoginPanel />);
+
+      const closeButton = screen.getByRole('button', { name: /go back/i });
+      expect(closeButton).toBeInTheDocument();
+    });
+
+    it('should have accessible label on close button', () => {
+      renderWithRouter(<LoginPanel />);
+
+      const closeButton = screen.getByLabelText('Go back');
+      expect(closeButton).toBeInTheDocument();
+    });
+
+    it('should be clickable', () => {
+      renderWithRouter(<LoginPanel />);
+
+      const closeButton = screen.getByRole('button', { name: /go back/i });
+      expect(() => fireEvent.click(closeButton)).not.toThrow();
     });
   });
 });

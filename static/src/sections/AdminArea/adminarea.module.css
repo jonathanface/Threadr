@@ -1,0 +1,121 @@
+.adminArea {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  position: relative;
+}
+
+.closeButton {
+  position: absolute;
+  top: 0;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.75rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  line-height: 1;
+  transition: color 0.2s ease;
+}
+
+.closeButton:hover {
+  color: var(--text-primary);
+}
+
+.adminArea h1 {
+  color: var(--text-primary);
+  margin: 0 0 0.5rem 0;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  margin: 0 0 2rem 0;
+}
+
+.error {
+  background-color: var(--error-bg, #fee);
+  color: var(--error-text, #c00);
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  margin-bottom: 1rem;
+}
+
+.tableContainer {
+  overflow-x: auto;
+}
+
+.usersTable {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.usersTable th,
+.usersTable td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.usersTable th {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.usersTable td {
+  color: var(--text-primary);
+  vertical-align: top;
+}
+
+.usersTable tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.subscriberYes {
+  color: var(--success-text, #0a0);
+  font-weight: 500;
+}
+
+.subscriberNo {
+  color: var(--text-secondary);
+}
+
+.storyList {
+  margin: 0;
+  padding: 0 0 0 1.25rem;
+  list-style-type: disc;
+}
+
+.storyList li {
+  margin-bottom: 0.25rem;
+}
+
+.storyList li:last-child {
+  margin-bottom: 0;
+}
+
+.noStories {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.seriesTag {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.125rem 0.375rem;
+  background: var(--bg-hover);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.emptyState {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 3rem;
+}

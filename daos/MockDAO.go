@@ -16,8 +16,9 @@ var (
 
 type MockDAO struct {
 	*DAO
-	MockGetUserDetails func(email string) (*models.UserInfo, error)
-	MockUpsertUser     func(email string) (*models.UserInfo, error)
+	MockGetUserDetails        func(email string) (*models.UserInfo, error)
+	MockUpsertUser            func(email string) (*models.UserInfo, error)
+	MockGetAllUsersWithStories func() ([]models.AdminUserSummary, error)
 
 	// billing
 	MockGetSubscription    func(email string) (*models.Subscription, error)
@@ -66,6 +67,13 @@ func (m *MockDAO) GetUserDetails(ctx context.Context, email string) (*models.Use
 	}
 	// sensible default for tests:
 	return &models.UserInfo{Email: email}, nil
+}
+
+func (m *MockDAO) GetAllUsersWithStories(ctx context.Context) ([]models.AdminUserSummary, error) {
+	if m.MockGetAllUsersWithStories != nil {
+		return m.MockGetAllUsersWithStories()
+	}
+	return []models.AdminUserSummary{}, nil
 }
 
 func (m *MockDAO) UpsertUser(ctx context.Context, email string) (*models.UserInfo, error) {

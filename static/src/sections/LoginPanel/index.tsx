@@ -1,9 +1,27 @@
+import { useNavigate } from "react-router-dom";
 import styles from "./loginpanel.module.css";
 
 export const LoginPanel = () => {
+  const navigate = useNavigate();
   const search = window.location.search;
+
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/");
+    }
+  };
+
   return (
     <div className={styles.loginPanel}>
+      <button
+        className={styles.closeButton}
+        onClick={handleBack}
+        aria-label="Go back"
+      >
+        &times;
+      </button>
       <h1>Sign In Options</h1>
       <div className={styles.option}>
         <a href={`/auth/google${search}`} id="LoginWithGoogle">

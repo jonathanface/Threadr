@@ -15,8 +15,11 @@ vi.mock('../../../api', () => ({
 // Mock the event emitter
 vi.mock('../../../utils/EventEmitter', () => ({
   emitSaveSuccess: vi.fn(),
+  emitSaveError: vi.fn(),
   emitDeleteSuccess: vi.fn(),
+  emitDeleteError: vi.fn(),
   emitSyncOrderSuccess: vi.fn(),
+  emitSyncOrderError: vi.fn(),
 }));
 
 describe('Queue', () => {

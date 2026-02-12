@@ -214,6 +214,85 @@ func (d *DAO) GetUserDetails(ctx context.Context, email string) (user *models.Us
 	return &userFromMap[0], nil
 }
 
+// GetAllUsersWithStories retrieves all users with their story titles, sorted by last_accessed
+// This is used by the admin area
+func (d *DAO) GetAllUsersWithStories(ctx context.Context) ([]models.AdminUserSummary, error) {
+	tableName := "users" + GetTableSuffix()
+
+	// Scan all users (excluding deleted)
+	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
+		TableName:        aws.String(tableName),
+		FilterExpression: aws.String("attribute_not_exists(deleted_at)"),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Define a struct to capture the raw user data including last_accessed
+	type userWithAccess struct {
+		Email        string `dynamodbav:"email"`
+		FirstName    string `dynamodbav:"first_name"`
+		LastName     string `dynamodbav:"last_name"`
+		Subscriber   bool   `dynamodbav:"subscriber"`
+		LastAccessed int64  `dynamodbav:"last_accessed"`
+	}
+
+	var users []userWithAccess
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &users); err != nil {
+		return nil, err
+	}
+
+	// Build the result with story info including series
+	result := make([]models.AdminUserSummary, 0, len(users))
+	for _, u := range users {
+		// Get stories for this user
+		stories, err := d.GetAllStories(ctx, u.Email)
+		var storyInfos []models.AdminStoryInfo
+		if err == nil {
+			// Build a map of seriesID -> series title for this user
+			seriesMap := make(map[string]string)
+			allSeries, seriesErr := d.GetAllSeriesWithStories(ctx, u.Email, true)
+			if seriesErr == nil {
+				for _, s := range allSeries {
+					seriesMap[s.ID] = s.Title
+				}
+			}
+
+			for _, s := range stories {
+				info := models.AdminStoryInfo{
+					Title: s.Title,
+				}
+				if s.SeriesID != "" {
+					if seriesTitle, ok := seriesMap[s.SeriesID]; ok {
+						info.SeriesTitle = seriesTitle
+					}
+				}
+				storyInfos = append(storyInfos, info)
+			}
+		}
+
+		result = append(result, models.AdminUserSummary{
+			Email:        u.Email,
+			FirstName:    u.FirstName,
+			LastName:     u.LastName,
+			Subscriber:   u.Subscriber,
+			LastAccessed: u.LastAccessed,
+			Stories:      storyInfos,
+		})
+	}
+
+	// Sort by last_accessed descending (most recent first)
+	for i := 0; i < len(result)-1; i++ {
+		for j := i + 1; j < len(result); j++ {
+			if result[j].LastAccessed > result[i].LastAccessed {
+				result[i], result[j] = result[j], result[i]
+			}
+		}
+	}
+
+	return result, nil
+}
+
 // GetUserByEmailIncludingDeleted retrieves a user including deleted users
 func (d *DAO) GetUserByEmailIncludingDeleted(ctx context.Context, email string) (*models.UserInfo, error) {
 	tableName := "users" + GetTableSuffix()

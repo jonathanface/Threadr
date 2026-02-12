@@ -133,6 +133,22 @@ type UserInfo struct {
 	ReturningUser  bool   `json:"isReturningUser,omitempty"`   // Transient flag for returning deleted users (not stored in DB)
 }
 
+// AdminStoryInfo represents a story with its optional series for the admin area
+type AdminStoryInfo struct {
+	Title       string `json:"title"`
+	SeriesTitle string `json:"series_title,omitempty"`
+}
+
+// AdminUserSummary is used by the admin area to display user info with their stories
+type AdminUserSummary struct {
+	Email        string           `json:"email"`
+	FirstName    string           `json:"first_name"`
+	LastName     string           `json:"last_name"`
+	Subscriber   bool             `json:"subscriber"`
+	LastAccessed int64            `json:"last_accessed"`
+	Stories      []AdminStoryInfo `json:"stories"`
+}
+
 type Subscription struct {
 	Email                  string    `json:"email" dynamodbav:"email"`
 	SubscriptionID         string    `json:"subscription_id" dynamodbav:"subscription_id"`

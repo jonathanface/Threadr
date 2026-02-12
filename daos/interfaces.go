@@ -24,6 +24,7 @@ type DaoInterface interface {
 	GetAssociationDetails(ctx context.Context, email, storyID, associationID string) (*models.Association, error)
 	GetSeriesVolumes(ctx context.Context, email string, seriesID string) ([]*models.Story, error)
 	GetUserDetails(ctx context.Context, email string) (*models.UserInfo, error)
+	GetAllUsersWithStories(ctx context.Context) ([]models.AdminUserSummary, error)
 	GetChapterByID(ctx context.Context, chapterID string) (*models.Chapter, error)
 	GetOutlineByStoryID(ctx context.Context, storyID string, chapters []models.Chapter) (*models.OutlineResponse, error)
 	GetChapterTableStatus(ctx context.Context, storyID, chapterID string) (bool, error)
