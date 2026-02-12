@@ -19,6 +19,7 @@ import { CheckoutPage } from "./sections/Payment/Checkout";
 import { SuccessPage } from "./sections/Payment/Success";
 import { AccountSubscriptionPage } from "./sections/Payment/AccountSubscription";
 import { NotFoundPage } from "./sections/NotFound";
+import { AdminArea } from "./sections/AdminArea";
 import {
   AlertCommandType,
   AlertFunctionCall,
@@ -181,6 +182,10 @@ export const Docter = () => {
           <Route
             path="/success"
             element={isLoggedIn ? <SuccessPage /> : <Navigate to="/" replace />}
+          />
+          <Route
+            path="/admin"
+            element={isLoggedIn ? <AdminArea /> : <Navigate to="/" replace />}
           />
           {/* Catch-all 404 */}
           <Route path="*" element={<NotFoundPage isLoggedIn={isLoggedIn} />} />

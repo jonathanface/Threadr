@@ -1,4 +1,5 @@
 .loginPanel {
+    position: relative;
     padding: 2rem;
     max-width: 500px;
     margin: 3rem auto;
@@ -8,6 +9,26 @@
     box-shadow: var(--shadow-dark);
     text-align: center;
     background: var(--bg-card);
+}
+
+.closeButton {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    line-height: 1;
+    border-radius: var(--radius-sm);
+    transition: color 0.2s, background-color 0.2s;
+}
+
+.closeButton:hover {
+    color: var(--text-primary);
+    background-color: var(--bg-hover);
 }
 
 .loginPanel h1 {

@@ -26,10 +26,11 @@ import {
   type SerializedLexicalNode,
   TextNode,
 } from "lexical";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { api } from "../../api";
 import { generateTextHash } from "../../constants/constants";
+import { UserContext } from "../../contexts/user";
 import { useLoader } from "../../hooks/useLoader";
 import { useSelections } from "../../hooks/useSelections";
 import { useToaster } from "../../hooks/useToaster";
@@ -70,6 +71,7 @@ import { useEditorCommands } from "./hooks/useEditorCommands";
 import { useEditorStateUpdater } from "./hooks/useEditorStateUpdater";
 import { useFetchStoryBlocks } from "./hooks/useFetchStoryBlocks";
 import { useMobileCursorAdjustment } from "./hooks/useMobileCursorAdjustment";
+import { useSaveErrorAlert } from "../../hooks/useSaveErrorAlert";
 import { AssociationDecoratorPlugin } from "./plugins/AssociationDecoratorPlugin";
 import DocumentClickPlugin, {
   type ClickData,
@@ -137,6 +139,9 @@ export const ThreadWriter = () => {
 
   // hooks
   const { setAlertState } = useToaster();
+  useSaveErrorAlert(); // Admin-only alerts for save failures
+  const userContext = useContext(UserContext);
+  const isAdmin = userContext?.userDetails?.admin ?? false;
   const { story, chapter } = useSelections();
   const { showLoader, hideLoader } = useLoader();
   const { documentSettings } = useDocumentSettings();
@@ -867,10 +872,34 @@ export const ThreadWriter = () => {
           logger.log("Order resync required after paragraph changes");
           queueParagraphOrderResync();
         }
+
+        // Admin-only alert: content hash changed but nothing was queued
+        if (
+          isAdmin &&
+          filteredSaves.length === 0 &&
+          deletedKeys.length === 0 &&
+          !orderResyncRequired
+        ) {
+          logger.warn("Content hash changed but no operations queued", {
+            previousHash,
+            currentHash,
+            childCount: children.length,
+            previousNodeKeysCount: previousNodeKeysRef.current.size,
+          });
+          setAlertState({
+            title: "Save Detection Warning",
+            message: `Content changed but no paragraphs were queued for save. Hash: ${currentHash?.slice(0, 8)}... Previous: ${previousHash?.slice(0, 8)}...`,
+            severity: AlertToastType.warning,
+            open: true,
+            timeout: 10000,
+          });
+        }
       });
     },
     [
       chapter,
+      isAdmin,
+      setAlertState,
       queueParagraphForDeletion,
       queueParagraphForSave,
       queueParagraphOrderResync,

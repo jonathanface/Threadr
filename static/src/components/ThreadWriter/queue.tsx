@@ -9,8 +9,11 @@ import {
 import { BlockOrderMap } from "../../types/Document";
 import {
   DeleteSuccessPayload,
+  emitDeleteError,
   emitDeleteSuccess,
+  emitSaveError,
   emitSaveSuccess,
+  emitSyncOrderError,
   emitSyncOrderSuccess,
   SaveSuccessPayload,
   SyncOrderSuccessPayload,
@@ -218,6 +221,11 @@ export const ProcessDBQueue = async () => {
           blockCount: saveOps.length,
           epoch: recs[0].epoch,
         });
+        emitSaveError({
+          storyID,
+          chapterID,
+          error: err instanceof Error ? err : new Error(String(err)),
+        });
         // requeue with same epoch & grouping key
         for (const b of saveOps) {
           const rec: OperationRecord = {
@@ -261,6 +269,11 @@ export const ProcessDBQueue = async () => {
           chapterID,
           blockCount: deleteOps.length,
           epoch: recs[0].epoch,
+        });
+        emitDeleteError({
+          storyID,
+          chapterID,
+          error: err instanceof Error ? err : new Error(String(err)),
         });
         for (const b of deleteOps) {
           const rec: OperationRecord = {
@@ -306,6 +319,11 @@ export const ProcessDBQueue = async () => {
           error: err,
           storyID: op.storyID,
           chapterID: op.chapterID,
+        });
+        emitSyncOrderError({
+          storyID: op.storyID,
+          chapterID: op.chapterID,
+          error: err instanceof Error ? err : new Error(String(err)),
         });
         // Requeue with same key
         const epoch = op.epoch ?? 0;
