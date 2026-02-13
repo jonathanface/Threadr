@@ -774,6 +774,13 @@ export const ThreadWriter = () => {
           content: SerializedElementNode<SerializedLexicalNode>;
         }[] = [];
 
+        // Check for untransformed ParagraphNodes (transform is pending)
+        const hasUntransformedParagraphs = children.some(
+          (node) =>
+            node instanceof ParagraphNode &&
+            !(node instanceof CustomParagraphNode)
+        );
+
         children.forEach((node, index) => {
           if (node instanceof CustomParagraphNode) {
             const id = node.getKeyId();
@@ -874,7 +881,12 @@ export const ThreadWriter = () => {
         }
 
         // Admin-only alert: content hash changed but nothing was queued
-        if (
+        // Skip alert if there are untransformed ParagraphNodes (transform pending, will save on next onChange)
+        if (hasUntransformedParagraphs) {
+          logger.log(
+            "Untransformed ParagraphNodes detected, skipping save check (transform pending)"
+          );
+        } else if (
           isAdmin &&
           filteredSaves.length === 0 &&
           deletedKeys.length === 0 &&
