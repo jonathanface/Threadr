@@ -13,6 +13,7 @@ body {
   overflow-y: auto;
   height: 100vh;
   max-height: 100vh;
+  color: var(--text-primary);
 }
 
 html {

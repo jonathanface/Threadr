@@ -8,34 +8,18 @@
 }
 
 .character {
-    color: #4ade80;
-}
-
-[data-theme="light"] .character {
     color: #16a34a;
 }
 
 .place {
-    color: #60a5fa;
-}
-
-[data-theme="light"] .place {
     color: #2563eb;
 }
 
 .event {
-    color: #f87171;
-}
-
-[data-theme="light"] .event {
     color: #dc2626;
 }
 
 .item {
-    color: #fbbf24;
-}
-
-[data-theme="light"] .item {
     color: #d97706;
 }
 
@@ -80,7 +64,7 @@
 }
 
 [data-theme="light"] .associationTooltipBody {
-    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    background: linear-gradient(135deg, #eef4fa 0%, #dce8f5 100%);
 }
 
 .associationTooltipBody .column {

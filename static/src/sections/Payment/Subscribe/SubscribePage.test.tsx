@@ -35,7 +35,7 @@ describe("<SubscribePage />", () => {
     ).toBeInTheDocument();
 
     expect(
-      screen.getByText(/\$5\s*\/\s*month — unlimited access/i),
+      screen.getByText(/\$10\s*\/\s*month — unlimited access/i),
     ).toBeInTheDocument();
   });
 
@@ -79,7 +79,7 @@ describe("<SubscribePage />", () => {
     const user = userEvent.setup();
     renderWithRouter(<SubscribePage />);
 
-    const cta = screen.getByRole("button", { name: /subscribe for \$5\/mo/i });
+    const cta = screen.getByRole("button", { name: /subscribe for \$10\/mo/i });
     expect(cta).toBeInTheDocument();
 
     await user.click(cta);

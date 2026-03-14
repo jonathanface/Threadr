@@ -53,6 +53,7 @@
 
 /* Typography */
 .editSeriesContainer h2 {
+  font-family: "Fraunces", Georgia, serif;
   color: var(--text-primary);
   font-size: 2rem;
   font-weight: 700;
@@ -65,6 +66,7 @@
 }
 
 .editSeriesContainer h6 {
+  font-family: "Fraunces", Georgia, serif;
   color: var(--text-primary);
   font-size: 1.25rem;
   font-weight: 600;
@@ -98,7 +100,7 @@
 }
 
 :global([data-theme="light"]) .editSeriesContainer .column.left {
-  background: linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%);
+  background: linear-gradient(135deg, #eef4fa 0%, #f5f9fc 100%);
 }
 
 .editSeriesContainer .column.left:hover {
@@ -151,7 +153,7 @@
 :global([data-theme="light"]) .editSeriesContainer input[type="text"],
 :global([data-theme="light"]) .editSeriesContainer textarea {
   color: var(--text-primary-light);
-  background: linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%);
+  background: linear-gradient(135deg, #eef4fa 0%, #f5f9fc 100%);
 }
 
 .editSeriesContainer input[type="text"]:hover,
@@ -205,8 +207,8 @@
 
 /* Light mode - story entries with complementing light blue background */
 :global([data-theme="light"]) .editSeriesVolumeItem > div {
-  background: linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%);
-  border: 1px solid rgba(100, 181, 246, 0.3);
+  background: linear-gradient(135deg, #eef4fa 0%, #f5f9fc 100%);
+  border: 1px solid rgba(163, 189, 214, 0.3);
 }
 
 .editSeriesVolumeItem > div:hover {
@@ -216,7 +218,7 @@
 }
 
 :global([data-theme="light"]) .editSeriesVolumeItem > div:hover {
-  border-color: rgba(100, 181, 246, 0.6);
+  border-color: rgba(163, 189, 214, 0.6);
 }
 
 /* Drag Handle */
@@ -230,7 +232,7 @@
 
 .editSeriesVolumeItem .dragHandle:hover {
   color: var(--text-primary);
-  background: rgba(0, 122, 255, 0.2);
+  background: rgba(217, 119, 6, 0.2);
 }
 
 :global([data-theme="light"]) .editSeriesVolumeItem .dragHandle:hover {
@@ -290,7 +292,7 @@
 }
 
 .editSeriesVolumeItem .editSeriesStory:hover {
-  background: rgba(0, 122, 255, 0.2);
+  background: rgba(217, 119, 6, 0.2);
   color: var(--primary);
 }
 
@@ -300,7 +302,7 @@
 }
 
 .editSeriesVolumeItem .removeSeriesStory:hover {
-  background: rgba(0, 122, 255, 0.2);
+  background: rgba(217, 119, 6, 0.2);
   color: var(--primary);
 }
 
@@ -327,11 +329,14 @@
   letter-spacing: 0 !important;
   box-shadow: var(--shadow-md) !important;
   transition: all 0.2s ease !important;
+  background-color: var(--primary) !important;
+  color: #fff !important;
 }
 
 .editSeriesContainer :global(.MuiButton-root:hover) {
   box-shadow: var(--shadow-lg) !important;
   transform: translateY(-1px);
+  background-color: var(--primary-hover) !important;
 }
 
 .editSeriesContainer :global(.MuiButton-root:active) {

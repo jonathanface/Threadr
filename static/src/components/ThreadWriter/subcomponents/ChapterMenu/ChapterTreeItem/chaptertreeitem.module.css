@@ -20,7 +20,7 @@
 
 /* Light mode - active chapter */
 :global([data-theme="light"]) .activeChapter {
-  background-color: rgba(0, 122, 255, 0.1);
+  background-color: rgba(217, 119, 6, 0.1);
 }
 
 .leftItems {

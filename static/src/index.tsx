@@ -11,6 +11,8 @@ import { WorksListProvider } from "./providers/worksList";
 import { AlertProvider } from "./providers/alert";
 import { AuthProvider } from "react-oidc-context";
 import { AuthRunner } from "./components/AuthRunner";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { useMemo, useState, useEffect } from "react";
 
 
 const rootElement = document.getElementById("root")!;
@@ -26,31 +28,76 @@ const cognitoAuthConfig = {
   scope: "email",
 };
 
-const App = (
-  <ErrorBoundary>
-    <BrowserRouter>
-      <LoaderProvider>
-        <AlertProvider>
-          <UserProvider>
-            <SelectionsProvider>
-              <WorksListProvider>
-                <Toaster />
-                <Loader />
-                <Docter />
-              </WorksListProvider>
-            </SelectionsProvider>
-          </UserProvider>
-        </AlertProvider>
-      </LoaderProvider>
-    </BrowserRouter>
-  </ErrorBoundary >
-);
+const darkTheme = createTheme({
+  palette: {
+    mode: "dark",
+    primary: { main: "#d97706", dark: "#b45309", contrastText: "#fff" },
+    secondary: { main: "#78716c" },
+    background: { default: "#1c1917", paper: "#292524" },
+    text: { primary: "#fafaf9", secondary: "#d6d3d1" },
+    divider: "rgba(255,255,255,0.08)",
+  },
+});
+
+const lightTheme = createTheme({
+  palette: {
+    mode: "light",
+    primary: { main: "#0e7c5f", dark: "#065f46", contrastText: "#fff" },
+    secondary: { main: "#6b8db5" },
+    background: { default: "#f0f7ff", paper: "#ffffff" },
+    text: { primary: "#0d2847", secondary: "#3d6490" },
+    divider: "rgba(14,124,95,0.1)",
+  },
+});
+
+const AppWithTheme = () => {
+  const [isDark, setIsDark] = useState(
+    () => document.documentElement.getAttribute("data-theme") !== "light"
+  );
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(
+        document.documentElement.getAttribute("data-theme") !== "light"
+      );
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  const theme = useMemo(() => (isDark ? darkTheme : lightTheme), [isDark]);
+
+  return (
+    <ThemeProvider theme={theme}>
+      <ErrorBoundary>
+        <BrowserRouter>
+          <LoaderProvider>
+            <AlertProvider>
+              <UserProvider>
+                <SelectionsProvider>
+                  <WorksListProvider>
+                    <Toaster />
+                    <Loader />
+                    <Docter />
+                  </WorksListProvider>
+                </SelectionsProvider>
+              </UserProvider>
+            </AlertProvider>
+          </LoaderProvider>
+        </BrowserRouter>
+      </ErrorBoundary>
+    </ThemeProvider>
+  );
+};
 
 const content = mode === 'staging' ? (
   <AuthProvider {...cognitoAuthConfig}>
-    <AuthRunner>{App}</AuthRunner>
+    <AuthRunner><AppWithTheme /></AuthRunner>
   </AuthProvider>
-) : (App);
+) : (<AppWithTheme />);
 
 
 root.render(content);

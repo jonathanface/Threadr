@@ -187,7 +187,7 @@ export const AccountSubscriptionPage = () => {
         <Typography
           variant="h5"
           gutterBottom
-          sx={{ fontSize: { xs: "1.5rem", sm: "2rem" } }}
+          sx={{ fontSize: { xs: "1.5rem", sm: "2rem" }, color: "text.primary" }}
         >
           Membership
         </Typography>
@@ -204,8 +204,8 @@ export const AccountSubscriptionPage = () => {
           />
         )}
 
-        <Typography sx={{ fontSize: { xs: "0.9rem", sm: "1rem" }, mb: 1 }}>
-          $5/month • cancel anytime
+        <Typography sx={{ fontSize: { xs: "0.9rem", sm: "1rem" }, mb: 1, color: "text.primary" }}>
+          $10/month • cancel anytime
         </Typography>
 
         {isScheduledToCancel && data?.currentPeriodEnd && (

@@ -629,9 +629,9 @@ func MobileSessionHandler() http.HandlerFunc {
 		// Create a session and store the user data with a session token
 		sess, err := sessions.Get(r, "user_data")
 		if err != nil {
-			logger.Error("Failed to get user_data session", "error", err)
-			api.RespondWithError(w, http.StatusInternalServerError, "Failed to create session")
-			return
+			// gorilla/sessions returns a new empty session even on error
+			// (e.g. expired cookie), so we can safely continue
+			logger.Warn("Existing session cookie invalid, creating fresh session", "error", err)
 		}
 
 		// Generate a unique session token for mobile

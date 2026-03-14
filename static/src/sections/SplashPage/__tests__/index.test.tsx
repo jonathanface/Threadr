@@ -37,20 +37,20 @@ describe('SplashPage', () => {
   describe('Rendering', () => {
     it('should render without crashing', () => {
       renderSplashPage();
-      expect(screen.getByText(/The Writing Platform That Keeps Your Story Organized/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
     });
 
     it('should render hero section with title', () => {
       renderSplashPage();
 
-      const heroTitle = screen.getByRole('heading', { name: /The Writing Platform That Keeps Your Story Organized/i });
-      expect(heroTitle).toBeInTheDocument();
+      const heroTitle = screen.getByRole('heading', { level: 1 });
+      expect(heroTitle).toHaveTextContent(/Your Characters Remember Everything/i);
     });
 
     it('should render hero subtitle', () => {
       renderSplashPage();
 
-      expect(screen.getByText(/Link characters, places, and events directly in your text/i)).toBeInTheDocument();
+      expect(screen.getByText(/Docter embeds your characters, places, and events directly into your manuscript/i)).toBeInTheDocument();
     });
 
     it('should render primary CTA buttons', () => {
@@ -63,7 +63,7 @@ describe('SplashPage', () => {
     it('should render pricing information', () => {
       renderSplashPage();
 
-      expect(screen.getByText(/Free: Unlimited stories \+ 20 story elements/i)).toBeInTheDocument();
+      expect(screen.getByText(/Free forever with unlimited stories/i)).toBeInTheDocument();
     });
 
     it('should render demo section', () => {
@@ -75,7 +75,7 @@ describe('SplashPage', () => {
     it('should render demo instructions', () => {
       renderSplashPage();
 
-      expect(screen.getByText(/Try It Now - No Signup Required/i)).toBeInTheDocument();
+      expect(screen.getByText(/See It in Action/i)).toBeInTheDocument();
     });
   });
 
@@ -122,23 +122,23 @@ describe('SplashPage', () => {
     it('should render "How It Works" section', () => {
       renderSplashPage();
 
-      expect(screen.getByRole('heading', { name: /how it works/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Three Steps to a Linked Manuscript/i })).toBeInTheDocument();
     });
 
     it('should render three steps', () => {
       renderSplashPage();
 
-      expect(screen.getByText(/Write Your Story/i)).toBeInTheDocument();
-      expect(screen.getByText(/Link Story Elements/i)).toBeInTheDocument();
-      expect(screen.getByText(/Stay Organized/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /^Write$/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /^Link$/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /^Recall$/i })).toBeInTheDocument();
     });
 
     it('should render step descriptions', () => {
       renderSplashPage();
 
-      expect(screen.getByText(/Draft chapters in a clean, distraction-free editor/i)).toBeInTheDocument();
-      expect(screen.getByText(/Highlight text and create references to characters/i)).toBeInTheDocument();
-      expect(screen.getByText(/Click any reference to view details/i)).toBeInTheDocument();
+      expect(screen.getByText(/Draft chapters in a clean editor built for long-form fiction/i)).toBeInTheDocument();
+      expect(screen.getByText(/Highlight a character's name, a location, or a pivotal event/i)).toBeInTheDocument();
+      expect(screen.getByText(/Click any linked reference to instantly see its full profile/i)).toBeInTheDocument();
     });
 
     it('should render step numbers', () => {
@@ -154,61 +154,59 @@ describe('SplashPage', () => {
     it('should render features section title', () => {
       renderSplashPage();
 
-      expect(screen.getByRole('heading', { name: /write smarter, not harder/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Built for the Long Haul/i })).toBeInTheDocument();
     });
 
     it('should render features intro', () => {
       renderSplashPage();
 
-      expect(screen.getByText(/Built for writers working on novels, series, and complex narratives/i)).toBeInTheDocument();
+      expect(screen.getByText(/Novels grow. Characters multiply. Timelines tangle/i)).toBeInTheDocument();
     });
 
-    it('should render inline references feature', () => {
+    it('should render inline story elements feature', () => {
       renderSplashPage();
 
-      expect(screen.getByText(/Inline References:/i)).toBeInTheDocument();
+      expect(screen.getByText(/Inline Story Elements/i)).toBeInTheDocument();
     });
 
-    it('should render quick access feature', () => {
+    it('should render one-click recall feature', () => {
       renderSplashPage();
 
-      expect(screen.getByText(/Quick Access:/i)).toBeInTheDocument();
+      expect(screen.getByText(/One-Click Recall/i)).toBeInTheDocument();
     });
 
-    it('should render no context switching feature', () => {
+    it('should render series support feature', () => {
       renderSplashPage();
 
-      expect(screen.getByText(/No Context Switching:/i)).toBeInTheDocument();
+      expect(screen.getByText(/Series Support/i)).toBeInTheDocument();
     });
 
     it('should render export feature', () => {
       renderSplashPage();
 
-      expect(screen.getByText(/Export Ready \(Pro\):/i)).toBeInTheDocument();
+      expect(screen.getByText(/Export Your Way/i)).toBeInTheDocument();
     });
   });
 
-  describe('Complex Storytelling Section', () => {
-    it('should render complex storytelling section', () => {
+  describe('Blurb Section', () => {
+    it('should render blurb section', () => {
       renderSplashPage();
 
-      expect(screen.getByRole('heading', { name: /perfect for complex storytelling/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /What Was Her Eye Color in Chapter Three/i })).toBeInTheDocument();
     });
 
-    it('should render storytelling benefits list', () => {
+    it('should render blurb content', () => {
       renderSplashPage();
 
-      expect(screen.getByText(/Track multiple character arcs/i)).toBeInTheDocument();
-      expect(screen.getByText(/Never forget what a place looks like/i)).toBeInTheDocument();
-      expect(screen.getByText(/Maintain consistency in names/i)).toBeInTheDocument();
+      expect(screen.getByText(/Every writer knows the feeling/i)).toBeInTheDocument();
+      expect(screen.getByText(/Docter solves this by turning your manuscript/i)).toBeInTheDocument();
     });
 
     it('should render writer desk image', () => {
       renderSplashPage();
 
-      const image = screen.getByAltText('Writer organizing story elements');
-      expect(image).toBeInTheDocument();
-      expect(image).toHaveAttribute('src', './img/writerdesk.jpg');
+      const images = screen.getAllByAltText(/writer/i);
+      expect(images.length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -216,39 +214,39 @@ describe('SplashPage', () => {
     it('should render FAQ section', () => {
       renderSplashPage();
 
-      expect(screen.getByRole('heading', { name: /frequently asked questions/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Common Questions/i })).toBeInTheDocument();
     });
 
     it('should render free plan question', () => {
       renderSplashPage();
 
-      expect(screen.getByRole('heading', { name: /is there a free plan\?/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /What's free\?/i })).toBeInTheDocument();
     });
 
     it('should render pro features question', () => {
       renderSplashPage();
 
-      expect(screen.getByRole('heading', { name: /what do i get with pro\?/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /What does Pro add\?/i })).toBeInTheDocument();
     });
 
     it('should render export question', () => {
       renderSplashPage();
 
-      expect(screen.getByRole('heading', { name: /can i export my work\?/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Can I export my manuscript\?/i })).toBeInTheDocument();
     });
 
     it('should render ownership question', () => {
       renderSplashPage();
 
-      expect(screen.getByRole('heading', { name: /do i own my content\?/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Who owns what I write\?/i })).toBeInTheDocument();
     });
 
     it('should render FAQ answers', () => {
       renderSplashPage();
 
-      expect(screen.getByText(/Yes! Free accounts get unlimited stories/i)).toBeInTheDocument();
-      expect(screen.getByText(/Pro members \(\$5\/month\) get unlimited/i)).toBeInTheDocument();
-      expect(screen.getByText(/Absolutely. You own 100% of everything you write/i)).toBeInTheDocument();
+      expect(screen.getByText(/Unlimited stories with up to 10 story elements/i)).toBeInTheDocument();
+      expect(screen.getByText(/Unlimited story elements per story, document export/i)).toBeInTheDocument();
+      expect(screen.getByText(/You do. Everything you create belongs to you/i)).toBeInTheDocument();
     });
   });
 
@@ -280,13 +278,13 @@ describe('SplashPage', () => {
     it('should render final CTA heading', () => {
       renderSplashPage();
 
-      expect(screen.getByRole('heading', { name: /ready to organize your story\?/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Your Next Chapter Is Waiting/i })).toBeInTheDocument();
     });
 
     it('should render final CTA description', () => {
       renderSplashPage();
 
-      expect(screen.getByText(/Join writers who keep their characters, places, and events organized/i)).toBeInTheDocument();
+      expect(screen.getByText(/Start writing with the editor that remembers your world/i)).toBeInTheDocument();
     });
 
     it('should render no credit card message', () => {
@@ -329,8 +327,8 @@ describe('SplashPage', () => {
     it('should have alt text for images', () => {
       renderSplashPage();
 
-      const image = screen.getByAltText('Writer organizing story elements');
-      expect(image).toBeInTheDocument();
+      const images = screen.getAllByAltText(/writer/i);
+      expect(images.length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -339,25 +337,25 @@ describe('SplashPage', () => {
       renderSplashPage();
 
       // Hero
-      expect(screen.getByText(/The Writing Platform That Keeps Your Story Organized/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
 
       // Demo
       expect(screen.getByTestId('thread-writer-demo')).toBeInTheDocument();
 
       // How it Works
-      expect(screen.getByRole('heading', { name: /how it works/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Three Steps to a Linked Manuscript/i })).toBeInTheDocument();
 
       // Features
-      expect(screen.getByRole('heading', { name: /write smarter, not harder/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Built for the Long Haul/i })).toBeInTheDocument();
 
-      // Complex Storytelling
-      expect(screen.getByRole('heading', { name: /perfect for complex storytelling/i })).toBeInTheDocument();
+      // Blurb
+      expect(screen.getByRole('heading', { name: /What Was Her Eye Color/i })).toBeInTheDocument();
 
       // FAQ
-      expect(screen.getByRole('heading', { name: /frequently asked questions/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Common Questions/i })).toBeInTheDocument();
 
       // Final CTA
-      expect(screen.getByRole('heading', { name: /ready to organize your story\?/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Your Next Chapter Is Waiting/i })).toBeInTheDocument();
     });
   });
 });

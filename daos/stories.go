@@ -856,91 +856,222 @@ func (d *DAO) WriteBlocks(ctx context.Context, storyID string, storyBlocks *mode
 	}
 
 	// Step 2: Create lookup maps
-	itemsByKeyID, itemsByPlace := buildItemMaps(existingItems)
+	itemsByKeyID, _ := buildItemMaps(existingItems)
 
-	// Step 3: Process blocks in batches
-	batchSize := d.writeBatchSize / 2
-	if batchSize == 0 {
-		batchSize = 50
+	// Step 3: Build all delete and put transactions from the full block list.
+	// We process all blocks at once (no batching at this stage) so that
+	// place assignments are computed with full knowledge of all moves.
+	// The itemsByPlace conflict check is not needed here because we execute
+	// ALL deletes before ANY puts, guaranteeing old positions are cleared first.
+	var allDeleteItems []types.TransactWriteItem
+	var allPutItems []types.TransactWriteItem
+
+	for _, item := range storyBlocks.Blocks {
+		newPlaceNum, parseErr := strconv.ParseInt(item.Place, 10, 64)
+		if parseErr != nil {
+			return fmt.Errorf("invalid place value %s: %w", item.Place, parseErr)
+		}
+
+		existingItem, exists := itemsByKeyID[item.KeyID]
+
+		if exists {
+			// Block exists - check if place changed
+			oldPlace, ok := existingItem["place"].(*types.AttributeValueMemberN)
+			if !ok {
+				return fmt.Errorf("invalid place attribute for key_id %s", item.KeyID)
+			}
+
+			oldPlaceNum, _ := strconv.ParseInt(oldPlace.Value, 10, 64)
+
+			// Build new item with updated content
+			newItem := map[string]types.AttributeValue{
+				"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
+				"place":         &types.AttributeValueMemberN{Value: item.Place},
+				"story_id":      &types.AttributeValueMemberS{Value: storyID},
+				"chapter_id":    &types.AttributeValueMemberS{Value: storyBlocks.ChapterID},
+				"key_id":        &types.AttributeValueMemberS{Value: item.KeyID},
+			}
+
+			// Update chunk - with data loss protection
+			if len(item.Chunk) > 0 {
+				chunkStr := string(item.Chunk)
+
+				if existingChunk, ok := existingItem["chunk"]; ok {
+					existingChunkStr := ""
+					if s, ok := existingChunk.(*types.AttributeValueMemberS); ok {
+						existingChunkStr = s.Value
+					}
+
+					existingHasContent := len(existingChunkStr) > 50
+
+					newIsMalformed := chunkStr == "null" ||
+						chunkStr == "[]" ||
+						chunkStr == `""` ||
+						chunkStr == "{}" ||
+						(len(chunkStr) < 30 && (!strings.Contains(chunkStr, "type") || !strings.Contains(chunkStr, "key_id"))) ||
+						(!strings.Contains(chunkStr, "type") && !strings.Contains(chunkStr, "key_id"))
+
+					if existingHasContent && newIsMalformed {
+						logger.Warn("DATA LOSS PREVENTED: Preserving existing chunk - incoming chunk is malformed",
+							"storyId", storyID,
+							"chapterId", storyBlocks.ChapterID,
+							"keyId", item.KeyID,
+							"existingLength", len(existingChunkStr),
+							"incomingLength", len(chunkStr),
+							"incomingChunk", chunkStr,
+							"existingChunkPreview", truncateString(existingChunkStr, 100))
+						newItem["chunk"] = existingChunk
+					} else {
+						newItem["chunk"] = &types.AttributeValueMemberS{Value: chunkStr}
+					}
+				} else {
+					newItem["chunk"] = &types.AttributeValueMemberS{Value: chunkStr}
+				}
+			} else {
+				if existingChunk, ok := existingItem["chunk"]; ok {
+					newItem["chunk"] = existingChunk
+					logger.Warn("DATA LOSS PREVENTED: Preserving existing chunk due to zero-length incoming chunk",
+						"storyId", storyID,
+						"chapterId", storyBlocks.ChapterID,
+						"keyId", item.KeyID)
+				}
+			}
+
+			// Preserve other attributes from existing item
+			for k, v := range existingItem {
+				if k != "composite_key" && k != "place" && k != "story_id" && k != "chapter_id" && k != "key_id" && k != "chunk" {
+					newItem[k] = v
+				}
+			}
+
+			if oldPlaceNum != newPlaceNum {
+				// Place changed - need to delete from old position first
+				deleteKey := map[string]types.AttributeValue{
+					"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
+					"place":         oldPlace,
+				}
+				allDeleteItems = append(allDeleteItems, types.TransactWriteItem{
+					Delete: &types.Delete{
+						TableName: aws.String(GetStoryBlocksTableName()),
+						Key:       deleteKey,
+					},
+				})
+			}
+
+			allPutItems = append(allPutItems, types.TransactWriteItem{
+				Put: &types.Put{
+					TableName: aws.String(GetStoryBlocksTableName()),
+					Item:      newItem,
+				},
+			})
+		} else {
+			// New block
+			if len(item.Chunk) == 0 {
+				logger.Warn("Skipping creation of new block with zero-length chunk (possible frontend bug)",
+					"storyId", storyID,
+					"chapterId", storyBlocks.ChapterID,
+					"keyId", item.KeyID,
+					"place", item.Place)
+				continue
+			}
+
+			newItem := map[string]types.AttributeValue{
+				"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
+				"place":         &types.AttributeValueMemberN{Value: item.Place},
+				"story_id":      &types.AttributeValueMemberS{Value: storyID},
+				"chapter_id":    &types.AttributeValueMemberS{Value: storyBlocks.ChapterID},
+				"key_id":        &types.AttributeValueMemberS{Value: item.KeyID},
+				"chunk":         &types.AttributeValueMemberS{Value: string(item.Chunk)},
+			}
+
+			allPutItems = append(allPutItems, types.TransactWriteItem{
+				Put: &types.Put{
+					TableName: aws.String(GetStoryBlocksTableName()),
+					Item:      newItem,
+				},
+			})
+		}
 	}
-	batches := createBatches(storyBlocks.Blocks, batchSize)
 
-	logger.Debug("Processing batches",
-		"storyId", storyID,
-		"chapterId", storyBlocks.ChapterID,
-		"batchCount", len(batches),
-		"batchSize", batchSize)
+	// Step 4: Execute all deletes first (in batches), then all puts.
+	// This guarantees old positions are cleared before new positions are written,
+	// eliminating place conflicts entirely.
+	txnBatchSize := d.writeBatchSize
+	if txnBatchSize == 0 {
+		txnBatchSize = 100
+	}
 
-	// Process each batch in two phases: delete then put
-	for batchIndex, batch := range batches {
-		logger.Debug("Processing batch",
+	// Phase 1: Execute all deletes
+	for i := 0; i < len(allDeleteItems); i += txnBatchSize {
+		end := i + txnBatchSize
+		if end > len(allDeleteItems) {
+			end = len(allDeleteItems)
+		}
+		batch := allDeleteItems[i:end]
+
+		logger.Debug("Phase 1: Deleting blocks from old positions",
 			"storyId", storyID,
 			"chapterId", storyBlocks.ChapterID,
-			"batchNumber", batchIndex+1,
-			"totalBatches", len(batches),
-			"itemsInBatch", len(batch))
+			"deleteCount", len(batch),
+			"batchStart", i,
+			"totalDeletes", len(allDeleteItems))
 
-		deleteItems, putItems, err := buildWriteTransactions(batch, compositeKey, storyID, storyBlocks.ChapterID, itemsByKeyID, itemsByPlace)
+		deleteInput := &dynamodb.TransactWriteItemsInput{
+			TransactItems: batch,
+		}
+		awsErr, err := d.awsWriteTransaction(ctx, deleteInput)
 		if err != nil {
+			logger.Error("Phase 1 delete transaction failed",
+				"error", err,
+				"storyId", storyID,
+				"chapterId", storyBlocks.ChapterID)
 			return err
 		}
-
-		// Execute Phase 1: Delete
-		if len(deleteItems) > 0 {
-			logger.Debug("Phase 1: Deleting blocks from old positions",
+		if !awsErr.IsNil() {
+			logger.Error("Phase 1 delete AWS error",
+				"awsCode", awsErr.Code,
+				"awsErrorType", awsErr.ErrorType,
+				"awsMessage", awsErr.Text,
 				"storyId", storyID,
-				"chapterId", storyBlocks.ChapterID,
-				"deleteCount", len(deleteItems))
-
-			deleteInput := &dynamodb.TransactWriteItemsInput{
-				TransactItems: deleteItems,
-			}
-			awsErr, err := d.awsWriteTransaction(ctx, deleteInput)
-			if err != nil {
-				logger.Error("Phase 1 delete transaction failed",
-					"error", err,
-					"storyId", storyID,
-					"chapterId", storyBlocks.ChapterID)
-				return err
-			}
-			if !awsErr.IsNil() {
-				logger.Error("Phase 1 delete AWS error",
-					"awsCode", awsErr.Code,
-					"awsErrorType", awsErr.ErrorType,
-					"awsMessage", awsErr.Text,
-					"storyId", storyID,
-					"chapterId", storyBlocks.ChapterID)
-				return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
-			}
+				"chapterId", storyBlocks.ChapterID)
+			return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 		}
+	}
 
-		// Execute Phase 2: Put
-		if len(putItems) > 0 {
-			logger.Debug("Phase 2: Writing blocks to new positions",
+	// Phase 2: Execute all puts
+	for i := 0; i < len(allPutItems); i += txnBatchSize {
+		end := i + txnBatchSize
+		if end > len(allPutItems) {
+			end = len(allPutItems)
+		}
+		batch := allPutItems[i:end]
+
+		logger.Debug("Phase 2: Writing blocks to new positions",
+			"storyId", storyID,
+			"chapterId", storyBlocks.ChapterID,
+			"putCount", len(batch),
+			"batchStart", i,
+			"totalPuts", len(allPutItems))
+
+		putInput := &dynamodb.TransactWriteItemsInput{
+			TransactItems: batch,
+		}
+		awsErr, err := d.awsWriteTransaction(ctx, putInput)
+		if err != nil {
+			logger.Error("Phase 2 put transaction failed",
+				"error", err,
 				"storyId", storyID,
-				"chapterId", storyBlocks.ChapterID,
-				"putCount", len(putItems))
-
-			putInput := &dynamodb.TransactWriteItemsInput{
-				TransactItems: putItems,
-			}
-			awsErr, err := d.awsWriteTransaction(ctx, putInput)
-			if err != nil {
-				logger.Error("Phase 2 put transaction failed",
-					"error", err,
-					"storyId", storyID,
-					"chapterId", storyBlocks.ChapterID)
-				return err
-			}
-			if !awsErr.IsNil() {
-				logger.Error("Phase 2 put AWS error",
-					"awsCode", awsErr.Code,
-					"awsErrorType", awsErr.ErrorType,
-					"awsMessage", awsErr.Text,
-					"storyId", storyID,
-					"chapterId", storyBlocks.ChapterID)
-				return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
-			}
+				"chapterId", storyBlocks.ChapterID)
+			return err
+		}
+		if !awsErr.IsNil() {
+			logger.Error("Phase 2 put AWS error",
+				"awsCode", awsErr.Code,
+				"awsErrorType", awsErr.ErrorType,
+				"awsMessage", awsErr.Text,
+				"storyId", storyID,
+				"chapterId", storyBlocks.ChapterID)
+			return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 		}
 	}
 

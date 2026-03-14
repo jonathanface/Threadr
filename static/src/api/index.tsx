@@ -2,7 +2,7 @@ import axios from "axios";
 import { logger } from "../utils/logger";
 
 export const api = axios.create({
-  baseURL: "/api",
+  baseURL: "/api/v1",
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",

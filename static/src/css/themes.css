@@ -1,33 +1,34 @@
-/* Theme System - Dark Mode (Default) */
+/* Theme System - Dark Mode (Default)
+   Palette: warm charcoal with amber accent */
 :root {
   /* Brand Colors */
-  --primary: #007AFF;
-  --primary-hover: #0051D5;
-  --primary-light: #E5F1FF;
-  --success: #34C759;
-  --warning: #FF9500;
-  --danger: #FF3B30;
+  --primary: #d97706;
+  --primary-hover: #b45309;
+  --primary-light: #fef3c7;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --danger: #dc2626;
 
   /* Background Colors - Dark Theme */
-  --bg-body: linear-gradient(135deg, #1a1f2e 0%, #2c3e50 100%);
-  --bg-body-solid: #1a1f2e;
-  --bg-primary: #2d3748;
-  --bg-secondary: #374151;
-  --bg-header: linear-gradient(135deg, #1a1f2e 0%, #2c3e50 100%);
-  --bg-footer: linear-gradient(135deg, #1a1f2e 0%, #2c3e50 100%);
-  --bg-toolbar: #374151;
-  --bg-hero: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
-  --bg-card: rgba(255, 255, 255, 0.05);
-  --bg-card-hover: rgba(255, 255, 255, 0.08);
-  --bg-modal-light: linear-gradient(135deg, #2d3748 0%, #374151 100%);
-  --bg-splash-blurb: #d4dce5;
-  --bg-editor: #2a2e3a;
-  --bg-editor-blockquote: #3a3e4a;
+  --bg-body: linear-gradient(135deg, #1c1917 0%, #292524 100%);
+  --bg-body-solid: #1c1917;
+  --bg-primary: #292524;
+  --bg-secondary: #322f2e;
+  --bg-header: linear-gradient(135deg, #1c1917 0%, #292524 100%);
+  --bg-footer: linear-gradient(135deg, #1c1917 0%, #292524 100%);
+  --bg-toolbar: #322f2e;
+  --bg-hero: linear-gradient(135deg, #292524 0%, #3c3634 100%);
+  --bg-card: rgba(255, 255, 255, 0.04);
+  --bg-card-hover: rgba(255, 255, 255, 0.07);
+  --bg-modal-light: linear-gradient(135deg, #292524 0%, #322f2e 100%);
+  --bg-splash-blurb: #3c3634;
+  --bg-editor: #e0e0e0;
+  --bg-editor-blockquote: #d4d4d4;
   --bg-secondary-light: #F8F9FA;
-  --bg-user-menu: #2d3748;
-  --bg-user-menu-hover: #4a5568;
-  --bg-user-menu-dropdown: #515d57;
-  --bg-user-menu-item-hover: #493123;
+  --bg-user-menu: #292524;
+  --bg-user-menu-hover: #3c3634;
+  --bg-user-menu-dropdown: #3c3634;
+  --bg-user-menu-item-hover: rgba(217, 119, 6, 0.12);
 
   /* Surface Colors */
   --surface-primary: #FFFFFF;
@@ -35,24 +36,24 @@
   --surface-tertiary: #F2F4F7;
 
   /* Text Colors - Dark Theme */
-  --text-primary: #f5f7fa;
-  --text-secondary: #d0d0d0;
-  --text-tertiary: #9CA3AF;
-  --text-on-light: #1A1A1A;
-  --text-primary-light: #1A1A1A;
-  --text-tertiary-light: #888888;
+  --text-primary: #fafaf9;
+  --text-secondary: #d6d3d1;
+  --text-tertiary: #a8a29e;
+  --text-on-light: #1c1917;
+  --text-primary-light: #1c1917;
+  --text-tertiary-light: #78716c;
 
   /* Border Colors */
-  --border-light: rgba(255, 255, 255, 0.1);
-  --border-medium: rgba(255, 255, 255, 0.2);
-  --border-dark: #333;
+  --border-light: rgba(255, 255, 255, 0.08);
+  --border-medium: rgba(255, 255, 255, 0.15);
+  --border-dark: #44403c;
 
   /* Shadow System */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-dark: 0 4px 8px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.15), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.08);
+  --shadow-dark: 0 4px 8px rgba(0, 0, 0, 0.35);
   --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
 
   /* Border Radius */
@@ -70,49 +71,55 @@
   --spacing-2xl: 48px;
 }
 
-/* Light Mode Theme */
+/* Light Mode Theme
+   Palette: cool blue-white with emerald accent */
 [data-theme="light"] {
+  /* Brand Colors */
+  --primary: #0e7c5f;
+  --primary-hover: #065f46;
+  --primary-light: #d1fae5;
+
   /* Background Colors - Light Theme */
-  --bg-body: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-  --bg-body-solid: #e3f2fd;
+  --bg-body: linear-gradient(135deg, #f0f7ff 0%, #e3eef9 100%);
+  --bg-body-solid: #f0f7ff;
   --bg-primary: #ffffff;
-  --bg-secondary: #f5faff;
-  --bg-header: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-  --bg-footer: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-  --bg-toolbar: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%);
-  --bg-hero: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%);
-  --bg-card: linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%);
-  --bg-card-hover: linear-gradient(135deg, #bbdefb 0%, #90caf9 100%);
-  --bg-modal-light: linear-gradient(135deg, #f8f9fa 0%, #f0f4f8 100%);
-  --bg-splash-blurb: linear-gradient(135deg, #ffffff 0%, #e8f4ff 100%);
+  --bg-secondary: #f5f9fc;
+  --bg-header: linear-gradient(135deg, #0d2847 0%, #163a5f 100%);
+  --bg-footer: linear-gradient(135deg, #0d2847 0%, #163a5f 100%);
+  --bg-toolbar: linear-gradient(135deg, #1a4a7a 0%, #0d2847 100%);
+  --bg-hero: linear-gradient(135deg, #dce8f5 0%, #c7d9ed 100%);
+  --bg-card: rgba(255, 255, 255, 0.65);
+  --bg-card-hover: rgba(255, 255, 255, 0.85);
+  --bg-modal-light: linear-gradient(135deg, #f8fafb 0%, #eef3f8 100%);
+  --bg-splash-blurb: linear-gradient(135deg, #ffffff 0%, #eef4fa 100%);
   --bg-editor: #ffffff;
-  --bg-editor-blockquote: #e3f2fd;
-  --bg-secondary-light: #e3f2fd;
-  --bg-user-menu: #42a5f5;
-  --bg-user-menu-hover: #1e88e5;
+  --bg-editor-blockquote: #eef4fa;
+  --bg-secondary-light: #eef4fa;
+  --bg-user-menu: #163a5f;
+  --bg-user-menu-hover: #0d2847;
   --bg-user-menu-dropdown: #ffffff;
-  --bg-user-menu-item-hover: #e3f2fd;
+  --bg-user-menu-item-hover: #eef4fa;
 
   /* Text Colors - Light Theme */
-  --text-primary: #1565c0;
-  --text-secondary: #1976d2;
-  --text-tertiary: #42a5f5;
-  --text-on-light: #1565c0;
-  --text-primary-light: #1565c0;
-  --text-tertiary-light: #42a5f5;
+  --text-primary: #0d2847;
+  --text-secondary: #3d6490;
+  --text-tertiary: #6b8db5;
+  --text-on-light: #0d2847;
+  --text-primary-light: #0d2847;
+  --text-tertiary-light: #6b8db5;
 
   /* Border Colors - Light Theme */
-  --border-light: #90caf9;
-  --border-medium: #64b5f6;
-  --border-dark: #42a5f5;
+  --border-light: rgba(14, 124, 95, 0.1);
+  --border-medium: rgba(14, 124, 95, 0.2);
+  --border-dark: rgba(14, 124, 95, 0.3);
 
   /* Shadow System - Light Theme */
-  --shadow-sm: 0 1px 2px 0 rgba(25, 118, 210, 0.1);
-  --shadow-md: 0 4px 6px -1px rgba(25, 118, 210, 0.15), 0 2px 4px -1px rgba(25, 118, 210, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(25, 118, 210, 0.2), 0 4px 6px -2px rgba(25, 118, 210, 0.1);
-  --shadow-xl: 0 20px 25px -5px rgba(25, 118, 210, 0.2), 0 10px 10px -5px rgba(25, 118, 210, 0.1);
-  --shadow-dark: 0 4px 8px rgba(25, 118, 210, 0.25);
-  --shadow-card: 0 4px 6px -1px rgba(25, 118, 210, 0.15), 0 2px 4px -1px rgba(25, 118, 210, 0.1);
+  --shadow-sm: 0 1px 2px 0 rgba(13, 40, 71, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(13, 40, 71, 0.08), 0 2px 4px -1px rgba(13, 40, 71, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(13, 40, 71, 0.1), 0 4px 6px -2px rgba(13, 40, 71, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(13, 40, 71, 0.1), 0 10px 10px -5px rgba(13, 40, 71, 0.04);
+  --shadow-dark: 0 4px 8px rgba(13, 40, 71, 0.12);
+  --shadow-card: 0 4px 6px -1px rgba(13, 40, 71, 0.08), 0 2px 4px -1px rgba(13, 40, 71, 0.04);
 }
 
 /* Theme Toggle Class (can be applied to body or root element) */
@@ -122,4 +129,24 @@
 
 .light-theme {
   color-scheme: light;
+}
+
+/* Global MUI Button Overrides — use theme primary instead of default blue */
+.MuiButton-containedPrimary {
+  background-color: var(--primary) !important;
+  color: #fff !important;
+}
+
+.MuiButton-containedPrimary:hover {
+  background-color: var(--primary-hover) !important;
+}
+
+.MuiButton-outlinedPrimary {
+  border-color: var(--primary) !important;
+  color: var(--primary) !important;
+}
+
+.MuiButton-outlinedPrimary:hover {
+  border-color: var(--primary-hover) !important;
+  background-color: rgba(217, 119, 6, 0.08) !important;
 }

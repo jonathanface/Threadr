@@ -68,7 +68,7 @@
 }
 
 :global([data-theme="light"]) .customContext .menuItem:hover {
-  background-color: #e3f2fd;
+  background-color: #eef4fa;
   filter: none;
 }
 
@@ -89,7 +89,7 @@
 }
 
 :global([data-theme="light"]) .menuItem.has-submenu>.submenu .menuItem:hover {
-  background-color: #e3f2fd;
+  background-color: #eef4fa;
   filter: none;
 }
 

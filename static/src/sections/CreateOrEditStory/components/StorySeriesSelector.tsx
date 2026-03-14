@@ -77,8 +77,8 @@ export const StorySeriesSelector: React.FC<StorySeriesSelectorProps> = ({
           paper: {
             sx: {
               background: theme === 'light'
-                ? 'linear-gradient(135deg, #e3f2fd 0%, #f0f9ff 100%)'
-                : '#2d3748',
+                ? 'linear-gradient(135deg, #eef4fa 0%, #f5f9fc 100%)'
+                : 'var(--bg-primary)',
               '& .MuiPaper-root': {
                 transitionProperty: 'none !important',
               },

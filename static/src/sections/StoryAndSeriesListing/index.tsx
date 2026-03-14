@@ -105,11 +105,11 @@ export const StoryAndSeriesListing = () => {
                         fontSize: 100,
                         "&:hover": {
                           fontWeight: "bold",
-                          color: "#2a57e3",
+                          color: "#d97706",
                         },
                         ...(isNewUser && {
                           filter:
-                            "drop-shadow(0 0 20px rgba(42, 87, 227, 0.6))",
+                            "drop-shadow(0 0 20px rgba(217, 119, 6, 0.6))",
                         }),
                       }}
                     />

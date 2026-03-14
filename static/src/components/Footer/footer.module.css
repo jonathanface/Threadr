@@ -13,8 +13,16 @@ footer {
   color: var(--text-primary);
 }
 
+[data-theme="dark"] footer a {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] footer a:hover {
+  color: var(--text-primary);
+}
+
 [data-theme="light"] footer a {
-  color: #e3f2fd;
+  color: #eef4fa;
 }
 
 [data-theme="light"] footer a:hover {
