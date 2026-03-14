@@ -128,13 +128,13 @@ export const HeaderMenu = () => {
   return (
     <header className={styles.header}>
       <span className={styles.leftPane}>
-        <a href={baseUrl}>
+        <a href={baseUrl} className={styles.logoLink}>
           <img
             className={styles.logoImage}
             alt="Docter.io logo"
-            title="Docter.io - Organized Imagination"
             src="/img/slash-logo-trans-100.png"
           />
+          <span className={styles.logoText}>docter.io</span>
         </a>
         <span className={styles.storyInfo}>
           <img alt={story?.title} src={story?.image_url} />
