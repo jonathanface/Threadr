@@ -19,7 +19,7 @@
 }
 
 :global([data-theme="light"]) .storyBoxContainer {
-  background: rgba(187, 222, 251, 0.9);
+  background: rgba(255, 255, 255, 0.65);
 }
 
 .storyBoxContainer::before {
@@ -152,7 +152,7 @@
 }
 
 :global([data-theme="light"]) .storyBoxContainer .storyLabel .buttons :global(.MuiIconButton-root:hover) :global(svg) {
-  color: #2a57e3 !important;
+  color: #0e7c5f !important;
 }
 
 .storyBoxContainer .storyBubble {
@@ -203,6 +203,6 @@
 
 /* Focus visible for accessibility */
 .storyBoxContainer:focus-visible {
-  outline: 2px solid rgba(0, 122, 255, 0.8);
+  outline: 2px solid rgba(217, 119, 6, 0.8);
   outline-offset: 2px;
 }

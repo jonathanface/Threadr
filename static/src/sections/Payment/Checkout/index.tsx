@@ -20,6 +20,30 @@ import {
 import { loadStripe } from "@stripe/stripe-js";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_KEY);
+
+const getStripeAppearance = (): import("@stripe/stripe-js").Appearance => {
+  const isDark =
+    document.documentElement.getAttribute("data-theme") !== "light";
+  return isDark
+    ? {
+        theme: "night",
+        variables: {
+          colorPrimary: "#d97706",
+          colorBackground: "#292524",
+          colorText: "#fafaf9",
+          colorTextSecondary: "#d6d3d1",
+          borderRadius: "12px",
+        },
+      }
+    : {
+        theme: "stripe",
+        variables: {
+          colorPrimary: "#0e7c5f",
+          borderRadius: "12px",
+        },
+      };
+};
+
 export const CheckoutPage = () => {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -67,8 +91,8 @@ export const CheckoutPage = () => {
     <Elements
       stripe={stripePromise}
       options={{
-        clientSecret, // <-- REQUIRED for Payment Element
-        appearance: {},
+        clientSecret,
+        appearance: getStripeAppearance(),
         loader: "auto",
       }}
     >
@@ -148,8 +172,8 @@ export const CheckoutForm = () => {
       >
         <CloseIcon />
       </IconButton>
-      <Typography variant="h5" gutterBottom>
-        Subscribe — $5/month
+      <Typography variant="h5" gutterBottom sx={{ color: "text.primary" }}>
+        Subscribe — $10/month
       </Typography>
       <PaymentElement />
       {errMsg && (

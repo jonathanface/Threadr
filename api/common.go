@@ -28,7 +28,7 @@ const (
 	S3_STORY_IMAGE_BUCKET     = "richdocter-story-portraits"
 	S3_SERIES_IMAGE_BUCKET    = "richdocter-series-portraits"
 	TMP_EXPORT_DIR            = "./tmp"
-	NON_SUBSCRIBER_MAX_ASSOC  = 20
+	NON_SUBSCRIBER_MAX_ASSOC  = 10
 )
 
 // GetAuthenticatedUser extracts user info from either mobile token (Authorization header)

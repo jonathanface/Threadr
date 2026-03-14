@@ -15,10 +15,11 @@
   max-width: 1400px;
   margin: 0 auto var(--spacing-xl) auto;
   padding: 0 var(--spacing-lg);
+  font-family: "Fraunces", Georgia, serif;
   font-size: 2.5rem;
   font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: -0.02em;
+  letter-spacing: 0.05em;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
@@ -52,19 +53,19 @@
 /* Pulse animation for new users */
 .pulse {
   animation: pulseRing 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  border-color: rgba(42, 87, 227, 0.8);
-  box-shadow: 0 0 0 0 rgba(42, 87, 227, 0.7);
+  border-color: rgba(217, 119, 6, 0.8);
+  box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.7);
 }
 
 @keyframes pulseRing {
   0% {
-    box-shadow: 0 0 0 0 rgba(42, 87, 227, 0.7);
+    box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.7);
   }
   50% {
-    box-shadow: 0 0 0 15px rgba(42, 87, 227, 0);
+    box-shadow: 0 0 0 15px rgba(217, 119, 6, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(42, 87, 227, 0);
+    box-shadow: 0 0 0 0 rgba(217, 119, 6, 0);
   }
 }
 
@@ -77,7 +78,7 @@
   bottom: 0;
   background: radial-gradient(
     circle at center,
-    rgba(0, 122, 255, 0.1) 0%,
+    rgba(217, 119, 6, 0.1) 0%,
     transparent 70%
   );
   opacity: 0;
@@ -86,13 +87,13 @@
 
 .createStoryButton:hover {
   transform: translateY(-8px);
-  border-color: rgba(0, 122, 255, 0.5);
+  border-color: rgba(217, 119, 6, 0.5);
   background: linear-gradient(
     135deg,
-    rgba(0, 122, 255, 0.1) 0%,
-    rgba(0, 122, 255, 0.05) 100%
+    rgba(217, 119, 6, 0.1) 0%,
+    rgba(217, 119, 6, 0.05) 100%
   );
-  box-shadow: 0 20px 40px -10px rgba(0, 122, 255, 0.3);
+  box-shadow: 0 20px 40px -10px rgba(217, 119, 6, 0.3);
 }
 
 .createStoryButton:hover::before {
@@ -111,21 +112,21 @@
 
 /* Light mode - softer background */
 :global([data-theme="light"]) .createStoryButton {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  background: linear-gradient(135deg, #eef4fa 0%, #dce8f5 100%);
 }
 
 :global([data-theme="light"]) .createStoryButton:hover {
-  background: linear-gradient(135deg, #bbdefb 0%, #90caf9 100%);
+  background: linear-gradient(135deg, #dce8f5 0%, #c7d9ed 100%);
 }
 
 :global([data-theme="light"]) .createStoryButton :global(.MuiSvgIcon-root) {
-  color: #1565c0 !important;
+  color: #0d2847 !important;
 }
 
 :global([data-theme="light"])
   .createStoryButton:hover
   :global(.MuiSvgIcon-root) {
-  color: #0d47a1 !important;
+  color: #0a1f3a !important;
 }
 
 /* Empty State Message - Inline with button */

@@ -158,7 +158,7 @@ export const SeriesBox: React.FC<SeriesBoxProps> = ({ series }) => {
                   color: "#F0F0F0",
                   "&:hover": {
                     fontWeight: "bold",
-                    color: "#2a57e3",
+                    color: "#d97706",
                   },
                 }}
               />
@@ -179,7 +179,7 @@ export const SeriesBox: React.FC<SeriesBoxProps> = ({ series }) => {
                   color: "#F0F0F0",
                   "&:hover": {
                     fontWeight: "bold",
-                    color: "#2a57e3",
+                    color: "#d97706",
                   },
                 }}
               />

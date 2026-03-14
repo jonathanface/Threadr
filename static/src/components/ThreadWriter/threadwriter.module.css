@@ -71,7 +71,7 @@
 
 /* Styling for focused state */
 .editorInput:focus {
-  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.4);
+  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.4);
   border-color: var(--primary);
 }
 

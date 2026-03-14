@@ -240,7 +240,7 @@ export const ThreadWriter = () => {
         };
         setAlertState({
           title: "Insufficient subscription",
-          message: "Free accounts are limited to 20 associations per story.",
+          message: "Free accounts are limited to 10 associations per story.",
           open: true,
           severity: AlertToastType.warning,
           timeout: null,

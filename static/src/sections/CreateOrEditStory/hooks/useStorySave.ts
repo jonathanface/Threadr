@@ -107,13 +107,14 @@ export const useStorySave = () => {
         if (selectedSeries) {
           if (selectedSeries.series_id) {
             // Assigning to existing series
-            if (!isEdit || selectedSeries.series_id !== initialSeriesID) {
-              const foundSeries = seriesList?.find(
-                (srs) => srs.series_id === selectedSeries.series_id
-              );
-              if (foundSeries) {
-                formData.series_id = foundSeries.series_id;
-                formData.series_name = foundSeries.series_title.trim();
+            const foundSeries = seriesList?.find(
+              (srs) => srs.series_id === selectedSeries.series_id
+            );
+            if (foundSeries) {
+              formData.series_id = foundSeries.series_id;
+              formData.series_name = foundSeries.series_title.trim();
+              // Only set series_place for new additions (not when keeping same series)
+              if (!isEdit || selectedSeries.series_id !== initialSeriesID) {
                 formData.series_place = foundSeries.stories.length || 1;
               }
             }

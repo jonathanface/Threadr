@@ -432,7 +432,7 @@ export const EditSeries = () => {
                                   sx={{
                                     color: 'var(--text-primary)',
                                     '&:hover': {
-                                      backgroundColor: 'rgba(0, 122, 255, 0.2)',
+                                      backgroundColor: 'rgba(217, 119, 6, 0.2)',
                                     }
                                   }}
                                 >
@@ -452,7 +452,7 @@ export const EditSeries = () => {
                                   sx={{
                                     padding: 0,
                                     '&:hover': {
-                                      backgroundColor: 'rgba(0, 122, 255, 0.2)',
+                                      backgroundColor: 'rgba(217, 119, 6, 0.2)',
                                     }
                                   }}
                                   onClick={(event) =>
@@ -474,7 +474,7 @@ export const EditSeries = () => {
                                   aria-label="remove story"
                                   sx={{
                                     '&:hover': {
-                                      backgroundColor: 'rgba(0, 122, 255, 0.2)',
+                                      backgroundColor: 'rgba(217, 119, 6, 0.2)',
                                     }
                                   }}
                                   onClick={(event) =>

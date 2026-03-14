@@ -7,7 +7,7 @@
 
 .userMenu>a {
   font-size: 0.8rem;
-  color: #1565c0;
+  color: #0d2847;
   cursor: pointer;
   border: 1px solid var(--border-light);
   border-radius: 15px;
@@ -19,8 +19,8 @@
 }
 
 .userMenu>a:hover {
-  color: #1565c0;
-  background-color: #e3f2fd;
+  color: #0d2847;
+  background-color: #eef4fa;
 }
 
 [data-theme="dark"] .userMenu>a {
@@ -59,12 +59,12 @@
 
 [data-theme="light"] .userMenu .menuContainer .icon {
   background-color: #ffffff;
-  color: #1565c0;
-  border-color: #90caf9;
+  color: #0d2847;
+  border-color: #c7d9ed;
 }
 
 [data-theme="light"] .userMenu .menuContainer .icon:hover {
-  background-color: #e3f2fd;
+  background-color: #eef4fa;
 }
 
 .userMenu .menuContainer .icon button {

@@ -107,7 +107,7 @@ export const SubscribePage = () => {
               opacity: 0.8,
             }}
           >
-            $5 / month — unlimited access
+            $10 / month — unlimited access
           </Typography>
         </Stack>
 
@@ -175,7 +175,7 @@ export const SubscribePage = () => {
                 }),
               })}
             >
-              Subscribe for $5/mo
+              Subscribe for $10/mo
             </Button>
 
             <Stack direction="row" spacing={0.75} alignItems="center">

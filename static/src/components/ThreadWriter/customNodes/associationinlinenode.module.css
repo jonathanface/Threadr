@@ -80,7 +80,7 @@
 }
 
 [data-theme="light"] .associationTooltipBody {
-    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    background: linear-gradient(135deg, #eef4fa 0%, #dce8f5 100%);
 }
 
 .associationTooltipBody .column {

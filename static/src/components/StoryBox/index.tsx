@@ -145,7 +145,7 @@ export const StoryBox = (props: StoryBoxProps) => {
                   color: "#F0F0F0",
                   "&:hover": {
                     fontWeight: "bold",
-                    color: "#2a57e3",
+                    color: "#d97706",
                   },
                 }}
               />
@@ -166,7 +166,7 @@ export const StoryBox = (props: StoryBoxProps) => {
                   color: "#F0F0F0",
                   "&:hover": {
                     fontWeight: "bold",
-                    color: "#2a57e3",
+                    color: "#d97706",
                   },
                 }}
               />

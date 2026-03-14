@@ -112,49 +112,49 @@ func TestSetupRouter(t *testing.T) {
 			name:           "api get user route exists",
 			mode:           models.ModeProduction,
 			method:         "GET",
-			path:           "/api/user",
+			path:           "/api/v1/user",
 			checkRouteOnly: true,
 		},
 		{
 			name:           "api get stories route exists",
 			mode:           models.ModeProduction,
 			method:         "GET",
-			path:           "/api/stories",
+			path:           "/api/v1/stories",
 			checkRouteOnly: true,
 		},
 		{
 			name:           "api post stories route exists",
 			mode:           models.ModeProduction,
 			method:         "POST",
-			path:           "/api/stories",
+			path:           "/api/v1/stories",
 			checkRouteOnly: true,
 		},
 		{
 			name:           "api get story by id route exists",
 			mode:           models.ModeProduction,
 			method:         "GET",
-			path:           "/api/stories/123",
+			path:           "/api/v1/stories/123",
 			checkRouteOnly: true,
 		},
 		{
 			name:           "api delete story route exists",
 			mode:           models.ModeProduction,
 			method:         "DELETE",
-			path:           "/api/stories/123",
+			path:           "/api/v1/stories/123",
 			checkRouteOnly: true,
 		},
 		{
 			name:           "api get series route exists",
 			mode:           models.ModeProduction,
 			method:         "GET",
-			path:           "/api/series",
+			path:           "/api/v1/series",
 			checkRouteOnly: true,
 		},
 		{
 			name:           "api create chapter route exists",
 			mode:           models.ModeProduction,
 			method:         "POST",
-			path:           "/api/stories/123/chapter",
+			path:           "/api/v1/stories/123/chapter",
 			checkRouteOnly: true,
 		},
 	}
@@ -344,7 +344,7 @@ func TestSetupRouter_MiddlewareApplication(t *testing.T) {
 
 	t.Run("api routes require strict authentication", func(t *testing.T) {
 		// API routes should require strict authentication
-		req := httptest.NewRequest("GET", "/api/stories", nil)
+		req := httptest.NewRequest("GET", "/api/v1/stories", nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -379,7 +379,7 @@ func TestMaintenanceMode(t *testing.T) {
 		}
 
 		// API route should return maintenance page
-		req = httptest.NewRequest("GET", "/api/stories", nil)
+		req = httptest.NewRequest("GET", "/api/v1/stories", nil)
 		w = httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -415,7 +415,7 @@ func TestMaintenanceMode(t *testing.T) {
 		}
 
 		// API route should return 401 (auth required, not maintenance)
-		req = httptest.NewRequest("GET", "/api/stories", nil)
+		req = httptest.NewRequest("GET", "/api/v1/stories", nil)
 		w = httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 

@@ -16,7 +16,7 @@ import (
 
 const (
 	staticFilesDir = "static/dist"
-	servicePath    = "/api"
+	servicePath    = "/api/v1"
 	billingPath    = "/billing"
 	authPath       = "/auth"
 )
