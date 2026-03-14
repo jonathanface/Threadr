@@ -5,13 +5,13 @@ import { useEffect, useState } from "react";
 import styles from "./themetoggle.module.css";
 
 export const ThemeToggle = () => {
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
     // Check localStorage for saved theme preference
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
-    const preferredTheme = savedTheme || "dark";
+    const preferredTheme = savedTheme || "light";
 
     setTheme(preferredTheme);
     document.documentElement.setAttribute("data-theme", preferredTheme);

@@ -24,17 +24,17 @@ describe('ThemeToggle', () => {
       expect(button).toBeInTheDocument();
     });
 
-    it('should render in dark mode by default', () => {
+    it('should render in light mode by default', () => {
       render(<ThemeToggle />);
 
-      const lightModeIcon = screen.getByTestId('LightModeIcon');
-      expect(lightModeIcon).toBeInTheDocument();
+      const darkModeIcon = screen.getByTestId('DarkModeIcon');
+      expect(darkModeIcon).toBeInTheDocument();
     });
 
-    it('should set data-theme attribute to dark by default', () => {
+    it('should set data-theme attribute to light by default', () => {
       render(<ThemeToggle />);
 
-      expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+      expect(document.documentElement.getAttribute('data-theme')).toBe('light');
     });
   });
 
@@ -67,19 +67,7 @@ describe('ThemeToggle', () => {
   });
 
   describe('Theme Toggle', () => {
-    it('should toggle from dark to light when clicked', () => {
-      render(<ThemeToggle />);
-
-      const button = screen.getByRole('button');
-      fireEvent.click(button);
-
-      const darkModeIcon = screen.getByTestId('DarkModeIcon');
-      expect(darkModeIcon).toBeInTheDocument();
-    });
-
     it('should toggle from light to dark when clicked', () => {
-      localStorage.setItem('theme', 'light');
-
       render(<ThemeToggle />);
 
       const button = screen.getByRole('button');
@@ -89,22 +77,34 @@ describe('ThemeToggle', () => {
       expect(lightModeIcon).toBeInTheDocument();
     });
 
+    it('should toggle from dark to light when clicked', () => {
+      localStorage.setItem('theme', 'dark');
+
+      render(<ThemeToggle />);
+
+      const button = screen.getByRole('button');
+      fireEvent.click(button);
+
+      const darkModeIcon = screen.getByTestId('DarkModeIcon');
+      expect(darkModeIcon).toBeInTheDocument();
+    });
+
     it('should toggle multiple times', () => {
       render(<ThemeToggle />);
 
       const button = screen.getByRole('button');
 
-      // Dark -> Light
-      fireEvent.click(button);
-      expect(screen.getByTestId('DarkModeIcon')).toBeInTheDocument();
-
       // Light -> Dark
       fireEvent.click(button);
       expect(screen.getByTestId('LightModeIcon')).toBeInTheDocument();
 
-      // Dark -> Light again
+      // Dark -> Light
       fireEvent.click(button);
       expect(screen.getByTestId('DarkModeIcon')).toBeInTheDocument();
+
+      // Light -> Dark again
+      fireEvent.click(button);
+      expect(screen.getByTestId('LightModeIcon')).toBeInTheDocument();
     });
   });
 
@@ -115,7 +115,7 @@ describe('ThemeToggle', () => {
       const button = screen.getByRole('button');
       fireEvent.click(button);
 
-      expect(localStorage.getItem('theme')).toBe('light');
+      expect(localStorage.getItem('theme')).toBe('dark');
     });
 
     it('should update localStorage on each toggle', () => {
@@ -124,10 +124,10 @@ describe('ThemeToggle', () => {
       const button = screen.getByRole('button');
 
       fireEvent.click(button);
-      expect(localStorage.getItem('theme')).toBe('light');
+      expect(localStorage.getItem('theme')).toBe('dark');
 
       fireEvent.click(button);
-      expect(localStorage.getItem('theme')).toBe('dark');
+      expect(localStorage.getItem('theme')).toBe('light');
     });
   });
 
@@ -138,7 +138,7 @@ describe('ThemeToggle', () => {
       const button = screen.getByRole('button');
       fireEvent.click(button);
 
-      expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+      expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
     });
 
     it('should update data-theme on each toggle', () => {
@@ -147,10 +147,10 @@ describe('ThemeToggle', () => {
       const button = screen.getByRole('button');
 
       fireEvent.click(button);
-      expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+      expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
 
       fireEvent.click(button);
-      expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+      expect(document.documentElement.getAttribute('data-theme')).toBe('light');
     });
   });
 
@@ -167,10 +167,10 @@ describe('ThemeToggle', () => {
   });
 
   describe('Icons', () => {
-    it('should show light mode icon in dark mode', () => {
+    it('should show dark mode icon in light mode', () => {
       render(<ThemeToggle />);
 
-      expect(screen.getByTestId('LightModeIcon')).toBeInTheDocument();
+      expect(screen.getByTestId('DarkModeIcon')).toBeInTheDocument();
     });
 
     it('should show dark mode icon in light mode', () => {
@@ -184,7 +184,7 @@ describe('ThemeToggle', () => {
     it('should have medium fontSize for icons', () => {
       render(<ThemeToggle />);
 
-      const icon = screen.getByTestId('LightModeIcon');
+      const icon = screen.getByTestId('DarkModeIcon');
       expect(icon).toBeInTheDocument();
     });
   });
@@ -267,8 +267,8 @@ describe('ThemeToggle', () => {
 
       render(<ThemeToggle />);
 
-      // Should default to dark
-      expect(screen.getByTestId('LightModeIcon')).toBeInTheDocument();
+      // Should default to light
+      expect(screen.getByTestId('DarkModeIcon')).toBeInTheDocument();
     });
 
     it('should handle component unmount during animation', () => {
