@@ -22,8 +22,8 @@
   --bg-card-hover: rgba(255, 255, 255, 0.07);
   --bg-modal-light: linear-gradient(135deg, #292524 0%, #322f2e 100%);
   --bg-splash-blurb: #3c3634;
-  --bg-editor: #504a47;
-  --bg-editor-blockquote: #322f2e;
+  --bg-editor: #e0e0e0;
+  --bg-editor-blockquote: #d4d4d4;
   --bg-secondary-light: #F8F9FA;
   --bg-user-menu: #292524;
   --bg-user-menu-hover: #3c3634;
