@@ -13,9 +13,9 @@ import {
   TextNode,
 } from "lexical";
 import { useCallback, useEffect } from "react";
-import { CustomParagraphNode } from "../ThreadWriterDemo/customNodes/CustomParagraphNode";
+import { CustomParagraphNode } from "../../ThreadWriter/customNodes/CustomParagraphNode";
 import { v4 as uuidv4 } from "uuid";
-import { $isAssociationInlineNode } from "../ThreadWriterDemo/customNodes/AssociationInlineNodeDemo";
+import { $isAssociationInlineNode } from "../../ThreadWriter/customNodes/AssociationInlineNode";
 
 export const useEditorCommandsDemo = (
   editorRef: React.RefObject<LexicalEditor | null>,

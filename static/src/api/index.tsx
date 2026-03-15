@@ -1,6 +1,48 @@
 import axios from "axios";
 import { logger } from "../utils/logger";
 
+// Active-request tracking for save spinner
+let _activeRequests = 0;
+let _isSaving = false;
+let _hideTimer: ReturnType<typeof setTimeout> | null = null;
+const _listeners = new Set<() => void>();
+const MIN_DISPLAY_MS = 1000;
+
+const notifyListeners = () => _listeners.forEach((fn) => fn());
+
+const onRequestStart = () => {
+  _activeRequests++;
+  if (!_isSaving) {
+    if (_hideTimer) {
+      clearTimeout(_hideTimer);
+      _hideTimer = null;
+    }
+    _isSaving = true;
+    notifyListeners();
+  }
+};
+
+const onRequestEnd = () => {
+  _activeRequests = Math.max(0, _activeRequests - 1);
+  if (_activeRequests === 0 && _isSaving) {
+    // Keep spinner visible for at least MIN_DISPLAY_MS
+    if (_hideTimer) clearTimeout(_hideTimer);
+    _hideTimer = setTimeout(() => {
+      _hideTimer = null;
+      if (_activeRequests === 0) {
+        _isSaving = false;
+        notifyListeners();
+      }
+    }, MIN_DISPLAY_MS);
+  }
+};
+
+export const subscribeSaving = (fn: () => void) => {
+  _listeners.add(fn);
+  return () => { _listeners.delete(fn); };
+};
+export const getIsSaving = () => _isSaving;
+
 export const api = axios.create({
   baseURL: "/api/v1",
   withCredentials: true,
@@ -13,10 +55,17 @@ export const api = axios.create({
   },
 });
 
+// Track active requests for save spinner
+api.interceptors.request.use(
+  (config) => { onRequestStart(); return config; },
+  (error) => { onRequestStart(); return Promise.reject(error); },
+);
+
 // Example interceptors if you want global auth/error handling
 api.interceptors.response.use(
-  (response) => response,
+  (response) => { onRequestEnd(); return response; },
   (error) => {
+    onRequestEnd();
     // Log all API errors with context
     const errorContext = {
       url: error.config?.url,

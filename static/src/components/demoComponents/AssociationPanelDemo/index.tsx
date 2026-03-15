@@ -7,15 +7,15 @@ import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
-import { AssociationDecoratorPluginDemo } from "../ThreadWriterDemo/plugins/AssociationDecoratorPluginDemo";
+import { AssociationDecoratorPlugin } from "../../ThreadWriter/plugins/AssociationDecoratorPlugin";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
 import { $createParagraphNode, $createTextNode, $getRoot, EditorState, LexicalEditor } from "lexical";
-import { ClickData } from "../ThreadWriterDemo/plugins/DocumentClickPluginDemo";
+import { ClickData } from "../../ThreadWriter/plugins/DocumentClickPlugin";
 import { CharacterLimitPlugin } from "@lexical/react/LexicalCharacterLimitPlugin";
 import { OverflowNode } from "@lexical/overflow";
 import { UCWords } from "../ThreadWriterDemo/utilities";
 import CloseIcon from '@mui/icons-material/Close';
-import { AssociationInlineNodeDemo } from "../ThreadWriterDemo/customNodes/AssociationInlineNodeDemo";
+import { AssociationInlineNode } from "../../ThreadWriter/customNodes/AssociationInlineNode";
 
 interface AssociationProps {
   onEditCallback: (association: Association) => void;
@@ -37,7 +37,7 @@ const descriptionConfig = {
   namespace: 'DescriptionEditor',
   theme,
   nodes: [
-    AssociationInlineNodeDemo,
+    AssociationInlineNode,
     OverflowNode
   ],
   onError: (error: Error) => {
@@ -48,7 +48,7 @@ const bgConfig = {
   namespace: 'BackgroundEditor',
   theme,
   nodes: [
-    AssociationInlineNodeDemo
+    AssociationInlineNode
   ],
   onError: (error: Error) => {
     console.error('BG error:', error);
@@ -239,7 +239,7 @@ export const AssociationPanelDemo: React.FC<AssociationProps> = (props) => {
   };
 
   return (
-    <Drawer anchor={"right"} open={props.isAssociationPanelOpen} onClose={handleClose} className={styles.associationPanel}>
+    <Drawer anchor={"right"} open={props.isAssociationPanelOpen} onClose={handleClose} PaperProps={{ className: styles.associationPanel }}>
       <Box className={styles.header}>
         <IconButton onClick={handleClose} sx={{ mr: 1 }}>
           <CloseIcon />
@@ -304,7 +304,7 @@ export const AssociationPanelDemo: React.FC<AssociationProps> = (props) => {
                 <CharacterLimitPlugin charset="UTF-8" maxLength={200} renderer={(obj) => {
                   return <div className={styles.remainingChars}>Remaining characters: <span className={`${styles.value} ${obj.remainingCharacters < 0 ? styles.exceeded : ""}`}>{obj.remainingCharacters}</span></div>
                 }} />
-                <AssociationDecoratorPluginDemo associations={props.associations} isProgrammaticChange={isProgrammaticChange} customLeftClick={onAssociationClick} exclusionList={exclusionList.current} />
+                <AssociationDecoratorPlugin isProgrammaticChange={isProgrammaticChange} customLeftClick={onAssociationClick} exclusionList={exclusionList.current} />
               </LexicalComposer>
             </div>
           </div>
@@ -336,7 +336,7 @@ export const AssociationPanelDemo: React.FC<AssociationProps> = (props) => {
                   ErrorBoundary={LexicalErrorBoundary}
                 />
                 <HistoryPlugin />
-                <AssociationDecoratorPluginDemo associations={props.associations} isProgrammaticChange={isProgrammaticChange} customLeftClick={onAssociationClick} exclusionList={exclusionList.current} />
+                <AssociationDecoratorPlugin isProgrammaticChange={isProgrammaticChange} customLeftClick={onAssociationClick} exclusionList={exclusionList.current} />
               </LexicalComposer>
             </div>
           </div>
@@ -366,13 +366,13 @@ export const AssociationPanelDemo: React.FC<AssociationProps> = (props) => {
               }}
               sx={{
                 label: {
-                  color: "#333",
+                  color: "var(--text-secondary)",
                 },
                 "& .MuiFilledInput-root": {
                   backgroundColor: "transparent"
                 },
                 input: {
-                  color: "#333",
+                  color: "var(--text-primary)",
                   backgroundColor: "transparent"
                 },
                 "& fieldset": { border: 'none' },

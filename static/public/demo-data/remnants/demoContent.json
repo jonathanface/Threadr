@@ -1542,5 +1542,70 @@
                 "Value": "c95dd409-eb56-412e-af22-d15b5346a340"
             }
         }
+    ],
+    "associations": [
+        {
+            "association_id": "123",
+            "association_name": "Seth Walker",
+            "association_type": "character",
+            "short_description": "A young, resourceful survivor who has grown up quickly in the aftermath of the zombie apocalypse. He lives on a remote family farm in Montana with his younger sister, Melinda.",
+            "portrait": "https://richdocter-custom-portraits.s3.us-east-1.amazonaws.com/jonathanjface-gmail.com_the-remnants_seth_character.jpg",
+            "aliases": "Seth",
+            "case_sensitive": true
+        },
+        {
+            "association_id": "124",
+            "association_name": "Melinda Walker",
+            "association_type": "character",
+            "short_description": "Melinda, Seth's seven-year-old sister, is frail from hunger and trauma. She clings to her brother Seth for safety, quietly enduring nightmares in a harsh, dangerous new world.",
+            "portrait": "https://richdocter-custom-portraits.s3.us-east-1.amazonaws.com/jonathanjface-gmail.com_the-remnants_melinda_character.jpg",
+            "aliases": "Melinda",
+            "case_sensitive": true
+        },
+        {
+            "association_id": "125",
+            "association_name": "Tommy",
+            "association_type": "character",
+            "short_description": "A grizzled survivor with perm-curled gray hair, a glum expression, and a ruthless streak. Wears a leather jacket, cracks jokes, but kills without hesitation. Practical, selfish, and dangerous.",
+            "portrait": "./demo-data/rocker.jpg",
+            "aliases": "Rocker",
+            "case_sensitive": true
+        },
+        {
+            "association_id": "126",
+            "association_name": "Riley",
+            "association_type": "character",
+            "short_description": "A wiry man with a prominent Adam's apple and a battered hat. A tough but anxious survivor, clinging to old-world manners.",
+            "portrait": "./demo-data/cowboy.jpg",
+            "aliases": "Cowboy",
+            "case_sensitive": true
+        },
+        {
+            "association_id": "127",
+            "association_name": "Kevin",
+            "association_type": "character",
+            "short_description": "A rigid, disciplined man with a stiff, sculpted flattop haircut. Wears military gear and keeps a wary eye on his surroundings. Focused, methodical, and always expecting trouble.",
+            "portrait": "./demo-data/flattop.jpg",
+            "aliases": "Flattop",
+            "case_sensitive": true
+        },
+        {
+            "association_id": "128",
+            "association_name": "The Walker Farm",
+            "association_type": "place",
+            "short_description": "A frost-covered, abandoned Montana farm with a broken-windowed house, a worn barn with an open hayloft, and dead crops in melting snow. Wild grass creeps in, reclaiming the silent land.",
+            "portrait": "./demo-data/farm.jpg",
+            "aliases": "the farm",
+            "case_sensitive": false
+        },
+        {
+            "association_id": "129",
+            "association_name": "Bowie knife",
+            "association_type": "item",
+            "short_description": "A rugged Bowie knife with a broad, sharp steel blade and a well-worn wooden handle.",
+            "portrait": "./demo-data/bowie.jpg",
+            "aliases": "",
+            "case_sensitive": false
+        }
     ]
 }

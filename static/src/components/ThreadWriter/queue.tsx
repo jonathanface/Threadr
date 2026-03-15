@@ -32,6 +32,7 @@ type OperationRecord = {
 
 const OpQueueByKey: Map<string, OperationRecord> = new Map();
 
+
 type DBOperationWithMeta = DBOperation & {
   epoch?: number;
   tableBecameReady: boolean;
@@ -157,7 +158,6 @@ export const ProcessDBQueue = async () => {
     operationQueueSize: queueSize,
     syncQueueSize,
   });
-
   // snapshot and clear immediately to avoid concurrent mutation during processing
   const records = [...OpQueueByKey.values()];
   OpQueueByKey.clear();
@@ -184,7 +184,7 @@ export const ProcessDBQueue = async () => {
     for (const r of recs)
       if (r.op === DBOperationType.delete) deleteKeys.add(r.block.key_id);
 
-    const saveOps: DBOperationBlock[] = [];
+    const saveOps: { block: DBOperationBlock; time: number }[] = [];
     const deleteOps: DBOperationBlock[] = [];
 
     // all recs in group share these three fields
@@ -192,33 +192,62 @@ export const ProcessDBQueue = async () => {
 
     for (const r of recs) {
       if (r.op === DBOperationType.save && !deleteKeys.has(r.block.key_id)) {
-        saveOps.push(r.block);
+        saveOps.push({ block: r.block, time: r.time });
       } else if (r.op === DBOperationType.delete) {
         deleteOps.push(r.block);
       }
     }
 
+    // Deduplicate save ops by place — if two blocks target the same position,
+    // keep the most recent one (by time) to avoid DynamoDB transaction conflicts
+    const saveByPlace = new Map<string, { block: DBOperationBlock; time: number }>();
+    for (const entry of saveOps) {
+      const place = entry.block.place;
+      const existing = saveByPlace.get(place);
+      if (!existing || entry.time > existing.time) {
+        if (existing) {
+          logger.warn("Duplicate place detected in save queue — keeping most recent", {
+            place,
+            keptKeyId: entry.block.key_id,
+            droppedKeyId: existing.block.key_id,
+            storyID,
+            chapterID,
+          });
+        }
+        saveByPlace.set(place, entry);
+      } else {
+        logger.warn("Duplicate place detected in save queue — keeping most recent", {
+          place,
+          keptKeyId: existing.block.key_id,
+          droppedKeyId: entry.block.key_id,
+          storyID,
+          chapterID,
+        });
+      }
+    }
+    const dedupedSaveOps = [...saveByPlace.values()].map(e => e.block);
+
     // SAVE
-    if (saveOps.length) {
+    if (dedupedSaveOps.length) {
       logger.debug("Processing save operations", {
         storyID,
         chapterID,
-        blockCount: saveOps.length,
+        blockCount: dedupedSaveOps.length,
         tableBecameReady,
       });
       try {
-        await saveBlocksToServer(saveOps, storyID, chapterID, tableBecameReady);
+        await saveBlocksToServer(dedupedSaveOps, storyID, chapterID, tableBecameReady);
         logger.info("Save operations successful", {
           storyID,
           chapterID,
-          blockCount: saveOps.length,
+          blockCount: dedupedSaveOps.length,
         });
       } catch (err) {
         logger.error("Failed to save blocks - requeuing", {
           error: err,
           storyID,
           chapterID,
-          blockCount: saveOps.length,
+          blockCount: dedupedSaveOps.length,
           epoch: recs[0].epoch,
         });
         emitSaveError({
@@ -227,7 +256,7 @@ export const ProcessDBQueue = async () => {
           error: err instanceof Error ? err : new Error(String(err)),
         });
         // requeue with same epoch & grouping key
-        for (const b of saveOps) {
+        for (const b of dedupedSaveOps) {
           const rec: OperationRecord = {
             op: DBOperationType.save,
             block: b,

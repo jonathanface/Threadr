@@ -127,7 +127,7 @@
   border-radius: 10px;
   overflow-y: auto;
   padding: 15px;
-  background-color: var(--bg-editor);
+  background-color: var(--bg-secondary);
   margin-bottom: 20px;
   outline: none;
   font-size: 0.9rem;
@@ -136,12 +136,12 @@
 
 .associationPanel .editorInput.activeField {
   border: 1px dashed var(--primary);
-  background-color: var(--bg-editor-blockquote);
+  background-color: var(--bg-primary);
   transition: background-color 300ms linear;
 }
 
 .associationPanel .editorInput.inactiveField {
-  background-color: var(--bg-editor);
+  background-color: var(--bg-secondary);
   transition: background-color 300ms linear;
 }
 
@@ -149,7 +149,7 @@
   border: 1px dotted var(--border-medium);
   outline: none;
   border-radius: 10px;
-  background-color: var(--bg-editor);
+  background-color: var(--bg-secondary);
   color: var(--text-primary);
   margin-bottom: 20px;
   font-size: 0.9rem;
@@ -173,12 +173,12 @@
 
 .associationPanel .textInput.activeField {
   border: 1px dashed var(--primary);
-  background-color: var(--bg-editor-blockquote);
+  background-color: var(--bg-primary);
   transition: background-color 300ms linear;
 }
 
 .associationPanel .textInput.inactiveField {
-  background-color: var(--bg-editor);
+  background-color: var(--bg-secondary);
   transition: background-color 300ms linear;
 }
 

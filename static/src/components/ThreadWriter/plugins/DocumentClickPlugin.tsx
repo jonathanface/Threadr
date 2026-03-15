@@ -24,7 +24,7 @@ export default function DocumentClickPlugin(props: DocumentClickPluginProps) {
 
     const getSelectedText = useCallback(() => {
         let selectedText = '';
-        editor.update(() => {
+        editor.getEditorState().read(() => {
             const selection = $getSelection();
             if ($isRangeSelection(selection)) {
                 selectedText = selection.getTextContent();
@@ -123,7 +123,12 @@ export default function DocumentClickPlugin(props: DocumentClickPluginProps) {
                 event.preventDefault();
                 event.stopPropagation();
 
-                const selectedText = getSelectedText();
+                // Try Lexical selection first, fall back to native browser selection
+                let selectedText = getSelectedText();
+                if (!selectedText.length) {
+                    const nativeSelection = window.getSelection();
+                    selectedText = nativeSelection?.toString() || '';
+                }
                 if (!selectedText.length) return;
 
                 props.onRightClick({

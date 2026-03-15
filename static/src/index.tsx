@@ -13,6 +13,9 @@ import { AuthProvider } from "react-oidc-context";
 import { AuthRunner } from "./components/AuthRunner";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { useMemo, useState, useEffect } from "react";
+import { initFaviconSpinner } from "./utils/faviconSpinner";
+
+initFaviconSpinner();
 
 
 const rootElement = document.getElementById("root")!;

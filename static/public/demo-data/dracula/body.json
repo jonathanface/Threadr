@@ -1,0 +1,1240 @@
+{
+  "last_evaluated_key": null,
+  "scanned_count": 0,
+  "items": [
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"CUTTING FROM \\\"THE DAILYGRAPH,\\\" 8 AUGUST\", \"format\": 1, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"center\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"15939813-a79c-4c63-aac6-5a69bc74444c\"}"
+      },
+      "key_id": {
+        "Value": "15939813-a79c-4c63-aac6-5a69bc74444c"
+      },
+      "place": {
+        "Value": "2"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"(PASTED IN MINA MURRAY'S JOURNAL)\", \"format\": 1, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"center\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"953c7f6c-9ab5-42ec-aea1-c202995e8e67\"}"
+      },
+      "key_id": {
+        "Value": "953c7f6c-9ab5-42ec-aea1-c202995e8e67"
+      },
+      "place": {
+        "Value": "3"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"7f706c94-c683-406e-912b-52202172d1af\"}"
+      },
+      "key_id": {
+        "Value": "7f706c94-c683-406e-912b-52202172d1af"
+      },
+      "place": {
+        "Value": "4"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tFrom a correspondent.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"ebfb0bf7-1c8f-4011-8fa3-9d932521b92e\"}"
+      },
+      "key_id": {
+        "Value": "ebfb0bf7-1c8f-4011-8fa3-9d932521b92e"
+      },
+      "place": {
+        "Value": "5"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tWhitby.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"d8347d90-f09e-455e-8b3c-dd1e9451a6b2\"}"
+      },
+      "key_id": {
+        "Value": "d8347d90-f09e-455e-8b3c-dd1e9451a6b2"
+      },
+      "place": {
+        "Value": "6"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tOne of the greatest and suddenest storms on record has just been experienced here, with results both strange and unique. The weather had been somewhat sultry, but not to any degree uncommon in the month of August. Saturday evening was as fine as was ever known, and the great body of holiday-makers laid out yesterday for visits to Mulgrave Woods, Robin Hood's Bay, Rig Mill, Runswick, Staithes, and the various trips in the neighborhood of Whitby. The steamers Emma and Scarborough made trips up and down the coast, and there was an unusual amount of 'tripping' both to and from Whitby. The day was unusually fine till the afternoon, when some of the gossips who frequent the East Cliff churchyard, and from the commanding eminence watch the wide sweep of sea visible to the north and east, called attention to a sudden show of 'mares tails' high in the sky to the northwest. The wind was then blowing from the southwest in the mild degree which in barometrical language is ranked 'No. 2, light breeze.'\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"bfb57218-40bf-444b-bb0e-4b60427ccab7\"}"
+      },
+      "key_id": {
+        "Value": "bfb57218-40bf-444b-bb0e-4b60427ccab7"
+      },
+      "place": {
+        "Value": "7"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tThe coastguard on duty at once made report, and one old fisherman, who for more than half a century has kept watch on weather signs from the East Cliff, foretold in an emphatic manner the coming of a sudden storm. The approach of sunset was so very beautiful, so grand in its masses of splendidly coloured clouds, that there was quite an assemblage on the walk along the cliff in the old churchyard to enjoy the beauty. Before the sun dipped below the black mass of Kettleness, standing boldly athwart the western sky, its downward way was marked by myriad clouds of every sunset colour, flame, purple, pink, green, violet, and all the tints of gold, with here and there masses not large, but of seemingly absolute blackness, in all sorts of shapes, as well outlined as colossal silhouettes. The experience was not lost on the painters, and doubtless some of the sketches of the 'Prelude to the Great Storm' will grace the R. A. and R. I. walls in May next.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"427718dc-5be7-4fbb-909d-c8a56c03be76\"}"
+      },
+      "key_id": {
+        "Value": "427718dc-5be7-4fbb-909d-c8a56c03be76"
+      },
+      "place": {
+        "Value": "8"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tMore than one captain made up his mind then and there that his 'cobble' or his 'mule', as they term the different classes of boats, would remain in the harbour till the storm had passed. The wind fell away entirely during the evening, and at midnight there was a dead calm, a sultry heat, and that prevailing intensity which, on the approach of thunder, affects persons of a sensitive nature.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"81e2d003-8742-4b61-80cd-a56c8e7bdaec\"}"
+      },
+      "key_id": {
+        "Value": "81e2d003-8742-4b61-80cd-a56c8e7bdaec"
+      },
+      "place": {
+        "Value": "9"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tThere were but few lights in sight at sea, for even the coasting steamers, which usually hug the shore so closely, kept well to seaward, and but few fishing boats were in sight. The only sail noticeable was a foreign schooner with all sails set, which was seemingly going westwards. The foolhardiness or ignorance of her officers was a prolific theme for comment whilst she remained in sight, and efforts were made to signal her to reduce sail in the face of her danger. Before the night shut down she was seen with sails idly flapping as she gently rolled on the undulating swell of the sea. \\\"As idle as a painted ship upon a painted ocean.\\\"\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"8c1dbac3-9656-4931-a24b-58fbf0b6d7ca\"}"
+      },
+      "key_id": {
+        "Value": "8c1dbac3-9656-4931-a24b-58fbf0b6d7ca"
+      },
+      "place": {
+        "Value": "10"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tShortly before ten o'clock the stillness of the air grew quite oppressive, and the silence was so marked that the bleating of a sheep inland or the barking of a dog in the town was distinctly heard, and the band on the pier, with its lively French air, was like a discord in the great harmony of nature's silence. A little after midnight came a strange sound from over the sea, and high overhead the air began to carry a strange, faint, hollow booming.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"06469317-2c8e-4115-95df-e6cd1c607d11\"}"
+      },
+      "key_id": {
+        "Value": "06469317-2c8e-4115-95df-e6cd1c607d11"
+      },
+      "place": {
+        "Value": "11"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tThen without warning the tempest broke. With a rapidity which, at the time, seemed incredible, and even afterwards is impossible to realize, the whole aspect of nature at once became convulsed. The waves rose in growing fury, each overtopping its fellow, till in a very few minutes the lately glassy sea was like a roaring and devouring monster. White-crested waves beat madly on the level sands and rushed up the shelving cliffs. Others broke over the piers, and with their spume swept the lanthorns of the lighthouses which rise from the end of either pier of Whitby Harbour.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"26b7e97a-bab0-4a28-b583-9149bcdc19af\"}"
+      },
+      "key_id": {
+        "Value": "26b7e97a-bab0-4a28-b583-9149bcdc19af"
+      },
+      "place": {
+        "Value": "12"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tThe wind roared like thunder, and blew with such force that it was with difficulty that even strong men kept their feet, or clung with grim clasp to the iron stanchions. It was found necessary to clear the entire pier from the mass of onlookers, or else the fatalities of the night would have increased manifold. To add to the difficulties and dangers of the time, masses of sea-fog came drifting inland. White, wet clouds, which swept by in ghostly fashion, so dank and damp and cold that it needed but little effort of imagination to think that the spirits of those lost at sea were touching their living brethren with the clammy hands of death, and many a one shuddered at the wreaths of sea-mist swept by.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"3d216ce0-78ac-4791-b488-1a88fbfc16d2\"}"
+      },
+      "key_id": {
+        "Value": "3d216ce0-78ac-4791-b488-1a88fbfc16d2"
+      },
+      "place": {
+        "Value": "13"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tAt times the mist cleared, and the sea for some distance could be seen in the glare of the lightning, which came thick and fast, followed by such peals of thunder that the whole sky overhead seemed trembling under the shock of the footsteps of the storm.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"da01b10a-f874-47f5-980a-ef1a8d58000a\"}"
+      },
+      "key_id": {
+        "Value": "da01b10a-f874-47f5-980a-ef1a8d58000a"
+      },
+      "place": {
+        "Value": "14"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tSome of the scenes thus revealed were of immeasurable grandeur and of absorbing interest. The sea, running mountains high, threw skywards with each wave mighty masses of white foam, which the tempest seemed to snatch at and whirl away into space. Here and there a fishing boat, with a rag of sail, running madly for shelter before the blast, now and again the white wings of a storm-tossed seabird. On the summit of the East Cliff the new searchlight was ready for experiment, but had not yet been tried. The officers in charge of it got it into working order, and in the pauses of onrushing mist swept with it the surface of the sea. Once or twice its service was most effective, as when a fishing boat, with gunwale under water, rushed into the harbour, able, by the guidance of the sheltering light, to avoid the danger of dashing against the piers. As each boat achieved the safety of the port there was a shout of joy from the mass of people on the shore, a shout which for a moment seemed to cleave the gale and was then swept away in its rush.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"143cd339-29f0-4a1e-92f1-b29036517e59\"}"
+      },
+      "key_id": {
+        "Value": "143cd339-29f0-4a1e-92f1-b29036517e59"
+      },
+      "place": {
+        "Value": "15"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tBefore long the searchlight discovered some distance away a schooner with all sails set, apparently the same vessel which had been noticed earlier in the evening. The wind had by this time backed to the east, and there was a shudder amongst the watchers on the cliff as they realized the terrible danger in which she now was.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"1ed12bcb-837c-45ea-b936-cedd9e16391e\"}"
+      },
+      "key_id": {
+        "Value": "1ed12bcb-837c-45ea-b936-cedd9e16391e"
+      },
+      "place": {
+        "Value": "16"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tBetween her and the port lay the great flat reef on which so many good ships have from time to time suffered, and, with the wind blowing from its present quarter, it would be quite impossible that she should fetch the entrance of the harbour.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"d2b90608-f131-4030-82f7-9699027efd41\"}"
+      },
+      "key_id": {
+        "Value": "d2b90608-f131-4030-82f7-9699027efd41"
+      },
+      "place": {
+        "Value": "17"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tIt was now nearly the hour of high tide, but the waves were so great that in their troughs the shallows of the shore were almost visible, and the schooner, with all sails set, was rushing with such speed that, in the words of one old salt, \\\"she must fetch up somewhere, if it was only in hell.\\\" Then came another rush of sea-fog, greater than any hitherto, a mass of dank mist, which seemed to close on all things like a gray pall, and left available to men only the organ of hearing, for the roar of the tempest, and the crash of the thunder, and the booming of the mighty billows came through the damp oblivion even louder than before. The rays of the searchlight were kept fixed on the harbour mouth across the East Pier, where the shock was expected, and men waited breathless.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"9ac0a2d5-a0d6-467b-9222-11d802a4dcf8\"}"
+      },
+      "key_id": {
+        "Value": "9ac0a2d5-a0d6-467b-9222-11d802a4dcf8"
+      },
+      "place": {
+        "Value": "18"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tThe wind suddenly shifted to the northeast, and the remnant of the sea fog melted in the blast. And then, mirabile dictu, between the piers, leaping from wave to wave as it rushed at headlong speed, swept the strange schooner before the blast, with all sail set, and gained the safety of the harbour. The searchlight followed her, and a shudder ran through all who saw her, for lashed to the helm was a corpse, with drooping head, which swung horribly to and fro at each motion of the ship. No other form could be seen on the deck at all.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"86580c9b-2e5e-469c-b129-76d7ad4f9db3\"}"
+      },
+      "key_id": {
+        "Value": "86580c9b-2e5e-469c-b129-76d7ad4f9db3"
+      },
+      "place": {
+        "Value": "19"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tA great awe came on all as they realised that the ship, as if by a miracle, had found the harbour, unsteered save by the hand of a dead man! However, all took place more quickly than it takes to write these words. The schooner paused not, but rushing across the harbour, pitched herself on that accumulation of sand and gravel washed by many tides and many storms into the southeast corner of the pier jutting under the East Cliff, known locally as Tate Hill Pier.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"5267093a-a136-4c05-b836-77d82b45adc0\"}"
+      },
+      "key_id": {
+        "Value": "5267093a-a136-4c05-b836-77d82b45adc0"
+      },
+      "place": {
+        "Value": "20"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tThere was of course a considerable concussion as the vessel drove up on the sand heap. Every spar, rope, and stay was strained, and some of the 'top-hammer' came crashing down. But, strangest of all, the very instant the shore was touched, an immense dog sprang up on deck from below, as if shot up by the concussion, and running forward, jumped from the bow on the sand.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"de434e29-7555-45f4-b6a3-b26f0315bd99\"}"
+      },
+      "key_id": {
+        "Value": "de434e29-7555-45f4-b6a3-b26f0315bd99"
+      },
+      "place": {
+        "Value": "21"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tMaking straight for the steep cliff, where the churchyard hangs over the laneway to the East Pier so steeply that some of the flat tombstones, thruffsteans or through-stones, as they call them in Whitby vernacular, actually project over where the sustaining cliff has fallen away, it disappeared in the darkness, which seemed intensified just beyond the focus of the searchlight.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"6b2c1efb-d3e5-4a73-9cbd-798d6ef924c7\"}"
+      },
+      "key_id": {
+        "Value": "6b2c1efb-d3e5-4a73-9cbd-798d6ef924c7"
+      },
+      "place": {
+        "Value": "22"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tIt so happened that there was no one at the moment on Tate Hill Pier, as all those whose houses are in close proximity were either in bed or were out on the heights above. Thus the coastguard on duty on the eastern side of the harbour, who at once ran down to the little pier, was the first to climb aboard. The men working the searchlight, after scouring the entrance of the harbour without seeing anything, then turned the light on the derelict and kept it there. The coastguard ran aft, and when he came beside the wheel, bent over to examine it, and recoiled at once as though under some sudden emotion. This seemed to pique general curiosity, and quite a number of people began to run.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"3ed2aaf7-1356-4161-98ed-e782fe5d8d07\"}"
+      },
+      "key_id": {
+        "Value": "3ed2aaf7-1356-4161-98ed-e782fe5d8d07"
+      },
+      "place": {
+        "Value": "23"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tIt is a good way round from the West Cliff by the Drawbridge to Tate Hill Pier, but your correspondent is a fairly good runner, and came well ahead of the crowd. When I arrived, however, I found already assembled on the pier a crowd, whom the coastguard and police refused to allow to come on board. By the courtesy of the chief boatman, I was, as your correspondent, permitted to climb on deck, and was one of a small group who saw the dead seaman whilst actually lashed to the wheel.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"60f4a0ba-d606-4f72-a88c-6279ae1c613c\"}"
+      },
+      "key_id": {
+        "Value": "60f4a0ba-d606-4f72-a88c-6279ae1c613c"
+      },
+      "place": {
+        "Value": "24"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tIt was no wonder that the coastguard was surprised, or even awed, for not often can such a sight have been seen. The man was simply fastened by his hands, tied one over the other, to a spoke of the wheel. Between the inner hand and the wood was a crucifix, the set of beads on which it was fastened being around both wrists and wheel, and all kept fast by the binding cords. The poor fellow may have been seated at one time, but the flapping and buffeting of the sails had worked through the rudder of the wheel and had dragged him to and fro, so that the cords with which he was tied had cut the flesh to the bone.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"b141b495-c353-46a7-a6b6-2d57666a5df2\"}"
+      },
+      "key_id": {
+        "Value": "b141b495-c353-46a7-a6b6-2d57666a5df2"
+      },
+      "place": {
+        "Value": "25"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tAccurate note was made of the state of things, and a doctor, Surgeon J. M. Caffyn, of 33, East Elliot Place, who came immediately after me, declared, after making examination, that the man must have been dead for quite two days.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"b0944133-1b0a-4318-a5d7-e03606bee798\"}"
+      },
+      "key_id": {
+        "Value": "b0944133-1b0a-4318-a5d7-e03606bee798"
+      },
+      "place": {
+        "Value": "26"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tIn his pocket was a bottle, carefully corked, empty save for a little roll of paper, which proved to be the addendum to the log.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"030fdce2-0566-4ee8-9a39-7a9ba32f0c27\"}"
+      },
+      "key_id": {
+        "Value": "030fdce2-0566-4ee8-9a39-7a9ba32f0c27"
+      },
+      "place": {
+        "Value": "27"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tThe coastguard said the man must have tied up his own hands, fastening the knots with his teeth. The fact that a coastguard was the first on board may save some complications later on, in the Admiralty Court, for coastguards cannot claim the salvage which is the right of the first civilian entering on a derelict. Already, however, the legal tongues are wagging, and one young law student is loudly asserting that the rights of the owner are already completely sacrificed, his property being held in contravention of the statutes of mortmain, since the tiller, as emblemship, if not proof, of delegated possession, is held in a dead hand.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"e9131f66-dd47-41c4-be90-39705767bde8\"}"
+      },
+      "key_id": {
+        "Value": "e9131f66-dd47-41c4-be90-39705767bde8"
+      },
+      "place": {
+        "Value": "28"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tIt is needless to say that the dead steersman has been reverently removed from the place where he held his honourable watch and ward till death, a steadfastness as noble as that of the young Casabianca, and placed in the mortuary to await inquest.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"73d9858e-f1af-46cd-9756-22f640e418b9\"}"
+      },
+      "key_id": {
+        "Value": "73d9858e-f1af-46cd-9756-22f640e418b9"
+      },
+      "place": {
+        "Value": "29"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tAlready the sudden storm is passing, and its fierceness is abating. Crowds are scattering backward, and the sky is beginning to redden over the Yorkshire wolds.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"ef065af2-aa99-43d2-bb52-4cc6c6cd7393\"}"
+      },
+      "key_id": {
+        "Value": "ef065af2-aa99-43d2-bb52-4cc6c6cd7393"
+      },
+      "place": {
+        "Value": "30"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tI shall send, in time for your next issue, further details of the derelict ship which found her way so miraculously into harbour in the storm.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"8e9a2795-52db-4096-a9cb-5ebddf0e1b17\"}"
+      },
+      "key_id": {
+        "Value": "8e9a2795-52db-4096-a9cb-5ebddf0e1b17"
+      },
+      "place": {
+        "Value": "31"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\t9 August.--\", \"format\": 1, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}, {\"type\": \"text\", \"version\": 1, \"text\": \"The sequel to the strange arrival of the derelict in the storm last night is almost more startling than the thing itself. It turns out that the schooner is Russian from Varna, and is called the Demeter. She is almost entirely in ballast of silver sand, with only a small amount of cargo, a number of great wooden boxes filled with mould.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"15333c44-716a-44f7-a24e-67b8f8107ddd\"}"
+      },
+      "key_id": {
+        "Value": "15333c44-716a-44f7-a24e-67b8f8107ddd"
+      },
+      "place": {
+        "Value": "32"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tThis cargo was consigned to a Whitby solicitor, Mr. S. F. Billington, of 7, The Crescent, who this morning went aboard and took formal possession of the goods consigned to him.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"27da341c-5fc3-4703-b6f5-db35d5d717ab\"}"
+      },
+      "key_id": {
+        "Value": "27da341c-5fc3-4703-b6f5-db35d5d717ab"
+      },
+      "place": {
+        "Value": "33"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tThe Russian consul, too, acting for the charter-party, took formal possession of the ship, and paid all harbour dues, etc.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"1e9bd936-d1ed-40b4-ad04-60a259b7fd08\"}"
+      },
+      "key_id": {
+        "Value": "1e9bd936-d1ed-40b4-ad04-60a259b7fd08"
+      },
+      "place": {
+        "Value": "34"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tNothing is talked about here today except the strange coincidence. The officials of the Board of Trade have been most exacting in seeing that every compliance has been made with existing regulations. As the matter is to be a 'nine days wonder', they are evidently determined that there shall be no cause of other complaint.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"fe63ec69-4016-449d-b880-72ade2552c4d\"}"
+      },
+      "key_id": {
+        "Value": "fe63ec69-4016-449d-b880-72ade2552c4d"
+      },
+      "place": {
+        "Value": "35"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tA good deal of interest was abroad concerning the dog which landed when the ship struck, and more than a few of the members of the S.P.C.A., which is very strong in Whitby, have tried to befriend the animal. To the general disappointment, however, it was not to be found. It seems to have disappeared entirely from the town. It may be that it was frightened and made its way on to the moors, where it is still hiding in terror.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"f3a822c2-6eb5-40df-a55c-5edfe44ae766\"}"
+      },
+      "key_id": {
+        "Value": "f3a822c2-6eb5-40df-a55c-5edfe44ae766"
+      },
+      "place": {
+        "Value": "36"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tThere are some who look with dread on such a possibility, lest later on it should in itself become a danger, for it is evidently a fierce brute. Early this morning a large dog, a half-bred mastiff belonging to a coal merchant close to Tate Hill Pier, was found dead in the roadway opposite its master's yard. It had been fighting, and manifestly had had a savage opponent, for its throat was torn away, and its belly was slit open as if with a savage claw.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"5e83c8d4-d9db-439a-a7ca-77d0ef1e9884\"}"
+      },
+      "key_id": {
+        "Value": "5e83c8d4-d9db-439a-a7ca-77d0ef1e9884"
+      },
+      "place": {
+        "Value": "37"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tLater.--By the kindness of the Board of Trade inspector, I have been permitted to look over the log book of the Demeter, which was in order up to within three days, but contained nothing of special interest except as to facts of missing men. The greatest interest, however, is with regard to the paper found in the bottle, which was today produced at the inquest. And a more strange narrative than the two between them unfold it has not been my lot to come across.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"cc5560b2-771f-4750-b366-a9d51cf1ccaf\"}"
+      },
+      "key_id": {
+        "Value": "cc5560b2-771f-4750-b366-a9d51cf1ccaf"
+      },
+      "place": {
+        "Value": "38"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tAs there is no motive for concealment, I am permitted to use them, and accordingly send you a transcript, simply omitting technical details of seamanship and supercargo. It almost seems as though the captain had been seized with some kind of mania before he had got well into blue water, and that this had developed persistently throughout the voyage. Of course my statement must be taken cum grano, since I am writing from the dictation of a clerk of the Russian consul, who kindly translated for me, time being short.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"961fc45b-c3c6-4210-9ae5-5766a95ffe0b\"}"
+      },
+      "key_id": {
+        "Value": "961fc45b-c3c6-4210-9ae5-5766a95ffe0b"
+      },
+      "place": {
+        "Value": "39"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tLOG OF THE \\\"DEMETER\\\"\", \"format\": 1, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"f96625b0-87ea-403b-be44-235f9015d943\"}"
+      },
+      "key_id": {
+        "Value": "f96625b0-87ea-403b-be44-235f9015d943"
+      },
+      "place": {
+        "Value": "40"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tVarna to Whitby\", \"format\": 1, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"9fb19f92-30cd-4539-b7af-16d72dcf3e70\"}"
+      },
+      "key_id": {
+        "Value": "9fb19f92-30cd-4539-b7af-16d72dcf3e70"
+      },
+      "place": {
+        "Value": "41"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tWritten 18 July, things so strange happening, that I shall keep accurate note henceforth till we land.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"596f1f55-7cb3-439c-812f-989bc4ce261c\"}"
+      },
+      "key_id": {
+        "Value": "596f1f55-7cb3-439c-812f-989bc4ce261c"
+      },
+      "place": {
+        "Value": "42"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tOn 6 July we finished taking in cargo, silver sand and boxes of earth. At noon set sail. East wind, fresh. Crew, five hands . . . two mates, cook, and myself, (captain).\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"1e5a5376-cf00-4a9e-99dc-e413f2bc5e1d\"}"
+      },
+      "key_id": {
+        "Value": "1e5a5376-cf00-4a9e-99dc-e413f2bc5e1d"
+      },
+      "place": {
+        "Value": "43"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tOn 11 July at dawn entered Bosphorus. Boarded by Turkish Customs officers. Backsheesh. All correct. Under way at 4 p.m.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"569b370b-fc5e-46d4-bb71-83e8d684b4e4\"}"
+      },
+      "key_id": {
+        "Value": "569b370b-fc5e-46d4-bb71-83e8d684b4e4"
+      },
+      "place": {
+        "Value": "44"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tOn 12 July through Dardanelles. More Customs officers and flagboat of guarding squadron. Backsheesh again. Work of officers thorough, but quick. Want us off soon. At dark passed into Archipelago.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"184cd445-344a-4c84-b911-2885e110ea71\"}"
+      },
+      "key_id": {
+        "Value": "184cd445-344a-4c84-b911-2885e110ea71"
+      },
+      "place": {
+        "Value": "45"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tOn 13 July passed Cape Matapan. Crew dissatisfied about something. Seemed scared, but would not speak out.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"43a19ec5-a755-43c9-95f0-664e77267b9b\"}"
+      },
+      "key_id": {
+        "Value": "43a19ec5-a755-43c9-95f0-664e77267b9b"
+      },
+      "place": {
+        "Value": "46"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tOn 14 July was somewhat anxious about crew. Men all steady fellows, who sailed with me before. Mate could not make out what was wrong. They only told him there was something, and crossed themselves. Mate lost temper with one of them that day and struck him. Expected fierce quarrel, but all was quiet.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"3ddb2c81-e583-4565-bfe5-b88592ae75f3\"}"
+      },
+      "key_id": {
+        "Value": "3ddb2c81-e583-4565-bfe5-b88592ae75f3"
+      },
+      "place": {
+        "Value": "47"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tOn 16 July mate reported in the morning that one of the crew, Petrofsky, was missing. Could not account for it. Took larboard watch eight bells last night, was relieved by Amramoff, but did not go to bunk. Men more downcast than ever. All said they expected something of the kind, but would not say more than there was SOMETHING aboard. Mate getting very impatient with them. Feared some trouble ahead.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"d1115a54-e597-418b-8cad-79624be6d936\"}"
+      },
+      "key_id": {
+        "Value": "d1115a54-e597-418b-8cad-79624be6d936"
+      },
+      "place": {
+        "Value": "48"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tOn 17 July, yesterday, one of the men, Olgaren, came to my cabin, and in an awestruck way confided to me that he thought there was a strange man aboard the ship. He said that in his watch he had been sheltering behind the deckhouse, as there was a rain storm, when he saw a tall, thin man, who was not like any of the crew, come up the companionway, and go along the deck forward and disappear. He followed cautiously, but when he got to bows found no one, and the hatchways were all closed. He was in a panic of superstitious fear, and I am afraid the panic may spread. To allay it, I shall today search the entire ship carefully from stem to stern.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"985c7e7e-c163-44c8-ace2-31e4148528c7\"}"
+      },
+      "key_id": {
+        "Value": "985c7e7e-c163-44c8-ace2-31e4148528c7"
+      },
+      "place": {
+        "Value": "49"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tLater in the day I got together the whole crew, and told them, as they evidently thought there was some one in the ship, we would search from stem to stern. First mate angry, said it was folly, and to yield to such foolish ideas would demoralise the men, said he would engage to keep them out of trouble with the handspike. I let him take the helm, while the rest began a thorough search, all keeping abreast, with lanterns. We left no corner unsearched. As there were only the big wooden boxes, there were no odd corners where a man could hide. Men much relieved when search over, and went back to work cheerfully. First mate scowled, but said nothing.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"450d6b64-fa52-47c0-86ab-d12cd7210b28\"}"
+      },
+      "key_id": {
+        "Value": "450d6b64-fa52-47c0-86ab-d12cd7210b28"
+      },
+      "place": {
+        "Value": "50"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\t22 July.--\", \"format\": 1, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}, {\"type\": \"text\", \"version\": 1, \"text\": \"Rough weather last three days, and all hands busy with sails, no time to be frightened. Men seem to have forgotten their dread. Mate cheerful again, and all on good terms. Praised men for work in bad weather. Passed Gibraltar and out through Straits. All well.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"34028005-003f-4c10-831b-507c27290001\"}"
+      },
+      "key_id": {
+        "Value": "34028005-003f-4c10-831b-507c27290001"
+      },
+      "place": {
+        "Value": "51"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\t24 July.--\", \"format\": 1, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}, {\"type\": \"text\", \"version\": 1, \"text\": \"There seems some doom over this ship. Already a hand short, and entering the Bay of Biscay with wild weather ahead, and yet last night another man lost, disappeared. Like the first, he came off his watch and was not seen again. Men all in a panic of fear, sent a round robin, asking to have double watch, as they fear to be alone. Mate angry. Fear there will be some trouble, as either he or the men will do some violence.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"aea86148-28ad-44b5-891e-3de99c86fff3\"}"
+      },
+      "key_id": {
+        "Value": "aea86148-28ad-44b5-891e-3de99c86fff3"
+      },
+      "place": {
+        "Value": "52"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\t28 July.--\", \"format\": 1, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}, {\"type\": \"text\", \"version\": 1, \"text\": \"Four days in hell, knocking about in a sort of maelstrom, and the wind a tempest. No sleep for any one. Men all worn out. Hardly know how to set a watch, since no one fit to go on. Second mate volunteered to steer and watch, and let men snatch a few hours sleep. Wind abating, seas still terrific, but feel them less, as ship is steadier.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"15d88472-7b78-497d-80dd-3ed66e823f30\"}"
+      },
+      "key_id": {
+        "Value": "15d88472-7b78-497d-80dd-3ed66e823f30"
+      },
+      "place": {
+        "Value": "53"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\t29 July.--\", \"format\": 1, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}, {\"type\": \"text\", \"version\": 1, \"text\": \"Another tragedy. Had single watch tonight, as crew too tired to double. When morning watch came on deck could find no one except steersman. Raised outcry, and all came on deck. Thorough search, but no one found. Are now without second mate, and crew in a panic. Mate and I agreed to go armed henceforth and wait for any sign of cause.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"824d19ca-ef6d-4496-9c4e-5e278032f81e\"}"
+      },
+      "key_id": {
+        "Value": "824d19ca-ef6d-4496-9c4e-5e278032f81e"
+      },
+      "place": {
+        "Value": "54"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\t30 July.--\", \"format\": 1, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}, {\"type\": \"text\", \"version\": 1, \"text\": \"Last night. Rejoiced we are nearing England. Weather fine, all sails set. Retired worn out, slept soundly, awakened by mate telling me that both man of watch and steersman missing. Only self and mate and two hands left to work ship.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"a05f17c5-809f-45ef-bc0d-b088e8b7f8c4\"}"
+      },
+      "key_id": {
+        "Value": "a05f17c5-809f-45ef-bc0d-b088e8b7f8c4"
+      },
+      "place": {
+        "Value": "55"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\t1 August.--\", \"format\": 1, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}, {\"type\": \"text\", \"version\": 1, \"text\": \"Two days of fog, and not a sail sighted. Had hoped when in the English Channel to be able to signal for help or get in somewhere. Not having power to work sails, have to run before wind. Dare not lower, as could not raise them again. We seem to be drifting to some terrible doom. Mate now more demoralised than either of men. His stronger nature seems to have worked inwardly against himself. Men are beyond fear, working stolidly and patiently, with minds made up to worst. They are Russian, he Roumanian.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"bc0dbb9a-e65d-4df2-bd7b-b0aace5d7b10\"}"
+      },
+      "key_id": {
+        "Value": "bc0dbb9a-e65d-4df2-bd7b-b0aace5d7b10"
+      },
+      "place": {
+        "Value": "56"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\t2 August, midnight.--\", \"format\": 1, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}, {\"type\": \"text\", \"version\": 1, \"text\": \"Woke up from few minutes sleep by hearing a cry, seemingly outside my port. Could see nothing in fog. Rushed on deck, and ran against mate. Tells me he heard cry and ran, but no sign of man on watch. One more gone. Lord, help us! Mate says we must be past Straits of Dover, as in a moment of fog lifting he saw North Foreland, just as he heard the man cry out. If so we are now off in the North Sea, and only God can guide us in the fog, which seems to move with us, and God seems to have deserted us.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"36a7a381-13fc-43fb-89a8-c8fe28d0a74a\"}"
+      },
+      "key_id": {
+        "Value": "36a7a381-13fc-43fb-89a8-c8fe28d0a74a"
+      },
+      "place": {
+        "Value": "57"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\t3 August.--\", \"format\": 1, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}, {\"type\": \"text\", \"version\": 1, \"text\": \"At midnight I went to relieve the man at the wheel and when I got to it found no one there. The wind was steady, and as we ran before it there was no yawing. I dared not leave it, so shouted for the mate. After a few seconds, he rushed up on deck in his flannels. He looked wild-eyed and haggard, and I greatly fear his reason has given way. He came close to me and whispered hoarsely, with his mouth to my ear, as though fearing the very air might hear. \\\"It is here. I know it now. On the watch last night I saw It, like a man, tall and thin, and ghastly pale. It was in the bows, and looking out. I crept behind It, and gave it my knife, but the knife went through It, empty as the air.\\\" And as he spoke he took the knife and drove it savagely into space. Then he went on, \\\"But It is here, and I'll find It. It is in the hold, perhaps in one of those boxes. I'll unscrew them one by one and see. You work the helm.\\\" And with a warning look and his finger on his lip, he went below. There was springing up a choppy wind, and I could not leave the helm. I saw him come out on deck again with a tool chest and lantern, and go down the forward hatchway. He is mad, stark, raving mad, and it's no use my trying to stop him. He can't hurt those big boxes, they are invoiced as clay, and to pull them about is as harmless a thing as he can do. So here I stay and mind the helm, and write these notes. I can only trust in God and wait till the fog clears. Then, if I can't steer to any harbour with the wind that is, I shall cut down sails, and lie by, and signal for help . . .\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"44dfae6d-1e8e-4e48-8b8c-bcd9ebc175c0\"}"
+      },
+      "key_id": {
+        "Value": "44dfae6d-1e8e-4e48-8b8c-bcd9ebc175c0"
+      },
+      "place": {
+        "Value": "58"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tIt is nearly all over now. Just as I was beginning to hope that the mate would come out calmer, for I heard him knocking away at something in the hold, and work is good for him, there came up the hatchway a sudden, startled scream, which made my blood run cold, and up on the deck he came as if shot from a gun, a raging madman, with his eyes rolling and his face convulsed with fear. \\\"Save me! Save me!\\\" he cried, and then looked round on the blanket of fog. His horror turned to despair, and in a steady voice he said, \\\"You had better come too, captain, before it is too late. He is there! I know the secret now. The sea will save me from Him, and it is all that is left!\\\" Before I could say a word, or move forward to seize him, he sprang on the bulwark and deliberately threw himself into the sea. I suppose I know the secret too, now. It was this madman who had got rid of the men one by one, and now he has followed them himself. God help me! How am I to account for all these horrors when I get to port? When I get to port! Will that ever be?\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"10ef7a39-9bd8-4922-b329-bc3d1faffaf0\"}"
+      },
+      "key_id": {
+        "Value": "10ef7a39-9bd8-4922-b329-bc3d1faffaf0"
+      },
+      "place": {
+        "Value": "59"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\t4 August.--\", \"format\": 1, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}, {\"type\": \"text\", \"version\": 1, \"text\": \"Still fog, which the sunrise cannot pierce. I know there is sunrise because I am a sailor, why else I know not. I dared not go below, I dared not leave the helm, so here all night I stayed, and in the dimness of the night I saw it, Him! God, forgive me, but the mate was right to jump overboard. It was better to die like a man. To die like a sailor in blue water, no man can object. But I am captain, and I must not leave my ship. But I shall baffle this fiend or monster, for I shall tie my hands to the wheel when my strength begins to fail, and along with them I shall tie that which He, It, dare not touch. And then, come good wind or foul, I shall save my soul, and my honour as a captain. I am growing weaker, and the night is coming on. If He can look me in the face again, I may not have time to act . . . If we are wrecked, mayhap this bottle may be found, and those who find it may understand. If not . . . well, then all men shall know that I have been true to my trust. God and the Blessed Virgin and the Saints help a poor ignorant soul trying to do his duty . . .\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"e0542fac-382f-40d8-9ecd-9ac5c55ecbcc\"}"
+      },
+      "key_id": {
+        "Value": "e0542fac-382f-40d8-9ecd-9ac5c55ecbcc"
+      },
+      "place": {
+        "Value": "60"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tOf course the verdict was an open one. There is no evidence to adduce, and whether or not the man himself committed the murders there is now none to say. The folk here hold almost universally that the captain is simply a hero, and he is to be given a public funeral. Already it is arranged that his body is to be taken with a train of boats up the Esk for a piece and then brought back to Tate Hill Pier and up the abbey steps, for he is to be buried in the churchyard on the cliff. The owners of more than a hundred boats have already given in their names as wishing to follow him to the grave.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"a2b8b945-d8cf-4569-a21b-bb1db92d76ac\"}"
+      },
+      "key_id": {
+        "Value": "a2b8b945-d8cf-4569-a21b-bb1db92d76ac"
+      },
+      "place": {
+        "Value": "61"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tNo trace has ever been found of the great dog, at which there is much mourning, for, with public opinion in its present state, he would, I believe, be adopted by the town. Tomorrow will see the funeral, and so will end this one more 'mystery of the sea'.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"ed92d7ba-c65e-44f7-9cdb-e16ec481d5cf\"}"
+      },
+      "key_id": {
+        "Value": "ed92d7ba-c65e-44f7-9cdb-e16ec481d5cf"
+      },
+      "place": {
+        "Value": "62"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"0a425ecc-061f-45fd-aab0-5af4b29620e0\"}"
+      },
+      "key_id": {
+        "Value": "0a425ecc-061f-45fd-aab0-5af4b29620e0"
+      },
+      "place": {
+        "Value": "63"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tMINA MURRAY'S JOURNAL\", \"format\": 1, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"c235db9d-4587-4724-8054-9a18dfb8ace9\"}"
+      },
+      "key_id": {
+        "Value": "c235db9d-4587-4724-8054-9a18dfb8ace9"
+      },
+      "place": {
+        "Value": "64"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\t8 August.--\", \"format\": 1, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}, {\"type\": \"text\", \"version\": 1, \"text\": \"Lucy was very restless all night, and I too, could not sleep. The storm was fearful, and as it boomed loudly among the chimney pots, it made me shudder. When a sharp puff came it seemed to be like a distant gun. Strangely enough, Lucy did not wake, but she got up twice and dressed herself. Fortunately, each time I awoke in time and managed to undress her without waking her, and got her back to bed. It is a very strange thing, this sleep-walking, for as soon as her will is thwarted in any physical way, her intention, if there be any, disappears, and she yields herself almost exactly to the routine of her life.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"c77dbbb7-519a-4893-8605-d368cca0a871\"}"
+      },
+      "key_id": {
+        "Value": "c77dbbb7-519a-4893-8605-d368cca0a871"
+      },
+      "place": {
+        "Value": "65"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tEarly in the morning we both got up and went down to the harbour to see if anything had happened in the night. There were very few people about, and though the sun was bright, and the air clear and fresh, the big, grim-looking waves, that seemed dark themselves because the foam that topped them was like snow, forced themselves in through the mouth of the harbour, like a bullying man going through a crowd. Somehow I felt glad that Jonathan was not on the sea last night, but on land. But, oh, is he on land or sea? Where is he, and how? I am getting fearfully anxious about him. If I only knew what to do, and could do anything!\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"b6269fe7-a942-4b43-9ab4-b839745baef4\"}"
+      },
+      "key_id": {
+        "Value": "b6269fe7-a942-4b43-9ab4-b839745baef4"
+      },
+      "place": {
+        "Value": "66"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\t10 August.--\", \"format\": 1, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}, {\"type\": \"text\", \"version\": 1, \"text\": \"The funeral of the poor sea captain today was most touching. Every boat in the harbour seemed to be there, and the coffin was carried by captains all the way from Tate Hill Pier up to the churchyard. Lucy came with me, and we went early to our old seat, whilst the cortege of boats went up the river to the Viaduct and came down again. We had a lovely view, and saw the procession nearly all the way. The poor fellow was laid to rest near our seat so that we stood on it, when the time came and saw everything.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"82f0b56f-edcd-4203-82fb-a212b0e2e070\"}"
+      },
+      "key_id": {
+        "Value": "82f0b56f-edcd-4203-82fb-a212b0e2e070"
+      },
+      "place": {
+        "Value": "67"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tPoor Lucy seemed much upset. She was restless and uneasy all the time, and I cannot but think that her dreaming at night is telling on her. She is quite odd in one thing. She will not admit to me that there is any cause for restlessness, or if there be, she does not understand it herself.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"cfc5a7cc-ae29-4a9e-a98a-692dc5b23195\"}"
+      },
+      "key_id": {
+        "Value": "cfc5a7cc-ae29-4a9e-a98a-692dc5b23195"
+      },
+      "place": {
+        "Value": "68"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tThere is an additional cause in that poor Mr. Swales was found dead this morning on our seat, his neck being broken. He had evidently, as the doctor said, fallen back in the seat in some sort of fright, for there was a look of fear and horror on his face that the men said made them shudder. Poor dear old man!\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"b026772d-5fb2-4762-b12d-9d72f6807443\"}"
+      },
+      "key_id": {
+        "Value": "b026772d-5fb2-4762-b12d-9d72f6807443"
+      },
+      "place": {
+        "Value": "69"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tLucy is so sweet and sensitive that she feels influences more acutely than other people do. Just now she was quite upset by a little thing which I did not much heed, though I am myself very fond of animals.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"95aab6a1-a593-45ea-9afd-f3da078c76e2\"}"
+      },
+      "key_id": {
+        "Value": "95aab6a1-a593-45ea-9afd-f3da078c76e2"
+      },
+      "place": {
+        "Value": "70"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tOne of the men who came up here often to look for the boats was followed by his dog. The dog is always with him. They are both quiet persons, and I never saw the man angry, nor heard the dog bark. During the service the dog would not come to its master, who was on the seat with us, but kept a few yards off, barking and howling. Its master spoke to it gently, and then harshly, and then angrily. But it would neither come nor cease to make a noise. It was in a fury, with its eyes savage, and all its hair bristling out like a cat's tail when puss is on the war path.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"9e439df3-3460-45b4-9268-3d376f768afc\"}"
+      },
+      "key_id": {
+        "Value": "9e439df3-3460-45b4-9268-3d376f768afc"
+      },
+      "place": {
+        "Value": "71"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tFinally the man too got angry, and jumped down and kicked the dog, and then took it by the scruff of the neck and half dragged and half threw it on the tombstone on which the seat is fixed. The moment it touched the stone the poor thing began to tremble. It did not try to get away, but crouched down, quivering and cowering, and was in such a pitiable state of terror that I tried, though without effect, to comfort it.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"029e762c-b38a-4f31-8d76-0a744f91ba90\"}"
+      },
+      "key_id": {
+        "Value": "029e762c-b38a-4f31-8d76-0a744f91ba90"
+      },
+      "place": {
+        "Value": "72"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tLucy was full of pity, too, but she did not attempt to touch the dog, but looked at it in an agonised sort of way. I greatly fear that she is of too super sensitive a nature to go through the world without trouble. She will be dreaming of this tonight, I am sure. The whole agglomeration of things, the ship steered into port by a dead man, his attitude, tied to the wheel with a crucifix and beads, the touching funeral, the dog, now furious and now in terror, will all afford material for her dreams.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"03db9f65-46d9-47e0-b7d3-7cef86744970\"}"
+      },
+      "key_id": {
+        "Value": "03db9f65-46d9-47e0-b7d3-7cef86744970"
+      },
+      "place": {
+        "Value": "73"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    },
+    {
+      "chunk": {
+        "Value": "{\"children\": [{\"type\": \"text\", \"version\": 1, \"text\": \"\\tI think it will be best for her to go to bed tired out physically, so I shall take her for a long walk by the cliffs to Robin Hood's Bay and back. She ought not to have much inclination for sleep-walking then.\", \"format\": 0, \"style\": \"\", \"mode\": \"normal\", \"detail\": 0}], \"direction\": \"ltr\", \"format\": \"\", \"indent\": 0, \"type\": \"paragraph\", \"version\": 1, \"textFormat\": 0, \"textStyle\": \"\", \"key_id\": \"3c6ce9ca-a73f-4cbd-8106-cd5e23114f64\"}"
+      },
+      "key_id": {
+        "Value": "3c6ce9ca-a73f-4cbd-8106-cd5e23114f64"
+      },
+      "place": {
+        "Value": "74"
+      },
+      "story_id": {
+        "Value": "dracula-ch7-demo"
+      }
+    }
+  ],
+  "associations": [
+    {
+      "association_id": "fe2f81cf-1443-4299-bce8-bead0920f5fb",
+      "association_name": "Mina Murray",
+      "association_type": "character",
+      "short_description": "Jonathan Harker's fianc\u00e9e, diarist, observant and caring.",
+      "portrait": "/demo-data/dracula/img/mina.jpg",
+      "aliases": "Mina",
+      "case_sensitive": true
+    },
+    {
+      "association_id": "666fab4f-5de1-4071-a8e9-495e171dd787",
+      "association_name": "Lucy Westenra",
+      "association_type": "character",
+      "short_description": "Mina's close friend, sensitive and prone to sleepwalking.",
+      "portrait": "/demo-data/dracula/img/lucy.jpg",
+      "aliases": "Lucy",
+      "case_sensitive": true
+    },
+    {
+      "association_id": "0450722e-8923-403a-bc8c-83b07da54090",
+      "association_name": "Mr. Swales",
+      "association_type": "character",
+      "short_description": "An old man found dead on the churchyard seat, neck broken.",
+      "portrait": "/demo-data/dracula/img/swales.jpg",
+      "aliases": "Swales",
+      "case_sensitive": true
+    },
+    {
+      "association_id": "049b2b9d-ac0c-4220-979e-be7da9983026",
+      "association_name": "Dr. Caffyn",
+      "association_type": "character",
+      "short_description": "Surgeon J. M. Caffyn of 33 East Elliot Place, examined the dead captain.",
+      "portrait": "/demo-data/dracula/img/caffyn.jpg",
+      "aliases": "Surgeon Caffyn,Caffyn",
+      "case_sensitive": true
+    },
+    {
+      "association_id": "95195914-da5e-4670-926f-cd069b7c05d7",
+      "association_name": "The Captain",
+      "association_type": "character",
+      "short_description": "Captain of the Demeter, tied himself to the wheel.",
+      "portrait": "/demo-data/dracula/img/captain.jpg",
+      "aliases": "captain,the dead steersman",
+      "case_sensitive": false
+    },
+    {
+      "association_id": "d204bfac-1c45-49af-8018-cfdb755762f1",
+      "association_name": "The Mate",
+      "association_type": "character",
+      "short_description": "First mate of the Demeter, went mad and jumped overboard.",
+      "portrait": "/demo-data/dracula/img/mate.jpg",
+      "aliases": "mate,first mate",
+      "case_sensitive": false
+    },
+    {
+      "association_id": "f8136073-58c3-4c6b-8a30-740a1357b312",
+      "association_name": "Petrofsky",
+      "association_type": "character",
+      "short_description": "First crew member to go missing on the Demeter.",
+      "portrait": "/demo-data/dracula/img/petrofsky.jpg",
+      "aliases": "",
+      "case_sensitive": true
+    },
+    {
+      "association_id": "8302eacc-2097-4afe-9782-4d36c87f7b12",
+      "association_name": "Olgaren",
+      "association_type": "character",
+      "short_description": "Crew member who saw the strange figure on deck.",
+      "portrait": "/demo-data/dracula/img/olgaren.jpg",
+      "aliases": "",
+      "case_sensitive": true
+    },
+    {
+      "association_id": "654100b0-b404-4ccb-a626-b43d5b45fc46",
+      "association_name": "Amramoff",
+      "association_type": "character",
+      "short_description": "Crew member who relieved Petrofsky's watch.",
+      "portrait": "/demo-data/dracula/img/amramoff.jpg",
+      "aliases": "",
+      "case_sensitive": true
+    },
+    {
+      "association_id": "769b4b95-240f-452a-9032-83feb3561c1f",
+      "association_name": "Mr. Billington",
+      "association_type": "character",
+      "short_description": "Whitby solicitor, S.F. Billington of 7 The Crescent.",
+      "portrait": "/demo-data/dracula/img/billington.jpg",
+      "aliases": "Billington",
+      "case_sensitive": true
+    },
+    {
+      "association_id": "544b3597-c480-4b98-80e1-7943665e44fe",
+      "association_name": "Jonathan Harker",
+      "association_type": "character",
+      "short_description": "Mina's fianc\u00e9, currently missing.",
+      "portrait": "/demo-data/dracula/img/harker.jpg",
+      "aliases": "Jonathan",
+      "case_sensitive": true
+    },
+    {
+      "association_id": "6980d2cb-b141-42fb-a93e-68ecbe0071e9",
+      "association_name": "Whitby",
+      "association_type": "place",
+      "short_description": "English coastal town where the Demeter arrives.",
+      "portrait": "/demo-data/dracula/img/harbor.jpg",
+      "aliases": "",
+      "case_sensitive": true
+    },
+    {
+      "association_id": "612ca30e-c354-4c8a-b971-fbc856b04d68",
+      "association_name": "Tate Hill Pier",
+      "association_type": "place",
+      "short_description": "Where the Demeter runs aground.",
+      "portrait": "/demo-data/dracula/img/tate_hill_pier.jpg",
+      "aliases": "Tate Hill",
+      "case_sensitive": true
+    },
+    {
+      "association_id": "7d351dad-8d64-4abd-ad1e-dd9fc4a4b6c3",
+      "association_name": "East Cliff",
+      "association_type": "place",
+      "short_description": "Cliff with churchyard overlooking the harbour.",
+      "portrait": "/demo-data/dracula/img/abbey.png",
+      "aliases": "",
+      "case_sensitive": true
+    },
+    {
+      "association_id": "d4981b64-27f1-46eb-8e3d-efb9bf5c0fa7",
+      "association_name": "The Demeter",
+      "association_type": "place",
+      "short_description": "Russian schooner from Varna.",
+      "portrait": "/demo-data/dracula/img/demeter.jpg",
+      "aliases": "Demeter,the schooner,the derelict",
+      "case_sensitive": false
+    },
+    {
+      "association_id": "c2211807-b921-48d5-bee8-89b84a28b94e",
+      "association_name": "Varna",
+      "association_type": "place",
+      "short_description": "Port city where the Demeter departed.",
+      "portrait": "/demo-data/dracula/img/varna.jpg",
+      "aliases": "",
+      "case_sensitive": true
+    },
+    {
+      "association_id": "1c833321-814e-4bd6-b465-e5d7ea3f61bc",
+      "association_name": "Robin Hood's Bay",
+      "association_type": "place",
+      "short_description": "Coastal area near Whitby.",
+      "portrait": "/demo-data/dracula/img/bay.jpg",
+      "aliases": "",
+      "case_sensitive": true
+    },
+    {
+      "association_id": "8f3f5eab-40c2-45b0-addf-aa188b5e08f8",
+      "association_name": "The Great Storm",
+      "association_type": "event",
+      "short_description": "Sudden violent tempest that struck Whitby on the night of August 8.",
+      "portrait": "/demo-data/dracula/img/tempest.jpg",
+      "aliases": "the storm,the tempest",
+      "case_sensitive": false
+    },
+    {
+      "association_id": "0435b0db-9e76-43bc-ba09-298bdc3fc674",
+      "association_name": "The Demeter's Arrival",
+      "association_type": "event",
+      "short_description": "The unmanned schooner crashes into Tate Hill Pier guided by a dead man.",
+      "portrait": "/demo-data/dracula/img/arrival.jpg",
+      "aliases": "",
+      "case_sensitive": false
+    },
+    {
+      "association_id": "0823fa9d-468f-4527-934e-91556471a153",
+      "association_name": "Captain's Funeral",
+      "association_type": "event",
+      "short_description": "Public funeral procession for the Demeter's captain.",
+      "portrait": "/demo-data/dracula/img/funeral.jpg",
+      "aliases": "the funeral",
+      "case_sensitive": false
+    },
+    {
+      "association_id": "41139818-f114-42c9-bf70-fee505c404e3",
+      "association_name": "The Crucifix",
+      "association_type": "item",
+      "short_description": "Crucifix with beads bound to the captain's hands and the wheel.",
+      "portrait": "/demo-data/dracula/img/crucifix.jpg",
+      "aliases": "crucifix,beads",
+      "case_sensitive": false
+    },
+    {
+      "association_id": "5834bbc1-b7ff-4de9-9feb-0a3b81fd3ca5",
+      "association_name": "The Bottle",
+      "association_type": "item",
+      "short_description": "Bottle found in the captain's pocket containing the log addendum.",
+      "portrait": "/demo-data/dracula/img/bottle.jpg",
+      "aliases": "bottle",
+      "case_sensitive": false
+    },
+    {
+      "association_id": "46cd9e4a-5195-4535-a674-2f620131119d",
+      "association_name": "The Log Book",
+      "association_type": "item",
+      "short_description": "Ship's log of the Demeter recording the voyage.",
+      "portrait": "/demo-data/dracula/img/logbook.jpg",
+      "aliases": "log book,log",
+      "case_sensitive": false
+    }
+  ],
+  "chapter_name": "Chapter 7",
+  "title": "Dracula",
+  "author": "Bram Stoker"
+}
