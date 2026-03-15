@@ -345,7 +345,7 @@ export const useEditorCommands = (
 
                 // Move cursor to end of last pasted content
                 if (lastInsertedNode) {
-                  const lastChild = lastInsertedNode.getLastChild();
+                  const lastChild = (lastInsertedNode as ParagraphNode).getLastChild();
                   if (lastChild && $isTextNode(lastChild)) {
                     const newSelection = $getSelection();
                     if ($isRangeSelection(newSelection)) {
