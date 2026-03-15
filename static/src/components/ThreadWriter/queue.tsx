@@ -202,7 +202,7 @@ export const ProcessDBQueue = async () => {
     // keep the most recent one (by time) to avoid DynamoDB transaction conflicts
     const saveByPlace = new Map<string, { block: DBOperationBlock; time: number }>();
     for (const entry of saveOps) {
-      const place = entry.block.place;
+      const place = entry.block.place ?? entry.block.key_id;
       const existing = saveByPlace.get(place);
       if (!existing || entry.time > existing.time) {
         if (existing) {
