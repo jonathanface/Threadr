@@ -53,17 +53,6 @@ export const SplashPage = () => {
         <div className={styles.demo}>
           <ThreadWriterDemo />
         </div>
-        <p className={styles.demoAttribution}>
-          Demo text from{" "}
-          <a
-            href="https://www.amazon.com/Remnants-Dead-Loss-Jonathan-Face-ebook/dp/B071V6BV9J"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <i>The Remnants: Dead Loss</i>
-          </a>{" "}
-          by Jonathan Face
-        </p>
       </div>
 
       <div className={styles.howItWorks}>

@@ -50,7 +50,7 @@ export const Docter = () => {
       setAlertState({
         title: "Subscription Expired",
         message:
-          "Your subscription has expired, and your extra stories have been archived. If you wish to renew your subscription, click below.",
+          "Your subscription has expired. If you wish to renew your subscription, click below.",
         open: true,
         severity: AlertToastType.warning,
         timeout: null,

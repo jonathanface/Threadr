@@ -257,21 +257,6 @@ describe('SplashPage', () => {
       expect(screen.getByTestId('thread-writer-demo')).toBeInTheDocument();
     });
 
-    it('should render demo attribution', () => {
-      renderSplashPage();
-
-      expect(screen.getByText(/Demo text from/i)).toBeInTheDocument();
-    });
-
-    it('should render demo book link', () => {
-      renderSplashPage();
-
-      const link = screen.getByRole('link', { name: /the remnants: dead loss/i });
-      expect(link).toBeInTheDocument();
-      expect(link).toHaveAttribute('href', 'https://www.amazon.com/Remnants-Dead-Loss-Jonathan-Face-ebook/dp/B071V6BV9J');
-      expect(link).toHaveAttribute('target', '_blank');
-      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
-    });
   });
 
   describe('Final CTA Section', () => {
@@ -315,13 +300,6 @@ describe('SplashPage', () => {
       buttons.forEach(button => {
         expect(button).toHaveAccessibleName();
       });
-    });
-
-    it('should have accessible links', () => {
-      renderSplashPage();
-
-      const link = screen.getByRole('link', { name: /the remnants: dead loss/i });
-      expect(link).toHaveAccessibleName();
     });
 
     it('should have alt text for images', () => {

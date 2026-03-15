@@ -1,116 +1,170 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
-    FORMAT_TEXT_COMMAND,
-    FORMAT_ELEMENT_COMMAND,
-    $getSelection,
-    $isRangeSelection,
-    TextFormatType,
-    ElementFormatType,
+  FORMAT_TEXT_COMMAND,
+  FORMAT_ELEMENT_COMMAND,
+  $getSelection,
+  $isRangeSelection,
+  type TextFormatType,
+  type ElementFormatType,
 } from "lexical";
-import IconButton from '@mui/material/IconButton';
-import FormatAlignLeftIcon from '@mui/icons-material/FormatAlignLeft';
-import FormatAlignCenterIcon from '@mui/icons-material/FormatAlignCenter';
-import FormatAlignRightIcon from '@mui/icons-material/FormatAlignRight';
-import FormatAlignJustifyIcon from '@mui/icons-material/FormatAlignJustify';
-import styles from "./toolbar.module.css";
-import { BlockAlignmentType, DocterTextFormatType } from "../../../types/Document";
+import IconButton from "@mui/material/IconButton";
+import { Tooltip } from "@mui/material";
+import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
+import FormatAlignCenterIcon from "@mui/icons-material/FormatAlignCenter";
+import FormatAlignRightIcon from "@mui/icons-material/FormatAlignRight";
+import FormatAlignJustifyIcon from "@mui/icons-material/FormatAlignJustify";
+import styles from "../../ThreadWriter/subcomponents/ThreadWriterToolbar/toolbar.module.css";
+import {
+  BlockAlignmentType,
+  DocterTextFormatType,
+} from "../../../types/Document";
 
-export const ToolbarDemo = () => {
-    const [editor] = useLexicalComposerContext();
-    const [isBold, setIsBold] = useState(false);
-    const [isItalic, setIsItalic] = useState(false);
-    const [isUnderline, setIsUnderline] = useState(false);
-    const [isStrikethrough, setIsStrikethrough] = useState(false);
-    const [alignment, setAlignment] = useState<string | null>("left");
+interface ToolbarDemoProps {
+  chapterName?: string;
+}
 
-    const toggleTextFormat = (format: TextFormatType) => {
-        editor.dispatchCommand(FORMAT_TEXT_COMMAND, format);
+export const ToolbarDemo = ({ chapterName }: ToolbarDemoProps) => {
+  const [editor] = useLexicalComposerContext();
+  const [isBold, setIsBold] = useState(false);
+  const [isItalic, setIsItalic] = useState(false);
+  const [isUnderline, setIsUnderline] = useState(false);
+  const [isStrikethrough, setIsStrikethrough] = useState(false);
+  const [alignment, setAlignment] = useState<string | null>("left");
+
+  const toggleTextFormat = (format: TextFormatType) => {
+    editor.dispatchCommand(FORMAT_TEXT_COMMAND, format);
+  };
+
+  const applyAlignment = (alignment: ElementFormatType) => {
+    editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, alignment);
+  };
+
+  const alignmentMap = useMemo<Record<number, ElementFormatType>>(
+    () => ({
+      1: BlockAlignmentType.LEFT,
+      2: BlockAlignmentType.CENTER,
+      3: BlockAlignmentType.RIGHT,
+      4: BlockAlignmentType.JUSTIFY,
+    }),
+    []
+  );
+
+  useEffect(() => {
+    const updateToolbar = () => {
+      editor.getEditorState().read(() => {
+        const selection = $getSelection();
+        if ($isRangeSelection(selection)) {
+          setIsBold(selection.hasFormat(DocterTextFormatType.BOLD));
+          setIsItalic(selection.hasFormat(DocterTextFormatType.ITALIC));
+          setIsUnderline(selection.hasFormat(DocterTextFormatType.UNDERLINE));
+          setIsStrikethrough(
+            selection.hasFormat(DocterTextFormatType.STRIKETHROUGH)
+          );
+          const anchorNode = selection.anchor.getNode();
+          const parentNode =
+            anchorNode.getType() === "custom-paragraph"
+              ? anchorNode
+              : anchorNode.getParent();
+          if (parentNode?.getType() === "custom-paragraph") {
+            const format = parentNode.getFormat();
+            const alignmentValue =
+              alignmentMap[format] || BlockAlignmentType.LEFT;
+            setAlignment(alignmentValue);
+          } else {
+            setAlignment(BlockAlignmentType.LEFT);
+          }
+        }
+      });
     };
 
-    const applyAlignment = (alignment: ElementFormatType) => {
-        editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, alignment);
-    };
+    const unsubscribe = editor.registerUpdateListener(() => {
+      updateToolbar();
+    });
 
-    const alignmentMap = useMemo<Record<number, ElementFormatType>>(() => ({
-        1: BlockAlignmentType.LEFT,
-        2: BlockAlignmentType.CENTER,
-        3: BlockAlignmentType.RIGHT,
-        4: BlockAlignmentType.JUSTIFY,
-    }), []);
+    return () => unsubscribe();
+  }, [editor, alignmentMap]);
 
-    useEffect(() => {
-        const updateToolbar = () => {
-            editor.getEditorState().read(() => {
-                const selection = $getSelection();
-                if ($isRangeSelection(selection)) {
-                    setIsBold(selection.hasFormat(DocterTextFormatType.BOLD));
-                    setIsItalic(selection.hasFormat(DocterTextFormatType.ITALIC));
-                    setIsUnderline(selection.hasFormat(DocterTextFormatType.UNDERLINE));
-                    setIsStrikethrough(selection.hasFormat(DocterTextFormatType.STRIKETHROUGH));
-                    const anchorNode = selection.anchor.getNode();
-                    const parentNode = anchorNode.getType() === "custom-paragraph" ? anchorNode : anchorNode.getParent();
-                    if (parentNode?.getType() === "custom-paragraph") {
-                        const format = parentNode.getFormat(); // Use parentNode here
-                        const alignmentValue = alignmentMap[format] || BlockAlignmentType.LEFT;
-                        setAlignment(alignmentValue);
-                    } else {
-                        setAlignment(BlockAlignmentType.LEFT);
-                    }
-                }
-            });
-        };
+  return (
+    <div className={styles.toolbar} style={{ top: 0, zIndex: 10 }}>
+      <div className={styles.buttonContainer}>
+        <Tooltip title="Bold" placement="top">
+          <button
+            type="button"
+            className={isBold ? styles.active : ""}
+            onClick={() => toggleTextFormat(DocterTextFormatType.BOLD)}
+          >
+            <b>B</b>
+          </button>
+        </Tooltip>
+        <Tooltip title="Italic" placement="top">
+          <button
+            type="button"
+            className={isItalic ? styles.active : ""}
+            onClick={() => toggleTextFormat(DocterTextFormatType.ITALIC)}
+          >
+            <i>I</i>
+          </button>
+        </Tooltip>
+        <Tooltip title="Underline" placement="top">
+          <button
+            type="button"
+            className={isUnderline ? styles.active : ""}
+            onClick={() => toggleTextFormat(DocterTextFormatType.UNDERLINE)}
+          >
+            <u>U</u>
+          </button>
+        </Tooltip>
+        <Tooltip title="Strikethrough" placement="top">
+          <button
+            type="button"
+            className={isStrikethrough ? styles.active : ""}
+            onClick={() => toggleTextFormat(DocterTextFormatType.STRIKETHROUGH)}
+          >
+            <s>S</s>
+          </button>
+        </Tooltip>
 
-        const unsubscribe = editor.registerUpdateListener(() => {
-            updateToolbar();
-        });
-
-        return () => unsubscribe();
-    }, [editor, alignmentMap]);
-
-    return (
-        <div className={styles.toolbar}>
-            {/* Text formatting buttons */}
-            <div className={styles.buttonContainer}>
-                <button
-                    className={isBold ? styles.active : ""}
-                    onClick={() => toggleTextFormat(DocterTextFormatType.BOLD)}
-                >
-                    <b>B</b>
-                </button>
-                <button
-                    className={isItalic ? styles.active : ""}
-                    onClick={() => toggleTextFormat(DocterTextFormatType.ITALIC)}
-                >
-                    <i>I</i>
-                </button>
-                <button
-                    className={isUnderline ? styles.active : ""}
-                    onClick={() => toggleTextFormat(DocterTextFormatType.UNDERLINE)}
-                >
-                    <u>U</u>
-                </button>
-                <button
-                    className={isStrikethrough ? styles.active : ""}
-                    onClick={() => toggleTextFormat(DocterTextFormatType.STRIKETHROUGH)}
-                >
-                    <s>S</s>
-                </button>
-
-                {/* Alignment buttons */}
-                <IconButton className={alignment === BlockAlignmentType.LEFT ? styles.active : ""} aria-label={BlockAlignmentType.LEFT} onClick={() => applyAlignment(BlockAlignmentType.LEFT)}>
-                    <FormatAlignLeftIcon fontSize="small" />
-                </IconButton>
-                <IconButton className={alignment === BlockAlignmentType.CENTER ? styles.active : ""} aria-label={BlockAlignmentType.CENTER} onClick={() => applyAlignment(BlockAlignmentType.CENTER)}>
-                    <FormatAlignCenterIcon fontSize="small" />
-                </IconButton>
-                <IconButton className={alignment === BlockAlignmentType.RIGHT ? styles.active : ""} aria-label={BlockAlignmentType.RIGHT} onClick={() => applyAlignment(BlockAlignmentType.RIGHT)}>
-                    <FormatAlignRightIcon fontSize="small" />
-                </IconButton>
-                <IconButton className={alignment === BlockAlignmentType.JUSTIFY ? styles.active : ""} aria-label={BlockAlignmentType.JUSTIFY} onClick={() => applyAlignment(BlockAlignmentType.JUSTIFY)}>
-                    <FormatAlignJustifyIcon fontSize="small" />
-                </IconButton>
-            </div>
-        </div>
-    );
+        <Tooltip title="Align Left" placement="top">
+          <IconButton
+            className={alignment === BlockAlignmentType.LEFT ? styles.active : ""}
+            aria-label={BlockAlignmentType.LEFT}
+            onClick={() => applyAlignment(BlockAlignmentType.LEFT)}
+          >
+            <FormatAlignLeftIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Align Center" placement="top">
+          <IconButton
+            className={alignment === BlockAlignmentType.CENTER ? styles.active : ""}
+            aria-label={BlockAlignmentType.CENTER}
+            onClick={() => applyAlignment(BlockAlignmentType.CENTER)}
+          >
+            <FormatAlignCenterIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Align Right" placement="top">
+          <IconButton
+            className={alignment === BlockAlignmentType.RIGHT ? styles.active : ""}
+            aria-label={BlockAlignmentType.RIGHT}
+            onClick={() => applyAlignment(BlockAlignmentType.RIGHT)}
+          >
+            <FormatAlignRightIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Justify" placement="top">
+          <IconButton
+            className={alignment === BlockAlignmentType.JUSTIFY ? styles.active : ""}
+            aria-label={BlockAlignmentType.JUSTIFY}
+            onClick={() => applyAlignment(BlockAlignmentType.JUSTIFY)}
+          >
+            <FormatAlignJustifyIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </div>
+      {chapterName && (
+        <div className={styles.chapterTitle} style={{ marginLeft: "auto" }}>{chapterName}</div>
+      )}
+    </div>
+  );
 };

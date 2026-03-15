@@ -43,28 +43,37 @@
 
 .associationTooltipBody {
     width: 300px;
-    max-height: 150px;
+    max-height: 160px;
     min-height: 100px;
     display: inline-block;
-    background-color: var(--bg-primary);
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
     border: 1px solid var(--border-medium);
-    border-radius: 10px;
+    border-radius: var(--radius-lg, 12px);
     position: absolute;
-    padding: 8px;
+    padding: 10px;
     z-index: 5000;
     opacity: 0;
     transition: opacity 0.2s ease;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
+    line-height: 1.5;
     color: var(--text-primary);
     box-shadow: var(--shadow-xl);
+    pointer-events: none;
 }
 
 .associationTooltipBody.show {
-    opacity: 0.95;
+    opacity: 1;
 }
 
-[data-theme="light"] .associationTooltipBody {
-    background: linear-gradient(135deg, #eef4fa 0%, #dce8f5 100%);
+:global([data-theme="dark"]) .associationTooltipBody {
+    background: rgba(50, 47, 46, 0.95);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+:global([data-theme="light"]) .associationTooltipBody {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(13, 40, 71, 0.15);
 }
 
 .associationTooltipBody .column {
@@ -75,22 +84,30 @@
     min-height: 0;
     box-sizing: border-box;
     float: left;
+    overflow: hidden;
 }
 
 .associationTooltipBody .column:last-child {
     text-align: left;
     height: 90%;
     overflow: hidden;
-    max-height: 120px;
-    padding-right: 15px;
+    max-height: 130px;
+    padding-right: 10px;
     display: -webkit-box;
     -webkit-line-clamp: 6;
     -webkit-box-orient: vertical;
+    color: var(--text-secondary);
 }
 
 .associationTooltipBody .column img {
-    max-height: 100px;
+    max-height: 110px;
+    max-width: 100%;
+    object-fit: contain;
     margin: auto;
-    filter: drop-shadow(1px 1px 1px #1a1a1a);
-    border-radius: 8px;
+    border-radius: var(--radius-sm, 6px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+:global([data-theme="dark"]) .associationTooltipBody .column img {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }

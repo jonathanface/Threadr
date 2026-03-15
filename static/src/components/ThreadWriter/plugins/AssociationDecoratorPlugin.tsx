@@ -64,7 +64,7 @@ export const AssociationDecoratorPlugin = ({
       const previousDoesNotEndWithWhitespaceOrPunctuation =
         previousSibling instanceof TextNode &&
         // eslint-disable-next-line no-useless-escape
-        !/[\s.,:;"'’“…—–-]$/.test(previousSibling.getTextContent().slice(-1)); // Only check the last character
+        !/[\s.,:;\u0022\u0027\u2018\u2019\u201C\u201D…—–()\-]$/.test(previousSibling.getTextContent().slice(-1)); // Only check the last character
       if (previousSibling && previousDoesNotEndWithWhitespaceOrPunctuation) {
         //console.log("issue with", node.getTextContent());
         //console.log("prev does not end with white space or allowed punctuation: ", previousSibling.getTextContent().slice(-1));
@@ -74,7 +74,7 @@ export const AssociationDecoratorPlugin = ({
       const nextDoesNotStartWithWhitespaceOrPunctuation =
         nextSibling instanceof TextNode &&
         // eslint-disable-next-line no-useless-escape
-        !/^[\s.,:;!"'’“?…—–-]/.test(nextSibling.getTextContent().charAt(0)); // Only check the first character
+        !/^[\s.,:;!\u0022\u0027\u2018\u2019\u201C\u201D?…—–()\-]/.test(nextSibling.getTextContent().charAt(0)); // Only check the first character
       if (nextSibling && nextDoesNotStartWithWhitespaceOrPunctuation) {
         //console.log("issue with", node.getTextContent());
         //console.log("next does not start with whitespace or punctuation", nextSibling.getTextContent().charAt(0));
@@ -150,8 +150,6 @@ export const AssociationDecoratorPlugin = ({
           // Check for adjacent non-whitespace text nodes (post-traversal check)
           const hasAdjacentNonWhitespace =
             checkAdjacentNonWhitespaceOrPunctuation(node);
-          // console.log("out of sync", isTextOutOfSync, "adjacent", hasAdjacentNonWhitespace);
-          // If the node's text has changed or if there are adjacent non-whitespace characters, mark it as obsolete
           if (isTextOutOfSync || hasAdjacentNonWhitespace) {
             obsoleteNodes.push(node);
           }
@@ -421,17 +419,13 @@ export const AssociationDecoratorPlugin = ({
         }
 
         editor.update(() => {
-          //console.log("AssociationPlugin - Associations processed on associations prop change.", JSON.stringify(exclusionList), associations);
           const root = $getRoot();
           processAssociations(associations, root, exclusionList);
-          //console.log("AssociationPlugin - Associations processed on associations prop change.");
-          // Don't scroll to top - let the document maintain its scroll position
-
           previousHashRef.current = generateTextHash(editor);
           if (isProgrammaticChange) {
             isProgrammaticChange.current = false;
           }
-        });
+        }, { tag: 'association-processing' });
       } catch (error) {
         console.error(
           `AssociationPlugin - Error processing associations on prop change: ${error}`
@@ -448,12 +442,14 @@ export const AssociationDecoratorPlugin = ({
   ]);
 
   // Listener function for user-initiated editor updates
-  const handleUserEditorUpdate = useCallback(() => {
+  const handleUserEditorUpdate = useCallback(({ tags }: { tags: Set<string> }) => {
+    if (tags.has('association-processing')) {
+      // This update was triggered by our own processing, skip it
+      previousHashRef.current = generateTextHash(editor);
+      return;
+    }
+
     if (isProgrammaticChange?.current) {
-      // If a programmatic change is in progress, skip processing
-      console.warn(
-        "AssociationPlugin - Skipping user-initiated update due to ongoing programmatic change."
-      );
       return;
     }
 
@@ -462,7 +458,6 @@ export const AssociationDecoratorPlugin = ({
     const previousHash = previousHashRef.current;
 
     if (currentHash === previousHash) {
-      //console.log("AssociationPlugin - No content changes detected, skipping association processing.");
       return;
     }
 
@@ -478,9 +473,7 @@ export const AssociationDecoratorPlugin = ({
       editor.update(() => {
         const root = $getRoot();
         processAssociations(associations!, root, exclusionList);
-        // console.log("AssociationPlugin - Associations processed on user-initiated update.");
-        // Don't scroll to top on user-initiated updates - only on initial load
-      });
+      }, { tag: 'association-processing' });
     } catch (error) {
       console.error(
         `AssociationPlugin - Error processing associations on user update: ${error}`
@@ -489,6 +482,7 @@ export const AssociationDecoratorPlugin = ({
       if (isProgrammaticChange) {
         isProgrammaticChange.current = false;
       }
+      previousHashRef.current = generateTextHash(editor);
     }
   }, [
     associations,

@@ -341,7 +341,7 @@ export const ThreadWriter = () => {
   const selectedContextMenuItems = [
     { name: "Copy", command: handleTextCopy },
     {
-      name: "Create Association",
+      name: "Make Association",
       subItems: [
         {
           name: "Character",
@@ -797,6 +797,8 @@ export const ThreadWriter = () => {
                 prevData === undefined || currentText !== prevData.text;
               const formatHasChanged =
                 prevData === undefined || currentFormat !== prevData.format;
+              const placeHasChanged =
+                prevData !== undefined && index.toString() !== prevData.place;
 
               // Add to paragraphsToSave if new, pasted, or selected
               const selection = $getSelection();
@@ -812,12 +814,15 @@ export const ThreadWriter = () => {
               const isNew = newParagraphKeys.has(id);
 
               // Allow saving empty paragraphs (blank lines) - user expectation
+              // placeHasChanged ensures blocks that moved positions are re-saved
+              // at their new place before new blocks can overwrite their old place
               if (
                 pastedParagraphKeys.current.has(id) ||
                 isNew ||
                 isSelected ||
                 textHasChanged ||
-                formatHasChanged
+                formatHasChanged ||
+                placeHasChanged
               ) {
                 const serialized = serializeWithChildren(node);
                 paragraphsToSave.push({
@@ -1080,11 +1085,13 @@ export const ThreadWriter = () => {
   };
 
   const handleDocumentRightClick = (data: ClickData) => {
+    const rootElement = editorRef.current?.getRootElement();
+    const containerRect = rootElement?.closest(`.${styles.editorArea}`)?.getBoundingClientRect();
     const contextData: ContextMenuProps = {
       name: data.text ? data.text : "",
       visible: true,
-      y: data.y,
-      x: data.x,
+      y: containerRect ? data.y - containerRect.top : data.y,
+      x: containerRect ? data.x - containerRect.left : data.x,
       items: selectedContextMenuItems,
     };
     setContextMenuData(contextData);
@@ -1099,11 +1106,13 @@ export const ThreadWriter = () => {
   const handleAssociationRightClick = (data: ClickData) => {
     if (!data.id) return;
     selectedAssociation.current = data.id;
+    const rootElement = editorRef.current?.getRootElement();
+    const containerRect = rootElement?.closest(`.${styles.editorArea}`)?.getBoundingClientRect();
     const contextData: ContextMenuProps = {
       name: data.text ? data.text : "",
       visible: true,
-      y: data.y,
-      x: data.x,
+      y: containerRect ? data.y - containerRect.top : data.y,
+      x: containerRect ? data.x - containerRect.left : data.x,
       items: associationContextMenuItems,
     };
     setContextMenuData(contextData);

@@ -301,6 +301,25 @@ export const useEditorCommands = (
                     lastInsertedNode = newParagraphNode; // Update reference
                   }
                 });
+
+                // Move cursor to end of last pasted content
+                if (lastInsertedNode) {
+                  const lastChild = $isElementNode(lastInsertedNode)
+                    ? lastInsertedNode.getLastChild()
+                    : lastInsertedNode;
+                  if (lastChild && $isTextNode(lastChild)) {
+                    selection.anchor.set(
+                      lastChild.getKey(),
+                      lastChild.getTextContentSize(),
+                      "text",
+                    );
+                    selection.focus.set(
+                      lastChild.getKey(),
+                      lastChild.getTextContentSize(),
+                      "text",
+                    );
+                  }
+                }
               } else {
                 // Append to the root if no selection exists
                 const root = $getRoot();
@@ -323,6 +342,26 @@ export const useEditorCommands = (
                   pastedParagraphKeys.current.add(customKey);
                   lastInsertedNode = paragraphNode; // Update reference
                 });
+
+                // Move cursor to end of last pasted content
+                if (lastInsertedNode) {
+                  const lastChild = lastInsertedNode.getLastChild();
+                  if (lastChild && $isTextNode(lastChild)) {
+                    const newSelection = $getSelection();
+                    if ($isRangeSelection(newSelection)) {
+                      newSelection.anchor.set(
+                        lastChild.getKey(),
+                        lastChild.getTextContentSize(),
+                        "text",
+                      );
+                      newSelection.focus.set(
+                        lastChild.getKey(),
+                        lastChild.getTextContentSize(),
+                        "text",
+                      );
+                    }
+                  }
+                }
               }
             });
           }
