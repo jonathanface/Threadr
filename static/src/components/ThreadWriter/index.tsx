@@ -85,6 +85,10 @@ import {
 } from "./subcomponents/ContextMenu";
 import { DocumentMenu } from "./subcomponents/DocumentMenu";
 import { Toolbar } from "./subcomponents/ThreadWriterToolbar";
+import {
+  AssociationTutorial,
+  hasSeenTutorial,
+} from "./subcomponents/AssociationTutorial";
 import styles from "./threadwriter.module.css";
 
 const theme = {
@@ -146,6 +150,9 @@ export const ThreadWriter = () => {
   const { showLoader, hideLoader } = useLoader();
   const { documentSettings } = useDocumentSettings();
   const { associations, setAssociations } = useAssociations();
+  const [showTutorial, setShowTutorial] = useState(
+    () => !hasSeenTutorial(),
+  );
   useAutotabOnEnter(editorRef, !!documentSettings?.autotab);
   useEditorStateUpdater(editorRef, storyBlocks, isProgrammaticChange);
   useMobileCursorAdjustment(editorRef);
@@ -1125,6 +1132,10 @@ export const ThreadWriter = () => {
 
   return (
     <div className={styles.outerWrapper}>
+      <AssociationTutorial
+        open={showTutorial && (!associations || associations.length === 0)}
+        onClose={() => setShowTutorial(false)}
+      />
       <LexicalComposer
         key={`${story?.story_id}`}
         initialConfig={{

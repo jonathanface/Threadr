@@ -77,6 +77,10 @@ export const StoryAndSeriesListing = () => {
             <div className={styles.iconBox}>
               <span
                 className={`${styles.createStoryButton} ${isNewUser ? styles.pulse : ""}`}
+                onClick={createNewStory}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") createNewStory(); }}
               >
                 <Tooltip title="Create Story" placement="top">
                   <IconButton
@@ -97,7 +101,6 @@ export const StoryAndSeriesListing = () => {
                       }),
                     }}
                     component="label"
-                    onClick={createNewStory}
                   >
                     <AddIcon
                       sx={{
