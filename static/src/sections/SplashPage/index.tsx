@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { ThreadWriterDemo } from "../../components/demoComponents/ThreadWriterDemo";
+import { IntroAnimation } from "./IntroAnimation";
 import styles from "./splash.module.css";
 export const SplashPage = () => {
   const navigate = useNavigate();
@@ -35,11 +36,7 @@ export const SplashPage = () => {
           </div>
         </div>
         <div className={styles.heroVisual}>
-          <img
-            src="./img/writerdesk.jpg"
-            alt="Writer organizing story elements"
-            style={{ width: "100%", borderRadius: "16px" }}
-          />
+          <IntroAnimation />
         </div>
       </div>
 
