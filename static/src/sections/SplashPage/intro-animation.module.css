@@ -16,7 +16,7 @@
     background: var(--splash-bg-alt, #292524);
     border: 1px solid var(--splash-card-border, rgba(255, 255, 255, 0.08));
     border-radius: 12px;
-    overflow: hidden;
+    overflow: visible;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
@@ -32,6 +32,8 @@
     gap: 6px;
     padding: 10px 14px;
     border-bottom: 1px solid var(--splash-card-border, rgba(255, 255, 255, 0.08));
+    border-radius: 12px 12px 0 0;
+    background: inherit;
 }
 
 .toolbarBtn {
@@ -101,6 +103,27 @@
     text-decoration: underline;
     text-decoration-color: rgba(22, 163, 74, 0.4);
     text-underline-offset: 3px;
+}
+
+/* Place association (blue) */
+.placeAssociated {
+    color: #2563eb;
+    text-decoration-color: rgba(37, 99, 235, 0.4);
+}
+
+/* Force tooltip visible during abbey-card phase */
+.tooltipForced .tooltip {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Position abbey tooltip below the word, anchored right */
+.placeAssociated .tooltip {
+    bottom: auto;
+    top: calc(100% + 8px);
+    left: auto;
+    right: 0;
+    transform: none;
 }
 
 /* Hover tooltip on associated name */
@@ -318,6 +341,7 @@
 :global([data-theme="light"]) .cardDesc {
     color: #64748b;
 }
+
 
 /* Mobile */
 @media (max-width: 600px) {

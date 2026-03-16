@@ -4,14 +4,19 @@ import styles from "./intro-animation.module.css";
 const LINE1 = '\tThe carriage halted, and Mina stepped into the fog.';
 const LINE2 = '\tMina clutched the letter and hurried toward the abbey.';
 const CHAR_NAME = "Mina";
+const PLACE_NAME = "abbey";
 
 // Positions of "Mina" in line 1
-const L1_START = LINE1.indexOf(CHAR_NAME);
-const L1_END = L1_START + CHAR_NAME.length;
+const L1_MINA_START = LINE1.indexOf(CHAR_NAME);
+const L1_MINA_END = L1_MINA_START + CHAR_NAME.length;
 
 // Positions of "Mina" in line 2
-const L2_START = LINE2.indexOf(CHAR_NAME);
-const L2_END = L2_START + CHAR_NAME.length;
+const L2_MINA_START = LINE2.indexOf(CHAR_NAME);
+const L2_MINA_END = L2_MINA_START + CHAR_NAME.length;
+
+// Positions of "abbey" in line 2
+const L2_ABBEY_START = LINE2.indexOf(PLACE_NAME);
+const L2_ABBEY_END = L2_ABBEY_START + PLACE_NAME.length;
 
 const TYPING_SPEED = 75;
 const PAUSE_AFTER_TYPING = 800;
@@ -21,7 +26,8 @@ const CONTEXT_MENU_DURATION = 1200;
 const PAUSE_AFTER_MENU = 300;
 const CARD_DISPLAY = 3000;
 const PAUSE_AFTER_CARD = 600;
-const PAUSE_AFTER_LINE2 = 3000;
+const PAUSE_AFTER_LINE2 = 1200;
+const ABBEY_CARD_DURATION = 3000;
 const PAUSE_BEFORE_RESTART = 1500;
 
 type Phase =
@@ -35,6 +41,8 @@ type Phase =
   | "pause-card"
   | "typing-2"
   | "pause-typed-2"
+  | "abbey-card"
+  | "pause-abbey"
   | "fade-out";
 
 export const IntroAnimation = () => {
@@ -72,13 +80,13 @@ export const IntroAnimation = () => {
         break;
 
       case "pause-typed-1":
-        setSelStart(L1_START);
-        setSelEnd(L1_START);
+        setSelStart(L1_MINA_START);
+        setSelEnd(L1_MINA_START);
         setPhase("highlighting");
         break;
 
       case "highlighting":
-        if (selEnd < L1_END) {
+        if (selEnd < L1_MINA_END) {
           timerRef.current = setTimeout(() => {
             setSelEnd((e) => e + 1);
           }, HIGHLIGHT_DURATION / CHAR_NAME.length);
@@ -136,8 +144,20 @@ export const IntroAnimation = () => {
 
       case "pause-typed-2":
         timerRef.current = setTimeout(() => {
-          setPhase("fade-out");
+          setPhase("abbey-card");
         }, PAUSE_BEFORE_RESTART);
+        break;
+
+      case "abbey-card":
+        timerRef.current = setTimeout(() => {
+          setPhase("pause-abbey");
+        }, ABBEY_CARD_DURATION);
+        break;
+
+      case "pause-abbey":
+        timerRef.current = setTimeout(() => {
+          setPhase("fade-out");
+        }, 600);
         break;
 
       case "fade-out":
@@ -165,19 +185,27 @@ export const IntroAnimation = () => {
   const showSelection = selStart >= 0 && selEnd > selStart;
   const showMenu = phase === "context-menu";
   const showCard = phase === "card" || phase === "pause-card";
+  const showAbbeyCard = phase === "abbey-card";
 
   // After context-menu, "Mina" in line 1 stays green for the rest of the cycle
-  const line1Associated =
+  const line1MinaAssociated =
     phase === "card" ||
     phase === "pause-card" ||
     phase === "typing-2" ||
     phase === "pause-typed-2" ||
+    phase === "abbey-card" ||
+    phase === "pause-abbey" ||
     phase === "fade-out";
 
   // "Mina" in line 2 auto-highlights green as soon as it's fully typed
-  const line2Associated =
-    line2Len >= L2_END &&
-    (phase === "typing-2" || phase === "pause-typed-2" || phase === "fade-out");
+  const line2MinaAssociated =
+    line2Len >= L2_MINA_END &&
+    (phase === "typing-2" || phase === "pause-typed-2" || phase === "abbey-card" || phase === "pause-abbey" || phase === "fade-out");
+
+  // "abbey" in line 2 is a pre-existing Place association — highlights as it's typed
+  const line2AbbeyAssociated =
+    line2Len >= L2_ABBEY_END &&
+    (phase === "typing-2" || phase === "pause-typed-2" || phase === "abbey-card" || phase === "pause-abbey" || phase === "fade-out");
 
   const isFadingOut = phase === "fade-out";
 
@@ -185,7 +213,7 @@ export const IntroAnimation = () => {
     if (text1.length === 0) return null;
 
     // During selection highlighting
-    if (showSelection && !line1Associated) {
+    if (showSelection && !line1MinaAssociated) {
       const before = text1.slice(0, selStart);
       const selected = text1.slice(selStart, selEnd);
       const after = text1.slice(selEnd);
@@ -198,11 +226,11 @@ export const IntroAnimation = () => {
       );
     }
 
-    // When associated (green)
-    if (line1Associated) {
-      const before = text1.slice(0, L1_START);
-      const name = text1.slice(L1_START, L1_END);
-      const after = text1.slice(L1_END);
+    // When Mina is associated (green)
+    if (line1MinaAssociated) {
+      const before = text1.slice(0, L1_MINA_START);
+      const name = text1.slice(L1_MINA_START, L1_MINA_END);
+      const after = text1.slice(L1_MINA_END);
       return (
         <>
           {before}
@@ -232,31 +260,79 @@ export const IntroAnimation = () => {
   const renderLine2 = () => {
     if (text2.length === 0) return null;
 
-    if (line2Associated) {
-      const before = text2.slice(0, L2_START);
-      const name = text2.slice(L2_START, L2_END);
-      const remaining = line2Len > L2_END ? text2.slice(L2_END, line2Len) : "";
-      return (
-        <>
-          {before}
-          <span className={styles.associated}>
-            {name}
-            <span className={styles.tooltip}>
-              <img
-                src="./demo-data/dracula/img/mina.jpg"
-                alt="Mina Murray"
-                className={styles.tooltipPortrait}
-              />
-              <span className={styles.tooltipText}>
-                <strong>Mina Murray</strong>
-                <br />
-                A clever and resourceful young woman, engaged to Jonathan Harker.
+    const hasAssociations = line2MinaAssociated || line2AbbeyAssociated;
+
+    if (hasAssociations) {
+      // Build segments with both Mina and abbey highlighted
+      const associations: { start: number; end: number; active: boolean; type: "character" | "place" }[] = [
+        { start: L2_MINA_START, end: L2_MINA_END, active: line2MinaAssociated, type: "character" },
+        { start: L2_ABBEY_START, end: L2_ABBEY_END, active: line2AbbeyAssociated, type: "place" },
+      ];
+
+      const active = associations
+        .filter(a => a.active && a.start < line2Len)
+        .sort((a, b) => a.start - b.start);
+
+      const parts: React.ReactNode[] = [];
+      let cursor = 0;
+
+      for (const assoc of active) {
+        const start = assoc.start;
+        const end = Math.min(assoc.end, line2Len);
+
+        if (start > cursor) {
+          parts.push(text2.slice(cursor, start));
+        }
+
+        const word = text2.slice(start, end);
+        if (assoc.type === "character") {
+          parts.push(
+            <span key={`mina-l2`} className={styles.associated}>
+              {word}
+              <span className={styles.tooltip}>
+                <img
+                  src="./demo-data/dracula/img/mina.jpg"
+                  alt="Mina Murray"
+                  className={styles.tooltipPortrait}
+                />
+                <span className={styles.tooltipText}>
+                  <strong>Mina Murray</strong>
+                  <br />
+                  A clever and resourceful young woman, engaged to Jonathan Harker.
+                </span>
               </span>
             </span>
-          </span>
-          {remaining}
-        </>
-      );
+          );
+        } else {
+          parts.push(
+            <span
+              key={`abbey-l2`}
+              className={`${styles.associated} ${styles.placeAssociated} ${showAbbeyCard ? styles.tooltipForced : ""}`}
+            >
+              {word}
+              <span className={styles.tooltip}>
+                <img
+                  src="./demo-data/dracula/img/abbey.png"
+                  alt="Whitby Abbey"
+                  className={styles.tooltipPortrait}
+                />
+                <span className={styles.tooltipText}>
+                  <strong>Whitby Abbey</strong>
+                  <br />
+                  The haunting ruins perched on the East Cliff, overlooking the harbour and the sea.
+                </span>
+              </span>
+            </span>
+          );
+        }
+        cursor = end;
+      }
+
+      if (cursor < line2Len) {
+        parts.push(text2.slice(cursor, line2Len));
+      }
+
+      return <>{parts}</>;
     }
 
     return <>{text2}</>;
@@ -313,7 +389,7 @@ export const IntroAnimation = () => {
         </div>
       </div>
 
-      {/* Association card */}
+      {/* Mina association card */}
       <div
         className={`${styles.card} ${showCard ? styles.visible : ""}`}
       >
@@ -331,6 +407,7 @@ export const IntroAnimation = () => {
           </p>
         </div>
       </div>
+
     </div>
   );
 };
