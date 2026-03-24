@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /stories/
+Disallow: /series/
+Disallow: /subscribe
+Disallow: /checkout
+Disallow: /success
+Disallow: /account/
+Disallow: /admin
+
+Sitemap: https://docter.io/sitemap.xml
