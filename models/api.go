@@ -74,7 +74,7 @@ type Chapter struct {
 	StoryID      string `json:"story_id" dynamodbav:"story_id"`
 	Place        int    `json:"place" dynamodbav:"chapter_num"`
 	Title        string `json:"title" dynamodbav:"title"`
-	BackupARN    string `dynamodbav:"bup_arn"`
+	BackupARN    string `json:"-" dynamodbav:"bup_arn"`
 	CommentCount int    `json:"comment_count,omitempty" dynamodbav:"-"`
 }
 
@@ -262,7 +262,6 @@ type Comment struct {
 }
 
 type CreateShareLinkRequest struct {
-	StoryID         string `json:"story_id"`
 	ChapterID       string `json:"chapter_id,omitempty"`
 	ReaderEmail     string `json:"reader_email"`
 	ReaderFirstName string `json:"reader_first_name"`

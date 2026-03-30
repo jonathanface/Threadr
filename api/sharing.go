@@ -66,10 +66,11 @@ func CreateShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 4096)
 	decoder := json.NewDecoder(r.Body)
 	var req models.CreateShareLinkRequest
 	if err = decoder.Decode(&req); err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error())
+		RespondWithError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 	if req.ReaderEmail == "" {
@@ -82,6 +83,10 @@ func CreateShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.ReaderFirstName == "" || req.ReaderLastName == "" {
 		RespondWithError(w, http.StatusBadRequest, "Reader first and last name are required")
+		return
+	}
+	if len(req.ReaderFirstName) > 100 || len(req.ReaderLastName) > 100 {
+		RespondWithError(w, http.StatusBadRequest, "Reader name must be 100 characters or less")
 		return
 	}
 
@@ -371,6 +376,10 @@ func GetAuthorCommentsEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	// Strip share_token from responses to avoid leaking reader access credentials
+	for i := range comments {
+		comments[i].ShareToken = ""
+	}
 	RespondWithJson(w, http.StatusOK, comments)
 }
 
@@ -620,10 +629,11 @@ func CreateCommentEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 8192)
 	decoder := json.NewDecoder(r.Body)
 	var req models.CreateCommentRequest
 	if err := decoder.Decode(&req); err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error())
+		RespondWithError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 	if req.Body == "" {
@@ -632,6 +642,10 @@ func CreateCommentEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(req.Body) > 2000 {
 		RespondWithError(w, http.StatusBadRequest, "Comment body must be 2000 characters or less")
+		return
+	}
+	if len(req.AnchorTextSnapshot) > 500 {
+		RespondWithError(w, http.StatusBadRequest, "Selected text snapshot must be 500 characters or less")
 		return
 	}
 	if req.BlockKeyID == "" {
@@ -698,25 +712,17 @@ func DeleteOwnCommentEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch all comments for this share token to find and verify ownership
-	comments, err := dao.GetCommentsByShareToken(r.Context(), link.Token)
+	// Fetch the specific comment and verify ownership
+	comment, err := dao.GetComment(r.Context(), commentID)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	var targetComment *models.Comment
-	for i := range comments {
-		if comments[i].CommentID == commentID {
-			targetComment = &comments[i]
-			break
+		if err == sql.ErrNoRows {
+			RespondWithError(w, http.StatusNotFound, "Comment not found")
+			return
 		}
-	}
-	if targetComment == nil {
-		RespondWithError(w, http.StatusNotFound, "Comment not found")
+		RespondWithError(w, http.StatusInternalServerError, "Failed to retrieve comment")
 		return
 	}
-	if targetComment.ReaderEmail != link.ReaderEmail {
+	if comment.ShareToken != link.Token || comment.ReaderEmail != link.ReaderEmail {
 		RespondWithError(w, http.StatusForbidden, "You can only delete your own comments")
 		return
 	}
