@@ -103,6 +103,14 @@ export const SplashPage = () => {
             Group stories into series, track characters across books, and keep your saga consistent
           </div>
           <div className={styles.featureItem}>
+            <strong>Share with Beta Readers</strong>
+            Invite readers by email with a unique link. They see your manuscript in a clean, read-only view — no account required
+          </div>
+          <div className={styles.featureItem}>
+            <strong>Inline Reader Comments</strong>
+            Readers highlight text and leave comments right on the passage. You see every note anchored to the exact words they're referencing
+          </div>
+          <div className={styles.featureItem}>
             <strong>Export Your Way</strong>
             Download finished work as PDF, DOCX, or EPUB — formatted and ready to share or submit
           </div>
