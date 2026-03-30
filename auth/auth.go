@@ -121,25 +121,32 @@ func CallbackHandler(options OauthOptions) http.HandlerFunc {
 }
 
 func determineFirstName(info goth.User) string {
-	name := info.FirstName
-	if name == "" {
-		name = info.NickName
+	if info.FirstName != "" {
+		return info.FirstName
 	}
-	if name == "" {
-		name = "Unknown"
+	// Amazon only provides full Name — split it
+	if info.Name != "" {
+		parts := strings.SplitN(info.Name, " ", 2)
+		return parts[0]
 	}
-	return name
+	if info.NickName != "" {
+		return info.NickName
+	}
+	return "Unknown"
 }
 
 func determineLastName(info goth.User) string {
-	name := info.LastName
-	if name == "" {
-		name = info.Name
+	if info.LastName != "" {
+		return info.LastName
 	}
-	if name == "" {
-		name = "Stranger"
+	// Amazon only provides full Name — split it
+	if info.Name != "" {
+		parts := strings.SplitN(info.Name, " ", 2)
+		if len(parts) > 1 {
+			return parts[1]
+		}
 	}
-	return name
+	return "Stranger"
 }
 
 // safeMobileRedirect validates mobile deep link URLs to prevent open redirect attacks.
