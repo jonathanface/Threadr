@@ -109,7 +109,7 @@ func verifyMobileToken(tokenString string) (*models.UserInfo, error) {
 func New(options OauthOptions) {
 	gothic.Store = sessions.Store
 	goth.UseProviders(
-		google.New(options.GoogleId, options.GoogleSecret, options.GoogleUrl),
+		google.New(options.GoogleId, options.GoogleSecret, options.GoogleUrl, "email", "profile"),
 		amazon.New(options.AmazonId, options.AmazonSecret, options.AmazonUrl),
 	)
 }

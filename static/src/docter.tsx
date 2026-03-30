@@ -20,6 +20,7 @@ import { SuccessPage } from "./sections/Payment/Success";
 import { AccountSubscriptionPage } from "./sections/Payment/AccountSubscription";
 import { NotFoundPage } from "./sections/NotFound";
 import { AdminArea } from "./sections/AdminArea";
+import { SharedReaderPage } from "./sections/SharedReader";
 import {
   AlertCommandType,
   AlertFunctionCall,
@@ -187,6 +188,8 @@ export const Docter = () => {
             path="/admin"
             element={isLoggedIn ? <AdminArea /> : <Navigate to="/" replace />}
           />
+          {/* Shared reader (no auth required) */}
+          <Route path="/shared/:token" element={<SharedReaderPage />} />
           {/* Catch-all 404 */}
           <Route path="*" element={<NotFoundPage isLoggedIn={isLoggedIn} />} />
         </Routes>

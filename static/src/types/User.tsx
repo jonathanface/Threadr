@@ -1,7 +1,7 @@
 export interface UserDetails {
   email: string;
-  first_name?: string;
-  last_name?: string;
+  first_name: string;
+  last_name: string;
   subscriber: boolean;
   admin?: boolean;
   showWelcome?: boolean;

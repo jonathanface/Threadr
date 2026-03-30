@@ -5,4 +5,5 @@ type ContextKey string
 const (
 	DAO        ContextKey = "dao"
 	Subscriber ContextKey = "subscriber"
+	ShareLink  ContextKey = "share_link"
 )

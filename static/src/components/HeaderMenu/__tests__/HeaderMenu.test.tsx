@@ -58,6 +58,10 @@ vi.mock("../../../hooks/useLoader", () => ({
   }),
 }));
 
+vi.mock("react-router-dom", () => ({
+  useLocation: () => ({ pathname: "/stories" }),
+}));
+
 vi.mock("../ThemeToggle", () => ({
   ThemeToggle: () => <div data-testid="theme-toggle">Theme Toggle</div>,
 }));

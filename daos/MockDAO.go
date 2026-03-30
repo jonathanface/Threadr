@@ -57,6 +57,23 @@ type MockDAO struct {
 	MockGetChapterTableStatus                   func(storyID, chapterID string) (bool, error)
 	MockGetChapterByID                          func(chapterID string) (*models.Chapter, error)
 	MockWasStoryDeleted                         func(email, storyID string) (bool, error)
+
+	// Sharing
+	MockCreateShareLink        func(link models.ShareLink) error
+	MockGetShareLink           func(token string) (*models.ShareLink, error)
+	MockGetShareLinksByAuthor  func(email, storyID string) ([]models.ShareLink, error)
+	MockGetShareLinksByStory   func(storyID string) ([]models.ShareLink, error)
+	MockRevokeShareLink        func(token string) error
+	MockRestoreShareLink       func(token string) error
+	MockDeleteShareLink        func(token string) error
+
+	// Comments
+	MockCreateComment              func(comment models.Comment) error
+	MockGetComment                 func(commentID string) (*models.Comment, error)
+	MockGetCommentsByShareToken    func(shareToken string) ([]models.Comment, error)
+	MockGetCommentsByStoryChapter  func(storyID, chapterID string) ([]models.Comment, error)
+	MockResolveComment             func(commentID string) error
+	MockDeleteComment              func(commentID string) error
 }
 
 var _ DaoInterface = (*MockDAO)(nil)
@@ -453,6 +470,101 @@ func (m *MockDAO) WasStoryDeleted(ctx context.Context, email, storyID string) (b
 		return m.MockWasStoryDeleted(email, storyID)
 	}
 	return m.DAO.WasStoryDeleted(ctx, email, storyID)
+}
+
+// Sharing mock implementations
+
+func (m *MockDAO) CreateShareLink(ctx context.Context, link models.ShareLink) error {
+	if m.MockCreateShareLink != nil {
+		return m.MockCreateShareLink(link)
+	}
+	return nil
+}
+
+func (m *MockDAO) GetShareLink(ctx context.Context, token string) (*models.ShareLink, error) {
+	if m.MockGetShareLink != nil {
+		return m.MockGetShareLink(token)
+	}
+	return &models.ShareLink{Token: token}, nil
+}
+
+func (m *MockDAO) GetShareLinksByAuthor(ctx context.Context, email string, storyID string) ([]models.ShareLink, error) {
+	if m.MockGetShareLinksByAuthor != nil {
+		return m.MockGetShareLinksByAuthor(email, storyID)
+	}
+	return []models.ShareLink{}, nil
+}
+
+func (m *MockDAO) GetShareLinksByStory(ctx context.Context, storyID string) ([]models.ShareLink, error) {
+	if m.MockGetShareLinksByStory != nil {
+		return m.MockGetShareLinksByStory(storyID)
+	}
+	return []models.ShareLink{}, nil
+}
+
+func (m *MockDAO) RevokeShareLink(ctx context.Context, token string) error {
+	if m.MockRevokeShareLink != nil {
+		return m.MockRevokeShareLink(token)
+	}
+	return nil
+}
+
+func (m *MockDAO) RestoreShareLink(ctx context.Context, token string) error {
+	if m.MockRestoreShareLink != nil {
+		return m.MockRestoreShareLink(token)
+	}
+	return nil
+}
+
+func (m *MockDAO) DeleteShareLink(ctx context.Context, token string) error {
+	if m.MockDeleteShareLink != nil {
+		return m.MockDeleteShareLink(token)
+	}
+	return nil
+}
+
+// Comment mock implementations
+
+func (m *MockDAO) CreateComment(ctx context.Context, comment models.Comment) error {
+	if m.MockCreateComment != nil {
+		return m.MockCreateComment(comment)
+	}
+	return nil
+}
+
+func (m *MockDAO) GetComment(ctx context.Context, commentID string) (*models.Comment, error) {
+	if m.MockGetComment != nil {
+		return m.MockGetComment(commentID)
+	}
+	return &models.Comment{CommentID: commentID}, nil
+}
+
+func (m *MockDAO) GetCommentsByShareToken(ctx context.Context, shareToken string) ([]models.Comment, error) {
+	if m.MockGetCommentsByShareToken != nil {
+		return m.MockGetCommentsByShareToken(shareToken)
+	}
+	return []models.Comment{}, nil
+}
+
+func (m *MockDAO) GetCommentsByStoryChapter(ctx context.Context, storyID, chapterID string) ([]models.Comment, error) {
+	if m.MockGetCommentsByStoryChapter != nil {
+		return m.MockGetCommentsByStoryChapter(storyID, chapterID)
+	}
+	return []models.Comment{}, nil
+}
+
+func (m *MockDAO) ResolveComment(ctx context.Context, commentID string) error {
+	if m.MockResolveComment != nil {
+		return m.MockResolveComment(commentID)
+	}
+	return nil
+}
+
+func (m *MockDAO) DeleteComment(ctx context.Context, commentID string) error {
+	if m.MockDeleteComment != nil {
+		return m.MockDeleteComment(commentID)
+	}
+	return nil
 }
 
 func NewMockDAO() *MockDAO {

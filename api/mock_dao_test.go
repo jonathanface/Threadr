@@ -66,6 +66,22 @@ type MockDAO struct {
 	CheckTableStatusFunc                      func(tableName string) (string, error)
 	UpdateSubscriptionFunc                    func(subscription models.Subscription) error
 	CreateUserFunc                            func(email string) (*models.UserInfo, error)
+	CreateShareLinkFunc                       func(link models.ShareLink) error
+	GetShareLinkFunc                          func(token string) (*models.ShareLink, error)
+	GetShareLinksByAuthorFunc                 func(email, storyID string) ([]models.ShareLink, error)
+	GetShareLinksByStoryFunc                  func(storyID string) ([]models.ShareLink, error)
+	RevokeShareLinkFunc                       func(token string) error
+	RestoreShareLinkFunc                      func(token string) error
+	DeleteShareLinkFunc                       func(token string) error
+	CreateCommentFunc                         func(comment models.Comment) error
+	GetCommentFunc                            func(commentID string) (*models.Comment, error)
+	GetCommentsByShareTokenFunc               func(shareToken string) ([]models.Comment, error)
+	GetCommentsByStoryChapterFunc             func(storyID, chapterID string) ([]models.Comment, error)
+	ResolveCommentFunc                        func(commentID string) error
+	DeleteCommentFunc                         func(commentID string) error
+	DeleteUserFunc                            func(email string) error
+	GetAllUsersWithStoriesFunc                func() ([]models.AdminUserSummary, error)
+	GetChaptersByStoryIDsFunc                 func(storyIDs []string) (map[string][]models.Chapter, error)
 }
 
 // Note: We cannot enforce interface implementation at compile time due to unexported methods
@@ -520,6 +536,134 @@ func (m *MockDAO) verifyStripeSubscription(subID, customerID string) (daos.Subsc
 
 func (m *MockDAO) awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsInput) (awsError models.AwsError, err error) {
 	return models.AwsError{}, nil
+}
+
+// CreateShareLink mock implementation
+func (m *MockDAO) CreateShareLink(link models.ShareLink) error {
+	if m.CreateShareLinkFunc != nil {
+		return m.CreateShareLinkFunc(link)
+	}
+	return nil
+}
+
+// GetShareLink mock implementation
+func (m *MockDAO) GetShareLink(token string) (*models.ShareLink, error) {
+	if m.GetShareLinkFunc != nil {
+		return m.GetShareLinkFunc(token)
+	}
+	return &models.ShareLink{Token: token}, nil
+}
+
+// GetShareLinksByAuthor mock implementation
+func (m *MockDAO) GetShareLinksByAuthor(email, storyID string) ([]models.ShareLink, error) {
+	if m.GetShareLinksByAuthorFunc != nil {
+		return m.GetShareLinksByAuthorFunc(email, storyID)
+	}
+	return []models.ShareLink{}, nil
+}
+
+// GetShareLinksByStory mock implementation
+func (m *MockDAO) GetShareLinksByStory(storyID string) ([]models.ShareLink, error) {
+	if m.GetShareLinksByStoryFunc != nil {
+		return m.GetShareLinksByStoryFunc(storyID)
+	}
+	return []models.ShareLink{}, nil
+}
+
+// RevokeShareLink mock implementation
+func (m *MockDAO) RevokeShareLink(token string) error {
+	if m.RevokeShareLinkFunc != nil {
+		return m.RevokeShareLinkFunc(token)
+	}
+	return nil
+}
+
+// RestoreShareLink mock implementation
+func (m *MockDAO) RestoreShareLink(token string) error {
+	if m.RestoreShareLinkFunc != nil {
+		return m.RestoreShareLinkFunc(token)
+	}
+	return nil
+}
+
+// DeleteShareLink mock implementation
+func (m *MockDAO) DeleteShareLink(token string) error {
+	if m.DeleteShareLinkFunc != nil {
+		return m.DeleteShareLinkFunc(token)
+	}
+	return nil
+}
+
+// CreateComment mock implementation
+func (m *MockDAO) CreateComment(comment models.Comment) error {
+	if m.CreateCommentFunc != nil {
+		return m.CreateCommentFunc(comment)
+	}
+	return nil
+}
+
+// GetComment mock implementation
+func (m *MockDAO) GetComment(commentID string) (*models.Comment, error) {
+	if m.GetCommentFunc != nil {
+		return m.GetCommentFunc(commentID)
+	}
+	return &models.Comment{CommentID: commentID}, nil
+}
+
+// GetCommentsByShareToken mock implementation
+func (m *MockDAO) GetCommentsByShareToken(shareToken string) ([]models.Comment, error) {
+	if m.GetCommentsByShareTokenFunc != nil {
+		return m.GetCommentsByShareTokenFunc(shareToken)
+	}
+	return []models.Comment{}, nil
+}
+
+// GetCommentsByStoryChapter mock implementation
+func (m *MockDAO) GetCommentsByStoryChapter(storyID, chapterID string) ([]models.Comment, error) {
+	if m.GetCommentsByStoryChapterFunc != nil {
+		return m.GetCommentsByStoryChapterFunc(storyID, chapterID)
+	}
+	return []models.Comment{}, nil
+}
+
+// ResolveComment mock implementation
+func (m *MockDAO) ResolveComment(commentID string) error {
+	if m.ResolveCommentFunc != nil {
+		return m.ResolveCommentFunc(commentID)
+	}
+	return nil
+}
+
+// DeleteComment mock implementation
+func (m *MockDAO) DeleteComment(commentID string) error {
+	if m.DeleteCommentFunc != nil {
+		return m.DeleteCommentFunc(commentID)
+	}
+	return nil
+}
+
+// DeleteUser mock implementation
+func (m *MockDAO) DeleteUser(email string) error {
+	if m.DeleteUserFunc != nil {
+		return m.DeleteUserFunc(email)
+	}
+	return nil
+}
+
+// GetAllUsersWithStories mock implementation
+func (m *MockDAO) GetAllUsersWithStories() ([]models.AdminUserSummary, error) {
+	if m.GetAllUsersWithStoriesFunc != nil {
+		return m.GetAllUsersWithStoriesFunc()
+	}
+	return []models.AdminUserSummary{}, nil
+}
+
+// GetChaptersByStoryIDs mock implementation
+func (m *MockDAO) GetChaptersByStoryIDs(storyIDs []string) (map[string][]models.Chapter, error) {
+	if m.GetChaptersByStoryIDsFunc != nil {
+		return m.GetChaptersByStoryIDsFunc(storyIDs)
+	}
+	return map[string][]models.Chapter{}, nil
 }
 
 // Helper function to create a mock DAO with default error behavior

@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 // corsMiddleware adds CORS headers to all responses
@@ -158,6 +160,43 @@ func billingMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 		})
 	}
 }
+func sharedMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			log.Printf("[sharedMiddleware] %s %s", r.Method, r.URL.Path)
+
+			token := mux.Vars(r)["token"]
+			if token == "" {
+				api.RespondWithError(w, http.StatusBadRequest, "Missing share token")
+				return
+			}
+
+			ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+			defer cancel()
+			ctx = context.WithValue(ctx, ctxkey.DAO, d)
+
+			link, err := d.GetShareLink(ctx, token)
+			if err != nil {
+				log.Printf("[sharedMiddleware] Share link not found: %v", err)
+				api.RespondWithError(w, http.StatusNotFound, "Share link not found")
+				return
+			}
+			if link.Revoked {
+				api.RespondWithError(w, http.StatusGone, "This share link has been revoked")
+				return
+			}
+			if link.ExpiresAt > 0 && time.Now().Unix() > link.ExpiresAt {
+				api.RespondWithError(w, http.StatusGone, "This share link has expired")
+				return
+			}
+
+			ctx = context.WithValue(ctx, ctxkey.ShareLink, link)
+			log.Printf("[sharedMiddleware] Share link validated for reader: %s", link.ReaderEmail)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
 func strictMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
