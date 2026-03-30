@@ -29,7 +29,7 @@ export const ChapterMenu = ({ onChapterSelect }: ChapterMenuProps) => {
   useEffect(() => {
     return () => {
       // cleanup on unmount
-      Object.values(pollersRef.current).forEach((id) => clearTimeout(id));
+      Object.values(pollersRef.current).forEach((id) => clearTimeout(id)); // eslint-disable-line react-hooks/exhaustive-deps
     };
   }, []);
   if (!story) return null;

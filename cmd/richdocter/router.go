@@ -100,6 +100,16 @@ func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.OauthOptio
 	apiRtr.HandleFunc("/user", api.UpdateUserEndpoint).Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/outline", api.UpdateOutlineEndpoint).Methods("PUT", "OPTIONS")
 
+	// Sharing (author-side)
+	apiRtr.HandleFunc("/stories/{storyID}/share", api.CreateShareLinkEndpoint).Methods("POST", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/share-links", api.GetShareLinksEndpoint).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/comments", api.GetAuthorCommentsEndpoint).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/share-links/{token}/revoke", api.RevokeShareLinkEndpoint).Methods("PUT", "OPTIONS")
+	apiRtr.HandleFunc("/share-links/{token}/restore", api.RestoreShareLinkEndpoint).Methods("PUT", "OPTIONS")
+	apiRtr.HandleFunc("/share-links/{token}", api.DeleteShareLinkEndpoint).Methods("DELETE", "OPTIONS")
+	apiRtr.HandleFunc("/comments/{commentID}/resolve", api.ResolveCommentEndpoint).Methods("PUT", "OPTIONS")
+	apiRtr.HandleFunc("/comments/{commentID}", api.DeleteCommentEndpoint).Methods("DELETE", "OPTIONS")
+
 	// DELETEs
 	apiRtr.HandleFunc("/stories/{storyID}/block", api.DeleteBlocksFromStoryEndpoint).Methods("DELETE", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{story}/associations", api.DeleteAssociationsEndpoint).Methods("DELETE", "OPTIONS")
@@ -107,6 +117,15 @@ func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.OauthOptio
 	apiRtr.HandleFunc("/stories/{story}", api.DeleteStoryEndpoint).Methods("DELETE", "OPTIONS")
 	apiRtr.HandleFunc("/series/{seriesID}", api.DeleteSeriesEndpoint).Methods("DELETE", "OPTIONS")
 	apiRtr.HandleFunc("/user", api.DeleteUserEndpoint).Methods("DELETE", "OPTIONS")
+
+	// Shared reader routes (public, authenticated via share token)
+	sharedRtr := rtr.PathPrefix("/api/v1/shared/{token}").Subrouter()
+	sharedRtr.Use(sharedMiddleware(dao))
+	sharedRtr.HandleFunc("", api.GetSharedStoryEndpoint).Methods("GET", "OPTIONS")
+	sharedRtr.HandleFunc("/content", api.GetSharedContentEndpoint).Methods("GET", "OPTIONS")
+	sharedRtr.HandleFunc("/comments", api.GetSharedCommentsEndpoint).Methods("GET", "OPTIONS")
+	sharedRtr.HandleFunc("/comments", api.CreateCommentEndpoint).Methods("POST", "OPTIONS")
+	sharedRtr.HandleFunc("/comments/{commentID}", api.DeleteOwnCommentEndpoint).Methods("DELETE", "OPTIONS")
 
 	fileServer := http.FileServer(http.Dir(staticFilesDir))
 	rtr.PathPrefix("/").Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

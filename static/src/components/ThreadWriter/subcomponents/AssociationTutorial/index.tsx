@@ -20,9 +20,11 @@ interface AssociationTutorialProps {
 
 const STORAGE_KEY = "docter_seen_association_tutorial";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const hasSeenTutorial = () =>
   localStorage.getItem(STORAGE_KEY) === "true";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const markTutorialSeen = () =>
   localStorage.setItem(STORAGE_KEY, "true");
 

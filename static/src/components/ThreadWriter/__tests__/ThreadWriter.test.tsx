@@ -155,20 +155,20 @@ describe('ThreadWriter', () => {
     vi.mocked(useSelections).mockReturnValue({
       story: mockStory,
       chapter: mockChapter,
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     vi.mocked(useFetchStoryBlocks).mockReturnValue({
       getBatchedStoryBlocks: vi.fn().mockResolvedValue(undefined),
       previousTableStatus: 'ok',
       tableStatus: 'ok',
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     vi.mocked(useDocumentSettings).mockReturnValue({
       documentSettings: {
         autotab: false,
         spellcheck: true,
       },
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
   });
 
   afterEach(() => {
@@ -180,7 +180,7 @@ describe('ThreadWriter', () => {
       vi.mocked(useSelections).mockReturnValue({
         story: null,
         chapter: mockChapter,
-      } as any);
+      } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       const { container } = render(<ThreadWriter />);
       expect(container.firstChild).toBeNull();
@@ -190,7 +190,7 @@ describe('ThreadWriter', () => {
       vi.mocked(useSelections).mockReturnValue({
         story: mockStory,
         chapter: null,
-      } as any);
+      } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       const { container } = render(<ThreadWriter />);
       expect(container.firstChild).toBeNull();
@@ -205,7 +205,7 @@ describe('ThreadWriter', () => {
         }),
         previousTableStatus: 'ok',
         tableStatus: 'ok',
-      } as any);
+      } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       render(<ThreadWriter />);
 
@@ -225,7 +225,7 @@ describe('ThreadWriter', () => {
         getBatchedStoryBlocks: mockGetBatched,
         previousTableStatus: 'ok',
         tableStatus: 'ok',
-      } as any);
+      } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       render(<ThreadWriter />);
 
@@ -256,7 +256,7 @@ describe('ThreadWriter', () => {
       vi.mocked(useSelections).mockReturnValue({
         story: { ...mockStory, story_id: 'story-999' },
         chapter: mockChapter,
-      } as any);
+      } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       rerender(<ThreadWriter />);
 
@@ -270,7 +270,7 @@ describe('ThreadWriter', () => {
       vi.mocked(useSelections).mockReturnValue({
         story: undefined,
         chapter: mockChapter,
-      } as any);
+      } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       const { container } = render(<ThreadWriter />);
       expect(container.firstChild).toBeNull();
@@ -280,7 +280,7 @@ describe('ThreadWriter', () => {
       vi.mocked(useSelections).mockReturnValue({
         story: mockStory,
         chapter: undefined,
-      } as any);
+      } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       const { container } = render(<ThreadWriter />);
       expect(container.firstChild).toBeNull();
@@ -332,7 +332,7 @@ describe('ThreadWriter', () => {
           autotab: true,
           spellcheck: false,
         },
-      } as any);
+      } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       const { container } = render(<ThreadWriter />);
 

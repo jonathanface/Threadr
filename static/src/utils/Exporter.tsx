@@ -48,7 +48,7 @@ export default class Exporter {
     const chapters: returnHTML[] = [];
 
     for (const chapter of storyData.chapters_with_contents) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const chapterBlocks = chapter.blocks?.items?.map(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (paragraph: { chunk: any; key_id: any }) => {

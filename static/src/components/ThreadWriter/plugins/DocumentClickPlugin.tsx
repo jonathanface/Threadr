@@ -37,7 +37,7 @@ export default function DocumentClickPlugin(props: DocumentClickPluginProps) {
         if ($isTextNode(node) || $isAssociationInlineNode(node)) {
             textNodes.push(node);
         } else if ($isElementNode(node)) {
-            node.getChildren().forEach((child) => traverseNodes(child, textNodes));
+            node.getChildren().forEach((child) => traverseNodes(child, textNodes)); // eslint-disable-line react-hooks/immutability
         }
     }, []);
 

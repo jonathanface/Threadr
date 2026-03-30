@@ -79,7 +79,9 @@ describe('utilities', () => {
 
     beforeEach(() => {
       // Mock window.location and window.history
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (global as any).window;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (global as any).window = {
         location: {
           protocol: 'https:',
@@ -95,6 +97,7 @@ describe('utilities', () => {
     });
 
     afterEach(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (global as any).window = originalWindow;
     });
 
@@ -256,7 +259,9 @@ describe('utilities', () => {
       expect(chapterTitle).toBe('Chapter One: The Beginning');
 
       // Mock window for URL update
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (global as any).window;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (global as any).window = {
         location: {
           protocol: 'https:',

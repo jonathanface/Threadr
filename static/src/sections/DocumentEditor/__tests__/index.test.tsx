@@ -7,7 +7,9 @@ import * as ChapterMemory from '../../../utils/chapterMemory';
 
 // Create mockable selection state
 const mockSelections = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   story: null as any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   chapter: null as any,
   setStory: vi.fn(),
   setSeries: vi.fn(),
@@ -45,10 +47,12 @@ vi.mock('../../../hooks/useSelections', () => ({
 
 // Mock providers
 vi.mock('../../../providers/associations', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   AssociationsProvider: ({ children }: any) => <div data-testid="associations-provider">{children}</div>,
 }));
 
 vi.mock('../../../providers/documentSettings', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   DocumentSettingsProvider: ({ children }: any) => <div data-testid="document-settings-provider">{children}</div>,
 }));
 

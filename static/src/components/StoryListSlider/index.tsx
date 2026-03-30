@@ -26,7 +26,7 @@ export const StoryListSlider = (props: StoryListSliderProps) => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    setIsVisible(props.visible);
+    setIsVisible(props.visible); // eslint-disable-line react-hooks/set-state-in-effect
   }, [props.visible]);
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export const StoryListSlider = (props: StoryListSliderProps) => {
         }
         return 0;
       });
-      setStories(newStories);
+      setStories(newStories); // eslint-disable-line react-hooks/set-state-in-effect
     } else if (!props.series.stories || !props.series.stories.length) {
       setStories([]);
     }

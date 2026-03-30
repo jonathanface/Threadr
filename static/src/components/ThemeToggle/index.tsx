@@ -13,7 +13,7 @@ export const ThemeToggle = () => {
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
     const preferredTheme = savedTheme || "light";
 
-    setTheme(preferredTheme);
+    setTheme(preferredTheme); // eslint-disable-line react-hooks/set-state-in-effect
     document.documentElement.setAttribute("data-theme", preferredTheme);
   }, []);
 

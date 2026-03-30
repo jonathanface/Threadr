@@ -342,6 +342,7 @@ describe('SeriesCompositeImage', () => {
         series_title: 'Test Series',
         series_description: 'Description',
         image_url: '/img/icons/story_series_icon.jpg',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         stories: undefined as any,
       };
 
@@ -353,6 +354,7 @@ describe('SeriesCompositeImage', () => {
     });
 
     it('should handle stories with undefined image_url', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const storyWithoutImage = { ...mockStory1, image_url: undefined as any };
       const series: Series = {
         series_id: 'series-1',

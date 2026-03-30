@@ -5,18 +5,18 @@ import { LexicalEditor } from "lexical";
 export const useEditorStateUpdater = (
   editorRef: React.RefObject<null | LexicalEditor>,
   storyBlocks: SerializedEditorState | null,
-  isProgrammaticChange: React.RefObject<boolean>,
+  isProgrammaticChangeRef: React.RefObject<boolean>,
 ) => {
   useEffect(() => {
     if (editorRef.current && storyBlocks) {
-      isProgrammaticChange.current = true;
+      isProgrammaticChangeRef.current = true;
       const editor = editorRef.current;
       editor.update(() => {
         const newEditorState = editor.parseEditorState(storyBlocks);
         editor.setEditorState(newEditorState);
         editorRef.current = editor;
       });
-      isProgrammaticChange.current = false;
+      isProgrammaticChangeRef.current = false;
     }
-  }, [storyBlocks, editorRef, isProgrammaticChange]);
+  }, [storyBlocks, editorRef, isProgrammaticChangeRef]);
 };

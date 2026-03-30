@@ -53,7 +53,9 @@ const createMockUserContext = (isLoggedIn: boolean) => ({
 describe('UserMenu', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (window as any).location;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).location = { pathname: '/' };
   });
 
@@ -82,6 +84,7 @@ describe('UserMenu', () => {
     });
 
     it('should not show Register / SignIn link on signin page', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).location = { pathname: '/signin' };
 
       render(
@@ -199,6 +202,7 @@ describe('UserMenu', () => {
     });
 
     it('should call signout API when Signout clicked', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.api.delete).mockResolvedValue({ status: 200, data: {} } as any);
 
       render(
@@ -220,6 +224,7 @@ describe('UserMenu', () => {
     });
 
     it('should update state on successful signout', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.api.delete).mockResolvedValue({ status: 200, data: {} } as any);
 
       render(
@@ -311,6 +316,7 @@ describe('UserMenu', () => {
     });
 
     it('should handle different pathname values', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).location = { pathname: '/stories/123' };
 
       render(

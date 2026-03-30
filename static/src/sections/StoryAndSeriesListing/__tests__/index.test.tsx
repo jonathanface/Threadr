@@ -39,12 +39,14 @@ vi.mock('../../../hooks/useFetchUserData', () => ({
 
 // Mock child components
 vi.mock('../../../components/StoryBox', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   StoryBox: ({ story }: any) => (
     <div data-testid={`story-box-${story.story_id}`}>{story.title}</div>
   ),
 }));
 
 vi.mock('../../../components/SeriesBox', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   SeriesBox: ({ series }: any) => (
     <div data-testid={`series-box-${series.series_id}`}>{series.series_title}</div>
   ),

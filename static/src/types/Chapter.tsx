@@ -5,4 +5,5 @@ export interface Chapter {
   title: string;
   tableNotReady: boolean;
   bup_arm?: string;
+  comment_count?: number;
 }

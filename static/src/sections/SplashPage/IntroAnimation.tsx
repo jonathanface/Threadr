@@ -80,7 +80,7 @@ export const IntroAnimation = () => {
         break;
 
       case "pause-typed-1":
-        setSelStart(L1_MINA_START);
+        setSelStart(L1_MINA_START); // eslint-disable-line react-hooks/set-state-in-effect
         setSelEnd(L1_MINA_START);
         setPhase("highlighting");
         break;

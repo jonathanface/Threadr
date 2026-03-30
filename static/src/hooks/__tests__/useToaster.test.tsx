@@ -286,6 +286,7 @@ describe('useToaster', () => {
       const wrapper = ({ children }: { children: ReactNode }) => (
         <AlertContext.Provider
           value={{
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             alertState: null as any,
             clearAlert: vi.fn(),
             setAlertState: vi.fn(),

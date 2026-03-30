@@ -3,7 +3,9 @@ import CancelPresentationIcon from "@mui/icons-material/CancelPresentation";
 import CloseIcon from "@mui/icons-material/Close";
 import FormatListNumberedIcon from "@mui/icons-material/FormatListNumbered";
 import MenuBookTwoToneIcon from "@mui/icons-material/MenuBookTwoTone";
-import { Box, Drawer, IconButton, Paper, Tooltip } from "@mui/material";
+import ShareIcon from "@mui/icons-material/Share";
+import CommentIcon from "@mui/icons-material/Comment";
+import { Badge, Box, Drawer, IconButton, Paper, Tooltip } from "@mui/material";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFetchUserData } from "../../../../hooks/useFetchUserData";
@@ -12,6 +14,8 @@ import type { ClickData } from "../../plugins/DocumentClickPlugin";
 import { ChapterMenu } from "../ChapterMenu";
 import { OutlineMenu } from "../OutlineMenu";
 import { DocumentSettingsModal } from "./DocumentSettingsModal";
+import { ShareDialog } from "./ShareDialog";
+import { CommentsPanel } from "./CommentsPanel";
 import styles from "./settingsmenu.module.css";
 
 interface DocumentMenuProps {
@@ -20,10 +24,12 @@ interface DocumentMenuProps {
 
 export const DocumentMenu = (props: DocumentMenuProps) => {
   const navigate = useNavigate();
-  const { deselectAll } = useSelections();
+  const { deselectAll, chapter } = useSelections();
   const [isEditorChapterMenuOpen, setIsEditorChapterMenuOpen] = useState(false);
   const [isEditorOutlineMenuOpen, setIsEditorOutlineMenuOpen] = useState(false);
   const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [isCommentsDrawerOpen, setIsCommentsDrawerOpen] = useState(false);
   const userSettings = useFetchUserData();
 
   const closeSideMenus = () => {
@@ -85,10 +91,41 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
             <Settings />
           </IconButton>
         </Tooltip>
+        <Tooltip title="Share" placement="right">
+          <IconButton
+            onClick={() => {
+              setIsShareDialogOpen(true);
+            }}
+            sx={{ color: "var(--text-primary)" }}
+          >
+            <ShareIcon />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Reader Comments" placement="right">
+          <IconButton
+            onClick={() => {
+              setIsCommentsDrawerOpen(true);
+            }}
+            sx={{ color: "var(--text-primary)" }}
+          >
+            <Badge
+              badgeContent={chapter?.comment_count || 0}
+              color="primary"
+              invisible={!chapter?.comment_count}
+              max={99}
+            >
+              <CommentIcon />
+            </Badge>
+          </IconButton>
+        </Tooltip>
       </Paper>
       <DocumentSettingsModal
         open={isSettingsMenuOpen}
         setOpen={setIsSettingsMenuOpen}
+      />
+      <ShareDialog
+        open={isShareDialogOpen}
+        setOpen={setIsShareDialogOpen}
       />
       <Drawer
         variant="temporary"
@@ -168,6 +205,39 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
             <CloseIcon />
           </IconButton>
           <OutlineMenu onAssociationClick={props.onAssociationClick} />
+        </Box>
+      </Drawer>
+      <Drawer
+        variant="persistent"
+        anchor={"right"}
+        open={isCommentsDrawerOpen}
+        PaperProps={{
+          sx: {
+            backgroundColor: "var(--bg-primary)",
+            color: "var(--text-primary)",
+          },
+        }}
+      >
+        <Box
+          className={styles.flyoutMenu}
+          role="presentation"
+          component="section"
+          sx={{ paddingTop: "48px" }}
+        >
+          <IconButton
+            onClick={() => setIsCommentsDrawerOpen(false)}
+            sx={{
+              position: "absolute",
+              right: 8,
+              top: 8,
+              color: "var(--text-primary)",
+              zIndex: 1,
+            }}
+            aria-label="close"
+          >
+            <CloseIcon />
+          </IconButton>
+          <CommentsPanel />
         </Box>
       </Drawer>
     </div>

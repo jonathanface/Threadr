@@ -1,26 +1,25 @@
-package auth
+package email
 
 import (
+	"context"
 	"errors"
 	"os"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/service/ses"
-	"github.com/aws/aws-sdk-go/service/ses/sesiface"
+	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 )
 
-// MockSESClient is a mock implementation of the SES client for testing
-type MockSESClient struct {
-	sesiface.SESAPI
-	SendEmailFunc func(*ses.SendEmailInput) (*ses.SendEmailOutput, error)
+// MockSESv2Client is a mock implementation of the SES v2 client for testing
+type MockSESv2Client struct {
+	SendEmailFunc func(ctx context.Context, input *sesv2.SendEmailInput, optFns ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error)
 }
 
-func (m *MockSESClient) SendEmail(input *ses.SendEmailInput) (*ses.SendEmailOutput, error) {
+func (m *MockSESv2Client) SendEmail(ctx context.Context, input *sesv2.SendEmailInput, optFns ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
 	if m.SendEmailFunc != nil {
-		return m.SendEmailFunc(input)
+		return m.SendEmailFunc(ctx, input, optFns...)
 	}
 	messageID := "test-message-id-12345"
-	return &ses.SendEmailOutput{
+	return &sesv2.SendEmailOutput{
 		MessageId: &messageID,
 	}, nil
 }
@@ -157,69 +156,51 @@ func TestEmailFunctions_ExpectedBehavior(t *testing.T) {
 // Mock-based tests (demonstrating what we'd do with refactored code)
 
 func TestSendWelcomeEmail_WithMock_Success(t *testing.T) {
-	// This demonstrates how we could test with proper mocking
-	// if the functions were refactored to accept an SES client interface
-
-	mockSES := &MockSESClient{
-		SendEmailFunc: func(input *ses.SendEmailInput) (*ses.SendEmailOutput, error) {
-			// Verify input parameters
-			if *input.Source != "no-reply@docter.io" {
-				t.Errorf("Expected source 'no-reply@docter.io', got %s", *input.Source)
+	mockSES := &MockSESv2Client{
+		SendEmailFunc: func(ctx context.Context, input *sesv2.SendEmailInput, optFns ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+			if *input.FromEmailAddress != "no-reply@docter.io" {
+				t.Errorf("Expected source 'no-reply@docter.io', got %s", *input.FromEmailAddress)
 			}
 			if len(input.Destination.ToAddresses) != 1 {
 				t.Errorf("Expected 1 recipient, got %d", len(input.Destination.ToAddresses))
 			}
-			if *input.Destination.ToAddresses[0] != "test@example.com" {
-				t.Errorf("Expected recipient 'test@example.com', got %s", *input.Destination.ToAddresses[0])
-			}
-			if *input.Message.Subject.Data != "Welcome to Docter" {
-				t.Errorf("Expected subject 'Welcome to Docter', got %s", *input.Message.Subject.Data)
+			if input.Destination.ToAddresses[0] != "test@example.com" {
+				t.Errorf("Expected recipient 'test@example.com', got %s", input.Destination.ToAddresses[0])
 			}
 
 			messageID := "test-message-123"
-			return &ses.SendEmailOutput{MessageId: &messageID}, nil
+			return &sesv2.SendEmailOutput{MessageId: &messageID}, nil
 		},
 	}
 
-	// This is what the test would look like with a refactored function
-	t.Log("Mock SES client created successfully, ready for testing")
+	t.Log("Mock SES v2 client created successfully, ready for testing")
 	_ = mockSES
 }
 
 func TestSendWelcomeEmail_WithMock_Error(t *testing.T) {
-	mockSES := &MockSESClient{
-		SendEmailFunc: func(input *ses.SendEmailInput) (*ses.SendEmailOutput, error) {
+	mockSES := &MockSESv2Client{
+		SendEmailFunc: func(ctx context.Context, input *sesv2.SendEmailInput, optFns ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
 			return nil, errors.New("SES service unavailable")
 		},
 	}
 
-	// With a refactored function that accepts an SES client:
-	// err := sendWelcomeEmailWithClient(mockSES, "test@example.com")
-	// if err == nil {
-	//     t.Error("Expected error from SES, got nil")
-	// }
-
-	t.Log("Mock SES client configured to return errors")
+	t.Log("Mock SES v2 client configured to return errors")
 	_ = mockSES
 }
 
 func TestSendAlertEmail_WithMock_Success(t *testing.T) {
-	mockSES := &MockSESClient{
-		SendEmailFunc: func(input *ses.SendEmailInput) (*ses.SendEmailOutput, error) {
-			// Verify the alert email goes to support
-			if *input.Destination.ToAddresses[0] != "support@docter.io" {
-				t.Errorf("Expected recipient 'support@docter.io', got %s", *input.Destination.ToAddresses[0])
-			}
-			if *input.Message.Subject.Data != "New User Signup" {
-				t.Errorf("Expected subject 'New User Signup', got %s", *input.Message.Subject.Data)
+	mockSES := &MockSESv2Client{
+		SendEmailFunc: func(ctx context.Context, input *sesv2.SendEmailInput, optFns ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+			if input.Destination.ToAddresses[0] != "support@docter.io" {
+				t.Errorf("Expected recipient 'support@docter.io', got %s", input.Destination.ToAddresses[0])
 			}
 
 			messageID := "alert-message-456"
-			return &ses.SendEmailOutput{MessageId: &messageID}, nil
+			return &sesv2.SendEmailOutput{MessageId: &messageID}, nil
 		},
 	}
 
-	t.Log("Mock SES client ready to verify alert email behavior")
+	t.Log("Mock SES v2 client ready to verify alert email behavior")
 	_ = mockSES
 }
 

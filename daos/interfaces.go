@@ -67,6 +67,23 @@ type DaoInterface interface {
 	DeleteSeries(ctx context.Context, email string, series models.Series) error
 	DeleteUser(ctx context.Context, email string) error
 
+	// Sharing
+	CreateShareLink(ctx context.Context, link models.ShareLink) error
+	GetShareLink(ctx context.Context, token string) (*models.ShareLink, error)
+	GetShareLinksByAuthor(ctx context.Context, email string, storyID string) ([]models.ShareLink, error)
+	GetShareLinksByStory(ctx context.Context, storyID string) ([]models.ShareLink, error)
+	RevokeShareLink(ctx context.Context, token string) error
+	RestoreShareLink(ctx context.Context, token string) error
+	DeleteShareLink(ctx context.Context, token string) error
+
+	// Comments
+	CreateComment(ctx context.Context, comment models.Comment) error
+	GetComment(ctx context.Context, commentID string) (*models.Comment, error)
+	GetCommentsByShareToken(ctx context.Context, shareToken string) ([]models.Comment, error)
+	GetCommentsByStoryChapter(ctx context.Context, storyID, chapterID string) ([]models.Comment, error)
+	ResolveComment(ctx context.Context, commentID string) error
+	DeleteComment(ctx context.Context, commentID string) error
+
 	// HELPERS
 	WasStoryDeleted(ctx context.Context, email string, storyID string) (bool, error)
 	IsStoryInASeries(ctx context.Context, email string, storyID string) (string, error)

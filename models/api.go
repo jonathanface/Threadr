@@ -70,11 +70,12 @@ type SimplifiedAssociation struct {
 }
 
 type Chapter struct {
-	ID        string `json:"id" dynamodbav:"chapter_id"`
-	StoryID   string `json:"story_id" dynamodbav:"story_id"`
-	Place     int    `json:"place" dynamodbav:"chapter_num"`
-	Title     string `json:"title" dynamodbav:"title"`
-	BackupARN string `dynamodbav:"bup_arn"`
+	ID           string `json:"id" dynamodbav:"chapter_id"`
+	StoryID      string `json:"story_id" dynamodbav:"story_id"`
+	Place        int    `json:"place" dynamodbav:"chapter_num"`
+	Title        string `json:"title" dynamodbav:"title"`
+	BackupARN    string `json:"-" dynamodbav:"bup_arn"`
+	CommentCount int    `json:"comment_count,omitempty" dynamodbav:"-"`
 }
 
 type ChapterWithContents struct {
@@ -225,4 +226,56 @@ type OutlineResponse struct {
 	Sections   []OutlineSection `json:"sections"`
 	Unassigned []string         `json:"unassigned"`
 	Backstory  string           `json:"backstory"`
+}
+
+type ShareLink struct {
+	Token           string `json:"token" dynamodbav:"token"`
+	StoryID         string `json:"story_id" dynamodbav:"story_id"`
+	ChapterID       string `json:"chapter_id,omitempty" dynamodbav:"chapter_id"`
+	AuthorEmail     string `json:"author_email" dynamodbav:"author_email"`
+	ReaderEmail     string `json:"reader_email" dynamodbav:"reader_email"`
+	ReaderFirstName string `json:"reader_first_name" dynamodbav:"reader_first_name"`
+	ReaderLastName  string `json:"reader_last_name" dynamodbav:"reader_last_name"`
+	CreatedAt       int64  `json:"created_at" dynamodbav:"created_at"`
+	ExpiresAt       int64  `json:"expires_at" dynamodbav:"expires_at"`
+	Revoked         bool   `json:"revoked" dynamodbav:"revoked"`
+	CommentsEnabled bool   `json:"comments_enabled" dynamodbav:"comments_enabled"`
+	Label           string `json:"label,omitempty" dynamodbav:"label"`
+}
+
+type Comment struct {
+	CommentID          string `json:"comment_id" dynamodbav:"comment_id"`
+	ShareToken         string `json:"share_token" dynamodbav:"share_token"`
+	StoryID            string `json:"story_id" dynamodbav:"story_id"`
+	ChapterID          string `json:"chapter_id" dynamodbav:"chapter_id"`
+	BlockKeyID         string `json:"block_key_id" dynamodbav:"block_key_id"`
+	AnchorOffset       int    `json:"anchor_offset" dynamodbav:"anchor_offset"`
+	FocusOffset        int    `json:"focus_offset" dynamodbav:"focus_offset"`
+	AnchorTextSnapshot string `json:"anchor_text_snapshot" dynamodbav:"anchor_text_snapshot"`
+	ReaderEmail        string `json:"reader_email" dynamodbav:"reader_email"`
+	ReaderFirstName    string `json:"reader_first_name" dynamodbav:"reader_first_name"`
+	ReaderLastName     string `json:"reader_last_name" dynamodbav:"reader_last_name"`
+	Body               string `json:"body" dynamodbav:"body"`
+	CreatedAt          int64  `json:"created_at" dynamodbav:"created_at"`
+	Resolved           bool   `json:"resolved" dynamodbav:"resolved"`
+	ResolvedAt         int64  `json:"resolved_at,omitempty" dynamodbav:"resolved_at"`
+}
+
+type CreateShareLinkRequest struct {
+	ChapterID       string `json:"chapter_id,omitempty"`
+	ReaderEmail     string `json:"reader_email"`
+	ReaderFirstName string `json:"reader_first_name"`
+	ReaderLastName  string `json:"reader_last_name"`
+	ExpiresAt       int64  `json:"expires_at"`
+	CommentsEnabled bool   `json:"comments_enabled"`
+	Label           string `json:"label,omitempty"`
+}
+
+type CreateCommentRequest struct {
+	ChapterID          string `json:"chapter_id"`
+	BlockKeyID         string `json:"block_key_id"`
+	AnchorOffset       int    `json:"anchor_offset"`
+	FocusOffset        int    `json:"focus_offset"`
+	AnchorTextSnapshot string `json:"anchor_text_snapshot"`
+	Body               string `json:"body"`
 }

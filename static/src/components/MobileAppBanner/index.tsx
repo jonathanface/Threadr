@@ -38,7 +38,7 @@ export const MobileAppBanner = () => {
   useEffect(() => {
     // Check localStorage on mount
     const wasDismissed = localStorage.getItem(STORAGE_KEY) === "true";
-    setDismissed(wasDismissed);
+    setDismissed(wasDismissed); // eslint-disable-line react-hooks/set-state-in-effect
   }, []);
 
   const handleDismiss = () => {

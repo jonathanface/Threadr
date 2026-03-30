@@ -78,15 +78,17 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       const isRoot = window.location.pathname === "/";
       const isSignin = window.location.pathname.startsWith("/signin");
+      const isSharedReader = window.location.pathname.startsWith("/shared/");
 
       logger.warn("API 401 Unauthorized detected", {
         ...errorContext,
         currentPath: window.location.pathname,
         isRoot,
         isSignin,
+        isSharedReader,
       });
 
-      if (!isRoot && !isSignin) {
+      if (!isRoot && !isSignin && !isSharedReader) {
         // get current path + query string (no origin so it's relative)
         const currentPath = window.location.pathname + window.location.search;
         logger.info("Redirecting to signin", {

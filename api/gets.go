@@ -114,6 +114,16 @@ func ChapterDetailsEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	// Attach comment count (best-effort, don't fail if comments table doesn't exist)
+	if comments, cErr := dao.GetCommentsByStoryChapter(r.Context(), storyID, chapterID); cErr == nil {
+		count := 0
+		for _, c := range comments {
+			if !c.Resolved {
+				count++
+			}
+		}
+		chapter.CommentCount = count
+	}
 	RespondWithJson(w, http.StatusOK, chapter)
 }
 

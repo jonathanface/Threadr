@@ -157,7 +157,7 @@ export const ThreadWriterDemo = () => {
     } catch (error) {
       console.error("Error retrieving story content:", error);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const getSelectedText = () => {

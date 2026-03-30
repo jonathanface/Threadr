@@ -83,6 +83,7 @@ vi.mock('../hooks/useStorySave', () => ({
 
 // Mock child components
 vi.mock('../components/StoryFormFields', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   StoryFormFields: ({ title, description, onTitleChange, onDescriptionChange }: any) => (
     <div data-testid="story-form-fields">
       <input
@@ -100,6 +101,7 @@ vi.mock('../components/StoryFormFields', () => ({
 }));
 
 vi.mock('../components/StorySeriesSelector', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   StorySeriesSelector: ({ selectedSeries, onSeriesChange }: any) => (
     <div data-testid="story-series-selector">
       <select
@@ -121,6 +123,7 @@ vi.mock('../components/StorySeriesSelector', () => ({
 }));
 
 vi.mock('../components/StoryPreview', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   StoryPreview: ({ title, description, imageURL }: any) => (
     <div data-testid="story-preview">
       <div data-testid="preview-title">{title || 'Story Title'}</div>

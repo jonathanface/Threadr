@@ -93,5 +93,5 @@ export const useMobileCursorAdjustment = (
 
     document.addEventListener("touchend", handleTouchEnd);
     return () => document.removeEventListener("touchend", handleTouchEnd);
-  }, []);
+  }, [editorRef]);
 };

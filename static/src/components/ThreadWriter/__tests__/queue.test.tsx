@@ -27,6 +27,7 @@ describe('Queue', () => {
   const mockChapterId = 'chapter-456';
   const mockBlock = {
     key_id: 'block-1',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     chunk: { type: 'custom-paragraph', children: [] } as any,
     place: '0',
   };
@@ -43,6 +44,7 @@ describe('Queue', () => {
 
   describe('QueueOp', () => {
     it('should queue a save operation', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.put).mockResolvedValue({ status: 200, data: {} } as any);
 
       QueueOp(
@@ -70,6 +72,7 @@ describe('Queue', () => {
     });
 
     it('should queue a delete operation', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.delete).mockResolvedValue({ status: 200, data: {} } as any);
 
       QueueOp(
@@ -96,6 +99,7 @@ describe('Queue', () => {
     });
 
     it('should ignore save after delete for the same block', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.delete).mockResolvedValue({ status: 200, data: {} } as any);
 
       // Queue delete first
@@ -126,6 +130,7 @@ describe('Queue', () => {
     });
 
     it('should overwrite save with delete for the same block', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.delete).mockResolvedValue({ status: 200, data: {} } as any);
 
       // Queue save first
@@ -156,6 +161,7 @@ describe('Queue', () => {
     });
 
     it('should update existing save operation with newer data', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.put).mockResolvedValue({ status: 200, data: {} } as any);
 
       const block1 = { ...mockBlock, place: '0' };
@@ -195,6 +201,7 @@ describe('Queue', () => {
     });
 
     it('should handle operations from different epochs separately', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.put).mockResolvedValue({ status: 200, data: {} } as any);
 
       const block1 = { ...mockBlock, key_id: 'block-1' };
@@ -228,6 +235,7 @@ describe('Queue', () => {
 
   describe('QueueSyncOrder', () => {
     it('should queue and process order sync operation', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.put).mockResolvedValue({ status: 200, data: {} } as any);
 
       const orderMap = {
@@ -261,6 +269,7 @@ describe('Queue', () => {
     });
 
     it('should handle multiple order sync operations in sequence', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.put).mockResolvedValue({ status: 200, data: {} } as any);
 
       const orderMap1 = {
@@ -308,6 +317,7 @@ describe('Queue', () => {
 
   describe('ProcessDBQueue', () => {
     it('should batch multiple save operations for the same chapter', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.put).mockResolvedValue({ status: 200, data: {} } as any);
 
       const block1 = { ...mockBlock, key_id: 'block-1', place: '0' };
@@ -355,6 +365,7 @@ describe('Queue', () => {
     });
 
     it('should emit saveSuccess event when tableBecameReady is true', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.put).mockResolvedValue({ status: 200, data: {} } as any);
 
       QueueOp(
@@ -375,6 +386,7 @@ describe('Queue', () => {
     });
 
     it('should emit deleteSuccess event when tableBecameReady is true', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.delete).mockResolvedValue({ status: 200, data: {} } as any);
 
       QueueOp(
@@ -395,6 +407,7 @@ describe('Queue', () => {
     });
 
     it('should emit syncOrderSuccess event when tableBecameReady is true', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.put).mockResolvedValue({ status: 200, data: {} } as any);
 
       const orderMap = {
@@ -424,6 +437,7 @@ describe('Queue', () => {
       // First call fails, second call succeeds
       vi.mocked(api.put)
         .mockRejectedValueOnce(new Error('Network error'))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .mockResolvedValueOnce({ status: 200, data: {} } as any);
 
       QueueOp(
@@ -445,6 +459,7 @@ describe('Queue', () => {
     });
 
     it('should accept 501 status as valid response for saves', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.put).mockResolvedValue({ status: 501, data: {} } as any);
 
       QueueOp(
@@ -463,6 +478,7 @@ describe('Queue', () => {
     });
 
     it('should accept 501 status as valid response for deletes', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.delete).mockResolvedValue({ status: 501, data: {} } as any);
 
       QueueOp(
@@ -481,7 +497,9 @@ describe('Queue', () => {
     });
 
     it('should not save blocks that are also being deleted', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.put).mockResolvedValue({ status: 200, data: {} } as any);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.delete).mockResolvedValue({ status: 200, data: {} } as any);
 
       const block1 = { ...mockBlock, key_id: 'block-1' };
@@ -544,16 +562,20 @@ describe('Queue', () => {
       const callOrder: string[] = [];
       vi.mocked(api.delete).mockImplementation(async () => {
         callOrder.push('delete');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return { status: 200, data: {} } as any;
       });
       vi.mocked(api.put).mockImplementation(async () => {
         callOrder.push('save');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return { status: 200, data: {} } as any;
       });
 
       const oldBlock1 = { key_id: 'old-block-1', place: '1' };
       const oldBlock2 = { key_id: 'old-block-2', place: '2' };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const newBlock1 = { key_id: 'new-block-1', chunk: { type: 'custom-paragraph', children: [] } as any, place: '1' };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const newBlock2 = { key_id: 'new-block-2', chunk: { type: 'custom-paragraph', children: [] } as any, place: '2' };
 
       // Queue deletes for old blocks and saves for new blocks (different key_ids, same places)
@@ -571,6 +593,7 @@ describe('Queue', () => {
     });
 
     it('should clear the queue after processing', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.put).mockResolvedValue({ status: 200, data: {} } as any);
 
       QueueOp(
@@ -592,6 +615,7 @@ describe('Queue', () => {
     });
 
     it('should handle operations for different chapters separately', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.put).mockResolvedValue({ status: 200, data: {} } as any);
 
       const chapter1 = 'chapter-1';

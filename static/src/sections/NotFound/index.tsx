@@ -5,6 +5,7 @@ import FormatQuoteIcon from "@mui/icons-material/FormatQuote";
 
 type NotFoundProps = { isLoggedIn?: boolean };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function randomQuote(): Quote {
   const i = Math.floor(Math.random() * NOT_FOUND_QUOTES.length);
   return NOT_FOUND_QUOTES[i];

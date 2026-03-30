@@ -213,6 +213,7 @@ describe('SeriesBox', () => {
 
     it('should delete series if user confirms', async () => {
       vi.spyOn(window, 'confirm').mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.api.delete).mockResolvedValue({ status: 200, data: {} } as any);
 
 
@@ -232,6 +233,7 @@ describe('SeriesBox', () => {
 
     it('should hide series after successful deletion', async () => {
       vi.spyOn(window, 'confirm').mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.api.delete).mockResolvedValue({ status: 200, data: {} } as any);
 
       renderSeriesBox();
@@ -245,6 +247,7 @@ describe('SeriesBox', () => {
 
     it('should convert series stories to standalone on deletion', async () => {
       vi.spyOn(window, 'confirm').mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.api.delete).mockResolvedValue({ status: 200, data: {} } as any);
 
 
@@ -262,6 +265,7 @@ describe('SeriesBox', () => {
 
     it('should remove series from series list on deletion', async () => {
       vi.spyOn(window, 'confirm').mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.api.delete).mockResolvedValue({ status: 200, data: {} } as any);
 
 
@@ -296,6 +300,7 @@ describe('SeriesBox', () => {
 
     it('should handle 501 status as success', async () => {
       vi.spyOn(window, 'confirm').mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.api.delete).mockResolvedValue({ status: 501, data: {} } as any);
 
       renderSeriesBox();
@@ -455,6 +460,7 @@ describe('SeriesBox', () => {
 
     it('should not render after deletion', async () => {
       vi.spyOn(window, 'confirm').mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.api.delete).mockResolvedValue({ status: 200, data: {} } as any);
 
       renderSeriesBox();
