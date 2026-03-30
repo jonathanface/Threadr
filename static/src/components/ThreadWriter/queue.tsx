@@ -227,51 +227,9 @@ export const ProcessDBQueue = async () => {
     }
     const dedupedSaveOps = [...saveByPlace.values()].map(e => e.block);
 
-    // SAVE
-    if (dedupedSaveOps.length) {
-      logger.debug("Processing save operations", {
-        storyID,
-        chapterID,
-        blockCount: dedupedSaveOps.length,
-        tableBecameReady,
-      });
-      try {
-        await saveBlocksToServer(dedupedSaveOps, storyID, chapterID, tableBecameReady);
-        logger.info("Save operations successful", {
-          storyID,
-          chapterID,
-          blockCount: dedupedSaveOps.length,
-        });
-      } catch (err) {
-        logger.error("Failed to save blocks - requeuing", {
-          error: err,
-          storyID,
-          chapterID,
-          blockCount: dedupedSaveOps.length,
-          epoch: recs[0].epoch,
-        });
-        emitSaveError({
-          storyID,
-          chapterID,
-          error: err instanceof Error ? err : new Error(String(err)),
-        });
-        // requeue with same epoch & grouping key
-        for (const b of dedupedSaveOps) {
-          const rec: OperationRecord = {
-            op: DBOperationType.save,
-            block: b,
-            storyID,
-            chapterID,
-            time: Date.now(),
-            tableBecameReady,
-            epoch: recs[0].epoch,
-          };
-          OpQueueByKey.set(qKey(rec.epoch, storyID, chapterID, b.key_id), rec);
-        }
-      }
-    }
-
-    // DELETE
+    // DELETE first — blocks are keyed by (composite_key, place) in DynamoDB,
+    // so deletes must run before saves to avoid removing newly written blocks
+    // that were saved at the same position as the deleted ones.
     if (deleteOps.length) {
       logger.debug("Processing delete operations", {
         storyID,
@@ -307,6 +265,50 @@ export const ProcessDBQueue = async () => {
         for (const b of deleteOps) {
           const rec: OperationRecord = {
             op: DBOperationType.delete,
+            block: b,
+            storyID,
+            chapterID,
+            time: Date.now(),
+            tableBecameReady,
+            epoch: recs[0].epoch,
+          };
+          OpQueueByKey.set(qKey(rec.epoch, storyID, chapterID, b.key_id), rec);
+        }
+      }
+    }
+
+    // SAVE after deletes — safe to write at positions that were just cleared
+    if (dedupedSaveOps.length) {
+      logger.debug("Processing save operations", {
+        storyID,
+        chapterID,
+        blockCount: dedupedSaveOps.length,
+        tableBecameReady,
+      });
+      try {
+        await saveBlocksToServer(dedupedSaveOps, storyID, chapterID, tableBecameReady);
+        logger.info("Save operations successful", {
+          storyID,
+          chapterID,
+          blockCount: dedupedSaveOps.length,
+        });
+      } catch (err) {
+        logger.error("Failed to save blocks - requeuing", {
+          error: err,
+          storyID,
+          chapterID,
+          blockCount: dedupedSaveOps.length,
+          epoch: recs[0].epoch,
+        });
+        emitSaveError({
+          storyID,
+          chapterID,
+          error: err instanceof Error ? err : new Error(String(err)),
+        });
+        // requeue with same epoch & grouping key
+        for (const b of dedupedSaveOps) {
+          const rec: OperationRecord = {
+            op: DBOperationType.save,
             block: b,
             storyID,
             chapterID,

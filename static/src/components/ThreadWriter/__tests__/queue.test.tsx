@@ -537,6 +537,39 @@ describe('Queue', () => {
       );
     });
 
+    it('should process deletes before saves to prevent paste race condition', async () => {
+      // Simulates select-and-paste: old blocks at places 1,2 are replaced by
+      // new blocks at the same places. Because DynamoDB keys on (composite_key, place),
+      // deletes must run first so they remove the OLD rows before saves write new ones.
+      const callOrder: string[] = [];
+      vi.mocked(api.delete).mockImplementation(async () => {
+        callOrder.push('delete');
+        return { status: 200, data: {} } as any;
+      });
+      vi.mocked(api.put).mockImplementation(async () => {
+        callOrder.push('save');
+        return { status: 200, data: {} } as any;
+      });
+
+      const oldBlock1 = { key_id: 'old-block-1', place: '1' };
+      const oldBlock2 = { key_id: 'old-block-2', place: '2' };
+      const newBlock1 = { key_id: 'new-block-1', chunk: { type: 'custom-paragraph', children: [] } as any, place: '1' };
+      const newBlock2 = { key_id: 'new-block-2', chunk: { type: 'custom-paragraph', children: [] } as any, place: '2' };
+
+      // Queue deletes for old blocks and saves for new blocks (different key_ids, same places)
+      QueueOp(DBOperationType.delete, mockStoryId, mockChapterId, oldBlock1, false, { epoch: 1 });
+      QueueOp(DBOperationType.delete, mockStoryId, mockChapterId, oldBlock2, false, { epoch: 1 });
+      QueueOp(DBOperationType.save, mockStoryId, mockChapterId, newBlock1, false, { epoch: 1 });
+      QueueOp(DBOperationType.save, mockStoryId, mockChapterId, newBlock2, false, { epoch: 1 });
+
+      await ProcessDBQueue();
+
+      expect(api.delete).toHaveBeenCalledTimes(1);
+      expect(api.put).toHaveBeenCalledTimes(1);
+      // Delete must fire before save
+      expect(callOrder).toEqual(['delete', 'save']);
+    });
+
     it('should clear the queue after processing', async () => {
       vi.mocked(api.put).mockResolvedValue({ status: 200, data: {} } as any);
 
