@@ -73,12 +73,11 @@ export const CommentSidebar = ({
     measuredRef.current = key;
 
     if (!hasPositions || !sidebarRef.current) {
-      setCardPositions(initialPositions);
+      requestAnimationFrame(() => setCardPositions(initialPositions));
       return;
     }
 
     // Use requestAnimationFrame to measure after browser has laid out with initial positions
-    setCardPositions(initialPositions);
     requestAnimationFrame(() => {
       if (!sidebarRef.current) return;
 

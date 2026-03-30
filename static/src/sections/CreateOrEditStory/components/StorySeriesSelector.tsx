@@ -23,7 +23,7 @@ export const StorySeriesSelector: React.FC<StorySeriesSelectorProps> = ({
   useEffect(() => {
     // Get initial theme
     const currentTheme = document.documentElement.getAttribute('data-theme') as "light" | "dark" || "light";
-    setTheme(currentTheme);
+    setTheme(currentTheme); // eslint-disable-line react-hooks/set-state-in-effect
 
     // Watch for theme changes
     const observer = new MutationObserver(() => {

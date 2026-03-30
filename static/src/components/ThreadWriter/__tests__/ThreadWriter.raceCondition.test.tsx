@@ -61,7 +61,7 @@ describe('ThreadWriter - Race Condition Prevention', () => {
     let transformCallCount = 0;
     const unregister = editor.registerNodeTransform(
       CustomParagraphNode,
-      (_node) => {
+      () => {
         transformCallCount++;
       }
     );
@@ -102,6 +102,7 @@ describe('ThreadWriter - Race Condition Prevention', () => {
           type: 'custom-paragraph',
           key_id: keyID,
           children: [{ type: 'text', text: '\t', version: 1 }],
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any,
         place: '0',
       },
@@ -122,6 +123,7 @@ describe('ThreadWriter - Race Condition Prevention', () => {
           type: 'custom-paragraph',
           key_id: keyID,
           children: [{ type: 'text', text: 'Hello world', version: 1 }],
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any,
         place: '0',
       },
@@ -134,6 +136,7 @@ describe('ThreadWriter - Race Condition Prevention', () => {
     // Verify the second call has the correct content
     const lastCall = queueOpSpy.mock.calls[1];
     const block = lastCall[3] as DBOperationBlock;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const text = (block.chunk as any)?.children?.[0]?.text;
 
     expect(text).toBe('Hello world');

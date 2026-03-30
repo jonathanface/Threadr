@@ -95,6 +95,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
       setIsLoggedIn,
       clearWelcomeFlags,
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [userDetails, setUserDetails, isLoggedIn, userLoading, setIsLoggedIn],
   );
 

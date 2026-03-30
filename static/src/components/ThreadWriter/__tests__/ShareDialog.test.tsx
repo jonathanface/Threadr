@@ -155,6 +155,7 @@ describe('ShareDialog', () => {
 
   it('shows error message for duplicate reader (409)', async () => {
     // Simulate axios error with response data
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const axiosError = new Error('Request failed') as any;
     axiosError.response = { status: 409, data: { error: 'Reader already has access' } };
     axiosError.isAxiosError = true;

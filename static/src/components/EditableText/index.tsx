@@ -13,7 +13,7 @@ export const EditableText = (props: EditableTextProps) => {
     const inputAlignment = props.inputTextAlign ? props.inputTextAlign : 'left';
 
     useEffect(() => {
-        setTextValue(props.textValue);
+        setTextValue(props.textValue); // eslint-disable-line react-hooks/set-state-in-effect
     }, [props.textValue]);
 
     const onDblClick = (event: React.MouseEvent) => {

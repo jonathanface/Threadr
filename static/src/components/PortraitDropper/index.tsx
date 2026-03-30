@@ -22,7 +22,7 @@ export const PortraitDropper = (props: PortraitDropperProps) => {
   const { setAlertState } = useToaster();
 
   useEffect(() => {
-    setImageURL(props.imageURL);
+    setImageURL(props.imageURL); // eslint-disable-line react-hooks/set-state-in-effect
     setName(props.name);
   }, [props.imageURL, props.name]);
 

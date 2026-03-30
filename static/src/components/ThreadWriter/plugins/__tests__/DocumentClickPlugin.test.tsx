@@ -336,6 +336,7 @@ describe('DocumentClickPlugin', () => {
   describe('Browser API compatibility', () => {
     it('should handle document.caretPositionFromPoint if available', () => {
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const doc = document as any;
       const hasCaretPosition = typeof doc.caretPositionFromPoint !== 'undefined';
 
@@ -344,6 +345,7 @@ describe('DocumentClickPlugin', () => {
     });
 
     it('should handle document.caretRangeFromPoint as fallback', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const doc = document as any;
       const hasCaretRange = typeof doc.caretRangeFromPoint !== 'undefined';
 

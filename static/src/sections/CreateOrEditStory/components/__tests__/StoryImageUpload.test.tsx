@@ -4,6 +4,7 @@ import { StoryImageUpload } from '../StoryImageUpload';
 
 // Mock PortraitDropper component
 vi.mock('../../../../components/PortraitDropper', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   PortraitDropper: ({ imageURL, name, onComplete, onImageLoaded }: any) => (
     <div
       data-testid="portrait-dropper"

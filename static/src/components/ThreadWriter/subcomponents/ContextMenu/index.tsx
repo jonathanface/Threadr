@@ -22,7 +22,7 @@ export const ContextMenu = (props: ContextMenuProps) => {
   useEffect(() => {
     if (props.visible !== visible) {
       if (props.visible) {
-        setInlineStyle({
+        setInlineStyle({ // eslint-disable-line react-hooks/set-state-in-effect
           display: "block",
           top: props.y.toString() + "px",
           left: props.x.toString() + "px",

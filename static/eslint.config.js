@@ -25,6 +25,8 @@ export default tseslint.config(
       ],
       '@typescript-eslint/consistent-type-imports': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-explicit-any': 'warn',
+      'react-hooks/set-state-in-effect': 'warn',
     },
   },
 )

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Box,
-  Button,
   Chip,
   IconButton,
   List,
@@ -35,7 +34,7 @@ export const CommentsPanel = () => {
       setComments(fetched);
       // Update the chapter's comment count badge
       const unresolvedCount = fetched.filter((c) => !c.resolved).length;
-      if (chapter && chapter.comment_count !== unresolvedCount) {
+      if (chapter.comment_count !== unresolvedCount) {
         setChapter({ ...chapter, comment_count: unresolvedCount });
       }
     } catch (err) {
@@ -43,7 +42,7 @@ export const CommentsPanel = () => {
     } finally {
       setLoading(false);
     }
-  }, [story?.story_id, chapter?.id]);
+  }, [story?.story_id, chapter, setChapter]);
 
   useEffect(() => {
     fetchComments();

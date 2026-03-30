@@ -20,21 +20,27 @@ global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
 // Mock FileReader
 class MockFileReader {
   result: ArrayBuffer | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onload: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onerror: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onabort: ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null = null;
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   readAsArrayBuffer(_file: Blob) {
     // Simulate async read
     setTimeout(() => {
       this.result = new ArrayBuffer(8);
       if (this.onload) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         this.onload.call(this as any, {} as ProgressEvent<FileReader>);
       }
     }, 0);
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 global.FileReader = MockFileReader as any;
 
 describe('useStoryImage', () => {

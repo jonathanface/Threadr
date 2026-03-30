@@ -15,6 +15,9 @@ clean:
 run-ui:
 	npm --prefix ./static run dev
 
+lint-ui:
+	npm --prefix ./static run lint
+
 unit-test:
 	@go test ./...
 	@npm run test --prefix static

@@ -49,6 +49,7 @@ const qKey = (
 const syncKey = (epoch: number, storyID: string, chapterID: string) =>
   `${epoch}:${storyID}:${chapterID}`;
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const QueueOp = (
   opType: DBOperationType,
   storyID: string,

@@ -53,6 +53,7 @@ const lightTheme = createTheme({
   },
 });
 
+// eslint-disable-next-line react-refresh/only-export-components
 const AppWithTheme = () => {
   const [isDark, setIsDark] = useState(
     () => document.documentElement.getAttribute("data-theme") !== "light"

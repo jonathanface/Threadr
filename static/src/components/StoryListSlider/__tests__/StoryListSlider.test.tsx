@@ -465,6 +465,7 @@ describe('StoryListSlider', () => {
         series_title: 'Test Series',
         series_description: 'Description',
         image_url: 'https://example.com/series.jpg',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         stories: null as any,
       };
 
@@ -512,6 +513,7 @@ describe('StoryListSlider', () => {
 
   describe('Edge Cases', () => {
     it('should handle undefined image_url', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const storyWithoutImage = { ...mockStory1, image_url: undefined as any };
       const series: Series = {
         series_id: 'series-1',

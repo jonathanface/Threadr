@@ -25,11 +25,11 @@ export const StoryOrSeriesDetailsSlider = (props: DetailsSliderProps) => {
   const [description, setDescription] = useState(props.description);
 
   useEffect(() => {
-    setIsVisible(props.visible);
+    setIsVisible(props.visible); // eslint-disable-line react-hooks/set-state-in-effect
   }, [props.visible]);
 
   useEffect(() => {
-    setTitle(props.title);
+    setTitle(props.title); // eslint-disable-line react-hooks/set-state-in-effect
     setDescription(
       props.description.length ? props.description : "No description"
     );

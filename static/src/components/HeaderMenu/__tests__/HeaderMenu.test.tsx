@@ -145,7 +145,7 @@ describe("HeaderMenu", () => {
       vi.mocked(api.api.put).mockResolvedValue({
         status: 200,
         data: {},
-      } as any);
+      } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       render(<HeaderMenu />);
 
@@ -275,7 +275,7 @@ describe("HeaderMenu", () => {
       vi.mocked(api.api.put).mockResolvedValue({
         status: 200,
         data: {},
-      } as any);
+      } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       render(<HeaderMenu />);
 
@@ -414,7 +414,7 @@ describe("HeaderMenu", () => {
       vi.mocked(api.api.put).mockResolvedValue({
         status: 200,
         data: {},
-      } as any);
+      } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       render(<HeaderMenu />);
 
@@ -439,7 +439,7 @@ describe("HeaderMenu", () => {
       vi.mocked(api.api.put).mockResolvedValue({
         status: 200,
         data: {},
-      } as any);
+      } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       render(<HeaderMenu />);
 

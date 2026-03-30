@@ -59,7 +59,9 @@ const mockSavedStory: Story = {
 describe('useStorySave', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.spyOn(apiModule.api, 'post').mockResolvedValue({ data: mockSavedStory } as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.spyOn(apiModule.api, 'put').mockResolvedValue({ data: mockSavedStory } as any);
   });
 

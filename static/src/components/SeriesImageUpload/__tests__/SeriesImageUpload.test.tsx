@@ -14,6 +14,7 @@ vi.mock('../../../hooks/useToaster', () => ({
 
 // Mock PortraitDropper component
 vi.mock('../../PortraitDropper', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   PortraitDropper: ({ imageURL, name, onImageLoaded, onComplete }: any) => (
     <div data-testid="portrait-dropper">
       <div data-testid="portrait-dropper-image">{imageURL}</div>
@@ -28,6 +29,7 @@ vi.mock('../../PortraitDropper', () => ({
 
 // Mock react-dropzone
 vi.mock('react-dropzone', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   useDropzone: ({ onDrop }: any) => ({
     getRootProps: () => ({
       'data-testid': 'dropzone-root',
@@ -360,6 +362,7 @@ describe('SeriesImageUpload', () => {
     });
 
     it('should handle stories with missing image URLs', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const storyWithoutImage = { ...mockStory1, image_url: undefined as any };
       const { container } = render(
         <SeriesImageUpload

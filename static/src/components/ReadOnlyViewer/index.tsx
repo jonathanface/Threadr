@@ -141,7 +141,7 @@ export const ReadOnlyViewer = ({
     focusOffset: number;
   } | null>(null);
   const editorRef = useRef<LexicalEditor | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   const [_blockKeyIds, setBlockKeyIds] = useState<string[]>([]);
 
   const initialConfig = {
@@ -164,7 +164,7 @@ export const ReadOnlyViewer = ({
 
   useEffect(() => {
     if (commentsEnabled) {
-      fetchComments();
+      fetchComments(); // eslint-disable-line react-hooks/set-state-in-effect
     }
   }, [commentsEnabled, fetchComments, chapterId]);
 
@@ -291,8 +291,8 @@ export const ReadOnlyViewer = ({
   const [focusedCommentId, setFocusedCommentId] = useState<string | null>(null);
   const [hoveredComment, setHoveredComment] = useState<{
     comment: Comment;
-    x: number;
-    y: number;
+    top: number;
+    left: number;
   } | null>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
 
@@ -303,7 +303,7 @@ export const ReadOnlyViewer = ({
       chapterComments.length === 0 ||
       !editorContainerRef.current
     ) {
-      setHighlightRects([]);
+      setHighlightRects([]); // eslint-disable-line react-hooks/set-state-in-effect
       return;
     }
 
@@ -479,7 +479,13 @@ export const ReadOnlyViewer = ({
                     (c) => c.comment_id === rect.commentId,
                   );
                   if (comment) {
-                    setHoveredComment({ comment, x: e.clientX, y: e.clientY });
+                    const containerRect =
+                      editorContainerRef.current?.getBoundingClientRect();
+                    setHoveredComment({
+                      comment,
+                      top: e.clientY - (containerRect?.top ?? 0) + 20,
+                      left: e.clientX - (containerRect?.left ?? 0),
+                    });
                   }
                 }}
                 onMouseLeave={() => setHoveredComment(null)}
@@ -497,15 +503,8 @@ export const ReadOnlyViewer = ({
               <div
                 className={styles.commentBubble}
                 style={{
-                  top:
-                    hoveredComment.y -
-                    (editorContainerRef.current?.getBoundingClientRect().top ??
-                      0) +
-                    20,
-                  left:
-                    hoveredComment.x -
-                    (editorContainerRef.current?.getBoundingClientRect().left ??
-                      0),
+                  top: hoveredComment.top,
+                  left: hoveredComment.left,
                 }}
               >
                 <div className={styles.commentBubbleAuthor}>

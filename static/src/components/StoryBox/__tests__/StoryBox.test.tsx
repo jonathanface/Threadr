@@ -163,6 +163,7 @@ describe('StoryBox', () => {
 
     it('should delete story if user confirms', async () => {
       vi.spyOn(window, 'confirm').mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.api.delete).mockResolvedValue({ status: 204, data: {} } as any);
 
       renderStoryBox();
@@ -182,6 +183,7 @@ describe('StoryBox', () => {
 
     it('should hide story after successful deletion', async () => {
       vi.spyOn(window, 'confirm').mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.api.delete).mockResolvedValue({ status: 204, data: {} } as any);
 
       renderStoryBox();
@@ -213,6 +215,7 @@ describe('StoryBox', () => {
 
     it('should handle 501 status as success', async () => {
       vi.spyOn(window, 'confirm').mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.api.delete).mockResolvedValue({ status: 501, data: {} } as any);
 
       renderStoryBox();
@@ -349,6 +352,7 @@ describe('StoryBox', () => {
 
     it('should not render after deletion', async () => {
       vi.spyOn(window, 'confirm').mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.api.delete).mockResolvedValue({ status: 200, data: {} } as any);
 
       renderStoryBox();

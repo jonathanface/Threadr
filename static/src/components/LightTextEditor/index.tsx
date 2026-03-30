@@ -80,7 +80,7 @@ export function LightTextEditor({
 
     // If external value is empty, show placeholder (unless focused)
     if (isEmptyHtml(text)) {
-      if (document.activeElement !== el) setPlaceholder();
+      if (document.activeElement !== el) setPlaceholder(); // eslint-disable-line react-hooks/set-state-in-effect
       return;
     }
 

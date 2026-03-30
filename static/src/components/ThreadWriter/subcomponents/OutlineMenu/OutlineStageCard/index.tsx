@@ -48,7 +48,7 @@ export const OutlineStageCard = ({
   const { story } = useSelections();
 
   useEffect(() => {
-    setTitleDraft(outlineSection.header ?? "");
+    setTitleDraft(outlineSection.header ?? ""); // eslint-disable-line react-hooks/set-state-in-effect
   }, [outlineSection.header]);
 
   const commitTitle = () => {
@@ -69,7 +69,7 @@ export const OutlineStageCard = ({
       outlineSection.chapters?.includes(chap.id),
     ) ?? [];
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+   
   const [openAssigned, setOpenAssigned] = useState(
     sectionChapters.length > 0 || false,
   );
