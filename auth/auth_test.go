@@ -87,8 +87,8 @@ func TestDetermineLastName_WithNameOnly(t *testing.T) {
 	}
 
 	result := determineLastName(user)
-	if result != "Jane Doe" {
-		t.Errorf("Expected 'Jane Doe', got '%s'", result)
+	if result != "Doe" {
+		t.Errorf("Expected 'Doe', got '%s'", result)
 	}
 }
 
