@@ -62,6 +62,7 @@ COPY ./assets ./assets
 COPY ./daos ./daos
 COPY ./logger ./logger
 COPY ./sessions ./sessions
+COPY ./email ./email
 COPY ./cmd ./cmd
 
 ENV PATH="/usr/local/bin:${PATH}"
