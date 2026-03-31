@@ -1,9 +1,9 @@
 package main
 
 import (
-	"RichDocter/auth"
-	"RichDocter/daos"
-	"RichDocter/models"
+	"Threadr/auth"
+	"Threadr/daos"
+	"Threadr/models"
 	"context"
 	"net/http"
 	"net/http/httptest"

@@ -1,10 +1,10 @@
 package api
 
 import (
-	"RichDocter/converters"
-	ctxkey "RichDocter/ctxkeys"
-	"RichDocter/daos"
-	"RichDocter/models"
+	"Threadr/converters"
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 	"context"
 	"database/sql"
 	"encoding/json"

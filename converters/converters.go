@@ -1,7 +1,7 @@
 package converters
 
 import (
-	"RichDocter/models"
+	"Threadr/models"
 	"context"
 	"encoding/json"
 	"fmt"

@@ -17,9 +17,9 @@ import (
 	"github.com/stripe/stripe-go/v79/subscription"
 	"github.com/stripe/stripe-go/v79/webhook"
 
-	ctxkey "RichDocter/ctxkeys"
-	"RichDocter/daos"
-	"RichDocter/models"
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/stripe/stripe-go/v79/billingportal/session"
 )

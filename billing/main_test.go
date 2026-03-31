@@ -1,9 +1,9 @@
 package billing
 
 import (
-	ctxkey "RichDocter/ctxkeys"
-	"RichDocter/daos"
-	"RichDocter/models"
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 	"context"
 	"database/sql"
 	"fmt"

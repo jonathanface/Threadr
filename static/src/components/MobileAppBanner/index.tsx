@@ -3,7 +3,7 @@ import { useMediaQuery } from "@mui/material";
 import styles from "./mobileAppBanner.module.css";
 
 const PLAY_STORE_URL =
-  "https://play.google.com/store/apps/details?id=io.docter.mobile";
+  "https://play.google.com/store/apps/details?id=io.threadr.mobile";
 const STORAGE_KEY = "mobileAppBannerDismissed";
 
 // Google Play icon SVG
@@ -61,7 +61,7 @@ export const MobileAppBanner = () => {
       >
         <PlayStoreIcon />
         <div className={styles.text}>
-          <span className={styles.title}>Get the Docter app</span>
+          <span className={styles.title}>Get the Threadr app</span>
           <span className={styles.subtitle}>Download on Google Play</span>
         </div>
       </a>

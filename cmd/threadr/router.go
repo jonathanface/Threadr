@@ -1,11 +1,11 @@
 package main
 
 import (
-	"RichDocter/api"
-	"RichDocter/auth"
-	"RichDocter/billing"
-	"RichDocter/daos"
-	"RichDocter/models"
+	"Threadr/api"
+	"Threadr/auth"
+	"Threadr/billing"
+	"Threadr/daos"
+	"Threadr/models"
 	"net/http"
 	"os"
 	"path/filepath"

@@ -18,7 +18,7 @@ export const SplashPage = () => {
             <span className={styles.heroTitleAccent}>Now Your Manuscript Can Too.</span>
           </h1>
           <p className={styles.heroSubtitle}>
-            Docter embeds your characters, places, and events directly into your
+            Threadr embeds your characters, places, and events directly into your
             manuscript. Highlight a name, link it to a profile, and click it
             anytime to recall every detail — without leaving the page you're writing.
           </p>
@@ -85,7 +85,7 @@ export const SplashPage = () => {
       <div className={styles.featuresSection}>
         <h2 className={styles.sectionTitle}>Built for the Long Haul</h2>
         <p className={styles.featuresIntro}>
-          Novels grow. Characters multiply. Timelines tangle. Docter was
+          Novels grow. Characters multiply. Timelines tangle. Threadr was
           designed for writers who need to hold an entire world in their head —
           and gives them a tool that actually helps.
         </p>
@@ -127,7 +127,7 @@ export const SplashPage = () => {
               detective's partner was named Torres or Torrez.
             </p>
             <p>
-              Docter solves this by turning your manuscript into a connected
+              Threadr solves this by turning your manuscript into a connected
               document. Link a character's name once, and their full profile —
               appearance, motivations, history — is one click away from every
               mention in every chapter.

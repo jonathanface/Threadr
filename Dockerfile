@@ -74,5 +74,5 @@ RUN chmod +x /usr/local/bin/wkhtmltopdf || true \
     && wkhtmltopdf -V
 
 RUN mkdir -p ./tmp
-RUN go build -o ./bin/richdocter ./cmd/richdocter
-CMD ["./bin/richdocter"]
+RUN go build -o ./bin/threadr ./cmd/richdocter
+CMD ["./bin/threadr"]

@@ -1,9 +1,9 @@
 package auth
 
 import (
-	ctxkey "RichDocter/ctxkeys"
-	"RichDocter/daos"
-	"RichDocter/models"
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 	"bytes"
 	"context"
 	"database/sql"

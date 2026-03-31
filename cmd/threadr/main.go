@@ -1,11 +1,11 @@
 package main
 
 import (
-	"RichDocter/auth"
-	"RichDocter/daos"
-	"RichDocter/logger"
-	"RichDocter/models"
-	"RichDocter/sessions"
+	"Threadr/auth"
+	"Threadr/daos"
+	"Threadr/logger"
+	"Threadr/models"
+	"Threadr/sessions"
 	"context"
 	"os/signal"
 	"strconv"
@@ -135,7 +135,7 @@ func main() {
 		IdleTimeout:       60 * time.Second,
 	}
 
-	log.Printf("RichDocter %s listening on %s (mode=%s)", version, addr, mode)
+	log.Printf("RichThreadr %s listening on %s (mode=%s)", version, addr, mode)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 

@@ -1,12 +1,12 @@
 package auth
 
 import (
-	ctxkey "RichDocter/ctxkeys"
-	"RichDocter/daos"
-	mailer "RichDocter/email"
-	"RichDocter/logger"
-	"RichDocter/models"
-	"RichDocter/sessions"
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	mailer "Threadr/email"
+	"Threadr/logger"
+	"Threadr/models"
+	"Threadr/sessions"
 	"database/sql"
 	"encoding/json"
 	"fmt"

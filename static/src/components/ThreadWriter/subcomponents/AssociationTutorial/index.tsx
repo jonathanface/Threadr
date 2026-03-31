@@ -18,7 +18,7 @@ interface AssociationTutorialProps {
   onClose: () => void;
 }
 
-const STORAGE_KEY = "docter_seen_association_tutorial";
+const STORAGE_KEY = "threadr_seen_association_tutorial";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const hasSeenTutorial = () =>

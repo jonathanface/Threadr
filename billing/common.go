@@ -1,8 +1,8 @@
 package billing
 
 import (
-	"RichDocter/api"
-	"RichDocter/models"
+	"Threadr/api"
+	"Threadr/models"
 	"encoding/json"
 	"errors"
 	"net/http"

@@ -80,7 +80,9 @@ export const StoryAndSeriesListing = () => {
                 onClick={createNewStory}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") createNewStory(); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") createNewStory();
+                }}
               >
                 <Tooltip title="Create Story" placement="top">
                   <IconButton
@@ -135,9 +137,9 @@ export const StoryAndSeriesListing = () => {
         )}
         <div className={styles.logoContainer}>
           <img
-            alt="Docter.io logo"
-            title="Docter.io - Organized Imagination"
-            src="/img/slash-logo-trans.png"
+            alt="Threadr logo"
+            title="Threadr - Organized Imagination"
+            src="/img/threadr-logo.png"
           />
         </div>
       </div>

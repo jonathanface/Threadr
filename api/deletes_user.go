@@ -1,8 +1,8 @@
 package api
 
 import (
-	ctxkey "RichDocter/ctxkeys"
-	"RichDocter/daos"
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
 	"net/http"
 
 	"github.com/aws/smithy-go"

@@ -1,10 +1,10 @@
 package main
 
 import (
-	ctxkey "RichDocter/ctxkeys"
-	"RichDocter/daos"
-	"RichDocter/models"
-	"RichDocter/sessions"
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
+	"Threadr/sessions"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"

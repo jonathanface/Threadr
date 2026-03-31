@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"RichDocter/models"
+	"Threadr/models"
 )
 
 type OauthOptions struct {

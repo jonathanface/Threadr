@@ -21,7 +21,7 @@ import { useToaster } from "../../../../hooks/useToaster";
 import { AlertToastType } from "../../../../types/AlertToasts";
 import {
   BlockAlignmentType,
-  DocterTextFormatType,
+  ThreadrTextFormatType,
 } from "../../../../types/Document";
 import { EditableText } from "../../../EditableText";
 import { DocumentExporter } from "./DocumentExporter";
@@ -62,11 +62,11 @@ export const Toolbar = () => {
       editor.getEditorState().read(() => {
         const selection = $getSelection();
         if ($isRangeSelection(selection)) {
-          setIsBold(selection.hasFormat(DocterTextFormatType.BOLD));
-          setIsItalic(selection.hasFormat(DocterTextFormatType.ITALIC));
-          setIsUnderline(selection.hasFormat(DocterTextFormatType.UNDERLINE));
+          setIsBold(selection.hasFormat(ThreadrTextFormatType.BOLD));
+          setIsItalic(selection.hasFormat(ThreadrTextFormatType.ITALIC));
+          setIsUnderline(selection.hasFormat(ThreadrTextFormatType.UNDERLINE));
           setIsStrikethrough(
-            selection.hasFormat(DocterTextFormatType.STRIKETHROUGH)
+            selection.hasFormat(ThreadrTextFormatType.STRIKETHROUGH)
           );
           const anchorNode = selection.anchor.getNode();
           const parentNode =
@@ -140,7 +140,7 @@ export const Toolbar = () => {
           <button
             type="button"
             className={isBold ? styles.active : ""}
-            onClick={() => toggleTextFormat(DocterTextFormatType.BOLD)}
+            onClick={() => toggleTextFormat(ThreadrTextFormatType.BOLD)}
           >
             <b>B</b>
           </button>
@@ -149,7 +149,7 @@ export const Toolbar = () => {
           <button
             type="button"
             className={isItalic ? styles.active : ""}
-            onClick={() => toggleTextFormat(DocterTextFormatType.ITALIC)}
+            onClick={() => toggleTextFormat(ThreadrTextFormatType.ITALIC)}
           >
             <i>I</i>
           </button>
@@ -158,7 +158,7 @@ export const Toolbar = () => {
           <button
             type="button"
             className={isUnderline ? styles.active : ""}
-            onClick={() => toggleTextFormat(DocterTextFormatType.UNDERLINE)}
+            onClick={() => toggleTextFormat(ThreadrTextFormatType.UNDERLINE)}
           >
             <u>U</u>
           </button>
@@ -167,7 +167,7 @@ export const Toolbar = () => {
           <button
             type="button"
             className={isStrikethrough ? styles.active : ""}
-            onClick={() => toggleTextFormat(DocterTextFormatType.STRIKETHROUGH)}
+            onClick={() => toggleTextFormat(ThreadrTextFormatType.STRIKETHROUGH)}
           >
             <s>S</s>
           </button>

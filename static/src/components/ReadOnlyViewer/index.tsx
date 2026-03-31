@@ -560,7 +560,7 @@ export const ReadOnlyViewer = ({
                   mb: 1,
                 }}
               >
-                Want to write your own? Create a free Docter account and get
+                Want to write your own? Create a free Threadr account and get
                 started.
               </Button>
             )}

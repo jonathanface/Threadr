@@ -40,7 +40,7 @@ export const DocumentExporter = () => {
         setAlertState({
           title: "Error",
           message:
-            "Unable to export your document at this time. Please try again later, or contact support@richdocter.io.",
+            "Unable to export your document at this time. Please try again later, or contact support@richthreadr.net.",
           open: true,
           severity: AlertToastType.error,
         });
@@ -103,7 +103,7 @@ export const DocumentExporter = () => {
           setAlertState({
             title: "Error",
             message:
-              "Unable to export your document at this time. Please try again later, or contact support@richdocter.io.",
+              "Unable to export your document at this time. Please try again later, or contact support@richthreadr.net.",
             open: true,
             severity: AlertToastType.error,
           });

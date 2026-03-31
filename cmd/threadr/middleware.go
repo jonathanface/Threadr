@@ -1,9 +1,9 @@
 package main
 
 import (
-	"RichDocter/api"
-	ctxkey "RichDocter/ctxkeys"
-	"RichDocter/daos"
+	"Threadr/api"
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
 	"context"
 	"fmt"
 	"log"

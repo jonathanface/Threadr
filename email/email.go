@@ -1,7 +1,7 @@
 package email
 
 import (
-	"RichDocter/logger"
+	"Threadr/logger"
 	"context"
 	"errors"
 	"os"
@@ -26,18 +26,18 @@ func SendWelcomeEmail(toEmail string) error {
 	svc := sesv2.NewFromConfig(cfg)
 
 	input := &sesv2.SendEmailInput{
-		FromEmailAddress: aws.String("no-reply@docter.io"),
+		FromEmailAddress: aws.String("no-reply@threadr.net"),
 		Destination: &sesv2types.Destination{
 			ToAddresses: []string{toEmail},
 		},
 		Content: &sesv2types.EmailContent{
 			Simple: &sesv2types.Message{
 				Subject: &sesv2types.Content{
-					Data: aws.String("Welcome to RichDocter"),
+					Data: aws.String("Welcome to RichThreadr"),
 				},
 				Body: &sesv2types.Body{
 					Text: &sesv2types.Content{
-						Data: aws.String("Thank you for signing up for RichDocter. We're excited to have you on board!"),
+						Data: aws.String("Thank you for signing up for RichThreadr. We're excited to have you on board!"),
 					},
 				},
 			},
@@ -69,14 +69,14 @@ func SendShareInviteEmail(toEmail, readerFirstName, authorName, authorEmail, sto
 
 	svc := sesv2.NewFromConfig(cfg)
 
-	subject := "You've been invited to read \"" + storyTitle + "\" on Docter"
+	subject := "You've been invited to read \"" + storyTitle + "\" on Threadr"
 	body := "Hi " + readerFirstName + ",\n\n" +
-		authorName + " (" + authorEmail + ") has invited you to read \"" + storyTitle + "\" on Docter.\n\n" +
+		authorName + " (" + authorEmail + ") has invited you to read \"" + storyTitle + "\" on Threadr.\n\n" +
 		"Click the link below to start reading:\n" + shareURL + "\n\n" +
 		"Happy reading!"
 
 	input := &sesv2.SendEmailInput{
-		FromEmailAddress: aws.String("no-reply@docter.io"),
+		FromEmailAddress: aws.String("no-reply@threadr.net"),
 		Destination: &sesv2types.Destination{
 			ToAddresses: []string{toEmail},
 		},
@@ -128,9 +128,9 @@ func SendAlertEmail(userEmail string) error {
 	svc := sesv2.NewFromConfig(cfg)
 
 	input := &sesv2.SendEmailInput{
-		FromEmailAddress: aws.String("no-reply@docter.io"),
+		FromEmailAddress: aws.String("no-reply@threadr.net"),
 		Destination: &sesv2types.Destination{
-			ToAddresses: []string{"support@docter.io"},
+			ToAddresses: []string{"support@threadr.net"},
 		},
 		Content: &sesv2types.EmailContent{
 			Simple: &sesv2types.Message{
@@ -171,14 +171,14 @@ func SendVerificationEmail(toEmail, verifyURL string) error {
 
 	svc := sesv2.NewFromConfig(cfg)
 
-	subject := "Verify your Docter account"
-	body := "Welcome to Docter!\n\n" +
+	subject := "Verify your Threadr account"
+	body := "Welcome to Threadr!\n\n" +
 		"Click the link below to verify your email address:\n" + verifyURL + "\n\n" +
 		"This link expires in 24 hours.\n\n" +
 		"If you didn't create this account, you can safely ignore this email."
 
 	input := &sesv2.SendEmailInput{
-		FromEmailAddress: aws.String("no-reply@docter.io"),
+		FromEmailAddress: aws.String("no-reply@threadr.net"),
 		Destination: &sesv2types.Destination{
 			ToAddresses: []string{toEmail},
 		},
@@ -221,14 +221,14 @@ func SendPasswordResetEmail(toEmail, resetURL string) error {
 
 	svc := sesv2.NewFromConfig(cfg)
 
-	subject := "Reset your Docter password"
+	subject := "Reset your Threadr password"
 	body := "We received a request to reset your password.\n\n" +
 		"Click the link below to set a new password:\n" + resetURL + "\n\n" +
 		"This link expires in 1 hour.\n\n" +
 		"If you didn't request this, you can safely ignore this email."
 
 	input := &sesv2.SendEmailInput{
-		FromEmailAddress: aws.String("no-reply@docter.io"),
+		FromEmailAddress: aws.String("no-reply@threadr.net"),
 		Destination: &sesv2types.Destination{
 			ToAddresses: []string{toEmail},
 		},

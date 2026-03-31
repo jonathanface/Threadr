@@ -1,8 +1,8 @@
 package api
 
 import (
-	"RichDocter/models"
-	"RichDocter/sessions"
+	"Threadr/models"
+	"Threadr/sessions"
 	"bytes"
 	"encoding/json"
 	"net/http"
