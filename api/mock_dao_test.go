@@ -83,6 +83,12 @@ type MockDAO struct {
 	GetAllUsersWithStoriesFunc                func() ([]models.AdminUserSummary, error)
 	GetChaptersByStoryIDsFunc                 func(storyIDs []string) (map[string][]models.Chapter, error)
 
+	// Alerts
+	CreateAlertFunc         func(alert models.Alert) error
+	GetAlertsForUserFunc    func(email string) ([]models.Alert, error)
+	GetAlertReadsByUserFunc func(email string) ([]models.AlertRead, error)
+	MarkAlertReadFunc       func(email, alertID string) error
+
 	// Email auth
 	CreateEmailUserFunc              func(email, firstName, lastName, passwordHash, verificationToken string, tokenExpires int64) (*models.UserInfo, error)
 	SetEmailVerifiedFunc             func(email string) error
@@ -771,6 +777,36 @@ func (m *MockDAO) FindUserByResetToken(token string) (*models.UserInfo, error) {
 
 func (m *MockDAO) RestoreDataForVerifiedUser(_ string) {
 	// no-op for tests
+}
+
+// Alert mock implementations
+
+func (m *MockDAO) CreateAlert(alert models.Alert) error {
+	if m.CreateAlertFunc != nil {
+		return m.CreateAlertFunc(alert)
+	}
+	return nil
+}
+
+func (m *MockDAO) GetAlertsForUser(email string) ([]models.Alert, error) {
+	if m.GetAlertsForUserFunc != nil {
+		return m.GetAlertsForUserFunc(email)
+	}
+	return []models.Alert{}, nil
+}
+
+func (m *MockDAO) GetAlertReadsByUser(email string) ([]models.AlertRead, error) {
+	if m.GetAlertReadsByUserFunc != nil {
+		return m.GetAlertReadsByUserFunc(email)
+	}
+	return []models.AlertRead{}, nil
+}
+
+func (m *MockDAO) MarkAlertRead(email, alertID string) error {
+	if m.MarkAlertReadFunc != nil {
+		return m.MarkAlertReadFunc(email, alertID)
+	}
+	return nil
 }
 
 // Common error for testing

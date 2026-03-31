@@ -140,6 +140,7 @@ export const SharedReaderPage = () => {
             onPrevChapter={showNav && prevChapter ? () => setSelectedChapterId(prevChapter.id) : undefined}
             onNextChapter={showNav && nextChapter ? () => setSelectedChapterId(nextChapter.id) : undefined}
             showNav={showNav}
+            showSignupPrompt={!storyData.reader_has_account}
             chapterSelector={
               sortedChapters.length > 1 ? (
                 <FormControl size="small" sx={{ minWidth: 200, maxWidth: 300 }}>

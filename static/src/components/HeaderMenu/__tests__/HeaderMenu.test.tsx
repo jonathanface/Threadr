@@ -70,6 +70,12 @@ vi.mock("../../UserMenu", () => ({
   UserMenu: () => <div data-testid="user-menu">User Menu</div>,
 }));
 
+vi.mock("../../NotificationsBell", () => ({
+  NotificationsBell: () => (
+    <div data-testid="notifications-bell">Notifications</div>
+  ),
+}));
+
 vi.mock("../../../api", () => ({
   api: {
     put: vi.fn(),

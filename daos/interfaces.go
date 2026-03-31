@@ -96,6 +96,12 @@ type DaoInterface interface {
 	FindUserByResetToken(ctx context.Context, token string) (*models.UserInfo, error)
 	RestoreDataForVerifiedUser(email string)
 
+	// Alerts
+	CreateAlert(ctx context.Context, alert models.Alert) error
+	GetAlertsForUser(ctx context.Context, email string) ([]models.Alert, error)
+	GetAlertReadsByUser(ctx context.Context, email string) ([]models.AlertRead, error)
+	MarkAlertRead(ctx context.Context, email string, alertID string) error
+
 	// HELPERS
 	WasStoryDeleted(ctx context.Context, email string, storyID string) (bool, error)
 	IsStoryInASeries(ctx context.Context, email string, storyID string) (string, error)

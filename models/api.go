@@ -306,3 +306,48 @@ type CreateCommentRequest struct {
 	AnchorTextSnapshot string `json:"anchor_text_snapshot"`
 	Body               string `json:"body"`
 }
+
+// Alerts / Notifications
+
+type AlertType string
+
+const (
+	AlertTypeAnnouncement AlertType = "announcement"
+	AlertTypePersonal     AlertType = "personal"
+)
+
+type Alert struct {
+	ID          string    `json:"alert_id" dynamodbav:"alert_id"`
+	Subject     string    `json:"subject" dynamodbav:"subject"`
+	Message     string    `json:"message" dynamodbav:"message"`
+	Link        string    `json:"link,omitempty" dynamodbav:"link"`
+	AlertType   AlertType `json:"alert_type" dynamodbav:"alert_type"`
+	TargetEmail string    `json:"target_email" dynamodbav:"target_email"`
+	CreatedAt   int64     `json:"created_at" dynamodbav:"created_at"`
+	CreatedBy   string    `json:"created_by" dynamodbav:"created_by"`
+}
+
+type AlertRead struct {
+	Email   string `json:"email" dynamodbav:"email"`
+	AlertID string `json:"alert_id" dynamodbav:"alert_id"`
+	ReadAt  int64  `json:"read_at" dynamodbav:"read_at"`
+}
+
+type UserAlert struct {
+	Alert
+	Read   bool  `json:"read"`
+	ReadAt int64 `json:"read_at,omitempty"`
+}
+
+type CreateAlertRequest struct {
+	Subject     string    `json:"subject"`
+	Message     string    `json:"message"`
+	Link        string    `json:"link,omitempty"`
+	AlertType   AlertType `json:"alert_type"`
+	TargetEmail string    `json:"target_email,omitempty"`
+}
+
+type AlertsResponse struct {
+	Alerts      []UserAlert `json:"alerts"`
+	UnreadCount int         `json:"unread_count"`
+}

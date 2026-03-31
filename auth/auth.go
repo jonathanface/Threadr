@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -465,16 +466,67 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 				return
 			}
 		}
-		// Append UX query flags and return immediately after redirect
+		// Create system alerts for subscription status changes
 		if updated.NotifyExpired {
-			logger.Info("User subscription expired", "email", info.Email, "remoteAddr", r.RemoteAddr)
-			http.Redirect(w, r, next+"?expired=true", http.StatusTemporaryRedirect)
-			return
+			logger.Info("User subscription expired, creating alert", "email", info.Email, "remoteAddr", r.RemoteAddr)
+			go func() {
+				alert := models.Alert{
+					ID:          "sub-expired-" + info.Email,
+					Subject:     "Subscription Expired",
+					Message:     "Your subscription has expired. Renew to regain access to premium features.",
+					Link:        "/subscribe",
+					AlertType:   models.AlertTypePersonal,
+					TargetEmail: info.Email,
+					CreatedAt:   time.Now().Unix(),
+					CreatedBy:   "system",
+				}
+				if aErr := dao.CreateAlert(r.Context(), alert); aErr != nil {
+					logger.Error("Failed to create subscription expired alert", "error", aErr, "email", info.Email)
+				}
+			}()
 		}
 		if updated.NotifyRestored {
-			logger.Info("User subscription restored", "email", info.Email, "remoteAddr", r.RemoteAddr)
-			http.Redirect(w, r, next+"?restored=true", http.StatusTemporaryRedirect)
-			return
+			logger.Info("User subscription restored, creating alert", "email", info.Email, "remoteAddr", r.RemoteAddr)
+			go func() {
+				alert := models.Alert{
+					ID:          "sub-restored-" + info.Email + "-" + strconv.FormatInt(time.Now().Unix(), 10),
+					Subject:     "Subscription Restored",
+					Message:     "Your subscription is active again. Your stories are being restored and will be available shortly.",
+					Link:        "/stories",
+					AlertType:   models.AlertTypePersonal,
+					TargetEmail: info.Email,
+					CreatedAt:   time.Now().Unix(),
+					CreatedBy:   "system",
+				}
+				if aErr := dao.CreateAlert(r.Context(), alert); aErr != nil {
+					logger.Error("Failed to create subscription restored alert", "error", aErr, "email", info.Email)
+				}
+			}()
+		}
+		// Proactive: warn if subscription expires within 7 days
+		if updated.Subscriber {
+			sub, subErr := dao.GetSubscription(r.Context(), info.Email)
+			if subErr == nil && !sub.CurrentSubscriptionEnd.IsZero() {
+				daysLeft := int(time.Until(sub.CurrentSubscriptionEnd).Hours() / 24)
+				if daysLeft >= 0 && daysLeft <= 7 {
+					go func() {
+						// Dedup: use a fixed ID so we don't spam on every login
+						alert := models.Alert{
+							ID:          "sub-expiring-" + info.Email,
+							Subject:     "Subscription Expiring Soon",
+							Message:     fmt.Sprintf("Your subscription expires in %d day%s. Renew to keep access to premium features.", daysLeft, func() string { if daysLeft != 1 { return "s" } ; return "" }()),
+							Link:        "/account/subscription",
+							AlertType:   models.AlertTypePersonal,
+							TargetEmail: info.Email,
+							CreatedAt:   time.Now().Unix(),
+							CreatedBy:   "system",
+						}
+						if aErr := dao.CreateAlert(r.Context(), alert); aErr != nil {
+							logger.Error("Failed to create subscription expiring alert", "error", aErr, "email", info.Email)
+						}
+					}()
+				}
+			}
 		}
 	}
 

@@ -78,6 +78,12 @@ type MockDAO struct {
 	MockFindUserByVerificationToken  func(token string) (*models.UserInfo, error)
 	MockFindUserByResetToken         func(token string) (*models.UserInfo, error)
 
+	// Alerts
+	MockCreateAlert         func(alert models.Alert) error
+	MockGetAlertsForUser    func(email string) ([]models.Alert, error)
+	MockGetAlertReadsByUser func(email string) ([]models.AlertRead, error)
+	MockMarkAlertRead       func(email, alertID string) error
+
 	// Comments
 	MockCreateComment              func(comment models.Comment) error
 	MockGetComment                 func(commentID string) (*models.Comment, error)
@@ -643,6 +649,36 @@ func (m *MockDAO) ResolveComment(ctx context.Context, commentID string) error {
 func (m *MockDAO) DeleteComment(ctx context.Context, commentID string) error {
 	if m.MockDeleteComment != nil {
 		return m.MockDeleteComment(commentID)
+	}
+	return nil
+}
+
+// Alert mock implementations
+
+func (m *MockDAO) CreateAlert(ctx context.Context, alert models.Alert) error {
+	if m.MockCreateAlert != nil {
+		return m.MockCreateAlert(alert)
+	}
+	return nil
+}
+
+func (m *MockDAO) GetAlertsForUser(ctx context.Context, email string) ([]models.Alert, error) {
+	if m.MockGetAlertsForUser != nil {
+		return m.MockGetAlertsForUser(email)
+	}
+	return []models.Alert{}, nil
+}
+
+func (m *MockDAO) GetAlertReadsByUser(ctx context.Context, email string) ([]models.AlertRead, error) {
+	if m.MockGetAlertReadsByUser != nil {
+		return m.MockGetAlertReadsByUser(email)
+	}
+	return []models.AlertRead{}, nil
+}
+
+func (m *MockDAO) MarkAlertRead(ctx context.Context, email, alertID string) error {
+	if m.MockMarkAlertRead != nil {
+		return m.MockMarkAlertRead(email, alertID)
 	}
 	return nil
 }

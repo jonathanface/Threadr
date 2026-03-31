@@ -6,6 +6,7 @@ import (
 	"RichDocter/daos"
 	"RichDocter/logger"
 	"RichDocter/models"
+	"context"
 	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
@@ -533,18 +534,25 @@ func GetSharedStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		authorName = authorDetails.FirstName + " " + authorDetails.LastName
 	}
 
+	// Check if reader has an existing account (best-effort)
+	readerHasAccount := false
+	if _, rErr := dao.GetUserDetails(r.Context(), link.ReaderEmail); rErr == nil {
+		readerHasAccount = true
+	}
+
 	// Return story metadata and chapters (no associations, outlines, or settings)
 	response := map[string]interface{}{
-		"story_id":          story.ID,
-		"title":             story.Title,
-		"description":       story.Description,
-		"image_url":         story.ImageURL,
-		"author_name":       authorName,
-		"chapters":          chapters,
-		"comments_enabled":  link.CommentsEnabled,
-		"reader_email":      link.ReaderEmail,
-		"reader_first_name": link.ReaderFirstName,
-		"reader_last_name":  link.ReaderLastName,
+		"story_id":           story.ID,
+		"title":              story.Title,
+		"description":        story.Description,
+		"image_url":          story.ImageURL,
+		"author_name":        authorName,
+		"chapters":           chapters,
+		"comments_enabled":   link.CommentsEnabled,
+		"reader_email":       link.ReaderEmail,
+		"reader_first_name":  link.ReaderFirstName,
+		"reader_last_name":   link.ReaderLastName,
+		"reader_has_account": readerHasAccount,
 	}
 	RespondWithJson(w, http.StatusOK, response)
 }
@@ -689,6 +697,17 @@ func CreateCommentEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	RespondWithJson(w, http.StatusCreated, comment)
+
+	// Notify the author about the new comment (deduped — one alert per reader per story until dismissed)
+	go func() {
+		bgCtx := context.Background()
+		readerName := comment.ReaderFirstName + " " + comment.ReaderLastName
+		storyTitle := link.StoryID // fallback
+		if story, err := dao.GetStoryByID(bgCtx, link.AuthorEmail, link.StoryID); err == nil {
+			storyTitle = story.Title
+		}
+		CreateCommentAlert(bgCtx, dao, link.AuthorEmail, readerName, storyTitle, link.StoryID)
+	}()
 }
 
 func DeleteOwnCommentEndpoint(w http.ResponseWriter, r *http.Request) {

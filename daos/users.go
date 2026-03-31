@@ -92,8 +92,9 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 		}
 
 		logger.Info("Account re-created (was previously deleted)", "email", email)
-		// Send emails asynchronously
+		// Send emails and create welcome alert asynchronously
 		go func() {
+			bgCtx := context.Background()
 			if err := sendWelcomeEmail(email); err != nil {
 				logger.Error("Failed to send welcome email", "email", email, "error", err)
 			} else {
@@ -104,6 +105,8 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 			} else {
 				logger.Info("New user notification email sent successfully", "email", email)
 			}
+			d.createWelcomeBackAlert(bgCtx, email)
+			d.createSubscribeNowAlert(bgCtx, email)
 		}()
 
 		return &user, nil
@@ -142,8 +145,10 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 	}
 
 	logger.Info("New account created", "email", email)
-	// Send emails asynchronously to avoid blocking user creation
+	// Send emails and create welcome alert asynchronously
 	go func() {
+		bgCtx := context.Background()
+
 		// Send welcome email to user
 		if err := sendWelcomeEmail(email); err != nil {
 			logger.Error("Failed to send welcome email",
@@ -161,6 +166,10 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 		} else {
 			logger.Info("New user notification email sent successfully", "email", email)
 		}
+
+		// Create welcome alert and subscribe prompt
+		d.createWelcomeAlert(bgCtx, email)
+		d.createSubscribeNowAlert(bgCtx, email)
 	}()
 
 	return &user, nil
