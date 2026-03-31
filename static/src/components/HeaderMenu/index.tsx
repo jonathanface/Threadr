@@ -1,4 +1,5 @@
 import axios from "axios";
+import { Tooltip } from "@mui/material";
 import { useLocation } from "react-router-dom";
 import { useLoader } from "../../hooks/useLoader";
 import { useSelections } from "../../hooks/useSelections";
@@ -134,11 +135,32 @@ export const HeaderMenu = () => {
     <header className={styles.header}>
       <span className={styles.leftPane}>
         <a href={baseUrl} className={styles.logoLink}>
-          <img
-            className={styles.logoImage}
-            alt="Threadr logo"
-            src="/img/threadr-logo.png"
-          />
+          <Tooltip
+            title="Your Characters Remember Everything"
+            placement="top"
+            TransitionProps={{ timeout: 0 }}
+            slotProps={{
+              popper: {
+                modifiers: [{ name: "offset", options: { offset: [0, -20] } }],
+              },
+              tooltip: {
+                sx: {
+                  bgcolor: "#292524",
+                  opacity: "1 !important",
+                  '[data-theme="light"] &': { bgcolor: "#ffffff" },
+                  color: "var(--text-primary)",
+                  border: "1px solid var(--border-light)",
+                  fontSize: "0.75rem",
+                },
+              },
+            }}
+          >
+            <img
+              className={styles.logoImage}
+              alt="Threadr logo"
+              src="/img/threadr-logo-contrast.png"
+            />
+          </Tooltip>
           <span className={styles.logoText}>threadr</span>
         </a>
         {!isSharedReader && (
