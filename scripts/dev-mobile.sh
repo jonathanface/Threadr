@@ -127,4 +127,4 @@ cleanup() {
 trap cleanup INT TERM
 
 # Run the backend
-./bin/richdocter
+./bin/threadr
