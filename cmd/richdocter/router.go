@@ -43,10 +43,18 @@ func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.OauthOptio
 	}
 	authRtr := rtr.PathPrefix(authPath).Subrouter()
 	authRtr.Use(looseMiddleware(dao))
+	authLimiter := newAuthRateLimiter()
+	authRtr.Use(authRateLimitMiddleware(authLimiter))
 	// DEV ONLY!!
 	//rtr.HandleFunc("/auth/logout", auth.DeleteToken).Methods("GET", "OPTIONS")
 	authRtr.HandleFunc("/logout", auth.Logout).Methods("DELETE", "OPTIONS")
 	authRtr.HandleFunc("/session", auth.MobileSessionHandler()).Methods("POST", "OPTIONS")
+	authRtr.HandleFunc("/email/signup", auth.EmailSignupHandler(authOptions)).Methods("POST", "OPTIONS")
+	authRtr.HandleFunc("/email/login", auth.EmailLoginHandler(authOptions)).Methods("POST", "OPTIONS")
+	authRtr.HandleFunc("/email/verify", auth.EmailVerifyHandler(authOptions)).Methods("GET", "OPTIONS")
+	authRtr.HandleFunc("/email/request-reset", auth.PasswordResetRequestHandler(authOptions)).Methods("POST", "OPTIONS")
+	authRtr.HandleFunc("/email/reset-password", auth.PasswordResetHandler()).Methods("POST", "OPTIONS")
+	authRtr.HandleFunc("/email/link-oauth", auth.LinkOAuthAccountHandler()).Methods("POST", "OPTIONS")
 	authRtr.HandleFunc("/{provider}", auth.LoginHandler(authOptions)).Methods("GET", "PUT", "OPTIONS")
 	authRtr.HandleFunc("/{provider}/callback", auth.CallbackHandler(authOptions)).Methods("POST", "GET", "OPTIONS")
 
@@ -77,6 +85,7 @@ func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.OauthOptio
 	apiRtr.HandleFunc("/stories/{storyID}/chapters/{chapterID}", api.ChapterDetailsEndpoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/chapters/{chapterID}/status", api.ChapterTableStatusEndpoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/admin/users", api.AdminGetAllUsersEndpoint).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/admin/users/{email}", api.AdminDeleteUserEndpoint).Methods("DELETE", "OPTIONS")
 
 	// POSTs
 	apiRtr.HandleFunc("/stories", api.CreateStoryEndpoint).Methods("POST", "OPTIONS")

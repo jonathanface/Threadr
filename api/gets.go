@@ -675,3 +675,55 @@ func AdminGetAllUsersEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	RespondWithJson(w, http.StatusOK, users)
 }
+
+// AdminDeleteUserEndpoint soft-deletes a user account (admin only)
+func AdminDeleteUserEndpoint(w http.ResponseWriter, r *http.Request) {
+	var (
+		email string
+		err   error
+		dao   daos.DaoInterface
+		ok    bool
+	)
+
+	if email, err = getUserEmail(r); err != nil {
+		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
+		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
+		return
+	}
+
+	// Check if requesting user is an admin
+	userDetails, err := dao.GetUserDetails(r.Context(), email)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if !userDetails.Admin {
+		RespondWithError(w, http.StatusForbidden, "admin access required")
+		return
+	}
+
+	targetEmail, err := url.PathUnescape(mux.Vars(r)["email"])
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Error parsing email")
+		return
+	}
+	if targetEmail == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing email")
+		return
+	}
+	if targetEmail == email {
+		RespondWithError(w, http.StatusBadRequest, "Cannot delete your own account from admin panel")
+		return
+	}
+
+	if err = dao.DeleteUser(r.Context(), targetEmail); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	RespondWithJson(w, http.StatusOK, map[string]string{"message": "User deleted"})
+}

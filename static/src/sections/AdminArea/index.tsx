@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { api } from "../../api";
 import { UserContext } from "../../contexts/user";
@@ -36,23 +36,36 @@ export const AdminArea = () => {
     }
   };
 
-  useEffect(() => {
+  const fetchUsers = useCallback(async () => {
     if (!isAdmin) return;
-
-    const fetchUsers = async () => {
-      try {
-        showLoader();
-        const response = await api.get<AdminUserSummary[]>("/admin/users");
-        setUsers(response.data);
-      } catch {
-        setError("Failed to load users");
-      } finally {
-        hideLoader();
-      }
-    };
-
-    fetchUsers();
+    try {
+      showLoader();
+      const response = await api.get<AdminUserSummary[]>("/admin/users");
+      setUsers(response.data);
+    } catch {
+      setError("Failed to load users");
+    } finally {
+      hideLoader();
+    }
   }, [isAdmin, showLoader, hideLoader]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  const handleDeleteUser = async (email: string, name: string) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete the account for ${name || email}? This will soft-delete the user and all their stories.`
+    );
+    if (!confirmed) return;
+
+    try {
+      await api.delete(`/admin/users/${encodeURIComponent(email)}`);
+      fetchUsers();
+    } catch {
+      setError(`Failed to delete user ${email}`);
+    }
+  };
 
   // Redirect non-admins
   if (!isAdmin) {
@@ -93,6 +106,7 @@ export const AdminArea = () => {
               <th>Subscriber</th>
               <th>Last Accessed</th>
               <th>Stories</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -131,6 +145,19 @@ export const AdminArea = () => {
                   ) : (
                     <span className={styles.noStories}>No stories</span>
                   )}
+                </td>
+                <td>
+                  <button
+                    className={styles.deleteButton}
+                    onClick={() =>
+                      handleDeleteUser(
+                        user.email,
+                        `${user.first_name} ${user.last_name}`.trim()
+                      )
+                    }
+                  >
+                    Delete
+                  </button>
                 </td>
               </tr>
             ))}

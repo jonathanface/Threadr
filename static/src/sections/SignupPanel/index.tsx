@@ -1,0 +1,142 @@
+import axios from "axios";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import styles from "../LoginPanel/loginpanel.module.css";
+
+export const SignupPanel = () => {
+  const navigate = useNavigate();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleBack = () => {
+    navigate("/signin");
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!firstName || !lastName || !email || !password) {
+      setError("All fields are required");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await axios.post("/auth/email/signup", {
+        email,
+        password,
+        first_name: firstName,
+        last_name: lastName,
+      });
+      setSuccess(res.data.message || "Account created! Check your email to verify.");
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data) {
+        const data = err.response.data;
+        if (data.error === "account_exists_oauth") {
+          setError(`An account with this email already exists using ${data.auth_type}. Please sign in with ${data.auth_type} instead.`);
+        } else {
+          setError(data.error || data.message || "Failed to create account");
+        }
+      } else {
+        setError("Something went wrong. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className={styles.loginPanel}>
+      <button
+        className={styles.closeButton}
+        onClick={handleBack}
+        aria-label="Go back"
+      >
+        &times;
+      </button>
+      <h1>Create Account</h1>
+
+      {success ? (
+        <div>
+          <p className={styles.successMessage}>{success}</p>
+          <div className={styles.links} style={{ justifyContent: "center" }}>
+            <Link to="/signin" className={styles.link}>Go to Sign In</Link>
+          </div>
+        </div>
+      ) : (
+        <>
+          <form className={styles.emailForm} onSubmit={handleSignup}>
+            {error && <p className={styles.errorMessage}>{error}</p>}
+            <div style={{ display: "flex", gap: "0.75rem" }}>
+              <input
+                type="text"
+                placeholder="First Name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className={styles.input}
+                style={{ flex: 1, minWidth: 0 }}
+                autoComplete="given-name"
+              />
+              <input
+                type="text"
+                placeholder="Last Name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className={styles.input}
+                style={{ flex: 1, minWidth: 0 }}
+                autoComplete="family-name"
+              />
+            </div>
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={styles.input}
+              autoComplete="email"
+            />
+            <input
+              type="password"
+              placeholder="Password (min 8 characters)"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={styles.input}
+              autoComplete="new-password"
+            />
+            <input
+              type="password"
+              placeholder="Confirm Password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className={styles.input}
+              autoComplete="new-password"
+            />
+            <button type="submit" className={styles.submitButton} disabled={loading}>
+              {loading ? "Creating account..." : "Create Account"}
+            </button>
+          </form>
+
+          <div className={styles.links} style={{ justifyContent: "center" }}>
+            <Link to="/signin" className={styles.link}>Already have an account? Sign in</Link>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};

@@ -81,6 +81,10 @@ func CreateShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Invalid email address")
 		return
 	}
+	if req.ReaderEmail == author.Email {
+		RespondWithError(w, http.StatusBadRequest, "You cannot invite yourself as a reader")
+		return
+	}
 	if req.ReaderFirstName == "" || req.ReaderLastName == "" {
 		RespondWithError(w, http.StatusBadRequest, "Reader first and last name are required")
 		return

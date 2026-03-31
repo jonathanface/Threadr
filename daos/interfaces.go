@@ -84,6 +84,18 @@ type DaoInterface interface {
 	ResolveComment(ctx context.Context, commentID string) error
 	DeleteComment(ctx context.Context, commentID string) error
 
+	// Email/Password Auth
+	CreateEmailUser(ctx context.Context, email, firstName, lastName, passwordHash, verificationToken string, tokenExpires int64) (*models.UserInfo, error)
+	SetEmailVerified(ctx context.Context, email string) error
+	SetVerificationToken(ctx context.Context, email, token string, expires int64) error
+	SetResetToken(ctx context.Context, email, token string, expires int64) error
+	UpdatePassword(ctx context.Context, email, passwordHash string) error
+	ClearResetToken(ctx context.Context, email string) error
+	LinkOAuthAccount(ctx context.Context, email, authType string) error
+	FindUserByVerificationToken(ctx context.Context, token string) (*models.UserInfo, error)
+	FindUserByResetToken(ctx context.Context, token string) (*models.UserInfo, error)
+	RestoreDataForVerifiedUser(email string)
+
 	// HELPERS
 	WasStoryDeleted(ctx context.Context, email string, storyID string) (bool, error)
 	IsStoryInASeries(ctx context.Context, email string, storyID string) (string, error)

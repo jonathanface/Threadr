@@ -121,17 +121,44 @@ type Series struct {
 }
 
 type UserInfo struct {
-	Email          string `json:"email" dynamodbav:"email"`
-	FirstName      string `json:"first_name" dynamodbav:"first_name"`
-	LastName       string `json:"last_name" dynamodbav:"last_name"`
-	Admin          bool   `json:"admin" dynamodbav:"admin"`
-	AuthType       string `json:"auth_type"`
-	Subscriber     bool   `json:"subscriber" dynamodbav:"subscriber"`
-	NotifyExpired  bool   `json:"notify_expired,omitempty"`
-	NotifyRestored bool   `json:"notify_restored,omitempty"`
-	DeletedAt      string `json:"deleted_at,omitempty" dynamodbav:"deleted_at"`
-	NewUser        bool   `json:"showWelcome,omitempty"`        // Transient flag for brand new users (not stored in DB) - mapped to showWelcome in frontend
-	ReturningUser  bool   `json:"isReturningUser,omitempty"`   // Transient flag for returning deleted users (not stored in DB)
+	Email                    string `json:"email" dynamodbav:"email"`
+	FirstName                string `json:"first_name" dynamodbav:"first_name"`
+	LastName                 string `json:"last_name" dynamodbav:"last_name"`
+	Admin                    bool   `json:"admin" dynamodbav:"admin"`
+	AuthType                 string `json:"auth_type" dynamodbav:"auth_type"`
+	Subscriber               bool   `json:"subscriber" dynamodbav:"subscriber"`
+	PasswordHash             string `json:"-" dynamodbav:"password_hash"`
+	EmailVerified            bool   `json:"email_verified,omitempty" dynamodbav:"email_verified"`
+	VerificationToken        string `json:"-" dynamodbav:"verification_token"`
+	VerificationTokenExpires int64  `json:"-" dynamodbav:"verification_token_expires"`
+	ResetToken               string `json:"-" dynamodbav:"reset_token"`
+	ResetTokenExpires        int64  `json:"-" dynamodbav:"reset_token_expires"`
+	NotifyExpired            bool   `json:"notify_expired,omitempty"`
+	NotifyRestored           bool   `json:"notify_restored,omitempty"`
+	DeletedAt                string `json:"deleted_at,omitempty" dynamodbav:"deleted_at"`
+	NewUser                  bool   `json:"showWelcome,omitempty"`      // Transient flag for brand new users (not stored in DB)
+	ReturningUser            bool   `json:"isReturningUser,omitempty"` // Transient flag for returning deleted users (not stored in DB)
+}
+
+type EmailSignupRequest struct {
+	Email     string `json:"email"`
+	Password  string `json:"password"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+}
+
+type EmailLoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type PasswordResetRequest struct {
+	Email string `json:"email"`
+}
+
+type PasswordResetConfirm struct {
+	Token       string `json:"token"`
+	NewPassword string `json:"new_password"`
 }
 
 // AdminStoryInfo represents a story with its optional series for the admin area

@@ -1,6 +1,6 @@
 module RichDocter
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/SebastiaanKlippert/go-wkhtmltopdf v1.9.0
@@ -24,7 +24,7 @@ require (
 	github.com/stripe/stripe-go/v79 v79.12.0
 )
 
-require golang.org/x/net v0.38.0 // indirect
+require golang.org/x/net v0.51.0 // indirect
 
 require (
 	cloud.google.com/go v0.67.0 // indirect
@@ -50,5 +50,6 @@ require (
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	golang.org/x/crypto v0.49.0 // indirect
 	golang.org/x/oauth2 v0.27.0 // indirect
 )

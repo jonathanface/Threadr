@@ -4,6 +4,8 @@ export interface UserDetails {
   last_name: string;
   subscriber: boolean;
   admin?: boolean;
+  auth_type?: string;
+  email_verified?: boolean;
   showWelcome?: boolean;
   isReturningUser?: boolean;
 }

@@ -21,6 +21,11 @@ import { AccountSubscriptionPage } from "./sections/Payment/AccountSubscription"
 import { NotFoundPage } from "./sections/NotFound";
 import { AdminArea } from "./sections/AdminArea";
 import { SharedReaderPage } from "./sections/SharedReader";
+import { SignupPanel } from "./sections/SignupPanel";
+import { VerifyEmailPage } from "./sections/VerifyEmail";
+import { ForgotPasswordPage } from "./sections/ForgotPassword";
+import { ResetPasswordPage } from "./sections/ResetPassword";
+import { LinkAccountPage } from "./sections/LinkAccount";
 import {
   AlertCommandType,
   AlertFunctionCall,
@@ -136,6 +141,21 @@ export const Docter = () => {
               isLoggedIn ? <Navigate to="/stories" replace /> : <LoginPanel />
             }
           />
+          <Route
+            path="/signup"
+            element={
+              isLoggedIn ? <Navigate to="/stories" replace /> : <SignupPanel />
+            }
+          />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route
+            path="/forgot-password"
+            element={
+              isLoggedIn ? <Navigate to="/stories" replace /> : <ForgotPasswordPage />
+            }
+          />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/link-account" element={<LinkAccountPage />} />
           <Route
             path="/account/subscription"
             element={
