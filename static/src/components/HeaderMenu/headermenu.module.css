@@ -75,7 +75,7 @@ header .logoLink {
 }
 
 header .logoImage {
-    width: 50px;
+    width: auto;
     height: 50px;
 }
 
@@ -83,7 +83,7 @@ header .logoText {
     font-size: 0.5rem;
     color: var(--text-secondary);
     letter-spacing: 0.05em;
-    margin-top: -8px;
+    margin-top: 1px;
     text-transform: uppercase;
 }
 

@@ -11,7 +11,7 @@ vi.mock("@mui/material", () => ({
 import { useMediaQuery } from "@mui/material";
 
 const PLAY_STORE_URL =
-  "https://play.google.com/store/apps/details?id=io.docter.mobile";
+  "https://play.google.com/store/apps/details?id=io.threadr.mobile";
 const STORAGE_KEY = "mobileAppBannerDismissed";
 
 describe("MobileAppBanner", () => {
@@ -50,7 +50,7 @@ describe("MobileAppBanner", () => {
 
       render(<MobileAppBanner />);
 
-      expect(screen.getByText("Get the Docter app")).toBeInTheDocument();
+      expect(screen.getByText("Get the Threadr app")).toBeInTheDocument();
       expect(screen.getByText("Download on Google Play")).toBeInTheDocument();
     });
 
@@ -59,7 +59,7 @@ describe("MobileAppBanner", () => {
 
       render(<MobileAppBanner />);
 
-      expect(screen.queryByText("Get the Docter app")).not.toBeInTheDocument();
+      expect(screen.queryByText("Get the Threadr app")).not.toBeInTheDocument();
     });
 
     it("should call useMediaQuery with correct breakpoint", () => {
@@ -78,7 +78,7 @@ describe("MobileAppBanner", () => {
 
       render(<MobileAppBanner />);
 
-      expect(screen.queryByText("Get the Docter app")).not.toBeInTheDocument();
+      expect(screen.queryByText("Get the Threadr app")).not.toBeInTheDocument();
     });
 
     it("should save to localStorage when dismissed", () => {
@@ -99,14 +99,14 @@ describe("MobileAppBanner", () => {
 
       render(<MobileAppBanner />);
 
-      expect(screen.getByText("Get the Docter app")).toBeInTheDocument();
+      expect(screen.getByText("Get the Threadr app")).toBeInTheDocument();
 
       const closeButton = screen.getByRole("button", {
         name: "Dismiss banner",
       });
       fireEvent.click(closeButton);
 
-      expect(screen.queryByText("Get the Docter app")).not.toBeInTheDocument();
+      expect(screen.queryByText("Get the Threadr app")).not.toBeInTheDocument();
     });
 
     it("should check localStorage on mount", () => {
@@ -193,7 +193,7 @@ describe("MobileAppBanner", () => {
       render(<MobileAppBanner />);
 
       // Banner should have clear title and subtitle
-      expect(screen.getByText("Get the Docter app")).toBeInTheDocument();
+      expect(screen.getByText("Get the Threadr app")).toBeInTheDocument();
       expect(screen.getByText("Download on Google Play")).toBeInTheDocument();
     });
   });
@@ -204,7 +204,7 @@ describe("MobileAppBanner", () => {
 
       render(<MobileAppBanner />);
 
-      expect(screen.getByText("Get the Docter app")).toBeInTheDocument();
+      expect(screen.getByText("Get the Threadr app")).toBeInTheDocument();
     });
 
     it("should display download text", () => {
@@ -252,7 +252,7 @@ describe("MobileAppBanner", () => {
       fireEvent.click(closeButton);
 
       // Banner should be hidden and not throw errors
-      expect(screen.queryByText("Get the Docter app")).not.toBeInTheDocument();
+      expect(screen.queryByText("Get the Threadr app")).not.toBeInTheDocument();
     });
   });
 });

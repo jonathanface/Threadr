@@ -1,9 +1,9 @@
 package api
 
 import (
-	"RichDocter/daos"
-	"RichDocter/models"
-	"RichDocter/sessions"
+	"Threadr/daos"
+	"Threadr/models"
+	"Threadr/sessions"
 	"bytes"
 	"context"
 	"encoding/json"

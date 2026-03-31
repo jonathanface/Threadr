@@ -1,8 +1,8 @@
 package api
 
 import (
-	"RichDocter/daos"
-	"RichDocter/models"
+	"Threadr/daos"
+	"Threadr/models"
 	"context"
 	"errors"
 

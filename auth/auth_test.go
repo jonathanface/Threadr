@@ -1,10 +1,10 @@
 package auth
 
 import (
-	ctxkey "RichDocter/ctxkeys"
-	"RichDocter/daos"
-	"RichDocter/models"
-	"RichDocter/sessions"
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
+	"Threadr/sessions"
 	"context"
 	"database/sql"
 	"encoding/json"

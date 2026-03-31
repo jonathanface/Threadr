@@ -88,12 +88,12 @@ describe("HeaderMenu", () => {
   });
 
   describe("Rendering", () => {
-    it("should render the Docter.io logo", () => {
+    it("should render the Threadr logo", () => {
       render(<HeaderMenu />);
 
-      const logo = screen.getByAltText("Docter.io logo");
+      const logo = screen.getByAltText("Threadr logo");
       expect(logo).toBeInTheDocument();
-      expect(logo).toHaveAttribute("src", "/img/slash-logo-trans-100.png");
+      expect(logo).toHaveAttribute("src", "/img/threadr-logo.png");
     });
 
     it("should render logo link to home", () => {
@@ -171,7 +171,7 @@ describe("HeaderMenu", () => {
           expect.any(FormData),
           expect.objectContaining({
             headers: { "Content-Type": "multipart/form-data" },
-          })
+          }),
         );
         expect(mockSetStory).toHaveBeenCalled();
         expect(mockPropagateStoryUpdates).toHaveBeenCalled();
@@ -269,7 +269,7 @@ describe("HeaderMenu", () => {
           expect.objectContaining({
             message: "Invalid story title",
             severity: AlertToastType.error,
-          })
+          }),
         );
       });
     });
@@ -301,7 +301,7 @@ describe("HeaderMenu", () => {
           expect.any(FormData),
           expect.objectContaining({
             headers: { "Content-Type": "multipart/form-data" },
-          })
+          }),
         );
         expect(mockSetSeries).toHaveBeenCalled();
         expect(mockPropagateSeriesUpdates).toHaveBeenCalled();
@@ -399,7 +399,7 @@ describe("HeaderMenu", () => {
           expect.objectContaining({
             message: "Invalid series title",
             severity: AlertToastType.error,
-          })
+          }),
         );
       });
     });
@@ -485,7 +485,7 @@ describe("HeaderMenu", () => {
           expect.objectContaining({
             message:
               "There was an error updating your story title. Please report this.",
-          })
+          }),
         );
       });
     });
@@ -495,14 +495,14 @@ describe("HeaderMenu", () => {
     it("should have meaningful alt text for logo", () => {
       render(<HeaderMenu />);
 
-      const logo = screen.getByAltText("Docter.io logo");
+      const logo = screen.getByAltText("Threadr logo");
       expect(logo).toBeInTheDocument();
     });
 
     it("should have alt text for logo", () => {
       render(<HeaderMenu />);
 
-      const logo = screen.getByAltText("Docter.io logo");
+      const logo = screen.getByAltText("Threadr logo");
       expect(logo).toBeInTheDocument();
     });
 

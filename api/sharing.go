@@ -1,11 +1,11 @@
 package api
 
 import (
-	ctxkey "RichDocter/ctxkeys"
-	mailer "RichDocter/email"
-	"RichDocter/daos"
-	"RichDocter/logger"
-	"RichDocter/models"
+	ctxkey "Threadr/ctxkeys"
+	mailer "Threadr/email"
+	"Threadr/daos"
+	"Threadr/logger"
+	"Threadr/models"
 	"context"
 	"crypto/rand"
 	"database/sql"
@@ -138,7 +138,7 @@ func CreateShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		frontendURL := os.Getenv("FRONTEND_URL")
 		if frontendURL == "" {
-			frontendURL = "https://docter.io"
+			frontendURL = "https://threadr.net"
 		}
 		shareURL := fmt.Sprintf("%s/shared/%s", frontendURL, link.Token)
 		authorName := author.FirstName + " " + author.LastName

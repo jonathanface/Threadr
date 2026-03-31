@@ -5,7 +5,7 @@ export const Footer = () => {
   const thisYear = new Date().getFullYear();
   return (
     <footer>
-      <p>©{thisYear} Docter.io, All Rights Reserved</p>
+      <p>©{thisYear} Threadr, All Rights Reserved</p>
       <p>
         <a href="/privacy.html">Privacy Policy</a>&nbsp;&nbsp;&nbsp;
         <a href="/terms.html">Terms of Use</a>

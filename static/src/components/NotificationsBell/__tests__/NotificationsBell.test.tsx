@@ -39,18 +39,18 @@ const unreadAlert: UserAlert = {
   alert_type: "announcement",
   target_email: "",
   created_at: now - 120, // 2 minutes ago
-  created_by: "admin@docter.io",
+  created_by: "admin@threadr.net",
   read: false,
 };
 
 const readAlert: UserAlert = {
   alert_id: "alert-2",
-  subject: "Welcome to Docter.io",
+  subject: "Welcome to Threadr",
   message: "Thanks for joining! Get started by creating your first story.",
   alert_type: "personal",
   target_email: "user@example.com",
   created_at: now - 86400, // 1 day ago
-  created_by: "admin@docter.io",
+  created_by: "admin@threadr.net",
   read: true,
   read_at: now - 3600,
 };
@@ -62,7 +62,7 @@ const unreadAlertNoLink: UserAlert = {
   alert_type: "announcement",
   target_email: "",
   created_at: now - 600, // 10 minutes ago
-  created_by: "admin@docter.io",
+  created_by: "admin@threadr.net",
   read: false,
 };
 
@@ -175,7 +175,7 @@ describe("NotificationsBell", () => {
         screen.getByText("Check out the new editor improvements.")
       ).toBeInTheDocument();
 
-      expect(screen.getByText("Welcome to Docter.io")).toBeInTheDocument();
+      expect(screen.getByText("Welcome to Threadr")).toBeInTheDocument();
       expect(
         screen.getByText(
           "Thanks for joining! Get started by creating your first story."
@@ -207,7 +207,7 @@ describe("NotificationsBell", () => {
       await user.click(screen.getByRole("button", { name: "notifications" }));
 
       // The read alert should be visible but have no dismiss button
-      expect(screen.getByText("Welcome to Docter.io")).toBeInTheDocument();
+      expect(screen.getByText("Welcome to Threadr")).toBeInTheDocument();
       expect(
         screen.queryByRole("button", { name: "Mark as read" })
       ).not.toBeInTheDocument();
@@ -238,7 +238,7 @@ describe("NotificationsBell", () => {
       await user.click(screen.getByRole("button", { name: "notifications" }));
 
       // The read alert item should have the alertItemRead class
-      const alertItem = screen.getByText("Welcome to Docter.io").closest("div[class*='alertItem']");
+      const alertItem = screen.getByText("Welcome to Threadr").closest("div[class*='alertItem']");
       expect(alertItem?.className).toMatch(/alertItemRead/);
     });
 
@@ -283,7 +283,7 @@ describe("NotificationsBell", () => {
       render(<NotificationsBell />);
 
       await user.click(screen.getByRole("button", { name: "notifications" }));
-      await user.click(screen.getByText("Welcome to Docter.io"));
+      await user.click(screen.getByText("Welcome to Threadr"));
 
       expect(mockMarkAsRead).not.toHaveBeenCalled();
       expect(mockNavigate).toHaveBeenCalledWith("/stories/welcome");

@@ -1,5 +1,5 @@
-APP_NAME := richdocter
-PKG := ./cmd/$(APP_NAME) 
+APP_NAME := threadr
+PKG := ./cmd/threadr
 
 .PHONY: build run clean
 

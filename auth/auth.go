@@ -1,12 +1,12 @@
 package auth
 
 import (
-	"RichDocter/api"
-	ctxkey "RichDocter/ctxkeys"
-	"RichDocter/daos"
-	"RichDocter/logger"
-	"RichDocter/models"
-	"RichDocter/sessions"
+	"Threadr/api"
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/logger"
+	"Threadr/models"
+	"Threadr/sessions"
 	"database/sql"
 	"encoding/gob"
 	"encoding/json"
@@ -59,7 +59,7 @@ func createSignedMobileToken(info models.UserInfo) (string, error) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(5 * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "docter.io",
+			Issuer:    "threadr.net",
 		},
 		Email:      info.Email,
 		FirstName:  info.FirstName,

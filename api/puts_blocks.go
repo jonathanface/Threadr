@@ -1,10 +1,10 @@
 package api
 
 import (
-	ctxkey "RichDocter/ctxkeys"
-	"RichDocter/daos"
-	"RichDocter/logger"
-	"RichDocter/models"
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/logger"
+	"Threadr/models"
 	"encoding/json"
 	"net/http"
 	"net/url"

@@ -121,7 +121,7 @@ func TestSendAlertEmail_EmailContent(t *testing.T) {
 
 	testEmail := "signup@example.com"
 
-	// The function will try to send an email to support@docter.io
+	// The function will try to send an email to support@threadr.net
 	// We can't verify the content without mocking, but we can ensure
 	// the function handles the email parameter
 	err := SendAlertEmail(testEmail)
@@ -136,17 +136,17 @@ func TestSendAlertEmail_EmailContent(t *testing.T) {
 func TestEmailFunctions_ExpectedBehavior(t *testing.T) {
 	t.Run("SendWelcomeEmail should send to user", func(t *testing.T) {
 		// Expected behavior:
-		// - Source: no-reply@docter.io
+		// - Source: no-reply@threadr.net
 		// - Destination: user's email
-		// - Subject: "Welcome to Docter"
+		// - Subject: "Welcome to Threadr"
 		// - Body: Welcome message
 		t.Log("SendWelcomeEmail sends welcome email to new users")
 	})
 
 	t.Run("SendAlertEmail should notify support", func(t *testing.T) {
 		// Expected behavior:
-		// - Source: no-reply@docter.io
-		// - Destination: support@docter.io
+		// - Source: no-reply@threadr.net
+		// - Destination: support@threadr.net
 		// - Subject: "New User Signup"
 		// - Body: Contains user's email
 		t.Log("SendAlertEmail notifies support of new signups")
@@ -158,8 +158,8 @@ func TestEmailFunctions_ExpectedBehavior(t *testing.T) {
 func TestSendWelcomeEmail_WithMock_Success(t *testing.T) {
 	mockSES := &MockSESv2Client{
 		SendEmailFunc: func(ctx context.Context, input *sesv2.SendEmailInput, optFns ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
-			if *input.FromEmailAddress != "no-reply@docter.io" {
-				t.Errorf("Expected source 'no-reply@docter.io', got %s", *input.FromEmailAddress)
+			if *input.FromEmailAddress != "no-reply@threadr.net" {
+				t.Errorf("Expected source 'no-reply@threadr.net', got %s", *input.FromEmailAddress)
 			}
 			if len(input.Destination.ToAddresses) != 1 {
 				t.Errorf("Expected 1 recipient, got %d", len(input.Destination.ToAddresses))
@@ -191,8 +191,8 @@ func TestSendWelcomeEmail_WithMock_Error(t *testing.T) {
 func TestSendAlertEmail_WithMock_Success(t *testing.T) {
 	mockSES := &MockSESv2Client{
 		SendEmailFunc: func(ctx context.Context, input *sesv2.SendEmailInput, optFns ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
-			if input.Destination.ToAddresses[0] != "support@docter.io" {
-				t.Errorf("Expected recipient 'support@docter.io', got %s", input.Destination.ToAddresses[0])
+			if input.Destination.ToAddresses[0] != "support@threadr.net" {
+				t.Errorf("Expected recipient 'support@threadr.net', got %s", input.Destination.ToAddresses[0])
 			}
 
 			messageID := "alert-message-456"

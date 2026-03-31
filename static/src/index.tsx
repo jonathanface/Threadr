@@ -1,5 +1,5 @@
 import ReactDOM from "react-dom/client";
-import { Docter } from "./docter";
+import { Threadr } from "./threadr";
 import { Loader } from "./utils/Loader";
 import { Toaster } from "./utils/Toaster";
 import { BrowserRouter } from 'react-router-dom';
@@ -87,7 +87,7 @@ const AppWithTheme = () => {
                     <WorksListProvider>
                       <Toaster />
                       <Loader />
-                      <Docter />
+                      <Threadr />
                     </WorksListProvider>
                   </SelectionsProvider>
                 </NotificationsProvider>

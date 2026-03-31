@@ -40,7 +40,7 @@ export const HeaderMenu = () => {
           const value = (updatedStory as any)[key];
           formData.append(
             key,
-            value !== undefined && value !== null ? String(value) : ""
+            value !== undefined && value !== null ? String(value) : "",
           );
         });
 
@@ -95,7 +95,7 @@ export const HeaderMenu = () => {
           }
           formData.append(
             key,
-            value !== undefined && value !== null ? String(value) : ""
+            value !== undefined && value !== null ? String(value) : "",
           );
         });
         try {
@@ -136,10 +136,10 @@ export const HeaderMenu = () => {
         <a href={baseUrl} className={styles.logoLink}>
           <img
             className={styles.logoImage}
-            alt="Docter.io logo"
-            src="/img/slash-logo-trans-100.png"
+            alt="Threadr logo"
+            src="/img/threadr-logo.png"
           />
-          <span className={styles.logoText}>docter.io</span>
+          <span className={styles.logoText}>threadr</span>
         </a>
         {!isSharedReader && (
           <span className={styles.storyInfo}>

@@ -61,7 +61,7 @@ export enum BlockAlignmentType {
   JUSTIFY = "justify",
 }
 
-export enum DocterTextFormatType {
+export enum ThreadrTextFormatType {
   BOLD = "bold",
   ITALIC = "italic",
   UNDERLINE = "underline",

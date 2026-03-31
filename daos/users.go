@@ -1,8 +1,8 @@
 package daos
 
 import (
-	"RichDocter/logger"
-	"RichDocter/models"
+	"Threadr/logger"
+	"Threadr/models"
 	"context"
 	"database/sql"
 	"errors"
@@ -542,7 +542,7 @@ func sendWelcomeEmail(userEmail string) error {
 	svc := sesv2.NewFromConfig(cfg)
 	logger.Debug("Created SES v2 client for welcome email", "email", userEmail)
 
-	emailBody := `Welcome to Docter!
+	emailBody := `Welcome to Threadr!
 
 Thank you for signing up. We're excited to help you organize your story and keep track of all your characters, places, and events.
 
@@ -553,22 +553,22 @@ Getting Started:
 3. Highlight text to create references to characters, places, and events
 4. Click any reference to view its details without losing your place
 
-Visit Docter: https://docter.io
+Visit Threadr: https://threadr.net
 
-Need help? Have questions or feedback? Email us at support@docter.io - we'd love to hear from you!
+Need help? Have questions or feedback? Email us at support@threadr.net - we'd love to hear from you!
 
 Happy writing!
-The Docter Team`
+The Threadr Team`
 
 	input := &sesv2.SendEmailInput{
-		FromEmailAddress: aws.String("no-reply@docter.io"),
+		FromEmailAddress: aws.String("no-reply@threadr.net"),
 		Destination: &sesv2types.Destination{
 			ToAddresses: []string{userEmail},
 		},
 		Content: &sesv2types.EmailContent{
 			Simple: &sesv2types.Message{
 				Subject: &sesv2types.Content{
-					Data: aws.String("Welcome to Docter"),
+					Data: aws.String("Welcome to Threadr"),
 				},
 				Body: &sesv2types.Body{
 					Text: &sesv2types.Content{
@@ -675,9 +675,9 @@ func sendNewUserNotificationEmail(userEmail string) error {
 	emailBody := "A new user has signed up for docter: " + userEmail
 
 	input := &sesv2.SendEmailInput{
-		FromEmailAddress: aws.String("no-reply@docter.io"),
+		FromEmailAddress: aws.String("no-reply@threadr.net"),
 		Destination: &sesv2types.Destination{
-			ToAddresses: []string{"support@docter.io"},
+			ToAddresses: []string{"support@threadr.net"},
 		},
 		Content: &sesv2types.EmailContent{
 			Simple: &sesv2types.Message{

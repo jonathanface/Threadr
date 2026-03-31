@@ -1,7 +1,7 @@
 package billing
 
 import (
-	"RichDocter/models"
+	"Threadr/models"
 	"bytes"
 	"encoding/json"
 	"io"

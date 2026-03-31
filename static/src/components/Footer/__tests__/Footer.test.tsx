@@ -22,7 +22,7 @@ describe('Footer', () => {
       const currentYear = new Date().getFullYear();
       render(<Footer />);
 
-      expect(screen.getByText(`©${currentYear} Docter.io, All Rights Reserved`)).toBeInTheDocument();
+      expect(screen.getByText(`©${currentYear} Threadr, All Rights Reserved`)).toBeInTheDocument();
     });
 
     it('should render Privacy Policy link', () => {
@@ -122,7 +122,7 @@ describe('Footer', () => {
       const currentYear = new Date().getFullYear();
       render(<Footer />);
 
-      const copyrightText = screen.getByText(`©${currentYear} Docter.io, All Rights Reserved`);
+      const copyrightText = screen.getByText(`©${currentYear} Threadr, All Rights Reserved`);
       expect(copyrightText).toBeInTheDocument();
     });
   });
@@ -132,7 +132,7 @@ describe('Footer', () => {
       render(<Footer />);
 
       // Copyright paragraph
-      expect(screen.getByText(/©.*Docter\.io/)).toBeInTheDocument();
+      expect(screen.getByText(/©.*Threadr/)).toBeInTheDocument();
 
       // Links paragraph
       expect(screen.getByText('Privacy Policy')).toBeInTheDocument();
@@ -225,7 +225,7 @@ describe('Footer', () => {
     it('should display correct company name', () => {
       render(<Footer />);
 
-      expect(screen.getByText(/Docter\.io/)).toBeInTheDocument();
+      expect(screen.getByText(/Threadr/)).toBeInTheDocument();
     });
 
     it('should display "All Rights Reserved" text', () => {

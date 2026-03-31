@@ -1,7 +1,7 @@
 package daos
 
 import (
-	"RichDocter/models"
+	"Threadr/models"
 	"context"
 	"errors"
 	"os"

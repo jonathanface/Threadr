@@ -25,7 +25,7 @@ import { ForgotPasswordPage } from "./sections/ForgotPassword";
 import { ResetPasswordPage } from "./sections/ResetPassword";
 import { LinkAccountPage } from "./sections/LinkAccount";
 
-export const Docter = () => {
+export const Threadr = () => {
   const { isLoggedIn, userLoading } = useFetchUserData();
 
   if (userLoading) {

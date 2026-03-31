@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"RichDocter/models"
+	"Threadr/models"
 )
 
 // --- Test helpers ------------------------------------------------------------
@@ -78,7 +78,7 @@ func mustTempDir(t *testing.T) string {
 }
 
 // --- Minimal test struct for models.DocumentExportRequest --------------------
-// Ensure this matches your actual type in RichDocter/models.
+// Ensure this matches your actual type in Threadr/models.
 
 type testChapter struct {
 	Chapter string

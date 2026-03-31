@@ -1,8 +1,8 @@
 package daos
 
 import (
-	"RichDocter/logger"
-	"RichDocter/models"
+	"Threadr/logger"
+	"Threadr/models"
 	"context"
 	"fmt"
 	"log"

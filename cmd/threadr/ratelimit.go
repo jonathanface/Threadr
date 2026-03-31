@@ -1,8 +1,8 @@
 package main
 
 import (
-	"RichDocter/api"
-	"RichDocter/logger"
+	"Threadr/api"
+	"Threadr/logger"
 	"net/http"
 	"strings"
 	"sync"

@@ -1,7 +1,7 @@
 package daos
 
 import (
-	"RichDocter/models"
+	"Threadr/models"
 	"context"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"

@@ -50,7 +50,7 @@ describe('SplashPage', () => {
     it('should render hero subtitle', () => {
       renderSplashPage();
 
-      expect(screen.getByText(/Docter embeds your characters, places, and events directly into your manuscript/i)).toBeInTheDocument();
+      expect(screen.getByText(/Threadr embeds your characters, places, and events directly into your manuscript/i)).toBeInTheDocument();
     });
 
     it('should render primary CTA buttons', () => {
@@ -199,7 +199,7 @@ describe('SplashPage', () => {
       renderSplashPage();
 
       expect(screen.getByText(/Every writer knows the feeling/i)).toBeInTheDocument();
-      expect(screen.getByText(/Docter solves this by turning your manuscript/i)).toBeInTheDocument();
+      expect(screen.getByText(/Threadr solves this by turning your manuscript/i)).toBeInTheDocument();
     });
 
     it('should render writer desk image', () => {
