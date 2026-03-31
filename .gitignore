@@ -50,8 +50,8 @@ yarn-error.log*
 *.zip
 .aider*
 bootstrap
-bin/richdocter
-richdocter
+bin/threadr
+threadr
 
 *.bak
 *.mobile-backup
