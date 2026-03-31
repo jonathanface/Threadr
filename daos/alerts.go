@@ -162,7 +162,7 @@ func (d *DAO) createWelcomeAlert(ctx context.Context, email string) {
 	alert := models.Alert{
 		ID:          fmt.Sprintf("welcome-%s", email),
 		Subject:     "Welcome to Threadr!",
-		Message:     "We're excited to have you. Start by creating your first story and linking your characters, places, and events directly into your manuscript.",
+		Message:     "We're excited to have you. Start by creating your first story and linking your characters, places, and events directly into your manuscript. If you need any help, reach out to support@threadr.net.",
 		Link:        "/stories/new",
 		AlertType:   models.AlertTypePersonal,
 		TargetEmail: email,
@@ -194,7 +194,7 @@ func (d *DAO) createWelcomeBackAlert(ctx context.Context, email string) {
 	alert := models.Alert{
 		ID:          fmt.Sprintf("welcome-back-%s-%d", email, time.Now().Unix()),
 		Subject:     "Welcome back to Threadr!",
-		Message:     "Great to see you again. Your stories have been restored and are ready for you.",
+		Message:     "Great to see you again. Your stories have been restored and are ready for you. If you need any help, reach out to support@threadr.net.",
 		Link:        "/stories",
 		AlertType:   models.AlertTypePersonal,
 		TargetEmail: email,
