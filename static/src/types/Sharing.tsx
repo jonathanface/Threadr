@@ -42,6 +42,7 @@ export interface SharedStoryResponse {
   reader_email: string;
   reader_first_name: string;
   reader_last_name: string;
+  reader_has_account: boolean;
 }
 
 export interface CreateCommentRequest {

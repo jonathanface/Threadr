@@ -237,7 +237,12 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
           >
             <CloseIcon />
           </IconButton>
-          <CommentsPanel />
+          <CommentsPanel
+            onInviteReaders={() => {
+              setIsCommentsDrawerOpen(false);
+              setIsShareDialogOpen(true);
+            }}
+          />
         </Box>
       </Drawer>
     </div>

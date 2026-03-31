@@ -10,6 +10,7 @@ import { EditableText } from "../EditableText";
 import { ThemeToggle } from "../ThemeToggle";
 
 import { api } from "../../api";
+import { NotificationsBell } from "../NotificationsBell";
 import styles from "./headermenu.module.css";
 
 export const HeaderMenu = () => {
@@ -159,6 +160,7 @@ export const HeaderMenu = () => {
         )}
       </span>
       <span className={styles.rightPane}>
+        {!isSharedReader && <NotificationsBell />}
         <ThemeToggle />
         {!isSharedReader && <UserMenu />}
       </span>

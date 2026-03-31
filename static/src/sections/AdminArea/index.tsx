@@ -5,6 +5,8 @@ import { UserContext } from "../../contexts/user";
 import { useLoader } from "../../hooks/useLoader";
 import styles from "./adminarea.module.css";
 
+type AlertType = "announcement" | "personal";
+
 interface AdminStoryInfo {
   title: string;
   series_title?: string;
@@ -25,6 +27,16 @@ export const AdminArea = () => {
   const navigate = useNavigate();
   const [users, setUsers] = useState<AdminUserSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  // Alert creation state
+  const [alertSubject, setAlertSubject] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertLink, setAlertLink] = useState("");
+  const [alertType, setAlertType] = useState<AlertType>("announcement");
+  const [alertEmail, setAlertEmail] = useState("");
+  const [alertSuccess, setAlertSuccess] = useState<string | null>(null);
+  const [alertError, setAlertError] = useState<string | null>(null);
+  const [alertSending, setAlertSending] = useState(false);
 
   const isAdmin = userContext?.userDetails?.admin ?? false;
 
@@ -64,6 +76,44 @@ export const AdminArea = () => {
       fetchUsers();
     } catch {
       setError(`Failed to delete user ${email}`);
+    }
+  };
+
+  const handleSendAlert = async () => {
+    if (!alertSubject.trim()) {
+      setAlertError("Subject is required");
+      return;
+    }
+    if (!alertMessage.trim()) {
+      setAlertError("Message is required");
+      return;
+    }
+    if (alertType === "personal" && !alertEmail.trim()) {
+      setAlertError("Email is required for personal alerts");
+      return;
+    }
+
+    setAlertSending(true);
+    setAlertError(null);
+    setAlertSuccess(null);
+
+    try {
+      await api.post("/admin/alerts", {
+        subject: alertSubject.trim(),
+        message: alertMessage.trim(),
+        link: alertLink.trim() || undefined,
+        alert_type: alertType,
+        target_email: alertType === "personal" ? alertEmail.trim() : "",
+      });
+      setAlertSuccess("Alert sent successfully");
+      setAlertSubject("");
+      setAlertMessage("");
+      setAlertLink("");
+      setAlertEmail("");
+    } catch {
+      setAlertError("Failed to send alert");
+    } finally {
+      setAlertSending(false);
     }
   };
 
@@ -168,6 +218,89 @@ export const AdminArea = () => {
       {users.length === 0 && !error && (
         <p className={styles.emptyState}>No users found</p>
       )}
+
+      <hr className={styles.divider} />
+
+      <h2 className={styles.sectionTitle}>Create Alert</h2>
+
+      {alertError && <div className={styles.error}>{alertError}</div>}
+      {alertSuccess && <div className={styles.success}>{alertSuccess}</div>}
+
+      <div className={styles.alertForm}>
+        <label className={styles.formLabel}>
+          Subject
+          <input
+            className={styles.emailInput}
+            value={alertSubject}
+            onChange={(e) => setAlertSubject(e.target.value)}
+            placeholder="Alert subject..."
+          />
+        </label>
+        <label className={styles.formLabel}>
+          Message
+          <textarea
+            className={styles.textarea}
+            value={alertMessage}
+            onChange={(e) => setAlertMessage(e.target.value)}
+            placeholder="Enter alert message..."
+            rows={3}
+          />
+        </label>
+
+        <label className={styles.formLabel}>
+          Link (optional)
+          <input
+            className={styles.emailInput}
+            value={alertLink}
+            onChange={(e) => setAlertLink(e.target.value)}
+            placeholder="/stories/some-id or https://..."
+          />
+        </label>
+
+        <div className={styles.radioGroup}>
+          <label className={styles.radioLabel}>
+            <input
+              type="radio"
+              name="alertType"
+              value="announcement"
+              checked={alertType === "announcement"}
+              onChange={() => setAlertType("announcement")}
+            />
+            Announcement (all users)
+          </label>
+          <label className={styles.radioLabel}>
+            <input
+              type="radio"
+              name="alertType"
+              value="personal"
+              checked={alertType === "personal"}
+              onChange={() => setAlertType("personal")}
+            />
+            Personal (specific user)
+          </label>
+        </div>
+
+        {alertType === "personal" && (
+          <label className={styles.formLabel}>
+            Email
+            <input
+              type="email"
+              className={styles.emailInput}
+              value={alertEmail}
+              onChange={(e) => setAlertEmail(e.target.value)}
+              placeholder="user@example.com"
+            />
+          </label>
+        )}
+
+        <button
+          className={styles.sendButton}
+          onClick={handleSendAlert}
+          disabled={alertSending}
+        >
+          {alertSending ? "Sending..." : "Send Alert"}
+        </button>
+      </div>
     </div>
   );
 };

@@ -84,6 +84,10 @@ func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.OauthOptio
 	apiRtr.HandleFunc("/series/{series}/volumes", api.AllSeriesVolumesEndPoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/chapters/{chapterID}", api.ChapterDetailsEndpoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/chapters/{chapterID}/status", api.ChapterTableStatusEndpoint).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/alerts", api.GetUserAlertsEndpoint).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/alerts/unread-count", api.GetUnreadAlertCountEndpoint).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/alerts/{alertID}/read", api.MarkAlertReadEndpoint).Methods("PUT", "OPTIONS")
+	apiRtr.HandleFunc("/admin/alerts", api.AdminCreateAlertEndpoint).Methods("POST", "OPTIONS")
 	apiRtr.HandleFunc("/admin/users", api.AdminGetAllUsersEndpoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/admin/users/{email}", api.AdminDeleteUserEndpoint).Methods("DELETE", "OPTIONS")
 

@@ -37,6 +37,7 @@ interface ReadOnlyViewerProps {
   onNextChapter?: () => void;
   showNav?: boolean;
   chapterSelector?: React.ReactNode;
+  showSignupPrompt?: boolean;
 }
 
 function LoadContentPlugin({
@@ -131,6 +132,7 @@ export const ReadOnlyViewer = ({
   onNextChapter,
   showNav,
   chapterSelector,
+  showSignupPrompt,
 }: ReadOnlyViewerProps) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [showComposer, setShowComposer] = useState(false);
@@ -141,7 +143,7 @@ export const ReadOnlyViewer = ({
     focusOffset: number;
   } | null>(null);
   const editorRef = useRef<LexicalEditor | null>(null);
-   
+
   const [_blockKeyIds, setBlockKeyIds] = useState<string[]>([]);
 
   const initialConfig = {
@@ -413,9 +415,7 @@ export const ReadOnlyViewer = ({
           className={styles.readerRow}
           style={{ marginTop: 0, marginBottom: 8 }}
         >
-          <div className={styles.readerArea}>
-            {chapterSelector}
-          </div>
+          <div className={styles.readerArea}>{chapterSelector}</div>
           {commentsEnabled && (
             <div style={{ width: 334, minWidth: 334, flexShrink: 0 }} />
           )}
@@ -547,15 +547,33 @@ export const ReadOnlyViewer = ({
         </div>
 
         {commentsEnabled && (
-          <CommentSidebar
-            comments={chapterComments}
-            readerFirstName={readerFirstName}
-            readerLastName={readerLastName}
-            onDelete={handleDeleteComment}
-            focusedCommentId={focusedCommentId}
-            onFocusClear={() => setFocusedCommentId(null)}
-            commentPositions={commentPositionMap}
-          />
+          <div style={{ display: "flex", flexDirection: "column", width: 332 }}>
+            {showSignupPrompt && (
+              <Button
+                variant="contained"
+                size="small"
+                href="/signup"
+                fullWidth
+                sx={{
+                  textTransform: "none",
+                  fontSize: "0.8rem",
+                  mb: 1,
+                }}
+              >
+                Want to write your own? Create a free Docter account and get
+                started.
+              </Button>
+            )}
+            <CommentSidebar
+              comments={chapterComments}
+              readerFirstName={readerFirstName}
+              readerLastName={readerLastName}
+              onDelete={handleDeleteComment}
+              focusedCommentId={focusedCommentId}
+              onFocusClear={() => setFocusedCommentId(null)}
+              commentPositions={commentPositionMap}
+            />
+          </div>
         )}
       </div>
       {showNav && (

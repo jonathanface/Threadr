@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Box,
+  Button,
   Chip,
   IconButton,
   List,
@@ -17,7 +18,11 @@ import { useSelections } from "../../../../../hooks/useSelections";
 import { Comment } from "../../../../../types/Sharing";
 import { useScrollToComment } from "./CommentHighlightOverlay";
 
-export const CommentsPanel = () => {
+interface CommentsPanelProps {
+  onInviteReaders?: () => void;
+}
+
+export const CommentsPanel = ({ onInviteReaders }: CommentsPanelProps) => {
   const { story, chapter, setChapter } = useSelections();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
@@ -105,9 +110,21 @@ export const CommentsPanel = () => {
           Loading...
         </Typography>
       ) : comments.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">
-          No comments on this chapter yet.
-        </Typography>
+        <Box sx={{ textAlign: "center", py: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            No comments on this chapter yet.
+          </Typography>
+          {onInviteReaders && (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={onInviteReaders}
+              sx={{ textTransform: "none" }}
+            >
+              Invite Readers
+            </Button>
+          )}
+        </Box>
       ) : (
         <List dense>
           {comments.map((comment) => (

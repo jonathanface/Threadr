@@ -55,6 +55,19 @@ func (d *DAO) CreateEmailUser(ctx context.Context, email, firstName, lastName, p
 	// not during signup, to prevent attackers from accessing a deleted user's data
 	// by signing up with their email.
 
+	// Create welcome alert (will be waiting when they first log in)
+	// Check if this is a returning user (has soft-deleted stories)
+	go func() {
+		bgCtx := context.Background()
+		stories, err := d.GetAllStoriesIncludingDeleted(bgCtx, email)
+		if err == nil && len(stories) > 0 {
+			d.createWelcomeBackAlert(bgCtx, email)
+		} else {
+			d.createWelcomeAlert(bgCtx, email)
+		}
+		d.createSubscribeNowAlert(bgCtx, email)
+	}()
+
 	return &models.UserInfo{
 		Email:         email,
 		FirstName:     firstName,
