@@ -29,7 +29,7 @@ COPY ./static/tsconfig.node.json ./
 COPY ./static/vite.config.ts ./
 RUN npm run build
 
-FROM golang:1.24-bullseye AS backend-builder
+FROM golang:1.25-bullseye AS backend-builder
 # Install wkhtmltox dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -67,11 +67,11 @@ COPY ./cmd ./cmd
 
 ENV PATH="/usr/local/bin:${PATH}"
 RUN chmod +x /usr/local/bin/wkhtmltoimage || true \
- && which wkhtmltoimage \
- && wkhtmltoimage -V
+    && which wkhtmltoimage \
+    && wkhtmltoimage -V
 RUN chmod +x /usr/local/bin/wkhtmltopdf || true \
- && which wkhtmltopdf \
- && wkhtmltopdf -V
+    && which wkhtmltopdf \
+    && wkhtmltopdf -V
 
 RUN mkdir -p ./tmp
 RUN go build -o ./bin/richdocter ./cmd/richdocter
