@@ -1,4 +1,4 @@
-import { subscribeSaving, getIsSaving } from "../api";
+import { getIsSaving, subscribeSaving } from "../api";
 
 const SIZE = 32;
 let originalHref: string | null = null;

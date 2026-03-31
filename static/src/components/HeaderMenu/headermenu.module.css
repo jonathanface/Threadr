@@ -87,6 +87,10 @@ header .logoText {
     text-transform: uppercase;
 }
 
+:global([data-theme="light"]) header .logoText {
+    color: #ffffff;
+}
+
 header .rightPane {
     display: flex;
     align-items: center;
