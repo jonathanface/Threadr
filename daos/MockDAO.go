@@ -67,6 +67,17 @@ type MockDAO struct {
 	MockRestoreShareLink       func(token string) error
 	MockDeleteShareLink        func(token string) error
 
+	// Email/Password Auth
+	MockCreateEmailUser              func(email, firstName, lastName, passwordHash, verificationToken string, tokenExpires int64) (*models.UserInfo, error)
+	MockSetEmailVerified             func(email string) error
+	MockSetVerificationToken         func(email, token string, expires int64) error
+	MockSetResetToken                func(email, token string, expires int64) error
+	MockUpdatePassword               func(email, passwordHash string) error
+	MockClearResetToken              func(email string) error
+	MockLinkOAuthAccount             func(email, authType string) error
+	MockFindUserByVerificationToken  func(token string) (*models.UserInfo, error)
+	MockFindUserByResetToken         func(token string) (*models.UserInfo, error)
+
 	// Comments
 	MockCreateComment              func(comment models.Comment) error
 	MockGetComment                 func(commentID string) (*models.Comment, error)
@@ -470,6 +481,75 @@ func (m *MockDAO) WasStoryDeleted(ctx context.Context, email, storyID string) (b
 		return m.MockWasStoryDeleted(email, storyID)
 	}
 	return m.DAO.WasStoryDeleted(ctx, email, storyID)
+}
+
+// Email/Password Auth mock implementations
+
+func (m *MockDAO) CreateEmailUser(ctx context.Context, email, firstName, lastName, passwordHash, verificationToken string, tokenExpires int64) (*models.UserInfo, error) {
+	if m.MockCreateEmailUser != nil {
+		return m.MockCreateEmailUser(email, firstName, lastName, passwordHash, verificationToken, tokenExpires)
+	}
+	return &models.UserInfo{Email: email, FirstName: firstName, LastName: lastName, AuthType: "email"}, nil
+}
+
+func (m *MockDAO) SetEmailVerified(ctx context.Context, email string) error {
+	if m.MockSetEmailVerified != nil {
+		return m.MockSetEmailVerified(email)
+	}
+	return nil
+}
+
+func (m *MockDAO) SetVerificationToken(ctx context.Context, email, token string, expires int64) error {
+	if m.MockSetVerificationToken != nil {
+		return m.MockSetVerificationToken(email, token, expires)
+	}
+	return nil
+}
+
+func (m *MockDAO) SetResetToken(ctx context.Context, email, token string, expires int64) error {
+	if m.MockSetResetToken != nil {
+		return m.MockSetResetToken(email, token, expires)
+	}
+	return nil
+}
+
+func (m *MockDAO) UpdatePassword(ctx context.Context, email, passwordHash string) error {
+	if m.MockUpdatePassword != nil {
+		return m.MockUpdatePassword(email, passwordHash)
+	}
+	return nil
+}
+
+func (m *MockDAO) ClearResetToken(ctx context.Context, email string) error {
+	if m.MockClearResetToken != nil {
+		return m.MockClearResetToken(email)
+	}
+	return nil
+}
+
+func (m *MockDAO) LinkOAuthAccount(ctx context.Context, email, authType string) error {
+	if m.MockLinkOAuthAccount != nil {
+		return m.MockLinkOAuthAccount(email, authType)
+	}
+	return nil
+}
+
+func (m *MockDAO) RestoreDataForVerifiedUser(email string) {
+	// no-op for tests
+}
+
+func (m *MockDAO) FindUserByVerificationToken(ctx context.Context, token string) (*models.UserInfo, error) {
+	if m.MockFindUserByVerificationToken != nil {
+		return m.MockFindUserByVerificationToken(token)
+	}
+	return &models.UserInfo{}, nil
+}
+
+func (m *MockDAO) FindUserByResetToken(ctx context.Context, token string) (*models.UserInfo, error) {
+	if m.MockFindUserByResetToken != nil {
+		return m.MockFindUserByResetToken(token)
+	}
+	return &models.UserInfo{}, nil
 }
 
 // Sharing mock implementations

@@ -76,19 +76,24 @@ api.interceptors.response.use(
     };
 
     if (error.response?.status === 401) {
-      const isRoot = window.location.pathname === "/";
-      const isSignin = window.location.pathname.startsWith("/signin");
-      const isSharedReader = window.location.pathname.startsWith("/shared/");
+      const path = window.location.pathname;
+      const isPublicPage =
+        path === "/" ||
+        path.startsWith("/signin") ||
+        path.startsWith("/signup") ||
+        path.startsWith("/shared/") ||
+        path.startsWith("/verify-email") ||
+        path.startsWith("/forgot-password") ||
+        path.startsWith("/reset-password") ||
+        path.startsWith("/link-account");
 
       logger.warn("API 401 Unauthorized detected", {
         ...errorContext,
-        currentPath: window.location.pathname,
-        isRoot,
-        isSignin,
-        isSharedReader,
+        currentPath: path,
+        isPublicPage,
       });
 
-      if (!isRoot && !isSignin && !isSharedReader) {
+      if (!isPublicPage) {
         // get current path + query string (no origin so it's relative)
         const currentPath = window.location.pathname + window.location.search;
         logger.info("Redirecting to signin", {

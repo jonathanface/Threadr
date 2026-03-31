@@ -82,6 +82,17 @@ type MockDAO struct {
 	DeleteUserFunc                            func(email string) error
 	GetAllUsersWithStoriesFunc                func() ([]models.AdminUserSummary, error)
 	GetChaptersByStoryIDsFunc                 func(storyIDs []string) (map[string][]models.Chapter, error)
+
+	// Email auth
+	CreateEmailUserFunc              func(email, firstName, lastName, passwordHash, verificationToken string, tokenExpires int64) (*models.UserInfo, error)
+	SetEmailVerifiedFunc             func(email string) error
+	SetVerificationTokenFunc         func(email, token string, expires int64) error
+	SetResetTokenFunc                func(email, token string, expires int64) error
+	UpdatePasswordFunc               func(email, passwordHash string) error
+	ClearResetTokenFunc              func(email string) error
+	LinkOAuthAccountFunc             func(email, authType string) error
+	FindUserByVerificationTokenFunc  func(token string) (*models.UserInfo, error)
+	FindUserByResetTokenFunc         func(token string) (*models.UserInfo, error)
 }
 
 // Note: We cannot enforce interface implementation at compile time due to unexported methods
@@ -691,6 +702,75 @@ func NewMockDAOWithError(err error) *MockDAO {
 			return err
 		},
 	}
+}
+
+// Email auth mock implementations
+
+func (m *MockDAO) CreateEmailUser(email, firstName, lastName, passwordHash, verificationToken string, tokenExpires int64) (*models.UserInfo, error) {
+	if m.CreateEmailUserFunc != nil {
+		return m.CreateEmailUserFunc(email, firstName, lastName, passwordHash, verificationToken, tokenExpires)
+	}
+	return &models.UserInfo{Email: email}, nil
+}
+
+func (m *MockDAO) SetEmailVerified(email string) error {
+	if m.SetEmailVerifiedFunc != nil {
+		return m.SetEmailVerifiedFunc(email)
+	}
+	return nil
+}
+
+func (m *MockDAO) SetVerificationToken(email, token string, expires int64) error {
+	if m.SetVerificationTokenFunc != nil {
+		return m.SetVerificationTokenFunc(email, token, expires)
+	}
+	return nil
+}
+
+func (m *MockDAO) SetResetToken(email, token string, expires int64) error {
+	if m.SetResetTokenFunc != nil {
+		return m.SetResetTokenFunc(email, token, expires)
+	}
+	return nil
+}
+
+func (m *MockDAO) UpdatePassword(email, passwordHash string) error {
+	if m.UpdatePasswordFunc != nil {
+		return m.UpdatePasswordFunc(email, passwordHash)
+	}
+	return nil
+}
+
+func (m *MockDAO) ClearResetToken(email string) error {
+	if m.ClearResetTokenFunc != nil {
+		return m.ClearResetTokenFunc(email)
+	}
+	return nil
+}
+
+func (m *MockDAO) LinkOAuthAccount(email, authType string) error {
+	if m.LinkOAuthAccountFunc != nil {
+		return m.LinkOAuthAccountFunc(email, authType)
+	}
+	return nil
+}
+
+func (m *MockDAO) FindUserByVerificationToken(token string) (*models.UserInfo, error) {
+	if m.FindUserByVerificationTokenFunc != nil {
+		return m.FindUserByVerificationTokenFunc(token)
+	}
+	return &models.UserInfo{}, nil
+}
+
+func (m *MockDAO) FindUserByResetToken(token string) (*models.UserInfo, error) {
+	if m.FindUserByResetTokenFunc != nil {
+		return m.FindUserByResetTokenFunc(token)
+	}
+	return &models.UserInfo{}, nil
+}
+
+func (m *MockDAO) RestoreDataForVerifiedUser(_ string) {
+	// no-op for tests
 }
 
 // Common error for testing

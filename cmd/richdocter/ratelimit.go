@@ -105,6 +105,106 @@ func getClientIP(r *http.Request) string {
 	return r.RemoteAddr
 }
 
+// authRateLimiter enforces stricter per-endpoint rate limits for authentication endpoints
+type authRateLimiter struct {
+	mu       sync.RWMutex
+	requests map[string][]time.Time // key: "ip:path"
+	limits   map[string]int         // path suffix -> max requests per window
+	window   time.Duration
+}
+
+func newAuthRateLimiter() *authRateLimiter {
+	arl := &authRateLimiter{
+		requests: make(map[string][]time.Time),
+		limits: map[string]int{
+			"/email/login":          5, // 5 login attempts per minute per IP
+			"/email/signup":         3, // 3 signups per minute per IP
+			"/email/request-reset":  3, // 3 reset requests per minute per IP
+			"/email/reset-password": 5, // 5 reset attempts per minute per IP
+			"/email/link-oauth":     5, // 5 link attempts per minute per IP
+		},
+		window: time.Minute,
+	}
+	go arl.cleanup()
+	return arl
+}
+
+func (arl *authRateLimiter) cleanup() {
+	ticker := time.NewTicker(cleanupInterval)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		arl.mu.Lock()
+		cutoff := time.Now().Add(-arl.window)
+		for key, timestamps := range arl.requests {
+			if len(timestamps) == 0 || timestamps[len(timestamps)-1].Before(cutoff) {
+				delete(arl.requests, key)
+			}
+		}
+		arl.mu.Unlock()
+	}
+}
+
+func (arl *authRateLimiter) allow(ip, path string) bool {
+	// Find the matching limit for this path
+	limit := 0
+	for suffix, l := range arl.limits {
+		if strings.HasSuffix(path, suffix) {
+			limit = l
+			break
+		}
+	}
+	if limit == 0 {
+		return true // No specific limit for this path
+	}
+
+	now := time.Now()
+	cutoff := now.Add(-arl.window)
+	key := ip + ":" + path
+
+	arl.mu.Lock()
+	defer arl.mu.Unlock()
+
+	timestamps := arl.requests[key]
+	validTimestamps := make([]time.Time, 0, len(timestamps))
+	for _, ts := range timestamps {
+		if ts.After(cutoff) {
+			validTimestamps = append(validTimestamps, ts)
+		}
+	}
+
+	if len(validTimestamps) >= limit {
+		return false
+	}
+
+	validTimestamps = append(validTimestamps, now)
+	arl.requests[key] = validTimestamps
+	return true
+}
+
+func authRateLimitMiddleware(limiter *authRateLimiter) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == "OPTIONS" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			ip := getClientIP(r)
+			if !limiter.allow(ip, r.URL.Path) {
+				logger.Warn("Auth rate limit exceeded",
+					"ip", ip,
+					"path", r.URL.Path,
+					"method", r.Method)
+				api.RespondWithError(w, http.StatusTooManyRequests, "too many attempts, please try again later")
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // rateLimitMiddleware returns a middleware that enforces rate limiting per IP
 func rateLimitMiddleware(limiter *rateLimiter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {

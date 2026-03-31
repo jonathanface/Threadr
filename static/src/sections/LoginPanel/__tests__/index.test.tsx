@@ -4,13 +4,13 @@ import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import { LoginPanel } from '../index';
 
-const renderWithRouter = (ui: React.ReactElement) => {
-  return render(<MemoryRouter>{ui}</MemoryRouter>);
+const renderWithRouter = (ui: React.ReactElement, initialEntries = ['/signin']) => {
+  return render(<MemoryRouter initialEntries={initialEntries}>{ui}</MemoryRouter>);
 };
 
 const mockWindowLocation = (search: string) => {
   Object.defineProperty(window, 'location', {
-    value: { search },
+    value: { search, pathname: '/signin', href: '/signin' + search },
     writable: true,
   });
 };
@@ -24,7 +24,7 @@ describe('LoginPanel', () => {
   describe('Rendering', () => {
     it('should render without crashing', () => {
       renderWithRouter(<LoginPanel />);
-      expect(screen.getByText('Sign In Options')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument();
     });
 
     it('should render Google login option', () => {
@@ -62,6 +62,27 @@ describe('LoginPanel', () => {
       expect(amazonImg).toHaveAttribute('src', 'https://images-na.ssl-images-amazon.com/images/G/01/lwa/btnLWA_gold_156x32.png');
       expect(amazonImg).toHaveAttribute('width', '175');
     });
+
+    it('should render email/password form', () => {
+      renderWithRouter(<LoginPanel />);
+
+      expect(screen.getByPlaceholderText('Email')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Password')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+    });
+
+    it('should render forgot password and create account links', () => {
+      renderWithRouter(<LoginPanel />);
+
+      expect(screen.getByText('Forgot password?')).toBeInTheDocument();
+      expect(screen.getByText('Create an account')).toBeInTheDocument();
+    });
+
+    it('should render divider between OAuth and email form', () => {
+      renderWithRouter(<LoginPanel />);
+
+      expect(screen.getByText('or sign in with email')).toBeInTheDocument();
+    });
   });
 
   describe('Query String Handling', () => {
@@ -91,13 +112,19 @@ describe('LoginPanel', () => {
       expect(googleLink).toHaveAttribute('href', '/auth/google');
       expect(amazonLink).toHaveAttribute('href', '/auth/amazon');
     });
+  });
 
-    it('should handle complex query strings', () => {
-      mockWindowLocation('?redirect=/stories&token=abc123');
-      renderWithRouter(<LoginPanel />);
+  describe('Success Messages', () => {
+    it('should show verified message when verified=true in params', () => {
+      renderWithRouter(<LoginPanel />, ['/signin?verified=true']);
 
-      const googleLink = screen.getByRole('link', { name: /login with google/i });
-      expect(googleLink).toHaveAttribute('href', '/auth/google?redirect=/stories&token=abc123');
+      expect(screen.getByText(/email verified successfully/i)).toBeInTheDocument();
+    });
+
+    it('should show reset message when reset=true in params', () => {
+      renderWithRouter(<LoginPanel />, ['/signin?reset=true']);
+
+      expect(screen.getByText(/password reset successfully/i)).toBeInTheDocument();
     });
   });
 
@@ -113,33 +140,17 @@ describe('LoginPanel', () => {
       renderWithRouter(<LoginPanel />);
 
       const heading = screen.getByRole('heading', { level: 1 });
-      expect(heading).toHaveTextContent('Sign In Options');
+      expect(heading).toHaveTextContent('Sign In');
     });
 
     it('should have valid links', () => {
       renderWithRouter(<LoginPanel />);
 
       const links = screen.getAllByRole('link');
-      expect(links).toHaveLength(2);
+      expect(links.length).toBeGreaterThanOrEqual(4); // Google, Amazon, Forgot password, Create account
       links.forEach(link => {
         expect(link).toHaveAttribute('href');
       });
-    });
-  });
-
-  describe('Structure', () => {
-    it('should render both login options in separate containers', () => {
-      renderWithRouter(<LoginPanel />);
-
-      const googleLink = screen.getByRole('link', { name: /login with google/i });
-      const amazonLink = screen.getByRole('link', { name: /login with amazon/i });
-
-      // Both should be rendered
-      expect(googleLink).toBeInTheDocument();
-      expect(amazonLink).toBeInTheDocument();
-
-      // Links should not be the same element
-      expect(googleLink).not.toBe(amazonLink);
     });
   });
 

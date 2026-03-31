@@ -331,12 +331,27 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 		}
 	}
 
-	// Update user's name information from OAuth provider
+	// Check if this is an email/password account trying to log in via OAuth
+	if userDetails != nil && userDetails.AuthType == "email" && !isNewUser {
+		logger.Info("OAuth login attempted for email account, prompting to link",
+			"email", info.Email,
+			"provider", provider,
+			"remoteAddr", r.RemoteAddr)
+		redirectURL := fmt.Sprintf("%s/link-account?email=%s&provider=%s",
+			options.FrontEndURL,
+			url.QueryEscape(info.Email),
+			url.QueryEscape(provider))
+		http.Redirect(w, r, redirectURL, http.StatusFound)
+		return
+	}
+
+	// Update user's name and auth_type from OAuth provider
 	if info.FirstName != "" || info.LastName != "" {
 		updateInfo := models.UserInfo{
 			Email:      info.Email,
 			FirstName:  info.FirstName,
 			LastName:   info.LastName,
+			AuthType:   info.AuthType,
 			Subscriber: userDetails.Subscriber,
 		}
 		if err := dao.UpdateUser(r.Context(), updateInfo); err != nil {

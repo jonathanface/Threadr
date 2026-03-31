@@ -368,6 +368,10 @@ func (d *DAO) UpdateUser(ctx context.Context, user models.UserInfo) (err error) 
 		queryString += ", last_name=:ln"
 		attributes[":ln"] = &types.AttributeValueMemberS{Value: user.LastName}
 	}
+	if user.AuthType != "" {
+		queryString += ", auth_type=:at"
+		attributes[":at"] = &types.AttributeValueMemberS{Value: user.AuthType}
+	}
 
 	input := &dynamodb.UpdateItemInput{
 		TableName: aws.String("users" + GetTableSuffix()),
