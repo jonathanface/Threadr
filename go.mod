@@ -1,6 +1,8 @@
 module RichDocter
 
-go 1.25.0
+go 1.24.0
+
+toolchain go1.25.1
 
 require (
 	github.com/SebastiaanKlippert/go-wkhtmltopdf v1.9.0
@@ -13,6 +15,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.92.1
 	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.55.1
 	github.com/aws/smithy-go v1.23.2
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.4.0
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/sessions v1.2.1
@@ -22,9 +25,10 @@ require (
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/stripe/stripe-go/v72 v72.122.0
 	github.com/stripe/stripe-go/v79 v79.12.0
+	golang.org/x/crypto v0.36.0
 )
 
-require golang.org/x/net v0.51.0 // indirect
+require golang.org/x/net v0.38.0 // indirect
 
 require (
 	cloud.google.com/go v0.67.0 // indirect
@@ -45,11 +49,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.14.10 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.19.0 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
-	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	golang.org/x/crypto v0.49.0 // indirect
 	golang.org/x/oauth2 v0.27.0 // indirect
 )

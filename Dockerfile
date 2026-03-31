@@ -29,7 +29,7 @@ COPY ./static/tsconfig.node.json ./
 COPY ./static/vite.config.ts ./
 RUN npm run build
 
-FROM golang:1.25-bullseye AS backend-builder
+FROM golang:1.24-bullseye AS backend-builder
 # Install wkhtmltox dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
