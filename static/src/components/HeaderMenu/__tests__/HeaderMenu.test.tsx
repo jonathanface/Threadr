@@ -93,7 +93,7 @@ describe("HeaderMenu", () => {
 
       const logo = screen.getByAltText("Threadr logo");
       expect(logo).toBeInTheDocument();
-      expect(logo).toHaveAttribute("src", "/img/threadr-logo.png");
+      expect(logo).toHaveAttribute("src", "/img/threadr-logo-contrast.png");
     });
 
     it("should render logo link to home", () => {

@@ -151,7 +151,7 @@ func determineLastName(info goth.User) string {
 }
 
 // safeMobileRedirect validates mobile deep link URLs to prevent open redirect attacks.
-// For minidocter://, only allows the "auth" host (minidocter://auth/...)
+// For minithreadr://, only allows the "auth" host (minithreadr://auth/...)
 // For exp://, only allows localhost and private IP ranges (for development)
 func safeMobileRedirect(dest string) (string, bool) {
 	u, err := url.Parse(dest)
@@ -162,9 +162,9 @@ func safeMobileRedirect(dest string) (string, bool) {
 	scheme := strings.ToLower(u.Scheme)
 
 	switch scheme {
-	case "minidocter":
-		// minidocter:// URLs use the host as the path identifier
-		// Only allow "auth" as the host (e.g., minidocter://auth or minidocter://auth/callback)
+	case "minithreadr":
+		// minithreadr:// URLs use the host as the path identifier
+		// Only allow "auth" as the host (e.g., minithreadr://auth or minithreadr://auth/callback)
 		if strings.ToLower(u.Host) == "auth" {
 			return dest, true
 		}
@@ -400,11 +400,11 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	// Build allowed origins list for mobile deep links
 	allowedOrigins := []string{
 		options.FrontEndURL,
-		"minidocter://auth", // Always allow this for the mobile app's initial request
+		"minithreadr://auth", // Always allow this for the mobile app's initial request
 	}
 
 	// Allow any exp:// scheme for Expo Go development
-	// Allow minidocter:// scheme for production builds
+	// Allow minithreadr:// scheme for production builds
 	// These will be validated by the safeRedirect function
 
 	next := frontend
@@ -412,7 +412,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 		logger.Info("Found next parameter in callback query", "next", rdx, "remoteAddr", r.RemoteAddr)
 
 		// For mobile app schemes, validate against allowed patterns
-		if strings.HasPrefix(rdx, "minidocter://") || strings.HasPrefix(rdx, "exp://") {
+		if strings.HasPrefix(rdx, "minithreadr://") || strings.HasPrefix(rdx, "exp://") {
 			if validURL, ok := safeMobileRedirect(rdx); ok {
 				logger.Info("Validated mobile redirect URL from query parameter", "url", validURL)
 				next = validURL
@@ -429,7 +429,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 			logger.Info("Found referrer in login_referral session", "referrer", ref, "remoteAddr", r.RemoteAddr)
 
 			// For mobile app schemes, validate against allowed patterns
-			if strings.HasPrefix(ref, "minidocter://") || strings.HasPrefix(ref, "exp://") {
+			if strings.HasPrefix(ref, "minithreadr://") || strings.HasPrefix(ref, "exp://") {
 				if validURL, ok := safeMobileRedirect(ref); ok {
 					logger.Info("Validated mobile redirect URL from session", "url", validURL)
 					next = validURL
@@ -549,7 +549,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 
 	// For mobile deep links, append a signed JWT token as a query parameter
 	// since mobile apps can't access browser cookies
-	if strings.HasPrefix(next, "minidocter://") || strings.HasPrefix(next, "exp://") {
+	if strings.HasPrefix(next, "minithreadr://") || strings.HasPrefix(next, "exp://") {
 		signedToken, err := createSignedMobileToken(info)
 		if err != nil {
 			logger.Error("Failed to create signed mobile token", "error", err, "email", info.Email)
@@ -654,7 +654,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
         var isExpoGo = redirectUrl.startsWith('exp://');
 
         if (!isExpoGo) {
-            // For standard deep links (minidocter://), try auto-redirect
+            // For standard deep links (minithreadr://), try auto-redirect
             setTimeout(function() {
                 window.location.href = redirectUrl;
             }, 100);
