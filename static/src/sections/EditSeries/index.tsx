@@ -197,7 +197,7 @@ export const EditSeries = () => {
         },
       );
 
-      if (storiesList) {
+      if (storiesList && json.stories) {
         json.stories.forEach((story) => {
           const standaloneVersionIDX = storiesList.findIndex(
             (volume) => volume.story_id === story.story_id,
@@ -274,7 +274,6 @@ export const EditSeries = () => {
           url,
           undefined, // no body
           {
-            baseURL: "", // don't prepend the instance's "/api"
             withCredentials: true,
           },
         );

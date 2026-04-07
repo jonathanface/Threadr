@@ -97,6 +97,7 @@ func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.OauthOptio
 	apiRtr.HandleFunc("/stories/{storyID}/chapter/{chapterID}/analyze/{type}", api.AnalyzeChapterEndpoint).Methods("POST", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/associations", api.CreateAssociationsEndpoint).Methods("POST", "OPTIONS")
 	apiRtr.HandleFunc("/outline", api.CreateOutlineEndpoint).Methods("POST", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/import", api.ImportDocumentEndpoint).Methods("POST", "OPTIONS")
 
 	// PUTs
 	apiRtr.HandleFunc("/stories/{story}", api.WriteBlocksToStoryEndpoint).Methods("PUT", "OPTIONS")

@@ -3,6 +3,7 @@ package api
 import (
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
+	"Threadr/logger"
 	"Threadr/models"
 	"encoding/json"
 	"net/http"
@@ -21,13 +22,15 @@ func UpdateOutlineEndpoint(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	updatedOutline := models.OutlineRequest{}
 	if err := decoder.Decode(&updatedOutline); err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error())
+		logger.Error("Bad request", "error", err)
+		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 
 	newOutline, err := dao.UpdateOutline(r.Context(), updatedOutline)
 	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error())
+		logger.Error("Bad request", "error", err)
+		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 	RespondWithJson(w, http.StatusOK, newOutline)

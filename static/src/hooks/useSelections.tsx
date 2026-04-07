@@ -36,7 +36,7 @@ export const useSelections = () => {
             if (seriesListIDX !== -1) {
                 if (updatedStory) {
                     const listSeriesEntry = newList[seriesListIDX];
-                    const newStories = [...listSeriesEntry.stories];
+                    const newStories = [...(listSeriesEntry.stories || [])];
                     const listSeriesEntriesIDX = newStories.findIndex(listItem => listItem.story_id === updatedStory.story_id);
                     if (listSeriesEntriesIDX !== -1) {
                         newStories[listSeriesEntriesIDX] = updatedStory;

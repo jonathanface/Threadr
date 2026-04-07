@@ -3,6 +3,7 @@ package api
 import (
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
+	"Threadr/logger"
 	"net/http"
 
 	"github.com/aws/smithy-go"
@@ -17,7 +18,8 @@ func DeleteUserEndpoint(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
@@ -32,13 +34,15 @@ func DeleteUserEndpoint(w http.ResponseWriter, r *http.Request) {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
-				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				logger.Error("Internal error", "error", err)
+				RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
 			RespondWithError(w, awsResponse.Code, awsResponse.Message)
 			return
 		}
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 

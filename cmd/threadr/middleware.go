@@ -5,7 +5,6 @@ import (
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -26,11 +25,13 @@ func corsMiddleware(allowedOrigin string) func(http.Handler) http.Handler {
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
 			}
 
-			// Handle preflight requests
+			// Handle preflight requests — only respond if origin is allowed
 			if r.Method == "OPTIONS" {
-				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin")
-				w.Header().Set("Access-Control-Max-Age", "86400") // 24 hours
+				if origin == allowedOrigin {
+					w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+					w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin")
+					w.Header().Set("Access-Control-Max-Age", "86400") // 24 hours
+				}
 				w.WriteHeader(http.StatusNoContent)
 				return
 			}
@@ -146,7 +147,7 @@ func billingMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 			userPtr, err := api.GetAuthenticatedUser(r)
 			if err != nil {
 				log.Printf("[billingMiddleware] Authentication failed: %v", err)
-				api.RespondWithError(w, http.StatusUnauthorized, err.Error())
+				api.RespondWithError(w, http.StatusUnauthorized, "Authentication failed")
 				return
 			}
 			user := *userPtr
@@ -165,17 +166,18 @@ func sharedMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			log.Printf("[sharedMiddleware] %s %s", r.Method, r.URL.Path)
 
-			token := mux.Vars(r)["token"]
-			if token == "" {
+			rawToken := mux.Vars(r)["token"]
+			if rawToken == "" {
 				api.RespondWithError(w, http.StatusBadRequest, "Missing share token")
 				return
 			}
+			tokenHash := api.HashShareToken(rawToken)
 
 			ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
 			defer cancel()
 			ctx = context.WithValue(ctx, ctxkey.DAO, d)
 
-			link, err := d.GetShareLink(ctx, token)
+			link, err := d.GetShareLink(ctx, tokenHash)
 			if err != nil {
 				log.Printf("[sharedMiddleware] Share link not found: %v", err)
 				api.RespondWithError(w, http.StatusNotFound, "Share link not found")
@@ -206,7 +208,7 @@ func strictMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 			userPtr, err := api.GetAuthenticatedUser(r)
 			if err != nil {
 				log.Printf("[strictMiddleware] Authentication failed: %v", err)
-				api.RespondWithError(w, http.StatusUnauthorized, err.Error())
+				api.RespondWithError(w, http.StatusUnauthorized, "Authentication failed")
 				return
 			}
 			user := *userPtr
@@ -217,8 +219,8 @@ func strictMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 
 			userDetails, err := d.UpsertUser(ctx, user.Email)
 			if err != nil {
-				log.Printf("[strictMiddleware] Failed to upsert user %s: %v", user.Email, err)
-				api.RespondWithError(w, http.StatusInternalServerError, fmt.Sprintf("unable to update user %s", user.Email))
+				log.Printf("[strictMiddleware] Failed to upsert user: %v", err)
+				api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
 			log.Printf("[strictMiddleware] User %s upserted, subscriber=%v", user.Email, userDetails.Subscriber)

@@ -23,6 +23,19 @@ vi.mock('../../../hooks/useLoader', () => ({
   }),
 }));
 
+vi.mock('../../../hooks/useToaster', () => ({
+  useToaster: () => ({
+    setAlertState: vi.fn(),
+  }),
+}));
+
+vi.mock('../../../hooks/useWorksList', () => ({
+  useWorksList: () => ({
+    storiesList: [],
+    setStoriesList: vi.fn(),
+  }),
+}));
+
 vi.mock('../../StoryOrSeriesDetailsSlider', () => ({
   StoryOrSeriesDetailsSlider: ({ visible, title }: { visible: boolean; title: string }) => (
     visible ? <div data-testid="details-slider">{title} Details</div> : null

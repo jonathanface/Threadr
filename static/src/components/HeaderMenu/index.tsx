@@ -182,8 +182,8 @@ export const HeaderMenu = () => {
         )}
       </span>
       <span className={styles.rightPane}>
-        {!isSharedReader && <NotificationsBell />}
         <ThemeToggle />
+        {!isSharedReader && <NotificationsBell />}
         {!isSharedReader && <UserMenu />}
       </span>
     </header>

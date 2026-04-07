@@ -23,7 +23,7 @@ export const DocumentSettingsProvider: React.FC<{
     try {
       showLoader();
 
-      const { data } = await api.get<DocumentSettings>(
+      const response = await api.get<DocumentSettings>(
         `/stories/${storyID}/settings`,
         {
           validateStatus: (status) => {
@@ -33,11 +33,10 @@ export const DocumentSettingsProvider: React.FC<{
         },
       );
 
-      if (data) {
-        setDocumentSettings(data);
+      if (response.status === 200 && response.data) {
+        setDocumentSettings(response.data);
       } else {
-        // 404 -> no settings, use defaults
-        console.warn("no settings in db, using default values");
+        // 404 or empty -> no settings, use defaults
         setDocumentSettings(defaultSettings);
       }
     } catch (error) {

@@ -82,7 +82,8 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok       bool
 	)
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
@@ -121,7 +122,8 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		var stories []models.Story
 		err := json.Unmarshal([]byte(storiesJSON), &stories)
 		if err != nil {
-			RespondWithError(w, http.StatusBadRequest, err.Error())
+			logger.Error("Bad request", "error", err)
+		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 			return
 		}
 		for idx, fromForm := range stories {
@@ -140,7 +142,8 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 				series.Stories = append(series.Stories, &fromForm)
 				_, err = dao.EditStory(r.Context(), email, fromForm)
 				if err != nil {
-					RespondWithError(w, http.StatusInternalServerError, err.Error())
+					logger.Error("Internal error", "error", err)
+					RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 					return
 				}
 			}
@@ -158,7 +161,8 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 	file, handler, err := r.FormFile("file")
 	if err != nil {
 		if err != http.ErrMissingFile {
-			RespondWithError(w, http.StatusBadRequest, err.Error())
+			logger.Error("Bad request", "error", err)
+		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 			return
 		}
 	}
@@ -180,7 +184,8 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
 		fileBytes := make([]byte, handler.Size)
 		if _, err := file.Read(fileBytes); err != nil {
-			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			logger.Error("Internal error", "error", err)
+			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
 		fileType := http.DetectContentType(fileBytes)
@@ -203,7 +208,8 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		// Scale down the image if it exceeds the maximum width
 		scaledImageBuf, _, err := scaleDownImage(file, uint(400))
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			logger.Error("Internal error", "error", err)
+			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
 		// Check the size of the scaled image
@@ -222,7 +228,8 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 			opts.Region = os.Getenv("AWS_REGION")
 			return nil
 		}); err != nil {
-			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			logger.Error("Internal error", "error", err)
+			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
 		s3Client := s3.NewFromConfig(awsCfg)
@@ -232,7 +239,8 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 			Body:        scaledImageBuf,
 			ContentType: aws.String(fileType),
 		}); err != nil {
-			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			logger.Error("Internal error", "error", err)
+			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
 		series.ImageURL = "https://" + S3_SERIES_IMAGE_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
@@ -243,13 +251,15 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
-				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				logger.Error("Internal error", "error", err)
+				RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
 			RespondWithError(w, awsResponse.Code, awsResponse.Message)
 			return
 		}
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	RespondWithJson(w, http.StatusOK, updatedSeries)
@@ -266,7 +276,8 @@ func RemoveStoryFromSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
@@ -306,13 +317,15 @@ func RemoveStoryFromSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
-				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				logger.Error("Internal error", "error", err)
+				RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
 			RespondWithError(w, awsResponse.Code, awsResponse.Message)
 			return
 		}
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	RespondWithJson(w, http.StatusOK, updatedSeries)
@@ -327,7 +340,8 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok      bool
 	)
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
@@ -386,7 +400,8 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	file, handler, err := r.FormFile("file")
 	if err != nil {
 		if err != http.ErrMissingFile {
-			RespondWithError(w, http.StatusBadRequest, err.Error())
+			logger.Error("Bad request", "error", err)
+		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 			return
 		}
 	}
@@ -408,7 +423,8 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 		fileBytes := make([]byte, handler.Size)
 		if _, err := file.Read(fileBytes); err != nil {
-			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			logger.Error("Internal error", "error", err)
+			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
 		fileType := http.DetectContentType(fileBytes)
@@ -431,7 +447,8 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		// Scale down the image if it exceeds the maximum width
 		scaledImageBuf, _, err := scaleDownImage(file, uint(400))
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			logger.Error("Internal error", "error", err)
+			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
 		// Check the size of the scaled image
@@ -450,7 +467,8 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 			opts.Region = os.Getenv("AWS_REGION")
 			return nil
 		}); err != nil {
-			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			logger.Error("Internal error", "error", err)
+			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
 		s3Client := s3.NewFromConfig(awsCfg)
@@ -460,7 +478,8 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 			Body:        scaledImageBuf,
 			ContentType: aws.String(fileType),
 		}); err != nil {
-			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			logger.Error("Internal error", "error", err)
+			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
 		story.ImageURL = "https://" + S3_STORY_IMAGE_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
@@ -471,13 +490,15 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
-				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				logger.Error("Internal error", "error", err)
+				RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
 			RespondWithError(w, awsResponse.Code, awsResponse.Message)
 			return
 		}
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	RespondWithJson(w, http.StatusOK, updatedStory)
@@ -492,7 +513,8 @@ func EditStorySettingsEndPoint(w http.ResponseWriter, r *http.Request) {
 		ok      bool
 	)
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
@@ -511,13 +533,15 @@ func EditStorySettingsEndPoint(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	updateSettings := models.StorySettings{}
 	if err := decoder.Decode(&updateSettings); err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error())
+		logger.Error("Bad request", "error", err)
+		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 
 	err = dao.UpdateStorySettings(r.Context(), email, storyID, updateSettings)
 	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error())
+		logger.Error("Bad request", "error", err)
+		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 	RespondWithJson(w, http.StatusOK, updateSettings)

@@ -3,6 +3,7 @@ package api
 import (
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
+	"Threadr/logger"
 	"Threadr/models"
 	"bytes"
 	"encoding/json"
@@ -55,7 +56,8 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	blocks, err := staggeredStoryBlockRetrieval(r.Context(), dao, storyID, chapterID, nil, nil)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
@@ -68,7 +70,8 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		chk := models.Chunk{}
 		err := json.Unmarshal([]byte(chunkAttributeValue.Value), &chk)
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			logger.Error("Internal error", "error", err)
+			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
 		chapterText += chk.Text
@@ -112,14 +115,16 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
 	// Create a new HTTP request with the appropriate method, URL, and payload
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		RespondWithError(w, http.StatusBadGateway, err.Error())
+		logger.Error("External service error", "error", err)
+		RespondWithError(w, http.StatusBadGateway, "External service error")
 		return
 	}
 
@@ -129,21 +134,24 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		RespondWithError(w, http.StatusBadGateway, err.Error())
+		logger.Error("External service error", "error", err)
+		RespondWithError(w, http.StatusBadGateway, "External service error")
 		return
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		RespondWithError(w, http.StatusBadGateway, err.Error())
+		logger.Error("External service error", "error", err)
+		RespondWithError(w, http.StatusBadGateway, "External service error")
 		return
 	}
 	var response models.OpenAIResponse
 	err = json.Unmarshal(body, &response)
 	if err != nil {
 		// Handle error
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	if len(response.Choices) > 0 && response.Choices[0].Message.Content != "" {

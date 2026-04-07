@@ -4,6 +4,7 @@ import (
 	"Threadr/converters"
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
+	"Threadr/logger"
 	"Threadr/models"
 	"context"
 	"database/sql"
@@ -85,7 +86,8 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	decoder := json.NewDecoder(r.Body)
@@ -97,7 +99,8 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	// Validate export request
 	if err := validateExportRequest(export); err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error())
+		logger.Error("Bad request", "error", err)
+		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 
@@ -120,7 +123,8 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusForbidden, "story doesn't belong to you")
 			return
 		}
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
@@ -129,7 +133,8 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		opts.Region = os.Getenv("AWS_REGION")
 		return nil
 	}); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
@@ -138,7 +143,8 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	if export.CoverImage != nil && *export.CoverImage != "" && models.ExportFormat(typeOf) == models.FormatEPUB {
 		var imageURL string
 		if imageURL, err = converters.ValidateImageURL(*export.CoverImage); err != nil {
-			RespondWithError(w, http.StatusBadRequest, err.Error())
+			logger.Error("Bad request", "error", err)
+		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 			return
 		}
 		coverImagePath, err = converters.DownloadCoverImage(imageURL)
@@ -160,7 +166,7 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 			// Convert Lexical JSON to HTML using the converters package
 			html, err := converters.LexicalToHTML(lexicalJSON)
 			if err != nil {
-				RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Failed to convert Lexical JSON for chapter %s: %v", export.HtmlByChapter[i].Chapter, err))
+				RespondWithError(w, http.StatusBadRequest, "Failed to convert chapter content for export")
 				return
 			}
 
@@ -182,14 +188,16 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		generatedFile, err = converters.HTMLToEPUB(export)
 	}
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	defer os.Remove(TMP_EXPORT_DIR + "/" + generatedFile)
 
 	reader, err := os.Open(TMP_EXPORT_DIR + "/" + generatedFile)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	s3Client := s3.NewFromConfig(awsCfg)
@@ -199,7 +207,8 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		Body:        reader,
 		ContentType: aws.String(filetype),
 	}); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 

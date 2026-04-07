@@ -7,6 +7,7 @@ import (
 	"Threadr/models"
 	"context"
 	"encoding/json"
+	"html"
 	"net/http"
 	"time"
 
@@ -22,7 +23,8 @@ func GetUserAlertsEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok    bool
 	)
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		logger.Error("Authentication failed", "error", err)
+		RespondWithError(w, http.StatusUnauthorized, "Authentication failed")
 		return
 	}
 	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
@@ -32,13 +34,15 @@ func GetUserAlertsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	alerts, err := dao.GetAlertsForUser(r.Context(), email)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
 	reads, err := dao.GetAlertReadsByUser(r.Context(), email)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
@@ -74,7 +78,8 @@ func GetUnreadAlertCountEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok    bool
 	)
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		logger.Error("Authentication failed", "error", err)
+		RespondWithError(w, http.StatusUnauthorized, "Authentication failed")
 		return
 	}
 	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
@@ -84,13 +89,15 @@ func GetUnreadAlertCountEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	alerts, err := dao.GetAlertsForUser(r.Context(), email)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
 	reads, err := dao.GetAlertReadsByUser(r.Context(), email)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
@@ -118,7 +125,8 @@ func MarkAlertReadEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok      bool
 	)
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		logger.Error("Authentication failed", "error", err)
+		RespondWithError(w, http.StatusUnauthorized, "Authentication failed")
 		return
 	}
 	alertID = mux.Vars(r)["alertID"]
@@ -132,7 +140,8 @@ func MarkAlertReadEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = dao.MarkAlertRead(r.Context(), email, alertID); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	RespondWithJson(w, http.StatusOK, nil)
@@ -146,7 +155,8 @@ func AdminCreateAlertEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok    bool
 	)
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		logger.Error("Authentication failed", "error", err)
+		RespondWithError(w, http.StatusUnauthorized, "Authentication failed")
 		return
 	}
 	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
@@ -157,7 +167,8 @@ func AdminCreateAlertEndpoint(w http.ResponseWriter, r *http.Request) {
 	// Check if requesting user is an admin
 	userDetails, err := dao.GetUserDetails(r.Context(), email)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	if !userDetails.Admin {
@@ -202,7 +213,8 @@ func AdminCreateAlertEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = dao.CreateAlert(r.Context(), alert); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	RespondWithJson(w, http.StatusCreated, alert)
@@ -256,7 +268,7 @@ func CreateCommentAlert(ctx context.Context, dao daos.DaoInterface, authorEmail,
 	alert := models.Alert{
 		ID:          uuid.New().String(),
 		Subject:     subject,
-		Message:     readerName + " left a comment on \"" + storyTitle + "\"",
+		Message:     html.EscapeString(readerName) + " left a comment on \"" + html.EscapeString(storyTitle) + "\"",
 		Link:        "/stories/" + storyID,
 		AlertType:   models.AlertTypePersonal,
 		TargetEmail: authorEmail,

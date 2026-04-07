@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/stripe/stripe-go/v72"
+	"github.com/stripe/stripe-go/v79"
 )
 
 type PaymentMethod struct {

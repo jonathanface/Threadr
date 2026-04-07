@@ -5,7 +5,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import React, { useCallback, useRef, useEffect } from "react";
+import React, { useCallback, useRef, useEffect, useState } from "react";
 import styles from "./createoreditstory.module.css";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLoader } from "../../hooks/useLoader";
@@ -25,6 +25,7 @@ import { useStorySave } from "./hooks/useStorySave";
 import { StoryFormFields } from "./components/StoryFormFields";
 import { StorySeriesSelector } from "./components/StorySeriesSelector";
 import { StoryPreview } from "./components/StoryPreview";
+import { DocumentImporter } from "./components/DocumentImporter";
 
 export const CreateOrEditStory: React.FC = () => {
   const { storyID } = useParams<{ storyID: string }>();
@@ -61,6 +62,8 @@ export const CreateOrEditStory: React.FC = () => {
   } = useStoryImage();
 
   const { saveStory } = useStorySave();
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [skipFirstPage, setSkipFirstPage] = useState(false);
 
   // Fetch existing story data for edit mode
   useEffect(() => {
@@ -186,6 +189,8 @@ export const CreateOrEditStory: React.FC = () => {
       title,
       description,
       imageFile: tempImageFile.current,
+      importFile: importFile || undefined,
+      skipFirstPage,
       selectedSeries,
       initialSeriesID: initialSeriesID.current,
     });
@@ -197,6 +202,7 @@ export const CreateOrEditStory: React.FC = () => {
     title,
     description,
     tempImageFile,
+    importFile,
     selectedSeries,
     setAlertState,
   ]);
@@ -253,6 +259,15 @@ export const CreateOrEditStory: React.FC = () => {
               titleError={titleError}
               descriptionError={descError}
             />
+
+            {!isEdit && (
+              <DocumentImporter
+                importFile={importFile}
+                onFileSelected={setImportFile}
+                skipFirstPage={skipFirstPage}
+                onSkipFirstPageChange={setSkipFirstPage}
+              />
+            )}
 
             {seriesList && (
               <StorySeriesSelector

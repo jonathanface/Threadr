@@ -24,6 +24,12 @@ vi.mock('../../../hooks/useLoader', () => ({
   }),
 }));
 
+vi.mock('../../../hooks/useToaster', () => ({
+  useToaster: () => ({
+    setAlertState: vi.fn(),
+  }),
+}));
+
 const mockSetStoriesList = vi.fn();
 const mockSetSeriesList = vi.fn();
 vi.mock('../../../hooks/useWorksList', () => ({
@@ -33,44 +39,6 @@ vi.mock('../../../hooks/useWorksList', () => ({
     setStoriesList: mockSetStoriesList,
     setSeriesList: mockSetSeriesList,
   }),
-}));
-
-vi.mock('../../StoryOrSeriesDetailsSlider', () => ({
-  StoryOrSeriesDetailsSlider: ({
-    visible,
-    title,
-    onShowMoreClick
-  }: {
-    visible: boolean;
-    title: string;
-    onShowMoreClick?: (e: React.MouseEvent) => void;
-  }) => (
-    visible ? (
-      <div data-testid="details-slider">
-        {title} Details
-        {onShowMoreClick && (
-          <button onClick={onShowMoreClick}>Show More</button>
-        )}
-      </div>
-    ) : null
-  ),
-}));
-
-vi.mock('../../StoryListSlider', () => ({
-  StoryListSlider: ({
-    visible,
-    onClose
-  }: {
-    visible: boolean;
-    onClose: () => void;
-  }) => (
-    visible ? (
-      <div data-testid="list-slider">
-        Story List
-        <button onClick={onClose}>Close</button>
-      </div>
-    ) : null
-  ),
 }));
 
 vi.mock('../../SeriesCompositeImage', () => ({
@@ -168,9 +136,33 @@ describe('SeriesBox', () => {
       expect(screen.getByLabelText('edit series')).toBeInTheDocument();
       expect(screen.getByLabelText('delete')).toBeInTheDocument();
     });
+
+    it('should show story count chip', () => {
+      renderSeriesBox();
+      expect(screen.getByText('2')).toBeInTheDocument();
+    });
+
+    it('should show story titles in the strip', () => {
+      renderSeriesBox();
+      expect(screen.getByText('Story One')).toBeInTheDocument();
+      expect(screen.getByText('Story Two')).toBeInTheDocument();
+    });
+
+    it('should show add story button in strip', () => {
+      renderSeriesBox();
+      expect(screen.getByText('Add story')).toBeInTheDocument();
+    });
   });
 
   describe('Navigation', () => {
+    it('should navigate to edit page when card is clicked', () => {
+      const { container } = renderSeriesBox();
+      const card = container.firstChild as HTMLElement;
+      fireEvent.click(card);
+
+      expect(mockNavigate).toHaveBeenCalledWith('/series/series-123/edit');
+    });
+
     it('should navigate to edit page when edit button clicked', () => {
       renderSeriesBox();
       const editButton = screen.getByLabelText('edit series');
@@ -179,11 +171,27 @@ describe('SeriesBox', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/series/series-123/edit');
     });
 
+    it('should navigate to story when story strip item clicked', () => {
+      renderSeriesBox();
+      fireEvent.click(screen.getByText('Story One'));
+
+      expect(mockNavigate).toHaveBeenCalledWith('/stories/story-1');
+    });
+
+    it('should navigate to add story page when add button clicked', () => {
+      renderSeriesBox();
+      fireEvent.click(screen.getByText('Add story'));
+
+      expect(mockNavigate).toHaveBeenCalledWith('/series/series-123/add');
+    });
+
     it('should stop propagation when edit button clicked', () => {
       renderSeriesBox();
+      mockNavigate.mockClear();
       const editButton = screen.getByLabelText('edit series');
       fireEvent.click(editButton);
 
+      // Should only navigate once (to edit), not also trigger card click
       expect(mockNavigate).toHaveBeenCalledTimes(1);
     });
   });
@@ -215,7 +223,6 @@ describe('SeriesBox', () => {
       vi.spyOn(window, 'confirm').mockReturnValue(true);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.api.delete).mockResolvedValue({ status: 200, data: {} } as any);
-
 
       renderSeriesBox();
       const deleteButton = screen.getByLabelText('delete');
@@ -250,7 +257,6 @@ describe('SeriesBox', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.api.delete).mockResolvedValue({ status: 200, data: {} } as any);
 
-
       renderSeriesBox();
       const deleteButton = screen.getByLabelText('delete');
       fireEvent.click(deleteButton);
@@ -258,7 +264,6 @@ describe('SeriesBox', () => {
       await waitFor(() => {
         expect(mockSetStoriesList).toHaveBeenCalled();
         const call = mockSetStoriesList.mock.calls[0][0];
-        // Should contain the stories from the series
         expect(call).toHaveLength(2);
       });
     });
@@ -268,7 +273,6 @@ describe('SeriesBox', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(api.api.delete).mockResolvedValue({ status: 200, data: {} } as any);
 
-
       renderSeriesBox();
       const deleteButton = screen.getByLabelText('delete');
       fireEvent.click(deleteButton);
@@ -276,7 +280,6 @@ describe('SeriesBox', () => {
       await waitFor(() => {
         expect(mockSetSeriesList).toHaveBeenCalled();
         const call = mockSetSeriesList.mock.calls[0][0];
-        // Should be empty after removing the series
         expect(call).toHaveLength(0);
       });
     });
@@ -285,7 +288,6 @@ describe('SeriesBox', () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       vi.spyOn(window, 'confirm').mockReturnValue(true);
       vi.mocked(api.api.delete).mockRejectedValue(new Error('Network error'));
-
 
       renderSeriesBox();
       const deleteButton = screen.getByLabelText('delete');
@@ -323,107 +325,6 @@ describe('SeriesBox', () => {
     });
   });
 
-  describe('Details Slider', () => {
-    it('should show details slider on mouse enter', async () => {
-      const { container } = renderSeriesBox();
-      const seriesBox = container.firstChild as HTMLElement;
-      fireEvent.mouseEnter(seriesBox);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('details-slider')).toBeInTheDocument();
-      });
-    });
-
-    it('should hide details slider on mouse leave', async () => {
-      const { container } = renderSeriesBox();
-      const seriesBox = container.firstChild as HTMLElement;
-      fireEvent.mouseEnter(seriesBox);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('details-slider')).toBeInTheDocument();
-      });
-
-      fireEvent.mouseLeave(seriesBox);
-
-      await waitFor(() => {
-        expect(screen.queryByTestId('details-slider')).not.toBeInTheDocument();
-      });
-    });
-
-    it('should show list slider when "Show More" clicked', async () => {
-      const { container } = renderSeriesBox();
-      const seriesBox = container.firstChild as HTMLElement;
-      fireEvent.mouseEnter(seriesBox);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('details-slider')).toBeInTheDocument();
-      });
-
-      const showMoreButton = screen.getByText('Show More');
-      fireEvent.click(showMoreButton);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('list-slider')).toBeInTheDocument();
-      });
-    });
-
-    it('should hide details slider when list slider opens', async () => {
-      const { container } = renderSeriesBox();
-      const seriesBox = container.firstChild as HTMLElement;
-      fireEvent.mouseEnter(seriesBox);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('details-slider')).toBeInTheDocument();
-      });
-
-      const showMoreButton = screen.getByText('Show More');
-      fireEvent.click(showMoreButton);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('list-slider')).toBeInTheDocument();
-        expect(screen.queryByTestId('details-slider')).not.toBeInTheDocument();
-      });
-    });
-
-    it('should close list slider when close button clicked', async () => {
-      const { container } = renderSeriesBox();
-      const seriesBox = container.firstChild as HTMLElement;
-      fireEvent.mouseEnter(seriesBox);
-
-      const showMoreButton = await screen.findByText('Show More');
-      fireEvent.click(showMoreButton);
-
-      const listSlider = await screen.findByTestId('list-slider');
-      expect(listSlider).toBeInTheDocument();
-
-      const closeButton = screen.getByText('Close');
-      fireEvent.click(closeButton);
-
-      await waitFor(() => {
-        expect(screen.queryByTestId('list-slider')).not.toBeInTheDocument();
-      });
-    });
-
-    it('should not show details slider if list slider is already visible', async () => {
-      const { container } = renderSeriesBox();
-      const seriesBox = container.firstChild as HTMLElement;
-      fireEvent.mouseEnter(seriesBox);
-
-      const showMoreButton = await screen.findByText('Show More');
-      fireEvent.click(showMoreButton);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('list-slider')).toBeInTheDocument();
-      });
-
-      // Try to show details slider again
-      fireEvent.mouseEnter(seriesBox);
-
-      // Details slider should not appear
-      expect(screen.queryByTestId('details-slider')).not.toBeInTheDocument();
-    });
-  });
-
   describe('Edge Cases', () => {
     it('should handle series with no stories', () => {
       const emptySeriesStories: Series = {
@@ -433,6 +334,19 @@ describe('SeriesBox', () => {
       renderSeriesBox(emptySeriesStories);
 
       expect(screen.getByText('Test Series')).toBeInTheDocument();
+      expect(screen.getByText('0')).toBeInTheDocument();
+      expect(screen.getByText('Add story')).toBeInTheDocument();
+    });
+
+    it('should handle series with null stories', () => {
+      const nullStories: Series = {
+        ...mockSeries,
+        stories: null as unknown as Story[],
+      };
+      renderSeriesBox(nullStories);
+
+      expect(screen.getByText('Test Series')).toBeInTheDocument();
+      expect(screen.getByText('0')).toBeInTheDocument();
     });
 
     it('should handle very long series titles', () => {
@@ -441,13 +355,6 @@ describe('SeriesBox', () => {
       renderSeriesBox(longTitleSeries);
 
       expect(screen.getByText(longTitle)).toBeInTheDocument();
-    });
-
-    it('should handle missing description', () => {
-      const noDescSeries = { ...mockSeries, series_description: '' };
-      renderSeriesBox(noDescSeries);
-
-      expect(screen.getByText('Test Series')).toBeInTheDocument();
     });
 
     it('should handle special characters in title', () => {
@@ -483,7 +390,6 @@ describe('SeriesBox', () => {
 
     it('should have meaningful text content', () => {
       renderSeriesBox();
-      // Series title should be visible
       expect(screen.getByText('Test Series')).toBeInTheDocument();
     });
   });

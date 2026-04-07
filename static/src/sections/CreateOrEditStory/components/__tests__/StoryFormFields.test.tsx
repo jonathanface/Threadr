@@ -38,12 +38,12 @@ describe('StoryFormFields', () => {
 
     it('should show character count for title', () => {
       render(<StoryFormFields {...defaultProps} />);
-      expect(screen.getByText('256 characters remaining')).toBeInTheDocument();
+      expect(screen.getByText('0/256')).toBeInTheDocument();
     });
 
     it('should show character count for description', () => {
       render(<StoryFormFields {...defaultProps} />);
-      expect(screen.getByText('5000 characters remaining')).toBeInTheDocument();
+      expect(screen.getByText('0/5000')).toBeInTheDocument();
     });
   });
 
@@ -70,13 +70,13 @@ describe('StoryFormFields', () => {
 
     it('should update character count for title', () => {
       render(<StoryFormFields {...defaultProps} title="Test" />);
-      expect(screen.getByText('252 characters remaining')).toBeInTheDocument();
+      expect(screen.getByText('4/256')).toBeInTheDocument();
     });
 
     it('should show negative count when title exceeds max length', () => {
       const longTitle = 'A'.repeat(260);
       render(<StoryFormFields {...defaultProps} title={longTitle} />);
-      expect(screen.getByText('-4 characters remaining')).toBeInTheDocument();
+      expect(screen.getByText('260/256')).toBeInTheDocument();
     });
 
     it('should have maxLength attribute on title input', () => {
@@ -120,13 +120,13 @@ describe('StoryFormFields', () => {
 
     it('should update character count for description', () => {
       render(<StoryFormFields {...defaultProps} description="Test description" />);
-      expect(screen.getByText('4984 characters remaining')).toBeInTheDocument();
+      expect(screen.getByText('16/5000')).toBeInTheDocument();
     });
 
     it('should show negative count when description exceeds max length', () => {
       const longDesc = 'A'.repeat(5005);
       render(<StoryFormFields {...defaultProps} description={longDesc} />);
-      expect(screen.getByText('-5 characters remaining')).toBeInTheDocument();
+      expect(screen.getByText('5005/5000')).toBeInTheDocument();
     });
 
     it('should have maxLength attribute on description input', () => {
@@ -157,7 +157,7 @@ describe('StoryFormFields', () => {
     it('should show error color when title has less than 10% remaining', () => {
       const title = 'A'.repeat(240); // 16 remaining = 6.25%
       render(<StoryFormFields {...defaultProps} title={title} />);
-      const characterCount = screen.getByText('16 characters remaining');
+      const characterCount = screen.getByText('240/256');
 
       // Just verify the character count is displayed
       // Color is controlled by getCharCountColor which is tested separately
@@ -167,7 +167,7 @@ describe('StoryFormFields', () => {
     it('should show warning color when title has 10-25% remaining', () => {
       const title = 'A'.repeat(205); // 51 remaining = 19.9%
       render(<StoryFormFields {...defaultProps} title={title} />);
-      const characterCount = screen.getByText('51 characters remaining');
+      const characterCount = screen.getByText('205/256');
 
       // Character count should be visible
       expect(characterCount).toBeInTheDocument();
@@ -176,7 +176,7 @@ describe('StoryFormFields', () => {
     it('should show normal color when title has more than 25% remaining', () => {
       const title = 'A'.repeat(100); // 156 remaining = 60.9%
       render(<StoryFormFields {...defaultProps} title={title} />);
-      const characterCount = screen.getByText('156 characters remaining');
+      const characterCount = screen.getByText('100/256');
 
       // Character count should be visible
       expect(characterCount).toBeInTheDocument();
@@ -185,7 +185,7 @@ describe('StoryFormFields', () => {
     it('should show error color when description has less than 10% remaining', () => {
       const description = 'A'.repeat(4550); // 450 remaining = 9%
       render(<StoryFormFields {...defaultProps} description={description} />);
-      const characterCount = screen.getByText('450 characters remaining');
+      const characterCount = screen.getByText('4550/5000');
       expect(characterCount).toBeInTheDocument();
     });
   });
@@ -227,25 +227,24 @@ describe('StoryFormFields', () => {
   describe('Edge Cases', () => {
     it('should handle empty strings', () => {
       render(<StoryFormFields {...defaultProps} title="" description="" />);
-      expect(screen.getByText('256 characters remaining')).toBeInTheDocument();
-      expect(screen.getByText('5000 characters remaining')).toBeInTheDocument();
+      expect(screen.getByText('0/256')).toBeInTheDocument();
+      expect(screen.getByText('0/5000')).toBeInTheDocument();
     });
 
     it('should handle max length strings', () => {
       const maxTitle = 'A'.repeat(256);
       const maxDesc = 'A'.repeat(5000);
       render(<StoryFormFields {...defaultProps} title={maxTitle} description={maxDesc} />);
-      // There will be two instances of "0 characters remaining" (one for title, one for description)
-      const characterCounts = screen.getAllByText('0 characters remaining');
-      expect(characterCounts).toHaveLength(2);
+      expect(screen.getByText('256/256')).toBeInTheDocument();
+      expect(screen.getByText('5000/5000')).toBeInTheDocument();
     });
 
     it('should handle strings exceeding max length', () => {
       const overMaxTitle = 'A'.repeat(300);
       const overMaxDesc = 'A'.repeat(5100);
       render(<StoryFormFields {...defaultProps} title={overMaxTitle} description={overMaxDesc} />);
-      expect(screen.getByText('-44 characters remaining')).toBeInTheDocument();
-      expect(screen.getByText('-100 characters remaining')).toBeInTheDocument();
+      expect(screen.getByText('300/256')).toBeInTheDocument();
+      expect(screen.getByText('5100/5000')).toBeInTheDocument();
     });
 
     it('should handle special characters', () => {

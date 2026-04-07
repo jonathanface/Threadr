@@ -103,17 +103,26 @@
 .dismissButton {
   flex-shrink: 0;
   background: none;
-  border: none;
+  border: 1px solid var(--border-light, rgba(255,255,255,0.1));
+  border-radius: 6px;
   cursor: pointer;
   color: var(--text-secondary);
-  padding: 2px;
+  padding: 4px 8px;
   display: flex;
   align-items: center;
-  transition: color 0.2s ease;
+  transition: all 0.15s ease;
+  z-index: 2;
+  position: relative;
 }
 
 .dismissButton:hover {
   color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--border-medium, rgba(255,255,255,0.2));
+}
+
+[data-theme="light"] .dismissButton:hover {
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .emptyState {

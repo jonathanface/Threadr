@@ -2,6 +2,7 @@ package api
 
 import (
 	"Threadr/daos"
+	"Threadr/logger"
 	"Threadr/models"
 	"Threadr/sessions"
 	"bytes"
@@ -57,8 +58,12 @@ func GetAuthenticatedUser(r *http.Request) (*models.UserInfo, error) {
 	if err != nil || token.IsNew {
 		return nil, errors.New("unable to retrieve token")
 	}
+	tokenData, ok := token.Values["token_data"].([]byte)
+	if !ok {
+		return nil, errors.New("invalid session data")
+	}
 	user := models.UserInfo{}
-	if err = json.Unmarshal(token.Values["token_data"].([]byte), &user); err != nil {
+	if err = json.Unmarshal(tokenData, &user); err != nil {
 		return nil, err
 	}
 	return &user, nil
@@ -84,14 +89,21 @@ func RespondWithJson(w http.ResponseWriter, code int, payload interface{}) {
 		err      error
 	)
 	if response, err = json.Marshal(payload); err != nil {
+		logger.Error("Failed to marshal JSON response", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		w.Write([]byte(`{"error":"Internal server error"}`))
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	w.Write(response)
+}
+
+// RespondWithInternalError logs the full error and returns a generic message to the client.
+func RespondWithInternalError(w http.ResponseWriter, err error, context string) {
+	logger.Error(context, "error", err)
+	RespondWithError(w, http.StatusInternalServerError, "An internal error occurred. Please try again later.")
 }
 
 func processAWSError(opErr *smithy.OperationError) (err models.AwsStatusResponse) {

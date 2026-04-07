@@ -74,6 +74,7 @@ func main() {
 	if err := sessions.Initialize(); err != nil {
 		log.Fatalf("Failed to initialize sessions: %v", err)
 	}
+	sessions.StartTokenCleanup()
 
 	initCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

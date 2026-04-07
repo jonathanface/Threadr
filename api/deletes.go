@@ -3,6 +3,7 @@ package api
 import (
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
+	"Threadr/logger"
 	"Threadr/models"
 	"encoding/json"
 	"net/http"
@@ -21,7 +22,8 @@ func DeleteBlocksFromStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok      bool
 	)
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
@@ -35,7 +37,8 @@ func DeleteBlocksFromStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	storyBlocks := models.StoryBlocks{}
 	if err := decoder.Decode(&storyBlocks); err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error())
+		logger.Error("Bad request", "error", err)
+		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
@@ -51,13 +54,15 @@ func DeleteBlocksFromStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
-				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				logger.Error("Internal error", "error", err)
+				RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
 			RespondWithError(w, awsResponse.Code, awsResponse.Message)
 			return
 		}
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	RespondWithJson(w, http.StatusOK, nil)
@@ -72,7 +77,8 @@ func DeleteAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok      bool
 	)
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
@@ -87,7 +93,8 @@ func DeleteAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 	associations := []*models.Association{}
 
 	if err := decoder.Decode(&associations); err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error())
+		logger.Error("Bad request", "error", err)
+		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 
@@ -99,13 +106,15 @@ func DeleteAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
-				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				logger.Error("Internal error", "error", err)
+				RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
 			RespondWithError(w, awsResponse.Code, awsResponse.Message)
 			return
 		}
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	RespondWithJson(w, http.StatusOK, nil)
@@ -121,7 +130,8 @@ func DeleteChaptersEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok        bool
 	)
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
@@ -158,13 +168,15 @@ func DeleteChaptersEndpoint(w http.ResponseWriter, r *http.Request) {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
-				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				logger.Error("Internal error", "error", err)
+				RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
 			RespondWithError(w, awsResponse.Code, awsResponse.Message)
 			return
 		}
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	RespondWithJson(w, http.StatusOK, nil)
@@ -179,7 +191,8 @@ func DeleteStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok      bool
 	)
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
@@ -199,13 +212,15 @@ func DeleteStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
-				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				logger.Error("Internal error", "error", err)
+				RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
 			RespondWithError(w, awsResponse.Code, awsResponse.Message)
 			return
 		}
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	RespondWithJson(w, http.StatusOK, nil)
@@ -221,7 +236,8 @@ func DeleteSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		series   *models.Series
 	)
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	if seriesID, err = url.PathUnescape(mux.Vars(r)["seriesID"]); err != nil {
@@ -239,7 +255,8 @@ func DeleteSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if series, err = dao.GetSeriesByID(r.Context(), email, seriesID); !ok {
-		RespondWithError(w, http.StatusNotFound, err.Error())
+		logger.Error("Resource not found", "error", err)
+		RespondWithError(w, http.StatusNotFound, "Resource not found")
 		return
 	}
 
@@ -247,13 +264,15 @@ func DeleteSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
-				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				logger.Error("Internal error", "error", err)
+				RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
 			RespondWithError(w, awsResponse.Code, awsResponse.Message)
 			return
 		}
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	RespondWithJson(w, http.StatusOK, nil)

@@ -1,15 +1,17 @@
 import React, { useState } from "react";
 import styles from "./seriesbox.module.css";
 import { Series } from "../../types/Series";
-import { Box, CircularProgress, IconButton, Tooltip } from "@mui/material";
+import { Avatar, Box, Chip, CircularProgress, IconButton, Tooltip } from "@mui/material";
 
+import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import MenuBookIcon from "@mui/icons-material/MenuBook";
 import { useNavigate } from "react-router-dom";
 import { useLoader } from "../../hooks/useLoader";
+import { useToaster } from "../../hooks/useToaster";
 import { useWorksList } from "../../hooks/useWorksList";
-import { StoryOrSeriesDetailsSlider } from "../StoryOrSeriesDetailsSlider";
-import { StoryListSlider } from "../StoryListSlider";
+import { AlertToastType } from "../../types/AlertToasts";
 import { SeriesCompositeImage } from "../SeriesCompositeImage";
 import axios from "axios";
 import { api } from "../../api";
@@ -21,9 +23,8 @@ interface SeriesBoxProps {
 export const SeriesBox: React.FC<SeriesBoxProps> = ({ series }) => {
   const [isSeriesLoaderVisible, setIsSeriesLoaderVisible] = useState(false);
   const [wasDeleted, setWasDeleted] = useState(false);
-  const [isDetailsSliderVisible, setIsDetailsSliderVisible] = useState(false);
-  const [isListSliderVisible, setIsListSliderVisible] = useState(false);
   const { showLoader, hideLoader } = useLoader();
+  const { setAlertState } = useToaster();
   const { seriesList, storiesList, setSeriesList, setStoriesList } =
     useWorksList();
   const navigate = useNavigate();
@@ -69,9 +70,12 @@ export const SeriesBox: React.FC<SeriesBoxProps> = ({ series }) => {
         const foundSeriesIndex =
           seriesList?.findIndex((srs) => srs.series_id === id) ?? -1;
 
+        let convertedCount = 0;
+
         // Note: 0 is a valid index; check > -1
         if (storiesList && seriesList && foundSeriesIndex > -1) {
           const newStandaloneList = [...storiesList];
+          convertedCount = seriesList[foundSeriesIndex].stories.length;
           seriesList[foundSeriesIndex].stories.forEach((story) => {
             const newStory = { ...story };
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -84,6 +88,16 @@ export const SeriesBox: React.FC<SeriesBoxProps> = ({ series }) => {
           newSeriesList.splice(foundSeriesIndex, 1);
           setSeriesList(newSeriesList);
         }
+
+        const storyWord = convertedCount === 1 ? "story has" : "stories have";
+        setAlertState({
+          title: `Series "${title}" deleted`,
+          message: convertedCount > 0
+            ? `${convertedCount} ${storyWord} been converted to standalone.`
+            : "",
+          severity: AlertToastType.success,
+          open: true,
+        });
       } catch (error) {
         const msg = axios.isAxiosError(error)
           ? typeof error.response?.data === "string"
@@ -97,30 +111,17 @@ export const SeriesBox: React.FC<SeriesBoxProps> = ({ series }) => {
     }
   };
 
-  const showDetailsSlider = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    if (!isListSliderVisible) {
-      setIsDetailsSliderVisible(true);
-    }
-  };
-  const hideDetailsSlider = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    setIsDetailsSliderVisible(false);
-  };
 
-  const showListSlider = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    if (!isListSliderVisible && isDetailsSliderVisible) {
-      setIsDetailsSliderVisible(false);
-    }
-    setIsListSliderVisible(true);
+  const storyCount = series.stories?.length || 0;
+
+  const handleCardClick = () => {
+    navigate(`/series/${series.series_id}/edit`);
   };
 
   return !wasDeleted ? (
     <div
       className={styles.seriesBoxContainer}
-      onMouseEnter={showDetailsSlider}
-      onMouseLeave={hideDetailsSlider}
+      onClick={handleCardClick}
     >
       <div
         className="loading-screen"
@@ -142,6 +143,24 @@ export const SeriesBox: React.FC<SeriesBoxProps> = ({ series }) => {
       <div className={styles.seriesLabel}>
         <span className={styles.title}>{series.series_title}</span>
         <span className={styles.buttons}>
+          <Chip
+            icon={<MenuBookIcon sx={{ fontSize: "14px !important" }} />}
+            label={storyCount}
+            size="small"
+            sx={{
+              height: 22,
+              fontSize: "0.7rem",
+              fontWeight: 600,
+              bgcolor: "rgba(255,255,255,0.15)",
+              color: "#fff",
+              "& .MuiChip-icon": { color: "#fff" },
+              "[data-theme='light'] &": {
+                bgcolor: "rgba(0,0,0,0.08)",
+                color: "#1a1a1a",
+                "& .MuiChip-icon": { color: "#1a1a1a" },
+              },
+            }}
+          />
           <Tooltip title={`Edit ${series.series_title}`} placement="top">
             <IconButton
               aria-label="edit series"
@@ -187,26 +206,35 @@ export const SeriesBox: React.FC<SeriesBoxProps> = ({ series }) => {
           </Tooltip>
         </span>
       </div>
-      <StoryOrSeriesDetailsSlider
-        onShowMoreClick={showListSlider}
-        id={series.series_id}
-        visible={isDetailsSliderVisible}
-        stories={series.stories}
-        chapters={undefined}
-        setDeleted={setWasDeleted}
-        onStoryClick={handleStoryClick}
-        isSeries={true}
-        title={series.series_title}
-        description={series.series_description}
-      />
-      <StoryListSlider
-        series={series}
-        visible={isListSliderVisible}
-        onStoryClick={handleStoryClick}
-        onClose={() => {
-          setIsListSliderVisible(false);
-        }}
-      />
+
+      {/* Story list strip — always visible at bottom */}
+      <div className={styles.storyStrip}>
+        {storyCount > 0 && series.stories.map((story) => (
+          <div
+            key={story.story_id}
+            className={styles.storyStripItem}
+            onClick={(event) => handleStoryClick(event, story.story_id)}
+          >
+            <Avatar
+              alt={story.title}
+              src={story.image_url}
+              sx={{ width: 24, height: 24, flexShrink: 0 }}
+            />
+            <span className={styles.storyStripTitle}>{story.title}</span>
+          </div>
+        ))}
+        <div
+          className={styles.storyStripItem}
+          onClick={(event) => {
+            event.stopPropagation();
+            navigate(`/series/${series.series_id}/add`);
+          }}
+        >
+          <AddIcon sx={{ fontSize: 20, color: "rgba(255,255,255,0.5)" }} />
+          <span className={`${styles.storyStripTitle} ${styles.addLabel}`}>Add story</span>
+        </div>
+      </div>
+
     </div>
   ) : (
     ""

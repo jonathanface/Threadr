@@ -20,9 +20,12 @@ var Store *gsessions.CookieStore
 // tokenMap stores mobile session tokens -> user data
 var tokenMap sync.Map
 
+const mobileTokenTTL = 30 * 24 * time.Hour // 30 days
+
 // tokenData holds user information for mobile sessions
 type tokenData struct {
-	UserInfo interface{}
+	UserInfo  interface{}
+	ExpiresAt time.Time
 }
 
 // Initialize validates and initializes the session store. Must be called at startup.
@@ -95,14 +98,17 @@ func GenerateSessionToken() string {
 	return hex.EncodeToString(b)
 }
 
-// StoreTokenMapping stores a mobile token -> user data mapping
+// StoreTokenMapping stores a mobile token -> user data mapping with a 30-day expiry
 func StoreTokenMapping(token string, userInfo interface{}) {
-	tokenMap.Store(token, &tokenData{UserInfo: userInfo})
+	tokenMap.Store(token, &tokenData{
+		UserInfo:  userInfo,
+		ExpiresAt: time.Now().Add(mobileTokenTTL),
+	})
 }
 
-// GetUserByToken retrieves the user data for a mobile token
+// GetUserByToken retrieves the user data for a mobile token.
+// Returns nil if the token is missing, malformed, or expired.
 func GetUserByToken(token string) (interface{}, bool) {
-
 	val, ok := tokenMap.Load(token)
 	if !ok {
 		log.Printf("[sessions] Token not found in map")
@@ -113,6 +119,11 @@ func GetUserByToken(token string) (interface{}, bool) {
 		log.Printf("[sessions] Invalid data format for token")
 		return nil, false
 	}
+	if time.Now().After(data.ExpiresAt) {
+		log.Printf("[sessions] Token expired, removing")
+		tokenMap.Delete(token)
+		return nil, false
+	}
 	log.Printf("[sessions] Token found in map")
 	return data.UserInfo, true
 }
@@ -120,4 +131,23 @@ func GetUserByToken(token string) (interface{}, bool) {
 // DeleteTokenMapping removes a token mapping (for logout)
 func DeleteTokenMapping(token string) {
 	tokenMap.Delete(token)
+}
+
+// StartTokenCleanup runs a background goroutine that periodically removes expired tokens.
+func StartTokenCleanup() {
+	go func() {
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+		for range ticker.C {
+			now := time.Now()
+			tokenMap.Range(func(key, val interface{}) bool {
+				if data, ok := val.(*tokenData); ok {
+					if now.After(data.ExpiresAt) {
+						tokenMap.Delete(key)
+					}
+				}
+				return true
+			})
+		}
+	}()
 }

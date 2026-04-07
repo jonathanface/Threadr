@@ -21,6 +21,8 @@ interface SaveStoryParams {
   title: string;
   description: string;
   imageFile?: File;
+  importFile?: File;
+  skipFirstPage?: boolean;
   selectedSeries: AvailableSeries | null;
   initialSeriesID?: string;
 }
@@ -49,7 +51,7 @@ export const useStorySave = () => {
           );
           if (foundSeriesIndex !== -1) {
             const updatedSeries = { ...seriesList[foundSeriesIndex] };
-            updatedSeries.stories.push(updatedStory);
+            updatedSeries.stories = [...(updatedSeries.stories || []), updatedStory];
             propagateSeriesUpdates(updatedSeries, updatedStory);
           } else {
             setSeriesList([...seriesList, newSeries]);
@@ -87,7 +89,7 @@ export const useStorySave = () => {
 
   const saveStory = useCallback(
     async (params: SaveStoryParams): Promise<void> => {
-      const { storyID, title, description, imageFile, selectedSeries, initialSeriesID } = params;
+      const { storyID, title, description, imageFile, importFile, skipFirstPage, selectedSeries, initialSeriesID } = params;
       const isEdit = Boolean(storyID);
 
       try {
@@ -115,7 +117,7 @@ export const useStorySave = () => {
               formData.series_name = foundSeries.series_title.trim();
               // Only set series_place for new additions (not when keeping same series)
               if (!isEdit || selectedSeries.series_id !== initialSeriesID) {
-                formData.series_place = foundSeries.stories.length || 1;
+                formData.series_place = foundSeries.stories?.length || 1;
               }
             }
           } else if (selectedSeries.series_name) {
@@ -125,7 +127,7 @@ export const useStorySave = () => {
             );
             if (foundSeries) {
               formData.series_id = foundSeries.series_id;
-              formData.series_place = foundSeries.stories.length || 1;
+              formData.series_place = foundSeries.stories?.length || 1;
             } else {
               formData.series_title = selectedSeries.series_name.trim();
               formData.series_place = 1;
@@ -145,13 +147,49 @@ export const useStorySave = () => {
           }
         );
 
+        // Import document if a file was provided (only on create)
+        if (importFile && !isEdit && savedStory.story_id) {
+          try {
+            const importFormData = new FormData();
+            importFormData.append("file", importFile);
+            if (skipFirstPage) {
+              importFormData.append("skip_first_page", "true");
+            }
+
+            await api.post(
+              `/stories/${savedStory.story_id}/import`,
+              importFormData,
+              {
+                withCredentials: true,
+                headers: { "Content-Type": "multipart/form-data" },
+              }
+            );
+          } catch (importError) {
+            if (axios.isAxiosError(importError)) {
+              console.error("Document import failed:", importError.response?.data);
+            }
+            setAlertState({
+              title: "Story created, but document import failed",
+              message: "Your story was created. You can try importing the document again later.",
+              severity: AlertToastType.warning,
+              open: true,
+            });
+            navigate(`/stories/${savedStory.story_id}`);
+            return;
+          }
+        }
+
         updateStoriesAndSeriesLists(
           savedStory,
           (formData.series_name || formData.series_title) as string | undefined
         );
 
         setAlertState({
-          title: isEdit ? "Story updated successfully" : "Story created successfully",
+          title: isEdit
+            ? "Story updated successfully"
+            : importFile
+              ? "Story created and document imported"
+              : "Story created successfully",
           message: "",
           severity: AlertToastType.success,
           open: true,
