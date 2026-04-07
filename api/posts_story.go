@@ -3,6 +3,7 @@ package api
 import (
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
+	"Threadr/logger"
 	"Threadr/models"
 	"bytes"
 	"context"
@@ -28,7 +29,8 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok    bool
 	)
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	const maxFileSize = 5 * 1024 * 1024 // 5 MB
@@ -41,7 +43,8 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	file, handler, err := r.FormFile("file")
 	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error())
+		logger.Error("Bad request", "error", err)
+		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 	defer file.Close()
@@ -53,7 +56,8 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	fileBytes := make([]byte, handler.Size)
 	if _, err := file.Read(fileBytes); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	fileType := http.DetectContentType(fileBytes)
@@ -77,7 +81,8 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	// Scale down the image if it exceeds the maximum width
 	scaledImageBuf, _, err := scaleDownImage(file, uint(400))
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	// Check the size of the scaled image
@@ -117,7 +122,8 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		opts.Region = os.Getenv("AWS_REGION")
 		return nil
 	}); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	s3Client := s3.NewFromConfig(awsCfg)
@@ -127,7 +133,8 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		Body:        bytes.NewReader(scaledImageBuf.Bytes()),
 		ContentType: aws.String(fileType),
 	}); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	story.ImageURL = "https://" + S3_STORY_IMAGE_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
@@ -135,13 +142,15 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
-				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				logger.Error("Internal error", "error", err)
+				RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
 			RespondWithError(w, awsResponse.Code, awsResponse.Message)
 			return
 		}
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
@@ -152,7 +161,8 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	chap.Place = 1
 	newChapter, err := dao.CreateChapter(r.Context(), story.ID, chap, email)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	story.Chapters = append(story.Chapters, newChapter)

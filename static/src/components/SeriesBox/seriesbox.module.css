@@ -16,6 +16,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
 }
 
 :global([data-theme="light"]) .seriesBoxContainer {
@@ -142,6 +143,7 @@
 .seriesBoxContainer .seriesLabel .buttons {
   white-space: nowrap;
   display: flex;
+  align-items: center;
   gap: 4px;
 }
 
@@ -167,6 +169,91 @@
 
 :global([data-theme="light"]) .seriesBoxContainer .seriesLabel .buttons :global(.MuiIconButton-root:hover) :global(svg) {
   color: #0e7c5f !important;
+}
+
+/* Story list strip at bottom of card */
+.storyStrip {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 5;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.seriesBoxContainer:hover .storyStrip {
+  background: rgba(0, 0, 0, 0.75);
+  transform: translateY(-4px);
+}
+
+:global([data-theme="light"]) .storyStrip {
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+:global([data-theme="light"]) .seriesBoxContainer:hover .storyStrip {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.storyStripItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.storyStripItem:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+:global([data-theme="light"]) .storyStripItem:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.storyStripTitle {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+:global([data-theme="light"]) .storyStripTitle {
+  color: #1a1a1a;
+}
+
+.addLabel {
+  color: rgba(255, 255, 255, 0.5) !important;
+  font-style: italic;
+}
+
+:global([data-theme="light"]) .addLabel {
+  color: rgba(0, 0, 0, 0.4) !important;
+}
+
+.storyStripMore {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  padding: 2px 0;
+}
+
+:global([data-theme="light"]) .storyStripMore {
+  color: rgba(0, 0, 0, 0.4);
 }
 
 /* Mobile Responsive */

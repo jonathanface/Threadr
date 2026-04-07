@@ -55,7 +55,7 @@ export const StoryFormFields: React.FC<StoryFormFieldsProps> = ({
             mt: 0.5,
           }}
         >
-          {titleRemaining} characters remaining
+          {title.length}/{MAX_TITLE_LENGTH}
         </Typography>
       </Box>
 
@@ -91,7 +91,7 @@ export const StoryFormFields: React.FC<StoryFormFieldsProps> = ({
             mt: 0.5,
           }}
         >
-          {descRemaining} characters remaining
+          {description.length}/{MAX_DESCRIPTION_LENGTH}
         </Typography>
       </Box>
     </>

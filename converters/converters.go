@@ -291,7 +291,7 @@ func LexicalToHTML(lexicalJSON string) (string, error) {
 
 // nodeToHTML converts a single Lexical node to HTML
 func nodeToHTML(node LexicalNode) string {
-	var html strings.Builder
+	var buf strings.Builder
 
 	switch node.Type {
 	case "paragraph", "custom-paragraph":
@@ -308,14 +308,14 @@ func nodeToHTML(node LexicalNode) string {
 			}
 		}
 
-		html.WriteString("<div" + style + ">")
+		buf.WriteString("<div" + style + ">")
 		for _, child := range node.Children {
-			html.WriteString(nodeToHTML(child))
+			buf.WriteString(nodeToHTML(child))
 		}
-		html.WriteString("</div>")
+		buf.WriteString("</div>")
 
 	case "text":
-		text := node.Text
+		text := html.EscapeString(node.Text)
 
 		// Apply text formatting based on textFormat bitmask
 		// Lexical uses bitmask: 1=bold, 2=italic, 4=strikethrough, 8=underline
@@ -333,57 +333,57 @@ func nodeToHTML(node LexicalNode) string {
 			text = "<s>" + text + "</s>"
 		}
 
-		html.WriteString(text)
+		buf.WriteString(text)
 
 	case "linebreak":
-		html.WriteString("<br>")
+		buf.WriteString("<br>")
 
 	case "heading":
 		// Default to h1 if no specific heading level
-		html.WriteString("<h1>")
+		buf.WriteString("<h1>")
 		for _, child := range node.Children {
-			html.WriteString(nodeToHTML(child))
+			buf.WriteString(nodeToHTML(child))
 		}
-		html.WriteString("</h1>")
+		buf.WriteString("</h1>")
 
 	case "list":
 		// Check if ordered or unordered (default to ul)
 		listTag := "ul"
-		html.WriteString("<" + listTag + ">")
+		buf.WriteString("<" + listTag + ">")
 		for _, child := range node.Children {
-			html.WriteString(nodeToHTML(child))
+			buf.WriteString(nodeToHTML(child))
 		}
-		html.WriteString("</" + listTag + ">")
+		buf.WriteString("</" + listTag + ">")
 
 	case "listitem":
-		html.WriteString("<li>")
+		buf.WriteString("<li>")
 		for _, child := range node.Children {
-			html.WriteString(nodeToHTML(child))
+			buf.WriteString(nodeToHTML(child))
 		}
-		html.WriteString("</li>")
+		buf.WriteString("</li>")
 
 	case "link":
-		html.WriteString("<a>")
+		buf.WriteString("<a>")
 		for _, child := range node.Children {
-			html.WriteString(nodeToHTML(child))
+			buf.WriteString(nodeToHTML(child))
 		}
-		html.WriteString("</a>")
+		buf.WriteString("</a>")
 
 	case "quote":
-		html.WriteString("<blockquote>")
+		buf.WriteString("<blockquote>")
 		for _, child := range node.Children {
-			html.WriteString(nodeToHTML(child))
+			buf.WriteString(nodeToHTML(child))
 		}
-		html.WriteString("</blockquote>")
+		buf.WriteString("</blockquote>")
 
 	default:
 		// For unknown node types, just process children
 		for _, child := range node.Children {
-			html.WriteString(nodeToHTML(child))
+			buf.WriteString(nodeToHTML(child))
 		}
 	}
 
-	return html.String()
+	return buf.String()
 }
 
 func HTMLToEPUB(export models.DocumentExportRequest) (string, error) {

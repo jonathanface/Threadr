@@ -3,6 +3,7 @@ package api
 import (
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
+	"Threadr/logger"
 	"Threadr/models"
 	"encoding/json"
 	"net/http"
@@ -23,7 +24,8 @@ func CreateAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		isSubscriber bool
 	)
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
@@ -51,13 +53,15 @@ func CreateAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 			if opErr, ok := err.(*smithy.OperationError); ok {
 				awsResponse := processAWSError(opErr)
 				if awsResponse.Code == 0 {
-					RespondWithError(w, http.StatusInternalServerError, err.Error())
+					logger.Error("Internal error", "error", err)
+					RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 					return
 				}
 				RespondWithError(w, awsResponse.Code, awsResponse.Message)
 				return
 			}
-			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			logger.Error("Internal error", "error", err)
+			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
 		if len(existingAssoc) >= NON_SUBSCRIBER_MAX_ASSOC {
@@ -69,7 +73,8 @@ func CreateAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	associations := []*models.Association{}
 	if err = decoder.Decode(&associations); err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error())
+		logger.Error("Bad request", "error", err)
+		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 	for idx, assoc := range associations {
@@ -90,13 +95,15 @@ func CreateAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		if opErr, ok := err.(*smithy.OperationError); ok {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
-				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				logger.Error("Internal error", "error", err)
+				RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
 			RespondWithError(w, awsResponse.Code, awsResponse.Message)
 			return
 		}
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	RespondWithJson(w, http.StatusOK, associations)

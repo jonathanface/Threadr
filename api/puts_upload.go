@@ -34,7 +34,8 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 	const maxUploadSize = 5 * 1024 * 1024 // 5 MB for original upload
 	const maxScaledSize = 1024 * 1024     // 1 MB for final scaled image
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
@@ -67,7 +68,8 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	file, handler, err := r.FormFile("file")
 	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error())
+		logger.Error("Bad request", "error", err)
+		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 	defer file.Close()
@@ -82,7 +84,8 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 	allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
 	fileBytes := make([]byte, handler.Size)
 	if _, err := file.Read(fileBytes); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	fileType := http.DetectContentType(fileBytes)
@@ -105,7 +108,8 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 	// Scale down the image if it exceeds the maximum width
 	scaledImageBuf, _, err := scaleDownImage(file, uint(400))
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	// Check the size of the scaled image
@@ -122,7 +126,8 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	var storyOrSeriesID string
 	if storyOrSeriesID, err = dao.IsStoryInASeries(r.Context(), email, storyID); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	if storyOrSeriesID == "" {
@@ -155,7 +160,8 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		opts.Region = os.Getenv("AWS_REGION")
 		return nil
 	}); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	s3Client := s3.NewFromConfig(awsCfg)
@@ -165,12 +171,14 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		Body:        scaledImageBuf,
 		ContentType: aws.String(fileType),
 	}); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	portraitURL := "https://" + S3_CUSTOM_PORTRAIT_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
 	if err = dao.UpdateAssociationPortraitEntryInDB(r.Context(), email, storyOrSeriesID, associationID, portraitURL); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 

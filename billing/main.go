@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"Threadr/logger"
 	"io"
 	"log"
 	"net/http"
@@ -108,7 +109,8 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	dao, err := daos.NewDAO(context.Background(), daoOptions)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
@@ -117,7 +119,8 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 		Tolerance:                tolerance,
 	})
 	if err != nil {
-		http.Error(w, "signature verification failed: "+err.Error(), http.StatusBadRequest)
+		logger.Error("Stripe signature verification failed", "error", err)
+		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
@@ -130,7 +133,8 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 	case "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted":
 		var sub stripe.Subscription
 		if err := json.NewDecoder(bytes.NewReader(event.Data.Raw)).Decode(&sub); err != nil {
-			RespondWithError(w, http.StatusBadRequest, err.Error())
+			logger.Error("Bad request", "error", err)
+		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 			return
 		}
 
@@ -152,13 +156,15 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 			LastSubCheck:           time.Now(),
 			CurrentSubscriptionEnd: time.Unix(sub.CurrentPeriodEnd, 0).UTC(),
 		}); err != nil {
-			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
 
 		user, err = dao.GetUserDetails(context.Background(), email)
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
 
@@ -171,7 +177,8 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 				user.NotifyRestored = true
 			} else if err != nil {
 				// validation/state still not ACKed yet, so we can error out
-				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
 		} else if !isActive && user.Subscriber {
@@ -181,7 +188,8 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 			// suspend others (async fan-out OK)
 			stories, err := dao.GetAllStories(context.Background(), user.Email)
 			if err != nil && err != sql.ErrNoRows {
-				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
 			for idx, s := range stories {
@@ -192,7 +200,8 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err := dao.UpdateUser(context.Background(), *user); err != nil {
-			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
 
@@ -247,7 +256,8 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok    bool
 	)
 	if email, err = getUserEmailFn(r); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
@@ -270,7 +280,8 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	custID, err := ensureCustomerFn(user, sub)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "unable to ensure Stripe customer: "+err.Error())
+		logger.Error("Failed to ensure Stripe customer", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
@@ -304,7 +315,8 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 		s, err = subscription.New(params)
 		if err != nil {
-			http.Error(w, err.Error(), 500)
+			logger.Error("Internal error", "error", err)
+		http.Error(w, "An internal error occurred", 500)
 			return
 		}
 		log.Printf("[SubscribeCustomer] Created new subscription %s for %s", s.ID, email)
@@ -318,7 +330,8 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 			},
 		})
 		if err != nil {
-			http.Error(w, err.Error(), 500)
+			logger.Error("Internal error", "error", err)
+		http.Error(w, "An internal error occurred", 500)
 			return
 		}
 	}
@@ -360,7 +373,8 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if email, err = getUserEmailFn(r); err != nil {
-		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		logger.Error("Authentication failed", "error", err)
+		RespondWithError(w, http.StatusUnauthorized, "Authentication failed")
 		return
 	}
 
@@ -382,7 +396,8 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := ensureCustomerFn(user, sub); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "unable to ensure Stripe customer: "+err.Error())
+		logger.Error("Failed to ensure Stripe customer", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
@@ -437,7 +452,8 @@ func BillingPortalSessionEndpoint(w http.ResponseWriter, r *http.Request) {
 	// 1) Who is the user?
 	email, err := getUserEmailFn(r)
 	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		logger.Error("Authentication failed", "error", err)
+		RespondWithError(w, http.StatusUnauthorized, "Authentication failed")
 		return
 	}
 
@@ -464,7 +480,8 @@ func BillingPortalSessionEndpoint(w http.ResponseWriter, r *http.Request) {
 	// 4) Ensure Stripe customer exists / get ID
 	custID, err := ensureCustomerFn(user, sub)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "unable to ensure Stripe customer: "+err.Error())
+		logger.Error("Failed to ensure Stripe customer", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
@@ -478,7 +495,8 @@ func BillingPortalSessionEndpoint(w http.ResponseWriter, r *http.Request) {
 		ReturnURL: stripe.String(retURL),
 	})
 	if err != nil {
-		RespondWithError(w, http.StatusBadGateway, "stripe portal error: "+err.Error())
+		logger.Error("Stripe portal error", "error", err)
+		RespondWithError(w, http.StatusBadGateway, "Payment service error")
 		return
 	}
 
@@ -487,7 +505,8 @@ func BillingPortalSessionEndpoint(w http.ResponseWriter, r *http.Request) {
 		sub.LastSubCheck = zeroTime
 		err = dao.UpdateSubscription(r.Context(), *sub)
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, "error updating subscription: "+err.Error())
+			logger.Error("Failed to update subscription", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
 	}

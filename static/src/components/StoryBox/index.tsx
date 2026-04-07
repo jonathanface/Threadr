@@ -8,6 +8,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../api";
 import { useLoader } from "../../hooks/useLoader";
+import { useToaster } from "../../hooks/useToaster";
+import { useWorksList } from "../../hooks/useWorksList";
+import { AlertToastType } from "../../types/AlertToasts";
 import type { Story } from "../../types/Story";
 import { StoryOrSeriesDetailsSlider } from "../StoryOrSeriesDetailsSlider";
 import styles from "./story.module.css";
@@ -18,6 +21,8 @@ interface StoryBoxProps {
 
 export const StoryBox = (props: StoryBoxProps) => {
   const { showLoader, hideLoader } = useLoader();
+  const { setAlertState } = useToaster();
+  const { storiesList, setStoriesList } = useWorksList();
 
   const [wasDeleted, setWasDeleted] = useState(false);
   const [isSliderVisible, setIsSliderVisible] = useState(false);
@@ -62,6 +67,15 @@ export const StoryBox = (props: StoryBoxProps) => {
         }
 
         setWasDeleted(true);
+        if (storiesList) {
+          setStoriesList(storiesList.filter((s) => s.story_id !== id));
+        }
+        setAlertState({
+          title: `Story "${title}" deleted`,
+          message: "",
+          severity: AlertToastType.success,
+          open: true,
+        });
       } catch (error) {
         setWasDeleted(true);
         if (axios.isAxiosError(error)) {

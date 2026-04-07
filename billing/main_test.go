@@ -337,7 +337,7 @@ func TestBillingPortalSessionEndpoint(t *testing.T) {
 			dao:          daoMock,
 			spec:         stripeRouteSpec{PortalShouldError: true},
 			wantStatus:   http.StatusBadGateway,
-			wantContains: `"error":"stripe portal error:`,
+			wantContains: `"error":"Payment service error"`,
 		},
 	}
 
@@ -425,7 +425,7 @@ func TestStripeWebhookEndpoint(t *testing.T) {
 			signature:    "t=1,v1=invalid_signature",
 			payload:      `{"type":"customer.subscription.updated"}`,
 			wantStatus:   http.StatusBadRequest,
-			wantContains: "signature verification failed",
+			wantContains: "Invalid request",
 		},
 	}
 

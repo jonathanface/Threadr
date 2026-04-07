@@ -5,12 +5,24 @@ import (
 	"context"
 	"errors"
 	"os"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 	sesv2types "github.com/aws/aws-sdk-go-v2/service/sesv2/types"
 )
+
+// sanitizeEmailField strips newlines and control characters from user-provided
+// values before they are interpolated into email subjects or bodies.
+func sanitizeEmailField(s string) string {
+	s = strings.ReplaceAll(s, "\r", "")
+	s = strings.ReplaceAll(s, "\n", " ")
+	if len(s) > 256 {
+		s = s[:256]
+	}
+	return s
+}
 
 func SendWelcomeEmail(toEmail string) error {
 	region := os.Getenv("AWS_REGION")
@@ -69,9 +81,14 @@ func SendShareInviteEmail(toEmail, readerFirstName, authorName, authorEmail, sto
 
 	svc := sesv2.NewFromConfig(cfg)
 
-	subject := "You've been invited to read \"" + storyTitle + "\" on Threadr"
-	body := "Hi " + readerFirstName + ",\n\n" +
-		authorName + " (" + authorEmail + ") has invited you to read \"" + storyTitle + "\" on Threadr.\n\n" +
+	safeTitle := sanitizeEmailField(storyTitle)
+	safeName := sanitizeEmailField(readerFirstName)
+	safeAuthor := sanitizeEmailField(authorName)
+	safeAuthorEmail := sanitizeEmailField(authorEmail)
+
+	subject := "You've been invited to read \"" + safeTitle + "\" on Threadr"
+	body := "Hi " + safeName + ",\n\n" +
+		safeAuthor + " (" + safeAuthorEmail + ") has invited you to read \"" + safeTitle + "\" on Threadr.\n\n" +
 		"Click the link below to start reading:\n" + shareURL + "\n\n" +
 		"Happy reading!"
 

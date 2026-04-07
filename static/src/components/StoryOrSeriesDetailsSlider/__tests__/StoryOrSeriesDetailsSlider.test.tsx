@@ -1,8 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { BrowserRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import { StoryOrSeriesDetailsSlider } from '../index';
 import type { Story } from '../../../types/Story';
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => vi.fn(),
+  };
+});
 
 const mockStory1: Story = {
   story_id: 'story-1',
@@ -404,7 +413,7 @@ describe('StoryOrSeriesDetailsSlider', () => {
   });
 
   describe('Empty States', () => {
-    it('should show "No stories assigned." when series has no stories', () => {
+    it('should show Create Story button when series has no stories', () => {
       render(
         <StoryOrSeriesDetailsSlider
           id="series-1"
@@ -417,10 +426,10 @@ describe('StoryOrSeriesDetailsSlider', () => {
         />
       );
 
-      expect(screen.getByText('No stories assigned.')).toBeInTheDocument();
+      expect(screen.getByText('Create Story')).toBeInTheDocument();
     });
 
-    it('should show "No stories assigned." when stories is undefined', () => {
+    it('should show Create Story button when stories is undefined', () => {
       render(
         <StoryOrSeriesDetailsSlider
           id="series-1"
@@ -432,7 +441,7 @@ describe('StoryOrSeriesDetailsSlider', () => {
         />
       );
 
-      expect(screen.getByText('No stories assigned.')).toBeInTheDocument();
+      expect(screen.getByText('Create Story')).toBeInTheDocument();
     });
   });
 

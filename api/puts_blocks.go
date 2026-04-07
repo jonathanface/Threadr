@@ -35,7 +35,8 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 	blocksOrder := models.BlocksOrder{}
 	if err := decoder.Decode(&blocksOrder); err != nil {
 		logger.Error("Failed to decode blocks order", "error", err, "storyId", storyID, "remoteAddr", r.RemoteAddr)
-		RespondWithError(w, http.StatusBadRequest, err.Error())
+		logger.Error("Bad request", "error", err)
+		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 
@@ -60,7 +61,7 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 					"storyId", storyID,
 					"chapterId", blocksOrder.ChapterID,
 					"blockCount", len(blocksOrder.Blocks))
-				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
 			logger.Error("ResetBlockOrder AWS validation error",
@@ -76,7 +77,7 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 			"storyId", storyID,
 			"chapterId", blocksOrder.ChapterID,
 			"blockCount", len(blocksOrder.Blocks))
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	logger.Info("RewriteBlockOrder completed successfully",
@@ -108,7 +109,8 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	storyBlocks := models.StoryBlocks{}
 	if err = decoder.Decode(&storyBlocks); err != nil {
 		logger.Error("Failed to decode story blocks", "error", err, "storyId", storyID, "remoteAddr", r.RemoteAddr)
-		RespondWithError(w, http.StatusBadRequest, err.Error())
+		logger.Error("Bad request", "error", err)
+		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 
@@ -151,7 +153,7 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 					"storyId", storyID,
 					"chapterId", storyBlocks.ChapterID,
 					"blockCount", len(storyBlocks.Blocks))
-				RespondWithError(w, http.StatusInternalServerError, err.Error())
+				RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
 			logger.Error("WriteBlocks AWS validation error",
@@ -167,7 +169,7 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 			"storyId", storyID,
 			"chapterId", storyBlocks.ChapterID,
 			"blockCount", len(storyBlocks.Blocks))
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	logger.Info("WriteBlocks completed successfully",

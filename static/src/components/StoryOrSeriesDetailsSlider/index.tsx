@@ -1,5 +1,7 @@
-import { Avatar, AvatarGroup, Tooltip } from "@mui/material";
+import { Avatar, AvatarGroup, Button, Tooltip } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { Chapter } from "../../types/Chapter";
 import type { Story } from "../../types/Story";
 import styles from "./details.module.css";
@@ -18,6 +20,7 @@ interface DetailsSliderProps {
 }
 
 export const StoryOrSeriesDetailsSlider = (props: DetailsSliderProps) => {
+  const navigate = useNavigate();
   const [stories, setStories] = useState(props.stories);
   const [isSeries, setIsSeries] = useState(props.isSeries);
   const [, setTitle] = useState(props.title);
@@ -98,7 +101,18 @@ export const StoryOrSeriesDetailsSlider = (props: DetailsSliderProps) => {
               </AvatarGroup>
             </div>
           ) : (
-            "No stories assigned."
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<AddIcon />}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/series/${props.id}/add`);
+              }}
+              sx={{ textTransform: "none", fontSize: "0.75rem" }}
+            >
+              Create Story
+            </Button>
           )
         ) : (
           ""

@@ -7,11 +7,13 @@ import (
 	"Threadr/logger"
 	"Threadr/models"
 	"Threadr/sessions"
+	"context"
 	"database/sql"
 	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"net/http"
 	"net/url"
 	"os"
@@ -292,7 +294,8 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	user, err := gothic.CompleteUserAuth(w, r)
 	if err != nil {
 		logger.Error("OAuth authentication failed", "error", err, "provider", provider, "remoteAddr", r.RemoteAddr)
-		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
@@ -318,7 +321,8 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 			logger.Info("New user detected, creating account", "email", info.Email, "provider", provider, "remoteAddr", r.RemoteAddr)
 			if userDetails, err = dao.CreateUser(r.Context(), info.Email); err != nil {
 				logger.Error("Failed to create new user", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
-				api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+				logger.Error("Internal error", "error", err)
+		api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
 			// Check if this is a brand new user or a returning deleted user
@@ -327,7 +331,8 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 			logger.Info("User created successfully", "email", info.Email, "newUser", isNewUser, "returningUser", isReturningUser, "remoteAddr", r.RemoteAddr)
 		} else {
 			logger.Error("Failed to retrieve user details", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
-			api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+			logger.Error("Internal error", "error", err)
+		api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
 	}
@@ -368,7 +373,8 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	toJSON, err := json.Marshal(info)
 	if err != nil {
 		logger.Error("Failed to marshal user info", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
-		api.RespondWithError(w, http.StatusBadGateway, err.Error())
+		logger.Error("External service error", "error", err)
+		api.RespondWithError(w, http.StatusBadGateway, "An external service error occurred")
 		return
 	}
 
@@ -389,7 +395,8 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 
 	if err := tokenSess.Save(r, w); err != nil {
 		logger.Error("Failed to save token session", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
-		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
@@ -462,7 +469,8 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 				"remoteAddr", r.RemoteAddr)
 			if err := dao.UpdateUser(r.Context(), *updated); err != nil {
 				logger.Error("Failed to update user subscription status", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
-				api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+				logger.Error("Internal error", "error", err)
+		api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
 		}
@@ -470,6 +478,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 		if updated.NotifyExpired {
 			logger.Info("User subscription expired, creating alert", "email", info.Email, "remoteAddr", r.RemoteAddr)
 			go func() {
+				bgCtx := context.Background()
 				alert := models.Alert{
 					ID:          "sub-expired-" + info.Email,
 					Subject:     "Subscription Expired",
@@ -480,7 +489,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 					CreatedAt:   time.Now().Unix(),
 					CreatedBy:   "system",
 				}
-				if aErr := dao.CreateAlert(r.Context(), alert); aErr != nil {
+				if aErr := dao.CreateAlert(bgCtx, alert); aErr != nil {
 					logger.Error("Failed to create subscription expired alert", "error", aErr, "email", info.Email)
 				}
 			}()
@@ -488,6 +497,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 		if updated.NotifyRestored {
 			logger.Info("User subscription restored, creating alert", "email", info.Email, "remoteAddr", r.RemoteAddr)
 			go func() {
+				bgCtx := context.Background()
 				alert := models.Alert{
 					ID:          "sub-restored-" + info.Email + "-" + strconv.FormatInt(time.Now().Unix(), 10),
 					Subject:     "Subscription Restored",
@@ -498,7 +508,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 					CreatedAt:   time.Now().Unix(),
 					CreatedBy:   "system",
 				}
-				if aErr := dao.CreateAlert(r.Context(), alert); aErr != nil {
+				if aErr := dao.CreateAlert(bgCtx, alert); aErr != nil {
 					logger.Error("Failed to create subscription restored alert", "error", aErr, "email", info.Email)
 				}
 			}()
@@ -510,6 +520,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 				daysLeft := int(time.Until(sub.CurrentSubscriptionEnd).Hours() / 24)
 				if daysLeft >= 0 && daysLeft <= 7 {
 					go func() {
+						bgCtx := context.Background()
 						// Dedup: use a fixed ID so we don't spam on every login
 						alert := models.Alert{
 							ID:          "sub-expiring-" + info.Email,
@@ -521,7 +532,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 							CreatedAt:   time.Now().Unix(),
 							CreatedBy:   "system",
 						}
-						if aErr := dao.CreateAlert(r.Context(), alert); aErr != nil {
+						if aErr := dao.CreateAlert(bgCtx, alert); aErr != nil {
 							logger.Error("Failed to create subscription expiring alert", "error", aErr, "email", info.Email)
 						}
 					}()
@@ -670,7 +681,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
         }
     </script>
 </body>
-</html>`, instructions, next, next)
+</html>`, html.EscapeString(instructions), html.EscapeString(next), html.EscapeString(next))
 		w.Write([]byte(html))
 		return
 	}
@@ -765,7 +776,8 @@ func loginWithOptions(w http.ResponseWriter, r *http.Request, options OauthOptio
 
 	if err = sess.Save(r, w); err != nil {
 		logger.Error("Failed to save login_referral session", "error", err, "provider", provider, "remoteAddr", r.RemoteAddr)
-		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
@@ -796,7 +808,8 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	// Fall back to cookie-based logout for web
 	if err := sessions.Delete(w, r, "token"); err != nil {
 		logger.Error("Failed to delete token session during logout", "error", err, "remoteAddr", r.RemoteAddr)
-		api.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		logger.Error("Internal error", "error", err)
+		api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	_ = sessions.Delete(w, r, "login_referral") // clear if exists

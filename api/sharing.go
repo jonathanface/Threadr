@@ -8,8 +8,10 @@ import (
 	"Threadr/models"
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -30,6 +32,13 @@ func generateShareToken() (string, error) {
 	return base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString(b), nil
 }
 
+// HashShareToken returns a hex-encoded SHA-256 hash of a share token.
+// The hash is stored as the DB key; the raw token is given to the user.
+func HashShareToken(token string) string {
+	h := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(h[:])
+}
+
 // Authenticated endpoints (author-side)
 
 func CreateShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +50,8 @@ func CreateShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 	)
 	author, err := GetAuthenticatedUser(r)
 	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		logger.Error("Authentication failed", "error", err)
+		RespondWithError(w, http.StatusUnauthorized, "Authentication failed")
 		return
 	}
 	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
@@ -98,7 +108,7 @@ func CreateShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 	// Check if this reader already has an active share link for this story
 	existingLinks, err := dao.GetShareLinksByAuthor(r.Context(), author.Email, storyID)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	for _, existing := range existingLinks {
@@ -108,14 +118,15 @@ func CreateShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	token, err := generateShareToken()
+	rawToken, err := generateShareToken()
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Failed to generate share token")
 		return
 	}
+	tokenHash := HashShareToken(rawToken)
 
 	link := models.ShareLink{
-		Token:           token,
+		Token:           tokenHash,
 		StoryID:         storyID,
 		ChapterID:       req.ChapterID,
 		AuthorEmail:     author.Email,
@@ -130,7 +141,7 @@ func CreateShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = dao.CreateShareLink(r.Context(), link); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
@@ -140,7 +151,7 @@ func CreateShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 		if frontendURL == "" {
 			frontendURL = "https://threadr.net"
 		}
-		shareURL := fmt.Sprintf("%s/shared/%s", frontendURL, link.Token)
+		shareURL := fmt.Sprintf("%s/shared/%s", frontendURL, rawToken)
 		authorName := author.FirstName + " " + author.LastName
 		if emailErr := mailer.SendShareInviteEmail(link.ReaderEmail, link.ReaderFirstName, authorName, author.Email, story.Title, shareURL); emailErr != nil {
 			logger.Error("Failed to send share invite email",
@@ -150,7 +161,10 @@ func CreateShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	RespondWithJson(w, http.StatusCreated, link)
+	// Return the raw token (not hash) so the frontend can build share URLs
+	response := link
+	response.Token = rawToken
+	RespondWithJson(w, http.StatusCreated, response)
 }
 
 func GetShareLinksEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -162,7 +176,8 @@ func GetShareLinksEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok      bool
 	)
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		logger.Error("Authentication failed", "error", err)
+		RespondWithError(w, http.StatusUnauthorized, "Authentication failed")
 		return
 	}
 	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
@@ -189,7 +204,7 @@ func GetShareLinksEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	links, err := dao.GetShareLinksByAuthor(r.Context(), email, storyID)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	RespondWithJson(w, http.StatusOK, links)
@@ -198,36 +213,37 @@ func GetShareLinksEndpoint(w http.ResponseWriter, r *http.Request) {
 func RevokeShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		email string
-		token string
 		err   error
 		dao   daos.DaoInterface
 		ok    bool
 	)
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		logger.Error("Authentication failed", "error", err)
+		RespondWithError(w, http.StatusUnauthorized, "Authentication failed")
 		return
 	}
-	if token, err = url.PathUnescape(mux.Vars(r)["token"]); err != nil {
+	rawToken, err := url.PathUnescape(mux.Vars(r)["token"])
+	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing token")
 		return
 	}
-	if token == "" {
+	if rawToken == "" {
 		RespondWithError(w, http.StatusBadRequest, "Missing token")
 		return
 	}
+	tokenHash := HashShareToken(rawToken)
 	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
 
-	// Verify the author owns this share link
-	link, err := dao.GetShareLink(r.Context(), token)
+	link, err := dao.GetShareLink(r.Context(), tokenHash)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			RespondWithError(w, http.StatusNotFound, "share link not found")
 			return
 		}
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	if link.AuthorEmail != email {
@@ -235,8 +251,8 @@ func RevokeShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = dao.RevokeShareLink(r.Context(), token); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+	if err = dao.RevokeShareLink(r.Context(), tokenHash); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	RespondWithJson(w, http.StatusOK, nil)
@@ -245,36 +261,37 @@ func RevokeShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 func RestoreShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		email string
-		token string
 		err   error
 		dao   daos.DaoInterface
 		ok    bool
 	)
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		logger.Error("Authentication failed", "error", err)
+		RespondWithError(w, http.StatusUnauthorized, "Authentication failed")
 		return
 	}
-	if token, err = url.PathUnescape(mux.Vars(r)["token"]); err != nil {
+	rawToken, err := url.PathUnescape(mux.Vars(r)["token"])
+	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing token")
 		return
 	}
-	if token == "" {
+	if rawToken == "" {
 		RespondWithError(w, http.StatusBadRequest, "Missing token")
 		return
 	}
+	tokenHash := HashShareToken(rawToken)
 	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
 
-	// Verify the author owns this share link
-	link, err := dao.GetShareLink(r.Context(), token)
+	link, err := dao.GetShareLink(r.Context(), tokenHash)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			RespondWithError(w, http.StatusNotFound, "share link not found")
 			return
 		}
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	if link.AuthorEmail != email {
@@ -282,8 +299,8 @@ func RestoreShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = dao.RestoreShareLink(r.Context(), token); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+	if err = dao.RestoreShareLink(r.Context(), tokenHash); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	RespondWithJson(w, http.StatusOK, nil)
@@ -292,36 +309,37 @@ func RestoreShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 func DeleteShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		email string
-		token string
 		err   error
 		dao   daos.DaoInterface
 		ok    bool
 	)
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		logger.Error("Authentication failed", "error", err)
+		RespondWithError(w, http.StatusUnauthorized, "Authentication failed")
 		return
 	}
-	if token, err = url.PathUnescape(mux.Vars(r)["token"]); err != nil {
+	rawToken, err := url.PathUnescape(mux.Vars(r)["token"])
+	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing token")
 		return
 	}
-	if token == "" {
+	if rawToken == "" {
 		RespondWithError(w, http.StatusBadRequest, "Missing token")
 		return
 	}
+	tokenHash := HashShareToken(rawToken)
 	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
 
-	// Verify the author owns this share link
-	link, err := dao.GetShareLink(r.Context(), token)
+	link, err := dao.GetShareLink(r.Context(), tokenHash)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			RespondWithError(w, http.StatusNotFound, "share link not found")
 			return
 		}
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	if link.AuthorEmail != email {
@@ -329,8 +347,8 @@ func DeleteShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = dao.DeleteShareLink(r.Context(), token); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+	if err = dao.DeleteShareLink(r.Context(), tokenHash); err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	RespondWithJson(w, http.StatusOK, nil)
@@ -345,7 +363,8 @@ func GetAuthorCommentsEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok      bool
 	)
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		logger.Error("Authentication failed", "error", err)
+		RespondWithError(w, http.StatusUnauthorized, "Authentication failed")
 		return
 	}
 	if storyID, err = url.PathUnescape(mux.Vars(r)["storyID"]); err != nil {
@@ -378,7 +397,7 @@ func GetAuthorCommentsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	comments, err := dao.GetCommentsByStoryChapter(r.Context(), storyID, chapterID)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	// Strip share_token from responses to avoid leaking reader access credentials
@@ -397,7 +416,8 @@ func ResolveCommentEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok        bool
 	)
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		logger.Error("Authentication failed", "error", err)
+		RespondWithError(w, http.StatusUnauthorized, "Authentication failed")
 		return
 	}
 	if commentID, err = url.PathUnescape(mux.Vars(r)["commentID"]); err != nil {
@@ -420,7 +440,7 @@ func ResolveCommentEndpoint(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusNotFound, "comment not found")
 			return
 		}
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	if _, err = dao.GetStoryByID(r.Context(), email, comment.StoryID); err != nil {
@@ -429,7 +449,7 @@ func ResolveCommentEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = dao.ResolveComment(r.Context(), commentID); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	RespondWithJson(w, http.StatusOK, nil)
@@ -444,7 +464,8 @@ func DeleteCommentEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok        bool
 	)
 	if email, err = getUserEmail(r); err != nil {
-		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		logger.Error("Authentication failed", "error", err)
+		RespondWithError(w, http.StatusUnauthorized, "Authentication failed")
 		return
 	}
 	if commentID, err = url.PathUnescape(mux.Vars(r)["commentID"]); err != nil {
@@ -467,7 +488,7 @@ func DeleteCommentEndpoint(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusNotFound, "comment not found")
 			return
 		}
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	if _, err = dao.GetStoryByID(r.Context(), email, comment.StoryID); err != nil {
@@ -476,7 +497,7 @@ func DeleteCommentEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = dao.DeleteComment(r.Context(), commentID); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	RespondWithJson(w, http.StatusOK, nil)
@@ -506,13 +527,13 @@ func GetSharedStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusNotFound, "story not found")
 			return
 		}
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
 	chapters, err := dao.GetChaptersByStoryID(r.Context(), link.StoryID)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
@@ -586,7 +607,7 @@ func GetSharedContentEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	blocks, err := staggeredStoryBlockRetrieval(r.Context(), dao, link.StoryID, chapterID, nil, nil)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	RespondWithJson(w, http.StatusOK, blocks)
@@ -609,7 +630,7 @@ func GetSharedCommentsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	allComments, err := dao.GetCommentsByShareToken(r.Context(), link.Token)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	// Only return this reader's own comments
@@ -693,7 +714,7 @@ func CreateCommentEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := dao.CreateComment(r.Context(), comment); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	RespondWithJson(w, http.StatusCreated, comment)
@@ -751,7 +772,7 @@ func DeleteOwnCommentEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = dao.DeleteComment(r.Context(), commentID); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	RespondWithJson(w, http.StatusOK, nil)

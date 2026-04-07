@@ -332,4 +332,117 @@ describe('useStorySave', () => {
       expect(mockSetStoriesList).toHaveBeenCalled();
     });
   });
+
+  describe('Document Import', () => {
+    it('should call import endpoint after creating story with import file', async () => {
+      const { result } = renderHook(() => useStorySave());
+      const importFile = new File(['Some text content'], 'novel.txt', { type: 'text/plain' });
+
+      await act(async () => {
+        await result.current.saveStory({
+          title: 'Imported Story',
+          description: 'From file',
+          importFile,
+          selectedSeries: null,
+        });
+      });
+
+      // First call: POST /stories (create)
+      // Second call: POST /stories/story-123/import
+      expect(apiModule.api.post).toHaveBeenCalledTimes(2);
+      expect(apiModule.api.post).toHaveBeenNthCalledWith(
+        2,
+        '/stories/story-123/import',
+        expect.any(FormData),
+        expect.objectContaining({
+          withCredentials: true,
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+      );
+    });
+
+    it('should show import success alert', async () => {
+      const { result } = renderHook(() => useStorySave());
+      const importFile = new File(['content'], 'test.txt', { type: 'text/plain' });
+
+      await act(async () => {
+        await result.current.saveStory({
+          title: 'Imported',
+          description: 'Desc',
+          importFile,
+          selectedSeries: null,
+        });
+      });
+
+      expect(mockSetAlertState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Story created and document imported',
+          severity: 'success',
+        })
+      );
+    });
+
+    it('should not call import endpoint when editing', async () => {
+      const { result } = renderHook(() => useStorySave());
+      const importFile = new File(['content'], 'test.txt', { type: 'text/plain' });
+
+      await act(async () => {
+        await result.current.saveStory({
+          storyID: 'story-123',
+          title: 'Edited',
+          description: 'Desc',
+          importFile,
+          selectedSeries: null,
+        });
+      });
+
+      // Only PUT for edit, no import POST
+      expect(apiModule.api.put).toHaveBeenCalledTimes(1);
+      expect(apiModule.api.post).not.toHaveBeenCalled();
+    });
+
+    it('should handle import failure gracefully', async () => {
+      // First call (create) succeeds, second call (import) fails
+      vi.spyOn(apiModule.api, 'post')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .mockResolvedValueOnce({ data: mockSavedStory } as any)
+        .mockRejectedValueOnce(new Error('Import failed'));
+
+      const { result } = renderHook(() => useStorySave());
+      const importFile = new File(['content'], 'test.txt', { type: 'text/plain' });
+
+      await act(async () => {
+        await result.current.saveStory({
+          title: 'Story',
+          description: 'Desc',
+          importFile,
+          selectedSeries: null,
+        });
+      });
+
+      expect(mockSetAlertState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Story created, but document import failed',
+          severity: 'warning',
+        })
+      );
+      // Should still navigate to the story
+      expect(mockNavigate).toHaveBeenCalledWith('/stories/story-123');
+    });
+
+    it('should not call import when no file provided', async () => {
+      const { result } = renderHook(() => useStorySave());
+
+      await act(async () => {
+        await result.current.saveStory({
+          title: 'No Import',
+          description: 'Desc',
+          selectedSeries: null,
+        });
+      });
+
+      // Only one POST call (create), no import
+      expect(apiModule.api.post).toHaveBeenCalledTimes(1);
+    });
+  });
 });
