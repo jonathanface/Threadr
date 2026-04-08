@@ -14,7 +14,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.53.2
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.92.1
 	github.com/aws/aws-sdk-go-v2/service/sesv2 v1.55.1
-	github.com/aws/smithy-go v1.23.2
+	github.com/aws/smithy-go v1.24.2
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.4.0
 	github.com/gorilla/mux v1.8.0
@@ -31,7 +31,7 @@ require golang.org/x/net v0.47.0 // indirect
 
 require (
 	cloud.google.com/go v0.67.0 // indirect
-	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.3 // indirect
+	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.8 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.24 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.13.3 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.14 // indirect
