@@ -24,7 +24,7 @@ import {
   EditorState,
   LexicalEditor,
 } from "lexical";
-import { FC, useEffect, useRef, useState } from "react";
+import { FC, useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../../../../api";
 import { useSelections } from "../../../../hooks/useSelections";
 import { useToaster } from "../../../../hooks/useToaster";
@@ -79,6 +79,7 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
   const bgEditorRef = useRef<LexicalEditor>(null);
   const descriptionEditorRef = useRef<LexicalEditor>(null);
   const isProgrammaticChange = useRef(false);
+  const isPopulatingEditors = useRef(false);
   const initialAssociation = useRef<Association | null>(null);
   const exclusionList = useRef<string[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -129,18 +130,14 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
 
   useEffect(() => {
     const fetchAssociationDetails = async () => {
-      if (props.selectedAssociationID)
-        setSelectedAssociationID(props.selectedAssociationID);
-      setSelectedAssociationID(props.selectedAssociationID);
-      if (!story || !isInitialLoad || !props.selectedAssociationID?.length)
+      const idToFetch = selectedAssociationID ?? props.selectedAssociationID;
+      if (!story || !isInitialLoad || !idToFetch?.length)
         return;
       try {
         setIsAssociationLoaderVisible(true);
 
         const { data: serverAssociation } = await api.get<Association>(
-          `/stories/${story.story_id}/associations/${
-            selectedAssociationID ?? props.selectedAssociationID
-          }`,
+          `/stories/${story.story_id}/associations/${idToFetch}`,
         );
 
         initialAssociation.current = JSON.parse(
@@ -148,6 +145,7 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
         );
 
         setSelectedAssociation(serverAssociation);
+        setSelectedAssociationID(idToFetch);
         setAliases(serverAssociation.aliases);
         setName(serverAssociation.association_name);
         exclusionList.current = [
@@ -171,6 +169,7 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
       fetchAssociationDetails();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    selectedAssociationID,
     props.selectedAssociationID,
     story,
     isInitialLoad,
@@ -178,6 +177,13 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
   ]);
 
   useEffect(() => {
+    // Guard against onBlur handlers firing during programmatic editor
+    // population — without this, Lexical's DOM reconciliation can trigger
+    // focus/blur events that call extractTextAndUpdate, which sets state,
+    // which re-triggers this effect, causing an infinite update loop.
+    // Uses a dedicated ref so that AssociationDecoratorPlugin's
+    // isProgrammaticChange check is not affected.
+    isPopulatingEditors.current = true;
     if (bgEditorRef.current && selectedAssociation) {
       bgEditorRef.current.setEditable(!isInitialLoad);
       bgEditorRef.current.update(() => {
@@ -231,6 +237,12 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
         }, 0);
       }
     }
+    // Release the flag after a tick so that the forced association-detection
+    // updates above (setTimeout-0) also run under the guard, but normal user
+    // interactions afterwards are not blocked.
+    setTimeout(() => {
+      isPopulatingEditors.current = false;
+    }, 0);
   }, [
     selectedAssociation,
     descriptionEditorRef,
@@ -249,11 +261,34 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
       !selectedAssociation?.details
     )
       return;
+
+    // Read current editor content directly — we can't rely on onBlur
+    // having fired (e.g. clicking a link inside the editor doesn't blur it).
+    const association = { ...selectedAssociation, details: { ...selectedAssociation.details } };
+    if (bgEditorRef.current) {
+      bgEditorRef.current.getEditorState().read(() => {
+        const root = $getRoot();
+        association.details.extended_description = root
+          .getChildren()
+          .map((node) => node.getTextContent())
+          .join("\n");
+      });
+    }
+    if (descriptionEditorRef.current) {
+      descriptionEditorRef.current.getEditorState().read(() => {
+        const root = $getRoot();
+        association.short_description = root
+          .getChildren()
+          .map((node) => node.getTextContent())
+          .join("\n");
+      });
+    }
+
     if (
-      JSON.stringify(selectedAssociation) !==
+      JSON.stringify(association) !==
       JSON.stringify(initialAssociation.current)
     ) {
-      props.onEditCallback(selectedAssociation);
+      props.onEditCallback(association);
     }
   };
 
@@ -273,13 +308,25 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
     }, 100);
   };
 
-  const onAssociationClick = (value: ClickData) => {
-    if (!value.id) return;
-    saveEdits();
-    setIsInitialLoad(true);
-    clearData();
-    setSelectedAssociationID(value.id);
-  };
+  const onAssociationClick = useCallback(
+    (value: ClickData) => {
+      if (!value.id) return;
+      saveEdits();
+      // Reset state for the new association without synchronously clearing
+      // the editors — clearing during a click event on a node inside the
+      // editor causes Lexical errors.  The editors will be cleared and
+      // repopulated by the selectedAssociation useEffect when the fetch
+      // completes.
+      initialAssociation.current = null;
+      setSelectedAssociation(null);
+      setAliases("");
+      setName("");
+      setIsInitialLoad(true);
+      setSelectedAssociationID(value.id);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectedAssociationID, isInitialLoad, selectedAssociation],
+  );
 
   const extractTextAndUpdate = (editorState: EditorState, type: string) => {
     if (!selectedAssociation) return;
@@ -518,7 +565,8 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
                       onFocus={() => setIsDescriptionActive(true)}
                       onBlur={() => {
                         setIsDescriptionActive(false);
-                        if (isInitialLoad) return;
+                        if (isInitialLoad || isPopulatingEditors.current)
+                          return;
                         const editor = descriptionEditorRef.current;
                         if (editor) {
                           const editorState = editor.getEditorState();
@@ -581,7 +629,8 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
                       onFocus={() => setIsBackgroundActive(true)}
                       onBlur={() => {
                         setIsBackgroundActive(false);
-                        if (isInitialLoad) return;
+                        if (isInitialLoad || isPopulatingEditors.current)
+                          return;
                         const editor = bgEditorRef.current;
                         if (editor) {
                           const editorState = editor.getEditorState();
