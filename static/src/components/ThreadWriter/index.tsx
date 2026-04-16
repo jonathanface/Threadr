@@ -26,7 +26,7 @@ import {
   type SerializedLexicalNode,
   TextNode,
 } from "lexical";
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { api } from "../../api";
 import { generateTextHash } from "../../constants/constants";
@@ -44,6 +44,7 @@ import {
   AssociationType,
   type SimplifiedAssociation,
 } from "../../types/Associations";
+import type { MenuItemEntry } from "../../types/MenuItemEntry";
 import {
   type DBOperationBlock,
   DBOperationType,
@@ -139,7 +140,7 @@ export const ThreadWriter = () => {
     useState<ContextMenuProps>(defaultContextData);
   const [isAssociationPanelOpen, setIsAssociationPanelOpen] = useState(false);
 
-  const resetContextMenu = () => setContextMenuData({ ...defaultContextData });
+  const resetContextMenu = useCallback(() => setContextMenuData({ ...defaultContextData }), []);
 
   // hooks
   const { setAlertState } = useToaster();
@@ -174,7 +175,7 @@ export const ThreadWriter = () => {
       previousNodeKeysRef
     );
 
-  const getSelectedText = () => {
+  const getSelectedText = useCallback(() => {
     let selectedText = "";
     // Update the editor state to read the current selection.
     editorRef.current?.update(() => {
@@ -185,9 +186,9 @@ export const ThreadWriter = () => {
       }
     });
     return selectedText;
-  };
+  }, []);
 
-  const handleTextCopy = () => {
+  const handleTextCopy = useCallback(() => {
     if (!editorRef.current) {
       resetContextMenu();
       return;
@@ -218,112 +219,129 @@ export const ThreadWriter = () => {
     );
 
     resetContextMenu();
-  };
+  }, [resetContextMenu]);
 
-  const saveAssociationsToServer = async (
-    associations: SimplifiedAssociation[]
-  ) => {
-    if (!story?.story_id) return;
-    try {
-      showLoader();
-
-      const { data } = await api.post(
-        `/stories/${story.story_id}/associations`,
-        associations,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      return data;
-    } catch (error) {
-      logger.error("Error saving associations:", error);
-      if (axios.isAxiosError(error) && error.response?.status === 402) {
-        const subscribeFunc: AlertFunctionCall = {
-          type: AlertCommandType.subscribe,
-          text: "subscribe",
-        };
-        setAlertState({
-          title: "Insufficient subscription",
-          message: "Free accounts are limited to 10 associations per story.",
-          open: true,
-          severity: AlertToastType.warning,
-          timeout: null,
-          callback: subscribeFunc,
-        });
-      } else {
-        setAlertState({
-          title: "Error saving association",
-          message:
-            "There was an error saving your association. Please try again later.",
-          severity: AlertToastType.error,
-          open: true,
-        });
-      }
-    } finally {
-      hideLoader();
-    }
-  };
-
-  const handleMenuItemClick = async (
-    _event: React.MouseEvent,
-    type: AssociationType
-  ) => {
+  const handleTextPaste = useCallback(() => {
     resetContextMenu();
-    const text = getSelectedText();
-    if (text.length) {
-      // check if !contains
-      const newAssociation: SimplifiedAssociation = {
-        association_name: text,
-        association_type: type,
-        association_id: "",
-        short_description: "",
-        portrait: "",
-        aliases: "",
-        case_sensitive: true,
-      };
-      const storedAssociation = await saveAssociationsToServer([
-        newAssociation,
-      ]);
-      if (storedAssociation) {
-        newAssociation.portrait = storedAssociation[0].portrait;
-        newAssociation.association_id = storedAssociation[0].association_id;
-        if (associations) {
-          setAssociations([...associations, newAssociation]);
+    if (!editorRef.current) return;
+    navigator.clipboard.readText().then((text) => {
+      if (!text.length) return;
+      editorRef.current?.update(() => {
+        const selection = $getSelection();
+        if ($isRangeSelection(selection)) {
+          selection.insertRawText(text);
+        }
+      });
+    }).catch(() => {
+      logger.error("Clipboard read failed - permission may be denied");
+    });
+  }, [resetContextMenu]);
+
+  const saveAssociationsToServer = useCallback(
+    async (associationsToSave: SimplifiedAssociation[]) => {
+      if (!story?.story_id) return;
+      try {
+        showLoader();
+
+        const { data } = await api.post(
+          `/stories/${story.story_id}/associations`,
+          associationsToSave,
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        return data;
+      } catch (error) {
+        logger.error("Error saving associations:", error);
+        if (axios.isAxiosError(error) && error.response?.status === 402) {
+          const subscribeFunc: AlertFunctionCall = {
+            type: AlertCommandType.subscribe,
+            text: "subscribe",
+          };
+          setAlertState({
+            title: "Insufficient subscription",
+            message: "Free accounts are limited to 10 associations per story.",
+            open: true,
+            severity: AlertToastType.warning,
+            timeout: null,
+            callback: subscribeFunc,
+          });
         } else {
-          setAssociations([newAssociation]);
+          setAlertState({
+            title: "Error saving association",
+            message:
+              "There was an error saving your association. Please try again later.",
+            severity: AlertToastType.error,
+            open: true,
+          });
+        }
+      } finally {
+        hideLoader();
+      }
+    },
+    [story?.story_id, showLoader, hideLoader, setAlertState],
+  );
+
+  const handleMenuItemClick = useCallback(
+    async (_event: React.MouseEvent, type: AssociationType) => {
+      resetContextMenu();
+      const text = getSelectedText();
+      if (text.length) {
+        const newAssociation: SimplifiedAssociation = {
+          association_name: text,
+          association_type: type,
+          association_id: "",
+          short_description: "",
+          portrait: "",
+          aliases: "",
+          case_sensitive: true,
+        };
+        const storedAssociation = await saveAssociationsToServer([
+          newAssociation,
+        ]);
+        if (storedAssociation) {
+          newAssociation.portrait = storedAssociation[0].portrait;
+          newAssociation.association_id = storedAssociation[0].association_id;
+          if (associations) {
+            setAssociations([...associations, newAssociation]);
+          } else {
+            setAssociations([newAssociation]);
+          }
         }
       }
-    }
-  };
+    },
+    [resetContextMenu, getSelectedText, saveAssociationsToServer, associations, setAssociations],
+  );
 
-  const deleteAssociationsFromServer = async (
-    associations: SimplifiedAssociation[]
-  ) => {
-    if (!story) return;
-    try {
-      showLoader();
+  const deleteAssociationsFromServer = useCallback(
+    async (associationsToDelete: SimplifiedAssociation[]) => {
+      if (!story) return;
+      try {
+        showLoader();
 
-      await api.delete(`/stories/${story.story_id}/associations`, {
-        headers: { "Content-Type": "application/json" },
-        data: associations,
-      });
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        logger.error(
-          `Error deleting association: ${error.response?.status} ${error.response?.statusText}`
-        );
-      } else {
-        logger.error("Unexpected error deleting association:", error);
+        await api.delete(`/stories/${story.story_id}/associations`, {
+          headers: { "Content-Type": "application/json" },
+          data: associationsToDelete,
+        });
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          logger.error(
+            `Error deleting association: ${error.response?.status} ${error.response?.statusText}`
+          );
+        } else {
+          logger.error("Unexpected error deleting association:", error);
+        }
+      } finally {
+        hideLoader();
       }
-    } finally {
-      hideLoader();
-    }
-  };
+    },
+    [story, showLoader, hideLoader],
+  );
 
-  const handleDeleteAssociationClick = async () => {
+  const handleDeleteAssociationClick = useCallback(async () => {
     resetContextMenu();
     if (selectedAssociation.current?.length && associations) {
       const ind = associations.findIndex((assoc) => {
@@ -336,47 +354,60 @@ export const ThreadWriter = () => {
       setAssociations(newAssociations);
       await deleteAssociationsFromServer([deleteMe]);
     }
-  };
+  }, [resetContextMenu, associations, setAssociations, deleteAssociationsFromServer]);
 
-  const associationContextMenuItems = [
-    {
-      name: "Delete Association",
-      command: handleDeleteAssociationClick,
-    },
-  ];
+  const associationContextMenuItems = useMemo(
+    () => [
+      {
+        name: "Delete Association",
+        command: handleDeleteAssociationClick,
+      },
+    ],
+    [handleDeleteAssociationClick],
+  );
 
-  const selectedContextMenuItems = [
-    { name: "Copy", command: handleTextCopy },
-    {
-      name: "Make Association",
-      subItems: [
-        {
-          name: "Character",
-          command: (event: React.MouseEvent) => {
-            handleMenuItemClick(event, AssociationType.character);
-          },
-        },
-        {
-          name: "Place",
-          command: (event: React.MouseEvent) => {
-            handleMenuItemClick(event, AssociationType.place);
-          },
-        },
-        {
-          name: "Event",
-          command: (event: React.MouseEvent) => {
-            handleMenuItemClick(event, AssociationType.event);
-          },
-        },
-        {
-          name: "Item",
-          command: (event: React.MouseEvent) => {
-            handleMenuItemClick(event, AssociationType.item);
-          },
-        },
-      ],
+  const buildContextMenuItems = useCallback(
+    (hasSelection: boolean) => {
+      const items: MenuItemEntry[] = [];
+      if (hasSelection) {
+        items.push({ name: "Copy", command: handleTextCopy });
+      }
+      items.push({ name: "Paste", command: handleTextPaste });
+      if (hasSelection) {
+        items.push({
+          name: "Make Association",
+          subItems: [
+            {
+              name: "Character",
+              command: (event: React.MouseEvent<HTMLButtonElement>) => {
+                handleMenuItemClick(event, AssociationType.character);
+              },
+            },
+            {
+              name: "Place",
+              command: (event: React.MouseEvent<HTMLButtonElement>) => {
+                handleMenuItemClick(event, AssociationType.place);
+              },
+            },
+            {
+              name: "Event",
+              command: (event: React.MouseEvent<HTMLButtonElement>) => {
+                handleMenuItemClick(event, AssociationType.event);
+              },
+            },
+            {
+              name: "Item",
+              command: (event: React.MouseEvent<HTMLButtonElement>) => {
+                handleMenuItemClick(event, AssociationType.item);
+              },
+            },
+          ],
+        });
+      }
+      return items;
     },
-  ];
+    [handleTextCopy, handleTextPaste, handleMenuItemClick],
+  );
 
   // queue operations
   const runQueue = useCallback(async () => {
@@ -1099,7 +1130,7 @@ export const ThreadWriter = () => {
       visible: true,
       y: containerRect ? data.y - containerRect.top : data.y,
       x: containerRect ? data.x - containerRect.left : data.x,
-      items: selectedContextMenuItems,
+      items: buildContextMenuItems(!!data.text),
     };
     setContextMenuData(contextData);
   };
@@ -1183,6 +1214,7 @@ export const ThreadWriter = () => {
               x={contextMenuData.x}
               y={contextMenuData.y}
               items={contextMenuData.items}
+              onDismiss={resetContextMenu}
             />
           </div>
           <DocumentMenu onAssociationClick={handleAssociationLeftClick} />

@@ -1,5 +1,5 @@
 export interface MenuItemEntry {
   name: string;
-  command?: (event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => void;
+  command?: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
   subItems?: MenuItemEntry[];
 }
