@@ -401,16 +401,27 @@ describe('DocumentClickPlugin', () => {
   });
 
   describe('Callback invocation', () => {
-    it('should invoke onRightClick with correct signature', () => {
+    it('should invoke onRightClick even without a selection', () => {
       const callback = vi.fn((data: ClickData) => {
         expect(data).toHaveProperty('x');
         expect(data).toHaveProperty('y');
       });
 
-      render(<TestWrapper onRightClick={callback} />);
+      const { container } = render(<TestWrapper onRightClick={callback} />);
 
-      // Verify callback signature
-      expect(callback).not.toHaveBeenCalled(); // Won't be called without proper selection
+      const editorElement = container.querySelector('[contenteditable="true"]');
+      if (editorElement) {
+        const event = new MouseEvent('contextmenu', {
+          bubbles: true,
+          clientX: 100,
+          clientY: 200,
+        });
+        editorElement.dispatchEvent(event);
+
+        // Should be called even without text selected (text will be undefined)
+        expect(callback).toHaveBeenCalled();
+        expect(callback.mock.calls[0][0].text).toBeUndefined();
+      }
     });
 
     it('should invoke onLeftClick with event parameter', () => {

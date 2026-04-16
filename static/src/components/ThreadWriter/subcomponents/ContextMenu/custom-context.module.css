@@ -8,13 +8,19 @@
   max-width: 250px;
 }
 
-.customContext a {
+.menuButton {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
   color: var(--text-primary);
-  text-decoration: none;
   cursor: pointer;
+  width: 100%;
+  text-align: left;
 }
 
-.customContext a:hover {
+.menuButton:hover {
   color: var(--primary);
 }
 
@@ -66,33 +72,35 @@
   align-items: center;
 }
 
-.customContext .menuItem:hover {
+.customContext .menuItem:hover,
+.customContext .menuItem:has(.focused) {
   color: var(--text-primary);
   background-color: var(--bg-toolbar);
   filter: brightness(1.15);
 }
 
-:global([data-theme="light"]) .customContext .menuItem:hover {
+:global([data-theme="light"]) .customContext .menuItem:hover,
+:global([data-theme="light"]) .customContext .menuItem:has(.focused) {
   background-color: var(--bg-secondary-light);
   filter: none;
 }
 
-.menuItem.has-submenu > .submenu .menuItem {
+.menuItem.hasSubmenu > .submenu .menuItem {
   color: var(--text-primary);
   background-color: var(--bg-toolbar);
 }
 
-:global([data-theme="light"]) .menuItem.has-submenu > .submenu .menuItem {
+:global([data-theme="light"]) .menuItem.hasSubmenu > .submenu .menuItem {
   background-color: var(--bg-secondary);
 }
 
-.menuItem.has-submenu > .submenu .menuItem:hover {
+.menuItem.hasSubmenu > .submenu .menuItem:hover {
   background-color: var(--bg-toolbar);
   filter: brightness(1.15);
   color: var(--text-primary);
 }
 
-:global([data-theme="light"]) .menuItem.has-submenu > .submenu .menuItem:hover {
+:global([data-theme="light"]) .menuItem.hasSubmenu > .submenu .menuItem:hover {
   background-color: var(--bg-secondary-light);
   filter: none;
 }
@@ -107,6 +115,10 @@
 
 .customContext .menuItem.hasSubmenu:hover > .submenu {
   display: block;
+}
+
+.focused {
+  outline: none;
 }
 
 @media only screen and (max-width: 600px) {
