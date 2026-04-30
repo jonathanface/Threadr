@@ -96,9 +96,37 @@ type Story struct {
 	Inactive    bool             `json:"inactive" dynamodbav:"inactive"`
 }
 type StorySettings struct {
-	Spellcheck bool `json:"spellcheck" dynamodbav:"spellcheck"`
-	Autotab    bool `json:"autotab" dynamodbav:"autotab"`
+	Spellcheck  bool    `json:"spellcheck" dynamodbav:"spellcheck"`
+	Autotab     bool    `json:"autotab" dynamodbav:"autotab"`
+	FontFamily  string  `json:"font_family" dynamodbav:"font_family"`
+	FontSize    int     `json:"font_size" dynamodbav:"font_size"`
+	LineSpacing float64 `json:"line_spacing" dynamodbav:"line_spacing"`
 }
+
+// AllowedFonts is the allowlist of font families a user may pick for a story.
+// Keep in sync with the frontend FONT_OPTIONS constant.
+var AllowedFonts = map[string]bool{
+	"Arial":           true,
+	"Georgia":         true,
+	"Times New Roman": true,
+	"Courier New":     true,
+	"Verdana":         true,
+	"EB Garamond":     true,
+	"Merriweather":    true,
+	"system-ui":       true,
+}
+
+const (
+	DefaultFontFamily       = "Arial"
+	DefaultFontSize         = 16
+	DefaultLineSpacing      = 2.0
+	MinFontSize             = 10
+	MaxFontSize             = 32
+	MinLineSpacing          = 1.0
+	MaxLineSpacing          = 3.0
+	DefaultExportFontSize   = 12
+	DefaultExportLineHeight = 2.0
+)
 
 type BlocksData struct {
 	LastEvaluated map[string]types.AttributeValue   `json:"last_evaluated_key"`
@@ -217,6 +245,9 @@ type DocumentExportRequest struct {
 	Title         string       `json:"title"`
 	Author        *string      `json:"author"`
 	CoverImage    *string      `json:"cover_image"`
+	FontFamily    string       `json:"font_family"`
+	FontSize      int          `json:"font_size"`
+	LineSpacing   float64      `json:"line_spacing"`
 }
 
 type OutlineTemplate string

@@ -92,6 +92,19 @@
     align-items: center;
 }
 
+/* Typography selects in the toolbar — opt out of the global .toolbar button
+   styling so the MUI Select trigger renders at its native height. */
+.toolbar .typographySelect {
+    height: 40px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+}
+
+.toolbar .typographySelect :global(.MuiSelect-select) {
+    padding: 6px 32px 6px 10px;
+    font-size: 0.85rem;
+}
+
 @media only screen and (max-width: 600px) {
     .toolbar {
         flex-direction: column;
@@ -119,5 +132,20 @@
 
     .toolbar .chapterTitle {
         font-size: 1rem;
+    }
+
+    /* Shrink typography selects in lockstep with the alignment/format buttons. */
+    .toolbar .typographySelect {
+        height: 28px;
+    }
+
+    .toolbar .typographySelect :global(.MuiSelect-select) {
+        padding: 2px 22px 2px 6px;
+        font-size: 0.7rem;
+    }
+
+    .toolbar .typographySelect :global(.MuiSvgIcon-root) {
+        font-size: 1rem;
+        right: 4px;
     }
 }

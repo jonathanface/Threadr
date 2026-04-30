@@ -3,7 +3,13 @@ import FormatAlignCenterIcon from "@mui/icons-material/FormatAlignCenter";
 import FormatAlignJustifyIcon from "@mui/icons-material/FormatAlignJustify";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import FormatAlignRightIcon from "@mui/icons-material/FormatAlignRight";
-import { useMediaQuery, Tooltip } from "@mui/material";
+import {
+  MenuItem,
+  Select,
+  SelectChangeEvent,
+  Tooltip,
+  useMediaQuery,
+} from "@mui/material";
 import IconButton from "@mui/material/IconButton";
 import axios from "axios";
 import {
@@ -21,9 +27,13 @@ import { useToaster } from "../../../../hooks/useToaster";
 import { AlertToastType } from "../../../../types/AlertToasts";
 import {
   BlockAlignmentType,
+  FONT_OPTIONS,
+  FONT_SIZE_OPTIONS,
+  LINE_SPACING_OPTIONS,
   ThreadrTextFormatType,
 } from "../../../../types/Document";
 import { EditableText } from "../../../EditableText";
+import { useDocumentSettings } from "../../hooks/useDocumentSettings";
 import { DocumentExporter } from "./DocumentExporter";
 import styles from "./toolbar.module.css";
 
@@ -38,6 +48,34 @@ export const Toolbar = () => {
   const { story, chapter, setChapter, propagateChapterUpdates } =
     useSelections();
   const { setAlertState } = useToaster();
+  const { documentSettings, saveDocumentSettings } = useDocumentSettings();
+
+  const handleFontFamilyChange = (event: SelectChangeEvent<string>) => {
+    if (documentSettings) {
+      saveDocumentSettings({
+        ...documentSettings,
+        font_family: event.target.value,
+      });
+    }
+  };
+
+  const handleFontSizeChange = (event: SelectChangeEvent<number>) => {
+    if (documentSettings) {
+      saveDocumentSettings({
+        ...documentSettings,
+        font_size: Number(event.target.value),
+      });
+    }
+  };
+
+  const handleLineSpacingChange = (event: SelectChangeEvent<number>) => {
+    if (documentSettings) {
+      saveDocumentSettings({
+        ...documentSettings,
+        line_spacing: Number(event.target.value),
+      });
+    }
+  };
 
   const toggleTextFormat = (format: TextFormatType) => {
     editor.dispatchCommand(FORMAT_TEXT_COMMAND, format);
@@ -215,6 +253,83 @@ export const Toolbar = () => {
           >
             <FormatAlignJustifyIcon fontSize="small" />
           </IconButton>
+        </Tooltip>
+        <Tooltip title="Font" placement="top">
+          <Select
+            size="small"
+            variant="outlined"
+            value={documentSettings?.font_family ?? "Arial"}
+            onChange={handleFontFamilyChange}
+            className={styles.typographySelect}
+            renderValue={(v) => `Font: ${v}`}
+            MenuProps={{ disablePortal: false }}
+            sx={{
+              minWidth: { xs: 130, sm: 180 },
+              fontFamily: documentSettings?.font_family ?? "Arial",
+              color: "var(--text-primary)",
+              ".MuiOutlinedInput-notchedOutline": {
+                borderColor: "rgba(255,255,255,0.3)",
+              },
+              ".MuiSvgIcon-root": { color: "var(--text-primary)" },
+            }}
+          >
+            {FONT_OPTIONS.map((font) => (
+              <MenuItem key={font} value={font} sx={{ fontFamily: font }}>
+                {font}
+              </MenuItem>
+            ))}
+          </Select>
+        </Tooltip>
+        <Tooltip title="Font size" placement="top">
+          <Select
+            size="small"
+            variant="outlined"
+            value={documentSettings?.font_size ?? 16}
+            onChange={handleFontSizeChange}
+            className={styles.typographySelect}
+            renderValue={(v) => `Size: ${v}`}
+            sx={{
+              minWidth: { xs: 80, sm: 100 },
+              color: "var(--text-primary)",
+              ".MuiOutlinedInput-notchedOutline": {
+                borderColor: "rgba(255,255,255,0.3)",
+              },
+              ".MuiSvgIcon-root": { color: "var(--text-primary)" },
+            }}
+          >
+            {FONT_SIZE_OPTIONS.map((size) => (
+              <MenuItem key={size} value={size}>
+                {size}
+              </MenuItem>
+            ))}
+          </Select>
+        </Tooltip>
+        <Tooltip title="Line spacing" placement="top">
+          <Select
+            size="small"
+            variant="outlined"
+            value={documentSettings?.line_spacing ?? 2.0}
+            onChange={handleLineSpacingChange}
+            className={styles.typographySelect}
+            renderValue={(v) => {
+              const match = LINE_SPACING_OPTIONS.find((o) => o.value === v);
+              return `Spacing: ${match ? match.label : v}`;
+            }}
+            sx={{
+              minWidth: { xs: 110, sm: 140 },
+              color: "var(--text-primary)",
+              ".MuiOutlinedInput-notchedOutline": {
+                borderColor: "rgba(255,255,255,0.3)",
+              },
+              ".MuiSvgIcon-root": { color: "var(--text-primary)" },
+            }}
+          >
+            {LINE_SPACING_OPTIONS.map((opt) => (
+              <MenuItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </MenuItem>
+            ))}
+          </Select>
         </Tooltip>
       </div>
       <div className={styles.extraButtons}>

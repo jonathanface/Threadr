@@ -78,4 +78,28 @@ export enum ThreadrTextFormatType {
 export interface DocumentSettings {
   spellcheck: boolean;
   autotab: boolean;
+  font_family: string;
+  font_size: number;
+  line_spacing: number;
 }
+
+// Keep in sync with models.AllowedFonts on the backend.
+export const FONT_OPTIONS = [
+  "Arial",
+  "Georgia",
+  "Times New Roman",
+  "Courier New",
+  "Verdana",
+  "EB Garamond",
+  "Merriweather",
+  "system-ui",
+] as const;
+
+export const FONT_SIZE_OPTIONS = [10, 12, 14, 16, 18, 20, 24, 28, 32];
+
+export const LINE_SPACING_OPTIONS = [
+  { label: "Single", value: 1.0 },
+  { label: "1.15", value: 1.15 },
+  { label: "1.5", value: 1.5 },
+  { label: "Double", value: 2.0 },
+];
