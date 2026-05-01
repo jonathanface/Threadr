@@ -37,12 +37,16 @@
 }
 
 /* General editor styling */
+/* font-family / font-size / line-height are intentionally unset here so the
+   inline style driven by DocumentSettings wins; these fallbacks only apply
+   before settings load. */
 .editorInput {
   pointer-events: auto;
   user-select: text;
   -webkit-user-select: text;
   font-family: Arial, sans-serif;
   font-size: 16px;
+  line-height: 2;
   color: var(--text-on-light);
   padding: 1in;
   border: 2px solid var(--border-medium);
@@ -50,7 +54,6 @@
   background-color: var(--bg-editor);
   box-shadow: var(--shadow-dark);
   outline: none;
-  line-height: 2em;
   overflow: auto;
   border-radius: 5px;
   outline: none !important;

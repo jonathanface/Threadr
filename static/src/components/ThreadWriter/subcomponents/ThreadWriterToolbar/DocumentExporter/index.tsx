@@ -12,6 +12,7 @@ import {
 import Exporter from "../../../../../utils/Exporter";
 import { useFetchUserData } from "../../../../../hooks/useFetchUserData";
 import { useToaster } from "../../../../../hooks/useToaster";
+import { useDocumentSettings } from "../../../hooks/useDocumentSettings";
 import axios from "axios";
 import { api } from "../../../../../api";
 
@@ -20,6 +21,7 @@ export const DocumentExporter = () => {
   const { story } = useSelections();
   const { setAlertState } = useToaster();
   const { userDetails } = useFetchUserData();
+  const { documentSettings } = useDocumentSettings();
 
   const exportDoc = async (type: DocumentExportType) => {
     if (story) {
@@ -64,6 +66,9 @@ export const DocumentExporter = () => {
             type,
             author: authorName,
             cover_image: story.image_url || undefined,
+            font_family: documentSettings?.font_family,
+            font_size: documentSettings?.font_size,
+            line_spacing: documentSettings?.line_spacing,
           },
           {
             headers: { "Content-Type": "application/json" },

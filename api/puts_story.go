@@ -538,6 +538,12 @@ func EditStorySettingsEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := validateStorySettings(&updateSettings); err != nil {
+		logger.Error("Bad request", "error", err)
+		RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	err = dao.UpdateStorySettings(r.Context(), email, storyID, updateSettings)
 	if err != nil {
 		logger.Error("Bad request", "error", err)

@@ -8,7 +8,19 @@ import { api } from "../api";
 const defaultSettings: DocumentSettings = {
   spellcheck: true,
   autotab: true,
+  font_family: "Arial",
+  font_size: 16,
+  line_spacing: 2.0,
 };
+
+// Stories saved before typography fields existed will come back with empty/zero
+// values; merge them onto defaults so the editor still renders correctly.
+const withDefaults = (s: DocumentSettings): DocumentSettings => ({
+  ...s,
+  font_family: s.font_family || defaultSettings.font_family,
+  font_size: s.font_size || defaultSettings.font_size,
+  line_spacing: s.line_spacing || defaultSettings.line_spacing,
+});
 
 export const DocumentSettingsProvider: React.FC<{
   storyID: string;
@@ -34,7 +46,7 @@ export const DocumentSettingsProvider: React.FC<{
       );
 
       if (response.status === 200 && response.data) {
-        setDocumentSettings(response.data);
+        setDocumentSettings(withDefaults(response.data));
       } else {
         // 404 or empty -> no settings, use defaults
         setDocumentSettings(defaultSettings);
@@ -54,6 +66,10 @@ export const DocumentSettingsProvider: React.FC<{
 
   const saveDocumentSettings = async (settings: DocumentSettings) => {
     if (!storyID) return;
+    // Apply optimistically so controlled inputs (Selects, checkboxes) and the
+    // editor's inline style reflect the user's choice immediately, instead of
+    // visually reverting while the PUT is in flight.
+    setDocumentSettings(withDefaults(settings));
     try {
       showLoader();
 
@@ -66,7 +82,10 @@ export const DocumentSettingsProvider: React.FC<{
         },
       );
 
-      setDocumentSettings(data);
+      // Merge the response on top of what we sent. If the server omits any
+      // typography fields (e.g. running a stale binary), the user's chosen
+      // values still stick instead of reverting to defaults.
+      setDocumentSettings(withDefaults({ ...settings, ...data }));
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.error(

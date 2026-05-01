@@ -1186,6 +1186,17 @@ export const ThreadWriter = () => {
                   tabIndex={0}
                   className={styles.editorInput}
                   spellCheck={documentSettings?.spellcheck}
+                  style={{
+                    fontFamily: documentSettings?.font_family
+                      ? `"${documentSettings.font_family}", sans-serif`
+                      : undefined,
+                    fontSize: documentSettings?.font_size
+                      ? `${documentSettings.font_size}px`
+                      : undefined,
+                    lineHeight: documentSettings?.line_spacing
+                      ? documentSettings.line_spacing
+                      : undefined,
+                  }}
                 />
               }
               ErrorBoundary={LexicalErrorBoundary}

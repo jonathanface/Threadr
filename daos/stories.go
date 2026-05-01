@@ -1205,12 +1205,15 @@ func (d *DAO) UpdateStorySettings(ctx context.Context, email, storyID string, se
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 
 	expressionValues := map[string]types.AttributeValue{
-		":autotab":    &types.AttributeValueMemberBOOL{Value: settings.Autotab},
-		":spellcheck": &types.AttributeValueMemberBOOL{Value: settings.Spellcheck},
-		":updated_at": &types.AttributeValueMemberN{Value: now},
+		":autotab":      &types.AttributeValueMemberBOOL{Value: settings.Autotab},
+		":spellcheck":   &types.AttributeValueMemberBOOL{Value: settings.Spellcheck},
+		":font_family":  &types.AttributeValueMemberS{Value: settings.FontFamily},
+		":font_size":    &types.AttributeValueMemberN{Value: strconv.Itoa(settings.FontSize)},
+		":line_spacing": &types.AttributeValueMemberN{Value: strconv.FormatFloat(settings.LineSpacing, 'f', -1, 64)},
+		":updated_at":   &types.AttributeValueMemberN{Value: now},
 	}
 
-	updateExpression := "SET #spellcheck = :spellcheck, autotab=:autotab, #updated_at = :updated_at"
+	updateExpression := "SET #spellcheck = :spellcheck, autotab=:autotab, font_family=:font_family, font_size=:font_size, line_spacing=:line_spacing, #updated_at = :updated_at"
 	expressionAttributeNames := map[string]string{
 		"#spellcheck": "spellcheck",
 		"#updated_at": "updated_at",

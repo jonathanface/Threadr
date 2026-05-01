@@ -1,6 +1,7 @@
 package api
 
 import (
+	"Threadr/models"
 	"fmt"
 	"regexp"
 	"strings"
@@ -82,6 +83,21 @@ func ValidateStoryDescription(description string) *ValidationError {
 }
 
 // ValidateStoryInput validates all story input fields
+// validateStorySettings normalizes and validates a StorySettings payload.
+// Empty/zero typography fields are accepted and treated as "use defaults".
+func validateStorySettings(s *models.StorySettings) error {
+	if s.FontFamily != "" && !models.AllowedFonts[s.FontFamily] {
+		return fmt.Errorf("font_family %q is not allowed", s.FontFamily)
+	}
+	if s.FontSize != 0 && (s.FontSize < models.MinFontSize || s.FontSize > models.MaxFontSize) {
+		return fmt.Errorf("font_size must be between %d and %d", models.MinFontSize, models.MaxFontSize)
+	}
+	if s.LineSpacing != 0 && (s.LineSpacing < models.MinLineSpacing || s.LineSpacing > models.MaxLineSpacing) {
+		return fmt.Errorf("line_spacing must be between %.1f and %.1f", models.MinLineSpacing, models.MaxLineSpacing)
+	}
+	return nil
+}
+
 func ValidateStoryInput(title, description string) []ValidationError {
 	errors := []ValidationError{}
 
