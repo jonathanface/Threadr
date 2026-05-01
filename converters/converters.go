@@ -554,7 +554,7 @@ func HTMLToDOCX(export models.DocumentExportRequest) (string, error) {
 	for _, htmlData := range export.HtmlByChapter {
 		title := html.EscapeString(htmlData.Chapter)
 		b.WriteString(`<h1>` + title + `</h1>`)
-		b.WriteString(sanitizer.Sanitize(mapAlignmentToCustomStyle(htmlData.HTML)))
+		b.WriteString(sanitizer.Sanitize(mapParagraphTypographyToCustomStyle(stripDocxNoise(htmlData.HTML))))
 	}
 	b.WriteString(`</body></html>`)
 
@@ -676,38 +676,126 @@ func buildReferenceDocx(srcPath string, typo typography) (string, func(), error)
 	return tmp.Name(), cleanup, nil
 }
 
-// mapAlignmentToCustomStyle rewrites paragraphs whose alignment is expressed as
-// inline CSS or the legacy `align` attribute into pandoc-friendly
-// <div custom-style="Centered|Righted|Justified">…</div> wrappers. Pandoc's
-// HTML reader silently drops text-align on the way to DOCX, but it does honor
+// docxNoiseReplacer strips characters that are visually invisible in normal
+// Word/PDF rendering but show up as decorative "formatting mark" glyphs
+// (commas, dots, hyphens) when LibreOffice's formatting-marks view is on.
+// Most of these are imported from Word/Google Docs source documents and serve
+// no purpose in the user's manuscript:
+//
+//   - \t  auto-tab indent — pandoc collapses it to a literal space (renders
+//     as a middle-dot mark); the paragraph style provides first-line indent.
+//   - U+200B  zero-width space
+//   - U+200C  zero-width non-joiner
+//   - U+200D  zero-width joiner
+//   - U+FEFF  byte-order mark / word joiner
+//   - U+00AD  soft hyphen — pandoc emits <w:softHyphen/>, which renders as a
+//     comma-like mark when formatting marks are visible.
+var docxNoiseReplacer = strings.NewReplacer(
+	"\t", "",
+	"\u200B", "", // zero-width space
+	"\u200C", "", // zero-width non-joiner
+	"\u200D", "", // zero-width joiner
+	"\uFEFF", "", // BOM / word joiner
+	"\u00AD", "", // soft hyphen
+)
+
+func stripDocxNoise(s string) string {
+	return docxNoiseReplacer.Replace(s)
+}
+
+// pTagRe matches a top-level <p ...>…</p> block (non-greedy). Lexical's
+// exported HTML uses flat <p> blocks with no nesting, so this is safe.
+var pTagRe = regexp.MustCompile(`(?is)<p\b([^>]*)>(.*?)</p>`)
+
+// styleAttrRe extracts the value of a style="…" attribute on a tag.
+var styleAttrRe = regexp.MustCompile(`(?i)\bstyle\s*=\s*"([^"]*)"`)
+
+// alignAttrRe extracts the value of a legacy align="…" attribute.
+var alignAttrRe = regexp.MustCompile(`(?i)\balign\s*=\s*"(\w+)"`)
+
+// textAlignDeclRe extracts the text-align declaration value from a CSS string.
+var textAlignDeclRe = regexp.MustCompile(`(?i)text-align\s*:\s*(\w+)`)
+
+// lineHeightDeclRe extracts the line-height declaration value from a CSS string.
+var lineHeightDeclRe = regexp.MustCompile(`(?i)line-height\s*:\s*([\d.]+)`)
+
+// alignToCustomStyle maps a CSS text-align keyword to its custom paragraph
+// style name. The empty string means "no alignment override".
+var alignToCustomStyle = map[string]string{
+	"center":  "Centered",
+	"right":   "Righted",
+	"justify": "Justified",
+}
+
+// lineHeightToCustomStyle maps the four allowed line-height values (the same
+// set the document-settings dropdown offers) to a custom paragraph style.
+var lineHeightToCustomStyle = map[string]string{
+	"1":    "LineSingle",
+	"1.0":  "LineSingle",
+	"1.15": "Line115",
+	"1.5":  "Line15",
+	"2":    "LineDouble",
+	"2.0":  "LineDouble",
+}
+
+// mapParagraphTypographyToCustomStyle wraps any <p> whose alignment or
+// line-height is expressed via inline CSS / the legacy align attribute into a
+// <div custom-style="Name">…</div> block, where Name combines the alignment
+// and line-spacing pieces. Pandoc's HTML reader silently drops both
+// text-align and line-height on the way to DOCX, but it does honor
 // custom-style and applies the matching paragraph style from the reference
-// docx (which already defines Centered/Righted/Justified with <w:jc>).
-func mapAlignmentToCustomStyle(s string) string {
-	rules := []struct {
-		keyword, customStyle string
-	}{
-		{"center", "Centered"},
-		{"right", "Righted"},
-		{"justify", "Justified"},
-	}
-	for _, r := range rules {
-		// <p ... style="…text-align:KEYWORD…" …>content</p>
-		pStyleRe := regexp.MustCompile(
-			`(?is)<p\b([^>]*\bstyle\s*=\s*"[^"]*\btext-align\s*:\s*` + r.keyword + `\b[^"]*"[^>]*)>(.*?)</p>`,
-		)
-		s = pStyleRe.ReplaceAllString(s, `<div custom-style="`+r.customStyle+`"><p$1>$2</p></div>`)
-		// <p ... align="KEYWORD" …>content</p>
-		pAttrRe := regexp.MustCompile(
-			`(?is)<p\b([^>]*\balign\s*=\s*"` + r.keyword + `"[^>]*)>(.*?)</p>`,
-		)
-		s = pAttrRe.ReplaceAllString(s, `<div custom-style="`+r.customStyle+`"><p$1>$2</p></div>`)
-		// <div ... style="…text-align:KEYWORD…" …>content</div>  (mobile/Lexical-server output)
+// docx (which we augment at runtime with all the combined styles).
+func mapParagraphTypographyToCustomStyle(s string) string {
+	s = pTagRe.ReplaceAllStringFunc(s, func(match string) string {
+		sub := pTagRe.FindStringSubmatch(match)
+		attrs := sub[1]
+		align := extractAlignmentKeyword(attrs)
+		lineH := extractLineHeightKeyword(attrs)
+		name := alignToCustomStyle[align] + lineHeightToCustomStyle[lineH]
+		if name == "" {
+			return match
+		}
+		return `<div custom-style="` + name + `">` + match + `</div>`
+	})
+
+	// Server-side Lexical paths emit <div style="text-align:center">…</div>
+	// instead of <p>. Handle them with the same alignment-only mapping.
+	for keyword, custom := range alignToCustomStyle {
 		divStyleRe := regexp.MustCompile(
-			`(?is)<div\b([^>]*\bstyle\s*=\s*"[^"]*\btext-align\s*:\s*` + r.keyword + `\b[^"]*"[^>]*)>(.*?)</div>`,
+			`(?is)<div\b([^>]*\bstyle\s*=\s*"[^"]*\btext-align\s*:\s*` + keyword + `\b[^"]*"[^>]*)>(.*?)</div>`,
 		)
-		s = divStyleRe.ReplaceAllString(s, `<div custom-style="`+r.customStyle+`">$2</div>`)
+		s = divStyleRe.ReplaceAllString(s, `<div custom-style="`+custom+`">$2</div>`)
 	}
 	return s
+}
+
+func extractAlignmentKeyword(attrs string) string {
+	if m := alignAttrRe.FindStringSubmatch(attrs); m != nil {
+		k := strings.ToLower(m[1])
+		if _, ok := alignToCustomStyle[k]; ok {
+			return k
+		}
+	}
+	if styleM := styleAttrRe.FindStringSubmatch(attrs); styleM != nil {
+		if m := textAlignDeclRe.FindStringSubmatch(styleM[1]); m != nil {
+			k := strings.ToLower(m[1])
+			if _, ok := alignToCustomStyle[k]; ok {
+				return k
+			}
+		}
+	}
+	return ""
+}
+
+func extractLineHeightKeyword(attrs string) string {
+	if styleM := styleAttrRe.FindStringSubmatch(attrs); styleM != nil {
+		if m := lineHeightDeclRe.FindStringSubmatch(styleM[1]); m != nil {
+			if _, ok := lineHeightToCustomStyle[m[1]]; ok {
+				return m[1]
+			}
+		}
+	}
+	return ""
 }
 
 // rFontsRe matches a <w:rFonts ... /> element (used in docDefaults and Normal style).
@@ -781,7 +869,46 @@ func applyTypographyToStylesXML(data []byte, typo typography) []byte {
 		)
 	}
 
+	// Inject the line-spacing-override paragraph styles (and their alignment
+	// crossproduct) so per-paragraph line spacing chosen via the toolbar
+	// resolves to a real Word style.
+	out = strings.Replace(out, "</w:styles>", lineSpacingOverrideStylesXML()+"</w:styles>", 1)
+
 	return []byte(out)
+}
+
+// lineSpacingOverrideStylesXML returns the XML for paragraph styles that pair
+// each fixed line-height (single / 1.15 / 1.5 / double) with each alignment
+// (none / centered / righted / justified). Pandoc maps `<div custom-style="X">`
+// onto these via mapParagraphTypographyToCustomStyle so that selection-level
+// line spacing chosen in the editor survives the HTML→DOCX round trip.
+func lineSpacingOverrideStylesXML() string {
+	bases := []struct{ alignName, baseStyle string }{
+		{"", "TextBody"},
+		{"Centered", "Centered"},
+		{"Righted", "Righted"},
+		{"Justified", "Justified"},
+	}
+	lines := []struct {
+		suffix string
+		twips  int
+	}{
+		{"LineSingle", 240},
+		{"Line115", 276},
+		{"Line15", 360},
+		{"LineDouble", 480},
+	}
+	var b strings.Builder
+	for _, base := range bases {
+		for _, line := range lines {
+			id := base.alignName + line.suffix
+			b.WriteString(fmt.Sprintf(
+				`<w:style w:type="paragraph" w:styleId=%q w:customStyle="1"><w:name w:val=%q/><w:basedOn w:val=%q/><w:qFormat/><w:pPr><w:spacing w:lineRule="auto" w:line="%d"/></w:pPr></w:style>`,
+				id, id, base.baseStyle, line.twips,
+			))
+		}
+	}
+	return b.String()
 }
 
 // applyLineSpacingToStyle finds <w:style ... w:styleId="ID">…</w:style> and

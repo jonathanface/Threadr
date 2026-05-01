@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestMapAlignmentToCustomStyle(t *testing.T) {
+func TestMapParagraphTypographyToCustomStyle(t *testing.T) {
 	cases := []struct {
 		name string
 		in   string
@@ -24,9 +24,24 @@ func TestMapAlignmentToCustomStyle(t *testing.T) {
 			want: `<div custom-style="Righted"><p align="right">hi</p></div>`,
 		},
 		{
-			name: "p with text-align justify in a longer style block",
-			in:   `<p class="x" style="margin:0;text-align:justify;line-height:2;">x</p>`,
-			want: `<div custom-style="Justified"><p class="x" style="margin:0;text-align:justify;line-height:2;">x</p></div>`,
+			name: "p with text-align justify (alignment-only)",
+			in:   `<p class="x" style="margin:0;text-align:justify;">x</p>`,
+			want: `<div custom-style="Justified">`,
+		},
+		{
+			name: "p with line-height 1.5 (line-only)",
+			in:   `<p style="line-height: 1.5;">y</p>`,
+			want: `<div custom-style="Line15"><p style="line-height: 1.5;">y</p></div>`,
+		},
+		{
+			name: "p with center + line 2 (combined)",
+			in:   `<p style="text-align: center; line-height: 2;">z</p>`,
+			want: `<div custom-style="CenteredLineDouble">`,
+		},
+		{
+			name: "p with justify + line 1.15 (combined)",
+			in:   `<p style="text-align:justify; line-height:1.15;">w</p>`,
+			want: `<div custom-style="JustifiedLine115">`,
 		},
 		{
 			name: "div with text-align center (server-side Lexical output)",
@@ -38,14 +53,51 @@ func TestMapAlignmentToCustomStyle(t *testing.T) {
 			in:   `<p>plain</p>`,
 			want: `<p>plain</p>`,
 		},
+		{
+			name: "unknown line-height value leaves paragraph alone",
+			in:   `<p style="line-height: 3.7;">odd</p>`,
+			want: `<p style="line-height: 3.7;">odd</p>`,
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := mapAlignmentToCustomStyle(tc.in)
+			got := mapParagraphTypographyToCustomStyle(tc.in)
 			if !strings.Contains(got, tc.want) {
 				t.Errorf("expected output to contain %q\ngot %q", tc.want, got)
 			}
 		})
+	}
+}
+
+func TestStripDocxNoise(t *testing.T) {
+	in := "\tThe \u200B\uFEFF\u00ADmen \u200Cwere\u200D big.\t"
+	want := "The men were big."
+	got := stripDocxNoise(in)
+	if got != want {
+		t.Errorf("stripDocxNoise = %q, want %q", got, want)
+	}
+}
+
+func TestLineSpacingOverrideStylesXML(t *testing.T) {
+	xml := lineSpacingOverrideStylesXML()
+	required := []string{
+		`w:styleId="LineSingle"`,
+		`w:styleId="Line115"`,
+		`w:styleId="Line15"`,
+		`w:styleId="LineDouble"`,
+		`w:styleId="CenteredLineSingle"`,
+		`w:styleId="CenteredLine15"`,
+		`w:styleId="RightedLineDouble"`,
+		`w:styleId="JustifiedLine115"`,
+		`w:line="240"`,
+		`w:line="276"`,
+		`w:line="360"`,
+		`w:line="480"`,
+	}
+	for _, want := range required {
+		if !strings.Contains(xml, want) {
+			t.Errorf("expected line-spacing styles XML to contain %q", want)
+		}
 	}
 }
 
