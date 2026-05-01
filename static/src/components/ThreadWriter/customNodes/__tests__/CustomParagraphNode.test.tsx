@@ -1,5 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { LexicalEditor, $getRoot, $createTextNode } from 'lexical';
+import {
+  LexicalEditor,
+  $getRoot,
+  $createTextNode,
+  $createRangeSelection,
+  $createPoint,
+  $setSelection,
+  $getSelection,
+  $isRangeSelection,
+  $isTextNode,
+} from 'lexical';
 import { $generateHtmlFromNodes } from '@lexical/html';
 import { CustomParagraphNode, CustomSerializedParagraphNode } from '../CustomParagraphNode';
 import { createTestEditor } from '../../__tests__/testUtils';
@@ -299,6 +309,148 @@ describe('CustomParagraphNode', () => {
         expect(children[0]).toBe(first);
         expect(children[1]).toBe(second);
         expect(children[2]).toBe(third);
+      });
+    });
+
+    it('should carry over paragraph-level style (line-height) on Enter', () => {
+      editor.update(() => {
+        const root = $getRoot();
+        const node = new CustomParagraphNode('p1');
+        node.setStyle('line-height: 1.5');
+        root.append(node);
+
+        const next = node.insertNewAfter();
+
+        expect(next.getStyle()).toBe('line-height: 1.5');
+      });
+    });
+
+    it('should carry over alignment on Enter', () => {
+      editor.update(() => {
+        const root = $getRoot();
+        const node = new CustomParagraphNode('p1');
+        node.setFormat('center');
+        root.append(node);
+
+        const next = node.insertNewAfter();
+
+        expect(next.getFormatType()).toBe('center');
+      });
+    });
+
+    it('end-to-end: selection.insertParagraph() carries over alignment, paragraph style, and styled-cursor buffer', () => {
+      editor.update(() => {
+        const root = $getRoot();
+        root.clear();
+        const para = new CustomParagraphNode('p1');
+        para.setStyle('line-height: 1.5');
+        para.setFormat('center');
+        const text = $createTextNode('hello');
+        text.setStyle('font-family: Times New Roman; font-size: 14px');
+        para.append(text);
+        root.append(para);
+
+        // Cursor at end of styled text
+        const selection = $createRangeSelection();
+        const point = $createPoint(text.getKey(), text.getTextContentSize(), 'text');
+        selection.anchor = point;
+        selection.focus = point;
+        $setSelection(selection);
+      });
+
+      // RichTextPlugin's INSERT_PARAGRAPH_COMMAND handler does exactly this.
+      editor.update(() => {
+        const sel = $getSelection();
+        if ($isRangeSelection(sel)) {
+          sel.insertParagraph();
+        }
+      });
+
+      editor.read(() => {
+        const root = $getRoot();
+        const paragraphs = root.getChildren();
+        expect(paragraphs.length).toBe(2);
+        const newPara = paragraphs[1] as CustomParagraphNode;
+        expect(newPara).toBeInstanceOf(CustomParagraphNode);
+        expect(newPara.getFormatType()).toBe('center');
+        expect(newPara.getStyle()).toBe('line-height: 1.5');
+        expect(newPara.getTextStyle()).toBe(
+          'font-family: Times New Roman; font-size: 14px',
+        );
+      });
+    });
+
+    it('typing after auto-tab keeps the carried-over text style', () => {
+      // Reproduce the post-Enter state: a paragraph whose only child is a
+      // styled tab TextNode, with the cursor at offset 1 (end of the tab).
+      // This mirrors what useAutotabOnEnter leaves us with, and then we
+      // simulate typing one character by calling selection.insertText.
+      editor.update(() => {
+        const root = $getRoot();
+        root.clear();
+        const para = new CustomParagraphNode('p1');
+        // The auto-tab hook copies the parent paragraph's textStyle onto the
+        // tab TextNode. Replicate that here.
+        para.setTextStyle('font-size: 24px');
+        const tab = $createTextNode('\t');
+        tab.setStyle('font-size: 24px');
+        para.append(tab);
+        root.append(para);
+
+        const selection = $createRangeSelection();
+        const point = $createPoint(tab.getKey(), 1, 'text');
+        selection.anchor = point;
+        selection.focus = point;
+        // Mirror Lexical's selection sync: anchor TextNode style flows into
+        // selection.style for collapsed selections.
+        selection.style = tab.getStyle();
+        selection.format = tab.getFormat();
+        $setSelection(selection);
+      });
+
+      editor.update(() => {
+        const sel = $getSelection();
+        if ($isRangeSelection(sel)) {
+          sel.insertText('X');
+        }
+      });
+
+      editor.read(() => {
+        const root = $getRoot();
+        const para = root.getFirstChild() as CustomParagraphNode;
+        const text = para.getTextContent();
+        expect(text).toBe('\tX');
+        // Walk the children — every TextNode in the paragraph should still
+        // carry the 24px style, regardless of whether 'X' got merged into
+        // the tab TextNode or got its own.
+        const styles = para.getChildren().map((n) =>
+          $isTextNode(n) ? n.getStyle() : '',
+        );
+        for (const s of styles) {
+          expect(s).toBe('font-size: 24px');
+        }
+      });
+    });
+
+    it('should buffer textFormat/textStyle from selection for next-typed text', () => {
+      editor.update(() => {
+        const root = $getRoot();
+        const node = new CustomParagraphNode('p1');
+        root.append(node);
+
+        // Forge a minimal RangeSelection-shaped object: insertNewAfter only
+        // reads `format` (bitmask) and `style` (CSS string) off it.
+        const fakeSelection = {
+          format: 1, // bitmask: 1 = bold
+          style: 'font-family: Times New Roman; font-size: 14px',
+        } as unknown as Parameters<typeof node.insertNewAfter>[0];
+
+        const next = node.insertNewAfter(fakeSelection, false);
+
+        expect(next.getTextFormat()).toBe(1);
+        expect(next.getTextStyle()).toBe(
+          'font-family: Times New Roman; font-size: 14px',
+        );
       });
     });
   });
