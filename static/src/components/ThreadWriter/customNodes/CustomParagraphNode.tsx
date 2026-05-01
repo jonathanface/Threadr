@@ -1,4 +1,4 @@
-import { DOMExportOutput, EditorConfig, LexicalEditor, NodeKey, ParagraphNode, SerializedParagraphNode } from "lexical";
+import { $isTextNode, DOMExportOutput, EditorConfig, LexicalEditor, NodeKey, ParagraphNode, type RangeSelection, SerializedParagraphNode } from "lexical";
 import { v4 as uuidv4 } from "uuid";
 export interface CustomSerializedParagraphNode extends SerializedParagraphNode {
     type: "custom-paragraph";
@@ -76,11 +76,39 @@ export class CustomParagraphNode extends ParagraphNode {
     getKeyId(): string {
         return this.__key_id;
     }
-    insertNewAfter(): CustomParagraphNode {
+    insertNewAfter(rangeSelection?: RangeSelection, restoreSelection?: boolean): CustomParagraphNode {
         const next = new CustomParagraphNode();
+        // Carry over any text-level format/style buffered on the selection so
+        // the next character typed in the new paragraph keeps the same bold/
+        // italic/underline + font-family/font-size as the cursor had.
+        if (rangeSelection) {
+            let textFormat = rangeSelection.format;
+            let textStyle = rangeSelection.style;
+            // Lexical normally populates selection.format/style from the
+            // anchor TextNode during DOM-event-driven selection sync, but
+            // this isn't guaranteed for programmatic flows. Read straight
+            // off the anchor as a fallback so carry-over always sticks.
+            if (!textStyle || !textFormat) {
+                const anchorNode = rangeSelection.anchor.getNode();
+                if ($isTextNode(anchorNode)) {
+                    if (!textStyle) textStyle = anchorNode.getStyle();
+                    if (!textFormat) textFormat = anchorNode.getFormat();
+                }
+            }
+            next.setTextFormat(textFormat);
+            next.setTextStyle(textStyle);
+        }
         const dir = this.getDirection();
         if (dir) next.setDirection(dir);
-        this.insertAfter(next, true);
+        // Carry over alignment so a centered/justified paragraph stays so on Enter.
+        next.setFormat(this.getFormatType());
+        // Carry over paragraph-level CSS (line-height etc.) so the spacing the
+        // user picked is preserved across paragraph breaks.
+        const paragraphStyle = this.getStyle();
+        if (paragraphStyle) {
+            next.setStyle(paragraphStyle);
+        }
+        this.insertAfter(next, restoreSelection ?? true);
         return next;
     }
 

@@ -63,11 +63,31 @@ export const useAutotabOnEnter = (
                   const range = $createRangeSelection();
                   range.anchor = point;
                   range.focus = point;
+                  // Mirror the anchor TextNode's style/format on the selection
+                  // so the next typed char compares as "matching" inside
+                  // selection.insertText (otherwise Lexical splits and inserts
+                  // a fresh unstyled TextNode if selectionchange sync hasn't
+                  // run yet).
+                  range.style = first.getStyle();
+                  range.format = first.getFormat();
                   $setSelection(range);
                 }
               } else {
                 // No TextNode child, create a new one
                 const tab = new TextNode("\t");
+                // Inherit text-level style/format buffered on the new
+                // paragraph so the carried-over font / size / bold / etc.
+                // survive the auto-tab insertion. Without this, the tab
+                // TextNode has no style and the user's next typed character
+                // appends into it plain.
+                const paraTextStyle = targetParagraph.getTextStyle();
+                const paraTextFormat = targetParagraph.getTextFormat();
+                if (paraTextStyle) {
+                  tab.setStyle(paraTextStyle);
+                }
+                if (paraTextFormat) {
+                  tab.setFormat(paraTextFormat);
+                }
                 if (first) {
                   first.insertBefore(tab);
                 } else {
@@ -79,6 +99,11 @@ export const useAutotabOnEnter = (
                   const range = $createRangeSelection();
                   range.anchor = point;
                   range.focus = point;
+                  // Same as above: pre-populate selection.style/format with
+                  // the tab's style so a fast keystroke doesn't slip in
+                  // between $setSelection and the DOM selectionchange sync.
+                  range.style = tab.getStyle();
+                  range.format = tab.getFormat();
                   $setSelection(range);
                 }
               }
