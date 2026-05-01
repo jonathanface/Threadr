@@ -4,13 +4,23 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  FormControl,
+  InputLabel,
   List,
   ListItem,
   ListItemText,
+  MenuItem,
+  Select,
+  SelectChangeEvent,
 } from "@mui/material";
 import styles from "./documentsettings.module.css";
 import { ChangeEvent } from "react";
 import { useDocumentSettings } from "../../../hooks/useDocumentSettings";
+import {
+  FONT_OPTIONS,
+  FONT_SIZE_OPTIONS,
+  LINE_SPACING_OPTIONS,
+} from "../../../../../types/Document";
 
 interface DocumentSettingsProps {
   open: boolean;
@@ -40,6 +50,33 @@ export const DocumentSettingsModal = ({
       const newSettings = { ...documentSettings };
       newSettings.autotab = event.target.checked;
       saveDocumentSettings(newSettings);
+    }
+  };
+
+  const handleFontFamilyChange = (event: SelectChangeEvent<string>) => {
+    if (documentSettings) {
+      saveDocumentSettings({
+        ...documentSettings,
+        font_family: event.target.value,
+      });
+    }
+  };
+
+  const handleFontSizeChange = (event: SelectChangeEvent<number>) => {
+    if (documentSettings) {
+      saveDocumentSettings({
+        ...documentSettings,
+        font_size: Number(event.target.value),
+      });
+    }
+  };
+
+  const handleLineSpacingChange = (event: SelectChangeEvent<number>) => {
+    if (documentSettings) {
+      saveDocumentSettings({
+        ...documentSettings,
+        line_spacing: Number(event.target.value),
+      });
     }
   };
 
@@ -91,6 +128,66 @@ export const DocumentSettingsModal = ({
                 className={styles.label}
                 sx={{ color: 'var(--text-primary)' }}
               />
+            </ListItem>
+            <ListItem key="font-family" className={styles.listItem}>
+              <FormControl size="small" sx={{ minWidth: 220, mt: 1 }}>
+                <InputLabel id="font-family-label" sx={{ color: 'var(--text-primary)' }}>
+                  Font
+                </InputLabel>
+                <Select
+                  labelId="font-family-label"
+                  label="Font"
+                  value={documentSettings?.font_family ?? "Arial"}
+                  onChange={handleFontFamilyChange}
+                  sx={{ color: 'var(--text-primary)' }}
+                >
+                  {FONT_OPTIONS.map((font) => (
+                    <MenuItem key={font} value={font} sx={{ fontFamily: font }}>
+                      {font}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </ListItem>
+            <ListItem key="font-size" className={styles.listItem}>
+              <FormControl size="small" sx={{ minWidth: 120, mt: 1 }}>
+                <InputLabel id="font-size-label" sx={{ color: 'var(--text-primary)' }}>
+                  Font size
+                </InputLabel>
+                <Select
+                  labelId="font-size-label"
+                  label="Font size"
+                  value={documentSettings?.font_size ?? 16}
+                  onChange={handleFontSizeChange}
+                  sx={{ color: 'var(--text-primary)' }}
+                >
+                  {FONT_SIZE_OPTIONS.map((size) => (
+                    <MenuItem key={size} value={size}>
+                      {size}px
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </ListItem>
+            <ListItem key="line-spacing" className={styles.listItem}>
+              <FormControl size="small" sx={{ minWidth: 160, mt: 1 }}>
+                <InputLabel id="line-spacing-label" sx={{ color: 'var(--text-primary)' }}>
+                  Line spacing
+                </InputLabel>
+                <Select
+                  labelId="line-spacing-label"
+                  label="Line spacing"
+                  value={documentSettings?.line_spacing ?? 2.0}
+                  onChange={handleLineSpacingChange}
+                  sx={{ color: 'var(--text-primary)' }}
+                >
+                  {LINE_SPACING_OPTIONS.map((opt) => (
+                    <MenuItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </ListItem>
           </List>
         </Box>
