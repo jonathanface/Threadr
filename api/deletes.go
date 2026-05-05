@@ -68,7 +68,7 @@ func DeleteBlocksFromStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 }
 
 func DeleteAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -121,7 +121,7 @@ func DeleteAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 }
 
 func DeleteChaptersEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -184,7 +184,7 @@ func DeleteChaptersEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 }
 
 func DeleteStoryEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -229,7 +229,7 @@ func DeleteStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 }
 
 func DeleteSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -282,5 +282,5 @@ func DeleteSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 }

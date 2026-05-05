@@ -1142,22 +1142,21 @@ func (d *DAO) EditStory(ctx context.Context, email string, story models.Story) (
 			if err != nil {
 				if !errors.Is(err, ErrSeriesNotFound) {
 					return updatedStory, err
-				} else {
-					updatedStory.Place = 1
-					seriesID = uuid.New().String()
-					seriesItem := map[string]types.AttributeValue{
-						"series_id": &types.AttributeValueMemberS{Value: seriesID},
-						"title":     &types.AttributeValueMemberS{Value: story.SeriesID},
-						"author":    &types.AttributeValueMemberS{Value: email},
-					}
-					seriesUpdateInput := &dynamodb.PutItemInput{
-						TableName: aws.String("series" + GetTableSuffix()),
-						Item:      seriesItem,
-					}
-					_, err = d.DynamoClient.PutItem(ctx, seriesUpdateInput)
-					if err != nil {
-						return updatedStory, err
-					}
+				}
+				updatedStory.Place = 1
+				seriesID = uuid.New().String()
+				seriesItem := map[string]types.AttributeValue{
+					"series_id": &types.AttributeValueMemberS{Value: seriesID},
+					"title":     &types.AttributeValueMemberS{Value: story.SeriesID},
+					"author":    &types.AttributeValueMemberS{Value: email},
+				}
+				seriesUpdateInput := &dynamodb.PutItemInput{
+					TableName: aws.String("series" + GetTableSuffix()),
+					Item:      seriesItem,
+				}
+				_, err = d.DynamoClient.PutItem(ctx, seriesUpdateInput)
+				if err != nil {
+					return updatedStory, err
 				}
 			} else {
 				seriesID = series.ID

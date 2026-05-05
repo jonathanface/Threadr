@@ -80,13 +80,6 @@ func safeReturnURL(returnURL string, r *http.Request) string {
 	return returnURL
 }
 
-const (
-	DEFAULT_MAX_RETRIES              = 3
-	DEFAULT_AWS_BLOCK_WRITE_CAPACITY = 10
-	DEFAULT_AWS_REGION               = "us-east-1"
-	DEFAULT_DYNAMO_WRITE_BATCH_SIZE  = 50
-)
-
 func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 	const tolerance = 300 * time.Second
 
@@ -104,13 +97,13 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 		err error
 	)
 	daoOptions := daos.Options{
-		Region:     getenv("AWS_REGION", DEFAULT_AWS_REGION),
-		MaxRetries: atoiDefault(os.Getenv("AWS_MAX_RETRIES"), DEFAULT_MAX_RETRIES),
+		Region:     getenv("AWS_REGION", defaultAwsRegion),
+		MaxRetries: atoiDefault(os.Getenv("AWS_MAX_RETRIES"), defaultMaxRetries),
 		BlockTableMinWriteCapacity: atoiDefault(
 			os.Getenv("AWS_BLOCKTABLE_MIN_WRITE_CAPACITY"),
-			DEFAULT_AWS_BLOCK_WRITE_CAPACITY,
+			defaultAWSBlockWriteCapacity,
 		),
-		WriteBatchSize: atoiDefault(os.Getenv("DYNAMO_WRITE_BATCH_SIZE"), DEFAULT_DYNAMO_WRITE_BATCH_SIZE),
+		WriteBatchSize: atoiDefault(os.Getenv("DYNAMO_WRITE_BATCH_SIZE"), defaultDynamoWriteBatchSize),
 	}
 	dao, err := daos.NewDAO(context.Background(), daoOptions)
 	if err != nil {
@@ -146,7 +139,7 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 		log.Printf("[StripeWebhook] Processing %s event for subscription %s, customer %s, MODE=%s",
 			event.Type, sub.ID, sub.Customer.ID, os.Getenv("MODE"))
 
-		email, err = dao.GetEmailByCustomerId(context.Background(), sub.Customer.ID)
+		email, err = dao.GetEmailByCustomerID(context.Background(), sub.Customer.ID)
 		if err != nil || email == "" {
 			log.Printf("[StripeWebhook] Failed to find email for customer %s: %v", sub.Customer.ID, err)
 			RespondWithError(w, http.StatusBadRequest, "unknown customer")
@@ -216,10 +209,10 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	default:
 		// Not a type we care about: ACK and return
-		RespondWithJson(w, http.StatusOK, nil)
+		RespondWithJSON(w, http.StatusOK, nil)
 		return
 	}
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 
 	if needsRestore {
 		go func(email string) {
@@ -369,7 +362,7 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to update subscription")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, createSubResp{
+	RespondWithJSON(w, http.StatusOK, createSubResp{
 		SubscriptionID: s.ID,
 		Status:         string(s.Status),
 		ClientSecret:   inv.PaymentIntent.ClientSecret,
@@ -455,7 +448,7 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 			stripeSub.Status,
 			stripeSub.CancelAtPeriodEnd,
 		)
-		RespondWithJson(w, http.StatusOK, map[string]any{
+		RespondWithJSON(w, http.StatusOK, map[string]any{
 			"id":                stripeSub.ID,
 			"status":            stripeSub.Status,
 			"currentPeriodEnd":  cpe,
@@ -465,7 +458,7 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// no subscriptions found
-	RespondWithJson(w, http.StatusOK, map[string]any{
+	RespondWithJSON(w, http.StatusOK, map[string]any{
 		"status": "none",
 	})
 }
@@ -534,5 +527,5 @@ func BillingPortalSessionEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 7) Respond with the redirect URL
-	RespondWithJson(w, http.StatusOK, map[string]string{"url": sess.URL})
+	RespondWithJSON(w, http.StatusOK, map[string]string{"url": sess.URL})
 }

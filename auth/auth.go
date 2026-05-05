@@ -118,8 +118,8 @@ func verifyMobileToken(tokenString string) (*models.UserInfo, error) {
 func New(options OauthOptions) {
 	gothic.Store = sessions.Store
 	goth.UseProviders(
-		google.New(options.GoogleId, options.GoogleSecret, options.GoogleUrl, "email", "profile"),
-		amazon.New(options.AmazonId, options.AmazonSecret, options.AmazonUrl),
+		google.New(options.GoogleID, options.GoogleSecret, options.GoogleURL, "email", "profile"),
+		amazon.New(options.AmazonID, options.AmazonSecret, options.AmazonURL),
 	)
 }
 
@@ -926,7 +926,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 		// Delete the token from the token map
 		sessions.DeleteTokenMapping(sessionToken)
 		logger.Info("Mobile logout successful")
-		api.RespondWithJson(w, http.StatusOK, nil)
+		api.RespondWithJSON(w, http.StatusOK, nil)
 		return
 	}
 
@@ -941,5 +941,5 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	_ = gothic.Logout(w, r)
 
 	logger.Info("Web logout successful", "remoteAddr", r.RemoteAddr)
-	api.RespondWithJson(w, http.StatusOK, nil)
+	api.RespondWithJSON(w, http.StatusOK, nil)
 }

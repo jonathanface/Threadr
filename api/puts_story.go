@@ -207,7 +207,7 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// Scale down the image if it exceeds the maximum width
-		scaledImageBuf, _, err := scaleDownImage(file, uint(400))
+		scaledImageBuf, _, err := scaleDownImage(file)
 		if err != nil {
 			logger.Error("Internal error", "error", err)
 			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
@@ -270,7 +270,7 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, updatedSeries)
+	RespondWithJSON(w, http.StatusOK, updatedSeries)
 }
 
 func RemoveStoryFromSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -337,7 +337,7 @@ func RemoveStoryFromSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, updatedSeries)
+	RespondWithJSON(w, http.StatusOK, updatedSeries)
 }
 
 func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -452,7 +452,7 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// Scale down the image if it exceeds the maximum width
-		scaledImageBuf, _, err := scaleDownImage(file, uint(400))
+		scaledImageBuf, _, err := scaleDownImage(file)
 		if err != nil {
 			logger.Error("Internal error", "error", err)
 			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
@@ -515,7 +515,7 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, updatedStory)
+	RespondWithJSON(w, http.StatusOK, updatedStory)
 }
 
 func EditStorySettingsEndPoint(w http.ResponseWriter, r *http.Request) {
@@ -564,5 +564,5 @@ func EditStorySettingsEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, updateSettings)
+	RespondWithJSON(w, http.StatusOK, updateSettings)
 }

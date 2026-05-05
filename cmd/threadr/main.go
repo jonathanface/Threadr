@@ -99,26 +99,26 @@ func main() {
 
 	// Determine OAuth redirect URLs based on USE_NGROK flag
 	useNgrok := strings.ToLower(getenv("USE_NGROK", "false")) == "true"
-	googleUrl := getenv("GOOGLE_OAUTH_REDIRECT_URL", "")
-	amazonUrl := getenv("AMAZON_OAUTH_REDIRECT_URL", "")
+	googleURL := getenv("GOOGLE_OAUTH_REDIRECT_URL", "")
+	amazonURL := getenv("AMAZON_OAUTH_REDIRECT_URL", "")
 
 	if useNgrok {
 		if ngrokGoogle := getenv("GOOGLE_OAUTH_REDIRECT_URL_NGROK", ""); ngrokGoogle != "" {
-			googleUrl = ngrokGoogle
+			googleURL = ngrokGoogle
 		}
 		if ngrokAmazon := getenv("AMAZON_OAUTH_REDIRECT_URL_NGROK", ""); ngrokAmazon != "" {
-			amazonUrl = ngrokAmazon
+			amazonURL = ngrokAmazon
 		}
 	}
 
 	authOptions := auth.OauthOptions{
 		Mode:         mode,
-		GoogleId:     getenv("GOOGLE_OAUTH_CLIENT_ID", ""),
+		GoogleID:     getenv("GOOGLE_OAUTH_CLIENT_ID", ""),
 		GoogleSecret: getenv("GOOGLE_OAUTH_CLIENT_SECRET", ""),
-		GoogleUrl:    googleUrl,
-		AmazonId:     getenv("AMAZON_OAUTH_CLIENT_ID", ""),
+		GoogleURL:    googleURL,
+		AmazonID:     getenv("AMAZON_OAUTH_CLIENT_ID", ""),
 		AmazonSecret: getenv("AMAZON_OAUTH_CLIENT_SECRET", ""),
-		AmazonUrl:    amazonUrl,
+		AmazonURL:    amazonURL,
 		FrontEndURL:  getenv("FRONTEND_URL", ""),
 	}
 

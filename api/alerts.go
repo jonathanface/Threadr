@@ -65,7 +65,7 @@ func GetUserAlertsEndpoint(w http.ResponseWriter, r *http.Request) {
 		userAlerts = append(userAlerts, ua)
 	}
 
-	RespondWithJson(w, http.StatusOK, models.AlertsResponse{
+	RespondWithJSON(w, http.StatusOK, models.AlertsResponse{
 		Alerts:      userAlerts,
 		UnreadCount: unreadCount,
 	})
@@ -114,7 +114,7 @@ func GetUnreadAlertCountEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	RespondWithJson(w, http.StatusOK, map[string]int{"unread_count": unreadCount})
+	RespondWithJSON(w, http.StatusOK, map[string]int{"unread_count": unreadCount})
 }
 
 func MarkAlertReadEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -145,7 +145,7 @@ func MarkAlertReadEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 }
 
 func AdminCreateAlertEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -218,7 +218,7 @@ func AdminCreateAlertEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusCreated, alert)
+	RespondWithJSON(w, http.StatusCreated, alert)
 }
 
 // CreateSystemAlert is an exported helper for other endpoints to create system-generated alerts.

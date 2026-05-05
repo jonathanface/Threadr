@@ -284,14 +284,14 @@ func TestEnsureCustomer_NilUserReturnsError(t *testing.T) {
 	}
 }
 
-// Test RespondWithJson with unmarshalable data.
-func TestRespondWithJson_UnmarshalableData(t *testing.T) {
+// Test RespondWithJSON with unmarshalable data.
+func TestRespondWithJSON_UnmarshalableData(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	// Channels cannot be marshaled to JSON
 	invalidPayload := make(chan int)
 
-	RespondWithJson(w, 200, invalidPayload)
+	RespondWithJSON(w, 200, invalidPayload)
 
 	if w.Code != 500 {
 		t.Errorf("expected status 500 for marshal error, got %d", w.Code)

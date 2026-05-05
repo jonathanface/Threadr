@@ -49,5 +49,5 @@ func DeleteUserEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RespondWithJson(w, http.StatusOK, map[string]string{"message": "Account deleted successfully"})
+	RespondWithJSON(w, http.StatusOK, map[string]string{"message": "Account deleted successfully"})
 }

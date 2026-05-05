@@ -173,7 +173,7 @@ func CreateShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 	// Return the raw token (not hash) so the frontend can build share URLs
 	response := link
 	response.Token = rawToken
-	RespondWithJson(w, http.StatusCreated, response)
+	RespondWithJSON(w, http.StatusCreated, response)
 }
 
 func GetShareLinksEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -216,7 +216,7 @@ func GetShareLinksEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, links)
+	RespondWithJSON(w, http.StatusOK, links)
 }
 
 func RevokeShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -264,7 +264,7 @@ func RevokeShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 }
 
 func RestoreShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -312,7 +312,7 @@ func RestoreShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 }
 
 func DeleteShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -360,7 +360,7 @@ func DeleteShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 }
 
 func GetAuthorCommentsEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -413,7 +413,7 @@ func GetAuthorCommentsEndpoint(w http.ResponseWriter, r *http.Request) {
 	for i := range comments {
 		comments[i].ShareToken = ""
 	}
-	RespondWithJson(w, http.StatusOK, comments)
+	RespondWithJSON(w, http.StatusOK, comments)
 }
 
 func ResolveCommentEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -461,7 +461,7 @@ func ResolveCommentEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 }
 
 func DeleteCommentEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -509,7 +509,7 @@ func DeleteCommentEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 }
 
 // Public endpoints (reader-side, authenticated via share token)
@@ -584,7 +584,7 @@ func GetSharedStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		"reader_last_name":   link.ReaderLastName,
 		"reader_has_account": readerHasAccount,
 	}
-	RespondWithJson(w, http.StatusOK, response)
+	RespondWithJSON(w, http.StatusOK, response)
 }
 
 func GetSharedContentEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -619,7 +619,7 @@ func GetSharedContentEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, blocks)
+	RespondWithJSON(w, http.StatusOK, blocks)
 }
 
 func GetSharedCommentsEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -649,7 +649,7 @@ func GetSharedCommentsEndpoint(w http.ResponseWriter, r *http.Request) {
 			ownComments = append(ownComments, c)
 		}
 	}
-	RespondWithJson(w, http.StatusOK, ownComments)
+	RespondWithJSON(w, http.StatusOK, ownComments)
 }
 
 func CreateCommentEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -726,7 +726,7 @@ func CreateCommentEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusCreated, comment)
+	RespondWithJSON(w, http.StatusCreated, comment)
 
 	// Notify the author about the new comment (deduped — one alert per reader per story until dismissed)
 	go func() {
@@ -784,5 +784,5 @@ func DeleteOwnCommentEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 }

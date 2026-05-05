@@ -240,7 +240,7 @@ const (
 
 type DocumentExportRequest struct {
 	StoryID       string       `json:"story_id"`
-	HtmlByChapter []HTMLData   `json:"html_by_chapter"`
+	HTMLByChapter []HTMLData   `json:"html_by_chapter"`
 	Type          ExportFormat `json:"type"`
 	Title         string       `json:"title"`
 	Author        *string      `json:"author"`

@@ -32,5 +32,6 @@ const (
 	maxDefaultLocationImages = 20
 	maxDefaultEventImages    = 20
 	maxDefaultItemImages     = 20
+	maxShorDescriptionLength = 100
 	defaultSeriesImageURL    = "/img/icons/story_series_icon.jpg"
 )

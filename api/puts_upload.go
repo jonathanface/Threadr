@@ -108,7 +108,7 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Scale down the image if it exceeds the maximum width
-	scaledImageBuf, _, err := scaleDownImage(file, uint(400)) //nolint:mnd
+	scaledImageBuf, _, err := scaleDownImage(file)
 	if err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
@@ -194,5 +194,5 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RespondWithJson(w, http.StatusOK, models.Answer{Success: true, URL: portraitURL})
+	RespondWithJSON(w, http.StatusOK, models.Answer{Success: true, URL: portraitURL})
 }

@@ -59,10 +59,10 @@ func ensureCustomer(u *models.UserInfo, s *models.Subscription) (string, error) 
 }
 
 func RespondWithError(w http.ResponseWriter, code int, msg string) {
-	RespondWithJson(w, code, map[string]string{"error": msg})
+	RespondWithJSON(w, code, map[string]string{"error": msg})
 }
 
-func RespondWithJson(w http.ResponseWriter, code int, payload any) {
+func RespondWithJSON(w http.ResponseWriter, code int, payload any) {
 	var (
 		response []byte
 		err      error

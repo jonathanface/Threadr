@@ -65,7 +65,7 @@ func TestCreateStoryEndpoint_MissingTitle(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	imgBuf := createTestImage(100, 100)
+	imgBuf := createTestImage()
 	part, _ := writer.CreateFormFile("file", "test.png")
 	part.Write(imgBuf.Bytes())
 
@@ -91,7 +91,7 @@ func TestCreateStoryEndpoint_MissingDescription(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	imgBuf := createTestImage(100, 100)
+	imgBuf := createTestImage()
 	part, _ := writer.CreateFormFile("file", "test.png")
 	part.Write(imgBuf.Bytes())
 
@@ -115,7 +115,7 @@ func TestCreateStoryEndpoint_NoDAO(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	imgBuf := createTestImage(100, 100)
+	imgBuf := createTestImage()
 	part, _ := writer.CreateFormFile("file", "test.png")
 	part.Write(imgBuf.Bytes())
 
@@ -144,7 +144,7 @@ func TestCreateStoryEndpoint_CreateStoryError(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	imgBuf := createTestImage(100, 100)
+	imgBuf := createTestImage()
 	part, _ := writer.CreateFormFile("file", "test.png")
 	part.Write(imgBuf.Bytes())
 
@@ -177,7 +177,7 @@ func TestCreateStoryEndpoint_AWSError(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	imgBuf := createTestImage(100, 100)
+	imgBuf := createTestImage()
 	part, _ := writer.CreateFormFile("file", "test.png")
 	part.Write(imgBuf.Bytes())
 

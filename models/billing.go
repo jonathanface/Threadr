@@ -7,7 +7,7 @@ import (
 )
 
 type PaymentMethod struct {
-	Id              string                        `json:"id"`
+	ID              string                        `json:"id"`
 	Brand           stripe.PaymentMethodCardBrand `json:"brand"`
 	LastFour        string                        `json:"last_four"`
 	ExpirationMonth uint64                        `json:"expiration_month"`
@@ -17,7 +17,7 @@ type PaymentMethod struct {
 
 type StripeCustomer struct {
 	Email          string          `json:"email"`
-	Id             string          `json:"id"`
+	ID             string          `json:"id"`
 	Cards          []*string       `json:"secret"`
 	PaymentMethods []PaymentMethod `json:"payment_methods"`
 }

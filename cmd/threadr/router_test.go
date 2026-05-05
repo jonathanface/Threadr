@@ -22,9 +22,9 @@ func TestSetupRouter(t *testing.T) {
 	}
 
 	authOptions := auth.OauthOptions{
-		GoogleId:     "test-google-id",
+		GoogleID:     "test-google-id",
 		GoogleSecret: "test-google-secret",
-		GoogleUrl:    "http://localhost/auth/google/callback",
+		GoogleURL:    "http://localhost/auth/google/callback",
 		FrontEndURL:  "http://localhost:3000",
 	}
 

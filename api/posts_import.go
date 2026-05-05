@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
@@ -174,7 +173,7 @@ func ImportDocumentEndpoint(w http.ResponseWriter, r *http.Request) {
 			for _, block := range imported.Blocks {
 				storyBlocks.Blocks = append(storyBlocks.Blocks, models.StoryBlock{
 					KeyID: block.KeyID,
-					Chunk: json.RawMessage(block.Chunk),
+					Chunk: block.Chunk,
 					Place: block.Place,
 				})
 			}
@@ -198,7 +197,7 @@ func ImportDocumentEndpoint(w http.ResponseWriter, r *http.Request) {
 		"filename", header.Filename,
 		"chaptersCreated", len(createdChapters))
 
-	RespondWithJson(w, http.StatusOK, map[string]any{
+	RespondWithJSON(w, http.StatusOK, map[string]any{
 		"chapters": createdChapters,
 		"count":    len(createdChapters),
 	})

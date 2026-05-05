@@ -22,11 +22,6 @@ import (
 
 type Response struct{ Message string }
 
-type keyOnly struct {
-	PK types.AttributeValue `dynamodbav:"partitionKey"`
-	SK types.AttributeValue `dynamodbav:"sortKey"`
-}
-
 // ... existing Response, keyOnly, etc.
 
 type chapterKey struct {

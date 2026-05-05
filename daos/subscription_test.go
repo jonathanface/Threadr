@@ -32,8 +32,8 @@ func TestGetSubscription(t *testing.T) {
 	}
 }
 
-// Tests for GetEmailByCustomerId.
-func TestGetEmailByCustomerId(t *testing.T) {
+// Tests for GetEmailByCustomerID.
+func TestGetEmailByCustomerID(t *testing.T) {
 	testCases := []struct {
 		name       string
 		customerID string
@@ -48,9 +48,9 @@ func TestGetEmailByCustomerId(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			email, err := mockDao.GetEmailByCustomerId(context.Background(), tc.customerID)
+			email, err := mockDao.GetEmailByCustomerID(context.Background(), tc.customerID)
 
-			t.Logf("GetEmailByCustomerId(%q) returned email=%q, err=%v", tc.customerID, email, err)
+			t.Logf("GetEmailByCustomerID(%q) returned email=%q, err=%v", tc.customerID, email, err)
 		})
 	}
 }

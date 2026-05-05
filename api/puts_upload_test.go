@@ -22,9 +22,9 @@ func init() {
 	SetupTestSession()
 }
 
-// createTestImage creates a small test PNG image.
-func createTestImage(width, height int) *bytes.Buffer {
-	img := image.NewRGBA(image.Rect(0, 0, width, height))
+// createTestImage creates a small 100x100 test PNG image.
+func createTestImage() *bytes.Buffer {
+	img := image.NewRGBA(image.Rect(0, 0, 100, 100))
 	buf := new(bytes.Buffer)
 	png.Encode(buf, img)
 	return buf
@@ -64,7 +64,7 @@ func TestUploadPortraitEndpoint_MissingAssociationType(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	imgBuf := createTestImage(100, 100)
+	imgBuf := createTestImage()
 	part, _ := writer.CreateFormFile("file", "test.png")
 	part.Write(imgBuf.Bytes())
 	writer.Close()
@@ -132,7 +132,7 @@ func TestUploadPortraitEndpoint_NoDAO(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	imgBuf := createTestImage(100, 100)
+	imgBuf := createTestImage()
 	part, _ := writer.CreateFormFile("file", "test.png")
 	part.Write(imgBuf.Bytes())
 	writer.Close()
@@ -162,7 +162,7 @@ func TestUploadPortraitEndpoint_AssociationNotFound(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	imgBuf := createTestImage(100, 100)
+	imgBuf := createTestImage()
 	part, _ := writer.CreateFormFile("file", "test.png")
 	part.Write(imgBuf.Bytes())
 	writer.Close()
@@ -192,7 +192,7 @@ func TestUploadPortraitEndpoint_EditAssociationError(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	imgBuf := createTestImage(100, 100)
+	imgBuf := createTestImage()
 	part, _ := writer.CreateFormFile("file", "test.png")
 	part.Write(imgBuf.Bytes())
 	writer.Close()

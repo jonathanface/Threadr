@@ -68,7 +68,7 @@ func ChapterTableStatusEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusNotImplemented, "table not ready")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, "")
+	RespondWithJSON(w, http.StatusOK, "")
 }
 
 func ChapterDetailsEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +131,7 @@ func ChapterDetailsEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 		chapter.CommentCount = count
 	}
-	RespondWithJson(w, http.StatusOK, chapter)
+	RespondWithJSON(w, http.StatusOK, chapter)
 }
 
 func StoryBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
@@ -194,7 +194,7 @@ func StoryBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusNotFound, "no content")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, blocks)
+	RespondWithJSON(w, http.StatusOK, blocks)
 }
 
 func FullStoryEndPoint(w http.ResponseWriter, r *http.Request) {
@@ -256,7 +256,7 @@ func FullStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		}
 		fullStory.ChaptersWithContents = append(fullStory.ChaptersWithContents, chapWithContents)
 	}
-	RespondWithJson(w, http.StatusOK, fullStory)
+	RespondWithJSON(w, http.StatusOK, fullStory)
 }
 
 func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
@@ -315,7 +315,7 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, story)
+	RespondWithJSON(w, http.StatusOK, story)
 }
 
 func StorySettingsEndPoint(w http.ResponseWriter, r *http.Request) {
@@ -365,7 +365,7 @@ func StorySettingsEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, storySettings)
+	RespondWithJSON(w, http.StatusOK, storySettings)
 }
 
 func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
@@ -408,7 +408,7 @@ func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RespondWithJson(w, http.StatusOK, stories)
+	RespondWithJSON(w, http.StatusOK, stories)
 }
 
 func AssociationDetailsEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -462,7 +462,7 @@ func AssociationDetailsEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, association)
+	RespondWithJSON(w, http.StatusOK, association)
 }
 
 func AllAssociationThumbnailsByStoryEndPoint(w http.ResponseWriter, r *http.Request) {
@@ -511,7 +511,7 @@ func AllAssociationThumbnailsByStoryEndPoint(w http.ResponseWriter, r *http.Requ
 		RespondWithError(w, http.StatusNotFound, "no associations found for this story")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, associations)
+	RespondWithJSON(w, http.StatusOK, associations)
 }
 
 func SingleSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
@@ -556,7 +556,7 @@ func SingleSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, series)
+	RespondWithJSON(w, http.StatusOK, series)
 }
 
 func AllSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
@@ -597,7 +597,7 @@ func AllSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, series)
+	RespondWithJSON(w, http.StatusOK, series)
 }
 
 func AllSeriesVolumesEndPoint(w http.ResponseWriter, r *http.Request) {
@@ -642,7 +642,7 @@ func AllSeriesVolumesEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// All chapters now use the unified story_blocks table, no need to check individual table status
-	RespondWithJson(w, http.StatusOK, volumes)
+	RespondWithJSON(w, http.StatusOK, volumes)
 }
 
 func GetUserData(w http.ResponseWriter, r *http.Request) {
@@ -683,7 +683,7 @@ func GetUserData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return the fresh details from database (not the cached session data)
-	RespondWithJson(w, http.StatusOK, details)
+	RespondWithJSON(w, http.StatusOK, details)
 }
 
 // AdminGetAllUsersEndpoint returns all users with their stories (admin only).
@@ -726,7 +726,7 @@ func AdminGetAllUsersEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RespondWithJson(w, http.StatusOK, users)
+	RespondWithJSON(w, http.StatusOK, users)
 }
 
 // AdminDeleteUserEndpoint soft-deletes a user account (admin only).
@@ -781,5 +781,5 @@ func AdminDeleteUserEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RespondWithJson(w, http.StatusOK, map[string]string{"message": "User deleted"})
+	RespondWithJSON(w, http.StatusOK, map[string]string{"message": "User deleted"})
 }

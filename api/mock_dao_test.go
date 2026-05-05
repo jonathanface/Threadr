@@ -49,7 +49,7 @@ type MockDAO struct {
 	GetOutlineByStoryIDFunc                   func(storyID string, chapters []models.Chapter) (*models.OutlineResponse, error)
 	GetChapterTableStatusFunc                 func() (bool, error)
 	GetSubscriptionFunc                       func(email string) (*models.Subscription, error)
-	GetEmailByCustomerIdFunc                  func(customerID string) (string, error)
+	GetEmailByCustomerIDFunc                  func(customerID string) (string, error)
 	UpsertUserFunc                            func(email string) (*models.UserInfo, error)
 	RestoreAutomaticallyDeletedStoriesFunc    func(ctx context.Context, email string) (<-chan daos.RestoreStoryEvent, error)
 	AddCustomerIDFunc                         func(email, customerID *string) error
@@ -273,10 +273,10 @@ func (m *MockDAO) GetSubscription(email string) (*models.Subscription, error) {
 	return &models.Subscription{}, nil
 }
 
-// GetEmailByCustomerId mock implementation.
-func (m *MockDAO) GetEmailByCustomerId(customerID string) (string, error) {
-	if m.GetEmailByCustomerIdFunc != nil {
-		return m.GetEmailByCustomerIdFunc(customerID)
+// GetEmailByCustomerID mock implementation.
+func (m *MockDAO) GetEmailByCustomerID(customerID string) (string, error) {
+	if m.GetEmailByCustomerIDFunc != nil {
+		return m.GetEmailByCustomerIDFunc(customerID)
 	}
 	return "", nil
 }
@@ -543,22 +543,28 @@ func (m *MockDAO) CheckTableStatus(tableName string) (string, error) {
 }
 
 // Private methods that need to be stubbed.
+//
+//nolint:unused // required to satisfy daos.DaoInterface even though api tests don't call them directly.
 func (m *MockDAO) ensureBlocksTableFromBackup(_ context.Context, _, _, _ string) error {
 	return nil
 }
 
+//nolint:unused // required to satisfy daos.DaoInterface.
 func (m *MockDAO) kickoffRestoreAsync(_ string) {
 	// no-op
 }
 
+//nolint:unused // required to satisfy daos.DaoInterface.
 func (m *MockDAO) restoreOneStory(_ string, _ models.Story) error {
 	return nil
 }
 
+//nolint:unused // required to satisfy daos.DaoInterface.
 func (m *MockDAO) hardDeleteStory(_, _ string) error {
 	return nil
 }
 
+//nolint:unused // required to satisfy daos.DaoInterface.
 func (m *MockDAO) verifyStripeSubscription(_, _ string) (daos.SubscriptionStatus, error) {
 	return daos.SubscriptionStatus{}, nil
 }

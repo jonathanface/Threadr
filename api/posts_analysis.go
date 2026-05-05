@@ -159,7 +159,7 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(response.Choices) > 0 && response.Choices[0].Message.Content != "" {
-		RespondWithJson(w, http.StatusOK, response.Choices[0].Message)
+		RespondWithJSON(w, http.StatusOK, response.Choices[0].Message)
 	} else {
 		RespondWithError(w, http.StatusNoContent, "invalid response from gpt")
 	}

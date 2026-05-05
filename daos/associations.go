@@ -16,10 +16,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-const (
-	MAX_SHORT_DESCRIPTION_LENGTH = 100
-)
-
 func (d DAO) WriteAssociations(
 	ctx context.Context,
 	email, storyOrSeriesID string,
@@ -64,8 +60,8 @@ func (d DAO) WriteAssociations(
 				}
 			}
 			shortDescription := item.ShortDescription
-			if len(item.ShortDescription) > MAX_SHORT_DESCRIPTION_LENGTH {
-				shortDescription = item.ShortDescription[:MAX_SHORT_DESCRIPTION_LENGTH]
+			if len(item.ShortDescription) > maxShorDescriptionLength {
+				shortDescription = item.ShortDescription[:maxShorDescriptionLength]
 			}
 			extendedDescription := item.Details.ExtendedDescription
 			associations[i].Portrait = imgFile
@@ -371,8 +367,8 @@ func (d *DAO) GetStoryOrSeriesAssociationThumbnails(
 		return associations, err
 	}
 	for i, v := range associations {
-		if len(v.ShortDescription) > MAX_SHORT_DESCRIPTION_LENGTH {
-			associations[i].ShortDescription = v.ShortDescription[:MAX_SHORT_DESCRIPTION_LENGTH]
+		if len(v.ShortDescription) > maxShorDescriptionLength {
+			associations[i].ShortDescription = v.ShortDescription[:maxShorDescriptionLength]
 		}
 	}
 	return associations, nil

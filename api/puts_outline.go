@@ -34,5 +34,5 @@ func UpdateOutlineEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, newOutline)
+	RespondWithJSON(w, http.StatusOK, newOutline)
 }

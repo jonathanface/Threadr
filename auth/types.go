@@ -7,10 +7,10 @@ import (
 type OauthOptions struct {
 	Mode         models.AppMode
 	FrontEndURL  string
-	GoogleId     string
+	GoogleID     string
 	GoogleSecret string
-	GoogleUrl    string
-	AmazonId     string
+	GoogleURL    string
+	AmazonID     string
 	AmazonSecret string
-	AmazonUrl    string
+	AmazonURL    string
 }

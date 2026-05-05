@@ -72,10 +72,10 @@ func getUserEmail(r *http.Request) (string, error) {
 }
 
 func RespondWithError(w http.ResponseWriter, code int, msg string) {
-	RespondWithJson(w, code, map[string]string{"error": msg})
+	RespondWithJSON(w, code, map[string]string{"error": msg})
 }
 
-func RespondWithJson(w http.ResponseWriter, code int, payload any) {
+func RespondWithJSON(w http.ResponseWriter, code int, payload any) {
 	var (
 		response []byte
 		err      error
@@ -170,7 +170,7 @@ func staggeredStoryBlockRetrieval(
 	return accumulatedBlocks, nil
 }
 
-func scaleDownImage(file io.Reader, maxWidth uint) (*bytes.Buffer, string, error) {
+func scaleDownImage(file io.Reader) (*bytes.Buffer, string, error) {
 	// Decode the image
 	img, format, err := image.Decode(file)
 	if err != nil {
@@ -178,8 +178,8 @@ func scaleDownImage(file io.Reader, maxWidth uint) (*bytes.Buffer, string, error
 	}
 
 	// Resize if necessary
-	if img.Bounds().Dx() > int(maxWidth) {
-		img = resize.Resize(maxWidth, 0, img, resize.Lanczos3)
+	if img.Bounds().Dx() > maxImageWidth {
+		img = resize.Resize(maxImageWidth, 0, img, resize.Lanczos3)
 	}
 
 	// Encode the image to a buffer

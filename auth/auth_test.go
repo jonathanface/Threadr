@@ -347,12 +347,12 @@ func TestLoginWithOptions_DefaultNextURL(t *testing.T) {
 func TestNew(_ *testing.T) {
 	options := OauthOptions{
 		Mode:         models.ModeDevelopment,
-		GoogleId:     "test-google-id",
+		GoogleID:     "test-google-id",
 		GoogleSecret: "test-google-secret",
-		GoogleUrl:    "https://example.com/auth/google/callback",
-		AmazonId:     "test-amazon-id",
+		GoogleURL:    "https://example.com/auth/google/callback",
+		AmazonID:     "test-amazon-id",
 		AmazonSecret: "test-amazon-secret",
-		AmazonUrl:    "https://example.com/auth/amazon/callback",
+		AmazonURL:    "https://example.com/auth/amazon/callback",
 	}
 
 	// This should not panic

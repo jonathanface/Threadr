@@ -78,8 +78,8 @@ func TestRespondWithError(t *testing.T) {
 	}
 }
 
-// Tests for RespondWithJson.
-func TestRespondWithJson_Success(t *testing.T) {
+// Tests for RespondWithJSON.
+func TestRespondWithJSON_Success(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	payload := map[string]any{
@@ -88,7 +88,7 @@ func TestRespondWithJson_Success(t *testing.T) {
 		"active":  true,
 	}
 
-	RespondWithJson(w, http.StatusOK, payload)
+	RespondWithJSON(w, http.StatusOK, payload)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", w.Code)
@@ -113,13 +113,13 @@ func TestRespondWithJson_Success(t *testing.T) {
 	}
 }
 
-func TestRespondWithJson_InvalidPayload(t *testing.T) {
+func TestRespondWithJSON_InvalidPayload(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	// Create a payload that can't be marshaled (channels can't be marshaled to JSON)
 	invalidPayload := make(chan int)
 
-	RespondWithJson(w, http.StatusOK, invalidPayload)
+	RespondWithJSON(w, http.StatusOK, invalidPayload)
 
 	if w.Code != http.StatusInternalServerError {
 		t.Errorf("Expected status 500 for marshal error, got %d", w.Code)
@@ -413,7 +413,7 @@ func TestScaleDownImage_NoResizeNeeded(t *testing.T) {
 	// Create a 100x100 image
 	imgBuf := createTestPNGImage(100, 100)
 
-	result, format, err := scaleDownImage(imgBuf, 400)
+	result, format, err := scaleDownImage(imgBuf)
 
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -430,7 +430,7 @@ func TestScaleDownImage_ResizeNeeded(t *testing.T) {
 	// Create a 800x600 image
 	imgBuf := createTestPNGImage(800, 600)
 
-	result, format, err := scaleDownImage(imgBuf, 400)
+	result, format, err := scaleDownImage(imgBuf)
 
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -456,7 +456,7 @@ func TestScaleDownImage_InvalidImage(t *testing.T) {
 	// Create invalid image data
 	invalidBuf := bytes.NewBufferString("not an image")
 
-	result, format, err := scaleDownImage(invalidBuf, 400)
+	result, format, err := scaleDownImage(invalidBuf)
 
 	if err == nil {
 		t.Errorf("Expected error for invalid image, got nil")

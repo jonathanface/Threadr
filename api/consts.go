@@ -15,5 +15,6 @@ const (
 	oneMB                  = 1024
 	maxUploadSize          = 5 * oneMB * oneMB // 5 MB for original upload
 	maxScaledSize          = oneMB * oneMB     // 1 MB for final scaled image
+	maxImageWidth          = 400
 	awsPrefix              = "aws:"
 )

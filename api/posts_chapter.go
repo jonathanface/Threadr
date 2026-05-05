@@ -70,5 +70,5 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, newChapter)
+	RespondWithJSON(w, http.StatusOK, newChapter)
 }

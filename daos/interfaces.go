@@ -38,7 +38,7 @@ type DaoInterface interface {
 	GetOutlineByStoryID(ctx context.Context, storyID string, chapters []models.Chapter) (*models.OutlineResponse, error)
 	GetChapterTableStatus(ctx context.Context) (bool, error)
 	GetSubscription(ctx context.Context, email string) (*models.Subscription, error)
-	GetEmailByCustomerId(ctx context.Context, customerID string) (string, error)
+	GetEmailByCustomerID(ctx context.Context, customerID string) (string, error)
 	ensureBlocksTableFromBackup(ctx context.Context, backupARN, oldTableName, chapterName string) error
 	kickoffRestoreAsync(email string)
 

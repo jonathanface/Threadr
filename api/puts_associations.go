@@ -79,5 +79,5 @@ func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, associations)
+	RespondWithJSON(w, http.StatusOK, associations)
 }

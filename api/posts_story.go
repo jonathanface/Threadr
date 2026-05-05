@@ -80,7 +80,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Scale down the image if it exceeds the maximum width
-	scaledImageBuf, _, err := scaleDownImage(file, uint(400)) //nolint:mnd
+	scaledImageBuf, _, err := scaleDownImage(file)
 	if err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
@@ -172,5 +172,5 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	story.Chapters = append(story.Chapters, newChapter)
-	RespondWithJson(w, http.StatusOK, story)
+	RespondWithJSON(w, http.StatusOK, story)
 }

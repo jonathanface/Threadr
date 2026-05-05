@@ -42,21 +42,6 @@ func sanitizeFilename(name string) string {
 	return name
 }
 
-const (
-	FONT_NAME         = "Arial"
-	FONT_PATH         = "assets/fonts/arial.ttf"
-	FONT_SIZE_DEFAULT = "12px"
-	FONT_SIZE_HEADER  = "18px"
-	LINE_HEIGHT       = "24px"
-	MARGIN_1INCH      = "1in"
-	// pandocTimeout caps every pandoc subprocess invocation. Pandoc's HTML→
-	// {DOCX,EPUB} normally finishes in <1s; 30s is a generous backstop against
-	// hangs without dragging request timeouts.
-	pandocTimeout = 30 * time.Second
-	// pdfMarginMM is the wkhtmltopdf page margin in millimeters (~1in).
-	pdfMarginMM = 25
-)
-
 // typography pulls user-chosen font/size/line-spacing from the export request,
 // falling back to export defaults when the request leaves a field unset.
 type typography struct {
@@ -456,7 +441,7 @@ func HTMLToEPUB(export models.DocumentExportRequest) (string, error) {
 	sanitizer.AllowAttrs("href").OnElements("a")
 	sanitizer.AllowAttrs("src", "alt", "title").OnElements("img")
 
-	for _, htmlData := range export.HtmlByChapter {
+	for _, htmlData := range export.HTMLByChapter {
 		title := html.EscapeString(htmlData.Chapter)
 		b.WriteString(`<h1>` + title + `</h1>`)
 		b.WriteString(sanitizer.Sanitize(htmlData.HTML))
@@ -558,7 +543,7 @@ func HTMLToDOCX(export models.DocumentExportRequest) (string, error) {
 	sanitizer := bluemonday.UGCPolicy()
 	sanitizer.AllowAttrs("style", "custom-style").OnElements("div", "p")
 
-	for _, htmlData := range export.HtmlByChapter {
+	for _, htmlData := range export.HTMLByChapter {
 		title := html.EscapeString(htmlData.Chapter)
 		b.WriteString(`<h1>` + title + `</h1>`)
 		b.WriteString(sanitizer.Sanitize(mapParagraphTypographyToCustomStyle(stripDocxNoise(htmlData.HTML))))
@@ -977,7 +962,7 @@ func HTMLToPDF(export models.DocumentExportRequest) (string, error) {
 						tab-size: 4;
 					}
 					body { font-family:` + typo.cssFontStack() + `; font-size:` + bodyFontSize + `; line-height:` + bodyLineHeight + `; margin:0; }
-					.h1 { text-align:center; font-weight:bold; font-size:` + FONT_SIZE_HEADER + `; line-height:` + FONT_SIZE_HEADER + `; margin: 0 0 ` + FONT_SIZE_HEADER + ` 0; }
+					.h1 { text-align:center; font-weight:bold; font-size:` + fontSizeHeader + `; line-height:` + fontSizeHeader + `; margin: 0 0 ` + fontSizeHeader + ` 0; }
 					.chapter { page-break-before: always; }
 					.chapter:first-child { page-break-before: auto; }
 					div, p { margin:0; padding:0; white-space: pre-wrap; }
@@ -1012,7 +997,7 @@ func HTMLToPDF(export models.DocumentExportRequest) (string, error) {
 		return s
 	}
 
-	for i, htmlData := range export.HtmlByChapter {
+	for i, htmlData := range export.HTMLByChapter {
 		title := html.EscapeString(htmlData.Chapter)
 		sectionClass := "chapter"
 		if i == 0 {

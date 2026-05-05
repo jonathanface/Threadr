@@ -42,16 +42,16 @@ func validateExportRequest(export models.DocumentExportRequest) error {
 		return fmt.Errorf("story ID too long: maximum %d characters", maxStoryIDLength)
 	}
 
-	// Validate HtmlByChapter
-	if len(export.HtmlByChapter) == 0 {
+	// Validate HTMLByChapter
+	if len(export.HTMLByChapter) == 0 {
 		return errors.New("at least one chapter is required")
 	}
-	if len(export.HtmlByChapter) > maxChapterCount {
+	if len(export.HTMLByChapter) > maxChapterCount {
 		return fmt.Errorf("too many chapters: maximum %d", maxChapterCount)
 	}
 
 	// Validate each chapter
-	for i, chapter := range export.HtmlByChapter {
+	for i, chapter := range export.HTMLByChapter {
 		if strings.TrimSpace(chapter.Chapter) == "" {
 			return fmt.Errorf("chapter %d: chapter title is required", i+1)
 		}
@@ -161,8 +161,8 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert Lexical JSON to HTML if needed (for mobile app exports)
-	for i := range export.HtmlByChapter {
-		if after, ok0 := strings.CutPrefix(export.HtmlByChapter[i].HTML, "__LEXICAL__"); ok0 {
+	for i := range export.HTMLByChapter {
+		if after, ok0 := strings.CutPrefix(export.HTMLByChapter[i].HTML, "__LEXICAL__"); ok0 {
 			// Extract the Lexical JSON
 			lexicalJSON := after
 
@@ -173,7 +173,7 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			export.HtmlByChapter[i].HTML = html
+			export.HTMLByChapter[i].HTML = html
 		}
 	}
 
@@ -225,5 +225,5 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	docURL := "https://" + s3ExportsBucket + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + generatedFile
-	RespondWithJson(w, http.StatusCreated, models.Answer{Success: true, URL: docURL})
+	RespondWithJSON(w, http.StatusCreated, models.Answer{Success: true, URL: docURL})
 }

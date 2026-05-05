@@ -61,7 +61,7 @@ func UpdateChaptersEndpoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	RespondWithJson(w, http.StatusOK, newChapters)
+	RespondWithJSON(w, http.StatusOK, newChapters)
 }
 
 func EditChapterEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -119,5 +119,5 @@ func EditChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, updatedChapter)
+	RespondWithJSON(w, http.StatusOK, updatedChapter)
 }

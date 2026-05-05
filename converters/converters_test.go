@@ -15,7 +15,7 @@ import (
 
 // --- Test helpers ------------------------------------------------------------
 
-func writeFakePandoc(t *testing.T, dir string) string {
+func writeFakePandoc(t *testing.T, dir string) {
 	t.Helper()
 	var name, contents string
 	if runtime.GOOS == "windows" {
@@ -58,7 +58,6 @@ fi
 	if err := os.WriteFile(full, []byte(contents), 0o755); err != nil {
 		t.Fatalf("write fake pandoc: %v", err)
 	}
-	return full
 }
 
 func withPathPrepended(t *testing.T, dir string) (restore func()) {
@@ -85,7 +84,7 @@ type testChapter struct {
 
 type testExport struct {
 	Title         string
-	HtmlByChapter []testChapter
+	HTMLByChapter []testChapter
 	CoverImage    *string
 	Author        *string
 }
@@ -96,12 +95,12 @@ func toRealExport(te testExport) models.DocumentExportRequest {
 	var chapters []models.HTMLData // adjust to your actual field type if needed
 	// If your actual model is []struct{ Chapter, HTML string }, you can convert directly:
 	// (This adapter assumes the same field names.)
-	for _, c := range te.HtmlByChapter {
+	for _, c := range te.HTMLByChapter {
 		chapters = append(chapters, models.HTMLData{Chapter: c.Chapter, HTML: c.HTML})
 	}
 	return models.DocumentExportRequest{
 		Title:         te.Title,
-		HtmlByChapter: chapters,
+		HTMLByChapter: chapters,
 		CoverImage:    te.CoverImage,
 		Author:        te.Author,
 	}
@@ -191,14 +190,14 @@ func TestSafeTimestampFormat(t *testing.T) {
 func TestHTMLToDOCX_UsesPandocStub_WritesFile(t *testing.T) {
 	// Arrange: fake pandoc
 	fakeDir := mustTempDir(t)
-	_ = writeFakePandoc(t, fakeDir)
+	writeFakePandoc(t, fakeDir)
 	restore := withPathPrepended(t, fakeDir)
 	defer restore()
 
 	// Use a minimal export
 	exp := toRealExport(testExport{
 		Title: "DocxTitle",
-		HtmlByChapter: []testChapter{
+		HTMLByChapter: []testChapter{
 			{Chapter: "One", HTML: "<div>Hello</div>"},
 		},
 	})
@@ -226,13 +225,13 @@ func TestHTMLToDOCX_UsesPandocStub_WritesFile(t *testing.T) {
 func TestHTMLToEPUB_UsesPandocStub_WritesFile(t *testing.T) {
 	// Arrange: fake pandoc
 	fakeDir := mustTempDir(t)
-	_ = writeFakePandoc(t, fakeDir)
+	writeFakePandoc(t, fakeDir)
 	restore := withPathPrepended(t, fakeDir)
 	defer restore()
 
 	exp := toRealExport(testExport{
 		Title: "EpubTitle",
-		HtmlByChapter: []testChapter{
+		HTMLByChapter: []testChapter{
 			{Chapter: "Intro", HTML: "<p>Hi</p>"},
 			{Chapter: "Next", HTML: "<p>There</p>"},
 		},
@@ -267,7 +266,7 @@ func TestHTMLToPDF_Smoke(t *testing.T) {
 	}
 	exp := toRealExport(testExport{
 		Title: "PdfTitle",
-		HtmlByChapter: []testChapter{
+		HTMLByChapter: []testChapter{
 			{Chapter: "C1", HTML: "A\tB\nC\tD"},
 		},
 	})

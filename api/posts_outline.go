@@ -50,5 +50,5 @@ func CreateOutlineEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, outlineResponse)
+	RespondWithJSON(w, http.StatusOK, outlineResponse)
 }

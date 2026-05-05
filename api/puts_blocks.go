@@ -87,7 +87,7 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 		"storyId", storyID,
 		"chapterId", blocksOrder.ChapterID,
 		"blockCount", len(blocksOrder.Blocks))
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 }
 
 func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -180,5 +180,5 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		"storyId", storyID,
 		"chapterId", storyBlocks.ChapterID,
 		"blockCount", len(storyBlocks.Blocks))
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 }

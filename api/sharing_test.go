@@ -791,8 +791,8 @@ func TestDeleteCommentEndpoint_NotOwner(t *testing.T) {
 // GetSharedStoryEndpoint tests (public/reader-side)
 // ============================================================
 
-func newSharedRequest(method, url string, mockDAO *daos.MockDAO, link *models.ShareLink) *http.Request {
-	req := httptest.NewRequest(method, url, nil)
+func newSharedRequest(url string, mockDAO *daos.MockDAO, link *models.ShareLink) *http.Request {
+	req := httptest.NewRequest(http.MethodGet, url, nil)
 	ctx := context.WithValue(req.Context(), ctxkey.DAO, mockDAO)
 	ctx = context.WithValue(ctx, ctxkey.ShareLink, link)
 	return req.WithContext(ctx)
@@ -819,7 +819,7 @@ func TestGetSharedStoryEndpoint_Success(t *testing.T) {
 	// returning an empty QueryOutput by default, resulting in an empty chapters list.
 
 	link := defaultShareLink()
-	req := newSharedRequest("GET", "/shared/story", mockDAO, link)
+	req := newSharedRequest("/shared/story", mockDAO, link)
 
 	rr := httptest.NewRecorder()
 	GetSharedStoryEndpoint(rr, req)
@@ -874,7 +874,7 @@ func TestGetSharedContentEndpoint_Success(t *testing.T) {
 	}
 
 	link := defaultShareLink()
-	req := newSharedRequest("GET", "/shared/content?chapter=ch1", mockDAO, link)
+	req := newSharedRequest("/shared/content?chapter=ch1", mockDAO, link)
 
 	rr := httptest.NewRecorder()
 	GetSharedContentEndpoint(rr, req)
@@ -887,7 +887,7 @@ func TestGetSharedContentEndpoint_Success(t *testing.T) {
 func TestGetSharedContentEndpoint_MissingChapterParam(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	link := defaultShareLink()
-	req := newSharedRequest("GET", "/shared/content", mockDAO, link)
+	req := newSharedRequest("/shared/content", mockDAO, link)
 
 	rr := httptest.NewRecorder()
 	GetSharedContentEndpoint(rr, req)
@@ -903,7 +903,7 @@ func TestGetSharedContentEndpoint_ChapterScopeEnforcement(t *testing.T) {
 	link.ChapterID = "ch1" // scoped to ch1
 
 	// Try to access ch2 -- should be forbidden
-	req := newSharedRequest("GET", "/shared/content?chapter=ch2", mockDAO, link)
+	req := newSharedRequest("/shared/content?chapter=ch2", mockDAO, link)
 
 	rr := httptest.NewRecorder()
 	GetSharedContentEndpoint(rr, req)

@@ -332,9 +332,9 @@ func TestEnsureCustomer(t *testing.T) {
 	}
 }
 
-// ---- Tests: RespondWithJson / RespondWithError ----
+// ---- Tests: RespondWithJSON / RespondWithError ----
 
-func TestRespondWithJson_and_Error(t *testing.T) {
+func TestRespondWithJSON_and_Error(t *testing.T) {
 	type tc struct {
 		name     string
 		code     int
@@ -371,7 +371,7 @@ func TestRespondWithJson_and_Error(t *testing.T) {
 			if c.useError {
 				RespondWithError(rec, c.code, "bad things happened")
 			} else {
-				RespondWithJson(rec, c.code, c.payload)
+				RespondWithJSON(rec, c.code, c.payload)
 			}
 
 			res := rec.Result()
