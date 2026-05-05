@@ -95,13 +95,13 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	decoder := json.NewDecoder(r.Body)
 	export := models.DocumentExportRequest{}
-	if err := decoder.Decode(&export); err != nil {
+	if err = decoder.Decode(&export); err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 
 	// Validate export request
-	if err := validateExportRequest(export); err != nil {
+	if err = validateExportRequest(export); err != nil {
 		logger.Error("Bad request", "error", err)
 		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
@@ -167,7 +167,7 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 			lexicalJSON := after
 
 			// Convert Lexical JSON to HTML using the converters package
-			html, err := converters.LexicalToHTML(lexicalJSON)
+			html, err := converters.LexicalToHTML(lexicalJSON) //nolint:govet
 			if err != nil {
 				RespondWithError(w, http.StatusBadRequest, "Failed to convert chapter content for export")
 				return

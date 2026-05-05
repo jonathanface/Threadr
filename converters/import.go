@@ -52,7 +52,7 @@ func injectPageBreakMarkers(docxPath string) (string, error) {
 	pageBreakRe := regexp.MustCompile(`<w:br\s+w:type\s*=\s*"page"\s*/?>`)
 
 	for _, f := range r.File {
-		rc, err := f.Open()
+		rc, err := f.Open() //nolint:govet
 		if err != nil {
 			w.Close()
 			tmpFile.Close()
@@ -74,7 +74,7 @@ func injectPageBreakMarkers(docxPath string) (string, error) {
 		}
 
 		if f.Name == "word/document.xml" {
-			data, err := io.ReadAll(rc)
+			data, err := io.ReadAll(rc) //nolint:govet
 			if err != nil {
 				rc.Close()
 				w.Close()

@@ -123,7 +123,7 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 	storiesJSON := r.FormValue("stories")
 	if storiesJSON != "" {
 		var stories []models.Story
-		err := json.Unmarshal([]byte(storiesJSON), &stories)
+		err := json.Unmarshal([]byte(storiesJSON), &stories) //nolint:govet
 		if err != nil {
 			logger.Error("Bad request", "error", err)
 			RespondWithError(w, http.StatusBadRequest, "Invalid request")
@@ -173,7 +173,7 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		defer file.Close()
 
 		// Delete the old image before uploading the new one
-		if err := deleteS3Image(series.ImageURL, s3SeriesImageBucket); err != nil {
+		if err = deleteS3Image(series.ImageURL, s3SeriesImageBucket); err != nil {
 			logger.Warn("Failed to delete old series image, continuing with upload",
 				"error", err,
 				"seriesId", seriesID,
@@ -190,7 +190,7 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 		allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
 		fileBytes := make([]byte, handler.Size)
-		if _, err := file.Read(fileBytes); err != nil {
+		if _, err = file.Read(fileBytes); err != nil {
 			logger.Error("Internal error", "error", err)
 			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
@@ -202,12 +202,12 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if _, err := file.Seek(0, io.SeekStart); err != nil {
+		if _, err = file.Seek(0, io.SeekStart); err != nil {
 			RespondWithError(w, http.StatusInternalServerError, "Failed to read the image file")
 			return
 		}
 		// Scale down the image if it exceeds the maximum width
-		scaledImageBuf, _, err := scaleDownImage(file)
+		scaledImageBuf, _, err := scaleDownImage(file) //nolint:govet
 		if err != nil {
 			logger.Error("Internal error", "error", err)
 			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
@@ -418,7 +418,7 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		defer file.Close()
 
 		// Delete the old image before uploading the new one
-		if err := deleteS3Image(story.ImageURL, s3StoryImagebucket); err != nil {
+		if err = deleteS3Image(story.ImageURL, s3StoryImagebucket); err != nil {
 			logger.Warn("Failed to delete old story image, continuing with upload",
 				"error", err,
 				"storyId", storyID,
@@ -435,7 +435,7 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		fileBytes := make([]byte, handler.Size)
-		if _, err := file.Read(fileBytes); err != nil {
+		if _, err = file.Read(fileBytes); err != nil {
 			logger.Error("Internal error", "error", err)
 			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
@@ -447,12 +447,12 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if _, err := file.Seek(0, io.SeekStart); err != nil {
+		if _, err = file.Seek(0, io.SeekStart); err != nil {
 			RespondWithError(w, http.StatusInternalServerError, "Failed to read the image file")
 			return
 		}
 		// Scale down the image if it exceeds the maximum width
-		scaledImageBuf, _, err := scaleDownImage(file)
+		scaledImageBuf, _, err := scaleDownImage(file) //nolint:govet
 		if err != nil {
 			logger.Error("Internal error", "error", err)
 			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
@@ -546,13 +546,13 @@ func EditStorySettingsEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	decoder := json.NewDecoder(r.Body)
 	updateSettings := models.StorySettings{}
-	if err := decoder.Decode(&updateSettings); err != nil {
+	if err = decoder.Decode(&updateSettings); err != nil {
 		logger.Error("Bad request", "error", err)
 		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 
-	if err := validateStorySettings(&updateSettings); err != nil {
+	if err = validateStorySettings(&updateSettings); err != nil {
 		logger.Error("Bad request", "error", err)
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return

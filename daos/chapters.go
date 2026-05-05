@@ -49,7 +49,7 @@ func (d *DAO) GetChaptersByStoryID(ctx context.Context, storyID string) (chapter
 	chapters = []models.Chapter{}
 
 	for paginator.HasMorePages() {
-		page, err := paginator.NextPage(ctx)
+		page, err := paginator.NextPage(ctx) //nolint:govet
 		if err != nil {
 			return nil, err
 		}
@@ -298,7 +298,7 @@ func (d *DAO) DeleteChapterParagraphs(
 
 		for _, item := range batch {
 			// Parse place value to number
-			placeNum, err := strconv.ParseInt(item.Place, 10, 64)
+			placeNum, err := strconv.ParseInt(item.Place, 10, 64) //nolint:govet
 			if err != nil {
 				return fmt.Errorf("invalid place value %s: %w", item.Place, err)
 			}
@@ -344,7 +344,7 @@ func (d *DAO) DeleteChapterParagraphs(
 			TransactItems:      deleteItems,
 		}
 
-		awsErr, err := d.awsWriteTransaction(ctx, writeItemsInput)
+		awsErr, err := d.awsWriteTransaction(ctx, writeItemsInput) //nolint:govet
 		if err != nil {
 			return err
 		}
@@ -394,7 +394,7 @@ func (d *DAO) DeleteChapters(ctx context.Context, storyID string, chapters []mod
 			// Note: This is done separately because transaction limit is 100 items
 			go func(chID string) {
 				compositeKey := buildCompositeKey(storyID, chID)
-				if err := d.deleteAllBlocksForChapter(ctx, compositeKey); err != nil {
+				if err = d.deleteAllBlocksForChapter(ctx, compositeKey); err != nil {
 					// Log error but don't fail the transaction
 					logger.Error("Failed to delete blocks for chapter",
 						"error", err,
@@ -405,7 +405,7 @@ func (d *DAO) DeleteChapters(ctx context.Context, storyID string, chapters []mod
 			}(item.ID)
 		}
 
-		awsErr, err := d.awsWriteTransaction(ctx, writeItemsInput)
+		awsErr, err := d.awsWriteTransaction(ctx, writeItemsInput) //nolint:govet
 		if err != nil {
 			return err
 		}
@@ -484,7 +484,7 @@ func (d *DAO) GetBlockCountByChapter(ctx context.Context, _, storyID, chapterID 
 	paginator := dynamodb.NewQueryPaginator(d.DynamoClient, queryInput)
 
 	for paginator.HasMorePages() {
-		page, err := paginator.NextPage(ctx)
+		page, err := paginator.NextPage(ctx) //nolint:govet
 		if err != nil {
 			return 0, err
 		}

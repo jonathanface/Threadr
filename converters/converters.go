@@ -279,10 +279,10 @@ func LexicalToHTML(lexicalJSON string) (string, error) {
 			if chunkRaw, ok := item["chunk"]; ok {
 				// Parse the DynamoDB AttributeValue wrapper
 				var chunkWrapper DynamoDBValue
-				if err := json.Unmarshal(chunkRaw, &chunkWrapper); err == nil {
+				if err = json.Unmarshal(chunkRaw, &chunkWrapper); err == nil {
 					// The Value field contains the Lexical JSON as a string
 					var chunkStr string
-					if str, ok := chunkWrapper.Value.(string); ok {
+					if str, ok := chunkWrapper.Value.(string); ok { //nolint:govet
 						chunkStr = str
 					} else {
 						// Try to marshal and unmarshal if it's not a string
@@ -292,7 +292,7 @@ func LexicalToHTML(lexicalJSON string) (string, error) {
 
 					// Parse the Lexical node from the chunk
 					var node LexicalNode
-					if err := json.Unmarshal([]byte(chunkStr), &node); err == nil {
+					if err = json.Unmarshal([]byte(chunkStr), &node); err == nil {
 						html := nodeToHTML(node)
 						htmlBuilder.WriteString(html)
 					}
@@ -455,7 +455,7 @@ func HTMLToEPUB(export models.DocumentExportRequest) (string, error) {
 		return "", err
 	}
 	defer os.Remove(tmpHTML.Name())
-	if _, err := tmpHTML.WriteString(b.String()); err != nil {
+	if _, err = tmpHTML.WriteString(b.String()); err != nil {
 		return "", err
 	}
 	_ = tmpHTML.Close()
@@ -515,7 +515,7 @@ a { text-decoration: underline; }
 	ctx, cancel := context.WithTimeout(context.Background(), pandocTimeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "pandoc", args...)
-	if err := cmd.Run(); err != nil {
+	if err = cmd.Run(); err != nil {
 		return "", err
 	}
 	return outName, nil
@@ -556,7 +556,7 @@ func HTMLToDOCX(export models.DocumentExportRequest) (string, error) {
 		return "", err
 	}
 	defer os.Remove(tmpHTML.Name())
-	if _, err := tmpHTML.WriteString(b.String()); err != nil {
+	if _, err = tmpHTML.WriteString(b.String()); err != nil {
 		return "", err
 	}
 	_ = tmpHTML.Close()
@@ -583,7 +583,7 @@ func HTMLToDOCX(export models.DocumentExportRequest) (string, error) {
 		"--reference-doc", refDoc,
 		"-o", out, tmpHTML.Name(),
 	)
-	if err := cmd.Run(); err != nil {
+	if err = cmd.Run(); err != nil {
 		return "", err
 	}
 	return docTitle + ".docx", nil
@@ -613,7 +613,7 @@ func buildReferenceDocx(srcPath string, typo typography) (string, func(), error)
 
 	zw := zip.NewWriter(tmp)
 	for _, f := range src.File {
-		w, err := zw.CreateHeader(&zip.FileHeader{
+		w, err := zw.CreateHeader(&zip.FileHeader{ //nolint:govet
 			Name:   f.Name,
 			Method: f.Method,
 		})
@@ -631,7 +631,7 @@ func buildReferenceDocx(srcPath string, typo typography) (string, func(), error)
 			return "", func() {}, err
 		}
 		if f.Name == "word/styles.xml" {
-			data, err := io.ReadAll(rc)
+			data, err := io.ReadAll(rc) //nolint:govet
 			rc.Close()
 			if err != nil {
 				zw.Close()
@@ -640,7 +640,7 @@ func buildReferenceDocx(srcPath string, typo typography) (string, func(), error)
 				return "", func() {}, err
 			}
 			data = applyTypographyToStylesXML(data, typo)
-			if _, err := w.Write(data); err != nil {
+			if _, err = w.Write(data); err != nil {
 				zw.Close()
 				tmp.Close()
 				cleanup()
@@ -657,12 +657,12 @@ func buildReferenceDocx(srcPath string, typo typography) (string, func(), error)
 		}
 		rc.Close()
 	}
-	if err := zw.Close(); err != nil {
+	if err = zw.Close(); err != nil {
 		tmp.Close()
 		cleanup()
 		return "", func() {}, err
 	}
-	if err := tmp.Close(); err != nil {
+	if err = tmp.Close(); err != nil {
 		cleanup()
 		return "", func() {}, err
 	}
@@ -1031,7 +1031,7 @@ func HTMLToPDF(export models.DocumentExportRequest) (string, error) {
 	pdfg.MarginBottom.Set(pdfMarginMM)
 	pdfg.MarginLeft.Set(pdfMarginMM)
 
-	if err := pdfg.Create(); err != nil {
+	if err = pdfg.Create(); err != nil {
 		return "", err
 	}
 	now := time.Now().UTC()
@@ -1040,7 +1040,7 @@ func HTMLToPDF(export models.DocumentExportRequest) (string, error) {
 	docTitle := safeTitle + "_" + iso
 	name := docTitle + ".pdf"
 	out := "./tmp/" + name
-	if err := pdfg.WriteFile(out); err != nil {
+	if err = pdfg.WriteFile(out); err != nil {
 		return "", err
 	}
 	return name, nil

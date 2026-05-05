@@ -62,7 +62,7 @@ func (d *DAO) GetShareLink(ctx context.Context, token string) (*models.ShareLink
 	}
 
 	var link models.ShareLink
-	if err := attributevalue.UnmarshalMap(out.Item, &link); err != nil {
+	if err = attributevalue.UnmarshalMap(out.Item, &link); err != nil {
 		return nil, fmt.Errorf("unmarshal share link: %w", err)
 	}
 	return &link, nil
@@ -92,7 +92,7 @@ func (d *DAO) GetShareLinksByAuthor(ctx context.Context, email string, storyID s
 	}
 
 	var links []models.ShareLink
-	if err := attributevalue.UnmarshalListOfMaps(out.Items, &links); err != nil {
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &links); err != nil {
 		return nil, fmt.Errorf("unmarshal share links: %w", err)
 	}
 	return links, nil
@@ -117,7 +117,7 @@ func (d *DAO) GetShareLinksByStory(ctx context.Context, storyID string) ([]model
 	}
 
 	var links []models.ShareLink
-	if err := attributevalue.UnmarshalListOfMaps(out.Items, &links); err != nil {
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &links); err != nil {
 		return nil, fmt.Errorf("unmarshal share links: %w", err)
 	}
 	return links, nil
@@ -225,7 +225,7 @@ func (d *DAO) GetComment(ctx context.Context, commentID string) (*models.Comment
 	}
 
 	var comment models.Comment
-	if err := attributevalue.UnmarshalMap(out.Item, &comment); err != nil {
+	if err = attributevalue.UnmarshalMap(out.Item, &comment); err != nil {
 		return nil, fmt.Errorf("unmarshal comment: %w", err)
 	}
 	return &comment, nil
@@ -250,7 +250,7 @@ func (d *DAO) GetCommentsByShareToken(ctx context.Context, shareToken string) ([
 	}
 
 	var comments []models.Comment
-	if err := attributevalue.UnmarshalListOfMaps(out.Items, &comments); err != nil {
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &comments); err != nil {
 		return nil, fmt.Errorf("unmarshal comments: %w", err)
 	}
 	return comments, nil
@@ -281,7 +281,7 @@ func (d *DAO) GetCommentsByStoryChapter(ctx context.Context, storyID, chapterID 
 	}
 
 	var comments []models.Comment
-	if err := attributevalue.UnmarshalListOfMaps(out.Items, &comments); err != nil {
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &comments); err != nil {
 		return nil, fmt.Errorf("unmarshal comments: %w", err)
 	}
 	return comments, nil

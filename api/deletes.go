@@ -38,7 +38,7 @@ func DeleteBlocksFromStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	decoder := json.NewDecoder(r.Body)
 	storyBlocks := models.StoryBlocks{}
-	if err := decoder.Decode(&storyBlocks); err != nil {
+	if err = decoder.Decode(&storyBlocks); err != nil {
 		logger.Error("Bad request", "error", err)
 		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
@@ -95,7 +95,7 @@ func DeleteAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	associations := []*models.Association{}
 
-	if err := decoder.Decode(&associations); err != nil {
+	if err = decoder.Decode(&associations); err != nil {
 		logger.Error("Bad request", "error", err)
 		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return

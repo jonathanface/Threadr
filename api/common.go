@@ -33,7 +33,7 @@ func GetAuthenticatedUser(r *http.Request) (*models.UserInfo, error) {
 		sessionToken := after
 
 		// Get user data from token map
-		userVal, ok := sessions.GetUserByToken(sessionToken)
+		userVal, ok := sessions.GetUserByToken(sessionToken) //nolint:govet
 		if !ok {
 			return nil, errors.New("invalid session token")
 		}

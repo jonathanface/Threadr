@@ -37,7 +37,7 @@ func UpdateUserEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	decoder := json.NewDecoder(r.Body)
 	passedUser := models.UserInfo{}
-	if err := decoder.Decode(&passedUser); err != nil {
+	if err = decoder.Decode(&passedUser); err != nil {
 		logger.Error("Bad request", "error", err)
 		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return

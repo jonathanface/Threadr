@@ -49,7 +49,7 @@ func (d *DAO) awsWriteTransaction(
 
 		// **Step 2: Retry logic with exponential backoff**
 		for numRetries := range d.maxRetries {
-			_, err := d.DynamoClient.TransactWriteItems(ctx, chunk)
+			_, err := d.DynamoClient.TransactWriteItems(ctx, chunk) //nolint:govet
 			if err == nil {
 				logger.Debug("Transaction chunk succeeded",
 					"chunkNum", chunkNum,

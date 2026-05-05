@@ -130,7 +130,7 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 	switch event.Type {
 	case "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted":
 		var sub stripe.Subscription
-		if err := json.NewDecoder(bytes.NewReader(event.Data.Raw)).Decode(&sub); err != nil {
+		if err = json.NewDecoder(bytes.NewReader(event.Data.Raw)).Decode(&sub); err != nil {
 			logger.Error("Bad request", "error", err)
 			RespondWithError(w, http.StatusBadRequest, "Invalid request")
 			return
@@ -147,7 +147,7 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Printf("[StripeWebhook] Found email %s for customer %s", email, sub.Customer.ID)
 
-		if err := dao.UpdateSubscription(context.Background(), models.Subscription{
+		if err := dao.UpdateSubscription(context.Background(), models.Subscription{ //nolint:govet
 			Email:                  email,
 			CustomerID:             sub.Customer.ID,
 			SubscriptionID:         sub.ID,
@@ -170,7 +170,7 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 
 		if isActive && !user.Subscriber {
 			user.Subscriber = true
-			if wasSuspended, err := dao.CheckForSuspendedStories(
+			if wasSuspended, err := dao.CheckForSuspendedStories( //nolint:govet
 				context.Background(),
 				user.Email,
 			); err == nil &&
@@ -188,7 +188,7 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 			user.NotifyExpired = true
 
 			// suspend others (async fan-out OK)
-			stories, err := dao.GetAllStories(context.Background(), user.Email)
+			stories, err := dao.GetAllStories(context.Background(), user.Email) //nolint:govet
 			if err != nil && !errors.Is(err, sql.ErrNoRows) {
 				logger.Error("Internal error", "error", err)
 				RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
@@ -201,7 +201,7 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		if err := dao.UpdateUser(context.Background(), *user); err != nil {
+		if err = dao.UpdateUser(context.Background(), *user); err != nil {
 			logger.Error("Internal error", "error", err)
 			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
@@ -219,14 +219,14 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute) //nolint:mnd
 			defer cancel()
 
-			events, err := dao.RestoreAutomaticallyDeletedStories(ctx, email)
+			events, err := dao.RestoreAutomaticallyDeletedStories(ctx, email) //nolint:govet
 			if err != nil {
 				log.Printf("restore start failed for %s: %v", email, err)
 				return
 			}
 			for ev := range events {
 				if ev.Err == nil {
-					if story, err := dao.GetStoryByID(context.Background(), email, ev.StoryID); err == nil {
+					if story, err := dao.GetStoryByID(context.Background(), email, ev.StoryID); err == nil { //nolint:govet
 						story.Inactive = false
 						if _, e2 := dao.EditStory(context.Background(), email, *story); e2 != nil {
 							log.Printf("post-restore EditStory failed %s: %v", ev.StoryID, e2)
@@ -290,7 +290,7 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 	var s *stripe.Subscription
 	if sub != nil && sub.SubscriptionID != "" {
 		log.Printf("[SubscribeCustomer] Checking existing subscription %s for %s", sub.SubscriptionID, email)
-		existingSub, err := subscription.Get(sub.SubscriptionID, nil)
+		existingSub, err := subscription.Get(sub.SubscriptionID, nil) //nolint:govet
 		if err == nil && existingSub.Status == stripe.SubscriptionStatusIncomplete {
 			log.Printf(
 				"[SubscribeCustomer] Reusing existing incomplete subscription %s for %s",
@@ -400,7 +400,7 @@ func SummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := ensureCustomerFn(user, sub); err != nil {
+	if _, err = ensureCustomerFn(user, sub); err != nil {
 		logger.Error("Failed to ensure Stripe customer", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
@@ -408,7 +408,7 @@ func SummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	if sub != nil && sub.SubscriptionID != "" {
 		log.Printf("[BillingSummary] Fetching subscription %s from Stripe API for %s", sub.SubscriptionID, email)
-		stripeSub, err := subscription.Get(sub.SubscriptionID, nil)
+		stripeSub, err := subscription.Get(sub.SubscriptionID, nil) //nolint:govet
 		if err != nil {
 			log.Printf("[BillingSummary] Failed to get subscription from Stripe for %s: %v", email, err)
 			RespondWithError(w, http.StatusInternalServerError, "unable to retrieve subscription from stripe")

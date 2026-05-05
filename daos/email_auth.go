@@ -65,7 +65,7 @@ func (d *DAO) CreateEmailUser(
 	// Check if this is a returning user (has soft-deleted stories)
 	go func() {
 		bgCtx := context.Background()
-		stories, err := d.GetAllStoriesIncludingDeleted(bgCtx, email)
+		stories, err := d.GetAllStoriesIncludingDeleted(bgCtx, email) //nolint:govet
 		if err == nil && len(stories) > 0 {
 			d.createWelcomeBackAlert(bgCtx, email)
 		} else {
@@ -217,7 +217,7 @@ func (d *DAO) RestoreDataForVerifiedUser(email string) {
 	stories, err := d.GetAllStoriesIncludingDeleted(bgCtx, email)
 	if err == nil {
 		for _, story := range stories {
-			if err := d.RestoreStory(bgCtx, email, story.ID); err != nil {
+			if err = d.RestoreStory(bgCtx, email, story.ID); err != nil {
 				logger.Warn(
 					"Failed to restore story for verified account",
 					"email",
@@ -237,7 +237,7 @@ func (d *DAO) RestoreDataForVerifiedUser(email string) {
 	series, err := d.GetAllSeriesIncludingDeleted(bgCtx, email)
 	if err == nil {
 		for _, s := range series {
-			if err := d.RestoreSeries(bgCtx, email, s.ID); err != nil {
+			if err = d.RestoreSeries(bgCtx, email, s.ID); err != nil {
 				logger.Warn(
 					"Failed to restore series for verified account",
 					"email",
@@ -275,7 +275,7 @@ func (d *DAO) FindUserByVerificationToken(ctx context.Context, token string) (*m
 	}
 
 	var user models.UserInfo
-	if err := attributevalue.UnmarshalMap(out.Items[0], &user); err != nil {
+	if err = attributevalue.UnmarshalMap(out.Items[0], &user); err != nil {
 		return nil, fmt.Errorf("unmarshal user: %w", err)
 	}
 	return &user, nil
@@ -300,7 +300,7 @@ func (d *DAO) FindUserByResetToken(ctx context.Context, token string) (*models.U
 	}
 
 	var user models.UserInfo
-	if err := attributevalue.UnmarshalMap(out.Items[0], &user); err != nil {
+	if err = attributevalue.UnmarshalMap(out.Items[0], &user); err != nil {
 		return nil, fmt.Errorf("unmarshal user: %w", err)
 	}
 	return &user, nil

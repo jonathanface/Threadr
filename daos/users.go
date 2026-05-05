@@ -51,19 +51,19 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 			ReturnValues: types.ReturnValueAllNew,
 		}
 
-		if _, err := d.DynamoClient.UpdateItem(ctx, input); err != nil {
+		if _, err = d.DynamoClient.UpdateItem(ctx, input); err != nil {
 			return nil, err
 		}
 
 		// 2. Restore all soft-deleted stories (undelete them)
-		stories, err := d.GetAllStoriesIncludingDeleted(ctx, email)
+		stories, err := d.GetAllStoriesIncludingDeleted(ctx, email) //nolint:govet
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			logger.Warn("Failed to get deleted stories for restoration", "email", email, "error", err)
 			// Continue anyway - don't fail account recreation
 		} else {
 			for _, story := range stories {
 				// Undelete the story by removing deleted_at
-				if err := d.RestoreStory(ctx, email, story.ID); err != nil {
+				if err = d.RestoreStory(ctx, email, story.ID); err != nil {
 					logger.Warn("Failed to restore story", "email", email, "storyID", story.ID, "error", err)
 					// Continue with other stories
 				}
@@ -79,7 +79,7 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 		} else {
 			for _, s := range series {
 				// Undelete the series by removing deleted_at
-				if err := d.RestoreSeries(ctx, email, s.ID); err != nil {
+				if err = d.RestoreSeries(ctx, email, s.ID); err != nil {
 					logger.Warn("Failed to restore series", "email", email, "seriesID", s.ID, "error", err)
 					// Continue with other series
 				}
@@ -98,12 +98,12 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 		// Send emails and create welcome alert asynchronously
 		go func() {
 			bgCtx := context.Background()
-			if err := sendWelcomeEmail(email); err != nil {
+			if err = sendWelcomeEmail(email); err != nil {
 				logger.Error("Failed to send welcome email", "email", email, "error", err)
 			} else {
 				logger.Info("Welcome email sent successfully", "email", email)
 			}
-			if err := sendNewUserNotificationEmail(email); err != nil {
+			if err = sendNewUserNotificationEmail(email); err != nil {
 				logger.Error("Failed to send new user notification email", "email", email, "error", err)
 			} else {
 				logger.Info("New user notification email sent successfully", "email", email)
@@ -158,7 +158,7 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 		bgCtx := context.Background()
 
 		// Send welcome email to user
-		if err := sendWelcomeEmail(email); err != nil {
+		if err = sendWelcomeEmail(email); err != nil {
 			logger.Error("Failed to send welcome email",
 				"email", email,
 				"error", err)
@@ -167,7 +167,7 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 		}
 
 		// Send notification email to support
-		if err := sendNewUserNotificationEmail(email); err != nil {
+		if err = sendNewUserNotificationEmail(email); err != nil {
 			logger.Error("Failed to send new user notification email",
 				"email", email,
 				"error", err)
@@ -263,7 +263,7 @@ func (d *DAO) GetAllUsersWithStories(ctx context.Context) ([]models.AdminUserSum
 	result := make([]models.AdminUserSummary, 0, len(users))
 	for _, u := range users {
 		// Get stories for this user
-		stories, err := d.GetAllStories(ctx, u.Email)
+		stories, err := d.GetAllStories(ctx, u.Email) //nolint:govet
 		var storyInfos []models.AdminStoryInfo
 		if err == nil {
 			// Build a map of seriesID -> series title for this user
@@ -329,7 +329,7 @@ func (d *DAO) GetUserByEmailIncludingDeleted(ctx context.Context, email string) 
 	}
 
 	var user models.UserInfo
-	if err := attributevalue.UnmarshalMap(out.Item, &user); err != nil {
+	if err = attributevalue.UnmarshalMap(out.Item, &user); err != nil {
 		return nil, err
 	}
 
@@ -360,7 +360,7 @@ func (d *DAO) UpsertUser(ctx context.Context, email string) (*models.UserInfo, e
 
 	var user models.UserInfo
 	if out.Attributes != nil {
-		if err := attributevalue.UnmarshalMap(out.Attributes, &user); err != nil {
+		if err = attributevalue.UnmarshalMap(out.Attributes, &user); err != nil {
 			return nil, err
 		}
 	}
@@ -456,7 +456,7 @@ func (d *DAO) IsUserSubscribed(ctx context.Context, user models.UserInfo) (*mode
 			isSubscribed = status.Active
 			sub.CurrentSubscriptionEnd = status.CurrentPeriodEnd
 			sub.LastSubCheck = time.Now().UTC()
-			if err := d.UpdateSubscription(ctx, *sub); err != nil {
+			if err = d.UpdateSubscription(ctx, *sub); err != nil {
 				return nil, err
 			}
 		} else if stripeErr != nil {
@@ -468,7 +468,7 @@ func (d *DAO) IsUserSubscribed(ctx context.Context, user models.UserInfo) (*mode
 	if !isSubscribed && user.Subscriber {
 		user.NotifyExpired = true
 
-		stories, err := d.GetAllStories(ctx, user.Email)
+		stories, err := d.GetAllStories(ctx, user.Email) //nolint:govet
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return nil, err
 		}
@@ -488,7 +488,7 @@ func (d *DAO) IsUserSubscribed(ctx context.Context, user models.UserInfo) (*mode
 			return nil, err
 		}
 	} else if isSubscribed {
-		wasSuspended, err := d.CheckForSuspendedStories(ctx, user.Email) // bool
+		wasSuspended, err := d.CheckForSuspendedStories(ctx, user.Email) //nolint:govet // bool
 		if err != nil {
 			return nil, err
 		}
@@ -624,7 +624,7 @@ func (d *DAO) DeleteUser(ctx context.Context, email string) error {
 		return err
 	}
 	for _, story := range stories {
-		if err := d.SoftDeleteStory(ctx, email, story.ID, false); err != nil {
+		if err = d.SoftDeleteStory(ctx, email, story.ID, false); err != nil {
 			return err
 		}
 	}
@@ -635,7 +635,7 @@ func (d *DAO) DeleteUser(ctx context.Context, email string) error {
 		return err
 	}
 	for _, s := range series {
-		if err := d.DeleteSeries(ctx, email, s); err != nil {
+		if err = d.DeleteSeries(ctx, email, s); err != nil {
 			return err
 		}
 	}
@@ -652,7 +652,7 @@ func (d *DAO) DeleteUser(ctx context.Context, email string) error {
 		},
 	}
 
-	if _, err := d.DynamoClient.UpdateItem(ctx, input); err != nil {
+	if _, err = d.DynamoClient.UpdateItem(ctx, input); err != nil {
 		return err
 	}
 

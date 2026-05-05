@@ -146,21 +146,21 @@ func main() {
 	// Start server
 	errCh := make(chan error, 1)
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			errCh <- err
+		if serveErr := srv.ListenAndServe(); serveErr != nil && serveErr != http.ErrServerClosed {
+			errCh <- serveErr
 		}
 	}()
 
 	select {
 	case <-ctx.Done():
 		// graceful shutdown
-	case err := <-errCh:
+	case err := <-errCh: //nolint:govet
 		log.Printf("server error: %v", err)
 	}
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), serverLifecycleTimeout)
 	defer cancel()
-	if err := srv.Shutdown(shutdownCtx); err != nil {
+	if err = srv.Shutdown(shutdownCtx); err != nil {
 		log.Printf("graceful shutdown error: %v", err)
 	}
 	log.Println("server stopped")

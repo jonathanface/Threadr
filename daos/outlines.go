@@ -50,7 +50,7 @@ func (d *DAO) GetOutlineByStoryID(
 	for _, item := range result.Items {
 		if v, ok := item["backstory"]; ok {
 			var bs string
-			if err := attributevalue.Unmarshal(v, &bs); err != nil {
+			if err = attributevalue.Unmarshal(v, &bs); err != nil {
 				return nil, fmt.Errorf("unmarshal backstory: %w", err)
 			}
 			out.Backstory = bs
@@ -58,7 +58,7 @@ func (d *DAO) GetOutlineByStoryID(
 		var s models.OutlineSection
 
 		if v, ok := item["place"].(*types.AttributeValueMemberN); ok {
-			n, err := strconv.Atoi(v.Value)
+			n, err := strconv.Atoi(v.Value) //nolint:govet
 			if err != nil {
 				return nil, fmt.Errorf("error converting place to int: %w", err)
 			}

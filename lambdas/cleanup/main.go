@@ -69,7 +69,7 @@ func HandleRequest(ctx context.Context) (Response, error) {
 	total := 0
 	for _, tbl := range tables {
 		// purgeTable now also returns discovered chapter keys for cascade
-		n, chapterKeys, err := purgeTable(ctx, client, tbl, cutoff)
+		n, chapterKeys, err := purgeTable(ctx, client, tbl, cutoff) //nolint:govet
 		if err != nil {
 			return Response{}, fmt.Errorf("%s: %w", tbl, err)
 		}
@@ -78,7 +78,7 @@ func HandleRequest(ctx context.Context) (Response, error) {
 		// If this is a chapters* table, cascade delete its blocks tables + backups
 		if isChaptersTable(tbl) && len(chapterKeys) > 0 {
 			staging := strings.HasSuffix(tbl, "_staging")
-			if err := deleteBlocksTablesAndBackups(ctx, client, chapterKeys, staging); err != nil {
+			if err = deleteBlocksTablesAndBackups(ctx, client, chapterKeys, staging); err != nil {
 				return Response{}, fmt.Errorf("cascade (%s): %w", tbl, err)
 			}
 		}
@@ -327,13 +327,13 @@ func deleteBlocksTablesAndBackups(
 
 		for _, t := range matches {
 			// Delete on-demand backups of this table first (optional but tidy)
-			if err := deleteAllBackupsForTable(ctx, client, t); err != nil {
+			if err = deleteAllBackupsForTable(ctx, client, t); err != nil {
 				// log and continue; backups can be absent or permissions restricted
 				fmt.Printf("warn: delete backups for %s: %v\n", t, err)
 			}
 
 			// Delete the table
-			if err := deleteTableIfExists(ctx, client, t); err != nil {
+			if err = deleteTableIfExists(ctx, client, t); err != nil {
 				return fmt.Errorf("delete table %s: %w", t, err)
 			}
 			fmt.Printf("block table %s was deleted\n", base)

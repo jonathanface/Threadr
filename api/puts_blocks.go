@@ -35,7 +35,7 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	decoder := json.NewDecoder(r.Body)
 	blocksOrder := models.BlocksOrder{}
-	if err := decoder.Decode(&blocksOrder); err != nil {
+	if err = decoder.Decode(&blocksOrder); err != nil {
 		logger.Error("Failed to decode blocks order", "error", err, "storyId", storyID, "remoteAddr", r.RemoteAddr)
 		logger.Error("Bad request", "error", err)
 		RespondWithError(w, http.StatusBadRequest, "Invalid request")

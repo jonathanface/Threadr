@@ -66,12 +66,12 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	chapterText := ""
 	var chapterTextSb65 strings.Builder
 	for _, block := range blocks.Items {
-		chunkAttributeValue, ok := block["chunk"].(*types.AttributeValueMemberS)
+		chunkAttributeValue, ok := block["chunk"].(*types.AttributeValueMemberS) //nolint:govet
 		if !ok {
 			continue // Skip this item or handle the error as appropriate
 		}
 		chk := models.Chunk{}
-		err := json.Unmarshal([]byte(chunkAttributeValue.Value), &chk)
+		err := json.Unmarshal([]byte(chunkAttributeValue.Value), &chk) //nolint:govet
 		if err != nil {
 			logger.Error("Internal error", "error", err)
 			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")

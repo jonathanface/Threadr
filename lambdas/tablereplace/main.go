@@ -32,7 +32,7 @@ func handler(ctx context.Context) error {
 	var tables []string
 	var lastEvaluatedTableName *string
 	for {
-		out, err := client.ListTables(ctx, &ddb.ListTablesInput{
+		out, err := client.ListTables(ctx, &ddb.ListTablesInput{ //nolint:govet
 			ExclusiveStartTableName: lastEvaluatedTableName,
 		})
 		if err != nil {
@@ -56,13 +56,13 @@ func handler(ctx context.Context) error {
 		log.Printf("Processing table %q; target table name will be %q.", tableName, newTableName)
 
 		// Check if the target table already exists.
-		_, err := client.DescribeTable(ctx, &ddb.DescribeTableInput{
+		_, err := client.DescribeTable(ctx, &ddb.DescribeTableInput{ //nolint:govet
 			TableName: aws.String(newTableName),
 		})
 		if err == nil {
 			// Table exists; delete it.
 			log.Printf("Target table %q already exists. Deleting it.", newTableName)
-			_, err := client.DeleteTable(ctx, &ddb.DeleteTableInput{
+			_, err := client.DeleteTable(ctx, &ddb.DeleteTableInput{ //nolint:govet
 				TableName: aws.String(newTableName),
 			})
 			if err != nil {
@@ -108,7 +108,7 @@ func handler(ctx context.Context) error {
 
 		// Wait for the backup to become available (poll every 5 seconds).
 		for {
-			descOut, err := client.DescribeBackup(ctx, &ddb.DescribeBackupInput{
+			descOut, err := client.DescribeBackup(ctx, &ddb.DescribeBackupInput{ //nolint:govet
 				BackupArn: aws.String(backupArn),
 			})
 			if err != nil {

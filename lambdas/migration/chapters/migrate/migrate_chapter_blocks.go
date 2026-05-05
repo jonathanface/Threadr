@@ -88,7 +88,7 @@ func main() {
 
 	// Step 2: Verify target table exists
 	log.Println("\n[2/4] Verifying target table exists...")
-	if err := verifyTargetTable(ctx, client); err != nil {
+	if err = verifyTargetTable(ctx, client); err != nil {
 		log.Fatalf("Target table verification failed: %v", err)
 	}
 	log.Println("✓ Target table is ready")
@@ -100,7 +100,7 @@ func main() {
 		log.Printf("    Story ID: %s", table.StoryID)
 		log.Printf("    Chapter ID: %s", table.ChapterID)
 
-		if err := migrateTable(ctx, client, table, stats); err != nil {
+		if err = migrateTable(ctx, client, table, stats); err != nil {
 			log.Printf("✗ Failed to migrate %s: %v", table.TableName, err)
 			stats.TablesSkipped++
 			stats.Errors = append(stats.Errors, fmt.Sprintf("%s: %v", table.TableName, err))
@@ -371,7 +371,7 @@ func batchWriteItems(
 
 		retries := 0
 		for {
-			output, err := client.BatchWriteItem(ctx, &dynamodb.BatchWriteItemInput{
+			output, err := client.BatchWriteItem(ctx, &dynamodb.BatchWriteItemInput{ //nolint:govet
 				RequestItems: requestItems,
 			})
 

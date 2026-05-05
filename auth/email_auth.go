@@ -257,7 +257,7 @@ func emailLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Verify password
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+	if err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Invalid email or password"})
 		return
 	}
@@ -290,7 +290,7 @@ func emailLogin(w http.ResponseWriter, r *http.Request) {
 	opts.MaxAge = int(oneDay.Seconds())
 	tokenSess.Options = opts
 
-	if err := tokenSess.Save(r, w); err != nil {
+	if err = tokenSess.Save(r, w); err != nil {
 		logger.Error("Failed to save token session", "error", err, "email", user.Email)
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to create session"})
 		return
@@ -333,7 +333,7 @@ func emailVerify(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 		return
 	}
 
-	if err := dao.SetEmailVerified(r.Context(), user.Email); err != nil {
+	if err = dao.SetEmailVerified(r.Context(), user.Email); err != nil {
 		logger.Error("Failed to set email verified", "error", err, "email", user.Email)
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to verify email"})
 		return
@@ -386,7 +386,7 @@ func passwordResetRequest(w http.ResponseWriter, r *http.Request, options OauthO
 	resetToken := sessions.GenerateSessionToken()
 	tokenExpires := time.Now().Add(resetTokenExpiry).Unix()
 
-	if err := dao.SetResetToken(r.Context(), req.Email, resetToken, tokenExpires); err != nil {
+	if err = dao.SetResetToken(r.Context(), req.Email, resetToken, tokenExpires); err != nil {
 		logger.Error("Failed to set reset token", "error", err, "email", req.Email)
 		respondJSON(w, http.StatusOK, successMsg)
 		return
@@ -469,7 +469,7 @@ func passwordReset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := dao.UpdatePassword(r.Context(), user.Email, string(hash)); err != nil {
+	if err = dao.UpdatePassword(r.Context(), user.Email, string(hash)); err != nil {
 		logger.Error("Failed to update password", "error", err, "email", user.Email)
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to reset password"})
 		return
@@ -528,13 +528,13 @@ func linkOAuthAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Verify password before allowing link
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+	if err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Invalid credentials"})
 		return
 	}
 
 	// Link the account — converts to OAuth, clears password fields
-	if err := dao.LinkOAuthAccount(r.Context(), req.Email, req.Provider); err != nil {
+	if err = dao.LinkOAuthAccount(r.Context(), req.Email, req.Provider); err != nil {
 		logger.Error("Failed to link OAuth account", "error", err, "email", req.Email)
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to link account"})
 		return

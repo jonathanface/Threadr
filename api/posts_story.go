@@ -62,7 +62,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fileBytes := make([]byte, handler.Size)
-	if _, err := file.Read(fileBytes); err != nil {
+	if _, err = file.Read(fileBytes); err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
@@ -74,7 +74,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := file.Seek(0, io.SeekStart); err != nil {
+	if _, err = file.Seek(0, io.SeekStart); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Failed to read the image file")
 		return
 	}

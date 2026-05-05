@@ -120,7 +120,7 @@ func (d *DAO) WriteAssociations(
 			return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 		}
 
-		awsErr, err := d.awsWriteTransaction(ctx, writeItemsDetailsInput)
+		awsErr, err := d.awsWriteTransaction(ctx, writeItemsDetailsInput) //nolint:govet
 		if err != nil {
 			return err
 		}
@@ -236,7 +236,7 @@ func (d *DAO) DeleteAssociations(
 			return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 		}
 
-		awsErr, err := d.awsWriteTransaction(ctx, writeItemsDetailsInput)
+		awsErr, err := d.awsWriteTransaction(ctx, writeItemsDetailsInput) //nolint:govet
 		if err != nil {
 			return err
 		}

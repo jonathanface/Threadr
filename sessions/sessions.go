@@ -78,7 +78,7 @@ func Delete(w http.ResponseWriter, r *http.Request, key string) error {
 	for k := range sess.Values {
 		delete(sess.Values, k)
 	}
-	if err := sess.Save(r, w); err != nil {
+	if err = sess.Save(r, w); err != nil {
 		return err
 	}
 	http.SetCookie(w, &http.Cookie{

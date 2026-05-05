@@ -280,7 +280,7 @@ func CreateCommentAlert(
 		CreatedAt:   time.Now().Unix(),
 		CreatedBy:   "system",
 	}
-	if err := dao.CreateAlert(ctx, alert); err != nil {
+	if err = dao.CreateAlert(ctx, alert); err != nil {
 		logger.Error("Failed to create comment alert",
 			"error", err,
 			"authorEmail", authorEmail)

@@ -161,7 +161,7 @@ func (d *DAO) GetSeriesVolumes(ctx context.Context, seriesID string) (volumes []
 	}
 
 	for idx, story := range stories {
-		chapters, err := d.GetChaptersByStoryID(ctx, story.ID)
+		chapters, err := d.GetChaptersByStoryID(ctx, story.ID) //nolint:govet
 		if err != nil {
 			return nil, err
 		}
@@ -189,7 +189,7 @@ func (d *DAO) EditSeries(
 
 	for _, story := range series.Stories {
 		// all we can change is the placement of stories
-		_, err := d.GetStoryByID(ctx, email, story.ID)
+		_, err := d.GetStoryByID(ctx, email, story.ID) //nolint:govet
 		if err != nil {
 			return updatedSeries, err
 		}

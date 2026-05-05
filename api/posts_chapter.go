@@ -45,7 +45,7 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	decoder := json.NewDecoder(r.Body)
 	chapter := models.Chapter{}
-	if err := decoder.Decode(&chapter); err != nil {
+	if err = decoder.Decode(&chapter); err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}

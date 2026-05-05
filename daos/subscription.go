@@ -163,7 +163,7 @@ func (d *DAO) GetEmailByCustomerID(ctx context.Context, custID string) (string, 
 				"sampleCount", len(scanOut.Items))
 			for i, item := range scanOut.Items {
 				if emailAttr, ok := item["email"].(*types.AttributeValueMemberS); ok {
-					if custAttr, ok := item["customer_id"].(*types.AttributeValueMemberS); ok {
+					if custAttr, ok := item["customer_id"].(*types.AttributeValueMemberS); ok { //nolint:govet
 						logger.Info("Sample item",
 							"index", i,
 							"email", emailAttr.Value,

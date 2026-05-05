@@ -91,7 +91,7 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
 	fileBytes := make([]byte, handler.Size)
-	if _, err := file.Read(fileBytes); err != nil {
+	if _, err = file.Read(fileBytes); err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
@@ -103,7 +103,7 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := file.Seek(0, io.SeekStart); err != nil {
+	if _, err = file.Seek(0, io.SeekStart); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Failed to read the image file")
 		return
 	}
@@ -149,7 +149,7 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 			"associationId", associationID)
 	} else if oldAssociation != nil {
 		// Delete the old portrait image
-		if err := deleteS3Image(oldAssociation.Portrait, s3CustomPortraitBucket); err != nil {
+		if err = deleteS3Image(oldAssociation.Portrait, s3CustomPortraitBucket); err != nil {
 			logger.Warn("Failed to delete old portrait image, continuing with upload",
 				"error", err,
 				"storyId", storyID,

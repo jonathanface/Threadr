@@ -50,7 +50,7 @@ func CreateAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !isSubscriber {
-		existingAssoc, err := dao.GetStoryOrSeriesAssociationThumbnails(r.Context(), email, storyID)
+		existingAssoc, err := dao.GetStoryOrSeriesAssociationThumbnails(r.Context(), email, storyID) //nolint:govet
 		if err != nil {
 			opErr := &smithy.OperationError{}
 			if errors.As(err, &opErr) {

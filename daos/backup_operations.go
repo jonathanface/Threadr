@@ -83,7 +83,7 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(ctx context.Context, email stri
 		defer close(ch)
 		for i, story := range stories {
 			story.Inactive = true
-			_, err := d.EditStory(ctx, email, story)
+			_, err := d.EditStory(ctx, email, story) //nolint:govet
 			select {
 			case <-ctx.Done():
 				return

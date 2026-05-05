@@ -93,7 +93,7 @@ func (d *DAO) createBlockTable(ctx context.Context, tableName string, tags *[]ty
 		}
 
 		for {
-			_, err := d.DynamoClient.UpdateContinuousBackups(bgCtx, pitrInput)
+			_, err := d.DynamoClient.UpdateContinuousBackups(bgCtx, pitrInput) //nolint:govet
 			if err == nil {
 				break // PITR enabled successfully
 			}
@@ -107,7 +107,7 @@ func (d *DAO) createBlockTable(ctx context.Context, tableName string, tags *[]ty
 			time.Sleep(10 * time.Second) //nolint:mnd
 		}
 
-		_, err := d.DynamoClient.UpdateContinuousBackups(bgCtx, pitrInput)
+		_, err := d.DynamoClient.UpdateContinuousBackups(bgCtx, pitrInput) //nolint:govet
 		if err != nil {
 			logger.Error("Error enabling continuous backups", "error", err, "tableName", tableName)
 		}

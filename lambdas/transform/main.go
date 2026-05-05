@@ -319,7 +319,7 @@ func processTable(svc *dynamodb.DynamoDB, sourceTableName, targetTableName, tagV
 			}
 		}
 
-		_, err := svc.CreateTable(createInput)
+		_, err := svc.CreateTable(createInput) //nolint:govet
 		if err != nil {
 			return fmt.Errorf("failed to create target table: %w", err)
 		}
@@ -381,7 +381,7 @@ func processTable(svc *dynamodb.DynamoDB, sourceTableName, targetTableName, tagV
 		}
 
 		lexical := transformToLexical(draft)
-		lexicalData, err := json.Marshal(lexical)
+		lexicalData, err := json.Marshal(lexical) //nolint:govet
 		if err != nil {
 			log.Printf("Failed to marshal Lexical data: %v", err)
 			continue
@@ -439,7 +439,7 @@ func handler(_ context.Context, event Event) (string, error) {
 	for _, sourceTableName := range tables {
 		targetTableName := sourceTableName + "-rollout"
 		log.Printf("Processing table: %s", sourceTableName)
-		err := processTable(svc, sourceTableName, targetTableName, event.TagValue, event.AccountID)
+		err := processTable(svc, sourceTableName, targetTableName, event.TagValue, event.AccountID) //nolint:govet
 		if err != nil {
 			log.Printf("Error processing table %s: %v", sourceTableName, err)
 		}

@@ -94,7 +94,7 @@ func (d *DAO) SoftDeleteStory(ctx context.Context, email, storyID string, automa
 	// If the story is part of a series, and if the series now has no stories,
 	// then update the series item.
 	if seriesID != "" {
-		series, err := d.GetSeriesByID(ctx, email, seriesID)
+		series, err := d.GetSeriesByID(ctx, email, seriesID) //nolint:govet
 		if err != nil {
 			logger.Error("Failed to get series for soft delete",
 				"error", err,
@@ -145,7 +145,7 @@ func (d *DAO) SoftDeleteStory(ctx context.Context, email, storyID string, automa
 			},
 			Select: types.SelectAllAttributes,
 		}
-		associationOut, err := d.DynamoClient.Scan(ctx, associationScanInput)
+		associationOut, err := d.DynamoClient.Scan(ctx, associationScanInput) //nolint:govet
 		if err != nil {
 			logger.Error("Failed to scan associations for soft delete",
 				"error", err,
@@ -327,7 +327,7 @@ func (d *DAO) hardDeleteStory(ctx context.Context, email, storyID string) error 
 	deletedSeries := false
 	storyOrSeriesID := storyID
 	if originalStory.SeriesID != "" {
-		series, err := d.GetSeriesByID(ctx, email, originalStory.SeriesID)
+		series, err := d.GetSeriesByID(ctx, email, originalStory.SeriesID) //nolint:govet
 		if err != nil {
 			logger.Error("Failed to get series for hard delete",
 				"error", err,
@@ -356,7 +356,7 @@ func (d *DAO) hardDeleteStory(ctx context.Context, email, storyID string) error 
 			}
 			// delete series portrait image from s3
 			bucketName := "richdocter-series-portraits"
-			parsedPath, err := url.Parse(originalStory.ImageURL)
+			parsedPath, err := url.Parse(originalStory.ImageURL) //nolint:govet
 			if err != nil {
 				logger.Error("Failed to parse series image URL",
 					"error", err,
@@ -395,7 +395,7 @@ func (d *DAO) hardDeleteStory(ctx context.Context, email, storyID string) error 
 			},
 			Select: types.SelectAllAttributes,
 		}
-		associationOut, err := d.DynamoClient.Scan(ctx, associationScanInput)
+		associationOut, err := d.DynamoClient.Scan(ctx, associationScanInput) //nolint:govet
 		if err != nil {
 			logger.Error("Failed to scan associations for hard delete",
 				"error", err,

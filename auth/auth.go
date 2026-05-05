@@ -402,7 +402,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 			AuthType:   info.AuthType,
 			Subscriber: userDetails.Subscriber,
 		}
-		if err := dao.UpdateUser(r.Context(), updateInfo); err != nil {
+		if err = dao.UpdateUser(r.Context(), updateInfo); err != nil {
 			logger.Warn(
 				"Failed to update user name information",
 				"error",
@@ -443,7 +443,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	opts.MaxAge = int(oneDay.Seconds())
 	tokenSess.Options = opts
 
-	if err := tokenSess.Save(r, w); err != nil {
+	if err = tokenSess.Save(r, w); err != nil {
 		logger.Error("Failed to save token session", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
 		logger.Error("Internal error", "error", err)
 		api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
@@ -470,7 +470,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 
 		// For mobile app schemes, validate against allowed patterns
 		if strings.HasPrefix(rdx, "minithreadr://") || strings.HasPrefix(rdx, "exp://") {
-			if validURL, ok := safeMobileRedirect(rdx); ok {
+			if validURL, ok := safeMobileRedirect(rdx); ok { //nolint:govet
 				logger.Info("Validated mobile redirect URL from query parameter", "url", validURL)
 				next = validURL
 			} else {
@@ -487,7 +487,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 
 			// For mobile app schemes, validate against allowed patterns
 			if strings.HasPrefix(ref, "minithreadr://") || strings.HasPrefix(ref, "exp://") {
-				if validURL, ok := safeMobileRedirect(ref); ok {
+				if validURL, ok := safeMobileRedirect(ref); ok { //nolint:govet
 					logger.Info("Validated mobile redirect URL from session", "url", validURL)
 					next = validURL
 				} else {
@@ -553,7 +553,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 				"previousStatus", userDetails.Subscriber,
 				"newStatus", updated.Subscriber,
 				"remoteAddr", r.RemoteAddr)
-			if err := dao.UpdateUser(r.Context(), *updated); err != nil {
+			if err = dao.UpdateUser(r.Context(), *updated); err != nil {
 				logger.Error(
 					"Failed to update user subscription status",
 					"error",
@@ -670,7 +670,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	// For mobile deep links, append a signed JWT token as a query parameter
 	// since mobile apps can't access browser cookies
 	if strings.HasPrefix(next, "minithreadr://") || strings.HasPrefix(next, "exp://") {
-		signedToken, err := createSignedMobileToken(info)
+		signedToken, err := createSignedMobileToken(info) //nolint:govet
 		if err != nil {
 			logger.Error("Failed to create signed mobile token", "error", err, "email", info.Email)
 			api.RespondWithError(w, http.StatusInternalServerError, "Failed to create mobile token")
@@ -836,7 +836,7 @@ func MobileSessionHandler() http.HandlerFunc {
 		sess.Values["mobile_token"] = sessionToken
 		sess.Options = sessions.OptionsFor(r)
 
-		if err := sess.Save(r, w); err != nil {
+		if err = sess.Save(r, w); err != nil {
 			logger.Error("Failed to save user_data session", "error", err)
 			api.RespondWithError(w, http.StatusInternalServerError, "Failed to save session")
 			return
@@ -908,7 +908,7 @@ func loginWithOptions(w http.ResponseWriter, r *http.Request, options OauthOptio
 
 	logger.Debug("Login referral session saved", "provider", provider, "next", next, "remoteAddr", r.RemoteAddr)
 
-	if _, err := gothic.CompleteUserAuth(w, r); err != nil {
+	if _, err = gothic.CompleteUserAuth(w, r); err != nil {
 		logger.Debug("Starting OAuth flow", "provider", provider, "remoteAddr", r.RemoteAddr)
 		gothic.BeginAuthHandler(w, r)
 	}

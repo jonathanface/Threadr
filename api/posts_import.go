@@ -153,7 +153,7 @@ func ImportDocumentEndpoint(w http.ResponseWriter, r *http.Request) {
 			Place:   i + 1,
 		}
 
-		createdChapter, err := dao.CreateChapter(r.Context(), storyID, chapter)
+		createdChapter, err := dao.CreateChapter(r.Context(), storyID, chapter) //nolint:govet
 		if err != nil {
 			logger.Error("Failed to create chapter during import",
 				"error", err,
