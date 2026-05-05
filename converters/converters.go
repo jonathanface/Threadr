@@ -1,6 +1,8 @@
 package converters
 
 import (
+	"Threadr/models"
+	"archive/zip"
 	"context"
 	"encoding/json"
 	"errors"
@@ -14,6 +16,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -54,6 +57,44 @@ const (
 	// pdfMarginMM is the wkhtmltopdf page margin in millimeters (~1in).
 	pdfMarginMM = 25
 )
+
+// typography pulls user-chosen font/size/line-spacing from the export request,
+// falling back to export defaults when the request leaves a field unset.
+type typography struct {
+	Family      string
+	SizePx      int
+	LineSpacing float64
+}
+
+func resolveTypography(req models.DocumentExportRequest) typography {
+	t := typography{
+		Family:      req.FontFamily,
+		SizePx:      req.FontSize,
+		LineSpacing: req.LineSpacing,
+	}
+	if t.Family == "" || !models.AllowedFonts[t.Family] {
+		t.Family = models.DefaultFontFamily
+	}
+	if t.SizePx < models.MinFontSize || t.SizePx > models.MaxFontSize {
+		t.SizePx = models.DefaultExportFontSize
+	}
+	if t.LineSpacing < models.MinLineSpacing || t.LineSpacing > models.MaxLineSpacing {
+		t.LineSpacing = models.DefaultExportLineHeight
+	}
+	return t
+}
+
+func (t typography) cssFontStack() string {
+	// Pair the chosen face with a generic fallback so renderers without the font still produce sane output.
+	switch t.Family {
+	case "Times New Roman", "Georgia", "EB Garamond", "Merriweather":
+		return fmt.Sprintf(`"%s", serif`, t.Family)
+	case "Courier New":
+		return fmt.Sprintf(`"%s", monospace`, t.Family)
+	default:
+		return fmt.Sprintf(`"%s", sans-serif`, t.Family)
+	}
+}
 
 func detab(s string, tabWidth int) string {
 	if tabWidth <= 0 {
@@ -398,11 +439,15 @@ func HTMLToEPUB(export models.DocumentExportRequest) (string, error) {
 		return "", err
 	}
 
+	typo := resolveTypography(export)
+
 	// ---- Build a single sanitized HTML doc (like your DOCX path) ----
 	var b strings.Builder
-	b.WriteString(
-		`<html><head><meta charset="utf-8"></head><body style="font-family: serif; line-height: 1.5; margin: 0 0 1rem;">`,
-	)
+	b.WriteString(fmt.Sprintf(
+		`<html><head><meta charset="utf-8"></head><body style="font-family: %s; line-height: %s; margin: 0 0 1rem;">`,
+		typo.cssFontStack(),
+		strconv.FormatFloat(typo.LineSpacing, 'f', -1, 64),
+	))
 
 	sanitizer := bluemonday.UGCPolicy()
 	// Allow minimal formatting commonly used in prose; tweak as needed
@@ -430,15 +475,19 @@ func HTMLToEPUB(export models.DocumentExportRequest) (string, error) {
 	_ = tmpHTML.Close()
 
 	// ---- Optional: embed a simple CSS for better reading ----
-	css := `
-body { margin: 0; padding: 0.5rem 0.75rem; font-size: 1rem; }
+	css := fmt.Sprintf(`
+body { margin: 0; padding: 0.5rem 0.75rem; font-family: %s; font-size: %dpx; line-height: %s; }
 h1 { font-size: 1.6rem; margin: 1.2rem 0 0.6rem; text-align:center; }
 h2 { font-size: 1.3rem; margin: 1rem 0 0.5rem; }
 p, div { margin: 0 0 0.8rem; }
 blockquote { margin: 0.8rem 1rem; font-style: italic; }
-img { max-width: 100%; height: auto; }
+img { max-width: 100%%; height: auto; }
 a { text-decoration: underline; }
-`
+`,
+		typo.cssFontStack(),
+		typo.SizePx,
+		strconv.FormatFloat(typo.LineSpacing, 'f', -1, 64),
+	)
 	tmpCSS := filepath.Join(os.TempDir(), "epub_style_"+safeTimestamp()+".css")
 	if err := os.WriteFile(tmpCSS, []byte(css), 0o644); err != nil {
 		return "", err
@@ -491,20 +540,29 @@ func HTMLToDOCX(export models.DocumentExportRequest) (string, error) {
 		return "", err
 	}
 
+	typo := resolveTypography(export)
+	// DOCX exports always use 12pt body text regardless of editor preference —
+	// it's the manuscript-standard size, and Word readers expect it.
+	typo.SizePx = models.DefaultExportFontSize
+
 	var b strings.Builder
-	b.WriteString(`
+	b.WriteString(fmt.Sprintf(`
 		<html>
 			<head>
 				<meta charset="utf-8">
 			</head>
-			<body style="font-family:'Times New Roman',serif;font-size:` + FONT_SIZE_DEFAULT + `;line-height:` + LINE_HEIGHT + `;margin:0">`)
+			<body style="font-family:%s;font-size:%dpx;line-height:%s;margin:0">`,
+		typo.cssFontStack(),
+		typo.SizePx,
+		strconv.FormatFloat(typo.LineSpacing, 'f', -1, 64),
+	))
 	sanitizer := bluemonday.UGCPolicy()
 	sanitizer.AllowAttrs("style", "custom-style").OnElements("div", "p")
 
 	for _, htmlData := range export.HtmlByChapter {
 		title := html.EscapeString(htmlData.Chapter)
 		b.WriteString(`<h1>` + title + `</h1>`)
-		b.WriteString(sanitizer.Sanitize(htmlData.HTML))
+		b.WriteString(sanitizer.Sanitize(mapParagraphTypographyToCustomStyle(stripDocxNoise(htmlData.HTML))))
 	}
 	b.WriteString(`</body></html>`)
 
@@ -518,6 +576,15 @@ func HTMLToDOCX(export models.DocumentExportRequest) (string, error) {
 	}
 	_ = tmpHTML.Close()
 
+	// Build a reference docx whose Normal style reflects the requested typography.
+	// Pandoc applies the reference doc's Normal style to body text regardless of
+	// inline CSS, so this is the only way to make font/size/spacing stick.
+	refDoc, refCleanup, err := buildReferenceDocx("assets/custom-reference.docx", typo)
+	if err != nil {
+		return "", fmt.Errorf("build reference docx: %w", err)
+	}
+	defer refCleanup()
+
 	now := time.Now().UTC()
 	iso := now.Format(time.RFC3339)
 	safeTitle := sanitizeFilename(export.Title)
@@ -528,7 +595,7 @@ func HTMLToDOCX(export models.DocumentExportRequest) (string, error) {
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "pandoc", "-f", "html", "-t", "docx",
-		"--reference-doc", "assets/custom-reference.docx",
+		"--reference-doc", refDoc,
 		"-o", out, tmpHTML.Name(),
 	)
 	if err := cmd.Run(); err != nil {
@@ -537,11 +604,356 @@ func HTMLToDOCX(export models.DocumentExportRequest) (string, error) {
 	return docTitle + ".docx", nil
 }
 
+// buildReferenceDocx returns the path to a temp .docx copy of srcPath whose
+// docDefaults and Normal style have been rewritten to match typo. The cleanup
+// fn deletes the temp file when called.
+func buildReferenceDocx(srcPath string, typo typography) (string, func(), error) {
+	src, err := zip.OpenReader(srcPath)
+	if err != nil {
+		// Reference doc unreadable (e.g. running outside repo root); fall back
+		// to passing the original path unchanged. Pandoc will surface any real
+		// error from there.
+		if os.IsNotExist(err) {
+			return srcPath, func() {}, nil
+		}
+		return "", func() {}, err
+	}
+	defer src.Close()
+
+	tmp, err := os.CreateTemp("", "reference_*.docx")
+	if err != nil {
+		return "", func() {}, err
+	}
+	cleanup := func() { os.Remove(tmp.Name()) }
+
+	zw := zip.NewWriter(tmp)
+	for _, f := range src.File {
+		w, err := zw.CreateHeader(&zip.FileHeader{
+			Name:   f.Name,
+			Method: f.Method,
+		})
+		if err != nil {
+			zw.Close()
+			tmp.Close()
+			cleanup()
+			return "", func() {}, err
+		}
+		rc, err := f.Open()
+		if err != nil {
+			zw.Close()
+			tmp.Close()
+			cleanup()
+			return "", func() {}, err
+		}
+		if f.Name == "word/styles.xml" {
+			data, err := io.ReadAll(rc)
+			rc.Close()
+			if err != nil {
+				zw.Close()
+				tmp.Close()
+				cleanup()
+				return "", func() {}, err
+			}
+			data = applyTypographyToStylesXML(data, typo)
+			if _, err := w.Write(data); err != nil {
+				zw.Close()
+				tmp.Close()
+				cleanup()
+				return "", func() {}, err
+			}
+			continue
+		}
+		if _, err := io.Copy(w, rc); err != nil {
+			rc.Close()
+			zw.Close()
+			tmp.Close()
+			cleanup()
+			return "", func() {}, err
+		}
+		rc.Close()
+	}
+	if err := zw.Close(); err != nil {
+		tmp.Close()
+		cleanup()
+		return "", func() {}, err
+	}
+	if err := tmp.Close(); err != nil {
+		cleanup()
+		return "", func() {}, err
+	}
+	return tmp.Name(), cleanup, nil
+}
+
+// docxNoiseReplacer strips characters that are visually invisible in normal
+// Word/PDF rendering but show up as decorative "formatting mark" glyphs
+// (commas, dots, hyphens) when LibreOffice's formatting-marks view is on.
+// Most of these are imported from Word/Google Docs source documents and serve
+// no purpose in the user's manuscript:
+//
+//   - \t  auto-tab indent — pandoc collapses it to a literal space (renders
+//     as a middle-dot mark); the paragraph style provides first-line indent.
+//   - U+200B  zero-width space
+//   - U+200C  zero-width non-joiner
+//   - U+200D  zero-width joiner
+//   - U+FEFF  byte-order mark / word joiner
+//   - U+00AD  soft hyphen — pandoc emits <w:softHyphen/>, which renders as a
+//     comma-like mark when formatting marks are visible.
+var docxNoiseReplacer = strings.NewReplacer(
+	"\t", "",
+	"\u200B", "", // zero-width space
+	"\u200C", "", // zero-width non-joiner
+	"\u200D", "", // zero-width joiner
+	"\uFEFF", "", // BOM / word joiner
+	"\u00AD", "", // soft hyphen
+)
+
+func stripDocxNoise(s string) string {
+	return docxNoiseReplacer.Replace(s)
+}
+
+// pTagRe matches a top-level <p ...>…</p> block (non-greedy). Lexical's
+// exported HTML uses flat <p> blocks with no nesting, so this is safe.
+var pTagRe = regexp.MustCompile(`(?is)<p\b([^>]*)>(.*?)</p>`)
+
+// styleAttrRe extracts the value of a style="…" attribute on a tag.
+var styleAttrRe = regexp.MustCompile(`(?i)\bstyle\s*=\s*"([^"]*)"`)
+
+// alignAttrRe extracts the value of a legacy align="…" attribute.
+var alignAttrRe = regexp.MustCompile(`(?i)\balign\s*=\s*"(\w+)"`)
+
+// textAlignDeclRe extracts the text-align declaration value from a CSS string.
+var textAlignDeclRe = regexp.MustCompile(`(?i)text-align\s*:\s*(\w+)`)
+
+// lineHeightDeclRe extracts the line-height declaration value from a CSS string.
+var lineHeightDeclRe = regexp.MustCompile(`(?i)line-height\s*:\s*([\d.]+)`)
+
+// alignToCustomStyle maps a CSS text-align keyword to its custom paragraph
+// style name. The empty string means "no alignment override".
+var alignToCustomStyle = map[string]string{
+	"center":  "Centered",
+	"right":   "Righted",
+	"justify": "Justified",
+}
+
+// lineHeightToCustomStyle maps the four allowed line-height values (the same
+// set the document-settings dropdown offers) to a custom paragraph style.
+var lineHeightToCustomStyle = map[string]string{
+	"1":    "LineSingle",
+	"1.0":  "LineSingle",
+	"1.15": "Line115",
+	"1.5":  "Line15",
+	"2":    "LineDouble",
+	"2.0":  "LineDouble",
+}
+
+// mapParagraphTypographyToCustomStyle wraps any <p> whose alignment or
+// line-height is expressed via inline CSS / the legacy align attribute into a
+// <div custom-style="Name">…</div> block, where Name combines the alignment
+// and line-spacing pieces. Pandoc's HTML reader silently drops both
+// text-align and line-height on the way to DOCX, but it does honor
+// custom-style and applies the matching paragraph style from the reference
+// docx (which we augment at runtime with all the combined styles).
+func mapParagraphTypographyToCustomStyle(s string) string {
+	s = pTagRe.ReplaceAllStringFunc(s, func(match string) string {
+		sub := pTagRe.FindStringSubmatch(match)
+		attrs := sub[1]
+		align := extractAlignmentKeyword(attrs)
+		lineH := extractLineHeightKeyword(attrs)
+		name := alignToCustomStyle[align] + lineHeightToCustomStyle[lineH]
+		if name == "" {
+			return match
+		}
+		return `<div custom-style="` + name + `">` + match + `</div>`
+	})
+
+	// Server-side Lexical paths emit <div style="text-align:center">…</div>
+	// instead of <p>. Handle them with the same alignment-only mapping.
+	for keyword, custom := range alignToCustomStyle {
+		divStyleRe := regexp.MustCompile(
+			`(?is)<div\b([^>]*\bstyle\s*=\s*"[^"]*\btext-align\s*:\s*` + keyword + `\b[^"]*"[^>]*)>(.*?)</div>`,
+		)
+		s = divStyleRe.ReplaceAllString(s, `<div custom-style="`+custom+`">$2</div>`)
+	}
+	return s
+}
+
+func extractAlignmentKeyword(attrs string) string {
+	if m := alignAttrRe.FindStringSubmatch(attrs); m != nil {
+		k := strings.ToLower(m[1])
+		if _, ok := alignToCustomStyle[k]; ok {
+			return k
+		}
+	}
+	if styleM := styleAttrRe.FindStringSubmatch(attrs); styleM != nil {
+		if m := textAlignDeclRe.FindStringSubmatch(styleM[1]); m != nil {
+			k := strings.ToLower(m[1])
+			if _, ok := alignToCustomStyle[k]; ok {
+				return k
+			}
+		}
+	}
+	return ""
+}
+
+func extractLineHeightKeyword(attrs string) string {
+	if styleM := styleAttrRe.FindStringSubmatch(attrs); styleM != nil {
+		if m := lineHeightDeclRe.FindStringSubmatch(styleM[1]); m != nil {
+			if _, ok := lineHeightToCustomStyle[m[1]]; ok {
+				return m[1]
+			}
+		}
+	}
+	return ""
+}
+
+// rFontsRe matches a <w:rFonts ... /> element (used in docDefaults and Normal style).
+var rFontsRe = regexp.MustCompile(`<w:rFonts[^/]*/>`)
+
+// szRe matches the run-property font size element.
+var szRe = regexp.MustCompile(`<w:sz w:val="\d+"/>`)
+
+// szCsRe matches the complex-script run-property font size element.
+var szCsRe = regexp.MustCompile(`<w:szCs w:val="\d+"/>`)
+
+// spacingTagRe matches any self-closing <w:spacing .../> element so we can
+// rewrite its w:line/w:lineRule while preserving w:before/w:after.
+var spacingTagRe = regexp.MustCompile(`<w:spacing\s+([^/]*)/>`)
+
+// w:line and w:lineRule attributes inside a <w:spacing> tag, used to strip
+// the existing values before injecting the user's chosen line spacing.
+var lineAttrRe = regexp.MustCompile(`\s*w:line="\d+"`)
+var lineRuleAttrRe = regexp.MustCompile(`\s*w:lineRule="\w+"`)
+
+var pPrOpenRe = regexp.MustCompile(`<w:pPr>`)
+
+// bodyTextStyleIDs are the paragraph styles pandoc applies to body content
+// in HTML→DOCX conversion (and the styles those inherit from). Updating their
+// line spacing is what makes the user's choice visible in the rendered docx.
+// Headings are intentionally excluded so their existing layout stays intact.
+var bodyTextStyleIDs = []string{
+	"Normal",
+	"TextBody",
+	"FirstParagraph",
+	"Compact",
+	"BlockText",
+	"List",
+}
+
+func applyTypographyToStylesXML(data []byte, typo typography) []byte {
+	// DOCX font sizes are in half-points; Word renders px ≈ pt for body text,
+	// so we treat the user's px choice as points (matches the PDF/EPUB feel).
+	sizeHalfPt := typo.SizePx * 2
+	// DOCX line spacing in "auto" rule is twentieths-of-a-point per line; the
+	// canonical convention is 240 = single, 360 = 1.5×, 480 = double.
+	lineTwips := int(typo.LineSpacing * 240)
+
+	fontTag := fmt.Sprintf(
+		`<w:rFonts w:ascii=%q w:hAnsi=%q w:eastAsia=%q w:cs=""/>`,
+		typo.Family, typo.Family, typo.Family,
+	)
+	szTag := fmt.Sprintf(`<w:sz w:val="%d"/>`, sizeHalfPt)
+	szCsTag := fmt.Sprintf(`<w:szCs w:val="%d"/>`, sizeHalfPt)
+
+	out := string(data)
+	out = rFontsRe.ReplaceAllString(out, fontTag)
+	out = szRe.ReplaceAllString(out, szTag)
+	out = szCsRe.ReplaceAllString(out, szCsTag)
+
+	// Apply line spacing inside each body-text paragraph style, preserving any
+	// w:before/w:after that style relied on for vertical layout.
+	for _, id := range bodyTextStyleIDs {
+		out = applyLineSpacingToStyle(out, id, lineTwips)
+	}
+
+	// docDefaults pPrDefault — covers paragraph styles that don't define their
+	// own <w:spacing>, so user-chosen spacing still flows through.
+	defaultSpacing := fmt.Sprintf(`<w:spacing w:lineRule="auto" w:line="%d"/>`, lineTwips)
+	if !strings.Contains(out, "<w:pPrDefault><w:pPr>"+defaultSpacing) {
+		out = strings.Replace(
+			out,
+			"<w:pPrDefault><w:pPr>",
+			"<w:pPrDefault><w:pPr>"+defaultSpacing,
+			1,
+		)
+	}
+
+	// Inject the line-spacing-override paragraph styles (and their alignment
+	// crossproduct) so per-paragraph line spacing chosen via the toolbar
+	// resolves to a real Word style.
+	out = strings.Replace(out, "</w:styles>", lineSpacingOverrideStylesXML()+"</w:styles>", 1)
+
+	return []byte(out)
+}
+
+// lineSpacingOverrideStylesXML returns the XML for paragraph styles that pair
+// each fixed line-height (single / 1.15 / 1.5 / double) with each alignment
+// (none / centered / righted / justified). Pandoc maps `<div custom-style="X">`
+// onto these via mapParagraphTypographyToCustomStyle so that selection-level
+// line spacing chosen in the editor survives the HTML→DOCX round trip.
+func lineSpacingOverrideStylesXML() string {
+	bases := []struct{ alignName, baseStyle string }{
+		{"", "TextBody"},
+		{"Centered", "Centered"},
+		{"Righted", "Righted"},
+		{"Justified", "Justified"},
+	}
+	lines := []struct {
+		suffix string
+		twips  int
+	}{
+		{"LineSingle", 240},
+		{"Line115", 276},
+		{"Line15", 360},
+		{"LineDouble", 480},
+	}
+	var b strings.Builder
+	for _, base := range bases {
+		for _, line := range lines {
+			id := base.alignName + line.suffix
+			b.WriteString(fmt.Sprintf(
+				`<w:style w:type="paragraph" w:styleId=%q w:customStyle="1"><w:name w:val=%q/><w:basedOn w:val=%q/><w:qFormat/><w:pPr><w:spacing w:lineRule="auto" w:line="%d"/></w:pPr></w:style>`,
+				id, id, base.baseStyle, line.twips,
+			))
+		}
+	}
+	return b.String()
+}
+
+// applyLineSpacingToStyle finds <w:style ... w:styleId="ID">…</w:style> and
+// rewrites its <w:spacing> w:line/w:lineRule (preserving other attrs) so the
+// paragraph style honors the user's line spacing. If the style has no
+// <w:spacing>, one is inserted at the start of <w:pPr>.
+func applyLineSpacingToStyle(out, id string, lineTwips int) string {
+	styleRe := regexp.MustCompile(
+		`(?s)(<w:style[^>]*w:styleId="` + id + `"[^>]*>.*?</w:style>)`,
+	)
+	insertedSpacing := fmt.Sprintf(`<w:spacing w:lineRule="auto" w:line="%d"/>`, lineTwips)
+
+	return styleRe.ReplaceAllStringFunc(out, func(block string) string {
+		if spacingTagRe.MatchString(block) {
+			return spacingTagRe.ReplaceAllStringFunc(block, func(tag string) string {
+				inner := strings.TrimSuffix(strings.TrimPrefix(tag, "<w:spacing"), "/>")
+				inner = lineAttrRe.ReplaceAllString(inner, "")
+				inner = lineRuleAttrRe.ReplaceAllString(inner, "")
+				return fmt.Sprintf(`<w:spacing w:lineRule="auto" w:line="%d"%s/>`, lineTwips, inner)
+			})
+		}
+		if pPrOpenRe.MatchString(block) {
+			return pPrOpenRe.ReplaceAllString(block, "<w:pPr>"+insertedSpacing)
+		}
+		return block
+	})
+}
+
 func HTMLToPDF(export models.DocumentExportRequest) (string, error) {
 	if err := os.MkdirAll("./tmp", 0o755); err != nil {
 		return "", err
 	}
 	/* For code blocks: stricter preservation + monospaced font */
+
+	typo := resolveTypography(export)
+	bodyFontSize := fmt.Sprintf("%dpx", typo.SizePx)
+	bodyLineHeight := strconv.FormatFloat(typo.LineSpacing, 'f', -1, 64)
 
 	// Build a single HTML document with page breaks between chapters
 	var b strings.Builder
@@ -551,7 +963,7 @@ func HTMLToPDF(export models.DocumentExportRequest) (string, error) {
 				<meta charset="utf-8">
 				<style>
 					@page { margin: 1in; }
-					html, body, div, p, pre { 
+					html, body, div, p, pre {
 						tab-size: 4;
 						-o-tab-size: 4; /* harmless fallback */
 						white-space: pre-wrap; /* preserves tabs & spaces, still allows wrapping */
@@ -561,7 +973,7 @@ func HTMLToPDF(export models.DocumentExportRequest) (string, error) {
 						font-family: "Courier New", Courier, monospace;
 						tab-size: 4;
 					}
-					body { font-family: Arial, sans-serif; font-size:` + FONT_SIZE_DEFAULT + `; line-height:` + LINE_HEIGHT + `; margin:0; }
+					body { font-family:` + typo.cssFontStack() + `; font-size:` + bodyFontSize + `; line-height:` + bodyLineHeight + `; margin:0; }
 					.h1 { text-align:center; font-weight:bold; font-size:` + FONT_SIZE_HEADER + `; line-height:` + FONT_SIZE_HEADER + `; margin: 0 0 ` + FONT_SIZE_HEADER + ` 0; }
 					.chapter { page-break-before: always; }
 					.chapter:first-child { page-break-before: auto; }

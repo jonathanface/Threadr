@@ -129,12 +129,11 @@ export default function DocumentClickPlugin(props: DocumentClickPluginProps) {
                     const nativeSelection = window.getSelection();
                     selectedText = nativeSelection?.toString() || '';
                 }
-                if (!selectedText.length) return;
 
                 props.onRightClick({
                     x: event.clientX,
                     y: event.clientY,
-                    text: selectedText
+                    text: selectedText || undefined,
                 });
             }
         };
@@ -198,7 +197,6 @@ export default function DocumentClickPlugin(props: DocumentClickPluginProps) {
             }
         };
 
-        document.addEventListener('contextmenu', handleContextMenu, { passive: false });
         rootElement.addEventListener('contextmenu', handleContextMenu);
         rootElement.addEventListener('click', handleLeftClick);
         rootElement.addEventListener('dblclick', handleDoubleClick);
@@ -207,7 +205,6 @@ export default function DocumentClickPlugin(props: DocumentClickPluginProps) {
         rootElement.addEventListener('touchcancel', handleTouchEnd);
 
         return () => {
-            document.removeEventListener('contextmenu', handleContextMenu);
             rootElement.removeEventListener('contextmenu', handleContextMenu);
             rootElement.removeEventListener('click', handleLeftClick);
             rootElement.removeEventListener('dblclick', handleDoubleClick);
