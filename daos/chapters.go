@@ -290,10 +290,7 @@ func (d *DAO) DeleteChapterParagraphs(
 
 	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(storyBlocks.Blocks); i += d.writeBatchSize {
-		end := i + d.writeBatchSize
-		if end > len(storyBlocks.Blocks) {
-			end = len(storyBlocks.Blocks)
-		}
+		end := min(i+d.writeBatchSize, len(storyBlocks.Blocks))
 		batches = append(batches, storyBlocks.Blocks[i:end])
 	}
 
@@ -366,10 +363,7 @@ func (d *DAO) DeleteChapterParagraphs(
 func (d *DAO) DeleteChapters(ctx context.Context, storyID string, chapters []models.Chapter) (err error) {
 	batches := make([][]models.Chapter, 0, (len(chapters)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(chapters); i += d.writeBatchSize {
-		end := i + d.writeBatchSize
-		if end > len(chapters) {
-			end = len(chapters)
-		}
+		end := min(i+d.writeBatchSize, len(chapters))
 		batches = append(batches, chapters[i:end])
 	}
 
@@ -451,10 +445,9 @@ func (d *DAO) deleteAllBlocksForChapter(ctx context.Context, compositeKey string
 
 	// Batch delete items using TransactWriteItems (max 100 items per call)
 	for i := 0; i < len(itemsToDelete); i += 100 {
-		end := i + 100 //nolint:mnd
-		if end > len(itemsToDelete) {
-			end = len(itemsToDelete)
-		}
+		end := min(
+			//nolint:mnd
+			i+100, len(itemsToDelete))
 		batch := itemsToDelete[i:end]
 
 		writeItems := make([]types.TransactWriteItem, len(batch))

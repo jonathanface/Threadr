@@ -92,7 +92,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 			w,
 			http.StatusBadRequest,
 			fmt.Sprintf("Filesize must be < %dMB", maxFileSize/(1024*1024)),
-		) //nolint:mnd
+		)
 		return
 	}
 

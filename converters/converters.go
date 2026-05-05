@@ -1,7 +1,6 @@
 package converters
 
 import (
-	"Threadr/models"
 	"archive/zip"
 	"context"
 	"encoding/json"
@@ -19,6 +18,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"Threadr/models"
 
 	"github.com/SebastiaanKlippert/go-wkhtmltopdf"
 	"github.com/microcosm-cc/bluemonday"
@@ -441,11 +442,12 @@ func HTMLToEPUB(export models.DocumentExportRequest) (string, error) {
 
 	// ---- Build a single sanitized HTML doc (like your DOCX path) ----
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf(
+	fmt.Fprintf(
+		&b,
 		`<html><head><meta charset="utf-8"></head><body style="font-family: %s; line-height: %s; margin: 0 0 1rem;">`,
 		typo.cssFontStack(),
 		strconv.FormatFloat(typo.LineSpacing, 'f', -1, 64),
-	))
+	)
 
 	sanitizer := bluemonday.UGCPolicy()
 	// Allow minimal formatting commonly used in prose; tweak as needed
@@ -544,7 +546,7 @@ func HTMLToDOCX(export models.DocumentExportRequest) (string, error) {
 	typo.SizePx = models.DefaultExportFontSize
 
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf(`
+	fmt.Fprintf(&b, `
 		<html>
 			<head>
 				<meta charset="utf-8">
@@ -552,8 +554,7 @@ func HTMLToDOCX(export models.DocumentExportRequest) (string, error) {
 			<body style="font-family:%s;font-size:%dpx;line-height:%s;margin:0">`,
 		typo.cssFontStack(),
 		typo.SizePx,
-		strconv.FormatFloat(typo.LineSpacing, 'f', -1, 64),
-	))
+		strconv.FormatFloat(typo.LineSpacing, 'f', -1, 64))
 	sanitizer := bluemonday.UGCPolicy()
 	sanitizer.AllowAttrs("style", "custom-style").OnElements("div", "p")
 
@@ -908,10 +909,14 @@ func lineSpacingOverrideStylesXML() string {
 	for _, base := range bases {
 		for _, line := range lines {
 			id := base.alignName + line.suffix
-			b.WriteString(fmt.Sprintf(
+			fmt.Fprintf(
+				&b,
 				`<w:style w:type="paragraph" w:styleId=%q w:customStyle="1"><w:name w:val=%q/><w:basedOn w:val=%q/><w:qFormat/><w:pPr><w:spacing w:lineRule="auto" w:line="%d"/></w:pPr></w:style>`,
-				id, id, base.baseStyle, line.twips,
-			))
+				id,
+				id,
+				base.baseStyle,
+				line.twips,
+			)
 		}
 	}
 	return b.String()

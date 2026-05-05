@@ -62,18 +62,16 @@ func TestGetenv(t *testing.T) {
 		envValue string
 		defValue string
 		expected string
-		setup    func()
-		cleanup  func()
+		setup    func(t *testing.T)
 	}{
 		{
 			name:     "env var not set returns default",
 			envKey:   "TEST_UNSET_VAR_CMD",
 			defValue: "default-value",
 			expected: "default-value",
-			setup: func() {
+			setup: func(t *testing.T) {
 				os.Unsetenv("TEST_UNSET_VAR_CMD")
 			},
-			cleanup: func() {},
 		},
 		{
 			name:     "env var set returns env value",
@@ -81,11 +79,8 @@ func TestGetenv(t *testing.T) {
 			envValue: "env-value",
 			defValue: "default-value",
 			expected: "env-value",
-			setup: func() {
-				os.Setenv("TEST_SET_VAR_CMD", "env-value")
-			},
-			cleanup: func() {
-				os.Unsetenv("TEST_SET_VAR_CMD")
+			setup: func(t *testing.T) {
+				t.Setenv("TEST_SET_VAR_CMD", "env-value")
 			},
 		},
 		{
@@ -94,11 +89,8 @@ func TestGetenv(t *testing.T) {
 			envValue: "",
 			defValue: "default-value",
 			expected: "default-value",
-			setup: func() {
-				os.Setenv("TEST_EMPTY_VAR_CMD", "")
-			},
-			cleanup: func() {
-				os.Unsetenv("TEST_EMPTY_VAR_CMD")
+			setup: func(t *testing.T) {
+				t.Setenv("TEST_EMPTY_VAR_CMD", "")
 			},
 		},
 		{
@@ -107,11 +99,8 @@ func TestGetenv(t *testing.T) {
 			envValue: "  value with spaces  ",
 			defValue: "default",
 			expected: "  value with spaces  ",
-			setup: func() {
-				os.Setenv("TEST_SPACES_VAR_CMD", "  value with spaces  ")
-			},
-			cleanup: func() {
-				os.Unsetenv("TEST_SPACES_VAR_CMD")
+			setup: func(t *testing.T) {
+				t.Setenv("TEST_SPACES_VAR_CMD", "  value with spaces  ")
 			},
 		},
 	}
@@ -119,13 +108,8 @@ func TestGetenv(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setup != nil {
-				tt.setup()
+				tt.setup(t)
 			}
-			defer func() {
-				if tt.cleanup != nil {
-					tt.cleanup()
-				}
-			}()
 
 			result := getenv(tt.envKey, tt.defValue)
 			if result != tt.expected {

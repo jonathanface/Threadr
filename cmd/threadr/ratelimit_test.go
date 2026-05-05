@@ -269,7 +269,7 @@ func BenchmarkRateLimiterAllow(b *testing.B) {
 	ip := "192.168.1.100"
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		rl.allow(ip)
 	}
 }
@@ -285,7 +285,7 @@ func BenchmarkRateLimiterMultipleIPs(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		ip := ips[i%len(ips)]
 		rl.allow(ip)
 	}

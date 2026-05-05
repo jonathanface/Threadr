@@ -96,10 +96,10 @@ type Story struct {
 	Inactive    bool             `json:"inactive"    dynamodbav:"inactive"`
 }
 type StorySettings struct {
-	Spellcheck  bool    `json:"spellcheck" dynamodbav:"spellcheck"`
-	Autotab     bool    `json:"autotab" dynamodbav:"autotab"`
-	FontFamily  string  `json:"font_family" dynamodbav:"font_family"`
-	FontSize    int     `json:"font_size" dynamodbav:"font_size"`
+	Spellcheck  bool    `json:"spellcheck"   dynamodbav:"spellcheck"`
+	Autotab     bool    `json:"autotab"      dynamodbav:"autotab"`
+	FontFamily  string  `json:"font_family"  dynamodbav:"font_family"`
+	FontSize    int     `json:"font_size"    dynamodbav:"font_size"`
 	LineSpacing float64 `json:"line_spacing" dynamodbav:"line_spacing"`
 }
 

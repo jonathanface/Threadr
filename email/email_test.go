@@ -30,11 +30,8 @@ func (m *MockSESv2Client) SendEmail(
 
 // Tests for SendWelcomeEmail.
 func TestSendWelcomeEmail_MissingAWSRegion(t *testing.T) {
-	// Save original env var and restore after test
-	originalRegion := os.Getenv("AWS_REGION")
-	defer os.Setenv("AWS_REGION", originalRegion)
-
-	// Unset AWS_REGION
+	// t.Setenv captures the original AWS_REGION for automatic restoration.
+	t.Setenv("AWS_REGION", "")
 	os.Unsetenv("AWS_REGION")
 
 	err := SendWelcomeEmail("test@example.com")
@@ -47,10 +44,7 @@ func TestSendWelcomeEmail_MissingAWSRegion(t *testing.T) {
 }
 
 func TestSendWelcomeEmail_ValidEmail(t *testing.T) {
-	// Set AWS_REGION for the test
-	originalRegion := os.Getenv("AWS_REGION")
-	os.Setenv("AWS_REGION", "us-east-1")
-	defer os.Setenv("AWS_REGION", originalRegion)
+	t.Setenv("AWS_REGION", "us-east-1")
 
 	// Note: This test will attempt to create a real AWS session
 	// In a real-world scenario, we would need to refactor SendWelcomeEmail
@@ -64,9 +58,7 @@ func TestSendWelcomeEmail_ValidEmail(t *testing.T) {
 
 func TestSendWelcomeEmail_EmailFormat(t *testing.T) {
 	// This test verifies the function validates basic requirements
-	originalRegion := os.Getenv("AWS_REGION")
-	os.Setenv("AWS_REGION", "us-east-1")
-	defer os.Setenv("AWS_REGION", originalRegion)
+	t.Setenv("AWS_REGION", "us-east-1")
 
 	// The function should accept a valid email format
 	// Without mocking AWS, we can only test the early validation
@@ -84,11 +76,8 @@ func TestSendWelcomeEmail_EmailFormat(t *testing.T) {
 
 // Tests for SendAlertEmail.
 func TestSendAlertEmail_MissingAWSRegion(t *testing.T) {
-	// Save original env var and restore after test
-	originalRegion := os.Getenv("AWS_REGION")
-	defer os.Setenv("AWS_REGION", originalRegion)
-
-	// Unset AWS_REGION
+	// t.Setenv captures the original AWS_REGION for automatic restoration.
+	t.Setenv("AWS_REGION", "")
 	os.Unsetenv("AWS_REGION")
 
 	err := SendAlertEmail("test@example.com")
@@ -101,10 +90,7 @@ func TestSendAlertEmail_MissingAWSRegion(t *testing.T) {
 }
 
 func TestSendAlertEmail_ValidEmail(t *testing.T) {
-	// Set AWS_REGION for the test
-	originalRegion := os.Getenv("AWS_REGION")
-	os.Setenv("AWS_REGION", "us-east-1")
-	defer os.Setenv("AWS_REGION", originalRegion)
+	t.Setenv("AWS_REGION", "us-east-1")
 
 	// Note: This test will attempt to create a real AWS session
 	// The function would need refactoring to properly mock the SES client
@@ -119,9 +105,7 @@ func TestSendAlertEmail_ValidEmail(t *testing.T) {
 
 func TestSendAlertEmail_EmailContent(t *testing.T) {
 	// This test verifies the alert email contains the user email
-	originalRegion := os.Getenv("AWS_REGION")
-	os.Setenv("AWS_REGION", "us-east-1")
-	defer os.Setenv("AWS_REGION", originalRegion)
+	t.Setenv("AWS_REGION", "us-east-1")
 
 	testEmail := "signup@example.com"
 

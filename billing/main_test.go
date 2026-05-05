@@ -16,7 +16,7 @@ import (
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
 	"Threadr/models"
-	//stripe "github.com/stripe/stripe-go/v79".
+	// stripe "github.com/stripe/stripe-go/v79".
 )
 
 func TestSubscribeCustomerEndpoint(t *testing.T) {
@@ -400,7 +400,7 @@ func TestBillingPortalSessionEndpoint(t *testing.T) {
 func TestStripeWebhookEndpoint(t *testing.T) {
 	type tc struct {
 		name         string
-		setupEnv     func()
+		setupEnv     func(t *testing.T)
 		payload      string
 		signature    string
 		wantStatus   int
@@ -410,7 +410,7 @@ func TestStripeWebhookEndpoint(t *testing.T) {
 	cases := []tc{
 		{
 			name: "missing webhook secret",
-			setupEnv: func() {
+			setupEnv: func(t *testing.T) {
 				os.Unsetenv("STRIPE_WEBHOOK_SECRET")
 			},
 			payload:      `{"type":"customer.subscription.updated"}`,
@@ -419,9 +419,9 @@ func TestStripeWebhookEndpoint(t *testing.T) {
 		},
 		{
 			name: "invalid signature verification",
-			setupEnv: func() {
-				os.Setenv("STRIPE_WEBHOOK_SECRET", "whsec_test_secret")
-				os.Setenv("AWS_REGION", "us-east-1")
+			setupEnv: func(t *testing.T) {
+				t.Setenv("STRIPE_WEBHOOK_SECRET", "whsec_test_secret")
+				t.Setenv("AWS_REGION", "us-east-1")
 			},
 			signature:    "t=1,v1=invalid_signature",
 			payload:      `{"type":"customer.subscription.updated"}`,
@@ -433,7 +433,7 @@ func TestStripeWebhookEndpoint(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			if c.setupEnv != nil {
-				c.setupEnv()
+				c.setupEnv(t)
 			}
 
 			req := httptest.NewRequest(http.MethodPost, "/billing/webhook", strings.NewReader(c.payload))

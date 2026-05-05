@@ -103,7 +103,7 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	// Data structure that matches the JSON payload structure of the request
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"model": "gpt-3.5-turbo",
 		"messages": []map[string]string{
 			{

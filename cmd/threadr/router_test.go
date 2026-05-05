@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -440,7 +439,7 @@ func BenchmarkSetupRouter(b *testing.B) {
 	}
 
 	// Skip actual AWS connection in benchmark
-	os.Setenv("AWS_REGION", "us-east-1")
+	b.Setenv("AWS_REGION", "us-east-1")
 
 	authOptions := auth.OauthOptions{
 		FrontEndURL: "http://localhost:3000",

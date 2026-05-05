@@ -139,16 +139,6 @@ func TestGenerateStoryOutlineSections(t *testing.T) {
 
 // Tests for GetTableSuffix.
 func TestGetTableSuffix(t *testing.T) {
-	// Save original MODE and restore after test
-	originalMode := os.Getenv("MODE")
-	defer func() {
-		if originalMode != "" {
-			os.Setenv("MODE", originalMode)
-		} else {
-			os.Unsetenv("MODE")
-		}
-	}()
-
 	tests := []struct {
 		name     string
 		mode     string
@@ -203,9 +193,8 @@ func TestGetTableSuffix(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.mode != "" {
-				os.Setenv("MODE", tt.mode)
-			} else {
+			t.Setenv("MODE", tt.mode)
+			if tt.mode == "" {
 				os.Unsetenv("MODE")
 			}
 
@@ -379,28 +368,28 @@ func TestCleanDynamoTagString_Deterministic(t *testing.T) {
 
 // Benchmark tests.
 func BenchmarkGenerateStoryOutlineSections_ThreeAct(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = GenerateStoryOutlineSections(models.ThreeAct)
 	}
 }
 
 func BenchmarkGenerateStoryOutlineSections_FiveAct(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = GenerateStoryOutlineSections(models.FiveAct)
 	}
 }
 
 func BenchmarkGenerateStoryOutlineSections_HeroJourney(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = GenerateStoryOutlineSections(models.HeroJourney)
 	}
 }
 
 func BenchmarkGetTableSuffix(b *testing.B) {
-	os.Setenv("MODE", "staging")
+	b.Setenv("MODE", "staging")
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = GetTableSuffix()
 	}
 }
@@ -414,7 +403,7 @@ func BenchmarkCleanDynamoTagString(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		for _, input := range inputs {
 			_ = CleanDynamoTagString(input)
 		}

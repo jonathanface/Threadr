@@ -65,10 +65,8 @@ func withPathPrepended(t *testing.T, dir string) (restore func()) {
 	t.Helper()
 	old := os.Getenv("PATH")
 	sep := string(os.PathListSeparator)
-	if err := os.Setenv("PATH", dir+sep+old); err != nil {
-		t.Fatalf("set PATH: %v", err)
-	}
-	return func() { _ = os.Setenv("PATH", old) }
+	t.Setenv("PATH", dir+sep+old)
+	return func() {}
 }
 
 func mustTempDir(t *testing.T) string {
