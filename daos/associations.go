@@ -16,7 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-func (d DAO) WriteAssociations(
+func (d *DAO) WriteAssociations(
 	ctx context.Context,
 	email, storyOrSeriesID string,
 	associations []*models.Association,

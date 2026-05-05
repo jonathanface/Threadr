@@ -145,7 +145,7 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	var coverImagePath string
 	if export.CoverImage != nil && *export.CoverImage != "" && models.ExportFormat(typeOf) == models.FormatEPUB {
 		var imageURL string
-		if imageURL, err = converters.ValidateImageURL(*export.CoverImage); err != nil {
+		if imageURL, err = converters.ValidateImageURL(r.Context(), *export.CoverImage); err != nil {
 			logger.Error("Bad request", "error", err)
 			RespondWithError(w, http.StatusBadRequest, "Invalid request")
 			return

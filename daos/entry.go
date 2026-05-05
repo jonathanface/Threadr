@@ -26,7 +26,7 @@ func NewDAO(ctx context.Context, opts Options) (*DAO, error) {
 		return nil, err
 	}
 	return &DAO{
-		DynamoClient:   NewDynamoClient(dynamodb.NewFromConfig(awsCfg)),
+		DynamoClient:   newDynamoClient(dynamodb.NewFromConfig(awsCfg)),
 		s3Client:       s3.NewFromConfig(awsCfg),
 		maxRetries:     opts.MaxRetries,
 		capacity:       opts.BlockTableMinWriteCapacity,

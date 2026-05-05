@@ -125,7 +125,7 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create a new HTTP request with the appropriate method, URL, and payload
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodPost, url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		logger.Error("External service error", "error", err)
 		RespondWithError(w, http.StatusBadGateway, "External service error")

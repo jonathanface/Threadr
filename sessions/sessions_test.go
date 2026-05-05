@@ -29,7 +29,7 @@ func TestGet(t *testing.T) {
 			t.Errorf("Get() returned error: %v", err)
 		}
 		if session == nil {
-			t.Error("Get() returned nil session")
+			t.Fatal("Get() returned nil session")
 		}
 		if !session.IsNew {
 			t.Error("New session should be marked as IsNew")

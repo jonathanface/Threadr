@@ -99,7 +99,7 @@ linters:
     - nolintlint # reports ill-formed or insufficient nolint directives
     # - nonamedreturns # disabled: this codebase uses named returns extensively, especially in DAO methods.
     - nosprintfhostport # checks for misuse of Sprintf to construct a host with port in a URL
-    - paralleltest # detects missing usage of t.Parallel() method in your Go test
+    # - paralleltest # disabled: tests share mutable global state (stripe.Key, sessions.Store, env vars), so t.Parallel() would race
     - perfsprint # checks that fmt.Sprintf can be replaced with a faster alternative
     - predeclared # finds code that shadows one of Go's predeclared identifiers
     - promlinter # checks Prometheus metrics naming via promlint
@@ -375,9 +375,9 @@ linters:
       # Exclude following linters from requiring an explanation.
       # Default: []
       allow-no-explanation: [funlen, gocognit, golines]
-      # Enable to require an explanation of nonzero length after each nolint directive.
-      # Default: false
-      require-explanation: true
+      # Explanation requirement disabled — too noisy for this codebase, where
+      # most nolint directives are obvious from context (mnd, paralleltest, etc.).
+      require-explanation: false
       # Enable to require nolint directives to mention the specific linter being suppressed.
       # Default: false
       require-specific: true
@@ -434,6 +434,10 @@ linters:
     # Log a warning if an exclusion rule is unused.
     # Default: false
     warn-unused: true
+    # Skip linting for vendored JS dependencies (e.g. static/node_modules/flatted
+    # ships a Go package we don't own).
+    paths:
+      - node_modules
     # Predefined exclusion rules.
     # Default: []
     presets:
@@ -448,11 +452,16 @@ linters:
       - text: 'exported \S+ \S+ should have comment( \(or a comment on this block\))? or be unexported'
         linters: [revive]
       - text: 'package comment should be of the form ".+"'
-        source: "// ?(nolint|TODO)"
         linters: [revive]
       - text: 'comment on exported \S+ \S+ should be of the form ".+"'
         linters: [revive, staticcheck]
-      - path: '_test\.go'
+      - text: 'reassigning variable Key in other package stripe'
+        linters: [reassign]
+      - text: 'reassigning variable Stderr in other package os'
+        linters: [reassign]
+      - text: 'reassigning variable Store in other package (sessions|gothic)'
+        linters: [reassign]
+      - path: '(_test\.go|test_helpers\.go)'
         linters:
           - bodyclose
           - dupl

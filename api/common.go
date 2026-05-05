@@ -156,9 +156,6 @@ func staggeredStoryBlockRetrieval(
 	if err != nil {
 		return nil, err
 	}
-	if blocks == nil {
-		return nil, nil
-	}
 
 	// Append the retrieved blocks to accumulatedBlocks
 	accumulatedBlocks.Items = append(accumulatedBlocks.Items, blocks.Items...)

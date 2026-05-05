@@ -207,7 +207,7 @@ func (d *dynamoClient) RestoreTableFromBackup(
 	return d.client.RestoreTableFromBackup(ctx, input, optFns...)
 }
 
-func NewDynamoClient(client *dynamodb.Client) *dynamoClient {
+func newDynamoClient(client *dynamodb.Client) *dynamoClient {
 	return &dynamoClient{client: client}
 }
 

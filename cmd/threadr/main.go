@@ -17,7 +17,6 @@ import (
 	"os"
 
 	"net/http"
-	_ "net/http/pprof"
 	"strings"
 
 	"github.com/joho/godotenv"

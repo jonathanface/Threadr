@@ -62,8 +62,8 @@ func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.OauthOptio
 	billingRtr := rtr.PathPrefix(billingPath).Subrouter()
 	billingRtr.Use(billingMiddleware(dao))
 	billingRtr.HandleFunc("/subscribe", billing.SubscribeCustomerEndpoint).Methods("POST", "OPTIONS")
-	billingRtr.HandleFunc("/summary", billing.BillingSummaryEndpoint).Methods("GET", "OPTIONS")
-	billingRtr.HandleFunc("/portal-session", billing.BillingPortalSessionEndpoint).Methods("POST", "OPTIONS")
+	billingRtr.HandleFunc("/summary", billing.SummaryEndpoint).Methods("GET", "OPTIONS")
+	billingRtr.HandleFunc("/portal-session", billing.PortalSessionEndpoint).Methods("POST", "OPTIONS")
 
 	rtrForStripeHook := rtr.PathPrefix(billingPath).Subrouter()
 	rtrForStripeHook.HandleFunc("/hook", billing.StripeWebhookEndpoint).Methods("POST", "OPTION")

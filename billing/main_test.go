@@ -247,7 +247,7 @@ func TestBillingSummaryEndpoint(t *testing.T) {
 			}
 			rec := httptest.NewRecorder()
 
-			BillingSummaryEndpoint(rec, req)
+			SummaryEndpoint(rec, req)
 
 			res := rec.Result()
 			defer res.Body.Close()
@@ -372,7 +372,7 @@ func TestBillingPortalSessionEndpoint(t *testing.T) {
 			}
 
 			rec := httptest.NewRecorder()
-			BillingPortalSessionEndpoint(rec, req)
+			PortalSessionEndpoint(rec, req)
 			res := rec.Result()
 			defer res.Body.Close()
 

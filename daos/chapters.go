@@ -215,9 +215,6 @@ func (d *DAO) GetChapterParagraphs(
 		}
 		items = append(items, page.Items...)
 	}
-	if len(items) == 0 {
-		return nil, nil
-	}
 	blocks.Items = items
 	blocks.LastEvaluated = lastKey
 	return &blocks, nil

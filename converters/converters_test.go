@@ -1,6 +1,7 @@
 package converters
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -292,7 +293,7 @@ func TestHTMLToPDF_Smoke(t *testing.T) {
 
 func TestValidateImageURL_ValidHTTPSURL(t *testing.T) {
 	// Valid public URL should pass
-	result, err := ValidateImageURL("https://example.com/image.jpg")
+	result, err := ValidateImageURL(context.Background(), "https://example.com/image.jpg")
 	if err != nil {
 		t.Errorf("Expected valid HTTPS URL to pass, got error: %v", err)
 	}
@@ -303,7 +304,7 @@ func TestValidateImageURL_ValidHTTPSURL(t *testing.T) {
 
 func TestValidateImageURL_ValidHTTPURL(t *testing.T) {
 	// Valid HTTP URL should pass
-	result, err := ValidateImageURL("http://example.com/image.png")
+	result, err := ValidateImageURL(context.Background(), "http://example.com/image.png")
 	if err != nil {
 		t.Errorf("Expected valid HTTP URL to pass, got error: %v", err)
 	}
@@ -321,7 +322,7 @@ func TestValidateImageURL_InvalidScheme(t *testing.T) {
 	}
 
 	for _, url := range tests {
-		_, err := ValidateImageURL(url)
+		_, err := ValidateImageURL(context.Background(), url)
 		if err == nil {
 			t.Errorf("Expected URL with invalid scheme to fail: %s", url)
 		}
@@ -340,7 +341,7 @@ func TestValidateImageURL_Localhost(t *testing.T) {
 	}
 
 	for _, url := range tests {
-		_, err := ValidateImageURL(url)
+		_, err := ValidateImageURL(context.Background(), url)
 		if err == nil {
 			t.Errorf("Expected localhost URL to fail: %s", url)
 		}
@@ -358,7 +359,7 @@ func TestValidateImageURL_PrivateIP(t *testing.T) {
 	}
 
 	for _, url := range tests {
-		_, err := ValidateImageURL(url)
+		_, err := ValidateImageURL(context.Background(), url)
 		if err == nil {
 			t.Errorf("Expected private IP URL to fail: %s", url)
 		}
@@ -369,7 +370,7 @@ func TestValidateImageURL_PrivateIP(t *testing.T) {
 }
 
 func TestValidateImageURL_MissingHostname(t *testing.T) {
-	_, err := ValidateImageURL("http:///path/to/image.jpg")
+	_, err := ValidateImageURL(context.Background(), "http:///path/to/image.jpg")
 	if err == nil {
 		t.Errorf("Expected URL without hostname to fail")
 	}
@@ -379,7 +380,7 @@ func TestValidateImageURL_MissingHostname(t *testing.T) {
 }
 
 func TestValidateImageURL_InvalidURL(t *testing.T) {
-	_, err := ValidateImageURL("not a url at all")
+	_, err := ValidateImageURL(context.Background(), "not a url at all")
 	if err == nil {
 		t.Errorf("Expected invalid URL to fail")
 	}

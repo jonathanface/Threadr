@@ -332,18 +332,17 @@ func TestStaggeredStoryBlockRetrieval_MultiplePages(t *testing.T) {
 				},
 				LastEvaluated: lastEval,
 			}, nil
-		} else {
-			// Second call - return final data
-			return &models.BlocksData{
-				Items: []map[string]types.AttributeValue{
-					{
-						"block_id": &types.AttributeValueMemberS{Value: "block3"},
-						"content":  &types.AttributeValueMemberS{Value: "Content 3"},
-					},
-				},
-				LastEvaluated: nil,
-			}, nil
 		}
+		// Second call - return final data
+		return &models.BlocksData{
+			Items: []map[string]types.AttributeValue{
+				{
+					"block_id": &types.AttributeValueMemberS{Value: "block3"},
+					"content":  &types.AttributeValueMemberS{Value: "Content 3"},
+				},
+			},
+			LastEvaluated: nil,
+		}, nil
 	}
 
 	result, err := staggeredStoryBlockRetrieval(context.Background(), mockDAO, "story123", "chapter456", nil, nil)
@@ -379,10 +378,10 @@ func TestStaggeredStoryBlockRetrieval_Error(t *testing.T) {
 	}
 }
 
-func TestStaggeredStoryBlockRetrieval_NilResult(t *testing.T) {
+func TestStaggeredStoryBlockRetrieval_EmptyResult(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	mockDAO.MockGetChapterParagraphs = func(_ string, _ string, _ *map[string]types.AttributeValue) (*models.BlocksData, error) {
-		return nil, nil
+		return &models.BlocksData{}, nil
 	}
 
 	result, err := staggeredStoryBlockRetrieval(context.Background(), mockDAO, "story123", "chapter456", nil, nil)
@@ -390,8 +389,11 @@ func TestStaggeredStoryBlockRetrieval_NilResult(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	if result != nil {
-		t.Errorf("Expected nil result, got %v", result)
+	if result == nil {
+		t.Errorf("Expected non-nil result, got nil")
+	}
+	if len(result.Items) != 0 {
+		t.Errorf("Expected empty Items, got %d", len(result.Items))
 	}
 }
 

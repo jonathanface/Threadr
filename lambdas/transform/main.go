@@ -421,7 +421,7 @@ func handler(_ context.Context, event Event) (string, error) {
 		return "", errors.New("uuidPrefix parameter is required")
 	}
 	if event.AccountID == "" || event.TagValue == "" {
-		return "", errors.New("Both accountID and tagValue parameters are required")
+		return "", errors.New("both accountID and tagValue parameters are required")
 	}
 
 	sess := session.Must(session.NewSession())

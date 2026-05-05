@@ -81,7 +81,7 @@ func (d *DAO) awsWriteTransaction(
 						if *reason.Code == "CapacityExceededException" {
 							delay = time.Duration(float64(time.Second) / float64(maxItemsPerSecond))
 						} else {
-							delay = time.Duration((1 << uint(numRetries)) * time.Millisecond)
+							delay = (1 << uint(numRetries)) * time.Millisecond
 						}
 
 						logger.Warn("Transaction retryable error, retrying",

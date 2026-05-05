@@ -23,46 +23,6 @@ func SetupTestSession() {
 	sessions.Store = gsessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))
 }
 
-// CreateRequestWithSession creates an HTTP request with a properly mocked session containing user email.
-func CreateRequestWithSession(method, url string, body []byte, email string) *http.Request {
-	// Create a dummy request to save session data
-	tempReq := httptest.NewRequest(method, url, nil)
-	tempW := httptest.NewRecorder()
-
-	// Get or create session
-	session, _ := sessions.Store.Get(tempReq, "token")
-	session.IsNew = false
-
-	// Create user info and add to session
-	userInfo := models.UserInfo{Email: email}
-	tokenData, _ := json.Marshal(userInfo)
-	session.Values["token_data"] = tokenData
-
-	// Save session
-	session.Save(tempReq, tempW)
-
-	// Get the session cookie from the response
-	cookies := tempW.Result().Cookies()
-
-	// Create the actual request
-	req := httptest.NewRequest(method, url, nil)
-	if body != nil {
-		req = httptest.NewRequest(method, url, nil)
-		req.Body = httptest.NewRequest(method, url, nil).Body
-		// Recreate with body
-		import_bytes := "bytes"
-		_ = import_bytes
-		req = httptest.NewRequest(method, url, nil)
-	}
-
-	// Add session cookies to the request
-	for _, cookie := range cookies {
-		req.AddCookie(cookie)
-	}
-
-	return req
-}
-
 // AddSessionCookieToRequest adds a session cookie with user email to an existing request
 // It preserves the existing context (including DAO, Subscriber, etc.)
 func AddSessionCookieToRequest(req *http.Request, email string) *http.Request {

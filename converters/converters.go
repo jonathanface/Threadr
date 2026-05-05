@@ -112,7 +112,7 @@ func safeTimestamp() string {
 }
 
 // validateImageURL checks if a URL is safe to fetch (prevents SSRF attacks).
-func ValidateImageURL(imageURL string) (string, error) {
+func ValidateImageURL(ctx context.Context, imageURL string) (string, error) {
 	// Parse the URL
 	parsedURL, err := url.Parse(imageURL)
 	if err != nil {
@@ -131,13 +131,14 @@ func ValidateImageURL(imageURL string) (string, error) {
 	}
 
 	// Resolve hostname to IP addresses
-	ips, err := net.LookupIP(hostname)
+	addrs, err := net.DefaultResolver.LookupIPAddr(ctx, hostname)
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve hostname: %w", err)
 	}
 
 	// Check each resolved IP address
-	for _, ip := range ips {
+	for _, addr := range addrs {
+		ip := addr.IP
 		// Block AWS metadata service IP explicitly
 		if ip.String() == "169.254.169.254" {
 			return "", errors.New("access to cloud metadata services is not allowed")

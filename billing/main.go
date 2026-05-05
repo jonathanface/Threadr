@@ -369,7 +369,7 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
+func SummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		email string
 		err   error
@@ -463,7 +463,7 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func BillingPortalSessionEndpoint(w http.ResponseWriter, r *http.Request) {
+func PortalSessionEndpoint(w http.ResponseWriter, r *http.Request) {
 	// 1) Who is the user?
 	email, err := getUserEmailFn(r)
 	if err != nil {
