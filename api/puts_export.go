@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"Threadr/converters"
@@ -194,9 +195,18 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	defer os.Remove(tmpExportDir + "/" + generatedFile)
+	if generatedFile == "" ||
+		generatedFile != filepath.Base(generatedFile) ||
+		strings.Contains(generatedFile, "/") ||
+		strings.Contains(generatedFile, "\\") ||
+		strings.Contains(generatedFile, "..") {
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
+		return
+	}
+	generatedFilePath := filepath.Join(tmpExportDir, generatedFile)
+	defer os.Remove(generatedFilePath)
 
-	reader, err := os.Open(tmpExportDir + "/" + generatedFile)
+	reader, err := os.Open(generatedFilePath)
 	if err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
