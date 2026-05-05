@@ -1,7 +1,6 @@
 package daos
 
 import (
-	"Threadr/models"
 	"context"
 	"database/sql"
 	"fmt"
@@ -9,13 +8,19 @@ import (
 	"strconv"
 	"time"
 
+	"Threadr/models"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-func (d *DAO) GetOutlineByStoryID(ctx context.Context, storyID string, chapters []models.Chapter) (*models.OutlineResponse, error) {
+func (d *DAO) GetOutlineByStoryID(
+	ctx context.Context,
+	storyID string,
+	chapters []models.Chapter,
+) (*models.OutlineResponse, error) {
 	tableName := "outlines" + GetTableSuffix()
 
 	// Define the query input
@@ -30,7 +35,7 @@ func (d *DAO) GetOutlineByStoryID(ctx context.Context, storyID string, chapters 
 	// Execute the query
 	result, err := d.DynamoClient.Query(ctx, queryInput)
 	if err != nil {
-		return nil, fmt.Errorf("error querying outline sections: %v", err)
+		return nil, fmt.Errorf("error querying outline sections: %w", err)
 	}
 
 	// Check if no results were found
@@ -38,7 +43,7 @@ func (d *DAO) GetOutlineByStoryID(ctx context.Context, storyID string, chapters 
 		return nil, sql.ErrNoRows
 	}
 	// Parse the response into OutlineSection models
-	assigned := make(map[string]struct{}, 64)
+	assigned := make(map[string]struct{}, 64) //nolint:mnd
 	var out models.OutlineResponse
 	out.StoryID = storyID
 
@@ -109,7 +114,7 @@ func (d *DAO) DeleteOutline(ctx context.Context, storyID string) error {
 
 	result, err := d.DynamoClient.Query(ctx, queryInput)
 	if err != nil {
-		return fmt.Errorf("error querying items: %v", err)
+		return fmt.Errorf("error querying items: %w", err)
 	}
 
 	if len(result.Items) == 0 {
@@ -194,7 +199,12 @@ func (d *DAO) UpdateOutline(ctx context.Context, outline models.OutlineRequest) 
 		return nil, err
 	}
 	if !awsErr.IsNil() {
-		return nil, fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
+		return nil, fmt.Errorf(
+			"--AWSERROR-- Code:%s, Type: %s, Message: %s",
+			awsErr.Code,
+			awsErr.ErrorType,
+			awsErr.Text,
+		)
 	}
 
 	allChapters, err := d.GetChaptersByStoryID(ctx, outline.StoryID)
@@ -217,7 +227,6 @@ func (d *DAO) CreateOutline(ctx context.Context, outline models.OutlineRequest) 
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	outline.Sections = GenerateStoryOutlineSections(outline.Template)
 	for _, section := range outline.Sections {
-
 		attributes := map[string]types.AttributeValue{
 			"story_id":    &types.AttributeValueMemberS{Value: outline.StoryID},
 			"place":       &types.AttributeValueMemberN{Value: strconv.Itoa(section.Place)},
@@ -241,7 +250,12 @@ func (d *DAO) CreateOutline(ctx context.Context, outline models.OutlineRequest) 
 		return nil, err
 	}
 	if !awsErr.IsNil() {
-		return nil, fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
+		return nil, fmt.Errorf(
+			"--AWSERROR-- Code:%s, Type: %s, Message: %s",
+			awsErr.Code,
+			awsErr.ErrorType,
+			awsErr.Text,
+		)
 	}
 	return &outline, nil
 }

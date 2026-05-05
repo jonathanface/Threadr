@@ -1,19 +1,21 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
 	"context"
 	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
 )
 
 func TestDAOInterfaceAssertion(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
 	// Create request with DAO in context
-	req := httptest.NewRequest("POST", "/test", nil)
+	req := httptest.NewRequest(http.MethodPost, "/test", nil)
 	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
 
 	// Try the same type assertion the endpoint uses

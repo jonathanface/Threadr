@@ -122,12 +122,20 @@ func handler(ctx context.Context) (string, error) {
 
 		_, err = dynamoClient.UpdateItem(ctx, updateDetailsInput)
 		if err != nil {
-			log.Printf("Failed to remove attributes from association_details for association_id=%s, story_or_series_id=%s: %v",
-				associationID.Value, storyOrSeriesID.Value, err)
+			log.Printf(
+				"Failed to remove attributes from association_details for association_id=%s, story_or_series_id=%s: %v",
+				associationID.Value,
+				storyOrSeriesID.Value,
+				err,
+			)
 			continue
 		}
 
-		log.Printf("Processed association_id=%s, story_or_series_id=%s successfully", associationID.Value, storyOrSeriesID.Value)
+		log.Printf(
+			"Processed association_id=%s, story_or_series_id=%s successfully",
+			associationID.Value,
+			storyOrSeriesID.Value,
+		)
 	}
 
 	return "Completed updating associations", nil

@@ -1,14 +1,15 @@
 package daos
 
 import (
-	"Threadr/models"
 	"context"
 	"errors"
 	"testing"
 	"time"
+
+	"Threadr/models"
 )
 
-// Tests for GetSubscription
+// Tests for GetSubscription.
 func TestGetSubscription(t *testing.T) {
 	testCases := []struct {
 		name  string
@@ -21,7 +22,6 @@ func TestGetSubscription(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -32,10 +32,10 @@ func TestGetSubscription(t *testing.T) {
 	}
 }
 
-// Tests for GetEmailByCustomerId
+// Tests for GetEmailByCustomerId.
 func TestGetEmailByCustomerId(t *testing.T) {
 	testCases := []struct {
-		name     string
+		name       string
 		customerID string
 	}{
 		{
@@ -45,7 +45,6 @@ func TestGetEmailByCustomerId(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -56,17 +55,17 @@ func TestGetEmailByCustomerId(t *testing.T) {
 	}
 }
 
-// Tests for UpdateSubscription
+// Tests for UpdateSubscription.
 func TestUpdateSubscription(t *testing.T) {
 	now := time.Now()
 	futureTime := now.Add(30 * 24 * time.Hour) // 30 days from now
 
 	testCases := []struct {
-		name        string
+		name         string
 		subscription models.Subscription
-		mockErr     error
-		wantErr     bool
-		errContains string
+		mockErr      error
+		wantErr      bool
+		errContains  string
 	}{
 		{
 			name: "SuccessfulUpdate_AllFields",
@@ -127,7 +126,6 @@ func TestUpdateSubscription(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -180,13 +178,12 @@ func TestUpdateSubscription(t *testing.T) {
 	}
 }
 
-// Benchmark tests
+// Benchmark tests.
 func BenchmarkGetSubscription(b *testing.B) {
 	mockDao := NewMockDAO()
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_, _ = mockDao.GetSubscription(context.Background(), "bench@example.com")
 	}
 }
-

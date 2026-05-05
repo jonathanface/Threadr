@@ -1,13 +1,15 @@
 package api
 
 import (
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/url"
+
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
 	"Threadr/logger"
 	"Threadr/models"
-	"encoding/json"
-	"net/http"
-	"net/url"
 
 	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
@@ -53,7 +55,8 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = dao.ResetBlockOrder(r.Context(), storyID, &blocksOrder); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("ResetBlockOrder AWS error",
@@ -93,7 +96,7 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		storyID string
 		dao     daos.DaoInterface
 		ok      bool
-		//subscriberID string
+		// subscriberID string
 	)
 	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
 		logger.Error("Failed to parse story ID", "error", err, "remoteAddr", r.RemoteAddr)
@@ -145,7 +148,8 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = dao.WriteBlocks(r.Context(), storyID, &storyBlocks); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("WriteBlocks AWS error",

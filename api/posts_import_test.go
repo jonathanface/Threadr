@@ -1,9 +1,6 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"bytes"
 	"context"
 	"database/sql"
@@ -12,6 +9,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/gorilla/mux"
 )
@@ -126,7 +127,7 @@ func TestImportDocument_TxtSuccess(t *testing.T) {
 		t.Error("Expected blocks to be written")
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	json.Unmarshal(rr.Body.Bytes(), &response)
 	if response["count"] != float64(1) {
 		t.Errorf("Expected count 1, got %v", response["count"])

@@ -1,13 +1,14 @@
 package billing
 
 import (
-	"Threadr/api"
-	"Threadr/models"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"os"
 	"strconv"
+
+	"Threadr/api"
+	"Threadr/models"
 
 	stripe "github.com/stripe/stripe-go/v79"
 	"github.com/stripe/stripe-go/v79/customer"
@@ -61,7 +62,7 @@ func RespondWithError(w http.ResponseWriter, code int, msg string) {
 	RespondWithJson(w, code, map[string]string{"error": msg})
 }
 
-func RespondWithJson(w http.ResponseWriter, code int, payload interface{}) {
+func RespondWithJson(w http.ResponseWriter, code int, payload any) {
 	var (
 		response []byte
 		err      error

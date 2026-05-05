@@ -1,13 +1,15 @@
 package api
 
 import (
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/url"
+
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
 	"Threadr/logger"
 	"Threadr/models"
-	"encoding/json"
-	"net/http"
-	"net/url"
 
 	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
@@ -43,7 +45,8 @@ func UpdateChaptersEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	for _, chapter := range newChapters {
 		if _, err = dao.EditChapter(r.Context(), storyID, chapter); err != nil {
-			if opErr, ok := err.(*smithy.OperationError); ok {
+			opErr := &smithy.OperationError{}
+			if errors.As(err, &opErr) {
 				awsResponse := processAWSError(opErr)
 				if awsResponse.Code == 0 {
 					logger.Error("Internal error", "error", err)
@@ -101,7 +104,8 @@ func EditChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	var updatedChapter models.Chapter
 	if updatedChapter, err = dao.EditChapter(r.Context(), storyID, newChapter); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)

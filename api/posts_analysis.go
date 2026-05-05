@@ -1,16 +1,18 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/logger"
-	"Threadr/models"
 	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/logger"
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/gorilla/mux"
@@ -62,6 +64,7 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	chapterText := ""
+	var chapterTextSb65 strings.Builder
 	for _, block := range blocks.Items {
 		chunkAttributeValue, ok := block["chunk"].(*types.AttributeValueMemberS)
 		if !ok {
@@ -74,8 +77,9 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
-		chapterText += chk.Text
+		chapterTextSb65.WriteString(chk.Text)
 	}
+	chapterText += chapterTextSb65.String()
 	if chapterText == "" {
 		RespondWithError(w, http.StatusUnprocessableEntity, "Cannot process chapter")
 		return
@@ -83,7 +87,7 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	openAIKey := os.Getenv("OPENAI_API_KEY")
 	url := "https://api.openai.com/v1/chat/completions"
 
-	//A helpful rule of thumb is that one token generally corresponds to ~4 characters of text for common English text. This translates to roughly ¾ of a word (so 100 tokens ~= 75 words).
+	// A helpful rule of thumb is that one token generally corresponds to ~4 characters of text for common English text. This translates to roughly ¾ of a word (so 100 tokens ~= 75 words).
 
 	var instructions, content string
 	switch typeOfAnalysis {
@@ -121,7 +125,7 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create a new HTTP request with the appropriate method, URL, and payload
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		logger.Error("External service error", "error", err)
 		RespondWithError(w, http.StatusBadGateway, "External service error")

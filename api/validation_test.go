@@ -31,13 +31,13 @@ func TestValidateStoryTitle(t *testing.T) {
 		},
 		{
 			name:      "Title too long",
-			title:     strings.Repeat("a", 257),
+			title:     strings.Repeat("a", maxTitleLength+1),
 			wantError: true,
 			errorMsg:  "Title is too long",
 		},
 		{
 			name:      "Title at max length",
-			title:     strings.Repeat("a", 256),
+			title:     strings.Repeat("a", maxTitleLength),
 			wantError: false,
 		},
 		{

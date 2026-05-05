@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -91,7 +92,7 @@ func HandleRequest(ctx context.Context) (Response, error) {
 	return Response{Message: fmt.Sprintf("expired rows deleted successfully, %d rows purged", total)}, nil
 }
 
-// isChaptersTable returns true for "chapters" and "chapters_staging"
+// isChaptersTable returns true for "chapters" and "chapters_staging".
 func isChaptersTable(name string) bool {
 	return name == "chapters" || name == "chapters_staging"
 }
@@ -150,12 +151,17 @@ func avToString(av types.AttributeValue) (string, bool) {
 	}
 }
 
-func purgeTable(ctx context.Context, client *dynamodb.Client, table string, cutoffUnix int64) (int, []chapterKey, error) {
+func purgeTable(
+	ctx context.Context,
+	client *dynamodb.Client,
+	table string,
+	cutoffUnix int64,
+) (int, []chapterKey, error) {
 	tk := keyNamesForTable(table)
 
 	filter := aws.String("attribute_exists(#deleted_at) AND #deleted_at < :cutoff")
 	eav := map[string]types.AttributeValue{
-		":cutoff": &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", cutoffUnix)},
+		":cutoff": &types.AttributeValueMemberN{Value: strconv.FormatInt(cutoffUnix, 10)},
 	}
 	ean := map[string]string{
 		"#deleted_at": "deleted_at",
@@ -168,7 +174,7 @@ func purgeTable(ctx context.Context, client *dynamodb.Client, table string, cuto
 	}
 
 	var lastKey map[string]types.AttributeValue
-	keys := make([]map[string]types.AttributeValue, 0, 256)
+	keys := make([]map[string]types.AttributeValue, 0, 256) //nolint:mnd
 
 	collectChapters := table == "chapters" || table == "chapters_staging"
 	var chapterIDs []chapterKey
@@ -251,10 +257,9 @@ func batchDeleteKeys(
 ) (int, error) {
 	deleted := 0
 	for i := 0; i < len(keys); i += 25 {
-		end := i + 25
-		if end > len(keys) {
-			end = len(keys)
-		}
+		end := min(
+			//nolint:mnd
+			i+25, len(keys))
 
 		initial := make([]types.WriteRequest, 0, end-i)
 		for _, k := range keys[i:end] {
@@ -286,8 +291,13 @@ func batchDeleteKeys(
 	return deleted, nil
 }
 
-// Deletes all tables that start with the blocks base name and their on-demand backups
-func deleteBlocksTablesAndBackups(ctx context.Context, client *dynamodb.Client, chapters []chapterKey, staging bool) error {
+// Deletes all tables that start with the blocks base name and their on-demand backups.
+func deleteBlocksTablesAndBackups(
+	ctx context.Context,
+	client *dynamodb.Client,
+	chapters []chapterKey,
+	staging bool,
+) error {
 	// de-dup bases
 	seen := make(map[string]struct{})
 	for _, ck := range chapters {
@@ -343,7 +353,7 @@ func listAllTables(ctx context.Context, client *dynamodb.Client) ([]string, erro
 	for {
 		out, err := client.ListTables(ctx, &dynamodb.ListTablesInput{
 			ExclusiveStartTableName: last,
-			Limit:                   aws.Int32(100),
+			Limit:                   aws.Int32(100), //nolint:mnd
 		})
 		if err != nil {
 			return nil, err

@@ -1,10 +1,12 @@
 package api
 
 import (
+	"errors"
+	"net/http"
+
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
 	"Threadr/logger"
-	"net/http"
 
 	"github.com/aws/smithy-go"
 )
@@ -31,7 +33,8 @@ func DeleteUserEndpoint(w http.ResponseWriter, r *http.Request) {
 	// Delete user account and all associated data
 	// This will also handle subscription cancellation
 	if err = dao.DeleteUser(r.Context(), email); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)

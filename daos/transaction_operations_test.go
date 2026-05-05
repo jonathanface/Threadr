@@ -1,28 +1,29 @@
 package daos
 
 import (
-	"Threadr/models"
 	"context"
 	"errors"
 	"testing"
 
+	"Threadr/models"
+
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 )
 
-// Tests for awsWriteTransaction
+// Tests for awsWriteTransaction.
 func TestAwsWriteTransaction(t *testing.T) {
 	testCases := []struct {
-		name                string
-		input               *dynamodb.TransactWriteItemsInput
-		mockTransactErr     error
-		mockTransactAwsErr  models.AwsError
-		expectErr           bool
-		expectAwsErr        bool
+		name               string
+		input              *dynamodb.TransactWriteItemsInput
+		mockTransactErr    error
+		mockTransactAwsErr models.AwsError
+		expectErr          bool
+		expectAwsErr       bool
 	}{
 		{
-			name:  "SuccessfulTransaction",
-			input: &dynamodb.TransactWriteItemsInput{},
-			expectErr: false,
+			name:         "SuccessfulTransaction",
+			input:        &dynamodb.TransactWriteItemsInput{},
+			expectErr:    false,
 			expectAwsErr: false,
 		},
 		{
@@ -33,15 +34,14 @@ func TestAwsWriteTransaction(t *testing.T) {
 			expectAwsErr:    false,
 		},
 		{
-			name:  "NilInput",
-			input: nil,
-			expectErr: false,
+			name:         "NilInput",
+			input:        nil,
+			expectErr:    false,
 			expectAwsErr: false,
 		},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -83,15 +83,15 @@ func TestAwsWriteTransaction(t *testing.T) {
 	}
 }
 
-// Tests for generateStoryChapterTransaction
+// Tests for generateStoryChapterTransaction.
 func TestGenerateStoryChapterTransaction(t *testing.T) {
 	testCases := []struct {
-		name         string
-		storyID      string
-		chapterID    string
-		chapterTitle string
-		chapter      int
-		wantErr      bool
+		name           string
+		storyID        string
+		chapterID      string
+		chapterTitle   string
+		chapter        int
+		wantErr        bool
 		expectedErrMsg string
 	}{
 		{
@@ -103,36 +103,35 @@ func TestGenerateStoryChapterTransaction(t *testing.T) {
 			wantErr:      false,
 		},
 		{
-			name:         "EmptyStoryID",
-			storyID:      "",
-			chapterID:    "chapter456",
-			chapterTitle: "Chapter 1",
-			chapter:      1,
-			wantErr:      true,
+			name:           "EmptyStoryID",
+			storyID:        "",
+			chapterID:      "chapter456",
+			chapterTitle:   "Chapter 1",
+			chapter:        1,
+			wantErr:        true,
 			expectedErrMsg: "storyID, chapterID, and chapterTitle params must not be blank",
 		},
 		{
-			name:         "EmptyChapterID",
-			storyID:      "story123",
-			chapterID:    "",
-			chapterTitle: "Chapter 1",
-			chapter:      1,
-			wantErr:      true,
+			name:           "EmptyChapterID",
+			storyID:        "story123",
+			chapterID:      "",
+			chapterTitle:   "Chapter 1",
+			chapter:        1,
+			wantErr:        true,
 			expectedErrMsg: "storyID, chapterID, and chapterTitle params must not be blank",
 		},
 		{
-			name:         "EmptyChapterTitle",
-			storyID:      "story123",
-			chapterID:    "chapter456",
-			chapterTitle: "",
-			chapter:      1,
-			wantErr:      true,
+			name:           "EmptyChapterTitle",
+			storyID:        "story123",
+			chapterID:      "chapter456",
+			chapterTitle:   "",
+			chapter:        1,
+			wantErr:        true,
 			expectedErrMsg: "storyID, chapterID, and chapterTitle params must not be blank",
 		},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -161,13 +160,13 @@ func TestGenerateStoryChapterTransaction(t *testing.T) {
 	}
 }
 
-// Benchmark tests
+// Benchmark tests.
 func BenchmarkAwsWriteTransaction(b *testing.B) {
 	mockDao := NewMockDAO()
 	input := &dynamodb.TransactWriteItemsInput{}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_, _ = mockDao.awsWriteTransaction(context.Background(), input)
 	}
 }
@@ -176,7 +175,7 @@ func BenchmarkGenerateStoryChapterTransaction(b *testing.B) {
 	mockDao := NewMockDAO()
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_, _ = mockDao.generateStoryChapterTransaction("story123", "chapter456", "Chapter 1", 1)
 	}
 }

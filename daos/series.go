@@ -1,13 +1,14 @@
 package daos
 
 import (
-	"Threadr/logger"
-	"Threadr/models"
 	"context"
 	"errors"
 	"net/url"
 	"strconv"
 	"time"
+
+	"Threadr/logger"
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -15,7 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-// Sentinel errors for series operations
+// Sentinel errors for series operations.
 var (
 	ErrSeriesNotFound = errors.New("series not found")
 )
@@ -58,7 +59,11 @@ func (d *DAO) GetSeriesByID(ctx context.Context, email, seriesID string) (series
 	return &seriesFromMap[0], nil
 }
 
-func (d *DAO) GetAllSeriesWithStories(ctx context.Context, email string, adminRequest bool) (series []models.Series, err error) {
+func (d *DAO) GetAllSeriesWithStories(
+	ctx context.Context,
+	email string,
+	adminRequest bool,
+) (series []models.Series, err error) {
 	scanInput := &dynamodb.ScanInput{
 		TableName:        aws.String("series" + GetTableSuffix()),
 		FilterExpression: aws.String("author=:eml AND attribute_not_exists(deleted_at)"),
@@ -94,7 +99,7 @@ func (d *DAO) GetAllSeriesWithStories(ctx context.Context, email string, adminRe
 }
 
 // GetAllSeriesIncludingDeleted fetches all soft-deleted series for a user (for restoration purposes)
-// Note: This does NOT populate the Stories field for performance reasons during restoration
+// Note: This does NOT populate the Stories field for performance reasons during restoration.
 func (d *DAO) GetAllSeriesIncludingDeleted(ctx context.Context, email string) (series []models.Series, err error) {
 	logger.Debug("GetAllSeriesIncludingDeleted called", "email", email)
 
@@ -114,7 +119,15 @@ func (d *DAO) GetAllSeriesIncludingDeleted(ctx context.Context, email string) (s
 	}
 
 	if err = attributevalue.UnmarshalListOfMaps(scanOutput.Items, &series); err != nil {
-		logger.Error("Failed to unmarshal deleted series", "error", err, "email", email, "itemCount", len(scanOutput.Items))
+		logger.Error(
+			"Failed to unmarshal deleted series",
+			"error",
+			err,
+			"email",
+			email,
+			"itemCount",
+			len(scanOutput.Items),
+		)
 		return nil, err
 	}
 
@@ -159,7 +172,11 @@ func (d *DAO) GetSeriesVolumes(ctx context.Context, email, seriesID string) (vol
 	return volumes, nil
 }
 
-func (d *DAO) EditSeries(ctx context.Context, email string, series models.Series) (updatedSeries models.Series, err error) {
+func (d *DAO) EditSeries(
+	ctx context.Context,
+	email string,
+	series models.Series,
+) (updatedSeries models.Series, err error) {
 	modifiedAtStr := strconv.FormatInt(time.Now().Unix(), 10)
 	item := map[string]types.AttributeValue{
 		"series_id":   &types.AttributeValueMemberS{Value: series.ID},
@@ -206,8 +223,11 @@ func (d *DAO) EditSeries(ctx context.Context, email string, series models.Series
 	return updatedSeries, nil
 }
 
-func (d *DAO) RemoveStoryFromSeries(ctx context.Context, email, storyID string, series models.Series) (updatedSeries models.Series, err error) {
-
+func (d *DAO) RemoveStoryFromSeries(
+	ctx context.Context,
+	email, storyID string,
+	series models.Series,
+) (updatedSeries models.Series, err error) {
 	storyKey := map[string]types.AttributeValue{
 		"story_id": &types.AttributeValueMemberS{Value: storyID},
 		"author":   &types.AttributeValueMemberS{Value: email},
@@ -233,11 +253,10 @@ func (d *DAO) RemoveStoryFromSeries(ctx context.Context, email, storyID string, 
 		}
 	}
 	updatedSeries.Stories = newStories
-	return
+	return updatedSeries, err
 }
 
 func (d *DAO) DeleteSeries(ctx context.Context, email string, series models.Series) error {
-
 	for _, story := range series.Stories {
 		storyKey := map[string]types.AttributeValue{
 			"story_id": &types.AttributeValueMemberS{Value: story.ID},

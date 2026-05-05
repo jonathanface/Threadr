@@ -1,23 +1,25 @@
 package daos
 
 import (
-	"Threadr/models"
 	"context"
 	"errors"
+
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-// Common errors for testing
+// Common errors for testing.
 var (
 	ErrMockDAO = errors.New("mock dao error")
 )
 
 type MockDAO struct {
 	*DAO
-	MockGetUserDetails        func(email string) (*models.UserInfo, error)
-	MockUpsertUser            func(email string) (*models.UserInfo, error)
+
+	MockGetUserDetails         func(email string) (*models.UserInfo, error)
+	MockUpsertUser             func(email string) (*models.UserInfo, error)
 	MockGetAllUsersWithStories func() ([]models.AdminUserSummary, error)
 
 	// billing
@@ -25,58 +27,58 @@ type MockDAO struct {
 	MockUpdateSubscription func(s models.Subscription) error
 
 	// API endpoint mocking functions
-	MockCreateStory                             func(email string, story models.Story, newSeriesTitle string) (storyID string, err error)
-	MockCreateChapter                           func(storyID string, chapter models.Chapter, email string) (models.Chapter, error)
-	MockCreateOutline                           func(outline models.OutlineRequest) (*models.OutlineRequest, error)
-	MockUpdateUser                              func(user models.UserInfo) error
-	MockEditStory                               func(email string, story models.Story) (models.Story, error)
-	MockEditSeries                              func(email string, series models.Series) (models.Series, error)
-	MockRemoveStoryFromSeries                   func(email, storyID string, series models.Series) (models.Series, error)
-	MockUpdateStorySettings                     func(email, storyID string, settings models.StorySettings) error
-	MockEditChapter                             func(storyID string, chapter models.Chapter) (models.Chapter, error)
-	MockResetBlockOrder                         func(storyID string, blocksOrder *models.BlocksOrder) error
-	MockWriteBlocks                             func(storyID string, storyBlocks *models.StoryBlocks) error
-	MockWriteAssociations                       func(email, storyOrSeriesID string, associations []*models.Association) error
-	MockUpdateAssociationPortraitEntryInDB      func(email, storyOrSeriesID, associationID, url string) error
-	MockUpdateOutline                           func(outline models.OutlineRequest) (*models.OutlineResponse, error)
-	MockGetStoryByID                            func(email string, storyID string) (*models.Story, error)
-	MockGetSeriesByID                           func(email string, seriesID string) (*models.Series, error)
-	MockGetSeriesVolumes                        func(email string, seriesID string) ([]*models.Story, error)
-	MockGetStoryOrSeriesAssociationThumbnails   func(email, storyID string) ([]*models.SimplifiedAssociation, error)
-	MockIsStoryInASeries                        func(email string, storyID string) (string, error)
-	MockGetChapterParagraphs                    func(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error)
-	MockGetAssociationDetails                   func(email, storyID, associationID string) (*models.Association, error)
-	MockGetStorySettingsByID                    func(email string, storyID string) (*models.StorySettings, error)
-	MockEditAssociation                         func(email, storyID string, association models.Association) (*models.Association, error)
-	MockDeleteChapterParagraphs                 func(storyID string, storyBlocks *models.StoryBlocks) error
-	MockDeleteAssociations                      func(email, storyID string, associations []*models.Association) error
-	MockDeleteChapters                          func(storyID string, chapters []models.Chapter) error
-	MockSoftDeleteStory                         func(email, storyID string, includeBlocks bool) error
-	MockDeleteSeries                            func(email string, series models.Series) error
-	MockDeleteUser                              func(email string) error
-	MockGetChapterTableStatus                   func(storyID, chapterID string) (bool, error)
-	MockGetChapterByID                          func(chapterID string) (*models.Chapter, error)
-	MockWasStoryDeleted                         func(email, storyID string) (bool, error)
+	MockCreateStory                           func(email string, story models.Story, newSeriesTitle string) (storyID string, err error)
+	MockCreateChapter                         func(storyID string, chapter models.Chapter, email string) (models.Chapter, error)
+	MockCreateOutline                         func(outline models.OutlineRequest) (*models.OutlineRequest, error)
+	MockUpdateUser                            func(user models.UserInfo) error
+	MockEditStory                             func(email string, story models.Story) (models.Story, error)
+	MockEditSeries                            func(email string, series models.Series) (models.Series, error)
+	MockRemoveStoryFromSeries                 func(email, storyID string, series models.Series) (models.Series, error)
+	MockUpdateStorySettings                   func(email, storyID string, settings models.StorySettings) error
+	MockEditChapter                           func(storyID string, chapter models.Chapter) (models.Chapter, error)
+	MockResetBlockOrder                       func(storyID string, blocksOrder *models.BlocksOrder) error
+	MockWriteBlocks                           func(storyID string, storyBlocks *models.StoryBlocks) error
+	MockWriteAssociations                     func(email, storyOrSeriesID string, associations []*models.Association) error
+	MockUpdateAssociationPortraitEntryInDB    func(email, storyOrSeriesID, associationID, url string) error
+	MockUpdateOutline                         func(outline models.OutlineRequest) (*models.OutlineResponse, error)
+	MockGetStoryByID                          func(email string, storyID string) (*models.Story, error)
+	MockGetSeriesByID                         func(email string, seriesID string) (*models.Series, error)
+	MockGetSeriesVolumes                      func(email string, seriesID string) ([]*models.Story, error)
+	MockGetStoryOrSeriesAssociationThumbnails func(email, storyID string) ([]*models.SimplifiedAssociation, error)
+	MockIsStoryInASeries                      func(email string, storyID string) (string, error)
+	MockGetChapterParagraphs                  func(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error)
+	MockGetAssociationDetails                 func(email, storyID, associationID string) (*models.Association, error)
+	MockGetStorySettingsByID                  func(email string, storyID string) (*models.StorySettings, error)
+	MockEditAssociation                       func(email, storyID string, association models.Association) (*models.Association, error)
+	MockDeleteChapterParagraphs               func(storyID string, storyBlocks *models.StoryBlocks) error
+	MockDeleteAssociations                    func(email, storyID string, associations []*models.Association) error
+	MockDeleteChapters                        func(storyID string, chapters []models.Chapter) error
+	MockSoftDeleteStory                       func(email, storyID string, includeBlocks bool) error
+	MockDeleteSeries                          func(email string, series models.Series) error
+	MockDeleteUser                            func(email string) error
+	MockGetChapterTableStatus                 func(storyID, chapterID string) (bool, error)
+	MockGetChapterByID                        func(chapterID string) (*models.Chapter, error)
+	MockWasStoryDeleted                       func(email, storyID string) (bool, error)
 
 	// Sharing
-	MockCreateShareLink        func(link models.ShareLink) error
-	MockGetShareLink           func(token string) (*models.ShareLink, error)
-	MockGetShareLinksByAuthor  func(email, storyID string) ([]models.ShareLink, error)
-	MockGetShareLinksByStory   func(storyID string) ([]models.ShareLink, error)
-	MockRevokeShareLink        func(token string) error
-	MockRestoreShareLink       func(token string) error
-	MockDeleteShareLink        func(token string) error
+	MockCreateShareLink       func(link models.ShareLink) error
+	MockGetShareLink          func(token string) (*models.ShareLink, error)
+	MockGetShareLinksByAuthor func(email, storyID string) ([]models.ShareLink, error)
+	MockGetShareLinksByStory  func(storyID string) ([]models.ShareLink, error)
+	MockRevokeShareLink       func(token string) error
+	MockRestoreShareLink      func(token string) error
+	MockDeleteShareLink       func(token string) error
 
 	// Email/Password Auth
-	MockCreateEmailUser              func(email, firstName, lastName, passwordHash, verificationToken string, tokenExpires int64) (*models.UserInfo, error)
-	MockSetEmailVerified             func(email string) error
-	MockSetVerificationToken         func(email, token string, expires int64) error
-	MockSetResetToken                func(email, token string, expires int64) error
-	MockUpdatePassword               func(email, passwordHash string) error
-	MockClearResetToken              func(email string) error
-	MockLinkOAuthAccount             func(email, authType string) error
-	MockFindUserByVerificationToken  func(token string) (*models.UserInfo, error)
-	MockFindUserByResetToken         func(token string) (*models.UserInfo, error)
+	MockCreateEmailUser             func(email, firstName, lastName, passwordHash, verificationToken string, tokenExpires int64) (*models.UserInfo, error)
+	MockSetEmailVerified            func(email string) error
+	MockSetVerificationToken        func(email, token string, expires int64) error
+	MockSetResetToken               func(email, token string, expires int64) error
+	MockUpdatePassword              func(email, passwordHash string) error
+	MockClearResetToken             func(email string) error
+	MockLinkOAuthAccount            func(email, authType string) error
+	MockFindUserByVerificationToken func(token string) (*models.UserInfo, error)
+	MockFindUserByResetToken        func(token string) (*models.UserInfo, error)
 
 	// Alerts
 	MockCreateAlert         func(alert models.Alert) error
@@ -85,12 +87,12 @@ type MockDAO struct {
 	MockMarkAlertRead       func(email, alertID string) error
 
 	// Comments
-	MockCreateComment              func(comment models.Comment) error
-	MockGetComment                 func(commentID string) (*models.Comment, error)
-	MockGetCommentsByShareToken    func(shareToken string) ([]models.Comment, error)
-	MockGetCommentsByStoryChapter  func(storyID, chapterID string) ([]models.Comment, error)
-	MockResolveComment             func(commentID string) error
-	MockDeleteComment              func(commentID string) error
+	MockCreateComment             func(comment models.Comment) error
+	MockGetComment                func(commentID string) (*models.Comment, error)
+	MockGetCommentsByShareToken   func(shareToken string) ([]models.Comment, error)
+	MockGetCommentsByStoryChapter func(storyID, chapterID string) ([]models.Comment, error)
+	MockResolveComment            func(commentID string) error
+	MockDeleteComment             func(commentID string) error
 }
 
 var _ DaoInterface = (*MockDAO)(nil)
@@ -149,130 +151,196 @@ type MockDynamoClient struct {
 	MockRestoreTableFromBackup  func(ctx context.Context, input *dynamodb.RestoreTableFromBackupInput, optFns ...func(*dynamodb.Options)) (*dynamodb.RestoreTableFromBackupOutput, error)
 }
 
-// Make sure our MockDynamoClient implements the interface:
+// Make sure our MockDynamoClient implements the interface:.
 var _ dynamoDBClient = (*MockDynamoClient)(nil)
 
-// DeleteItem
-func (m *MockDynamoClient) DeleteItem(ctx context.Context, input *dynamodb.DeleteItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DeleteItemOutput, error) {
+// DeleteItem.
+func (m *MockDynamoClient) DeleteItem(
+	ctx context.Context,
+	input *dynamodb.DeleteItemInput,
+	optFns ...func(*dynamodb.Options),
+) (*dynamodb.DeleteItemOutput, error) {
 	if m.MockDeleteItem != nil {
 		return m.MockDeleteItem(ctx, input, optFns...)
 	}
 	return &dynamodb.DeleteItemOutput{}, nil
 }
 
-// DescribeTable
-func (m *MockDynamoClient) DescribeTable(ctx context.Context, input *dynamodb.DescribeTableInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DescribeTableOutput, error) {
+// DescribeTable.
+func (m *MockDynamoClient) DescribeTable(
+	ctx context.Context,
+	input *dynamodb.DescribeTableInput,
+	optFns ...func(*dynamodb.Options),
+) (*dynamodb.DescribeTableOutput, error) {
 	if m.MockDescribeTable != nil {
 		return m.MockDescribeTable(ctx, input, optFns...)
 	}
 	return &dynamodb.DescribeTableOutput{}, nil
 }
 
-// CreateTable
-func (m *MockDynamoClient) CreateTable(ctx context.Context, input *dynamodb.CreateTableInput, optFns ...func(*dynamodb.Options)) (*dynamodb.CreateTableOutput, error) {
+// CreateTable.
+func (m *MockDynamoClient) CreateTable(
+	ctx context.Context,
+	input *dynamodb.CreateTableInput,
+	optFns ...func(*dynamodb.Options),
+) (*dynamodb.CreateTableOutput, error) {
 	if m.MockCreateTable != nil {
 		return m.MockCreateTable(ctx, input, optFns...)
 	}
 	return &dynamodb.CreateTableOutput{}, nil
 }
 
-// CreateBackup
-func (m *MockDynamoClient) CreateBackup(ctx context.Context, input *dynamodb.CreateBackupInput, optFns ...func(*dynamodb.Options)) (*dynamodb.CreateBackupOutput, error) {
+// CreateBackup.
+func (m *MockDynamoClient) CreateBackup(
+	ctx context.Context,
+	input *dynamodb.CreateBackupInput,
+	optFns ...func(*dynamodb.Options),
+) (*dynamodb.CreateBackupOutput, error) {
 	if m.MockCreateBackup != nil {
 		return m.MockCreateBackup(ctx, input, optFns...)
 	}
 	return &dynamodb.CreateBackupOutput{}, nil
 }
 
-// GetItem
-func (m *MockDynamoClient) GetItem(ctx context.Context, input *dynamodb.GetItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.GetItemOutput, error) {
+// GetItem.
+func (m *MockDynamoClient) GetItem(
+	ctx context.Context,
+	input *dynamodb.GetItemInput,
+	optFns ...func(*dynamodb.Options),
+) (*dynamodb.GetItemOutput, error) {
 	if m.MockGetItem != nil {
 		return m.MockGetItem(ctx, input, optFns...)
 	}
 	return &dynamodb.GetItemOutput{}, nil
 }
 
-// PutItem
-func (m *MockDynamoClient) PutItem(ctx context.Context, input *dynamodb.PutItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error) {
+// PutItem.
+func (m *MockDynamoClient) PutItem(
+	ctx context.Context,
+	input *dynamodb.PutItemInput,
+	optFns ...func(*dynamodb.Options),
+) (*dynamodb.PutItemOutput, error) {
 	if m.MockPutItem != nil {
 		return m.MockPutItem(ctx, input, optFns...)
 	}
 	return &dynamodb.PutItemOutput{}, nil
 }
 
-// Query
-func (m *MockDynamoClient) Query(ctx context.Context, input *dynamodb.QueryInput, optFns ...func(*dynamodb.Options)) (*dynamodb.QueryOutput, error) {
+// Query.
+func (m *MockDynamoClient) Query(
+	ctx context.Context,
+	input *dynamodb.QueryInput,
+	optFns ...func(*dynamodb.Options),
+) (*dynamodb.QueryOutput, error) {
 	if m.MockQuery != nil {
 		return m.MockQuery(ctx, input, optFns...)
 	}
 	return &dynamodb.QueryOutput{}, nil
 }
 
-// Scan
-func (m *MockDynamoClient) Scan(ctx context.Context, input *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+// Scan.
+func (m *MockDynamoClient) Scan(
+	ctx context.Context,
+	input *dynamodb.ScanInput,
+	optFns ...func(*dynamodb.Options),
+) (*dynamodb.ScanOutput, error) {
 	if m.MockScan != nil {
 		return m.MockScan(ctx, input, optFns...)
 	}
 	return &dynamodb.ScanOutput{}, nil
 }
 
-// UpdateItem
-func (m *MockDynamoClient) UpdateItem(ctx context.Context, input *dynamodb.UpdateItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.UpdateItemOutput, error) {
+// UpdateItem.
+func (m *MockDynamoClient) UpdateItem(
+	ctx context.Context,
+	input *dynamodb.UpdateItemInput,
+	optFns ...func(*dynamodb.Options),
+) (*dynamodb.UpdateItemOutput, error) {
 	if m.MockUpdateItem != nil {
 		return m.MockUpdateItem(ctx, input, optFns...)
 	}
 	return &dynamodb.UpdateItemOutput{}, nil
 }
 
-// DescribeBackup
-func (m *MockDynamoClient) DescribeBackup(ctx context.Context, input *dynamodb.DescribeBackupInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DescribeBackupOutput, error) {
+// DescribeBackup.
+func (m *MockDynamoClient) DescribeBackup(
+	ctx context.Context,
+	input *dynamodb.DescribeBackupInput,
+	optFns ...func(*dynamodb.Options),
+) (*dynamodb.DescribeBackupOutput, error) {
 	if m.MockDescribeBackup != nil {
 		return m.MockDescribeBackup(ctx, input, optFns...)
 	}
 	return &dynamodb.DescribeBackupOutput{}, nil
 }
 
-// TransactWriteItems
-func (m *MockDynamoClient) TransactWriteItems(ctx context.Context, input *dynamodb.TransactWriteItemsInput, optFns ...func(*dynamodb.Options)) (*dynamodb.TransactWriteItemsOutput, error) {
+// TransactWriteItems.
+func (m *MockDynamoClient) TransactWriteItems(
+	ctx context.Context,
+	input *dynamodb.TransactWriteItemsInput,
+	optFns ...func(*dynamodb.Options),
+) (*dynamodb.TransactWriteItemsOutput, error) {
 	if m.MockTransactWriteItems != nil {
 		return m.MockTransactWriteItems(ctx, input, optFns...)
 	}
 	return &dynamodb.TransactWriteItemsOutput{}, nil
 }
 
-// DeleteTable
-func (m *MockDynamoClient) DeleteTable(ctx context.Context, input *dynamodb.DeleteTableInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DeleteTableOutput, error) {
+// DeleteTable.
+func (m *MockDynamoClient) DeleteTable(
+	ctx context.Context,
+	input *dynamodb.DeleteTableInput,
+	optFns ...func(*dynamodb.Options),
+) (*dynamodb.DeleteTableOutput, error) {
 	if m.MockDeleteTable != nil {
 		return m.MockDeleteTable(ctx, input, optFns...)
 	}
 	return &dynamodb.DeleteTableOutput{}, nil
 }
 
-// UpdateContinuousBackups
-func (m *MockDynamoClient) UpdateContinuousBackups(ctx context.Context, input *dynamodb.UpdateContinuousBackupsInput, optFns ...func(*dynamodb.Options)) (*dynamodb.UpdateContinuousBackupsOutput, error) {
+// UpdateContinuousBackups.
+func (m *MockDynamoClient) UpdateContinuousBackups(
+	ctx context.Context,
+	input *dynamodb.UpdateContinuousBackupsInput,
+	optFns ...func(*dynamodb.Options),
+) (*dynamodb.UpdateContinuousBackupsOutput, error) {
 	if m.MockUpdateContinuousBackups != nil {
 		return m.MockUpdateContinuousBackups(ctx, input, optFns...)
 	}
 	return &dynamodb.UpdateContinuousBackupsOutput{}, nil
 }
 
-// RestoreTableFromBackup
-func (m *MockDynamoClient) RestoreTableFromBackup(ctx context.Context, input *dynamodb.RestoreTableFromBackupInput, optFns ...func(*dynamodb.Options)) (*dynamodb.RestoreTableFromBackupOutput, error) {
+// RestoreTableFromBackup.
+func (m *MockDynamoClient) RestoreTableFromBackup(
+	ctx context.Context,
+	input *dynamodb.RestoreTableFromBackupInput,
+	optFns ...func(*dynamodb.Options),
+) (*dynamodb.RestoreTableFromBackupOutput, error) {
 	if m.MockRestoreTableFromBackup != nil {
 		return m.MockRestoreTableFromBackup(ctx, input, optFns...)
 	}
 	return &dynamodb.RestoreTableFromBackupOutput{}, nil
 }
 
-// API endpoint mock method implementations
-func (m *MockDAO) CreateStory(ctx context.Context, email string, story models.Story, newSeriesTitle string) (storyID string, err error) {
+// API endpoint mock method implementations.
+func (m *MockDAO) CreateStory(
+	ctx context.Context,
+	email string,
+	story models.Story,
+	newSeriesTitle string,
+) (storyID string, err error) {
 	if m.MockCreateStory != nil {
 		return m.MockCreateStory(email, story, newSeriesTitle)
 	}
 	return m.DAO.CreateStory(ctx, email, story, newSeriesTitle)
 }
 
-func (m *MockDAO) CreateChapter(ctx context.Context, storyID string, chapter models.Chapter, email string) (models.Chapter, error) {
+func (m *MockDAO) CreateChapter(
+	ctx context.Context,
+	storyID string,
+	chapter models.Chapter,
+	email string,
+) (models.Chapter, error) {
 	if m.MockCreateChapter != nil {
 		return m.MockCreateChapter(storyID, chapter, email)
 	}
@@ -307,7 +375,11 @@ func (m *MockDAO) EditSeries(ctx context.Context, email string, series models.Se
 	return m.DAO.EditSeries(ctx, email, series)
 }
 
-func (m *MockDAO) RemoveStoryFromSeries(ctx context.Context, email, storyID string, series models.Series) (models.Series, error) {
+func (m *MockDAO) RemoveStoryFromSeries(
+	ctx context.Context,
+	email, storyID string,
+	series models.Series,
+) (models.Series, error) {
 	if m.MockRemoveStoryFromSeries != nil {
 		return m.MockRemoveStoryFromSeries(email, storyID, series)
 	}
@@ -342,14 +414,21 @@ func (m *MockDAO) WriteBlocks(ctx context.Context, storyID string, storyBlocks *
 	return m.DAO.WriteBlocks(ctx, storyID, storyBlocks)
 }
 
-func (m *MockDAO) WriteAssociations(ctx context.Context, email, storyOrSeriesID string, associations []*models.Association) error {
+func (m *MockDAO) WriteAssociations(
+	ctx context.Context,
+	email, storyOrSeriesID string,
+	associations []*models.Association,
+) error {
 	if m.MockWriteAssociations != nil {
 		return m.MockWriteAssociations(email, storyOrSeriesID, associations)
 	}
 	return m.DAO.WriteAssociations(ctx, email, storyOrSeriesID, associations)
 }
 
-func (m *MockDAO) UpdateAssociationPortraitEntryInDB(ctx context.Context, email, storyOrSeriesID, associationID, url string) error {
+func (m *MockDAO) UpdateAssociationPortraitEntryInDB(
+	ctx context.Context,
+	email, storyOrSeriesID, associationID, url string,
+) error {
 	if m.MockUpdateAssociationPortraitEntryInDB != nil {
 		return m.MockUpdateAssociationPortraitEntryInDB(email, storyOrSeriesID, associationID, url)
 	}
@@ -384,7 +463,10 @@ func (m *MockDAO) GetSeriesVolumes(ctx context.Context, email string, seriesID s
 	return m.DAO.GetSeriesVolumes(ctx, email, seriesID)
 }
 
-func (m *MockDAO) GetStoryOrSeriesAssociationThumbnails(ctx context.Context, email, storyID string) ([]*models.SimplifiedAssociation, error) {
+func (m *MockDAO) GetStoryOrSeriesAssociationThumbnails(
+	ctx context.Context,
+	email, storyID string,
+) ([]*models.SimplifiedAssociation, error) {
 	if m.MockGetStoryOrSeriesAssociationThumbnails != nil {
 		return m.MockGetStoryOrSeriesAssociationThumbnails(email, storyID)
 	}
@@ -398,28 +480,44 @@ func (m *MockDAO) IsStoryInASeries(ctx context.Context, email string, storyID st
 	return m.DAO.IsStoryInASeries(ctx, email, storyID)
 }
 
-func (m *MockDAO) GetChapterParagraphs(ctx context.Context, storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error) {
+func (m *MockDAO) GetChapterParagraphs(
+	ctx context.Context,
+	storyID string,
+	chapterID string,
+	key *map[string]types.AttributeValue,
+) (*models.BlocksData, error) {
 	if m.MockGetChapterParagraphs != nil {
 		return m.MockGetChapterParagraphs(storyID, chapterID, key)
 	}
 	return m.DAO.GetChapterParagraphs(ctx, storyID, chapterID, key)
 }
 
-func (m *MockDAO) GetAssociationDetails(ctx context.Context, email, storyID, associationID string) (*models.Association, error) {
+func (m *MockDAO) GetAssociationDetails(
+	ctx context.Context,
+	email, storyID, associationID string,
+) (*models.Association, error) {
 	if m.MockGetAssociationDetails != nil {
 		return m.MockGetAssociationDetails(email, storyID, associationID)
 	}
 	return m.DAO.GetAssociationDetails(ctx, email, storyID, associationID)
 }
 
-func (m *MockDAO) GetStorySettingsByID(ctx context.Context, email string, storyID string) (*models.StorySettings, error) {
+func (m *MockDAO) GetStorySettingsByID(
+	ctx context.Context,
+	email string,
+	storyID string,
+) (*models.StorySettings, error) {
 	if m.MockGetStorySettingsByID != nil {
 		return m.MockGetStorySettingsByID(email, storyID)
 	}
 	return m.DAO.GetStorySettingsByID(ctx, email, storyID)
 }
 
-func (m *MockDAO) EditAssociation(ctx context.Context, email, storyID string, association models.Association) (*models.Association, error) {
+func (m *MockDAO) EditAssociation(
+	ctx context.Context,
+	email, storyID string,
+	association models.Association,
+) (*models.Association, error) {
 	if m.MockEditAssociation != nil {
 		return m.MockEditAssociation(email, storyID, association)
 	}
@@ -433,7 +531,11 @@ func (m *MockDAO) DeleteChapterParagraphs(ctx context.Context, storyID string, s
 	return m.DAO.DeleteChapterParagraphs(ctx, storyID, storyBlocks)
 }
 
-func (m *MockDAO) DeleteAssociations(ctx context.Context, email, storyID string, associations []*models.Association) error {
+func (m *MockDAO) DeleteAssociations(
+	ctx context.Context,
+	email, storyID string,
+	associations []*models.Association,
+) error {
 	if m.MockDeleteAssociations != nil {
 		return m.MockDeleteAssociations(email, storyID, associations)
 	}
@@ -491,7 +593,11 @@ func (m *MockDAO) WasStoryDeleted(ctx context.Context, email, storyID string) (b
 
 // Email/Password Auth mock implementations
 
-func (m *MockDAO) CreateEmailUser(ctx context.Context, email, firstName, lastName, passwordHash, verificationToken string, tokenExpires int64) (*models.UserInfo, error) {
+func (m *MockDAO) CreateEmailUser(
+	ctx context.Context,
+	email, firstName, lastName, passwordHash, verificationToken string,
+	tokenExpires int64,
+) (*models.UserInfo, error) {
 	if m.MockCreateEmailUser != nil {
 		return m.MockCreateEmailUser(email, firstName, lastName, passwordHash, verificationToken, tokenExpires)
 	}
@@ -689,11 +795,10 @@ func NewMockDAO() *MockDAO {
 	mockClient := &MockDynamoClient{}
 	return &MockDAO{
 		DAO: &DAO{
-			writeBatchSize: 2,
+			writeBatchSize: 2, //nolint:mnd
 			maxRetries:     maxAWSRetries,
 			capacity:       blockTableMinWriteCapacity,
 			DynamoClient:   mockClient,
 		},
 	}
-
 }

@@ -27,7 +27,6 @@ const (
 var _ DaoInterface = (*DAO)(nil)
 
 func NewDAO(ctx context.Context, opts Options) (*DAO, error) {
-
 	awsCfg, err := config.LoadDefaultConfig(
 		ctx,
 		config.WithRegion(opts.Region),

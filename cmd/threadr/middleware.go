@@ -1,19 +1,24 @@
 package main
 
 import (
-	"Threadr/api"
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
 	"context"
 	"log"
 	"net/http"
 	"strings"
 	"time"
 
+	"Threadr/api"
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+
 	"github.com/gorilla/mux"
 )
 
-// corsMiddleware adds CORS headers to all responses
+// middlewareDeadline caps how long any individual request handler may spend
+// inside the chained middlewares (auth lookup, rate-limit check, CORS, etc.).
+const middlewareDeadline = 20 * time.Second
+
+// corsMiddleware adds CORS headers to all responses.
 func corsMiddleware(allowedOrigin string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -26,10 +31,11 @@ func corsMiddleware(allowedOrigin string) func(http.Handler) http.Handler {
 			}
 
 			// Handle preflight requests — only respond if origin is allowed
-			if r.Method == "OPTIONS" {
+			if r.Method == http.MethodOptions {
 				if origin == allowedOrigin {
 					w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-					w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin")
+					w.Header().
+						Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin")
 					w.Header().Set("Access-Control-Max-Age", "86400") // 24 hours
 				}
 				w.WriteHeader(http.StatusNoContent)
@@ -42,7 +48,7 @@ func corsMiddleware(allowedOrigin string) func(http.Handler) http.Handler {
 }
 
 // maintenanceModeMiddleware returns a maintenance page when enabled
-// Set MAINTENANCE_MODE=true environment variable to enable
+// Set MAINTENANCE_MODE=true environment variable to enable.
 func maintenanceModeMiddleware(enabled bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -129,7 +135,7 @@ func maintenanceModeMiddleware(enabled bool) func(http.Handler) http.Handler {
 func looseMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+			ctx, cancel := context.WithTimeout(r.Context(), middlewareDeadline)
 			defer cancel()
 			ctx = context.WithValue(ctx, ctxkey.DAO, d)
 			r = r.WithContext(ctx)
@@ -153,7 +159,7 @@ func billingMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 			user := *userPtr
 			log.Printf("[billingMiddleware] Auth successful for user: %s", user.Email)
 
-			ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+			ctx, cancel := context.WithTimeout(r.Context(), middlewareDeadline)
 			defer cancel()
 			ctx = context.WithValue(ctx, ctxkey.DAO, d)
 			r = r.WithContext(ctx)
@@ -173,7 +179,7 @@ func sharedMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 			}
 			tokenHash := api.HashShareToken(rawToken)
 
-			ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+			ctx, cancel := context.WithTimeout(r.Context(), middlewareDeadline)
 			defer cancel()
 			ctx = context.WithValue(ctx, ctxkey.DAO, d)
 
@@ -214,7 +220,7 @@ func strictMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 			user := *userPtr
 			log.Printf("[strictMiddleware] Auth successful for user: %s", user.Email)
 
-			ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+			ctx, cancel := context.WithTimeout(r.Context(), middlewareDeadline)
 			defer cancel()
 
 			userDetails, err := d.UpsertUser(ctx, user.Email)
@@ -228,7 +234,7 @@ func strictMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 			ctx = context.WithValue(ctx, ctxkey.DAO, d)
 
 			// Only block exports for non-subscribers, not story creation
-			needsSub := (r.Method == "PUT" && strings.HasSuffix(r.URL.Path, "/export"))
+			needsSub := (r.Method == http.MethodPut && strings.HasSuffix(r.URL.Path, "/export"))
 			if needsSub && !userDetails.Subscriber {
 				log.Printf("[strictMiddleware] Blocking export for non-subscriber: %s", user.Email)
 				api.RespondWithError(w, http.StatusPaymentRequired, "insufficient subscription")

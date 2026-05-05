@@ -1,13 +1,14 @@
 package daos
 
 import (
-	"Threadr/models"
 	"context"
 	"errors"
 	"testing"
+
+	"Threadr/models"
 )
 
-// Tests for GetChaptersByStoryID
+// Tests for GetChaptersByStoryID.
 func TestGetChaptersByStoryID(t *testing.T) {
 	testCases := []struct {
 		name    string
@@ -24,7 +25,6 @@ func TestGetChaptersByStoryID(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -36,7 +36,7 @@ func TestGetChaptersByStoryID(t *testing.T) {
 	}
 }
 
-// Tests for GetChaptersByStoryIDs - batch method to avoid N+1 queries
+// Tests for GetChaptersByStoryIDs - batch method to avoid N+1 queries.
 func TestGetChaptersByStoryIDs(t *testing.T) {
 	testCases := []struct {
 		name     string
@@ -59,14 +59,24 @@ func TestGetChaptersByStoryIDs(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			name:     "ManyStoryIDs_RequiresMockDB",
-			storyIDs: []string{"story1", "story2", "story3", "story4", "story5", "story6", "story7", "story8", "story9", "story10"},
-			wantErr:  false,
+			name: "ManyStoryIDs_RequiresMockDB",
+			storyIDs: []string{
+				"story1",
+				"story2",
+				"story3",
+				"story4",
+				"story5",
+				"story6",
+				"story7",
+				"story8",
+				"story9",
+				"story10",
+			},
+			wantErr: false,
 		},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -97,7 +107,7 @@ func TestGetChaptersByStoryIDs(t *testing.T) {
 	}
 }
 
-// Tests for GetChapterTableStatus
+// Tests for GetChapterTableStatus.
 func TestGetChapterTableStatus(t *testing.T) {
 	testCases := []struct {
 		name      string
@@ -117,7 +127,6 @@ func TestGetChapterTableStatus(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -128,7 +137,7 @@ func TestGetChapterTableStatus(t *testing.T) {
 	}
 }
 
-// Tests for GetChapterByID
+// Tests for GetChapterByID.
 func TestGetChapterByID(t *testing.T) {
 	testCases := []struct {
 		name      string
@@ -145,7 +154,6 @@ func TestGetChapterByID(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -156,7 +164,7 @@ func TestGetChapterByID(t *testing.T) {
 	}
 }
 
-// Tests for GetChapterParagraphs
+// Tests for GetChapterParagraphs.
 func TestGetChapterParagraphs(t *testing.T) {
 	testCases := []struct {
 		name      string
@@ -171,7 +179,6 @@ func TestGetChapterParagraphs(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -182,7 +189,7 @@ func TestGetChapterParagraphs(t *testing.T) {
 	}
 }
 
-// Tests for DeleteChapterParagraphs
+// Tests for DeleteChapterParagraphs.
 func TestDeleteChapterParagraphs(t *testing.T) {
 	testCases := []struct {
 		name        string
@@ -212,7 +219,6 @@ func TestDeleteChapterParagraphs(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -231,7 +237,7 @@ func TestDeleteChapterParagraphs(t *testing.T) {
 	}
 }
 
-// Tests for DeleteChapters
+// Tests for DeleteChapters.
 func TestDeleteChapters(t *testing.T) {
 	testCases := []struct {
 		name     string
@@ -257,7 +263,6 @@ func TestDeleteChapters(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -276,7 +281,7 @@ func TestDeleteChapters(t *testing.T) {
 	}
 }
 
-// Tests for GetBlockCountByChapter
+// Tests for GetBlockCountByChapter.
 func TestGetBlockCountByChapter(t *testing.T) {
 	testCases := []struct {
 		name      string
@@ -293,7 +298,6 @@ func TestGetBlockCountByChapter(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -304,7 +308,7 @@ func TestGetBlockCountByChapter(t *testing.T) {
 	}
 }
 
-// Tests for CreateChapter
+// Tests for CreateChapter.
 func TestCreateChapter(t *testing.T) {
 	testCases := []struct {
 		name        string
@@ -382,7 +386,6 @@ func TestCreateChapter(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -429,7 +432,7 @@ func TestCreateChapter(t *testing.T) {
 	}
 }
 
-// Tests for EditChapter
+// Tests for EditChapter.
 func TestEditChapter(t *testing.T) {
 	testCases := []struct {
 		name        string
@@ -502,7 +505,6 @@ func TestEditChapter(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -546,16 +548,15 @@ func TestEditChapter(t *testing.T) {
 	}
 }
 
-// Benchmark tests
+// Benchmark tests.
 func BenchmarkCreateChapter(b *testing.B) {
 	mockDao := NewMockDAO()
 	chapter := models.Chapter{
-		Title:       "Benchmark Chapter",
-
+		Title: "Benchmark Chapter",
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_, _ = mockDao.CreateChapter(context.Background(), "story123", chapter, "bench@example.com")
 	}
 }
@@ -564,7 +565,7 @@ func BenchmarkGetChaptersByStoryID(b *testing.B) {
 	mockDao := NewMockDAO()
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_, _ = mockDao.GetChaptersByStoryID(context.Background(), "story123")
 	}
 }
@@ -574,7 +575,7 @@ func BenchmarkGetChaptersByStoryIDs(b *testing.B) {
 	storyIDs := []string{"story1", "story2", "story3", "story4", "story5"}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_, _ = mockDao.GetChaptersByStoryIDs(context.Background(), storyIDs)
 	}
 }

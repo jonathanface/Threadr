@@ -1,12 +1,14 @@
 package daos
 
 import (
-	"Threadr/logger"
-	"Threadr/models"
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
+
+	"Threadr/logger"
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -14,7 +16,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-func (d *DAO) CreateEmailUser(ctx context.Context, email, firstName, lastName, passwordHash, verificationToken string, tokenExpires int64) (*models.UserInfo, error) {
+func (d *DAO) CreateEmailUser(
+	ctx context.Context,
+	email, firstName, lastName, passwordHash, verificationToken string,
+	tokenExpires int64,
+) (*models.UserInfo, error) {
 	logger.Info("Creating email user", "email", email)
 
 	now := strconv.FormatInt(time.Now().Unix(), 10)
@@ -187,7 +193,9 @@ func (d *DAO) LinkOAuthAccount(ctx context.Context, email, authType string) erro
 		Key: map[string]types.AttributeValue{
 			"email": &types.AttributeValueMemberS{Value: email},
 		},
-		UpdateExpression: aws.String("SET auth_type = :a, email_verified = :v REMOVE password_hash, verification_token, verification_token_expires, reset_token, reset_token_expires"),
+		UpdateExpression: aws.String(
+			"SET auth_type = :a, email_verified = :v REMOVE password_hash, verification_token, verification_token_expires, reset_token, reset_token_expires",
+		),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":a": &types.AttributeValueMemberS{Value: authType},
 			":v": &types.AttributeValueMemberBOOL{Value: true},
@@ -210,7 +218,15 @@ func (d *DAO) RestoreDataForVerifiedUser(email string) {
 	if err == nil {
 		for _, story := range stories {
 			if err := d.RestoreStory(bgCtx, email, story.ID); err != nil {
-				logger.Warn("Failed to restore story for verified account", "email", email, "storyID", story.ID, "error", err)
+				logger.Warn(
+					"Failed to restore story for verified account",
+					"email",
+					email,
+					"storyID",
+					story.ID,
+					"error",
+					err,
+				)
 			}
 		}
 		if len(stories) > 0 {
@@ -222,7 +238,15 @@ func (d *DAO) RestoreDataForVerifiedUser(email string) {
 	if err == nil {
 		for _, s := range series {
 			if err := d.RestoreSeries(bgCtx, email, s.ID); err != nil {
-				logger.Warn("Failed to restore series for verified account", "email", email, "seriesID", s.ID, "error", err)
+				logger.Warn(
+					"Failed to restore series for verified account",
+					"email",
+					email,
+					"seriesID",
+					s.ID,
+					"error",
+					err,
+				)
 			}
 		}
 		if len(series) > 0 {
@@ -247,7 +271,7 @@ func (d *DAO) FindUserByVerificationToken(ctx context.Context, token string) (*m
 		return nil, fmt.Errorf("scan for verification token: %w", err)
 	}
 	if len(out.Items) == 0 {
-		return nil, fmt.Errorf("verification token not found")
+		return nil, errors.New("verification token not found")
 	}
 
 	var user models.UserInfo
@@ -272,7 +296,7 @@ func (d *DAO) FindUserByResetToken(ctx context.Context, token string) (*models.U
 		return nil, fmt.Errorf("scan for reset token: %w", err)
 	}
 	if len(out.Items) == 0 {
-		return nil, fmt.Errorf("reset token not found")
+		return nil, errors.New("reset token not found")
 	}
 
 	var user models.UserInfo

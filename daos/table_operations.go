@@ -1,12 +1,13 @@
 package daos
 
 import (
-	"Threadr/logger"
 	"context"
 	"errors"
 	"fmt"
 	"log"
 	"time"
+
+	"Threadr/logger"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -103,7 +104,7 @@ func (d *DAO) createBlockTable(ctx context.Context, tableName string, tags *[]ty
 				return
 			}
 			logger.Info("Waiting for backups to be enabled", "tableName", tableName)
-			time.Sleep(10 * time.Second)
+			time.Sleep(10 * time.Second) //nolint:mnd
 		}
 
 		_, err := d.DynamoClient.UpdateContinuousBackups(bgCtx, pitrInput)
@@ -131,7 +132,7 @@ func isResourceNotFound(err error) bool {
 	return false
 }
 
-// Detect TableInUse from RestoreTableFromBackup
+// Detect TableInUse from RestoreTableFromBackup.
 func isTableInUse(err error) bool {
 	var op *smithy.OperationError
 	if errors.As(err, &op) {
@@ -150,9 +151,14 @@ func isTableAlreadyExists(err error) bool {
 	return false
 }
 
-func waitForTableStatus(ctx context.Context, client dynamoDBClient, tableName, chapterName, want string, timeout time.Duration) error {
+func waitForTableStatus(
+	ctx context.Context,
+	client dynamoDBClient,
+	tableName, chapterName, want string,
+	timeout time.Duration,
+) error {
 	deadline := time.Now().Add(timeout)
-	backoff := 500 * time.Millisecond
+	backoff := 500 * time.Millisecond //nolint:mnd
 
 	for {
 		if time.Now().After(deadline) {

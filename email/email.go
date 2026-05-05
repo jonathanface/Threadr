@@ -1,11 +1,12 @@
 package email
 
 import (
-	"Threadr/logger"
 	"context"
 	"errors"
 	"os"
 	"strings"
+
+	"Threadr/logger"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -18,7 +19,7 @@ import (
 func sanitizeEmailField(s string) string {
 	s = strings.ReplaceAll(s, "\r", "")
 	s = strings.ReplaceAll(s, "\n", " ")
-	if len(s) > 256 {
+	if len(s) > 256 { //nolint:mnd
 		s = s[:256]
 	}
 	return s
@@ -49,7 +50,9 @@ func SendWelcomeEmail(toEmail string) error {
 				},
 				Body: &sesv2types.Body{
 					Text: &sesv2types.Content{
-						Data: aws.String("Thank you for signing up for RichThreadr. We're excited to have you on board!"),
+						Data: aws.String(
+							"Thank you for signing up for RichThreadr. We're excited to have you on board!",
+						),
 					},
 				},
 			},

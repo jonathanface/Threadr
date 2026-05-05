@@ -1,7 +1,6 @@
 package billing
 
 import (
-	"Threadr/models"
 	"bytes"
 	"encoding/json"
 	"io"
@@ -11,6 +10,8 @@ import (
 	"path"
 	"strings"
 	"testing"
+
+	"Threadr/models"
 
 	stripe "github.com/stripe/stripe-go/v79"
 )
@@ -28,7 +29,9 @@ func newStripeServer(t *testing.T, spec stripeRouteSpec) *httptest.Server {
 			email := r.URL.Query().Get("email")
 			resp := map[string]any{"object": "list", "data": []any{}, "has_more": false, "url": "/v1/customers"}
 			if spec.ExistingCustomerID != "" {
-				resp["data"] = []any{map[string]any{"id": spec.ExistingCustomerID, "object": "customer", "email": email}}
+				resp["data"] = []any{
+					map[string]any{"id": spec.ExistingCustomerID, "object": "customer", "email": email},
+				}
 			}
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(resp)

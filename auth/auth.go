@@ -1,12 +1,6 @@
 package auth
 
 import (
-	"Threadr/api"
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/logger"
-	"Threadr/models"
-	"Threadr/sessions"
 	"context"
 	"database/sql"
 	"encoding/gob"
@@ -21,6 +15,13 @@ import (
 	"strings"
 	"time"
 
+	"Threadr/api"
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/logger"
+	"Threadr/models"
+	"Threadr/sessions"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
 	"github.com/markbates/goth"
@@ -31,6 +32,10 @@ import (
 
 const (
 	oneDay = 24 * time.Hour
+	// mobileTokenExchangeTTL is the lifetime of the JWT we hand back during
+	// the mobile OAuth callback. The token is one-time-use (it's traded for
+	// a real session) so we keep its window short.
+	mobileTokenExchangeTTL = 5 * time.Minute
 )
 
 func init() {
@@ -38,9 +43,10 @@ func init() {
 	gob.Register(models.UserInfo{})
 }
 
-// MobileTokenClaims represents the JWT claims for mobile token exchange
+// MobileTokenClaims represents the JWT claims for mobile token exchange.
 type MobileTokenClaims struct {
 	jwt.RegisteredClaims
+
 	Email      string `json:"email"`
 	FirstName  string `json:"first_name"`
 	LastName   string `json:"last_name"`
@@ -50,7 +56,7 @@ type MobileTokenClaims struct {
 }
 
 // createSignedMobileToken creates a signed JWT for mobile token exchange
-// The token is short-lived (5 minutes) as it's only used for the OAuth callback -> session exchange
+// The token is short-lived (5 minutes) as it's only used for the OAuth callback -> session exchange.
 func createSignedMobileToken(info models.UserInfo) (string, error) {
 	secret := os.Getenv("SESSION_SECRET")
 	if secret == "" {
@@ -59,7 +65,7 @@ func createSignedMobileToken(info models.UserInfo) (string, error) {
 
 	claims := MobileTokenClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(5 * time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(mobileTokenExchangeTTL)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Issuer:    "threadr.net",
 		},
@@ -75,14 +81,14 @@ func createSignedMobileToken(info models.UserInfo) (string, error) {
 	return token.SignedString([]byte(secret))
 }
 
-// verifyMobileToken verifies and parses a signed JWT mobile token
+// verifyMobileToken verifies and parses a signed JWT mobile token.
 func verifyMobileToken(tokenString string) (*models.UserInfo, error) {
 	secret := os.Getenv("SESSION_SECRET")
 	if secret == "" {
 		return nil, errors.New("SESSION_SECRET not configured")
 	}
 
-	token, err := jwt.ParseWithClaims(tokenString, &MobileTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &MobileTokenClaims{}, func(token *jwt.Token) (any, error) {
 		// Validate signing method
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -129,7 +135,7 @@ func determineFirstName(info goth.User) string {
 	}
 	// Amazon only provides full Name — split it
 	if info.Name != "" {
-		parts := strings.SplitN(info.Name, " ", 2)
+		parts := strings.SplitN(info.Name, " ", 2) //nolint:mnd
 		return parts[0]
 	}
 	if info.NickName != "" {
@@ -144,7 +150,7 @@ func determineLastName(info goth.User) string {
 	}
 	// Amazon only provides full Name — split it
 	if info.Name != "" {
-		parts := strings.SplitN(info.Name, " ", 2)
+		parts := strings.SplitN(info.Name, " ", 2) //nolint:mnd
 		if len(parts) > 1 {
 			return parts[1]
 		}
@@ -154,7 +160,7 @@ func determineLastName(info goth.User) string {
 
 // safeMobileRedirect validates mobile deep link URLs to prevent open redirect attacks.
 // For minithreadr://, only allows the "auth" host (minithreadr://auth/...)
-// For exp://, only allows localhost and private IP ranges (for development)
+// For exp://, only allows localhost and private IP ranges (for development).
 func safeMobileRedirect(dest string) (string, bool) {
 	u, err := url.Parse(dest)
 	if err != nil {
@@ -186,7 +192,7 @@ func safeMobileRedirect(dest string) (string, bool) {
 	}
 }
 
-// isLocalOrPrivateHost checks if a host is localhost or a private IP address
+// isLocalOrPrivateHost checks if a host is localhost or a private IP address.
 func isLocalOrPrivateHost(host string) bool {
 	// Allow localhost
 	if host == "localhost" || host == "127.0.0.1" || host == "::1" {
@@ -196,7 +202,7 @@ func isLocalOrPrivateHost(host string) bool {
 	// Parse as IP and check for private ranges
 	// Private ranges: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
 	parts := strings.Split(host, ".")
-	if len(parts) != 4 {
+	if len(parts) != 4 { //nolint:mnd
 		return false
 	}
 
@@ -217,15 +223,15 @@ func isLocalOrPrivateHost(host string) bool {
 	return false
 }
 
-// parseOctet parses a string as an IP octet (0-255)
+// parseOctet parses a string as an IP octet (0-255).
 func parseOctet(s string) (int, error) {
 	var n int
 	for _, c := range s {
 		if c < '0' || c > '9' {
 			return 0, errors.New("invalid octet")
 		}
-		n = n*10 + int(c-'0')
-		if n > 255 {
+		n = n*10 + int(c-'0') //nolint:mnd
+		if n > 255 {          //nolint:mnd
 			return 0, errors.New("octet overflow")
 		}
 	}
@@ -263,7 +269,17 @@ func safeRedirect(dest, defaultURL string, allowed []string) string {
 	logger.Debug("safeRedirect: checking against allowed origins", "destScheme", u.Scheme, "destHost", u.Host)
 	for _, origin := range allowed {
 		a, _ := url.Parse(origin)
-		logger.Debug("safeRedirect: comparing", "destScheme", u.Scheme, "allowedScheme", a.Scheme, "destHost", u.Host, "allowedHost", a.Host)
+		logger.Debug(
+			"safeRedirect: comparing",
+			"destScheme",
+			u.Scheme,
+			"allowedScheme",
+			a.Scheme,
+			"destHost",
+			u.Host,
+			"allowedHost",
+			a.Host,
+		)
 		if strings.EqualFold(u.Scheme, a.Scheme) && strings.EqualFold(u.Host, a.Host) {
 			// ok: preserve path/query from dest
 			logger.Info("safeRedirect: MATCH found, allowing redirect", "dest", u.String())
@@ -317,22 +333,48 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 
 	userDetails, err := dao.GetUserDetails(r.Context(), info.Email)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			logger.Info("New user detected, creating account", "email", info.Email, "provider", provider, "remoteAddr", r.RemoteAddr)
+		if errors.Is(err, sql.ErrNoRows) {
+			logger.Info(
+				"New user detected, creating account",
+				"email",
+				info.Email,
+				"provider",
+				provider,
+				"remoteAddr",
+				r.RemoteAddr,
+			)
 			if userDetails, err = dao.CreateUser(r.Context(), info.Email); err != nil {
 				logger.Error("Failed to create new user", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
 				logger.Error("Internal error", "error", err)
-		api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
+				api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
 			// Check if this is a brand new user or a returning deleted user
 			isNewUser = userDetails.NewUser
 			isReturningUser = userDetails.ReturningUser
-			logger.Info("User created successfully", "email", info.Email, "newUser", isNewUser, "returningUser", isReturningUser, "remoteAddr", r.RemoteAddr)
+			logger.Info(
+				"User created successfully",
+				"email",
+				info.Email,
+				"newUser",
+				isNewUser,
+				"returningUser",
+				isReturningUser,
+				"remoteAddr",
+				r.RemoteAddr,
+			)
 		} else {
-			logger.Error("Failed to retrieve user details", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
+			logger.Error(
+				"Failed to retrieve user details",
+				"error",
+				err,
+				"email",
+				info.Email,
+				"remoteAddr",
+				r.RemoteAddr,
+			)
 			logger.Error("Internal error", "error", err)
-		api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
+			api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
 	}
@@ -361,7 +403,15 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 			Subscriber: userDetails.Subscriber,
 		}
 		if err := dao.UpdateUser(r.Context(), updateInfo); err != nil {
-			logger.Warn("Failed to update user name information", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
+			logger.Warn(
+				"Failed to update user name information",
+				"error",
+				err,
+				"email",
+				info.Email,
+				"remoteAddr",
+				r.RemoteAddr,
+			)
 			// Continue even if name update fails - not critical
 		}
 	}
@@ -441,25 +491,61 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 					logger.Info("Validated mobile redirect URL from session", "url", validURL)
 					next = validURL
 				} else {
-					logger.Warn("Rejected invalid mobile redirect URL from session", "url", ref, "remoteAddr", r.RemoteAddr)
+					logger.Warn(
+						"Rejected invalid mobile redirect URL from session",
+						"url",
+						ref,
+						"remoteAddr",
+						r.RemoteAddr,
+					)
 					next = frontend
 				}
 			} else {
 				next = safeRedirect(ref, frontend, allowedOrigins)
 			}
-			logger.Info("After safeRedirect from session", "next", next, "frontend", frontend, "remoteAddr", r.RemoteAddr)
+			logger.Info(
+				"After safeRedirect from session",
+				"next",
+				next,
+				"frontend",
+				frontend,
+				"remoteAddr",
+				r.RemoteAddr,
+			)
 		}
 		// Clear the one-time referral cookie now that we've used it
 		_ = sessions.Delete(w, r, "login_referral")
 	} else {
-		logger.Info("No next parameter or referrer found, using default frontend", "frontend", frontend, "remoteAddr", r.RemoteAddr)
+		logger.Info(
+			"No next parameter or referrer found, using default frontend",
+			"frontend",
+			frontend,
+			"remoteAddr",
+			r.RemoteAddr,
+		)
 	}
 
 	updated, err := dao.IsUserSubscribed(r.Context(), *userDetails)
 	if err != nil {
-		logger.Error("Failed to check subscription status", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
+		logger.Error(
+			"Failed to check subscription status",
+			"error",
+			err,
+			"email",
+			info.Email,
+			"remoteAddr",
+			r.RemoteAddr,
+		)
 	} else {
-		logger.Debug("Subscription status checked", "email", info.Email, "subscriber", updated.Subscriber, "remoteAddr", r.RemoteAddr)
+		logger.Debug(
+			"Subscription status checked",
+			"email",
+			info.Email,
+			"subscriber",
+			updated.Subscriber,
+			"remoteAddr",
+			r.RemoteAddr,
+		)
 		// persist Subscriber flip only when changed
 		if userDetails.Subscriber != updated.Subscriber {
 			logger.Info("Subscription status changed",
@@ -468,9 +554,17 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 				"newStatus", updated.Subscriber,
 				"remoteAddr", r.RemoteAddr)
 			if err := dao.UpdateUser(r.Context(), *updated); err != nil {
-				logger.Error("Failed to update user subscription status", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
+				logger.Error(
+					"Failed to update user subscription status",
+					"error",
+					err,
+					"email",
+					info.Email,
+					"remoteAddr",
+					r.RemoteAddr,
+				)
 				logger.Error("Internal error", "error", err)
-		api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
+				api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
 		}
@@ -517,15 +611,24 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 		if updated.Subscriber {
 			sub, subErr := dao.GetSubscription(r.Context(), info.Email)
 			if subErr == nil && !sub.CurrentSubscriptionEnd.IsZero() {
-				daysLeft := int(time.Until(sub.CurrentSubscriptionEnd).Hours() / 24)
+				daysLeft := int(time.Until(sub.CurrentSubscriptionEnd).Hours() / 24) //nolint:mnd
 				if daysLeft >= 0 && daysLeft <= 7 {
 					go func() {
 						bgCtx := context.Background()
 						// Dedup: use a fixed ID so we don't spam on every login
 						alert := models.Alert{
-							ID:          "sub-expiring-" + info.Email,
-							Subject:     "Subscription Expiring Soon",
-							Message:     fmt.Sprintf("Your subscription expires in %d day%s. Renew to keep access to premium features.", daysLeft, func() string { if daysLeft != 1 { return "s" } ; return "" }()),
+							ID:      "sub-expiring-" + info.Email,
+							Subject: "Subscription Expiring Soon",
+							Message: fmt.Sprintf(
+								"Your subscription expires in %d day%s. Renew to keep access to premium features.",
+								daysLeft,
+								func() string {
+									if daysLeft != 1 {
+										return "s"
+									}
+									return ""
+								}(),
+							),
 							Link:        "/account/subscription",
 							AlertType:   models.AlertTypePersonal,
 							TargetEmail: info.Email,
@@ -533,7 +636,13 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 							CreatedBy:   "system",
 						}
 						if aErr := dao.CreateAlert(bgCtx, alert); aErr != nil {
-							logger.Error("Failed to create subscription expiring alert", "error", aErr, "email", info.Email)
+							logger.Error(
+								"Failed to create subscription expiring alert",
+								"error",
+								aErr,
+								"email",
+								info.Email,
+							)
 						}
 					}()
 				}
@@ -689,7 +798,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	http.Redirect(w, r, next, http.StatusTemporaryRedirect)
 }
 
-// MobileSessionHandler exchanges a mobile token for a session token
+// MobileSessionHandler exchanges a mobile token for a session token.
 func MobileSessionHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Get token from request body
@@ -740,7 +849,7 @@ func MobileSessionHandler() http.HandlerFunc {
 
 		// Return success with session token
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		json.NewEncoder(w).Encode(map[string]any{
 			"success":      true,
 			"user":         userData,
 			"sessionToken": sessionToken,
@@ -760,12 +869,20 @@ func loginWithOptions(w http.ResponseWriter, r *http.Request, options OauthOptio
 
 	sess, err := sessions.Get(r, "login_referral")
 	if err != nil {
-		logger.Error("Failed to get login_referral session", "error", err, "provider", provider, "remoteAddr", r.RemoteAddr)
+		logger.Error(
+			"Failed to get login_referral session",
+			"error",
+			err,
+			"provider",
+			provider,
+			"remoteAddr",
+			r.RemoteAddr,
+		)
 	}
 
 	// Use shared options, then set TTL
 	opts := sessions.OptionsFor(r)
-	opts.MaxAge = int((5 * time.Minute).Seconds())
+	opts.MaxAge = int(mobileTokenExchangeTTL.Seconds())
 	sess.Options = opts
 
 	next := r.URL.Query().Get("next")
@@ -775,7 +892,15 @@ func loginWithOptions(w http.ResponseWriter, r *http.Request, options OauthOptio
 	sess.Values["referrer"] = next
 
 	if err = sess.Save(r, w); err != nil {
-		logger.Error("Failed to save login_referral session", "error", err, "provider", provider, "remoteAddr", r.RemoteAddr)
+		logger.Error(
+			"Failed to save login_referral session",
+			"error",
+			err,
+			"provider",
+			provider,
+			"remoteAddr",
+			r.RemoteAddr,
+		)
 		logger.Error("Internal error", "error", err)
 		api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return

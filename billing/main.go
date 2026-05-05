@@ -5,7 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"Threadr/logger"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -13,6 +13,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"Threadr/logger"
 
 	stripe "github.com/stripe/stripe-go/v79"
 	"github.com/stripe/stripe-go/v79/subscription"
@@ -25,7 +27,7 @@ import (
 	"github.com/stripe/stripe-go/v79/billingportal/session"
 )
 
-// stubs to make these funcs mockable in tests
+// stubs to make these funcs mockable in tests.
 var getUserEmailFn = getUserEmail
 var ensureCustomerFn = ensureCustomer
 
@@ -102,10 +104,13 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 		err error
 	)
 	daoOptions := daos.Options{
-		Region:                     getenv("AWS_REGION", DEFAULT_AWS_REGION),
-		MaxRetries:                 atoiDefault(os.Getenv("AWS_MAX_RETRIES"), DEFAULT_MAX_RETRIES),
-		BlockTableMinWriteCapacity: atoiDefault(os.Getenv("AWS_BLOCKTABLE_MIN_WRITE_CAPACITY"), DEFAULT_AWS_BLOCK_WRITE_CAPACITY),
-		WriteBatchSize:             atoiDefault(os.Getenv("DYNAMO_WRITE_BATCH_SIZE"), DEFAULT_DYNAMO_WRITE_BATCH_SIZE),
+		Region:     getenv("AWS_REGION", DEFAULT_AWS_REGION),
+		MaxRetries: atoiDefault(os.Getenv("AWS_MAX_RETRIES"), DEFAULT_MAX_RETRIES),
+		BlockTableMinWriteCapacity: atoiDefault(
+			os.Getenv("AWS_BLOCKTABLE_MIN_WRITE_CAPACITY"),
+			DEFAULT_AWS_BLOCK_WRITE_CAPACITY,
+		),
+		WriteBatchSize: atoiDefault(os.Getenv("DYNAMO_WRITE_BATCH_SIZE"), DEFAULT_DYNAMO_WRITE_BATCH_SIZE),
 	}
 	dao, err := daos.NewDAO(context.Background(), daoOptions)
 	if err != nil {
@@ -134,7 +139,7 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 		var sub stripe.Subscription
 		if err := json.NewDecoder(bytes.NewReader(event.Data.Raw)).Decode(&sub); err != nil {
 			logger.Error("Bad request", "error", err)
-		RespondWithError(w, http.StatusBadRequest, "Invalid request")
+			RespondWithError(w, http.StatusBadRequest, "Invalid request")
 			return
 		}
 
@@ -157,14 +162,14 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 			CurrentSubscriptionEnd: time.Unix(sub.CurrentPeriodEnd, 0).UTC(),
 		}); err != nil {
 			logger.Error("Internal error", "error", err)
-		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
+			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
 
 		user, err = dao.GetUserDetails(context.Background(), email)
 		if err != nil {
 			logger.Error("Internal error", "error", err)
-		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
+			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
 
@@ -172,13 +177,17 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 
 		if isActive && !user.Subscriber {
 			user.Subscriber = true
-			if wasSuspended, err := dao.CheckForSuspendedStories(context.Background(), user.Email); err == nil && wasSuspended {
+			if wasSuspended, err := dao.CheckForSuspendedStories(
+				context.Background(),
+				user.Email,
+			); err == nil &&
+				wasSuspended {
 				needsRestore = true
 				user.NotifyRestored = true
 			} else if err != nil {
 				// validation/state still not ACKed yet, so we can error out
 				logger.Error("Internal error", "error", err)
-		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
+				RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
 		} else if !isActive && user.Subscriber {
@@ -187,9 +196,9 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 
 			// suspend others (async fan-out OK)
 			stories, err := dao.GetAllStories(context.Background(), user.Email)
-			if err != nil && err != sql.ErrNoRows {
+			if err != nil && !errors.Is(err, sql.ErrNoRows) {
 				logger.Error("Internal error", "error", err)
-		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
+				RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
 			for idx, s := range stories {
@@ -201,7 +210,7 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 
 		if err := dao.UpdateUser(context.Background(), *user); err != nil {
 			logger.Error("Internal error", "error", err)
-		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
+			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
 
@@ -214,7 +223,7 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	if needsRestore {
 		go func(email string) {
-			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute) //nolint:mnd
 			defer cancel()
 
 			events, err := dao.RestoreAutomaticallyDeletedStories(ctx, email)
@@ -242,7 +251,6 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
-
 	priceID := os.Getenv("STRIPE_PRICE_ID")
 	if len(priceID) == 0 {
 		RespondWithError(w, http.StatusInternalServerError, "missing stripe price id")
@@ -273,7 +281,7 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sub, err := dao.GetSubscription(r.Context(), email)
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to load subscription")
 		return
 	}
@@ -291,7 +299,11 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		log.Printf("[SubscribeCustomer] Checking existing subscription %s for %s", sub.SubscriptionID, email)
 		existingSub, err := subscription.Get(sub.SubscriptionID, nil)
 		if err == nil && existingSub.Status == stripe.SubscriptionStatusIncomplete {
-			log.Printf("[SubscribeCustomer] Reusing existing incomplete subscription %s for %s", sub.SubscriptionID, email)
+			log.Printf(
+				"[SubscribeCustomer] Reusing existing incomplete subscription %s for %s",
+				sub.SubscriptionID,
+				email,
+			)
 			// Reuse the existing incomplete subscription
 			s = existingSub
 		} else if err != nil {
@@ -316,7 +328,7 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		s, err = subscription.New(params)
 		if err != nil {
 			logger.Error("Internal error", "error", err)
-		http.Error(w, "An internal error occurred", 500)
+			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
 			return
 		}
 		log.Printf("[SubscribeCustomer] Created new subscription %s for %s", s.ID, email)
@@ -331,7 +343,7 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		})
 		if err != nil {
 			logger.Error("Internal error", "error", err)
-		http.Error(w, "An internal error occurred", 500)
+			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
 			return
 		}
 	}
@@ -390,7 +402,7 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sub, err := dao.GetSubscription(r.Context(), email)
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to load user")
 		return
 	}
@@ -409,7 +421,13 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusInternalServerError, "unable to retrieve subscription from stripe")
 			return
 		}
-		log.Printf("[BillingSummary] Retrieved subscription %s for %s - Status: %s, Customer: %s", stripeSub.ID, email, stripeSub.Status, stripeSub.Customer.ID)
+		log.Printf(
+			"[BillingSummary] Retrieved subscription %s for %s - Status: %s, Customer: %s",
+			stripeSub.ID,
+			email,
+			stripeSub.Status,
+			stripeSub.Customer.ID,
+		)
 
 		var custID string
 		if stripeSub.Customer != nil && stripeSub.Customer.ID != "" {
@@ -432,7 +450,11 @@ func BillingSummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 		if !cpeTime.IsZero() {
 			cpe = cpeTime.Format(time.RFC3339)
 		}
-		log.Printf("[BillingSummary] Returning subscription status: %s, CancelAtPeriodEnd: %v", stripeSub.Status, stripeSub.CancelAtPeriodEnd)
+		log.Printf(
+			"[BillingSummary] Returning subscription status: %s, CancelAtPeriodEnd: %v",
+			stripeSub.Status,
+			stripeSub.CancelAtPeriodEnd,
+		)
 		RespondWithJson(w, http.StatusOK, map[string]any{
 			"id":                stripeSub.ID,
 			"status":            stripeSub.Status,
@@ -472,7 +494,7 @@ func BillingPortalSessionEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sub, err := dao.GetSubscription(r.Context(), email)
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to load user")
 		return
 	}
@@ -506,7 +528,7 @@ func BillingPortalSessionEndpoint(w http.ResponseWriter, r *http.Request) {
 		err = dao.UpdateSubscription(r.Context(), *sub)
 		if err != nil {
 			logger.Error("Failed to update subscription", "error", err)
-		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
+			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
 	}

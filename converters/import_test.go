@@ -2,7 +2,7 @@ package converters
 
 import (
 	"encoding/json"
-	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -112,18 +112,18 @@ func TestHtmlToLexicalBlocks(t *testing.T) {
 		if len(blocks) == 0 {
 			t.Fatal("Expected at least 1 block")
 		}
-		var node map[string]interface{}
+		var node map[string]any
 		if err := json.Unmarshal(blocks[0].Chunk, &node); err != nil {
 			t.Fatalf("Chunk is not valid JSON: %v", err)
 		}
 		if node["type"] != "paragraph" {
 			t.Errorf("Expected type 'paragraph', got '%v'", node["type"])
 		}
-		children, ok := node["children"].([]interface{})
+		children, ok := node["children"].([]any)
 		if !ok || len(children) == 0 {
 			t.Fatal("Expected children array with content")
 		}
-		textNode := children[0].(map[string]interface{})
+		textNode := children[0].(map[string]any)
 		if textNode["text"] != "Hello world" {
 			t.Errorf("Expected text 'Hello world', got '%v'", textNode["text"])
 		}
@@ -135,10 +135,10 @@ func TestHtmlToLexicalBlocks(t *testing.T) {
 		if len(blocks) == 0 {
 			t.Fatal("Expected at least 1 block")
 		}
-		var node map[string]interface{}
+		var node map[string]any
 		json.Unmarshal(blocks[0].Chunk, &node)
-		children := node["children"].([]interface{})
-		textNode := children[0].(map[string]interface{})
+		children := node["children"].([]any)
+		textNode := children[0].(map[string]any)
 		format := int(textNode["format"].(float64))
 		if format != 1 {
 			t.Errorf("Expected format 1 (bold), got %d", format)
@@ -148,10 +148,10 @@ func TestHtmlToLexicalBlocks(t *testing.T) {
 	t.Run("handles italic formatting", func(t *testing.T) {
 		html := `<em>Italic text</em>`
 		blocks := htmlToLexicalBlocks(html, false)
-		var node map[string]interface{}
+		var node map[string]any
 		json.Unmarshal(blocks[0].Chunk, &node)
-		children := node["children"].([]interface{})
-		textNode := children[0].(map[string]interface{})
+		children := node["children"].([]any)
+		textNode := children[0].(map[string]any)
 		format := int(textNode["format"].(float64))
 		if format != 2 {
 			t.Errorf("Expected format 2 (italic), got %d", format)
@@ -169,7 +169,7 @@ func TestHtmlToLexicalBlocks(t *testing.T) {
 		html := `<p>One</p><p>Two</p><p>Three</p>`
 		blocks := htmlToLexicalBlocks(html, false)
 		for i, block := range blocks {
-			expected := fmt.Sprintf("%d", i)
+			expected := strconv.Itoa(i)
 			if block.Place != expected {
 				t.Errorf("Block %d: expected place '%s', got '%s'", i, expected, block.Place)
 			}
@@ -213,10 +213,10 @@ func TestHtmlToLexicalBlocks_WithTabs(t *testing.T) {
 		if len(blocks) == 0 {
 			t.Fatal("Expected at least 1 block")
 		}
-		var node map[string]interface{}
+		var node map[string]any
 		json.Unmarshal(blocks[0].Chunk, &node)
-		children := node["children"].([]interface{})
-		firstChild := children[0].(map[string]interface{})
+		children := node["children"].([]any)
+		firstChild := children[0].(map[string]any)
 		text := firstChild["text"].(string)
 		if !strings.HasPrefix(text, "\t") {
 			t.Errorf("Expected text to start with tab char, got: %q", text)
@@ -229,10 +229,10 @@ func TestHtmlToLexicalBlocks_WithTabs(t *testing.T) {
 		if len(blocks) == 0 {
 			t.Fatal("Expected at least 1 block")
 		}
-		var node map[string]interface{}
+		var node map[string]any
 		json.Unmarshal(blocks[0].Chunk, &node)
-		children := node["children"].([]interface{})
-		firstChild := children[0].(map[string]interface{})
+		children := node["children"].([]any)
+		firstChild := children[0].(map[string]any)
 		text := firstChild["text"].(string)
 		if strings.HasPrefix(text, "\t") {
 			t.Errorf("Expected no tab prefix, got: %q", text)

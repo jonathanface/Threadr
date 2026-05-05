@@ -1,19 +1,22 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/logger"
-	"Threadr/models"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/logger"
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -23,7 +26,7 @@ import (
 )
 
 // deleteS3Image deletes an image from S3 given its full URL
-// Returns nil if successful or if the URL is empty/default
+// Returns nil if successful or if the URL is empty/default.
 func deleteS3Image(imageURL, bucket string) error {
 	if imageURL == "" {
 		return nil
@@ -38,7 +41,7 @@ func deleteS3Image(imageURL, bucket string) error {
 	// Extract the key (filename) from the URL
 	// URL format: https://bucket.s3.region.amazonaws.com/filename
 	parts := strings.Split(imageURL, "/")
-	if len(parts) < 4 {
+	if len(parts) < 4 { //nolint:mnd
 		logger.Warn("Invalid S3 URL format, skipping deletion", "url", imageURL)
 		return nil
 	}
@@ -123,7 +126,7 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		err := json.Unmarshal([]byte(storiesJSON), &stories)
 		if err != nil {
 			logger.Error("Bad request", "error", err)
-		RespondWithError(w, http.StatusBadRequest, "Invalid request")
+			RespondWithError(w, http.StatusBadRequest, "Invalid request")
 			return
 		}
 		for idx, fromForm := range stories {
@@ -150,7 +153,7 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	const maxFileSize = 5 * 1024 * 1024 // 5 MB
+	const maxFileSize = 5 * oneMB * oneMB // 5 MB
 	// image upload
 	err = r.ParseMultipartForm(10 << 20)
 	if err != nil {
@@ -160,9 +163,9 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	file, handler, err := r.FormFile("file")
 	if err != nil {
-		if err != http.ErrMissingFile {
+		if !errors.Is(err, http.ErrMissingFile) {
 			logger.Error("Bad request", "error", err)
-		RespondWithError(w, http.StatusBadRequest, "Invalid request")
+			RespondWithError(w, http.StatusBadRequest, "Invalid request")
 			return
 		}
 	}
@@ -170,7 +173,7 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		defer file.Close()
 
 		// Delete the old image before uploading the new one
-		if err := deleteS3Image(series.ImageURL, S3_SERIES_IMAGE_BUCKET); err != nil {
+		if err := deleteS3Image(series.ImageURL, s3SeriesImageBucket); err != nil {
 			logger.Warn("Failed to delete old series image, continuing with upload",
 				"error", err,
 				"seriesId", seriesID,
@@ -178,7 +181,11 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if handler.Size < 0 || handler.Size > maxFileSize {
-			RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("File size exceeds allowed limit of %dMB", maxFileSize/(1024*1024)))
+			RespondWithError(
+				w,
+				http.StatusBadRequest,
+				fmt.Sprintf("File size exceeds allowed limit of %dMB", maxFileSize/(oneMB*oneMB)),
+			)
 			return
 		}
 		allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
@@ -189,13 +196,7 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		fileType := http.DetectContentType(fileBytes)
-		allowed := false
-		for _, t := range allowedTypes {
-			if fileType == t {
-				allowed = true
-				break
-			}
-		}
+		allowed := slices.Contains(allowedTypes, fileType)
 		if !allowed {
 			RespondWithError(w, http.StatusBadRequest, "Invalid file type")
 			return
@@ -214,7 +215,11 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 		// Check the size of the scaled image
 		if scaledImageBuf.Len() > maxFileSize {
-			RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Filesize must be < %dMB", maxFileSize/(1024*1024)))
+			RespondWithError(
+				w,
+				http.StatusBadRequest,
+				fmt.Sprintf("Filesize must be < %dMB", maxFileSize/(oneMB*oneMB)),
+			)
 			return
 		}
 
@@ -234,7 +239,7 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 		s3Client := s3.NewFromConfig(awsCfg)
 		if _, err = s3Client.PutObject(context.Background(), &s3.PutObjectInput{
-			Bucket:      aws.String(S3_SERIES_IMAGE_BUCKET),
+			Bucket:      aws.String(s3SeriesImageBucket),
 			Key:         aws.String(filename),
 			Body:        scaledImageBuf,
 			ContentType: aws.String(fileType),
@@ -243,12 +248,15 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
-		series.ImageURL = "https://" + S3_SERIES_IMAGE_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
+		series.ImageURL = "https://" + s3SeriesImageBucket + ".s3." + os.Getenv(
+			"AWS_REGION",
+		) + ".amazonaws.com/" + filename
 	}
 
 	var updatedSeries models.Series
 	if updatedSeries, err = dao.EditSeries(r.Context(), email, *series); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -314,7 +322,8 @@ func RemoveStoryFromSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	var updatedSeries models.Series
 	if updatedSeries, err = dao.RemoveStoryFromSeries(r.Context(), email, story.ID, *series); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -389,7 +398,7 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		story.SeriesID = ""
 	}
 
-	const maxFileSize = 5 * 1024 * 1024 // 5 MB
+	const maxFileSize = 5 * oneMB * oneMB // 5 MB
 	// image upload
 	err = r.ParseMultipartForm(10 << 20)
 	if err != nil {
@@ -399,9 +408,9 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	file, handler, err := r.FormFile("file")
 	if err != nil {
-		if err != http.ErrMissingFile {
+		if !errors.Is(err, http.ErrMissingFile) {
 			logger.Error("Bad request", "error", err)
-		RespondWithError(w, http.StatusBadRequest, "Invalid request")
+			RespondWithError(w, http.StatusBadRequest, "Invalid request")
 			return
 		}
 	}
@@ -409,7 +418,7 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		defer file.Close()
 
 		// Delete the old image before uploading the new one
-		if err := deleteS3Image(story.ImageURL, S3_STORY_IMAGE_BUCKET); err != nil {
+		if err := deleteS3Image(story.ImageURL, s3StoryImagebucket); err != nil {
 			logger.Warn("Failed to delete old story image, continuing with upload",
 				"error", err,
 				"storyId", storyID,
@@ -418,7 +427,11 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 
 		allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
 		if handler.Size < 0 || handler.Size > int64(maxFileSize) {
-			RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("File size exceeds allowed limit of %dMB", maxFileSize/(1024*1024)))
+			RespondWithError(
+				w,
+				http.StatusBadRequest,
+				fmt.Sprintf("File size exceeds allowed limit of %dMB", maxFileSize/(oneMB*oneMB)),
+			)
 			return
 		}
 		fileBytes := make([]byte, handler.Size)
@@ -428,13 +441,7 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		fileType := http.DetectContentType(fileBytes)
-		allowed := false
-		for _, t := range allowedTypes {
-			if fileType == t {
-				allowed = true
-				break
-			}
-		}
+		allowed := slices.Contains(allowedTypes, fileType)
 		if !allowed {
 			RespondWithError(w, http.StatusBadRequest, "Invalid file type")
 			return
@@ -453,7 +460,11 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 		// Check the size of the scaled image
 		if scaledImageBuf.Len() > maxFileSize {
-			RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Filesize must be < %dMB", maxFileSize/(1024*1024)))
+			RespondWithError(
+				w,
+				http.StatusBadRequest,
+				fmt.Sprintf("Filesize must be < %dMB", maxFileSize/(oneMB*oneMB)),
+			)
 			return
 		}
 
@@ -473,7 +484,7 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 		s3Client := s3.NewFromConfig(awsCfg)
 		if _, err = s3Client.PutObject(context.Background(), &s3.PutObjectInput{
-			Bucket:      aws.String(S3_STORY_IMAGE_BUCKET),
+			Bucket:      aws.String(s3StoryImagebucket),
 			Key:         aws.String(filename),
 			Body:        scaledImageBuf,
 			ContentType: aws.String(fileType),
@@ -482,12 +493,15 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
-		story.ImageURL = "https://" + S3_STORY_IMAGE_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
+		story.ImageURL = "https://" + s3StoryImagebucket + ".s3." + os.Getenv(
+			"AWS_REGION",
+		) + ".amazonaws.com/" + filename
 	}
 
 	var updatedStory models.Story
 	if updatedStory, err = dao.EditStory(r.Context(), email, *story); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)

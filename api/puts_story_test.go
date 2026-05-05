@@ -1,9 +1,6 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -13,6 +10,10 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
@@ -553,7 +554,7 @@ func TestEditStorySettingsEndPoint_Success(t *testing.T) {
 func TestEditStorySettingsEndPoint_InvalidJSON(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
-	req := createTestRequestWithSession("PUT", "/story/story123/settings", bytes.NewBuffer([]byte("invalid json")))
+	req := createTestRequestWithSession("PUT", "/story/story123/settings", bytes.NewBufferString("invalid json"))
 	req = mux.SetURLVars(req, map[string]string{"storyID": "story123"})
 	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
 
@@ -612,8 +613,8 @@ func TestEditStoryEndpoint_InvalidTitle(t *testing.T) {
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	// Create a title that's too long (over 256 chars)
-	longTitle := strings.Repeat("a", 257)
+	// Create a title that's too long
+	longTitle := strings.Repeat("a", maxTitleLength+1)
 	writer.WriteField("title", longTitle)
 	writer.Close()
 

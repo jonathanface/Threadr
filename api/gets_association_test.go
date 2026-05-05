@@ -1,15 +1,16 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
@@ -164,7 +165,7 @@ func TestAssociationDetailsEndpoint_AWSError(t *testing.T) {
 	}
 }
 
-// Tests for AllAssociationThumbnailsByStoryEndPoint
+// Tests for AllAssociationThumbnailsByStoryEndPoint.
 func TestAllAssociationThumbnailsByStoryEndPoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	mockDAO.MockGetStoryOrSeriesAssociationThumbnails = func(email, storyID string) ([]*models.SimplifiedAssociation, error) {

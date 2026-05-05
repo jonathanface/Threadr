@@ -1,17 +1,18 @@
 package daos
 
 import (
-	"Threadr/models"
 	"context"
 	"errors"
 	"testing"
+
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 )
 
 // (Similarly, if you need to mock DAO.DynamoClient.UpdateItem, you can override or define an interface)
 
-// setupTest can run before each subtest
+// setupTest can run before each subtest.
 func setupTest(t *testing.T, testName string) func() {
 	// E.g. connect to test DB, set up environment, etc.
 	// Here we just print for illustration
@@ -82,7 +83,6 @@ func TestWriteAssociations(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
 			teardown := setupTest(t, tc.name)
 			defer teardown()
@@ -98,7 +98,9 @@ func TestWriteAssociations(t *testing.T) {
 					if tc.mockAwsWriteErr != nil {
 						return nil, errors.New(tc.expectedErrContains)
 					}
-					return nil, errors.New("AWSERROR-- Code:" + tc.mockAwsWriteAwsErr.Code + ", Type: " + tc.mockAwsWriteAwsErr.ErrorType + ", Message: " + tc.mockAwsWriteAwsErr.Text)
+					return nil, errors.New(
+						"AWSERROR-- Code:" + tc.mockAwsWriteAwsErr.Code + ", Type: " + tc.mockAwsWriteAwsErr.ErrorType + ", Message: " + tc.mockAwsWriteAwsErr.Text,
+					)
 				}
 			}
 			err := mockDao.WriteAssociations(context.Background(), tc.email, tc.storyOrSeriesID, tc.associations)
@@ -148,7 +150,6 @@ func TestUpdateAssociationPortraitEntryInDB(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			teardown := setupTest(t, tc.name)
 			defer teardown()
@@ -163,7 +164,13 @@ func TestUpdateAssociationPortraitEntryInDB(t *testing.T) {
 				}
 			}
 
-			err := mockDao.UpdateAssociationPortraitEntryInDB(context.Background(), tc.email, tc.storyOrID, tc.assocID, tc.newURL)
+			err := mockDao.UpdateAssociationPortraitEntryInDB(
+				context.Background(),
+				tc.email,
+				tc.storyOrID,
+				tc.assocID,
+				tc.newURL,
+			)
 			if tc.wantErr {
 				if err == nil {
 					t.Errorf("Expected error but got nil")
@@ -206,7 +213,6 @@ func TestDeleteAssociations(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			teardown := setupTest(t, tc.name)
 			defer teardown()
@@ -253,7 +259,6 @@ func TestGetAssociationDetails(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			teardown := setupTest(t, tc.name)
 			defer teardown()
@@ -298,7 +303,6 @@ func TestGetStoryOrSeriesAssociationThumbnails(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			teardown := setupTest(t, tc.name)
 			defer teardown()
@@ -323,7 +327,7 @@ func TestGetStoryOrSeriesAssociationThumbnails(t *testing.T) {
 	}
 }
 
-// contains is a small helper for substring checks
+// contains is a small helper for substring checks.
 func contains(haystack, needle string) bool {
 	return len(haystack) >= len(needle) && (func() bool {
 		// or simply strings.Contains if you prefer

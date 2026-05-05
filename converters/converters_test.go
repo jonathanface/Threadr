@@ -170,7 +170,6 @@ func TestDetab_TableDriven(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			got := detab(tc.in, tc.tabWidth)
 			if got != tc.want {
@@ -182,7 +181,7 @@ func TestDetab_TableDriven(t *testing.T) {
 
 func TestSafeTimestampFormat(t *testing.T) {
 	re := regexp.MustCompile(`^\d{8}T\d{6}Z$`)
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		ts := safeTimestamp()
 		if !re.MatchString(ts) {
 			t.Fatalf("safeTimestamp() = %q; want format YYYYMMDDThhmmssZ", ts)

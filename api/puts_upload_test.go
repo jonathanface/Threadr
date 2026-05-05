@@ -1,8 +1,6 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
 	"bytes"
 	"context"
 	"database/sql"
@@ -14,6 +12,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+
 	"github.com/gorilla/mux"
 )
 
@@ -21,7 +22,7 @@ func init() {
 	SetupTestSession()
 }
 
-// createTestImage creates a small test PNG image
+// createTestImage creates a small test PNG image.
 func createTestImage(width, height int) *bytes.Buffer {
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	buf := new(bytes.Buffer)

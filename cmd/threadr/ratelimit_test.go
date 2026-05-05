@@ -26,7 +26,7 @@ func TestRateLimiterAllow(t *testing.T) {
 	}
 
 	// Multiple requests within limit should be allowed
-	for i := 0; i < 50; i++ {
+	for i := range 50 {
 		if !rl.allow("192.168.1.1") {
 			t.Errorf("Request %d should be allowed", i+2)
 		}
@@ -43,7 +43,7 @@ func TestRateLimiterExceedsLimit(t *testing.T) {
 	ip := "192.168.1.2"
 
 	// Fill up the rate limit
-	for i := 0; i < maxRequestsPerMinute; i++ {
+	for i := range maxRequestsPerMinute {
 		if !rl.allow(ip) {
 			t.Fatalf("Request %d should be allowed", i+1)
 		}
@@ -63,7 +63,7 @@ func TestRateLimiterMultipleIPs(t *testing.T) {
 	ip2 := "192.168.1.4"
 
 	// Fill limit for first IP
-	for i := 0; i < maxRequestsPerMinute; i++ {
+	for i := range maxRequestsPerMinute {
 		if !rl.allow(ip1) {
 			t.Fatalf("Request %d for IP1 should be allowed", i+1)
 		}
@@ -108,11 +108,11 @@ func TestRateLimiterWindowExpiry(t *testing.T) {
 
 func TestGetClientIP(t *testing.T) {
 	testCases := []struct {
-		name           string
-		remoteAddr     string
-		xForwardedFor  string
-		xRealIP        string
-		expectedIP     string
+		name          string
+		remoteAddr    string
+		xForwardedFor string
+		xRealIP       string
+		expectedIP    string
 	}{
 		{
 			name:       "RemoteAddr only",
@@ -120,16 +120,16 @@ func TestGetClientIP(t *testing.T) {
 			expectedIP: "192.168.1.100:8080",
 		},
 		{
-			name:           "X-Forwarded-For single IP",
-			remoteAddr:     "10.0.0.1:8080",
-			xForwardedFor:  "203.0.113.1",
-			expectedIP:     "203.0.113.1",
+			name:          "X-Forwarded-For single IP",
+			remoteAddr:    "10.0.0.1:8080",
+			xForwardedFor: "203.0.113.1",
+			expectedIP:    "203.0.113.1",
 		},
 		{
-			name:           "X-Forwarded-For multiple IPs uses rightmost (ALB-added)",
-			remoteAddr:     "10.0.0.1:8080",
-			xForwardedFor:  "203.0.113.1, 70.41.3.18, 150.172.238.178",
-			expectedIP:     "150.172.238.178",
+			name:          "X-Forwarded-For multiple IPs uses rightmost (ALB-added)",
+			remoteAddr:    "10.0.0.1:8080",
+			xForwardedFor: "203.0.113.1, 70.41.3.18, 150.172.238.178",
+			expectedIP:    "150.172.238.178",
 		},
 		{
 			name:       "X-Real-IP ignored (falls back to RemoteAddr)",
@@ -138,17 +138,17 @@ func TestGetClientIP(t *testing.T) {
 			expectedIP: "10.0.0.1:8080",
 		},
 		{
-			name:           "X-Forwarded-For used even when X-Real-IP present",
-			remoteAddr:     "10.0.0.1:8080",
-			xForwardedFor:  "203.0.113.1",
-			xRealIP:        "203.0.113.2",
-			expectedIP:     "203.0.113.1",
+			name:          "X-Forwarded-For used even when X-Real-IP present",
+			remoteAddr:    "10.0.0.1:8080",
+			xForwardedFor: "203.0.113.1",
+			xRealIP:       "203.0.113.2",
+			expectedIP:    "203.0.113.1",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := httptest.NewRequest("GET", "/test", nil)
+			req := httptest.NewRequest(http.MethodGet, "/test", nil)
 			req.RemoteAddr = tc.remoteAddr
 			if tc.xForwardedFor != "" {
 				req.Header.Set("X-Forwarded-For", tc.xForwardedFor)
@@ -178,7 +178,7 @@ func TestRateLimitMiddleware(t *testing.T) {
 	wrappedHandler := middleware(handler)
 
 	t.Run("allows requests within limit", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/test", nil)
 		req.RemoteAddr = "192.168.1.10:8080"
 		w := httptest.NewRecorder()
 
@@ -195,11 +195,11 @@ func TestRateLimitMiddleware(t *testing.T) {
 	t.Run("blocks requests exceeding limit", func(t *testing.T) {
 		// Fill up the rate limit with the same address format that getClientIP returns
 		ip := "192.168.1.11:8080"
-		for i := 0; i < maxRequestsPerMinute; i++ {
+		for range maxRequestsPerMinute {
 			limiter.allow(ip)
 		}
 
-		req := httptest.NewRequest("GET", "/api/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/test", nil)
 		req.RemoteAddr = ip
 		w := httptest.NewRecorder()
 
@@ -213,12 +213,12 @@ func TestRateLimitMiddleware(t *testing.T) {
 	t.Run("allows health check without rate limiting", func(t *testing.T) {
 		// Fill up rate limit for this IP
 		ip := "192.168.1.12:8080"
-		for i := 0; i < maxRequestsPerMinute; i++ {
+		for range maxRequestsPerMinute {
 			limiter.allow(ip)
 		}
 
 		// Health check should still work
-		req := httptest.NewRequest("GET", "/health", nil)
+		req := httptest.NewRequest(http.MethodGet, "/health", nil)
 		req.RemoteAddr = ip
 		w := httptest.NewRecorder()
 

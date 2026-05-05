@@ -17,14 +17,20 @@ import (
 
 var Store *gsessions.CookieStore
 
-// tokenMap stores mobile session tokens -> user data
+// tokenMap stores mobile session tokens -> user data.
 var tokenMap sync.Map
 
 const mobileTokenTTL = 30 * 24 * time.Hour // 30 days
 
-// tokenData holds user information for mobile sessions
+// Session token sizing. 32 bytes = 256 bits of entropy, well above the
+// guidance for session-identifier strength, and we require the configured
+// SESSION_SECRET to be at least the same length so it can stretch a token's
+// worth of entropy.
+const sessionTokenBytes = 32
+
+// tokenData holds user information for mobile sessions.
 type tokenData struct {
-	UserInfo  interface{}
+	UserInfo  any
 	ExpiresAt time.Time
 }
 
@@ -34,7 +40,7 @@ func Initialize() error {
 	if secret == "" {
 		return errors.New("SESSION_SECRET environment variable is required")
 	}
-	if len(secret) < 32 {
+	if len(secret) < sessionTokenBytes {
 		return errors.New("SESSION_SECRET must be at least 32 characters for security")
 	}
 	Store = gsessions.NewCookieStore([]byte(secret))
@@ -89,17 +95,17 @@ func Delete(w http.ResponseWriter, r *http.Request, key string) error {
 	return nil
 }
 
-// GenerateSessionToken creates a cryptographically random session token
+// GenerateSessionToken creates a cryptographically random session token.
 func GenerateSessionToken() string {
-	b := make([]byte, 32) // 256 bits
+	b := make([]byte, sessionTokenBytes) // 256 bits
 	if _, err := rand.Read(b); err != nil {
 		panic(err) // Should never happen
 	}
 	return hex.EncodeToString(b)
 }
 
-// StoreTokenMapping stores a mobile token -> user data mapping with a 30-day expiry
-func StoreTokenMapping(token string, userInfo interface{}) {
+// StoreTokenMapping stores a mobile token -> user data mapping with a 30-day expiry.
+func StoreTokenMapping(token string, userInfo any) {
 	tokenMap.Store(token, &tokenData{
 		UserInfo:  userInfo,
 		ExpiresAt: time.Now().Add(mobileTokenTTL),
@@ -108,7 +114,7 @@ func StoreTokenMapping(token string, userInfo interface{}) {
 
 // GetUserByToken retrieves the user data for a mobile token.
 // Returns nil if the token is missing, malformed, or expired.
-func GetUserByToken(token string) (interface{}, bool) {
+func GetUserByToken(token string) (any, bool) {
 	val, ok := tokenMap.Load(token)
 	if !ok {
 		log.Printf("[sessions] Token not found in map")
@@ -128,7 +134,7 @@ func GetUserByToken(token string) (interface{}, bool) {
 	return data.UserInfo, true
 }
 
-// DeleteTokenMapping removes a token mapping (for logout)
+// DeleteTokenMapping removes a token mapping (for logout).
 func DeleteTokenMapping(token string) {
 	tokenMap.Delete(token)
 }
@@ -140,7 +146,7 @@ func StartTokenCleanup() {
 		defer ticker.Stop()
 		for range ticker.C {
 			now := time.Now()
-			tokenMap.Range(func(key, val interface{}) bool {
+			tokenMap.Range(func(key, val any) bool {
 				if data, ok := val.(*tokenData); ok {
 					if now.After(data.ExpiresAt) {
 						tokenMap.Delete(key)

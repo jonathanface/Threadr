@@ -1,14 +1,16 @@
 package daos
 
 import (
-	"Threadr/logger"
-	"Threadr/models"
 	"context"
 	"errors"
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
+
+	"Threadr/logger"
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -21,12 +23,12 @@ const (
 	StoryBlocksTableName = "story_blocks"
 )
 
-// GetStoryBlocksTableName returns the full table name with environment suffix
+// GetStoryBlocksTableName returns the full table name with environment suffix.
 func GetStoryBlocksTableName() string {
 	return StoryBlocksTableName + GetTableSuffix()
 }
 
-// buildCompositeKey creates the composite key for story_blocks table
+// buildCompositeKey creates the composite key for story_blocks table.
 func buildCompositeKey(storyID, chapterID string) string {
 	return fmt.Sprintf("%s#%s", storyID, chapterID)
 }
@@ -67,7 +69,7 @@ func (d *DAO) GetChaptersByStoryID(ctx context.Context, storyID string) (chapter
 }
 
 // GetChaptersByStoryIDs fetches chapters for multiple stories in a single query (batch operation)
-// Returns a map of storyID -> chapters to avoid N+1 queries
+// Returns a map of storyID -> chapters to avoid N+1 queries.
 func (d *DAO) GetChaptersByStoryIDs(ctx context.Context, storyIDs []string) (map[string][]models.Chapter, error) {
 	if len(storyIDs) == 0 {
 		return make(map[string][]models.Chapter), nil
@@ -78,14 +80,16 @@ func (d *DAO) GetChaptersByStoryIDs(ctx context.Context, storyIDs []string) (map
 	filterExpr := "story_id IN ("
 	expressionValues := make(map[string]types.AttributeValue)
 
+	var filterExprSb81 strings.Builder
 	for i, storyID := range storyIDs {
 		placeholder := fmt.Sprintf(":sid%d", i)
 		if i > 0 {
-			filterExpr += ", "
+			filterExprSb81.WriteString(", ")
 		}
-		filterExpr += placeholder
+		filterExprSb81.WriteString(placeholder)
 		expressionValues[placeholder] = &types.AttributeValueMemberS{Value: storyID}
 	}
+	filterExpr += filterExprSb81.String()
 	filterExpr += ") AND attribute_not_exists(deleted_at)"
 
 	scanInput := &dynamodb.ScanInput{
@@ -132,7 +136,7 @@ func (d *DAO) GetChaptersByStoryIDs(ctx context.Context, storyIDs []string) (map
 }
 
 // GetChapterTableStatus now always returns true since we use a unified table
-// This maintains backwards compatibility with code checking table readiness
+// This maintains backwards compatibility with code checking table readiness.
 func (d *DAO) GetChapterTableStatus(ctx context.Context, storyID, chapterID string) (bool, error) {
 	// With unified table, chapters are always "ready"
 	// Just verify the unified table exists
@@ -163,13 +167,17 @@ func (d *DAO) GetChapterByID(ctx context.Context, chapterID string) (chapter *mo
 		return nil, err
 	}
 	if len(chapterFromMap) == 0 {
-		return nil, fmt.Errorf("no chapter found")
+		return nil, errors.New("no chapter found")
 	}
 	return &chapterFromMap[0], nil
 }
 
-// GetChapterParagraphs queries the unified story_blocks table using composite key
-func (d *DAO) GetChapterParagraphs(ctx context.Context, storyID, chapterID string, startKey *map[string]types.AttributeValue) (*models.BlocksData, error) {
+// GetChapterParagraphs queries the unified story_blocks table using composite key.
+func (d *DAO) GetChapterParagraphs(
+	ctx context.Context,
+	storyID, chapterID string,
+	startKey *map[string]types.AttributeValue,
+) (*models.BlocksData, error) {
 	var blocks models.BlocksData
 	compositeKey := buildCompositeKey(storyID, chapterID)
 
@@ -177,7 +185,7 @@ func (d *DAO) GetChapterParagraphs(ctx context.Context, storyID, chapterID strin
 		TableName:              aws.String(GetStoryBlocksTableName()),
 		KeyConditionExpression: aws.String("composite_key = :pk AND place >= :zero"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":pk": &types.AttributeValueMemberS{Value: compositeKey},
+			":pk":   &types.AttributeValueMemberS{Value: compositeKey},
 			":zero": &types.AttributeValueMemberN{Value: "0"},
 		},
 	}
@@ -193,7 +201,8 @@ func (d *DAO) GetChapterParagraphs(ctx context.Context, storyID, chapterID strin
 	for paginator.HasMorePages() {
 		page, err := paginator.NextPage(ctx)
 		if err != nil {
-			if opErr, ok := err.(*smithy.OperationError); ok {
+			opErr := &smithy.OperationError{}
+			if errors.As(err, &opErr) {
 				var notFoundErr *types.ResourceNotFoundException
 				if errors.As(opErr.Unwrap(), &notFoundErr) {
 					return &blocks, err
@@ -214,12 +223,17 @@ func (d *DAO) GetChapterParagraphs(ctx context.Context, storyID, chapterID strin
 	return &blocks, nil
 }
 
-// CreateChapter no longer creates individual tables, just creates chapter metadata
-func (d *DAO) CreateChapter(ctx context.Context, storyID string, chapter models.Chapter, email string) (newChapter models.Chapter, err error) {
+// CreateChapter no longer creates individual tables, just creates chapter metadata.
+func (d *DAO) CreateChapter(
+	ctx context.Context,
+	storyID string,
+	chapter models.Chapter,
+	email string,
+) (newChapter models.Chapter, err error) {
 	newChapter = chapter
 	var chapTwi types.TransactWriteItem
 	if chapTwi, err = d.generateStoryChapterTransaction(storyID, chapter.ID, chapter.Title, chapter.Place); err != nil {
-		return
+		return newChapter, err
 	}
 
 	twii := &dynamodb.TransactWriteItemsInput{}
@@ -229,14 +243,23 @@ func (d *DAO) CreateChapter(ctx context.Context, storyID string, chapter models.
 		return models.Chapter{}, err
 	}
 	if !awsErr.IsNil() {
-		return models.Chapter{}, fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
+		return models.Chapter{}, fmt.Errorf(
+			"--AWSERROR-- Code:%s, Type: %s, Message: %s",
+			awsErr.Code,
+			awsErr.ErrorType,
+			awsErr.Text,
+		)
 	}
 
 	// No longer create individual chapter tables - unified table already exists
 	return newChapter, nil
 }
 
-func (d *DAO) EditChapter(ctx context.Context, storyID string, chapter models.Chapter) (updatedChapter models.Chapter, err error) {
+func (d *DAO) EditChapter(
+	ctx context.Context,
+	storyID string,
+	chapter models.Chapter,
+) (updatedChapter models.Chapter, err error) {
 	modifiedAtStr := strconv.FormatInt(time.Now().Unix(), 10)
 	item := map[string]types.AttributeValue{
 		"story_id":    &types.AttributeValueMemberS{Value: storyID},
@@ -257,8 +280,12 @@ func (d *DAO) EditChapter(ctx context.Context, storyID string, chapter models.Ch
 	return updatedChapter, nil
 }
 
-// DeleteChapterParagraphs deletes paragraph items from unified table
-func (d *DAO) DeleteChapterParagraphs(ctx context.Context, storyID string, storyBlocks *models.StoryBlocks) (err error) {
+// DeleteChapterParagraphs deletes paragraph items from unified table.
+func (d *DAO) DeleteChapterParagraphs(
+	ctx context.Context,
+	storyID string,
+	storyBlocks *models.StoryBlocks,
+) (err error) {
 	compositeKey := buildCompositeKey(storyID, storyBlocks.ChapterID)
 
 	batches := make([][]models.StoryBlock, 0, (len(storyBlocks.Blocks)+(d.writeBatchSize-1))/d.writeBatchSize)
@@ -332,10 +359,10 @@ func (d *DAO) DeleteChapterParagraphs(ctx context.Context, storyID string, story
 			return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 		}
 	}
-	return
+	return err
 }
 
-// DeleteChapters deletes chapter metadata and all associated blocks
+// DeleteChapters deletes chapter metadata and all associated blocks.
 func (d *DAO) DeleteChapters(ctx context.Context, storyID string, chapters []models.Chapter) (err error) {
 	batches := make([][]models.Chapter, 0, (len(chapters)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(chapters); i += d.writeBatchSize {
@@ -396,10 +423,10 @@ func (d *DAO) DeleteChapters(ctx context.Context, storyID string, chapters []mod
 			return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 		}
 	}
-	return
+	return err
 }
 
-// deleteAllBlocksForChapter is a helper to delete all blocks for a given chapter
+// deleteAllBlocksForChapter is a helper to delete all blocks for a given chapter.
 func (d *DAO) deleteAllBlocksForChapter(ctx context.Context, compositeKey string) error {
 	// Query all blocks for this chapter
 	queryInput := &dynamodb.QueryInput{
@@ -424,7 +451,7 @@ func (d *DAO) deleteAllBlocksForChapter(ctx context.Context, compositeKey string
 
 	// Batch delete items using TransactWriteItems (max 100 items per call)
 	for i := 0; i < len(itemsToDelete); i += 100 {
-		end := i + 100
+		end := i + 100 //nolint:mnd
 		if end > len(itemsToDelete) {
 			end = len(itemsToDelete)
 		}
@@ -451,7 +478,7 @@ func (d *DAO) deleteAllBlocksForChapter(ctx context.Context, compositeKey string
 	return nil
 }
 
-// GetBlockCountByChapter counts blocks in the unified table for a specific chapter
+// GetBlockCountByChapter counts blocks in the unified table for a specific chapter.
 func (d *DAO) GetBlockCountByChapter(ctx context.Context, email, storyID, chapterID string) (count int, err error) {
 	compositeKey := buildCompositeKey(storyID, chapterID)
 

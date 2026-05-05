@@ -1,12 +1,14 @@
 package daos
 
 import (
-	"Threadr/logger"
-	"Threadr/models"
 	"context"
 	"database/sql"
 	"fmt"
+	"strconv"
 	"time"
+
+	"Threadr/logger"
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -296,7 +298,7 @@ func (d *DAO) ResolveComment(ctx context.Context, commentID string) error {
 		UpdateExpression: aws.String("SET resolved = :r, resolved_at = :t"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":r": &types.AttributeValueMemberBOOL{Value: true},
-			":t": &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", time.Now().Unix())},
+			":t": &types.AttributeValueMemberN{Value: strconv.FormatInt(time.Now().Unix(), 10)},
 		},
 	})
 	if err != nil {

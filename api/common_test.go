@@ -1,9 +1,6 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -15,6 +12,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
+
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/smithy-go"
 )
@@ -23,7 +24,7 @@ func init() {
 	SetupTestSession()
 }
 
-// Tests for getUserEmail
+// Tests for getUserEmail.
 func TestGetUserEmail_Success(t *testing.T) {
 	req := createTestRequestWithSession("GET", "/test", nil)
 
@@ -37,7 +38,7 @@ func TestGetUserEmail_Success(t *testing.T) {
 }
 
 func TestGetUserEmail_NoSession(t *testing.T) {
-	req := httptest.NewRequest("GET", "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 
 	email, err := getUserEmail(req)
 	if err == nil {
@@ -51,7 +52,7 @@ func TestGetUserEmail_NoSession(t *testing.T) {
 	}
 }
 
-// Tests for RespondWithError
+// Tests for RespondWithError.
 func TestRespondWithError(t *testing.T) {
 	w := httptest.NewRecorder()
 
@@ -77,11 +78,11 @@ func TestRespondWithError(t *testing.T) {
 	}
 }
 
-// Tests for RespondWithJson
+// Tests for RespondWithJson.
 func TestRespondWithJson_Success(t *testing.T) {
 	w := httptest.NewRecorder()
 
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"message": "success",
 		"count":   42,
 		"active":  true,
@@ -93,7 +94,7 @@ func TestRespondWithJson_Success(t *testing.T) {
 		t.Errorf("Expected status 200, got %d", w.Code)
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.NewDecoder(w.Body).Decode(&response)
 	if err != nil {
 		t.Errorf("Failed to decode response: %v", err)
@@ -125,7 +126,7 @@ func TestRespondWithJson_InvalidPayload(t *testing.T) {
 	}
 }
 
-// Tests for processAWSError
+// Tests for processAWSError.
 func TestProcessAWSError_ResourceNotFound(t *testing.T) {
 	message := "Resource not found"
 	innerErr := &types.ResourceNotFoundException{
@@ -274,7 +275,7 @@ func TestProcessAWSError_UnknownError(t *testing.T) {
 	}
 }
 
-// Tests for staggeredStoryBlockRetrieval
+// Tests for staggeredStoryBlockRetrieval.
 func TestStaggeredStoryBlockRetrieval_SinglePage(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	mockDAO.MockGetChapterParagraphs = func(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error) {
@@ -394,12 +395,12 @@ func TestStaggeredStoryBlockRetrieval_NilResult(t *testing.T) {
 	}
 }
 
-// Tests for scaleDownImage
+// Tests for scaleDownImage.
 func createTestPNGImage(width, height int) *bytes.Buffer {
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	// Fill with a color to make it more realistic
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
+	for y := range height {
+		for x := range width {
 			img.Set(x, y, color.RGBA{uint8(x % 256), uint8(y % 256), 100, 255})
 		}
 	}
@@ -453,7 +454,7 @@ func TestScaleDownImage_ResizeNeeded(t *testing.T) {
 
 func TestScaleDownImage_InvalidImage(t *testing.T) {
 	// Create invalid image data
-	invalidBuf := bytes.NewBuffer([]byte("not an image"))
+	invalidBuf := bytes.NewBufferString("not an image")
 
 	result, format, err := scaleDownImage(invalidBuf, 400)
 
@@ -468,7 +469,7 @@ func TestScaleDownImage_InvalidImage(t *testing.T) {
 	}
 }
 
-// Test context integration
+// Test context integration.
 func TestGetUserEmail_WithContext(t *testing.T) {
 	req := createTestRequestWithSession("GET", "/test", nil)
 	dao := daos.NewMockDAO()

@@ -1,13 +1,14 @@
 package daos
 
 import (
-	"Threadr/models"
 	"context"
 	"errors"
 	"testing"
+
+	"Threadr/models"
 )
 
-// Tests for GetOutlineByStoryID
+// Tests for GetOutlineByStoryID.
 func TestGetOutlineByStoryID(t *testing.T) {
 	testCases := []struct {
 		name     string
@@ -30,7 +31,6 @@ func TestGetOutlineByStoryID(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -41,7 +41,7 @@ func TestGetOutlineByStoryID(t *testing.T) {
 	}
 }
 
-// Tests for CreateOutline
+// Tests for CreateOutline.
 func TestCreateOutline(t *testing.T) {
 	testCases := []struct {
 		name        string
@@ -103,7 +103,6 @@ func TestCreateOutline(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 			mockDao.MockCreateOutline = func(outline models.OutlineRequest) (*models.OutlineRequest, error) {
@@ -143,7 +142,7 @@ func TestCreateOutline(t *testing.T) {
 	}
 }
 
-// Tests for UpdateOutline
+// Tests for UpdateOutline.
 func TestUpdateOutline(t *testing.T) {
 	testCases := []struct {
 		name         string
@@ -255,7 +254,6 @@ func TestUpdateOutline(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 			mockDao.MockUpdateOutline = func(outline models.OutlineRequest) (*models.OutlineResponse, error) {
@@ -302,7 +300,7 @@ func BenchmarkCreateOutline(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_, _ = mockDao.CreateOutline(context.Background(), outline)
 	}
 }
@@ -312,7 +310,7 @@ func BenchmarkGetOutlineByStoryID(b *testing.B) {
 	chapters := []models.Chapter{}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_, _ = mockDao.GetOutlineByStoryID(context.Background(), "story123", chapters)
 	}
 }

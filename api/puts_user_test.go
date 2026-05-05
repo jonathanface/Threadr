@@ -1,15 +1,16 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/aws/smithy-go"
 )
@@ -165,7 +166,7 @@ func TestUpdateUserEndpoint_InvalidRequestBody(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
 	// Create invalid JSON
-	req := httptest.NewRequest(http.MethodPut, "/api/user", bytes.NewBuffer([]byte("invalid json")))
+	req := httptest.NewRequest(http.MethodPut, "/api/user", bytes.NewBufferString("invalid json"))
 	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
 	req = AddSessionCookieToRequest(req, "test@example.com")
 

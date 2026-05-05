@@ -12,7 +12,7 @@ import (
 	"github.com/aws/smithy-go"
 )
 
-// Tests for createBlockTable
+// Tests for createBlockTable.
 func TestCreateBlockTable(t *testing.T) {
 	testCases := []struct {
 		name          string
@@ -45,7 +45,6 @@ func TestCreateBlockTable(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 			mockClient, ok := mockDao.DynamoClient.(*MockDynamoClient)
@@ -99,7 +98,7 @@ func TestCreateBlockTable(t *testing.T) {
 	}
 }
 
-// Tests for CheckTableStatus
+// Tests for CheckTableStatus.
 func TestCheckTableStatus(t *testing.T) {
 	testCases := []struct {
 		name           string
@@ -124,10 +123,10 @@ func TestCheckTableStatus(t *testing.T) {
 			wantErr:        false,
 		},
 		{
-			name:       "DescribeTableError",
-			tableName:  "error_table",
-			mockErr:    errors.New("describe failed"),
-			wantErr:    true,
+			name:      "DescribeTableError",
+			tableName: "error_table",
+			mockErr:   errors.New("describe failed"),
+			wantErr:   true,
 		},
 		{
 			name:           "DeletingTable",
@@ -139,7 +138,6 @@ func TestCheckTableStatus(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 			mockClient, ok := mockDao.DynamoClient.(*MockDynamoClient)
@@ -179,7 +177,7 @@ func TestCheckTableStatus(t *testing.T) {
 	}
 }
 
-// Tests for isResourceNotFound
+// Tests for isResourceNotFound.
 func TestIsResourceNotFound(t *testing.T) {
 	testCases := []struct {
 		name     string
@@ -217,7 +215,6 @@ func TestIsResourceNotFound(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			result := isResourceNotFound(tc.err)
 			if result != tc.expected {
@@ -227,7 +224,7 @@ func TestIsResourceNotFound(t *testing.T) {
 	}
 }
 
-// Tests for isTableInUse
+// Tests for isTableInUse.
 func TestIsTableInUse(t *testing.T) {
 	testCases := []struct {
 		name     string
@@ -265,7 +262,6 @@ func TestIsTableInUse(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			result := isTableInUse(tc.err)
 			if result != tc.expected {
@@ -275,7 +271,7 @@ func TestIsTableInUse(t *testing.T) {
 	}
 }
 
-// Tests for isTableAlreadyExists
+// Tests for isTableAlreadyExists.
 func TestIsTableAlreadyExists(t *testing.T) {
 	testCases := []struct {
 		name     string
@@ -313,7 +309,6 @@ func TestIsTableAlreadyExists(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			result := isTableAlreadyExists(tc.err)
 			if result != tc.expected {
@@ -323,7 +318,7 @@ func TestIsTableAlreadyExists(t *testing.T) {
 	}
 }
 
-// Tests for waitForTableStatus
+// Tests for waitForTableStatus.
 func TestWaitForTableStatus(t *testing.T) {
 	testCases := []struct {
 		name        string
@@ -367,7 +362,6 @@ func TestWaitForTableStatus(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockClient := &MockDynamoClient{}
 
@@ -403,7 +397,7 @@ func TestWaitForTableStatus(t *testing.T) {
 	}
 }
 
-// Benchmark tests
+// Benchmark tests.
 func BenchmarkCheckTableStatus(b *testing.B) {
 	mockDao := NewMockDAO()
 	mockClient, _ := mockDao.DynamoClient.(*MockDynamoClient)
@@ -420,7 +414,7 @@ func BenchmarkCheckTableStatus(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_, _ = mockDao.CheckTableStatus(context.Background(), "benchmark_table")
 	}
 }
@@ -433,7 +427,7 @@ func BenchmarkIsResourceNotFound(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = isResourceNotFound(err)
 	}
 }

@@ -1,10 +1,6 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/logger"
-	"Threadr/models"
 	"context"
 	"fmt"
 	"io"
@@ -12,7 +8,13 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/logger"
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -31,8 +33,6 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok              bool
 		awsCfg          aws.Config
 	)
-	const maxUploadSize = 5 * 1024 * 1024 // 5 MB for original upload
-	const maxScaledSize = 1024 * 1024     // 1 MB for final scaled image
 	if email, err = getUserEmail(r); err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
@@ -76,8 +76,16 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	// Enforce maximum file size to protect against excessive memory allocation
 	if handler.Size <= 0 || handler.Size > maxUploadSize {
-		maxMB := maxUploadSize / (1024 * 1024)
-		RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("File is too large (max %dMB) or invalid size. Final scaled size of your image: %d", maxMB, handler.Size))
+		maxMB := maxUploadSize / (oneMB * oneMB)
+		RespondWithError(
+			w,
+			http.StatusBadRequest,
+			fmt.Sprintf(
+				"File is too large (max %dMB) or invalid size. Final scaled size of your image: %d",
+				maxMB,
+				handler.Size,
+			),
+		)
 		return
 	}
 
@@ -89,13 +97,7 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fileType := http.DetectContentType(fileBytes)
-	allowed := false
-	for _, t := range allowedTypes {
-		if fileType == t {
-			allowed = true
-			break
-		}
-	}
+	allowed := slices.Contains(allowedTypes, fileType)
 	if !allowed {
 		RespondWithError(w, http.StatusBadRequest, "Invalid file type")
 		return
@@ -106,7 +108,7 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Scale down the image if it exceeds the maximum width
-	scaledImageBuf, _, err := scaleDownImage(file, uint(400))
+	scaledImageBuf, _, err := scaleDownImage(file, uint(400)) //nolint:mnd
 	if err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
@@ -114,8 +116,12 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	// Check the size of the scaled image
 	if scaledImageBuf.Len() > maxScaledSize {
-		maxMB := maxScaledSize / (1024 * 1024)
-		RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Scaled image must be < %dMB (try a simpler image)", maxMB))
+		maxMB := maxScaledSize / (oneMB * oneMB)
+		RespondWithError(
+			w,
+			http.StatusBadRequest,
+			fmt.Sprintf("Scaled image must be < %dMB (try a simpler image)", maxMB),
+		)
 		return
 	}
 
@@ -143,7 +149,7 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 			"associationId", associationID)
 	} else if oldAssociation != nil {
 		// Delete the old portrait image
-		if err := deleteS3Image(oldAssociation.Portrait, S3_CUSTOM_PORTRAIT_BUCKET); err != nil {
+		if err := deleteS3Image(oldAssociation.Portrait, s3CustomPortraitBucket); err != nil {
 			logger.Warn("Failed to delete old portrait image, continuing with upload",
 				"error", err,
 				"storyId", storyID,
@@ -166,7 +172,7 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	s3Client := s3.NewFromConfig(awsCfg)
 	if _, err = s3Client.PutObject(context.Background(), &s3.PutObjectInput{
-		Bucket:      aws.String(S3_CUSTOM_PORTRAIT_BUCKET),
+		Bucket:      aws.String(s3CustomPortraitBucket),
 		Key:         aws.String(filename),
 		Body:        scaledImageBuf,
 		ContentType: aws.String(fileType),
@@ -175,8 +181,14 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	portraitURL := "https://" + S3_CUSTOM_PORTRAIT_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
-	if err = dao.UpdateAssociationPortraitEntryInDB(r.Context(), email, storyOrSeriesID, associationID, portraitURL); err != nil {
+	portraitURL := "https://" + s3CustomPortraitBucket + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
+	if err = dao.UpdateAssociationPortraitEntryInDB(
+		r.Context(),
+		email,
+		storyOrSeriesID,
+		associationID,
+		portraitURL,
+	); err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return

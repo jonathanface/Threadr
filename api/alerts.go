@@ -1,15 +1,16 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/logger"
-	"Threadr/models"
 	"context"
 	"encoding/json"
 	"html"
 	"net/http"
 	"time"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/logger"
+	"Threadr/models"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -176,7 +177,7 @@ func AdminCreateAlertEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, 4096)
+	r.Body = http.MaxBytesReader(w, r.Body, 4096) //nolint:mnd
 	decoder := json.NewDecoder(r.Body)
 	var req models.CreateAlertRequest
 	if err = decoder.Decode(&req); err != nil {
@@ -241,7 +242,11 @@ func CreateSystemAlert(ctx context.Context, dao daos.DaoInterface, targetEmail, 
 
 // CreateCommentAlert creates a comment notification only if there isn't already
 // an unread alert from the same reader about the same story.
-func CreateCommentAlert(ctx context.Context, dao daos.DaoInterface, authorEmail, readerName, storyTitle, storyID string) {
+func CreateCommentAlert(
+	ctx context.Context,
+	dao daos.DaoInterface,
+	authorEmail, readerName, storyTitle, storyID string,
+) {
 	subject := "New comment on " + storyTitle
 	// Check if there's already an unread alert about this reader + story
 	alerts, err := dao.GetAlertsForUser(ctx, authorEmail)

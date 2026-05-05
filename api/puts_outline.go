@@ -1,12 +1,13 @@
 package api
 
 import (
+	"encoding/json"
+	"net/http"
+
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
 	"Threadr/logger"
 	"Threadr/models"
-	"encoding/json"
-	"net/http"
 )
 
 func UpdateOutlineEndpoint(w http.ResponseWriter, r *http.Request) {

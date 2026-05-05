@@ -1,17 +1,19 @@
 package daos
 
 import (
-	"Threadr/logger"
-	"Threadr/models"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"Threadr/logger"
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -20,7 +22,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// truncateString truncates a string to maxLen characters, adding "..." if truncated
+// truncateString truncates a string to maxLen characters, adding "..." if truncated.
 func truncateString(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s
@@ -77,7 +79,7 @@ func (d *DAO) GetAllStories(ctx context.Context, email string) (stories []*model
 	return stories, nil
 }
 
-// GetAllStoriesIncludingDeleted fetches all soft-deleted stories for a user (for restoration purposes)
+// GetAllStoriesIncludingDeleted fetches all soft-deleted stories for a user (for restoration purposes).
 func (d *DAO) GetAllStoriesIncludingDeleted(ctx context.Context, email string) (stories []*models.Story, err error) {
 	logger.Debug("GetAllStoriesIncludingDeleted called", "email", email)
 
@@ -102,10 +104,16 @@ func (d *DAO) GetAllStoriesIncludingDeleted(ctx context.Context, email string) (
 	return stories, nil
 }
 
-func (d *DAO) GetAllStandalone(ctx context.Context, email string, adminRequest bool) (stories []models.Story, err error) {
+func (d *DAO) GetAllStandalone(
+	ctx context.Context,
+	email string,
+	adminRequest bool,
+) (stories []models.Story, err error) {
 	input := &dynamodb.ScanInput{
-		TableName:        aws.String("stories" + GetTableSuffix()),
-		FilterExpression: aws.String("author=:eml AND attribute_not_exists(series_id) AND attribute_not_exists(deleted_at)"),
+		TableName: aws.String("stories" + GetTableSuffix()),
+		FilterExpression: aws.String(
+			"author=:eml AND attribute_not_exists(series_id) AND attribute_not_exists(deleted_at)",
+		),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
 		},
@@ -144,7 +152,10 @@ func (d *DAO) GetAllStandalone(ctx context.Context, email string, adminRequest b
 	return stories, nil
 }
 
-func (d *DAO) GetStorySettingsByID(ctx context.Context, email, storyID string) (storySettings *models.StorySettings, err error) {
+func (d *DAO) GetStorySettingsByID(
+	ctx context.Context,
+	email, storyID string,
+) (storySettings *models.StorySettings, err error) {
 	storyID, err = url.QueryUnescape(storyID)
 	if err != nil {
 		return storySettings, err
@@ -208,11 +219,11 @@ func (d *DAO) GetStoryByID(ctx context.Context, email, storyID string) (story *m
 		return story, err
 	}
 	if len(storyFromMap) == 0 {
-		return story, fmt.Errorf("no story found")
+		return story, errors.New("no story found")
 	}
 	storyFromMap[0].Chapters, err = d.GetChaptersByStoryID(ctx, storyID)
 	if err != nil {
-		return
+		return story, err
 	}
 	if len(storyFromMap[0].Chapters) == 0 {
 		// somehow there are no chapters for this story, so create one
@@ -228,14 +239,17 @@ func (d *DAO) GetStoryByID(ctx context.Context, email, storyID string) (story *m
 		storyFromMap[0].Chapters = append(storyFromMap[0].Chapters, chapter)
 	}
 	storyFromMap[0].Outline, err = d.GetOutlineByStoryID(ctx, storyID, storyFromMap[0].Chapters)
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return &storyFromMap[0], err
 	}
 	return &storyFromMap[0], nil
 }
 
-// queryExistingBlocks queries all blocks for a chapter from the unified table
-func (d *DAO) queryExistingBlocks(ctx context.Context, compositeKey, storyID, chapterID string) ([]map[string]types.AttributeValue, error) {
+// queryExistingBlocks queries all blocks for a chapter from the unified table.
+func (d *DAO) queryExistingBlocks(
+	ctx context.Context,
+	compositeKey, storyID, chapterID string,
+) ([]map[string]types.AttributeValue, error) {
 	queryInput := &dynamodb.QueryInput{
 		TableName:              aws.String(GetStoryBlocksTableName()),
 		KeyConditionExpression: aws.String("composite_key = :pk"),
@@ -267,7 +281,7 @@ func (d *DAO) queryExistingBlocks(ctx context.Context, compositeKey, storyID, ch
 	return existingItems, nil
 }
 
-// buildItemMapByKeyID creates a map of key_id -> full item for quick lookup
+// buildItemMapByKeyID creates a map of key_id -> full item for quick lookup.
 func buildItemMapByKeyID(existingItems []map[string]types.AttributeValue) map[string]map[string]types.AttributeValue {
 	itemsByKeyID := make(map[string]map[string]types.AttributeValue)
 	for _, item := range existingItems {
@@ -278,7 +292,7 @@ func buildItemMapByKeyID(existingItems []map[string]types.AttributeValue) map[st
 	return itemsByKeyID
 }
 
-// buildItemMaps creates both key_id and place lookup maps
+// buildItemMaps creates both key_id and place lookup maps.
 func buildItemMaps(existingItems []map[string]types.AttributeValue) (
 	itemsByKeyID map[string]map[string]types.AttributeValue,
 	itemsByPlace map[int64]map[string]types.AttributeValue,
@@ -299,20 +313,17 @@ func buildItemMaps(existingItems []map[string]types.AttributeValue) (
 	return itemsByKeyID, itemsByPlace
 }
 
-// createBatches splits blocks into batches based on batch size
+// createBatches splits blocks into batches based on batch size.
 func createBatches(blocks []models.StoryBlock, batchSize int) [][]models.StoryBlock {
 	batches := make([][]models.StoryBlock, 0, (len(blocks)+(batchSize-1))/batchSize)
 	for i := 0; i < len(blocks); i += batchSize {
-		end := i + batchSize
-		if end > len(blocks) {
-			end = len(blocks)
-		}
+		end := min(i+batchSize, len(blocks))
 		batches = append(batches, blocks[i:end])
 	}
 	return batches
 }
 
-// buildReorderTransactions builds delete and put transaction items for block reordering
+// buildReorderTransactions builds delete and put transaction items for block reordering.
 func buildReorderTransactions(
 	batch []models.StoryBlock,
 	compositeKey string,
@@ -369,9 +380,7 @@ func buildReorderTransactions(
 				// Create new item with updated place value
 				// This preserves ALL attributes including chunk from existing item
 				newItem := make(map[string]types.AttributeValue)
-				for k, v := range existingItem {
-					newItem[k] = v
-				}
+				maps.Copy(newItem, existingItem)
 				newItem["place"] = &types.AttributeValueMemberN{Value: strconv.FormatInt(newPlaceNum, 10)}
 
 				putItems = append(putItems, types.TransactWriteItem{
@@ -386,11 +395,17 @@ func buildReorderTransactions(
 			// WARNING: This should rarely happen in ResetBlockOrder (which is for reordering existing blocks)
 			// If this happens frequently with empty chunks, it indicates a frontend bug
 			if len(item.Chunk) == 0 {
-				logger.Warn("ResetBlockOrder: Skipping creation of new block with empty chunk (possible frontend bug - sending wrong keyIDs)",
-					"storyId", storyID,
-					"chapterId", chapterID,
-					"keyId", item.KeyID,
-					"place", item.Place)
+				logger.Warn(
+					"ResetBlockOrder: Skipping creation of new block with empty chunk (possible frontend bug - sending wrong keyIDs)",
+					"storyId",
+					storyID,
+					"chapterId",
+					chapterID,
+					"keyId",
+					item.KeyID,
+					"place",
+					item.Place,
+				)
 				continue
 			}
 
@@ -420,7 +435,7 @@ func buildReorderTransactions(
 	return deleteItems, putItems, nil
 }
 
-// identifyOrphanedBlocks finds blocks that exist in DB but not in the new block list
+// identifyOrphanedBlocks finds blocks that exist in DB but not in the new block list.
 func identifyOrphanedBlocks(
 	itemsByKeyID map[string]map[string]types.AttributeValue,
 	newBlocks []models.StoryBlock,
@@ -439,19 +454,20 @@ func identifyOrphanedBlocks(
 	return blocksToDelete
 }
 
-// deleteOrphanedBlocks deletes blocks in batches using transactions
+// deleteOrphanedBlocks deletes blocks in batches using transactions.
 func (d *DAO) deleteOrphanedBlocks(
 	ctx context.Context,
 	blocksToDelete []map[string]types.AttributeValue,
 	storyID string,
 	chapterID string,
 ) error {
-	deleteBatches := make([][]map[string]types.AttributeValue, 0, (len(blocksToDelete)+(d.writeBatchSize-1))/d.writeBatchSize)
+	deleteBatches := make(
+		[][]map[string]types.AttributeValue,
+		0,
+		(len(blocksToDelete)+(d.writeBatchSize-1))/d.writeBatchSize,
+	)
 	for i := 0; i < len(blocksToDelete); i += d.writeBatchSize {
-		end := i + d.writeBatchSize
-		if end > len(blocksToDelete) {
-			end = len(blocksToDelete)
-		}
+		end := min(i+d.writeBatchSize, len(blocksToDelete))
 		deleteBatches = append(deleteBatches, blocksToDelete[i:end])
 	}
 
@@ -497,7 +513,7 @@ func (d *DAO) deleteOrphanedBlocks(
 
 // ResetBlockOrder reorders blocks by deleting and recreating them with new place values
 // This is necessary because place is part of the primary key and cannot be updated
-// Note: This only changes block positions, NOT content
+// Note: This only changes block positions, NOT content.
 func (d *DAO) ResetBlockOrder(ctx context.Context, storyID string, blocksOrder *models.BlocksOrder) (err error) {
 	compositeKey := buildCompositeKey(storyID, blocksOrder.ChapterID)
 
@@ -526,9 +542,9 @@ func (d *DAO) ResetBlockOrder(ctx context.Context, storyID string, blocksOrder *
 	}
 
 	// Step 4: Process blocks in batches
-	batchSize := d.writeBatchSize / 2
+	batchSize := d.writeBatchSize / 2 //nolint:mnd
 	if batchSize == 0 {
-		batchSize = 50
+		batchSize = defaultBlockBatchSize
 	}
 	batches := createBatches(blocks, batchSize)
 
@@ -547,7 +563,13 @@ func (d *DAO) ResetBlockOrder(ctx context.Context, storyID string, blocksOrder *
 			"totalBatches", len(batches),
 			"itemsInBatch", len(batch))
 
-		deleteItems, putItems, err := buildReorderTransactions(batch, compositeKey, storyID, blocksOrder.ChapterID, itemsByKeyID)
+		deleteItems, putItems, err := buildReorderTransactions(
+			batch,
+			compositeKey,
+			storyID,
+			blocksOrder.ChapterID,
+			itemsByKeyID,
+		)
 		if err != nil {
 			return err
 		}
@@ -577,7 +599,12 @@ func (d *DAO) ResetBlockOrder(ctx context.Context, storyID string, blocksOrder *
 					"awsText", awsErr.Text,
 					"storyId", storyID,
 					"chapterId", blocksOrder.ChapterID)
-				return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
+				return fmt.Errorf(
+					"--AWSERROR-- Code:%s, Type: %s, Message: %s",
+					awsErr.Code,
+					awsErr.ErrorType,
+					awsErr.Text,
+				)
 			}
 		}
 
@@ -606,7 +633,12 @@ func (d *DAO) ResetBlockOrder(ctx context.Context, storyID string, blocksOrder *
 					"awsText", awsErr.Text,
 					"storyId", storyID,
 					"chapterId", blocksOrder.ChapterID)
-				return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
+				return fmt.Errorf(
+					"--AWSERROR-- Code:%s, Type: %s, Message: %s",
+					awsErr.Code,
+					awsErr.ErrorType,
+					awsErr.Text,
+				)
 			}
 		}
 	}
@@ -628,10 +660,10 @@ func (d *DAO) ResetBlockOrder(ctx context.Context, storyID string, blocksOrder *
 		"storyId", storyID,
 		"chapterId", blocksOrder.ChapterID,
 		"blocksProcessed", len(blocks))
-	return
+	return err
 }
 
-// buildWriteTransactions builds delete and put transaction items for block writing
+// buildWriteTransactions builds delete and put transaction items for block writing.
 func buildWriteTransactions(
 	batch []models.StoryBlock,
 	compositeKey string,
@@ -662,10 +694,11 @@ func buildWriteTransactions(
 
 			// Check for place conflicts within this batch
 			actualPlace := newPlaceNum
-			if conflictingKeyID, placeInUse := batchPlaceUsage[newPlaceNum]; placeInUse && conflictingKeyID != item.KeyID {
+			if conflictingKeyID, placeInUse := batchPlaceUsage[newPlaceNum]; placeInUse &&
+				conflictingKeyID != item.KeyID {
 				// Another block in this batch is already using this place
 				// Assign a temporary high place value to avoid transaction conflict
-				actualPlace = 1000000 + newPlaceNum
+				actualPlace = placeConflictOffset + newPlaceNum
 				logger.Warn("Place conflict detected within batch for existing block",
 					"storyId", storyID,
 					"chapterId", chapterID,
@@ -701,7 +734,9 @@ func buildWriteTransactions(
 					// Detect potential data loss from malformed/broken chunks
 					// A properly serialized Lexical paragraph (even empty) is ~100+ chars with structure
 					// Malformed data from race conditions would be very short or literal empty values
-					existingHasContent := len(existingChunkStr) > 50 // reasonable threshold for min Lexical JSON
+					existingHasContent := len(
+						existingChunkStr,
+					) > minLexicalChunkSize // reasonable threshold for min Lexical JSON
 
 					// Check for clearly malformed data (not properly serialized Lexical JSON)
 					newIsMalformed := chunkStr == "null" ||
@@ -722,7 +757,7 @@ func buildWriteTransactions(
 							"existingLength", len(existingChunkStr),
 							"incomingLength", len(chunkStr),
 							"incomingChunk", chunkStr,
-							"existingChunkPreview", truncateString(existingChunkStr, 100))
+							"existingChunkPreview", truncateString(existingChunkStr, chunkPreviewLength))
 						// Preserve existing chunk instead of overwriting with malformed data
 						newItem["chunk"] = existingChunk
 					} else {
@@ -746,7 +781,8 @@ func buildWriteTransactions(
 
 			// Preserve other attributes from existing item
 			for k, v := range existingItem {
-				if k != "composite_key" && k != "place" && k != "story_id" && k != "chapter_id" && k != "key_id" && k != "chunk" {
+				if k != "composite_key" && k != "place" && k != "story_id" && k != "chapter_id" && k != "key_id" &&
+					k != "chunk" {
 					newItem[k] = v
 				}
 			}
@@ -786,9 +822,10 @@ func buildWriteTransactions(
 
 			// Check for place conflicts - both in database and within this batch
 			actualPlace := newPlaceNum
-			if conflictingKeyID, placeInUse := batchPlaceUsage[newPlaceNum]; placeInUse && conflictingKeyID != item.KeyID {
+			if conflictingKeyID, placeInUse := batchPlaceUsage[newPlaceNum]; placeInUse &&
+				conflictingKeyID != item.KeyID {
 				// Another block in this batch is already using this place
-				actualPlace = 1000000 + newPlaceNum
+				actualPlace = placeConflictOffset + newPlaceNum
 				logger.Warn("Place conflict detected within batch for new block",
 					"storyId", storyID,
 					"chapterId", chapterID,
@@ -798,7 +835,7 @@ func buildWriteTransactions(
 					"temporaryPlace", actualPlace)
 			} else if _, placeOccupied := itemsByPlace[newPlaceNum]; placeOccupied {
 				// There's already a different block at this place in the database
-				actualPlace = 1000000 + newPlaceNum
+				actualPlace = placeConflictOffset + newPlaceNum
 				logger.Warn("Place conflict detected for new block with existing database entry",
 					"storyId", storyID,
 					"chapterId", chapterID,
@@ -840,7 +877,7 @@ func buildWriteTransactions(
 }
 
 // WriteBlocks writes or updates blocks in the unified table
-// It identifies blocks by key_id and handles moving them if their place changed
+// It identifies blocks by key_id and handles moving them if their place changed.
 func (d *DAO) WriteBlocks(ctx context.Context, storyID string, storyBlocks *models.StoryBlocks) (err error) {
 	compositeKey := buildCompositeKey(storyID, storyBlocks.ChapterID)
 
@@ -902,7 +939,7 @@ func (d *DAO) WriteBlocks(ctx context.Context, storyID string, storyBlocks *mode
 						existingChunkStr = s.Value
 					}
 
-					existingHasContent := len(existingChunkStr) > 50
+					existingHasContent := len(existingChunkStr) > minLexicalChunkSize
 
 					newIsMalformed := chunkStr == "null" ||
 						chunkStr == "[]" ||
@@ -919,7 +956,7 @@ func (d *DAO) WriteBlocks(ctx context.Context, storyID string, storyBlocks *mode
 							"existingLength", len(existingChunkStr),
 							"incomingLength", len(chunkStr),
 							"incomingChunk", chunkStr,
-							"existingChunkPreview", truncateString(existingChunkStr, 100))
+							"existingChunkPreview", truncateString(existingChunkStr, chunkPreviewLength))
 						newItem["chunk"] = existingChunk
 					} else {
 						newItem["chunk"] = &types.AttributeValueMemberS{Value: chunkStr}
@@ -939,7 +976,8 @@ func (d *DAO) WriteBlocks(ctx context.Context, storyID string, storyBlocks *mode
 
 			// Preserve other attributes from existing item
 			for k, v := range existingItem {
-				if k != "composite_key" && k != "place" && k != "story_id" && k != "chapter_id" && k != "key_id" && k != "chunk" {
+				if k != "composite_key" && k != "place" && k != "story_id" && k != "chapter_id" && k != "key_id" &&
+					k != "chunk" {
 					newItem[k] = v
 				}
 			}
@@ -998,15 +1036,12 @@ func (d *DAO) WriteBlocks(ctx context.Context, storyID string, storyBlocks *mode
 	// eliminating place conflicts entirely.
 	txnBatchSize := d.writeBatchSize
 	if txnBatchSize == 0 {
-		txnBatchSize = 100
+		txnBatchSize = defaultTxnBatchSize
 	}
 
 	// Phase 1: Execute all deletes
 	for i := 0; i < len(allDeleteItems); i += txnBatchSize {
-		end := i + txnBatchSize
-		if end > len(allDeleteItems) {
-			end = len(allDeleteItems)
-		}
+		end := min(i+txnBatchSize, len(allDeleteItems))
 		batch := allDeleteItems[i:end]
 
 		logger.Debug("Phase 1: Deleting blocks from old positions",
@@ -1040,10 +1075,7 @@ func (d *DAO) WriteBlocks(ctx context.Context, storyID string, storyBlocks *mode
 
 	// Phase 2: Execute all puts
 	for i := 0; i < len(allPutItems); i += txnBatchSize {
-		end := i + txnBatchSize
-		if end > len(allPutItems) {
-			end = len(allPutItems)
-		}
+		end := min(i+txnBatchSize, len(allPutItems))
 		batch := allPutItems[i:end]
 
 		logger.Debug("Phase 2: Writing blocks to new positions",
@@ -1079,7 +1111,7 @@ func (d *DAO) WriteBlocks(ctx context.Context, storyID string, storyBlocks *mode
 		"storyId", storyID,
 		"chapterId", storyBlocks.ChapterID,
 		"blocksProcessed", len(storyBlocks.Blocks))
-	return
+	return err
 }
 
 func (d *DAO) EditStory(ctx context.Context, email string, story models.Story) (updatedStory models.Story, err error) {
@@ -1240,7 +1272,12 @@ func (d *DAO) UpdateStorySettings(ctx context.Context, email, storyID string, se
 	return nil
 }
 
-func (d *DAO) CreateStory(ctx context.Context, email string, story models.Story, newSeriesTitle string) (storyID string, err error) {
+func (d *DAO) CreateStory(
+	ctx context.Context,
+	email string,
+	story models.Story,
+	newSeriesTitle string,
+) (storyID string, err error) {
 	twii := &dynamodb.TransactWriteItemsInput{}
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	attributes := map[string]types.AttributeValue{
@@ -1288,7 +1325,7 @@ func (d *DAO) CreateStory(ctx context.Context, email string, story models.Story,
 		// Execute the scan operation and get the count
 		var resp *dynamodb.ScanOutput
 		if resp, err = d.DynamoClient.Scan(ctx, params); err != nil {
-			return
+			return storyID, err
 		}
 
 		if resp.Count == 0 {
@@ -1329,7 +1366,12 @@ func (d *DAO) CreateStory(ctx context.Context, email string, story models.Story,
 			return "", err
 		}
 		if !awsErr.IsNil() {
-			return "", fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
+			return "", fmt.Errorf(
+				"--AWSERROR-- Code:%s, Type: %s, Message: %s",
+				awsErr.Code,
+				awsErr.ErrorType,
+				awsErr.Text,
+			)
 		}
 	}
 	return story.ID, nil
@@ -1345,7 +1387,7 @@ func (d *DAO) GetStoryCountByUser(ctx context.Context, email string) (count int,
 	}
 	storyOut, err := d.DynamoClient.Scan(ctx, storyScanInput)
 	if err != nil {
-		return
+		return count, err
 	}
 	return len(storyOut.Items), nil
 }

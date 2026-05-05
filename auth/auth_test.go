@@ -1,10 +1,6 @@
 package auth
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
-	"Threadr/sessions"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -12,6 +8,11 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
+	"Threadr/sessions"
 
 	"github.com/gorilla/mux"
 	gsessions "github.com/gorilla/sessions"
@@ -22,7 +23,7 @@ func init() {
 	setupTestSession()
 }
 
-// setupTestSession initializes a test session store with a valid secret
+// setupTestSession initializes a test session store with a valid secret.
 func setupTestSession() {
 	if os.Getenv("SESSION_SECRET") == "" {
 		os.Setenv("SESSION_SECRET", "test-secret-key-for-testing-purposes-only")
@@ -30,7 +31,7 @@ func setupTestSession() {
 	sessions.Store = gsessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))
 }
 
-// Tests for determineFirstName
+// Tests for determineFirstName.
 func TestDetermineFirstName_WithFirstName(t *testing.T) {
 	user := goth.User{
 		FirstName: "John",
@@ -67,7 +68,7 @@ func TestDetermineFirstName_AllEmpty(t *testing.T) {
 	}
 }
 
-// Tests for determineLastName
+// Tests for determineLastName.
 func TestDetermineLastName_WithLastName(t *testing.T) {
 	user := goth.User{
 		LastName: "Doe",
@@ -104,7 +105,7 @@ func TestDetermineLastName_AllEmpty(t *testing.T) {
 	}
 }
 
-// Tests for safeRedirect
+// Tests for safeRedirect.
 func TestSafeRedirect_EmptyDest(t *testing.T) {
 	result := safeRedirect("", "https://example.com", []string{"https://example.com"})
 	if result != "https://example.com" {
@@ -196,10 +197,10 @@ func TestSafeRedirect_BackslashPath(t *testing.T) {
 	}
 }
 
-// Tests for Logout
+// Tests for Logout.
 func TestLogout_Success(t *testing.T) {
 	// Create request with session
-	req := httptest.NewRequest("POST", "/logout", nil)
+	req := httptest.NewRequest(http.MethodPost, "/logout", nil)
 	w := httptest.NewRecorder()
 
 	// Create a session
@@ -223,20 +224,20 @@ func TestLogout_Success(t *testing.T) {
 	}
 
 	// Verify response is valid JSON
-	var response interface{}
+	var response any
 	err := json.NewDecoder(w.Body).Decode(&response)
 	if err != nil {
 		t.Errorf("Failed to decode response: %v", err)
 	}
 }
 
-// Tests for callbackWithOptions - testing error cases that don't require gothic mocking
+// Tests for callbackWithOptions - testing error cases that don't require gothic mocking.
 func TestCallbackWithOptions_MissingProvider(t *testing.T) {
 	options := OauthOptions{
 		FrontEndURL: "https://example.com",
 	}
 
-	req := httptest.NewRequest("GET", "/callback", nil)
+	req := httptest.NewRequest(http.MethodGet, "/callback", nil)
 	// Set empty provider in mux vars
 	req = mux.SetURLVars(req, map[string]string{"provider": ""})
 	w := httptest.NewRecorder()
@@ -259,7 +260,7 @@ func TestCallbackWithOptions_MissingDAO(t *testing.T) {
 		FrontEndURL: "https://example.com",
 	}
 
-	req := httptest.NewRequest("GET", "/callback/google", nil)
+	req := httptest.NewRequest(http.MethodGet, "/callback/google", nil)
 	req = mux.SetURLVars(req, map[string]string{"provider": "google"})
 	w := httptest.NewRecorder()
 
@@ -283,7 +284,7 @@ func TestCallbackWithOptions_WithDAO(t *testing.T) {
 		FrontEndURL: "https://example.com",
 	}
 
-	req := httptest.NewRequest("GET", "/callback/google", nil)
+	req := httptest.NewRequest(http.MethodGet, "/callback/google", nil)
 	req = mux.SetURLVars(req, map[string]string{"provider": "google"})
 	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
 	w := httptest.NewRecorder()
@@ -297,13 +298,13 @@ func TestCallbackWithOptions_WithDAO(t *testing.T) {
 	}
 }
 
-// Tests for loginWithOptions
+// Tests for loginWithOptions.
 func TestLoginWithOptions_CreatesReferralSession(t *testing.T) {
 	options := OauthOptions{
 		FrontEndURL: "https://example.com",
 	}
 
-	req := httptest.NewRequest("GET", "/login/google?next=/dashboard", nil)
+	req := httptest.NewRequest(http.MethodGet, "/login/google?next=/dashboard", nil)
 	req = mux.SetURLVars(req, map[string]string{"provider": "google"})
 	w := httptest.NewRecorder()
 
@@ -329,7 +330,7 @@ func TestLoginWithOptions_DefaultNextURL(t *testing.T) {
 		FrontEndURL: "https://example.com",
 	}
 
-	req := httptest.NewRequest("GET", "/login/google", nil)
+	req := httptest.NewRequest(http.MethodGet, "/login/google", nil)
 	req = mux.SetURLVars(req, map[string]string{"provider": "google"})
 	w := httptest.NewRecorder()
 
@@ -342,7 +343,7 @@ func TestLoginWithOptions_DefaultNextURL(t *testing.T) {
 	}
 }
 
-// Test New function
+// Test New function.
 func TestNew(t *testing.T) {
 	options := OauthOptions{
 		Mode:         models.ModeDevelopment,
@@ -362,7 +363,7 @@ func TestNew(t *testing.T) {
 	// but we can verify the function doesn't panic
 }
 
-// Test handler constructors
+// Test handler constructors.
 func TestCallbackHandler(t *testing.T) {
 	options := OauthOptions{
 		FrontEndURL: "https://example.com",
@@ -374,7 +375,7 @@ func TestCallbackHandler(t *testing.T) {
 	}
 
 	// Verify it's actually an http.HandlerFunc
-	var _ http.HandlerFunc = handler
+	var _ = handler
 }
 
 func TestLoginHandler(t *testing.T) {
@@ -388,10 +389,10 @@ func TestLoginHandler(t *testing.T) {
 	}
 
 	// Verify it's actually an http.HandlerFunc
-	var _ http.HandlerFunc = handler
+	var _ = handler
 }
 
-// Test edge cases for callbackWithOptions with DAO errors
+// Test edge cases for callbackWithOptions with DAO errors.
 func TestCallbackWithOptions_GetUserDetailsError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
@@ -402,7 +403,7 @@ func TestCallbackWithOptions_GetUserDetailsError(t *testing.T) {
 		FrontEndURL: "https://example.com",
 	}
 
-	req := httptest.NewRequest("GET", "/callback/google", nil)
+	req := httptest.NewRequest(http.MethodGet, "/callback/google", nil)
 	req = mux.SetURLVars(req, map[string]string{"provider": "google"})
 	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
 	w := httptest.NewRecorder()
@@ -427,7 +428,7 @@ func TestCallbackWithOptions_UserNotFoundScenario(t *testing.T) {
 		FrontEndURL: "https://example.com",
 	}
 
-	req := httptest.NewRequest("GET", "/callback/google", nil)
+	req := httptest.NewRequest(http.MethodGet, "/callback/google", nil)
 	req = mux.SetURLVars(req, map[string]string{"provider": "google"})
 	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
 	w := httptest.NewRecorder()

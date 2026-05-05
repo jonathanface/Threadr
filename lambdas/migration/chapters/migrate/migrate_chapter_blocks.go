@@ -32,6 +32,9 @@ const (
 	BatchWriteSize = 25 // DynamoDB limit
 	MaxRetries     = 3
 	RetryDelayMs   = 500
+	// summaryDividerWidth is the column count for the `===` rules around
+	// the migration summary report block.
+	summaryDividerWidth = 60
 )
 
 type MigrationStats struct {
@@ -118,7 +121,7 @@ func listChapterTables(ctx context.Context, client *dynamodb.Client) ([]ChapterT
 	for {
 		input := &dynamodb.ListTablesInput{
 			ExclusiveStartTableName: lastEvaluatedTableName,
-			Limit:                   aws.Int32(100),
+			Limit:                   aws.Int32(100), //nolint:mnd
 		}
 
 		output, err := client.ListTables(ctx, input)
@@ -154,7 +157,7 @@ func parseTableName(tableName string) *ChapterTableInfo {
 	parts := strings.Split(withoutSuffix, "_")
 
 	// We expect exactly 2 parts: storyID and chapterID
-	if len(parts) < 2 {
+	if len(parts) < 2 { //nolint:mnd
 		log.Printf("Warning: Could not parse table name: %s", tableName)
 		return nil
 	}
@@ -215,14 +218,23 @@ func migrateTable(ctx context.Context, client *dynamodb.Client, table ChapterTab
 	}
 
 	if len(transformedItems) < len(items) {
-		log.Printf("  ✓ Migrated %d/%d items (removed %d duplicates)", migratedCount, len(items), len(items)-len(transformedItems))
+		log.Printf(
+			"  ✓ Migrated %d/%d items (removed %d duplicates)",
+			migratedCount,
+			len(items),
+			len(items)-len(transformedItems),
+		)
 	} else {
 		log.Printf("  ✓ Migrated %d/%d items", migratedCount, len(items))
 	}
 	return nil
 }
 
-func scanTable(ctx context.Context, client *dynamodb.Client, tableName string) ([]map[string]types.AttributeValue, error) {
+func scanTable(
+	ctx context.Context,
+	client *dynamodb.Client,
+	tableName string,
+) ([]map[string]types.AttributeValue, error) {
 	var items []map[string]types.AttributeValue
 	var lastEvaluatedKey map[string]types.AttributeValue
 
@@ -248,7 +260,10 @@ func scanTable(ctx context.Context, client *dynamodb.Client, tableName string) (
 	return items, nil
 }
 
-func transformItems(items []map[string]types.AttributeValue, storyID, chapterID string) []map[string]types.AttributeValue {
+func transformItems(
+	items []map[string]types.AttributeValue,
+	storyID, chapterID string,
+) []map[string]types.AttributeValue {
 	compositeKey := fmt.Sprintf("%s#%s", storyID, chapterID)
 
 	// Use map to deduplicate by (composite_key, place)
@@ -329,13 +344,14 @@ func transformItems(items []map[string]types.AttributeValue, storyID, chapterID 
 	return transformed
 }
 
-func batchWriteItems(ctx context.Context, client *dynamodb.Client, items []map[string]types.AttributeValue) (migrated, failed int, err error) {
+func batchWriteItems(
+	ctx context.Context,
+	client *dynamodb.Client,
+	items []map[string]types.AttributeValue,
+) (migrated, failed int, err error) {
 	// Split into batches of 25 (DynamoDB limit)
 	for i := 0; i < len(items); i += BatchWriteSize {
-		end := i + BatchWriteSize
-		if end > len(items) {
-			end = len(items)
-		}
+		end := min(i+BatchWriteSize, len(items))
 		batch := items[i:end]
 
 		// Build write requests
@@ -373,7 +389,12 @@ func batchWriteItems(ctx context.Context, client *dynamodb.Client, items []map[s
 			if len(output.UnprocessedItems) > 0 {
 				if retries < MaxRetries {
 					retries++
-					log.Printf("  %d unprocessed items, retrying (%d/%d)", len(output.UnprocessedItems[NewTableName]), retries, MaxRetries)
+					log.Printf(
+						"  %d unprocessed items, retrying (%d/%d)",
+						len(output.UnprocessedItems[NewTableName]),
+						retries,
+						MaxRetries,
+					)
 					requestItems = output.UnprocessedItems
 					time.Sleep(time.Duration(RetryDelayMs*retries) * time.Millisecond)
 					continue
@@ -396,9 +417,9 @@ func batchWriteItems(ctx context.Context, client *dynamodb.Client, items []map[s
 func printSummary(stats *MigrationStats) {
 	duration := time.Since(stats.StartTime)
 
-	log.Println("\n" + strings.Repeat("=", 60))
+	log.Println("\n" + strings.Repeat("=", summaryDividerWidth))
 	log.Println("=== MIGRATION SUMMARY ===")
-	log.Println(strings.Repeat("=", 60))
+	log.Println(strings.Repeat("=", summaryDividerWidth))
 	log.Printf("Total tables found:      %d", stats.TotalTables)
 	log.Printf("Tables migrated:         %d", stats.TablesProcessed)
 	log.Printf("Tables skipped:          %d", stats.TablesSkipped)
@@ -423,5 +444,5 @@ func printSummary(stats *MigrationStats) {
 	} else {
 		log.Println("\n⚠️  Migration completed with errors. Review summary above.")
 	}
-	log.Println(strings.Repeat("=", 60))
+	log.Println(strings.Repeat("=", summaryDividerWidth))
 }

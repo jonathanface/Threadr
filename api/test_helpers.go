@@ -1,18 +1,19 @@
 package api
 
 import (
-	"Threadr/models"
-	"Threadr/sessions"
 	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
 
+	"Threadr/models"
+	"Threadr/sessions"
+
 	gsessions "github.com/gorilla/sessions"
 )
 
-// SetupTestSession initializes a test session store with a valid secret
+// SetupTestSession initializes a test session store with a valid secret.
 func SetupTestSession() {
 	// Set a test session secret if not already set
 	if os.Getenv("SESSION_SECRET") == "" {
@@ -22,7 +23,7 @@ func SetupTestSession() {
 	sessions.Store = gsessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))
 }
 
-// CreateRequestWithSession creates an HTTP request with a properly mocked session containing user email
+// CreateRequestWithSession creates an HTTP request with a properly mocked session containing user email.
 func CreateRequestWithSession(method, url string, body []byte, email string) *http.Request {
 	// Create a dummy request to save session data
 	tempReq := httptest.NewRequest(method, url, nil)
@@ -86,8 +87,8 @@ func AddSessionCookieToRequest(req *http.Request, email string) *http.Request {
 	return req
 }
 
-// createTestRequestWithSession is a convenience wrapper for creating test requests with session
-func createTestRequestWithSession(method, url string, body interface{}) *http.Request {
+// createTestRequestWithSession is a convenience wrapper for creating test requests with session.
+func createTestRequestWithSession(method, url string, body any) *http.Request {
 	var req *http.Request
 	if body != nil {
 		switch v := body.(type) {

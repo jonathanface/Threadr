@@ -1,9 +1,6 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -11,6 +8,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/smithy-go"
@@ -21,7 +22,7 @@ func init() {
 	SetupTestSession()
 }
 
-// Tests for GetUserData endpoint
+// Tests for GetUserData endpoint.
 func TestGetUserData_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	testEmail := "test@example.com"
@@ -159,7 +160,7 @@ func TestGetUserData_WithReturningUserFlag(t *testing.T) {
 	}
 }
 
-// Tests for StoryEndPoint
+// Tests for StoryEndPoint.
 func TestStoryEndPoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	testStoryID := "story123"
@@ -235,7 +236,7 @@ func TestStoryEndPoint_NotFound(t *testing.T) {
 	}
 }
 
-// Tests for AllSeriesEndPoint
+// Tests for AllSeriesEndPoint.
 func TestAllSeriesEndPoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
@@ -272,7 +273,7 @@ func TestAllSeriesEndPoint_Success(t *testing.T) {
 	}
 }
 
-// Tests for SingleSeriesEndPoint
+// Tests for SingleSeriesEndPoint.
 func TestSingleSeriesEndPoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	testSeriesID := "series123"
@@ -365,7 +366,7 @@ func TestSingleSeriesEndPoint_DAOError(t *testing.T) {
 	}
 }
 
-// Tests for AllSeriesVolumesEndPoint
+// Tests for AllSeriesVolumesEndPoint.
 func TestAllSeriesVolumesEndPoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	testSeriesID := "series123"
@@ -468,7 +469,7 @@ func TestAllSeriesVolumesEndPoint_DAOError(t *testing.T) {
 	}
 }
 
-// Tests for StorySettingsEndPoint
+// Tests for StorySettingsEndPoint.
 func TestStorySettingsEndPoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	testStoryID := "story123"
@@ -527,7 +528,7 @@ func TestStorySettingsEndPoint_NotFound(t *testing.T) {
 	}
 }
 
-// Tests for StoryBlocksEndPoint
+// Tests for StoryBlocksEndPoint.
 func TestStoryBlocksEndPoint_MissingChapterID(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	testStoryID := "story123"
@@ -718,7 +719,7 @@ func TestStoryBlocksEndPoint_Success(t *testing.T) {
 	}
 }
 
-// Tests for FullStoryEndPoint
+// Tests for FullStoryEndPoint.
 func TestFullStoryEndPoint_MissingStoryID(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
@@ -756,7 +757,7 @@ func TestFullStoryEndPoint_StoryNotFound(t *testing.T) {
 	}
 }
 
-// Tests for AllStandaloneStoriesEndPoint
+// Tests for AllStandaloneStoriesEndPoint.
 func TestAllStandaloneStoriesEndPoint_RequiresMockDB(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 

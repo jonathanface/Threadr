@@ -14,20 +14,20 @@ import (
 	"github.com/stripe/stripe-go/v79"
 )
 
-// Tests for AddStripeData
+// Tests for AddStripeData.
 func TestAddStripeData(t *testing.T) {
 	email := "user@example.com"
 	subscriptionID := "sub_123456"
 	customerID := "cus_123456"
 
 	testCases := []struct {
-		name             string
-		email            *string
-		subscriptionID   *string
-		customerID       *string
-		mockUpdateErr    error
-		wantErr          bool
-		expectedErrMsg   string
+		name           string
+		email          *string
+		subscriptionID *string
+		customerID     *string
+		mockUpdateErr  error
+		wantErr        bool
+		expectedErrMsg string
 	}{
 		{
 			name:           "SuccessfulAdd_AllData",
@@ -48,7 +48,6 @@ func TestAddStripeData(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -82,7 +81,7 @@ func TestAddStripeData(t *testing.T) {
 	}
 }
 
-// Tests for verifyStripeSubscription
+// Tests for verifyStripeSubscription.
 func TestVerifyStripeSubscription(t *testing.T) {
 	// Suppress Stripe SDK error logs to stderr (expected errors in tests)
 	origStderr := os.Stderr
@@ -95,13 +94,13 @@ func TestVerifyStripeSubscription(t *testing.T) {
 	defer log.SetOutput(origLogOutput)
 
 	testCases := []struct {
-		name           string
-		subID          string
-		customerID     string
-		mockHandler    http.HandlerFunc
-		wantErr        bool
-		wantFound      bool
-		wantActive     bool
+		name        string
+		subID       string
+		customerID  string
+		mockHandler http.HandlerFunc
+		wantErr     bool
+		wantFound   bool
+		wantActive  bool
 	}{
 		{
 			name:       "SubscriptionFoundByID",
@@ -126,7 +125,8 @@ func TestVerifyStripeSubscription(t *testing.T) {
 			customerID: "cus_123456",
 			mockHandler: func(w http.ResponseWriter, r *http.Request) {
 				// Handle both subscription GET by ID and LIST by customer
-				if r.URL.Path == "/v1/subscriptions/sub_missing" {
+				switch r.URL.Path {
+				case "/v1/subscriptions/sub_missing":
 					// Mock 404 subscription not found by ID
 					w.WriteHeader(http.StatusNotFound)
 					w.Write([]byte(`{
@@ -137,7 +137,7 @@ func TestVerifyStripeSubscription(t *testing.T) {
 							"message": "No such subscription"
 						}
 					}`))
-				} else if r.URL.Path == "/v1/subscriptions" {
+				case "/v1/subscriptions":
 					// Mock empty subscription list for customer
 					w.WriteHeader(http.StatusOK)
 					w.Write([]byte(`{
@@ -145,7 +145,7 @@ func TestVerifyStripeSubscription(t *testing.T) {
 						"data": [],
 						"has_more": false
 					}`))
-				} else {
+				default:
 					w.WriteHeader(http.StatusNotFound)
 				}
 			},
@@ -156,7 +156,6 @@ func TestVerifyStripeSubscription(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			// Set up mock Stripe server
 			srv := httptest.NewServer(tc.mockHandler)
@@ -195,7 +194,7 @@ func TestVerifyStripeSubscription(t *testing.T) {
 	}
 }
 
-// Benchmark tests
+// Benchmark tests.
 func BenchmarkAddStripeData(b *testing.B) {
 	mockDao := NewMockDAO()
 	email := "bench@example.com"
@@ -203,7 +202,7 @@ func BenchmarkAddStripeData(b *testing.B) {
 	custID := "cus_bench"
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = mockDao.AddStripeData(context.Background(), &email, &subID, &custID)
 	}
 }

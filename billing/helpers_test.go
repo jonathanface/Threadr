@@ -1,18 +1,19 @@
 package billing
 
 import (
-	"Threadr/models"
-	"Threadr/sessions"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 
+	"Threadr/models"
+	"Threadr/sessions"
+
 	gsessions "github.com/gorilla/sessions"
 )
 
-// Tests for atoiDefault
+// Tests for atoiDefault.
 func TestAtoiDefault(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -74,7 +75,7 @@ func TestAtoiDefault(t *testing.T) {
 	}
 }
 
-// Tests for getenv
+// Tests for getenv.
 func TestGetenv(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -155,7 +156,7 @@ func TestGetenv(t *testing.T) {
 	}
 }
 
-// Setup session for getUserEmail tests
+// Setup session for getUserEmail tests.
 func setupSessionForTest() {
 	if os.Getenv("SESSION_SECRET") == "" {
 		os.Setenv("SESSION_SECRET", "test-secret-key-for-testing-purposes-only")
@@ -163,7 +164,7 @@ func setupSessionForTest() {
 	sessions.Store = gsessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))
 }
 
-// Tests for getUserEmail
+// Tests for getUserEmail.
 func TestGetUserEmail(t *testing.T) {
 	setupSessionForTest()
 
@@ -176,7 +177,7 @@ func TestGetUserEmail(t *testing.T) {
 		{
 			name: "successful email extraction from session",
 			setupReq: func() *http.Request {
-				req := httptest.NewRequest("GET", "/test", nil)
+				req := httptest.NewRequest(http.MethodGet, "/test", nil)
 				w := httptest.NewRecorder()
 
 				session, _ := sessions.Store.Get(req, "token")
@@ -200,7 +201,7 @@ func TestGetUserEmail(t *testing.T) {
 		{
 			name: "no session returns error",
 			setupReq: func() *http.Request {
-				return httptest.NewRequest("GET", "/test", nil)
+				return httptest.NewRequest(http.MethodGet, "/test", nil)
 			},
 			expectEmail: "",
 			expectError: true,
@@ -208,7 +209,7 @@ func TestGetUserEmail(t *testing.T) {
 		{
 			name: "new session returns error",
 			setupReq: func() *http.Request {
-				req := httptest.NewRequest("GET", "/test", nil)
+				req := httptest.NewRequest(http.MethodGet, "/test", nil)
 				w := httptest.NewRecorder()
 
 				session, _ := sessions.Store.Get(req, "token")
@@ -227,7 +228,7 @@ func TestGetUserEmail(t *testing.T) {
 		{
 			name: "session with invalid token data returns error",
 			setupReq: func() *http.Request {
-				req := httptest.NewRequest("GET", "/test", nil)
+				req := httptest.NewRequest(http.MethodGet, "/test", nil)
 				w := httptest.NewRecorder()
 
 				session, _ := sessions.Store.Get(req, "token")
@@ -247,7 +248,7 @@ func TestGetUserEmail(t *testing.T) {
 		{
 			name: "session with different email",
 			setupReq: func() *http.Request {
-				req := httptest.NewRequest("GET", "/test", nil)
+				req := httptest.NewRequest(http.MethodGet, "/test", nil)
 				w := httptest.NewRecorder()
 
 				session, _ := sessions.Store.Get(req, "token")
@@ -291,7 +292,7 @@ func TestGetUserEmail(t *testing.T) {
 	}
 }
 
-// Test ensureCustomer panic on nil user
+// Test ensureCustomer panic on nil user.
 func TestEnsureCustomer_NilUserReturnsError(t *testing.T) {
 	_, err := ensureCustomer(nil, &models.Subscription{})
 	if err == nil {
@@ -299,7 +300,7 @@ func TestEnsureCustomer_NilUserReturnsError(t *testing.T) {
 	}
 }
 
-// Test RespondWithJson with unmarshalable data
+// Test RespondWithJson with unmarshalable data.
 func TestRespondWithJson_UnmarshalableData(t *testing.T) {
 	w := httptest.NewRecorder()
 

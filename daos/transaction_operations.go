@@ -1,23 +1,26 @@
 package daos
 
 import (
-	"Threadr/logger"
-	"Threadr/models"
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
 	"time"
+
+	"Threadr/logger"
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-func (d *DAO) awsWriteTransaction(ctx context.Context, writeItemsInput *dynamodb.TransactWriteItemsInput) (awsError models.AwsError, err error) {
+func (d *DAO) awsWriteTransaction(
+	ctx context.Context,
+	writeItemsInput *dynamodb.TransactWriteItemsInput,
+) (awsError models.AwsError, err error) {
 	if writeItemsInput == nil || len(writeItemsInput.TransactItems) == 0 {
 		logger.Error("awsWriteTransaction called with nil or empty input")
-		return awsError, fmt.Errorf("writeItemsInput is nil or empty")
+		return awsError, errors.New("writeItemsInput is nil or empty")
 	}
 
 	totalItems := len(writeItemsInput.TransactItems)
@@ -26,15 +29,12 @@ func (d *DAO) awsWriteTransaction(ctx context.Context, writeItemsInput *dynamodb
 		"capacity", d.capacity,
 		"maxRetries", d.maxRetries)
 
-	maxItemsPerSecond := d.capacity / 2
-	maxTransactions := 100 // AWS limit for TransactWriteItems
+	maxItemsPerSecond := d.capacity / 2 //nolint:mnd
+	maxTransactions := 100              // AWS limit for TransactWriteItems
 
 	// **Step 1: Split into chunks of 100 (AWS limit)**
 	for i := 0; i < len(writeItemsInput.TransactItems); i += maxTransactions {
-		end := i + maxTransactions
-		if end > len(writeItemsInput.TransactItems) {
-			end = len(writeItemsInput.TransactItems)
-		}
+		end := min(i+maxTransactions, len(writeItemsInput.TransactItems))
 
 		chunk := &dynamodb.TransactWriteItemsInput{
 			TransactItems: writeItemsInput.TransactItems[i:end],
@@ -48,7 +48,7 @@ func (d *DAO) awsWriteTransaction(ctx context.Context, writeItemsInput *dynamodb
 			"chunkSize", len(chunk.TransactItems))
 
 		// **Step 2: Retry logic with exponential backoff**
-		for numRetries := 0; numRetries < d.maxRetries; numRetries++ {
+		for numRetries := range d.maxRetries {
 			_, err := d.DynamoClient.TransactWriteItems(ctx, chunk)
 			if err == nil {
 				logger.Debug("Transaction chunk succeeded",
@@ -76,7 +76,6 @@ func (d *DAO) awsWriteTransaction(ctx context.Context, writeItemsInput *dynamodb
 					if *reason.Code == "TransactionConflict" ||
 						*reason.Code == "CapacityExceededException" ||
 						*reason.Code == "ResourceInUseException" {
-
 						// Calculate delay for retry
 						var delay time.Duration
 						if *reason.Code == "CapacityExceededException" {
@@ -118,9 +117,14 @@ func (d *DAO) awsWriteTransaction(ctx context.Context, writeItemsInput *dynamodb
 	return awsError, nil
 }
 
-func (d *DAO) generateStoryChapterTransaction(storyID, chapterID, chapterTitle string, chapter int) (types.TransactWriteItem, error) {
+func (d *DAO) generateStoryChapterTransaction(
+	storyID, chapterID, chapterTitle string,
+	chapter int,
+) (types.TransactWriteItem, error) {
 	if chapterTitle == "" || storyID == "" || chapterID == "" {
-		return types.TransactWriteItem{}, fmt.Errorf("CHAPTER CREATION: storyID, chapterID, and chapterTitle params must not be blank")
+		return types.TransactWriteItem{}, errors.New(
+			"CHAPTER CREATION: storyID, chapterID, and chapterTitle params must not be blank",
+		)
 	}
 	chapterNumStr := strconv.Itoa(chapter)
 	attributes := map[string]types.AttributeValue{

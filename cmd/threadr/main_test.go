@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// Tests for normalizeAddr
+// Tests for normalizeAddr.
 func TestNormalizeAddr(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -15,7 +15,7 @@ func TestNormalizeAddr(t *testing.T) {
 		{
 			name:     "empty string defaults to :8080",
 			input:    "",
-			expected:":8080",
+			expected: ":8080",
 		},
 		{
 			name:     "port without colon gets colon prepended",
@@ -54,7 +54,7 @@ func TestNormalizeAddr(t *testing.T) {
 	}
 }
 
-// Tests for getenv
+// Tests for getenv.
 func TestGetenv(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -135,7 +135,7 @@ func TestGetenv(t *testing.T) {
 	}
 }
 
-// Tests for atoiDefault
+// Tests for atoiDefault.
 func TestAtoiDefault(t *testing.T) {
 	tests := []struct {
 		name     string

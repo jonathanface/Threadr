@@ -1,16 +1,17 @@
 package api
 
 import (
-	"Threadr/daos"
-	"Threadr/models"
 	"context"
 	"errors"
+
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-// MockDAO is a mock implementation of daos.DaoInterface for testing
+// MockDAO is a mock implementation of daos.DaoInterface for testing.
 type MockDAO struct {
 	// Function fields to customize behavior per test
 	GetUserDetailsFunc                        func(email string) (*models.UserInfo, error)
@@ -90,21 +91,21 @@ type MockDAO struct {
 	MarkAlertReadFunc       func(email, alertID string) error
 
 	// Email auth
-	CreateEmailUserFunc              func(email, firstName, lastName, passwordHash, verificationToken string, tokenExpires int64) (*models.UserInfo, error)
-	SetEmailVerifiedFunc             func(email string) error
-	SetVerificationTokenFunc         func(email, token string, expires int64) error
-	SetResetTokenFunc                func(email, token string, expires int64) error
-	UpdatePasswordFunc               func(email, passwordHash string) error
-	ClearResetTokenFunc              func(email string) error
-	LinkOAuthAccountFunc             func(email, authType string) error
-	FindUserByVerificationTokenFunc  func(token string) (*models.UserInfo, error)
-	FindUserByResetTokenFunc         func(token string) (*models.UserInfo, error)
+	CreateEmailUserFunc             func(email, firstName, lastName, passwordHash, verificationToken string, tokenExpires int64) (*models.UserInfo, error)
+	SetEmailVerifiedFunc            func(email string) error
+	SetVerificationTokenFunc        func(email, token string, expires int64) error
+	SetResetTokenFunc               func(email, token string, expires int64) error
+	UpdatePasswordFunc              func(email, passwordHash string) error
+	ClearResetTokenFunc             func(email string) error
+	LinkOAuthAccountFunc            func(email, authType string) error
+	FindUserByVerificationTokenFunc func(token string) (*models.UserInfo, error)
+	FindUserByResetTokenFunc        func(token string) (*models.UserInfo, error)
 }
 
 // Note: We cannot enforce interface implementation at compile time due to unexported methods
 // var _ daos.DaoInterface = (*MockDAO)(nil)
 
-// GetAllStories mock implementation
+// GetAllStories mock implementation.
 func (m *MockDAO) GetAllStories(email string) ([]*models.Story, error) {
 	if m.GetAllStoriesFunc != nil {
 		return m.GetAllStoriesFunc(email)
@@ -112,7 +113,7 @@ func (m *MockDAO) GetAllStories(email string) ([]*models.Story, error) {
 	return []*models.Story{}, nil
 }
 
-// GetAllStandalone mock implementation
+// GetAllStandalone mock implementation.
 func (m *MockDAO) GetAllStandalone(email string, adminRequest bool) ([]models.Story, error) {
 	if m.GetAllStandaloneFunc != nil {
 		return m.GetAllStandaloneFunc(email, adminRequest)
@@ -120,7 +121,7 @@ func (m *MockDAO) GetAllStandalone(email string, adminRequest bool) ([]models.St
 	return []models.Story{}, nil
 }
 
-// GetAllSeriesWithStories mock implementation
+// GetAllSeriesWithStories mock implementation.
 func (m *MockDAO) GetAllSeriesWithStories(email string, adminRequest bool) ([]models.Series, error) {
 	if m.GetAllSeriesWithStoriesFunc != nil {
 		return m.GetAllSeriesWithStoriesFunc(email, adminRequest)
@@ -128,7 +129,7 @@ func (m *MockDAO) GetAllSeriesWithStories(email string, adminRequest bool) ([]mo
 	return []models.Series{}, nil
 }
 
-// GetChaptersByStoryID mock implementation
+// GetChaptersByStoryID mock implementation.
 func (m *MockDAO) GetChaptersByStoryID(storyID string) ([]models.Chapter, error) {
 	if m.GetChaptersByStoryIDFunc != nil {
 		return m.GetChaptersByStoryIDFunc(storyID)
@@ -136,7 +137,7 @@ func (m *MockDAO) GetChaptersByStoryID(storyID string) ([]models.Chapter, error)
 	return []models.Chapter{}, nil
 }
 
-// GetStoryByID mock implementation
+// GetStoryByID mock implementation.
 func (m *MockDAO) GetStoryByID(email string, storyID string) (*models.Story, error) {
 	if m.GetStoryByIDFunc != nil {
 		return m.GetStoryByIDFunc(email, storyID)
@@ -144,7 +145,7 @@ func (m *MockDAO) GetStoryByID(email string, storyID string) (*models.Story, err
 	return &models.Story{ID: storyID, Title: "Test Story"}, nil
 }
 
-// GetStorySettingsByID mock implementation
+// GetStorySettingsByID mock implementation.
 func (m *MockDAO) GetStorySettingsByID(email string, storyID string) (*models.StorySettings, error) {
 	if m.GetStorySettingsByIDFunc != nil {
 		return m.GetStorySettingsByIDFunc(email, storyID)
@@ -152,7 +153,7 @@ func (m *MockDAO) GetStorySettingsByID(email string, storyID string) (*models.St
 	return &models.StorySettings{}, nil
 }
 
-// GetStorySettings mock implementation
+// GetStorySettings mock implementation.
 func (m *MockDAO) GetStorySettings(storyID string) (*models.StorySettings, error) {
 	if m.GetStorySettingsFunc != nil {
 		return m.GetStorySettingsFunc(storyID)
@@ -160,7 +161,7 @@ func (m *MockDAO) GetStorySettings(storyID string) (*models.StorySettings, error
 	return &models.StorySettings{}, nil
 }
 
-// GetSeriesByID mock implementation
+// GetSeriesByID mock implementation.
 func (m *MockDAO) GetSeriesByID(email string, seriesID string) (*models.Series, error) {
 	if m.GetSeriesByIDFunc != nil {
 		return m.GetSeriesByIDFunc(email, seriesID)
@@ -168,7 +169,7 @@ func (m *MockDAO) GetSeriesByID(email string, seriesID string) (*models.Series, 
 	return &models.Series{ID: seriesID, Title: "Test Series"}, nil
 }
 
-// GetStoryCountByUser mock implementation
+// GetStoryCountByUser mock implementation.
 func (m *MockDAO) GetStoryCountByUser(email string) (int, error) {
 	if m.GetStoryCountByUserFunc != nil {
 		return m.GetStoryCountByUserFunc(email)
@@ -176,23 +177,30 @@ func (m *MockDAO) GetStoryCountByUser(email string) (int, error) {
 	return 0, nil
 }
 
-// GetChapterParagraphs mock implementation
-func (m *MockDAO) GetChapterParagraphs(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error) {
+// GetChapterParagraphs mock implementation.
+func (m *MockDAO) GetChapterParagraphs(
+	storyID string,
+	chapterID string,
+	key *map[string]types.AttributeValue,
+) (*models.BlocksData, error) {
 	if m.GetChapterParagraphsFunc != nil {
 		return m.GetChapterParagraphsFunc(storyID, chapterID, key)
 	}
 	return &models.BlocksData{Items: []map[string]types.AttributeValue{}}, nil
 }
 
-// GetStoryBlocks mock implementation
-func (m *MockDAO) GetStoryBlocks(storyID, chapterID string, exclusiveStartKey *map[string]types.AttributeValue) (*models.BlocksData, error) {
+// GetStoryBlocks mock implementation.
+func (m *MockDAO) GetStoryBlocks(
+	storyID, chapterID string,
+	exclusiveStartKey *map[string]types.AttributeValue,
+) (*models.BlocksData, error) {
 	if m.GetStoryBlocksFunc != nil {
 		return m.GetStoryBlocksFunc(storyID, chapterID, exclusiveStartKey)
 	}
 	return &models.BlocksData{Items: []map[string]types.AttributeValue{}}, nil
 }
 
-// GetAssociation mock implementation
+// GetAssociation mock implementation.
 func (m *MockDAO) GetAssociation(email, storyID, associationID string) (*models.Association, error) {
 	if m.GetAssociationFunc != nil {
 		return m.GetAssociationFunc(email, storyID, associationID)
@@ -200,15 +208,17 @@ func (m *MockDAO) GetAssociation(email, storyID, associationID string) (*models.
 	return &models.Association{ID: associationID, Name: "Test Association"}, nil
 }
 
-// GetStoryOrSeriesAssociationThumbnails mock implementation
-func (m *MockDAO) GetStoryOrSeriesAssociationThumbnails(email, storyID string) ([]*models.SimplifiedAssociation, error) {
+// GetStoryOrSeriesAssociationThumbnails mock implementation.
+func (m *MockDAO) GetStoryOrSeriesAssociationThumbnails(
+	email, storyID string,
+) ([]*models.SimplifiedAssociation, error) {
 	if m.GetStoryOrSeriesAssociationThumbnailsFunc != nil {
 		return m.GetStoryOrSeriesAssociationThumbnailsFunc(email, storyID)
 	}
 	return []*models.SimplifiedAssociation{}, nil
 }
 
-// GetAssociationDetails mock implementation
+// GetAssociationDetails mock implementation.
 func (m *MockDAO) GetAssociationDetails(email, storyID, associationID string) (*models.Association, error) {
 	if m.GetAssociationDetailsFunc != nil {
 		return m.GetAssociationDetailsFunc(email, storyID, associationID)
@@ -216,7 +226,7 @@ func (m *MockDAO) GetAssociationDetails(email, storyID, associationID string) (*
 	return &models.Association{}, nil
 }
 
-// GetSeriesVolumes mock implementation
+// GetSeriesVolumes mock implementation.
 func (m *MockDAO) GetSeriesVolumes(email string, seriesID string) ([]*models.Story, error) {
 	if m.GetSeriesVolumesFunc != nil {
 		return m.GetSeriesVolumesFunc(email, seriesID)
@@ -224,7 +234,7 @@ func (m *MockDAO) GetSeriesVolumes(email string, seriesID string) ([]*models.Sto
 	return []*models.Story{}, nil
 }
 
-// GetUserDetails mock implementation
+// GetUserDetails mock implementation.
 func (m *MockDAO) GetUserDetails(email string) (*models.UserInfo, error) {
 	if m.GetUserDetailsFunc != nil {
 		return m.GetUserDetailsFunc(email)
@@ -232,7 +242,7 @@ func (m *MockDAO) GetUserDetails(email string) (*models.UserInfo, error) {
 	return &models.UserInfo{Email: email}, nil
 }
 
-// GetChapterByID mock implementation
+// GetChapterByID mock implementation.
 func (m *MockDAO) GetChapterByID(chapterID string) (*models.Chapter, error) {
 	if m.GetChapterByIDFunc != nil {
 		return m.GetChapterByIDFunc(chapterID)
@@ -240,7 +250,7 @@ func (m *MockDAO) GetChapterByID(chapterID string) (*models.Chapter, error) {
 	return &models.Chapter{ID: chapterID}, nil
 }
 
-// GetOutlineByStoryID mock implementation
+// GetOutlineByStoryID mock implementation.
 func (m *MockDAO) GetOutlineByStoryID(storyID string, chapters []models.Chapter) (*models.OutlineResponse, error) {
 	if m.GetOutlineByStoryIDFunc != nil {
 		return m.GetOutlineByStoryIDFunc(storyID, chapters)
@@ -248,7 +258,7 @@ func (m *MockDAO) GetOutlineByStoryID(storyID string, chapters []models.Chapter)
 	return &models.OutlineResponse{}, nil
 }
 
-// GetChapterTableStatus mock implementation
+// GetChapterTableStatus mock implementation.
 func (m *MockDAO) GetChapterTableStatus(storyID, chapterID string) (bool, error) {
 	if m.GetChapterTableStatusFunc != nil {
 		return m.GetChapterTableStatusFunc(storyID, chapterID)
@@ -256,7 +266,7 @@ func (m *MockDAO) GetChapterTableStatus(storyID, chapterID string) (bool, error)
 	return true, nil
 }
 
-// GetSubscription mock implementation
+// GetSubscription mock implementation.
 func (m *MockDAO) GetSubscription(email string) (*models.Subscription, error) {
 	if m.GetSubscriptionFunc != nil {
 		return m.GetSubscriptionFunc(email)
@@ -264,7 +274,7 @@ func (m *MockDAO) GetSubscription(email string) (*models.Subscription, error) {
 	return &models.Subscription{}, nil
 }
 
-// GetEmailByCustomerId mock implementation
+// GetEmailByCustomerId mock implementation.
 func (m *MockDAO) GetEmailByCustomerId(customerID string) (string, error) {
 	if m.GetEmailByCustomerIdFunc != nil {
 		return m.GetEmailByCustomerIdFunc(customerID)
@@ -272,7 +282,7 @@ func (m *MockDAO) GetEmailByCustomerId(customerID string) (string, error) {
 	return "", nil
 }
 
-// UpsertUser mock implementation
+// UpsertUser mock implementation.
 func (m *MockDAO) UpsertUser(email string) (*models.UserInfo, error) {
 	if m.UpsertUserFunc != nil {
 		return m.UpsertUserFunc(email)
@@ -280,7 +290,7 @@ func (m *MockDAO) UpsertUser(email string) (*models.UserInfo, error) {
 	return &models.UserInfo{Email: email}, nil
 }
 
-// UpdateUser mock implementation
+// UpdateUser mock implementation.
 func (m *MockDAO) UpdateUser(user models.UserInfo) error {
 	if m.UpdateUserFunc != nil {
 		return m.UpdateUserFunc(user)
@@ -288,8 +298,11 @@ func (m *MockDAO) UpdateUser(user models.UserInfo) error {
 	return nil
 }
 
-// RestoreAutomaticallyDeletedStories mock implementation
-func (m *MockDAO) RestoreAutomaticallyDeletedStories(ctx context.Context, email string) (<-chan daos.RestoreStoryEvent, error) {
+// RestoreAutomaticallyDeletedStories mock implementation.
+func (m *MockDAO) RestoreAutomaticallyDeletedStories(
+	ctx context.Context,
+	email string,
+) (<-chan daos.RestoreStoryEvent, error) {
 	if m.RestoreAutomaticallyDeletedStoriesFunc != nil {
 		return m.RestoreAutomaticallyDeletedStoriesFunc(ctx, email)
 	}
@@ -298,7 +311,7 @@ func (m *MockDAO) RestoreAutomaticallyDeletedStories(ctx context.Context, email 
 	return ch, nil
 }
 
-// ResetBlockOrder mock implementation
+// ResetBlockOrder mock implementation.
 func (m *MockDAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlocks) error {
 	if m.ResetBlockOrderFunc != nil {
 		return m.ResetBlockOrderFunc(storyID, storyBlocks)
@@ -306,7 +319,7 @@ func (m *MockDAO) ResetBlockOrder(storyID string, storyBlocks *models.StoryBlock
 	return nil
 }
 
-// WriteBlocks mock implementation
+// WriteBlocks mock implementation.
 func (m *MockDAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) error {
 	if m.WriteBlocksFunc != nil {
 		return m.WriteBlocksFunc(storyID, storyBlocks)
@@ -314,7 +327,7 @@ func (m *MockDAO) WriteBlocks(storyID string, storyBlocks *models.StoryBlocks) e
 	return nil
 }
 
-// WriteAssociations mock implementation
+// WriteAssociations mock implementation.
 func (m *MockDAO) WriteAssociations(email, storyOrSeriesID string, associations []*models.Association) error {
 	if m.WriteAssociationsFunc != nil {
 		return m.WriteAssociationsFunc(email, storyOrSeriesID, associations)
@@ -322,7 +335,7 @@ func (m *MockDAO) WriteAssociations(email, storyOrSeriesID string, associations 
 	return nil
 }
 
-// UpdateAssociationPortraitEntryInDB mock implementation
+// UpdateAssociationPortraitEntryInDB mock implementation.
 func (m *MockDAO) UpdateAssociationPortraitEntryInDB(email, storyOrSeriesID, associationID, url string) error {
 	if m.UpdateAssociationPortraitEntryInDBFunc != nil {
 		return m.UpdateAssociationPortraitEntryInDBFunc(email, storyOrSeriesID, associationID, url)
@@ -330,7 +343,7 @@ func (m *MockDAO) UpdateAssociationPortraitEntryInDB(email, storyOrSeriesID, ass
 	return nil
 }
 
-// AddCustomerID mock implementation
+// AddCustomerID mock implementation.
 func (m *MockDAO) AddCustomerID(email, customerID *string) error {
 	if m.AddCustomerIDFunc != nil {
 		return m.AddCustomerIDFunc(email, customerID)
@@ -338,7 +351,7 @@ func (m *MockDAO) AddCustomerID(email, customerID *string) error {
 	return nil
 }
 
-// AddStripeData mock implementation
+// AddStripeData mock implementation.
 func (m *MockDAO) AddStripeData(email, subscriptionID, customerID *string) error {
 	if m.AddStripeDataFunc != nil {
 		return m.AddStripeDataFunc(email, subscriptionID, customerID)
@@ -346,7 +359,7 @@ func (m *MockDAO) AddStripeData(email, subscriptionID, customerID *string) error
 	return nil
 }
 
-// EditStory mock implementation
+// EditStory mock implementation.
 func (m *MockDAO) EditStory(email string, story models.Story) (models.Story, error) {
 	if m.EditStoryFunc != nil {
 		return m.EditStoryFunc(email, story)
@@ -354,7 +367,7 @@ func (m *MockDAO) EditStory(email string, story models.Story) (models.Story, err
 	return story, nil
 }
 
-// UpdateStorySettings mock implementation
+// UpdateStorySettings mock implementation.
 func (m *MockDAO) UpdateStorySettings(email, storyID string, settings models.StorySettings) error {
 	if m.UpdateStorySettingsFunc != nil {
 		return m.UpdateStorySettingsFunc(email, storyID, settings)
@@ -362,7 +375,7 @@ func (m *MockDAO) UpdateStorySettings(email, storyID string, settings models.Sto
 	return nil
 }
 
-// EditSeries mock implementation
+// EditSeries mock implementation.
 func (m *MockDAO) EditSeries(email string, series models.Series) (models.Series, error) {
 	if m.EditSeriesFunc != nil {
 		return m.EditSeriesFunc(email, series)
@@ -370,7 +383,7 @@ func (m *MockDAO) EditSeries(email string, series models.Series) (models.Series,
 	return series, nil
 }
 
-// EditChapter mock implementation
+// EditChapter mock implementation.
 func (m *MockDAO) EditChapter(storyID string, chapter models.Chapter) (models.Chapter, error) {
 	if m.EditChapterFunc != nil {
 		return m.EditChapterFunc(storyID, chapter)
@@ -378,7 +391,7 @@ func (m *MockDAO) EditChapter(storyID string, chapter models.Chapter) (models.Ch
 	return chapter, nil
 }
 
-// EditAssociation mock implementation
+// EditAssociation mock implementation.
 func (m *MockDAO) EditAssociation(email, storyID string, association models.Association) (*models.Association, error) {
 	if m.EditAssociationFunc != nil {
 		return m.EditAssociationFunc(email, storyID, association)
@@ -386,7 +399,7 @@ func (m *MockDAO) EditAssociation(email, storyID string, association models.Asso
 	return &association, nil
 }
 
-// RemoveStoryFromSeries mock implementation
+// RemoveStoryFromSeries mock implementation.
 func (m *MockDAO) RemoveStoryFromSeries(email, storyID string, series models.Series) (models.Series, error) {
 	if m.RemoveStoryFromSeriesFunc != nil {
 		return m.RemoveStoryFromSeriesFunc(email, storyID, series)
@@ -394,7 +407,7 @@ func (m *MockDAO) RemoveStoryFromSeries(email, storyID string, series models.Ser
 	return series, nil
 }
 
-// UpdateOutline mock implementation
+// UpdateOutline mock implementation.
 func (m *MockDAO) UpdateOutline(outline models.OutlineRequest) (*models.OutlineResponse, error) {
 	if m.UpdateOutlineFunc != nil {
 		return m.UpdateOutlineFunc(outline)
@@ -402,7 +415,7 @@ func (m *MockDAO) UpdateOutline(outline models.OutlineRequest) (*models.OutlineR
 	return &models.OutlineResponse{}, nil
 }
 
-// UpdateSubscription mock implementation
+// UpdateSubscription mock implementation.
 func (m *MockDAO) UpdateSubscription(subscription models.Subscription) error {
 	if m.UpdateSubscriptionFunc != nil {
 		return m.UpdateSubscriptionFunc(subscription)
@@ -410,7 +423,7 @@ func (m *MockDAO) UpdateSubscription(subscription models.Subscription) error {
 	return nil
 }
 
-// CreateChapter mock implementation
+// CreateChapter mock implementation.
 func (m *MockDAO) CreateChapter(storyID string, chapter models.Chapter, email string) (models.Chapter, error) {
 	if m.CreateChapterFunc != nil {
 		return m.CreateChapterFunc(storyID, chapter, email)
@@ -418,7 +431,7 @@ func (m *MockDAO) CreateChapter(storyID string, chapter models.Chapter, email st
 	return chapter, nil
 }
 
-// CreateStory mock implementation
+// CreateStory mock implementation.
 func (m *MockDAO) CreateStory(email string, story models.Story, newSeriesTitle string) (storyID string, err error) {
 	if m.CreateStoryFunc != nil {
 		return m.CreateStoryFunc(email, story, newSeriesTitle)
@@ -426,7 +439,7 @@ func (m *MockDAO) CreateStory(email string, story models.Story, newSeriesTitle s
 	return story.ID, nil
 }
 
-// CreateUser mock implementation
+// CreateUser mock implementation.
 func (m *MockDAO) CreateUser(email string) (*models.UserInfo, error) {
 	if m.CreateUserFunc != nil {
 		return m.CreateUserFunc(email)
@@ -434,7 +447,7 @@ func (m *MockDAO) CreateUser(email string) (*models.UserInfo, error) {
 	return &models.UserInfo{Email: email}, nil
 }
 
-// CreateOutline mock implementation
+// CreateOutline mock implementation.
 func (m *MockDAO) CreateOutline(outline models.OutlineRequest) (*models.OutlineRequest, error) {
 	if m.CreateOutlineFunc != nil {
 		return m.CreateOutlineFunc(outline)
@@ -442,7 +455,7 @@ func (m *MockDAO) CreateOutline(outline models.OutlineRequest) (*models.OutlineR
 	return &outline, nil
 }
 
-// DeleteChapterParagraphs mock implementation
+// DeleteChapterParagraphs mock implementation.
 func (m *MockDAO) DeleteChapterParagraphs(storyID string, storyBlocks *models.StoryBlocks) error {
 	if m.DeleteChapterParagraphsFunc != nil {
 		return m.DeleteChapterParagraphsFunc(storyID, storyBlocks)
@@ -450,7 +463,7 @@ func (m *MockDAO) DeleteChapterParagraphs(storyID string, storyBlocks *models.St
 	return nil
 }
 
-// DeleteAssociations mock implementation
+// DeleteAssociations mock implementation.
 func (m *MockDAO) DeleteAssociations(email, storyID string, associations []*models.Association) error {
 	if m.DeleteAssociationsFunc != nil {
 		return m.DeleteAssociationsFunc(email, storyID, associations)
@@ -458,7 +471,7 @@ func (m *MockDAO) DeleteAssociations(email, storyID string, associations []*mode
 	return nil
 }
 
-// DeleteChapters mock implementation
+// DeleteChapters mock implementation.
 func (m *MockDAO) DeleteChapters(storyID string, chapters []models.Chapter) error {
 	if m.DeleteChaptersFunc != nil {
 		return m.DeleteChaptersFunc(storyID, chapters)
@@ -466,7 +479,7 @@ func (m *MockDAO) DeleteChapters(storyID string, chapters []models.Chapter) erro
 	return nil
 }
 
-// SoftDeleteStory mock implementation
+// SoftDeleteStory mock implementation.
 func (m *MockDAO) SoftDeleteStory(email, storyID string, isAutomated bool) error {
 	if m.SoftDeleteStoryFunc != nil {
 		return m.SoftDeleteStoryFunc(email, storyID, isAutomated)
@@ -474,7 +487,7 @@ func (m *MockDAO) SoftDeleteStory(email, storyID string, isAutomated bool) error
 	return nil
 }
 
-// DeleteSeries mock implementation
+// DeleteSeries mock implementation.
 func (m *MockDAO) DeleteSeries(email string, series models.Series) error {
 	if m.DeleteSeriesFunc != nil {
 		return m.DeleteSeriesFunc(email, series)
@@ -482,7 +495,7 @@ func (m *MockDAO) DeleteSeries(email string, series models.Series) error {
 	return nil
 }
 
-// WasStoryDeleted mock implementation
+// WasStoryDeleted mock implementation.
 func (m *MockDAO) WasStoryDeleted(email string, storyID string) (bool, error) {
 	if m.WasStoryDeletedFunc != nil {
 		return m.WasStoryDeletedFunc(email, storyID)
@@ -490,7 +503,7 @@ func (m *MockDAO) WasStoryDeleted(email string, storyID string) (bool, error) {
 	return false, nil
 }
 
-// IsStoryInASeries mock implementation
+// IsStoryInASeries mock implementation.
 func (m *MockDAO) IsStoryInASeries(email string, storyID string) (string, error) {
 	if m.IsStoryInASeriesFunc != nil {
 		return m.IsStoryInASeriesFunc(email, storyID)
@@ -498,7 +511,7 @@ func (m *MockDAO) IsStoryInASeries(email string, storyID string) (string, error)
 	return "", nil
 }
 
-// IsUserSubscribed mock implementation
+// IsUserSubscribed mock implementation.
 func (m *MockDAO) IsUserSubscribed(user models.UserInfo) (*models.UserInfo, error) {
 	if m.IsUserSubscribedFunc != nil {
 		return m.IsUserSubscribedFunc(user)
@@ -506,7 +519,7 @@ func (m *MockDAO) IsUserSubscribed(user models.UserInfo) (*models.UserInfo, erro
 	return &user, nil
 }
 
-// GetTotalCreatedStories mock implementation
+// GetTotalCreatedStories mock implementation.
 func (m *MockDAO) GetTotalCreatedStories(email string) (int, error) {
 	if m.GetTotalCreatedStoriesFunc != nil {
 		return m.GetTotalCreatedStoriesFunc(email)
@@ -514,7 +527,7 @@ func (m *MockDAO) GetTotalCreatedStories(email string) (int, error) {
 	return 0, nil
 }
 
-// CheckForSuspendedStories mock implementation
+// CheckForSuspendedStories mock implementation.
 func (m *MockDAO) CheckForSuspendedStories(email string) (bool, error) {
 	if m.CheckForSuspendedStoriesFunc != nil {
 		return m.CheckForSuspendedStoriesFunc(email)
@@ -522,7 +535,7 @@ func (m *MockDAO) CheckForSuspendedStories(email string) (bool, error) {
 	return false, nil
 }
 
-// CheckTableStatus mock implementation
+// CheckTableStatus mock implementation.
 func (m *MockDAO) CheckTableStatus(tableName string) (string, error) {
 	if m.CheckTableStatusFunc != nil {
 		return m.CheckTableStatusFunc(tableName)
@@ -530,7 +543,7 @@ func (m *MockDAO) CheckTableStatus(tableName string) (string, error) {
 	return "ACTIVE", nil
 }
 
-// Private methods that need to be stubbed
+// Private methods that need to be stubbed.
 func (m *MockDAO) ensureBlocksTableFromBackup(ctx context.Context, backupARN, oldTableName, chapterName string) error {
 	return nil
 }
@@ -551,11 +564,13 @@ func (m *MockDAO) verifyStripeSubscription(subID, customerID string) (daos.Subsc
 	return daos.SubscriptionStatus{}, nil
 }
 
-func (m *MockDAO) awsWriteTransaction(writeItemsInput *dynamodb.TransactWriteItemsInput) (awsError models.AwsError, err error) {
+func (m *MockDAO) awsWriteTransaction(
+	writeItemsInput *dynamodb.TransactWriteItemsInput,
+) (awsError models.AwsError, err error) {
 	return models.AwsError{}, nil
 }
 
-// CreateShareLink mock implementation
+// CreateShareLink mock implementation.
 func (m *MockDAO) CreateShareLink(link models.ShareLink) error {
 	if m.CreateShareLinkFunc != nil {
 		return m.CreateShareLinkFunc(link)
@@ -563,7 +578,7 @@ func (m *MockDAO) CreateShareLink(link models.ShareLink) error {
 	return nil
 }
 
-// GetShareLink mock implementation
+// GetShareLink mock implementation.
 func (m *MockDAO) GetShareLink(token string) (*models.ShareLink, error) {
 	if m.GetShareLinkFunc != nil {
 		return m.GetShareLinkFunc(token)
@@ -571,7 +586,7 @@ func (m *MockDAO) GetShareLink(token string) (*models.ShareLink, error) {
 	return &models.ShareLink{Token: token}, nil
 }
 
-// GetShareLinksByAuthor mock implementation
+// GetShareLinksByAuthor mock implementation.
 func (m *MockDAO) GetShareLinksByAuthor(email, storyID string) ([]models.ShareLink, error) {
 	if m.GetShareLinksByAuthorFunc != nil {
 		return m.GetShareLinksByAuthorFunc(email, storyID)
@@ -579,7 +594,7 @@ func (m *MockDAO) GetShareLinksByAuthor(email, storyID string) ([]models.ShareLi
 	return []models.ShareLink{}, nil
 }
 
-// GetShareLinksByStory mock implementation
+// GetShareLinksByStory mock implementation.
 func (m *MockDAO) GetShareLinksByStory(storyID string) ([]models.ShareLink, error) {
 	if m.GetShareLinksByStoryFunc != nil {
 		return m.GetShareLinksByStoryFunc(storyID)
@@ -587,7 +602,7 @@ func (m *MockDAO) GetShareLinksByStory(storyID string) ([]models.ShareLink, erro
 	return []models.ShareLink{}, nil
 }
 
-// RevokeShareLink mock implementation
+// RevokeShareLink mock implementation.
 func (m *MockDAO) RevokeShareLink(token string) error {
 	if m.RevokeShareLinkFunc != nil {
 		return m.RevokeShareLinkFunc(token)
@@ -595,7 +610,7 @@ func (m *MockDAO) RevokeShareLink(token string) error {
 	return nil
 }
 
-// RestoreShareLink mock implementation
+// RestoreShareLink mock implementation.
 func (m *MockDAO) RestoreShareLink(token string) error {
 	if m.RestoreShareLinkFunc != nil {
 		return m.RestoreShareLinkFunc(token)
@@ -603,7 +618,7 @@ func (m *MockDAO) RestoreShareLink(token string) error {
 	return nil
 }
 
-// DeleteShareLink mock implementation
+// DeleteShareLink mock implementation.
 func (m *MockDAO) DeleteShareLink(token string) error {
 	if m.DeleteShareLinkFunc != nil {
 		return m.DeleteShareLinkFunc(token)
@@ -611,7 +626,7 @@ func (m *MockDAO) DeleteShareLink(token string) error {
 	return nil
 }
 
-// CreateComment mock implementation
+// CreateComment mock implementation.
 func (m *MockDAO) CreateComment(comment models.Comment) error {
 	if m.CreateCommentFunc != nil {
 		return m.CreateCommentFunc(comment)
@@ -619,7 +634,7 @@ func (m *MockDAO) CreateComment(comment models.Comment) error {
 	return nil
 }
 
-// GetComment mock implementation
+// GetComment mock implementation.
 func (m *MockDAO) GetComment(commentID string) (*models.Comment, error) {
 	if m.GetCommentFunc != nil {
 		return m.GetCommentFunc(commentID)
@@ -627,7 +642,7 @@ func (m *MockDAO) GetComment(commentID string) (*models.Comment, error) {
 	return &models.Comment{CommentID: commentID}, nil
 }
 
-// GetCommentsByShareToken mock implementation
+// GetCommentsByShareToken mock implementation.
 func (m *MockDAO) GetCommentsByShareToken(shareToken string) ([]models.Comment, error) {
 	if m.GetCommentsByShareTokenFunc != nil {
 		return m.GetCommentsByShareTokenFunc(shareToken)
@@ -635,7 +650,7 @@ func (m *MockDAO) GetCommentsByShareToken(shareToken string) ([]models.Comment, 
 	return []models.Comment{}, nil
 }
 
-// GetCommentsByStoryChapter mock implementation
+// GetCommentsByStoryChapter mock implementation.
 func (m *MockDAO) GetCommentsByStoryChapter(storyID, chapterID string) ([]models.Comment, error) {
 	if m.GetCommentsByStoryChapterFunc != nil {
 		return m.GetCommentsByStoryChapterFunc(storyID, chapterID)
@@ -643,7 +658,7 @@ func (m *MockDAO) GetCommentsByStoryChapter(storyID, chapterID string) ([]models
 	return []models.Comment{}, nil
 }
 
-// ResolveComment mock implementation
+// ResolveComment mock implementation.
 func (m *MockDAO) ResolveComment(commentID string) error {
 	if m.ResolveCommentFunc != nil {
 		return m.ResolveCommentFunc(commentID)
@@ -651,7 +666,7 @@ func (m *MockDAO) ResolveComment(commentID string) error {
 	return nil
 }
 
-// DeleteComment mock implementation
+// DeleteComment mock implementation.
 func (m *MockDAO) DeleteComment(commentID string) error {
 	if m.DeleteCommentFunc != nil {
 		return m.DeleteCommentFunc(commentID)
@@ -659,7 +674,7 @@ func (m *MockDAO) DeleteComment(commentID string) error {
 	return nil
 }
 
-// DeleteUser mock implementation
+// DeleteUser mock implementation.
 func (m *MockDAO) DeleteUser(email string) error {
 	if m.DeleteUserFunc != nil {
 		return m.DeleteUserFunc(email)
@@ -667,7 +682,7 @@ func (m *MockDAO) DeleteUser(email string) error {
 	return nil
 }
 
-// GetAllUsersWithStories mock implementation
+// GetAllUsersWithStories mock implementation.
 func (m *MockDAO) GetAllUsersWithStories() ([]models.AdminUserSummary, error) {
 	if m.GetAllUsersWithStoriesFunc != nil {
 		return m.GetAllUsersWithStoriesFunc()
@@ -675,7 +690,7 @@ func (m *MockDAO) GetAllUsersWithStories() ([]models.AdminUserSummary, error) {
 	return []models.AdminUserSummary{}, nil
 }
 
-// GetChaptersByStoryIDs mock implementation
+// GetChaptersByStoryIDs mock implementation.
 func (m *MockDAO) GetChaptersByStoryIDs(storyIDs []string) (map[string][]models.Chapter, error) {
 	if m.GetChaptersByStoryIDsFunc != nil {
 		return m.GetChaptersByStoryIDsFunc(storyIDs)
@@ -683,7 +698,7 @@ func (m *MockDAO) GetChaptersByStoryIDs(storyIDs []string) (map[string][]models.
 	return map[string][]models.Chapter{}, nil
 }
 
-// Helper function to create a mock DAO with default error behavior
+// Helper function to create a mock DAO with default error behavior.
 func NewMockDAOWithError(err error) *MockDAO {
 	return &MockDAO{
 		GetUserDetailsFunc: func(email string) (*models.UserInfo, error) {
@@ -712,7 +727,10 @@ func NewMockDAOWithError(err error) *MockDAO {
 
 // Email auth mock implementations
 
-func (m *MockDAO) CreateEmailUser(email, firstName, lastName, passwordHash, verificationToken string, tokenExpires int64) (*models.UserInfo, error) {
+func (m *MockDAO) CreateEmailUser(
+	email, firstName, lastName, passwordHash, verificationToken string,
+	tokenExpires int64,
+) (*models.UserInfo, error) {
 	if m.CreateEmailUserFunc != nil {
 		return m.CreateEmailUserFunc(email, firstName, lastName, passwordHash, verificationToken, tokenExpires)
 	}
@@ -809,9 +827,9 @@ func (m *MockDAO) MarkAlertRead(email, alertID string) error {
 	return nil
 }
 
-// Common error for testing
+// Common error for testing.
 var (
-	ErrMockDAO         = errors.New("mock dao error")
-	ErrMockNotFound    = errors.New("not found")
+	ErrMockDAO          = errors.New("mock dao error")
+	ErrMockNotFound     = errors.New("not found")
 	ErrMockUnauthorized = errors.New("unauthorized")
 )

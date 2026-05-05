@@ -1,13 +1,15 @@
 package api
 
 import (
+	"database/sql"
+	"errors"
+	"net/http"
+	"net/url"
+
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
 	"Threadr/logger"
 	"Threadr/models"
-	"database/sql"
-	"net/http"
-	"net/url"
 
 	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
@@ -49,7 +51,7 @@ func ChapterTableStatusEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	// Verify the user owns this story before returning chapter status
 	if _, err = dao.GetStoryByID(r.Context(), email, storyID); err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithError(w, http.StatusNotFound, "story not found")
 			return
 		}
@@ -105,7 +107,7 @@ func ChapterDetailsEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	// Verify the user owns this story before returning chapter details
 	if _, err = dao.GetStoryByID(r.Context(), email, storyID); err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithError(w, http.StatusNotFound, "story not found")
 			return
 		}
@@ -173,7 +175,8 @@ func StoryBlocksEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	blocks, err := dao.GetChapterParagraphs(r.Context(), storyID, chapterID, nil)
 	if err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -231,7 +234,7 @@ func FullStoryEndPoint(w http.ResponseWriter, r *http.Request) {
 
 	story, err := dao.GetStoryByID(r.Context(), email, storyID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithError(w, http.StatusNotFound, "story not found")
 			return
 		}
@@ -293,7 +296,8 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	story, err := dao.GetStoryByID(r.Context(), email, storyID)
 	if err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -303,7 +307,7 @@ func StoryEndPoint(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, awsResponse.Code, awsResponse.Message)
 			return
 		}
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithError(w, http.StatusNotFound, "story not found")
 			return
 		}
@@ -342,11 +346,12 @@ func StorySettingsEndPoint(w http.ResponseWriter, r *http.Request) {
 
 	storySettings, err := dao.GetStorySettingsByID(r.Context(), email, storyID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithError(w, http.StatusNotFound, "settings not found")
 			return
 		}
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -388,7 +393,8 @@ func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 
 	stories, err := dao.GetAllStandalone(r.Context(), email, userDetails.Admin)
 	if err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -442,7 +448,8 @@ func AssociationDetailsEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	association, err := dao.GetAssociationDetails(r.Context(), email, storyID, associationID)
 	if err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -486,7 +493,8 @@ func AllAssociationThumbnailsByStoryEndPoint(w http.ResponseWriter, r *http.Requ
 	}
 	associations, err := dao.GetStoryOrSeriesAssociationThumbnails(r.Context(), email, storyID)
 	if err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -534,7 +542,8 @@ func SingleSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	series, err := dao.GetSeriesByID(r.Context(), email, seriesID)
 	if err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -575,7 +584,8 @@ func AllSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	series, err := dao.GetAllSeriesWithStories(r.Context(), email, userDetails.Admin)
 	if err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -619,7 +629,8 @@ func AllSeriesVolumesEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	volumes, err := dao.GetSeriesVolumes(r.Context(), email, seriesTitle)
 	if err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -656,7 +667,7 @@ func GetUserData(w http.ResponseWriter, r *http.Request) {
 	// Fetch fresh user details from database
 	details, err := dao.GetUserDetails(r.Context(), user.Email)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithError(w, http.StatusNotFound, "user not found")
 			return
 		}
@@ -678,7 +689,7 @@ func GetUserData(w http.ResponseWriter, r *http.Request) {
 	RespondWithJson(w, http.StatusOK, details)
 }
 
-// AdminGetAllUsersEndpoint returns all users with their stories (admin only)
+// AdminGetAllUsersEndpoint returns all users with their stories (admin only).
 func AdminGetAllUsersEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		email string
@@ -721,7 +732,7 @@ func AdminGetAllUsersEndpoint(w http.ResponseWriter, r *http.Request) {
 	RespondWithJson(w, http.StatusOK, users)
 }
 
-// AdminDeleteUserEndpoint soft-deletes a user account (admin only)
+// AdminDeleteUserEndpoint soft-deletes a user account (admin only).
 func AdminDeleteUserEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		email string

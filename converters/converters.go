@@ -1,9 +1,9 @@
 package converters
 
 import (
-	"Threadr/models"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html"
 	"io"
@@ -17,12 +17,14 @@ import (
 	"strings"
 	"time"
 
+	"Threadr/models"
+
 	"github.com/SebastiaanKlippert/go-wkhtmltopdf"
 	"github.com/microcosm-cc/bluemonday"
 )
 
 // sanitizeFilename makes a filename safe to use, only allows
-// basic ASCII, replaces spaces with underscores, and strips path traversal
+// basic ASCII, replaces spaces with underscores, and strips path traversal.
 func sanitizeFilename(name string) string {
 	// Remove path separators and ".."
 	name = strings.ReplaceAll(name, "/", "_")
@@ -32,7 +34,7 @@ func sanitizeFilename(name string) string {
 	re := regexp.MustCompile(`[^\w\d_-]`)
 	name = re.ReplaceAllString(name, "_")
 	// Limit length to 64 chars
-	if len(name) > 64 {
+	if len(name) > 64 { //nolint:mnd
 		name = name[:64]
 	}
 	return name
@@ -45,6 +47,12 @@ const (
 	FONT_SIZE_HEADER  = "18px"
 	LINE_HEIGHT       = "24px"
 	MARGIN_1INCH      = "1in"
+	// pandocTimeout caps every pandoc subprocess invocation. Pandoc's HTML→
+	// {DOCX,EPUB} normally finishes in <1s; 30s is a generous backstop against
+	// hangs without dragging request timeouts.
+	pandocTimeout = 30 * time.Second
+	// pdfMarginMM is the wkhtmltopdf page margin in millimeters (~1in).
+	pdfMarginMM = 25
 )
 
 func detab(s string, tabWidth int) string {
@@ -61,7 +69,7 @@ func detab(s string, tabWidth int) string {
 			col = 0
 		case '\t':
 			spaces := tabWidth - (col % tabWidth)
-			for i := 0; i < spaces; i++ {
+			for range spaces {
 				b.WriteByte(' ')
 			}
 			col += spaces
@@ -78,7 +86,7 @@ func safeTimestamp() string {
 	return time.Now().UTC().Format("20060102T150405Z")
 }
 
-// validateImageURL checks if a URL is safe to fetch (prevents SSRF attacks)
+// validateImageURL checks if a URL is safe to fetch (prevents SSRF attacks).
 func ValidateImageURL(imageURL string) (string, error) {
 	// Parse the URL
 	parsedURL, err := url.Parse(imageURL)
@@ -88,13 +96,13 @@ func ValidateImageURL(imageURL string) (string, error) {
 
 	// Only allow HTTP and HTTPS schemes
 	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
-		return "", fmt.Errorf("invalid URL scheme: only http and https are allowed")
+		return "", errors.New("invalid URL scheme: only http and https are allowed")
 	}
 
 	// Extract hostname
 	hostname := parsedURL.Hostname()
 	if hostname == "" {
-		return "", fmt.Errorf("invalid URL: missing hostname")
+		return "", errors.New("invalid URL: missing hostname")
 	}
 
 	// Resolve hostname to IP addresses
@@ -107,41 +115,40 @@ func ValidateImageURL(imageURL string) (string, error) {
 	for _, ip := range ips {
 		// Block AWS metadata service IP explicitly
 		if ip.String() == "169.254.169.254" {
-			return "", fmt.Errorf("access to cloud metadata services is not allowed")
+			return "", errors.New("access to cloud metadata services is not allowed")
 		}
 
 		// Block loopback addresses (127.0.0.0/8, ::1)
 		if ip.IsLoopback() {
-			return "", fmt.Errorf("access to loopback addresses is not allowed")
+			return "", errors.New("access to loopback addresses is not allowed")
 		}
 
 		// Block private IP ranges (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fc00::/7)
 		if ip.IsPrivate() {
-			return "", fmt.Errorf("access to private IP addresses is not allowed")
+			return "", errors.New("access to private IP addresses is not allowed")
 		}
 
 		// Block link-local addresses (169.254.0.0/16, fe80::/10)
 		if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
-			return "", fmt.Errorf("access to link-local addresses is not allowed")
+			return "", errors.New("access to link-local addresses is not allowed")
 		}
 
 		// Block multicast addresses
 		if ip.IsMulticast() {
-			return "", fmt.Errorf("access to multicast addresses is not allowed")
+			return "", errors.New("access to multicast addresses is not allowed")
 		}
 	}
 
 	return imageURL, nil
 }
 
-// DownloadCoverImage downloads an image from a URL to a temporary file
+// DownloadCoverImage downloads an image from a URL to a temporary file.
 func DownloadCoverImage(imageURL string) (string, error) {
-
 	// Create a GET request with a timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), pandocTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", imageURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, imageURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
@@ -180,7 +187,7 @@ func DownloadCoverImage(imageURL string) (string, error) {
 	defer tmpFile.Close()
 
 	// Limit file size to 10MB to prevent abuse
-	maxSize := int64(10 * 1024 * 1024) // 10MB
+	maxSize := int64(10 * 1024 * 1024) //nolint:mnd // 10MB
 	limitedReader := io.LimitReader(resp.Body, maxSize+1)
 
 	// Copy image data to file
@@ -193,26 +200,26 @@ func DownloadCoverImage(imageURL string) (string, error) {
 	// Check if file exceeded size limit
 	if written > maxSize {
 		os.Remove(tmpFile.Name())
-		return "", fmt.Errorf("image file too large: maximum 10MB allowed")
+		return "", errors.New("image file too large: maximum 10MB allowed")
 	}
 
 	return tmpFile.Name(), nil
 }
 
-// LexicalNode represents a node in the Lexical editor state
+// LexicalNode represents a node in the Lexical editor state.
 type LexicalNode struct {
-	Type       string         `json:"type"`
-	Children   []LexicalNode  `json:"children,omitempty"`
-	Text       string         `json:"text,omitempty"`
-	Format     interface{}    `json:"format,omitempty"`
-	TextFormat int            `json:"textFormat,omitempty"`
-	TextStyle  string         `json:"textStyle,omitempty"`
-	Direction  string         `json:"direction,omitempty"`
-	Indent     int            `json:"indent,omitempty"`
-	Version    int            `json:"version,omitempty"`
+	Type       string        `json:"type"`
+	Children   []LexicalNode `json:"children,omitempty"`
+	Text       string        `json:"text,omitempty"`
+	Format     any           `json:"format,omitempty"`
+	TextFormat int           `json:"textFormat,omitempty"`
+	TextStyle  string        `json:"textStyle,omitempty"`
+	Direction  string        `json:"direction,omitempty"`
+	Indent     int           `json:"indent,omitempty"`
+	Version    int           `json:"version,omitempty"`
 }
 
-// LexicalEditorState represents the root structure of Lexical JSON
+// LexicalEditorState represents the root structure of Lexical JSON.
 type LexicalEditorState struct {
 	Root struct {
 		Children  []LexicalNode `json:"children"`
@@ -224,13 +231,13 @@ type LexicalEditorState struct {
 	} `json:"root"`
 }
 
-// DynamoDBValue represents a DynamoDB AttributeValue with a Value field
+// DynamoDBValue represents a DynamoDB AttributeValue with a Value field.
 type DynamoDBValue struct {
-	Value interface{} `json:"Value"`
+	Value any `json:"Value"`
 }
 
 // LexicalToHTML converts Lexical JSON format to HTML
-// The input can be either a full editor state or a BlocksData structure from the mobile API
+// The input can be either a full editor state or a BlocksData structure from the mobile API.
 func LexicalToHTML(lexicalJSON string) (string, error) {
 	// First try to parse as BlocksData (mobile app format with DynamoDB AttributeValues)
 	var rawData struct {
@@ -289,7 +296,7 @@ func LexicalToHTML(lexicalJSON string) (string, error) {
 	return nodeToHTML(node), nil
 }
 
-// nodeToHTML converts a single Lexical node to HTML
+// nodeToHTML converts a single Lexical node to HTML.
 func nodeToHTML(node LexicalNode) string {
 	var buf strings.Builder
 
@@ -393,7 +400,9 @@ func HTMLToEPUB(export models.DocumentExportRequest) (string, error) {
 
 	// ---- Build a single sanitized HTML doc (like your DOCX path) ----
 	var b strings.Builder
-	b.WriteString(`<html><head><meta charset="utf-8"></head><body style="font-family: serif; line-height: 1.5; margin: 0 0 1rem;">`)
+	b.WriteString(
+		`<html><head><meta charset="utf-8"></head><body style="font-family: serif; line-height: 1.5; margin: 0 0 1rem;">`,
+	)
 
 	sanitizer := bluemonday.UGCPolicy()
 	// Allow minimal formatting commonly used in prose; tweak as needed
@@ -468,7 +477,7 @@ a { text-decoration: underline; }
 	}
 
 	// ---- Run pandoc with a timeout ----
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), pandocTimeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "pandoc", args...)
 	if err := cmd.Run(); err != nil {
@@ -515,7 +524,7 @@ func HTMLToDOCX(export models.DocumentExportRequest) (string, error) {
 	docTitle := safeTitle + "_" + iso
 	out := "./tmp/" + docTitle + ".docx"
 	// Add a timeout so pandoc can’t hang your handler forever
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), pandocTimeout)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "pandoc", "-f", "html", "-t", "docx",
@@ -577,9 +586,12 @@ func HTMLToPDF(export models.DocumentExportRequest) (string, error) {
 		// don’t turn &amp; back into & before sanitization; sanitizer will normalize safely
 		// don’t convert em dash to double-hyphen
 		// convert only your custom-style wrappers
-		s = regexp.MustCompile(`(?s)<div custom-style="Centered">(.*?)</div>`).ReplaceAllString(s, `<div style="text-align:center;">$1</div>`)
-		s = regexp.MustCompile(`(?s)<div custom-style="Righted">(.*?)</div>`).ReplaceAllString(s, `<div style="text-align:right;">$1</div>`)
-		s = regexp.MustCompile(`(?s)<div custom-style="Justified">(.*?)</div>`).ReplaceAllString(s, `<div style="text-align:justify;">$1</div>`)
+		s = regexp.MustCompile(`(?s)<div custom-style="Centered">(.*?)</div>`).
+			ReplaceAllString(s, `<div style="text-align:center;">$1</div>`)
+		s = regexp.MustCompile(`(?s)<div custom-style="Righted">(.*?)</div>`).
+			ReplaceAllString(s, `<div style="text-align:right;">$1</div>`)
+		s = regexp.MustCompile(`(?s)<div custom-style="Justified">(.*?)</div>`).
+			ReplaceAllString(s, `<div style="text-align:justify;">$1</div>`)
 		// Generic div normalization across newlines:
 		s = regexp.MustCompile(`(?s)<div>(.*?)</div>`).ReplaceAllString(s, `<div>$1</div>`)
 		return s
@@ -593,7 +605,7 @@ func HTMLToPDF(export models.DocumentExportRequest) (string, error) {
 		}
 		b.WriteString(`<section class="` + sectionClass + `">`)
 		b.WriteString(`<div class="h1">` + title + `</div>`)
-		raw := detab(htmlData.HTML, 4)
+		raw := detab(htmlData.HTML, 4) //nolint:mnd
 		body := align(raw)
 		b.WriteString(sanitizer.Sanitize(body))
 		b.WriteString(`</section>`)
@@ -613,10 +625,10 @@ func HTMLToPDF(export models.DocumentExportRequest) (string, error) {
 
 	// Margins can be set either via CSS @page or here; we already set @page,
 	// but setting here is OK and explicit:
-	pdfg.MarginTop.Set(25) // ~1in at 96dpi; wkhtmltopdf uses mm by default, but lib converts
-	pdfg.MarginRight.Set(25)
-	pdfg.MarginBottom.Set(25)
-	pdfg.MarginLeft.Set(25)
+	pdfg.MarginTop.Set(pdfMarginMM) // ~1in at 96dpi; wkhtmltopdf uses mm by default, but lib converts
+	pdfg.MarginRight.Set(pdfMarginMM)
+	pdfg.MarginBottom.Set(pdfMarginMM)
+	pdfg.MarginLeft.Set(pdfMarginMM)
 
 	if err := pdfg.Create(); err != nil {
 		return "", err

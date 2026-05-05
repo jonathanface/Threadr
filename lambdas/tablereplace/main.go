@@ -14,6 +14,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
+// tableOpPollInterval is how often we poll DynamoDB while waiting for an
+// async table delete or backup to finish.
+const tableOpPollInterval = 5 * time.Second
+
 // handler is the Lambda function handler.
 func handler(ctx context.Context) error {
 	// Load AWS SDK configuration.
@@ -77,7 +81,7 @@ func handler(ctx context.Context) error {
 					break
 				}
 				log.Printf("Waiting for table %q to be deleted...", newTableName)
-				time.Sleep(5 * time.Second)
+				time.Sleep(tableOpPollInterval)
 			}
 		} else {
 			// If error is not "table not found", log unexpected error.
@@ -116,7 +120,7 @@ func handler(ctx context.Context) error {
 				break
 			}
 			log.Printf("Waiting for backup %s to become available (current status: %s)...", backupArn, status)
-			time.Sleep(5 * time.Second)
+			time.Sleep(tableOpPollInterval)
 		}
 
 		// Restore the table from the backup with the new table name.

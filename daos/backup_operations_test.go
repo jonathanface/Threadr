@@ -1,15 +1,16 @@
 package daos
 
 import (
-	"Threadr/models"
 	"context"
 	"testing"
+
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-// Tests for checkBackupStatus
+// Tests for checkBackupStatus.
 func TestCheckBackupStatus(t *testing.T) {
 	testCases := []struct {
 		name    string
@@ -29,7 +30,6 @@ func TestCheckBackupStatus(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -63,7 +63,7 @@ func TestCheckBackupStatus(t *testing.T) {
 	}
 }
 
-// Tests for kickoffRestoreAsync
+// Tests for kickoffRestoreAsync.
 func TestKickoffRestoreAsync(t *testing.T) {
 	testCases := []struct {
 		name  string
@@ -76,7 +76,6 @@ func TestKickoffRestoreAsync(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -88,7 +87,7 @@ func TestKickoffRestoreAsync(t *testing.T) {
 	}
 }
 
-// Tests for RestoreAutomaticallyDeletedStories
+// Tests for RestoreAutomaticallyDeletedStories.
 func TestRestoreAutomaticallyDeletedStories(t *testing.T) {
 	testCases := []struct {
 		name  string
@@ -101,7 +100,6 @@ func TestRestoreAutomaticallyDeletedStories(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 			ctx := context.Background()
@@ -113,7 +111,7 @@ func TestRestoreAutomaticallyDeletedStories(t *testing.T) {
 	}
 }
 
-// Tests for restoreOneStory
+// Tests for restoreOneStory.
 func TestRestoreOneStory(t *testing.T) {
 	testCases := []struct {
 		name  string
@@ -131,7 +129,6 @@ func TestRestoreOneStory(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -143,12 +140,12 @@ func TestRestoreOneStory(t *testing.T) {
 	}
 }
 
-// Benchmark tests
+// Benchmark tests.
 func BenchmarkKickoffRestoreAsync(b *testing.B) {
 	mockDao := NewMockDAO()
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		mockDao.kickoffRestoreAsync("bench@example.com")
 	}
 }

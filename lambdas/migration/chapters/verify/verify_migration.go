@@ -33,6 +33,9 @@ const (
 	NewTableName = "story_blocks"
 	TableSuffix  = ""
 	TablePattern = "_blocks" + TableSuffix
+	// reportDividerWidth is the column count used for the `===`/`---`
+	// horizontal rules that section the verification summary log output.
+	reportDividerWidth = 70
 )
 
 func main() {
@@ -91,7 +94,7 @@ func listChapterTables(ctx context.Context, client *dynamodb.Client) ([]ChapterT
 	for {
 		input := &dynamodb.ListTablesInput{
 			ExclusiveStartTableName: lastEvaluatedTableName,
-			Limit:                   aws.Int32(100),
+			Limit:                   aws.Int32(100), //nolint:mnd
 		}
 
 		output, err := client.ListTables(ctx, input)
@@ -127,7 +130,7 @@ func parseTableName(tableName string) *ChapterTableInfo {
 	withoutSuffix := strings.TrimSuffix(tableName, TablePattern)
 	parts := strings.Split(withoutSuffix, "_")
 
-	if len(parts) < 2 {
+	if len(parts) < 2 { //nolint:mnd
 		return nil
 	}
 
@@ -284,9 +287,9 @@ func printSummary(results []VerificationResult) {
 	}
 
 	log.Println()
-	log.Println(strings.Repeat("=", 70))
+	log.Println(strings.Repeat("=", reportDividerWidth))
 	log.Println("=== VERIFICATION SUMMARY ===")
-	log.Println(strings.Repeat("=", 70))
+	log.Println(strings.Repeat("=", reportDividerWidth))
 	log.Printf("Total tables verified:     %d", totalTables)
 	log.Printf("✓ Matching:                %d", matchCount)
 	log.Printf("✗ Mismatches:              %d", mismatchCount)
@@ -298,7 +301,7 @@ func printSummary(results []VerificationResult) {
 
 	if len(mismatches) > 0 {
 		log.Println("\nMISMATCHES DETECTED:")
-		log.Println(strings.Repeat("-", 70))
+		log.Println(strings.Repeat("-", reportDividerWidth))
 		for _, result := range mismatches {
 			log.Printf("  %s", result.TableName)
 			log.Printf("    Story: %s, Chapter: %s", result.StoryID, result.ChapterID)
@@ -310,7 +313,7 @@ func printSummary(results []VerificationResult) {
 
 	if len(errors) > 0 {
 		log.Println("\nERRORS:")
-		log.Println(strings.Repeat("-", 70))
+		log.Println(strings.Repeat("-", reportDividerWidth))
 		for _, result := range errors {
 			log.Printf("  %s", result.TableName)
 			log.Printf("    Error: %s", result.Error)
@@ -326,5 +329,5 @@ func printSummary(results []VerificationResult) {
 		log.Println("Some tables have mismatches or errors. Review details above.")
 		log.Println("DO NOT delete old tables until issues are resolved.")
 	}
-	log.Println(strings.Repeat("=", 70))
+	log.Println(strings.Repeat("=", reportDividerWidth))
 }

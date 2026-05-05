@@ -1,11 +1,6 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	mailer "Threadr/email"
-	"Threadr/daos"
-	"Threadr/logger"
-	"Threadr/models"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -13,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/mail"
@@ -20,12 +16,18 @@ import (
 	"os"
 	"time"
 
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	mailer "Threadr/email"
+	"Threadr/logger"
+	"Threadr/models"
+
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
 
 func generateShareToken() (string, error) {
-	b := make([]byte, 32)
+	b := make([]byte, 32) //nolint:mnd
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
@@ -69,7 +71,7 @@ func CreateShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 	// Verify the user owns this story
 	story, err := dao.GetStoryByID(r.Context(), author.Email, storyID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithError(w, http.StatusNotFound, "story not found")
 			return
 		}
@@ -77,7 +79,7 @@ func CreateShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, 4096)
+	r.Body = http.MaxBytesReader(w, r.Body, 4096) //nolint:mnd
 	decoder := json.NewDecoder(r.Body)
 	var req models.CreateShareLinkRequest
 	if err = decoder.Decode(&req); err != nil {
@@ -153,7 +155,14 @@ func CreateShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 		shareURL := fmt.Sprintf("%s/shared/%s", frontendURL, rawToken)
 		authorName := author.FirstName + " " + author.LastName
-		if emailErr := mailer.SendShareInviteEmail(link.ReaderEmail, link.ReaderFirstName, authorName, author.Email, story.Title, shareURL); emailErr != nil {
+		if emailErr := mailer.SendShareInviteEmail(
+			link.ReaderEmail,
+			link.ReaderFirstName,
+			authorName,
+			author.Email,
+			story.Title,
+			shareURL,
+		); emailErr != nil {
 			logger.Error("Failed to send share invite email",
 				"error", emailErr,
 				"readerEmail", link.ReaderEmail,
@@ -194,7 +203,7 @@ func GetShareLinksEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	// Verify the user owns this story
 	if _, err = dao.GetStoryByID(r.Context(), email, storyID); err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithError(w, http.StatusNotFound, "story not found")
 			return
 		}
@@ -239,7 +248,7 @@ func RevokeShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	link, err := dao.GetShareLink(r.Context(), tokenHash)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithError(w, http.StatusNotFound, "share link not found")
 			return
 		}
@@ -287,7 +296,7 @@ func RestoreShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	link, err := dao.GetShareLink(r.Context(), tokenHash)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithError(w, http.StatusNotFound, "share link not found")
 			return
 		}
@@ -335,7 +344,7 @@ func DeleteShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	link, err := dao.GetShareLink(r.Context(), tokenHash)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithError(w, http.StatusNotFound, "share link not found")
 			return
 		}
@@ -381,7 +390,7 @@ func GetAuthorCommentsEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	// Verify the user owns this story
 	if _, err = dao.GetStoryByID(r.Context(), email, storyID); err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithError(w, http.StatusNotFound, "story not found")
 			return
 		}
@@ -436,7 +445,7 @@ func ResolveCommentEndpoint(w http.ResponseWriter, r *http.Request) {
 	// Verify the author owns the story this comment belongs to
 	comment, err := dao.GetComment(r.Context(), commentID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithError(w, http.StatusNotFound, "comment not found")
 			return
 		}
@@ -484,7 +493,7 @@ func DeleteCommentEndpoint(w http.ResponseWriter, r *http.Request) {
 	// Verify the author owns the story this comment belongs to
 	comment, err := dao.GetComment(r.Context(), commentID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithError(w, http.StatusNotFound, "comment not found")
 			return
 		}
@@ -523,7 +532,7 @@ func GetSharedStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	// Fetch story metadata using author's email (since reader doesn't own it)
 	story, err := dao.GetStoryByID(r.Context(), link.AuthorEmail, link.StoryID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithError(w, http.StatusNotFound, "story not found")
 			return
 		}
@@ -562,7 +571,7 @@ func GetSharedStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return story metadata and chapters (no associations, outlines, or settings)
-	response := map[string]interface{}{
+	response := map[string]any{
 		"story_id":           story.ID,
 		"title":              story.Title,
 		"description":        story.Description,
@@ -662,7 +671,7 @@ func CreateCommentEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, 8192)
+	r.Body = http.MaxBytesReader(w, r.Body, 8192) //nolint:mnd
 	decoder := json.NewDecoder(r.Body)
 	var req models.CreateCommentRequest
 	if err := decoder.Decode(&req); err != nil {
@@ -673,11 +682,11 @@ func CreateCommentEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Comment body is required")
 		return
 	}
-	if len(req.Body) > 2000 {
+	if len(req.Body) > 2000 { //nolint:mnd
 		RespondWithError(w, http.StatusBadRequest, "Comment body must be 2000 characters or less")
 		return
 	}
-	if len(req.AnchorTextSnapshot) > 500 {
+	if len(req.AnchorTextSnapshot) > 500 { //nolint:mnd
 		RespondWithError(w, http.StatusBadRequest, "Selected text snapshot must be 500 characters or less")
 		return
 	}
@@ -759,7 +768,7 @@ func DeleteOwnCommentEndpoint(w http.ResponseWriter, r *http.Request) {
 	// Fetch the specific comment and verify ownership
 	comment, err := dao.GetComment(r.Context(), commentID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithError(w, http.StatusNotFound, "Comment not found")
 			return
 		}

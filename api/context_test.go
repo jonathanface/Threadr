@@ -1,12 +1,14 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
 	"context"
 	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
 
 	"github.com/gorilla/mux"
 )
@@ -15,7 +17,7 @@ func TestContextPreservation(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
 	// Create request
-	req := httptest.NewRequest("POST", "/test", nil)
+	req := httptest.NewRequest(http.MethodPost, "/test", nil)
 	fmt.Printf("1. Initial context DAO: %v\n", req.Context().Value(ctxkey.DAO))
 
 	// Set URL vars

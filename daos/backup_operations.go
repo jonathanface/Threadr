@@ -1,12 +1,13 @@
 package daos
 
 import (
-	"Threadr/logger"
-	"Threadr/models"
 	"context"
 	"fmt"
 	"log"
 	"time"
+
+	"Threadr/logger"
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -28,7 +29,7 @@ func (d *DAO) checkBackupStatus(ctx context.Context, arn string) error {
 		if status == types.BackupStatusAvailable {
 			break
 		} else if status == types.BackupStatusCreating {
-			time.Sleep(10 * time.Second) // Polling interval
+			time.Sleep(backupPollInterval) // Polling interval
 		} else {
 			return fmt.Errorf("backup creation failed with status: %v", status)
 		}
@@ -38,7 +39,7 @@ func (d *DAO) checkBackupStatus(ctx context.Context, arn string) error {
 
 func (d *DAO) kickoffRestoreAsync(email string) {
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute) //nolint:mnd
 		defer cancel()
 		evCh, err := d.RestoreAutomaticallyDeletedStories(ctx, email)
 		if err != nil {
@@ -56,7 +57,19 @@ func (d *DAO) kickoffRestoreAsync(email string) {
 }
 
 func (d *DAO) RestoreAutomaticallyDeletedStories(ctx context.Context, email string) (<-chan RestoreStoryEvent, error) {
-	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{TableName: aws.String("stories" + GetTableSuffix()), FilterExpression: aws.String("author=:eml AND attribute_exists(deleted_at) AND automated_deletion=:a"), ExpressionAttributeValues: map[string]types.AttributeValue{":eml": &types.AttributeValueMemberS{Value: email}, ":a": &types.AttributeValueMemberBOOL{Value: true}}})
+	out, err := d.DynamoClient.Scan(
+		ctx,
+		&dynamodb.ScanInput{
+			TableName: aws.String("stories" + GetTableSuffix()),
+			FilterExpression: aws.String(
+				"author=:eml AND attribute_exists(deleted_at) AND automated_deletion=:a",
+			),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":eml": &types.AttributeValueMemberS{Value: email},
+				":a":   &types.AttributeValueMemberBOOL{Value: true},
+			},
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +77,7 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(ctx context.Context, email stri
 	if err = attributevalue.UnmarshalListOfMaps(out.Items, &stories); err != nil {
 		return nil, err
 	}
-	ch := make(chan RestoreStoryEvent, 8) // small buffer helps if receiver does light work
+	ch := make(chan RestoreStoryEvent, 8) //nolint:mnd // small buffer helps if receiver does light work
 	total := len(stories)
 	go func() {
 		defer close(ch)
@@ -99,7 +112,7 @@ func (d *DAO) ensureBlocksTableFromBackup(
 	})
 	if err == nil {
 		log.Println("waiting for table status")
-		return waitForTableStatus(ctx, d.DynamoClient, tableName, chapterName, "ACTIVE", 10*time.Minute)
+		return waitForTableStatus(ctx, d.DynamoClient, tableName, chapterName, "ACTIVE", backupActiveStateLimit)
 	}
 	if !isResourceNotFound(err) {
 		return err
@@ -112,13 +125,13 @@ func (d *DAO) ensureBlocksTableFromBackup(
 	})
 	if err != nil {
 		// If another attempt already created/is creating it, just wait
-		if !(isTableInUse(err) || isTableAlreadyExists(err)) {
+		if !isTableInUse(err) && !isTableAlreadyExists(err) {
 			return err
 		}
 	}
 
 	// 3) Either we kicked it off or someone else did; wait until ACTIVE
-	return waitForTableStatus(ctx, d.DynamoClient, tableName, chapterName, "ACTIVE", 10*time.Minute)
+	return waitForTableStatus(ctx, d.DynamoClient, tableName, chapterName, "ACTIVE", backupActiveStateLimit)
 }
 
 func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.Story) error {
@@ -192,8 +205,10 @@ func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.St
 	}
 
 	associationScanInput := &dynamodb.ScanInput{
-		TableName:        aws.String("associations" + GetTableSuffix()),
-		FilterExpression: aws.String("author = :eml AND attribute_exists(deleted_at) AND automated_deletion = :a AND story_or_series_id = :sid"),
+		TableName: aws.String("associations" + GetTableSuffix()),
+		FilterExpression: aws.String(
+			"author = :eml AND attribute_exists(deleted_at) AND automated_deletion = :a AND story_or_series_id = :sid",
+		),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
 			":a":   &types.AttributeValueMemberBOOL{Value: true},

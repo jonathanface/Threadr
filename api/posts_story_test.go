@@ -1,9 +1,6 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"bytes"
 	"context"
 	"errors"
@@ -11,6 +8,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/aws/smithy-go"
 )
@@ -194,13 +195,13 @@ func TestCreateStoryEndpoint_AWSError(t *testing.T) {
 	if rr.Code != http.StatusInternalServerError {
 		t.Errorf("Expected status 500, got %d", rr.Code)
 
-// Note: Full success tests for CreateStoryEndpoint would require mocking:
-// - AWS config loading
-// - S3 client operations
-// - UUID generation
-// - File system operations
-//
-// These would be integration tests rather than unit tests. The tests above cover
-// the validation and error handling paths that can be tested without external dependencies.
+		// Note: Full success tests for CreateStoryEndpoint would require mocking:
+		// - AWS config loading
+		// - S3 client operations
+		// - UUID generation
+		// - File system operations
+		//
+		// These would be integration tests rather than unit tests. The tests above cover
+		// the validation and error handling paths that can be tested without external dependencies.
 	}
 }

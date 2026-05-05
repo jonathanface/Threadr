@@ -1,9 +1,6 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"bytes"
 	"context"
 	"database/sql"
@@ -13,6 +10,10 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/gorilla/mux"
@@ -827,7 +828,7 @@ func TestGetSharedStoryEndpoint_Success(t *testing.T) {
 		t.Errorf("Expected 200, got %d. Body: %s", rr.Code, rr.Body.String())
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
 		t.Errorf("Failed to unmarshal response: %v", err)
 	}
@@ -845,7 +846,7 @@ func TestGetSharedStoryEndpoint_Success(t *testing.T) {
 func TestGetSharedStoryEndpoint_NoShareLinkInContext(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
-	req := httptest.NewRequest("GET", "/shared/story", nil)
+	req := httptest.NewRequest(http.MethodGet, "/shared/story", nil)
 	ctx := context.WithValue(req.Context(), ctxkey.DAO, mockDAO)
 	req = req.WithContext(ctx)
 
@@ -930,7 +931,7 @@ func TestCreateCommentEndpoint_Success(t *testing.T) {
 		Body:       "This is a great paragraph!",
 	})
 
-	req := httptest.NewRequest("POST", "/shared/comments", bytes.NewBuffer(body))
+	req := httptest.NewRequest(http.MethodPost, "/shared/comments", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	ctx := context.WithValue(req.Context(), ctxkey.DAO, mockDAO)
 	ctx = context.WithValue(ctx, ctxkey.ShareLink, link)
@@ -972,7 +973,7 @@ func TestCreateCommentEndpoint_CommentsDisabled(t *testing.T) {
 		Body:       "A comment",
 	})
 
-	req := httptest.NewRequest("POST", "/shared/comments", bytes.NewBuffer(body))
+	req := httptest.NewRequest(http.MethodPost, "/shared/comments", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	ctx := context.WithValue(req.Context(), ctxkey.DAO, mockDAO)
 	ctx = context.WithValue(ctx, ctxkey.ShareLink, link)
@@ -996,7 +997,7 @@ func TestCreateCommentEndpoint_EmptyBody(t *testing.T) {
 		Body:       "",
 	})
 
-	req := httptest.NewRequest("POST", "/shared/comments", bytes.NewBuffer(body))
+	req := httptest.NewRequest(http.MethodPost, "/shared/comments", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	ctx := context.WithValue(req.Context(), ctxkey.DAO, mockDAO)
 	ctx = context.WithValue(ctx, ctxkey.ShareLink, link)
@@ -1021,7 +1022,7 @@ func TestCreateCommentEndpoint_BodyTooLong(t *testing.T) {
 		Body:       longBody,
 	})
 
-	req := httptest.NewRequest("POST", "/shared/comments", bytes.NewBuffer(body))
+	req := httptest.NewRequest(http.MethodPost, "/shared/comments", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	ctx := context.WithValue(req.Context(), ctxkey.DAO, mockDAO)
 	ctx = context.WithValue(ctx, ctxkey.ShareLink, link)
@@ -1044,7 +1045,7 @@ func TestCreateCommentEndpoint_MissingBlockKeyID(t *testing.T) {
 		Body:      "A valid comment body",
 	})
 
-	req := httptest.NewRequest("POST", "/shared/comments", bytes.NewBuffer(body))
+	req := httptest.NewRequest(http.MethodPost, "/shared/comments", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	ctx := context.WithValue(req.Context(), ctxkey.DAO, mockDAO)
 	ctx = context.WithValue(ctx, ctxkey.ShareLink, link)

@@ -9,12 +9,16 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 )
 
-// MockSESv2Client is a mock implementation of the SES v2 client for testing
+// MockSESv2Client is a mock implementation of the SES v2 client for testing.
 type MockSESv2Client struct {
 	SendEmailFunc func(ctx context.Context, input *sesv2.SendEmailInput, optFns ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error)
 }
 
-func (m *MockSESv2Client) SendEmail(ctx context.Context, input *sesv2.SendEmailInput, optFns ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+func (m *MockSESv2Client) SendEmail(
+	ctx context.Context,
+	input *sesv2.SendEmailInput,
+	optFns ...func(*sesv2.Options),
+) (*sesv2.SendEmailOutput, error) {
 	if m.SendEmailFunc != nil {
 		return m.SendEmailFunc(ctx, input, optFns...)
 	}
@@ -24,7 +28,7 @@ func (m *MockSESv2Client) SendEmail(ctx context.Context, input *sesv2.SendEmailI
 	}, nil
 }
 
-// Tests for SendWelcomeEmail
+// Tests for SendWelcomeEmail.
 func TestSendWelcomeEmail_MissingAWSRegion(t *testing.T) {
 	// Save original env var and restore after test
 	originalRegion := os.Getenv("AWS_REGION")
@@ -78,7 +82,7 @@ func TestSendWelcomeEmail_EmailFormat(t *testing.T) {
 	}
 }
 
-// Tests for SendAlertEmail
+// Tests for SendAlertEmail.
 func TestSendAlertEmail_MissingAWSRegion(t *testing.T) {
 	// Save original env var and restore after test
 	originalRegion := os.Getenv("AWS_REGION")
@@ -204,7 +208,7 @@ func TestSendAlertEmail_WithMock_Success(t *testing.T) {
 	_ = mockSES
 }
 
-// Refactoring suggestion tests
+// Refactoring suggestion tests.
 func TestEmailFunctions_RefactoringNeeded(t *testing.T) {
 	t.Log("NOTE: SendAlertEmail is now exported and can be used from other packages")
 	t.Log("The sendWelcomeEmail function remains unexported")

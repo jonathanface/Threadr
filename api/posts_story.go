@@ -1,18 +1,21 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/logger"
-	"Threadr/models"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/logger"
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -51,7 +54,11 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
 	if handler.Size < 0 || handler.Size > int64(maxFileSize) {
-		RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("File size exceeds allowed limit of %dMB", maxFileSize/(1024*1024)))
+		RespondWithError(
+			w,
+			http.StatusBadRequest,
+			fmt.Sprintf("File size exceeds allowed limit of %dMB", maxFileSize/(1024*1024)),
+		)
 		return
 	}
 	fileBytes := make([]byte, handler.Size)
@@ -61,13 +68,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fileType := http.DetectContentType(fileBytes)
-	allowed := false
-	for _, t := range allowedTypes {
-		if fileType == t {
-			allowed = true
-			break
-		}
-	}
+	allowed := slices.Contains(allowedTypes, fileType)
 	if !allowed {
 		RespondWithError(w, http.StatusBadRequest, "Invalid file type")
 		return
@@ -79,7 +80,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Scale down the image if it exceeds the maximum width
-	scaledImageBuf, _, err := scaleDownImage(file, uint(400))
+	scaledImageBuf, _, err := scaleDownImage(file, uint(400)) //nolint:mnd
 	if err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
@@ -87,7 +88,11 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	// Check the size of the scaled image
 	if scaledImageBuf.Len() > maxFileSize {
-		RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Filesize must be < %dMB", maxFileSize/(1024*1024)))
+		RespondWithError(
+			w,
+			http.StatusBadRequest,
+			fmt.Sprintf("Filesize must be < %dMB", maxFileSize/(1024*1024)),
+		) //nolint:mnd
 		return
 	}
 
@@ -128,7 +133,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	s3Client := s3.NewFromConfig(awsCfg)
 	if _, err = s3Client.PutObject(context.Background(), &s3.PutObjectInput{
-		Bucket:      aws.String(S3_STORY_IMAGE_BUCKET),
+		Bucket:      aws.String(s3StoryImagebucket),
 		Key:         aws.String(filename),
 		Body:        bytes.NewReader(scaledImageBuf.Bytes()),
 		ContentType: aws.String(fileType),
@@ -137,9 +142,10 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	story.ImageURL = "https://" + S3_STORY_IMAGE_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
+	story.ImageURL = "https://" + s3StoryImagebucket + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
 	if story.ID, err = dao.CreateStory(r.Context(), email, story, seriesTitle); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)

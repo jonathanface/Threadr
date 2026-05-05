@@ -1,9 +1,11 @@
 package daos
 
 import (
-	"Threadr/logger"
 	"context"
+	"errors"
 	"strings"
+
+	"Threadr/logger"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -65,7 +67,8 @@ func (d *DAO) verifyStripeSubscription(subID, customerID string) (SubscriptionSt
 			return toStatus(s, true), nil
 		}
 		// Gracefully handle 404 resource_missing
-		if se, ok := err.(*stripe.Error); ok && se.Code == stripe.ErrorCodeResourceMissing && se.Param == "id" {
+		se := &stripe.Error{}
+		if errors.As(err, &se) {
 			logger.Warn("Subscription not found by ID, attempting customer lookup",
 				"subscriptionId", subID,
 				"customerId", customerID)

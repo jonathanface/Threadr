@@ -1,15 +1,16 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
@@ -148,7 +149,7 @@ func TestWriteAssocationsEndpoint_MissingStoryID(t *testing.T) {
 func TestWriteAssocationsEndpoint_InvalidJSON(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
-	req := httptest.NewRequest(http.MethodPut, "/api/story/story123/associations", bytes.NewBuffer([]byte("invalid")))
+	req := httptest.NewRequest(http.MethodPut, "/api/story/story123/associations", bytes.NewBufferString("invalid"))
 	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
 	req = mux.SetURLVars(req, map[string]string{"story": "story123"})
 	req = AddSessionCookieToRequest(req, "test@example.com")

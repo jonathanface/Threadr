@@ -1,12 +1,9 @@
 package billing
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"context"
 	"database/sql"
-	"fmt"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -15,7 +12,11 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-	//stripe "github.com/stripe/stripe-go/v79"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
+	//stripe "github.com/stripe/stripe-go/v79".
 )
 
 func TestSubscribeCustomerEndpoint(t *testing.T) {
@@ -138,7 +139,7 @@ func TestBillingSummaryEndpoint(t *testing.T) {
 	// Error DAO
 	daoMockError := daos.NewMockDAO()
 	daoMockError.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
-		return nil, fmt.Errorf("db down")
+		return nil, errors.New("db down")
 	}
 
 	now := time.Now().UTC().Truncate(time.Second)
@@ -159,7 +160,7 @@ func TestBillingSummaryEndpoint(t *testing.T) {
 	cases := []tc{
 		{
 			name:               "unauthorized if getUserEmail fails",
-			overrideGetUserErr: fmt.Errorf("no token"),
+			overrideGetUserErr: errors.New("no token"),
 			dao:                daoMockError,
 			wantStatus:         http.StatusUnauthorized,
 		},
@@ -187,7 +188,7 @@ func TestBillingSummaryEndpoint(t *testing.T) {
 				daoMock.MockUpdateSubscription = func(s models.Subscription) error {
 					// optional sanity checks; don't require CustomerID if you didn't expand it
 					if s.LastSubCheck.IsZero() {
-						return fmt.Errorf("LastSubCheck not set")
+						return errors.New("LastSubCheck not set")
 					}
 					updateCalled.Store(true)
 					return nil
@@ -284,7 +285,7 @@ func TestBillingPortalSessionEndpoint(t *testing.T) {
 
 	daoMockError := daos.NewMockDAO()
 	daoMockError.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
-		return nil, fmt.Errorf("db down")
+		return nil, errors.New("db down")
 	}
 
 	type tc struct {
@@ -301,7 +302,7 @@ func TestBillingPortalSessionEndpoint(t *testing.T) {
 	cases := []tc{
 		{
 			name:       "unauthorized when getUserEmail fails",
-			userErr:    fmt.Errorf("no token"),
+			userErr:    errors.New("no token"),
 			dao:        daoMockError,
 			wantStatus: http.StatusUnauthorized,
 		},

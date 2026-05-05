@@ -6,8 +6,10 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-lambda-go/lambda"
@@ -24,7 +26,7 @@ type Event struct {
 	AccountID  string `json:"accountID"`
 }
 
-// DraftJSParagraph represents the DraftJS data structure
+// DraftJSParagraph represents the DraftJS data structure.
 type DraftJSParagraph struct {
 	Key           string `json:"key"`
 	Type          string `json:"type"`
@@ -69,7 +71,7 @@ type LexicalParagraph struct {
 	KeyID      string `json:"key_id"`
 }
 
-// DynamoDBRecord represents a DynamoDB record
+// DynamoDBRecord represents a DynamoDB record.
 type DynamoDBRecord struct {
 	KeyID   string `json:"key_id"`
 	Chunk   string `json:"chunk"`
@@ -84,7 +86,7 @@ func deleteTableContents(svc *dynamodb.DynamoDB, tableName string) error {
 
 	scanResult, err := svc.Scan(scanInput)
 	if err != nil {
-		return fmt.Errorf("failed to scan table %s: %v", tableName, err)
+		return fmt.Errorf("failed to scan table %s: %w", tableName, err)
 	}
 
 	for _, item := range scanResult.Items {
@@ -234,7 +236,7 @@ func waitForTableToBecomeActive(svc *dynamodb.DynamoDB, tableName string) error 
 
 		result, err := svc.DescribeTable(describeInput)
 		if err != nil {
-			return fmt.Errorf("failed to describe table %s: %v", tableName, err)
+			return fmt.Errorf("failed to describe table %s: %w", tableName, err)
 		}
 
 		if *result.Table.TableStatus == "ACTIVE" {
@@ -243,7 +245,7 @@ func waitForTableToBecomeActive(svc *dynamodb.DynamoDB, tableName string) error 
 		}
 
 		log.Printf("Waiting for table %s to become ACTIVE...", tableName)
-		time.Sleep(5 * time.Second) // Wait before checking again
+		time.Sleep(5 * time.Second) //nolint:mnd // Wait before checking again
 	}
 }
 
@@ -254,7 +256,7 @@ func getTablesWithPrefix(svc *dynamodb.DynamoDB, uuidPrefix string) ([]string, e
 	for {
 		result, err := svc.ListTables(listTablesInput)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list tables: %v", err)
+			return nil, fmt.Errorf("failed to list tables: %w", err)
 		}
 
 		for _, tableName := range result.TableNames {
@@ -282,7 +284,7 @@ func processTable(svc *dynamodb.DynamoDB, sourceTableName, targetTableName, tagV
 	}
 	sourceTableDesc, err := svc.DescribeTable(describeInput)
 	if err != nil {
-		return fmt.Errorf("failed to describe source table: %v", err)
+		return fmt.Errorf("failed to describe source table: %w", err)
 	}
 
 	_, err = svc.DescribeTable(&dynamodb.DescribeTableInput{
@@ -292,7 +294,7 @@ func processTable(svc *dynamodb.DynamoDB, sourceTableName, targetTableName, tagV
 		log.Printf("Target table %s already exists. Deleting contents...", targetTableName)
 		err = deleteTableContents(svc, targetTableName)
 		if err != nil {
-			return fmt.Errorf("failed to delete contents of target table: %v", err)
+			return fmt.Errorf("failed to delete contents of target table: %w", err)
 		}
 	} else {
 		log.Printf("Target table %s does not exist. Creating table...", targetTableName)
@@ -306,21 +308,24 @@ func processTable(svc *dynamodb.DynamoDB, sourceTableName, targetTableName, tagV
 
 		if sourceTableDesc.Table.GlobalSecondaryIndexes != nil {
 			for _, gsi := range sourceTableDesc.Table.GlobalSecondaryIndexes {
-				createInput.GlobalSecondaryIndexes = append(createInput.GlobalSecondaryIndexes, &dynamodb.GlobalSecondaryIndex{
-					IndexName:  gsi.IndexName,
-					KeySchema:  gsi.KeySchema,
-					Projection: gsi.Projection,
-				})
+				createInput.GlobalSecondaryIndexes = append(
+					createInput.GlobalSecondaryIndexes,
+					&dynamodb.GlobalSecondaryIndex{
+						IndexName:  gsi.IndexName,
+						KeySchema:  gsi.KeySchema,
+						Projection: gsi.Projection,
+					},
+				)
 			}
 		}
 
 		_, err := svc.CreateTable(createInput)
 		if err != nil {
-			return fmt.Errorf("failed to create target table: %v", err)
+			return fmt.Errorf("failed to create target table: %w", err)
 		}
 		err = waitForTableToBecomeActive(svc, targetTableName)
 		if err != nil {
-			return fmt.Errorf("error while waiting for table %s to become ACTIVE: %v", targetTableName, err)
+			return fmt.Errorf("error while waiting for table %s to become ACTIVE: %w", targetTableName, err)
 		}
 		log.Printf("Successfully created target table: %s", targetTableName)
 
@@ -341,7 +346,7 @@ func processTable(svc *dynamodb.DynamoDB, sourceTableName, targetTableName, tagV
 
 		_, err = svc.TagResource(tagInput)
 		if err != nil {
-			return fmt.Errorf("failed to tag target table: %v", err)
+			return fmt.Errorf("failed to tag target table: %w", err)
 		}
 
 		log.Printf("Successfully tagged target table: %s with %s=%s", targetTableName, "title", tagValue)
@@ -353,7 +358,7 @@ func processTable(svc *dynamodb.DynamoDB, sourceTableName, targetTableName, tagV
 
 	scanResult, err := svc.Scan(scanInput)
 	if err != nil {
-		return fmt.Errorf("failed to scan source table: %v", err)
+		return fmt.Errorf("failed to scan source table: %w", err)
 	}
 
 	for _, item := range scanResult.Items {
@@ -392,7 +397,7 @@ func processTable(svc *dynamodb.DynamoDB, sourceTableName, targetTableName, tagV
 					S: aws.String(string(lexicalData)),
 				},
 				"place": {
-					N: aws.String(fmt.Sprintf("%d", record.Place)),
+					N: aws.String(strconv.Itoa(record.Place)),
 				},
 				"story_id": {
 					S: aws.String(record.StoryID),
@@ -410,13 +415,13 @@ func processTable(svc *dynamodb.DynamoDB, sourceTableName, targetTableName, tagV
 
 func handler(ctx context.Context, event Event) (string, error) {
 	if event.UUIDPrefix == "" {
-		return "", fmt.Errorf("uuidPrefix parameter is required")
+		return "", errors.New("uuidPrefix parameter is required")
 	}
 	if event.UUIDPrefix == "" {
-		return "", fmt.Errorf("uuidPrefix parameter is required")
+		return "", errors.New("uuidPrefix parameter is required")
 	}
 	if event.AccountID == "" || event.TagValue == "" {
-		return "", fmt.Errorf("Both accountID and tagValue parameters are required")
+		return "", errors.New("Both accountID and tagValue parameters are required")
 	}
 
 	sess := session.Must(session.NewSession())
@@ -424,7 +429,7 @@ func handler(ctx context.Context, event Event) (string, error) {
 
 	tables, err := getTablesWithPrefix(svc, event.UUIDPrefix)
 	if err != nil {
-		return "", fmt.Errorf("failed to list tables with prefix %s: %v", event.UUIDPrefix, err)
+		return "", fmt.Errorf("failed to list tables with prefix %s: %w", event.UUIDPrefix, err)
 	}
 
 	if len(tables) == 0 {

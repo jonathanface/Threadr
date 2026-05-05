@@ -1,15 +1,16 @@
 package main
 
 import (
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"Threadr/api"
 	"Threadr/auth"
 	"Threadr/billing"
 	"Threadr/daos"
 	"Threadr/models"
-	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/gorilla/mux"
 )
@@ -46,7 +47,7 @@ func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.OauthOptio
 	authLimiter := newAuthRateLimiter()
 	authRtr.Use(authRateLimitMiddleware(authLimiter))
 	// DEV ONLY!!
-	//rtr.HandleFunc("/auth/logout", auth.DeleteToken).Methods("GET", "OPTIONS")
+	// rtr.HandleFunc("/auth/logout", auth.DeleteToken).Methods("GET", "OPTIONS")
 	authRtr.HandleFunc("/logout", auth.Logout).Methods("DELETE", "OPTIONS")
 	authRtr.HandleFunc("/session", auth.MobileSessionHandler()).Methods("POST", "OPTIONS")
 	authRtr.HandleFunc("/email/signup", auth.EmailSignupHandler(authOptions)).Methods("POST", "OPTIONS")
@@ -77,13 +78,16 @@ func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.OauthOptio
 	apiRtr.HandleFunc("/stories/{storyID}/settings", api.StorySettingsEndPoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/full", api.FullStoryEndPoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/content", api.StoryBlocksEndPoint).Methods("GET", "OPTIONS")
-	apiRtr.HandleFunc("/stories/{storyID}/associations/thumbs", api.AllAssociationThumbnailsByStoryEndPoint).Methods("GET", "OPTIONS")
-	apiRtr.HandleFunc("/stories/{storyID}/associations/{associationID}", api.AssociationDetailsEndpoint).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/associations/thumbs", api.AllAssociationThumbnailsByStoryEndPoint).
+		Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/associations/{associationID}", api.AssociationDetailsEndpoint).
+		Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/series", api.AllSeriesEndPoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/series/{series}", api.SingleSeriesEndPoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/series/{series}/volumes", api.AllSeriesVolumesEndPoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/chapters/{chapterID}", api.ChapterDetailsEndpoint).Methods("GET", "OPTIONS")
-	apiRtr.HandleFunc("/stories/{storyID}/chapters/{chapterID}/status", api.ChapterTableStatusEndpoint).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/chapters/{chapterID}/status", api.ChapterTableStatusEndpoint).
+		Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/alerts", api.GetUserAlertsEndpoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/alerts/unread-count", api.GetUnreadAlertCountEndpoint).Methods("GET", "OPTIONS")
 	apiRtr.HandleFunc("/alerts/{alertID}/read", api.MarkAlertReadEndpoint).Methods("PUT", "OPTIONS")
@@ -94,7 +98,8 @@ func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.OauthOptio
 	// POSTs
 	apiRtr.HandleFunc("/stories", api.CreateStoryEndpoint).Methods("POST", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/chapter", api.CreateStoryChapterEndpoint).Methods("POST", "OPTIONS")
-	apiRtr.HandleFunc("/stories/{storyID}/chapter/{chapterID}/analyze/{type}", api.AnalyzeChapterEndpoint).Methods("POST", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/chapter/{chapterID}/analyze/{type}", api.AnalyzeChapterEndpoint).
+		Methods("POST", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/associations", api.CreateAssociationsEndpoint).Methods("POST", "OPTIONS")
 	apiRtr.HandleFunc("/outline", api.CreateOutlineEndpoint).Methods("POST", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/import", api.ImportDocumentEndpoint).Methods("POST", "OPTIONS")
@@ -105,7 +110,8 @@ func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.OauthOptio
 	apiRtr.HandleFunc("/stories/{story}/details", api.EditStoryEndpoint).Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{story}/orderMap", api.RewriteBlockOrderEndpoint).Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{story}/associations", api.WriteAssocationsEndpoint).Methods("PUT", "OPTIONS")
-	apiRtr.HandleFunc("/stories/{story}/associations/{association}/upload", api.UploadPortraitEndpoint).Methods("PUT", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{story}/associations/{association}/upload", api.UploadPortraitEndpoint).
+		Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/chapters", api.UpdateChaptersEndpoint).Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/chapters/{chapterID}", api.EditChapterEndpoint).Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/export", api.ExportStoryEndpoint).Methods("PUT", "OPTIONS")

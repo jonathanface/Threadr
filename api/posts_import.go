@@ -1,11 +1,6 @@
 package api
 
 import (
-	"Threadr/converters"
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/logger"
-	"Threadr/models"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -13,6 +8,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"Threadr/converters"
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/logger"
+	"Threadr/models"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -30,7 +31,7 @@ var allowedImportFormats = map[string]string{
 //
 // POST /api/v1/stories/{storyID}/import
 // Content-Type: multipart/form-data
-// Form field: "file" (the document to import)
+// Form field: "file" (the document to import).
 func ImportDocumentEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		err     error
@@ -124,7 +125,11 @@ func ImportDocumentEndpoint(w http.ResponseWriter, r *http.Request) {
 			"storyId", storyID,
 			"filename", header.Filename,
 			"format", format)
-		RespondWithError(w, http.StatusUnprocessableEntity, "Failed to import document. The file may be corrupted or in an unsupported format.")
+		RespondWithError(
+			w,
+			http.StatusUnprocessableEntity,
+			"Failed to import document. The file may be corrupted or in an unsupported format.",
+		)
 		return
 	}
 
@@ -193,7 +198,7 @@ func ImportDocumentEndpoint(w http.ResponseWriter, r *http.Request) {
 		"filename", header.Filename,
 		"chaptersCreated", len(createdChapters))
 
-	RespondWithJson(w, http.StatusOK, map[string]interface{}{
+	RespondWithJson(w, http.StatusOK, map[string]any{
 		"chapters": createdChapters,
 		"count":    len(createdChapters),
 	})

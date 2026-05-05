@@ -4,12 +4,14 @@ import (
 	"archive/zip"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html"
 	"io"
 	"os"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,13 +19,13 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
-// ImportedChapter represents a chapter extracted from an imported document
+// ImportedChapter represents a chapter extracted from an imported document.
 type ImportedChapter struct {
 	Title  string          `json:"title"`
 	Blocks []ImportedBlock `json:"blocks"`
 }
 
-// ImportedBlock represents a single Lexical block (paragraph) ready for storage
+// ImportedBlock represents a single Lexical block (paragraph) ready for storage.
 type ImportedBlock struct {
 	KeyID string          `json:"key_id"`
 	Chunk json.RawMessage `json:"chunk"`
@@ -100,7 +102,7 @@ func injectPageBreakMarkers(docxPath string) (string, error) {
 // FileToHTML converts a document file to HTML using pandoc.
 // Supports .docx and .txt files.
 func FileToHTML(filePath string, format string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second) //nolint:mnd
 	defer cancel()
 
 	var cmd *exec.Cmd
@@ -219,7 +221,7 @@ func SplitHTMLIntoChapters(htmlContent string, autotab bool, skipFirstPage bool)
 	return chapters
 }
 
-// stripHTMLTags removes all HTML tags and decodes HTML entities (e.g. &#39; → ', &ldquo; → ")
+// stripHTMLTags removes all HTML tags and decodes HTML entities (e.g. &#39; → ', &ldquo; → ").
 func stripHTMLTags(s string) string {
 	re := regexp.MustCompile(`<[^>]*>`)
 	s = re.ReplaceAllString(s, "")
@@ -253,14 +255,14 @@ func htmlToLexicalBlocks(html string, autotab bool) []ImportedBlock {
 		blocks = append(blocks, ImportedBlock{
 			KeyID: uuid.New().String(),
 			Chunk: chunk,
-			Place: fmt.Sprintf("%d", i),
+			Place: strconv.Itoa(i),
 		})
 	}
 
 	return blocks
 }
 
-// extractParagraphs splits HTML content into individual paragraphs
+// extractParagraphs splits HTML content into individual paragraphs.
 func extractParagraphs(html string) []string {
 	// Replace block-level elements with markers, then split
 	blockPattern := regexp.MustCompile(`(?i)</?(p|div|blockquote)\s*[^>]*>`)
@@ -289,7 +291,7 @@ func extractParagraphs(html string) []string {
 
 // htmlParagraphToLexicalNode converts a single paragraph's HTML to a Lexical paragraph node.
 // If autotab is true, a \t is prepended to the first text node (matching Threadr's autotab behavior).
-func htmlParagraphToLexicalNode(html string, autotab bool) map[string]interface{} {
+func htmlParagraphToLexicalNode(html string, autotab bool) map[string]any {
 	children := parseInlineHTML(html)
 
 	if autotab && len(children) > 0 {
@@ -299,7 +301,7 @@ func htmlParagraphToLexicalNode(html string, autotab bool) map[string]interface{
 		}
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"type":      "paragraph",
 		"children":  children,
 		"direction": "ltr",
@@ -309,10 +311,10 @@ func htmlParagraphToLexicalNode(html string, autotab bool) map[string]interface{
 	}
 }
 
-// parseInlineHTML converts inline HTML (bold, italic, etc.) to Lexical text nodes
-func parseInlineHTML(html string) []map[string]interface{} {
+// parseInlineHTML converts inline HTML (bold, italic, etc.) to Lexical text nodes.
+func parseInlineHTML(html string) []map[string]any {
 	if strings.TrimSpace(html) == "" {
-		return []map[string]interface{}{
+		return []map[string]any{
 			makeTextNode("", 0),
 		}
 	}
@@ -380,7 +382,7 @@ func parseInlineHTML(html string) []map[string]interface{} {
 		segments = append(segments, segment{text: text, format: 0})
 	}
 
-	var nodes []map[string]interface{}
+	var nodes []map[string]any
 	for _, seg := range segments {
 		nodes = append(nodes, splitTextWithTabs(seg.text, seg.format)...)
 	}
@@ -388,9 +390,9 @@ func parseInlineHTML(html string) []map[string]interface{} {
 	return nodes
 }
 
-// makeTextNode creates a Lexical text node
-func makeTextNode(text string, format int) map[string]interface{} {
-	return map[string]interface{}{
+// makeTextNode creates a Lexical text node.
+func makeTextNode(text string, format int) map[string]any {
+	return map[string]any{
 		"detail":  0,
 		"format":  format,
 		"mode":    "normal",
@@ -404,12 +406,12 @@ func makeTextNode(text string, format int) map[string]interface{} {
 // splitTextWithTabs takes a text string and format, and returns text nodes
 // with tab characters preserved inline (matching Threadr's autotab behavior
 // where \t is embedded in the text node content, not as separate TabNodes).
-func splitTextWithTabs(text string, format int) []map[string]interface{} {
-	return []map[string]interface{}{makeTextNode(text, format)}
+func splitTextWithTabs(text string, format int) []map[string]any {
+	return []map[string]any{makeTextNode(text, format)}
 }
 
 // stripPageHeaders removes lines that look like manuscript page headers.
-// These are typically short lines with slashes and page numbers, like "FACE / HARBINGERS / 1"
+// These are typically short lines with slashes and page numbers, like "FACE / HARBINGERS / 1".
 func stripPageHeaders(text string) string {
 	lines := strings.Split(text, "\n")
 	var cleaned []string
@@ -471,7 +473,7 @@ func splitPDFTextIntoChapters(text string, autotab bool) []ImportedChapter {
 		subtitleEnd := contentStart
 
 		// Look ahead for a short subtitle line (e.g. "The Regent")
-		nextLines := strings.SplitN(strings.TrimLeft(remaining, "\n"), "\n", 3)
+		nextLines := strings.SplitN(strings.TrimLeft(remaining, "\n"), "\n", 3) //nolint:mnd
 		if len(nextLines) > 0 {
 			candidate := strings.TrimSpace(nextLines[0])
 			// A subtitle is a short non-empty line that isn't the start of body text
@@ -491,7 +493,7 @@ func splitPDFTextIntoChapters(text string, autotab bool) []ImportedChapter {
 		title = strings.ReplaceAll(title, "\r", "")
 		title = regexp.MustCompile(`:\s*:\s*`).ReplaceAllString(title, ": ")
 		title = strings.TrimRight(title, ": \t")
-		if len(title) > 256 {
+		if len(title) > 256 { //nolint:mnd
 			title = title[:256]
 		}
 
@@ -544,7 +546,7 @@ func ImportDocument(filePath string, format string, autotab bool, skipFirstPage 
 	}
 
 	if len(chapters) == 0 {
-		return nil, fmt.Errorf("no content found in document")
+		return nil, errors.New("no content found in document")
 	}
 
 	return chapters, nil

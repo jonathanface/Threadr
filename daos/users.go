@@ -1,8 +1,6 @@
 package daos
 
 import (
-	"Threadr/logger"
-	"Threadr/models"
 	"context"
 	"database/sql"
 	"errors"
@@ -11,6 +9,9 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"Threadr/logger"
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -27,7 +28,7 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 
 	// First, check if this is a re-registration of a deleted account
 	existingUser, err := d.GetUserByEmailIncludingDeleted(ctx, email)
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, err
 	}
 
@@ -39,7 +40,9 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 			Key: map[string]types.AttributeValue{
 				"email": &types.AttributeValueMemberS{Value: email},
 			},
-			UpdateExpression: aws.String("set created_at=:t, last_accessed=:t, admin=:a, subscriber=:s REMOVE deleted_at, customer_id, first_name, last_name"),
+			UpdateExpression: aws.String(
+				"set created_at=:t, last_accessed=:t, admin=:a, subscriber=:s REMOVE deleted_at, customer_id, first_name, last_name",
+			),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
 				":t": &types.AttributeValueMemberN{Value: now},
 				":a": &types.AttributeValueMemberBOOL{Value: false},
@@ -54,7 +57,7 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 
 		// 2. Restore all soft-deleted stories (undelete them)
 		stories, err := d.GetAllStoriesIncludingDeleted(ctx, email)
-		if err != nil && err != sql.ErrNoRows {
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			logger.Warn("Failed to get deleted stories for restoration", "email", email, "error", err)
 			// Continue anyway - don't fail account recreation
 		} else {
@@ -70,7 +73,7 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 
 		// 3. Restore all soft-deleted series
 		series, err := d.GetAllSeriesIncludingDeleted(ctx, email)
-		if err != nil && err != sql.ErrNoRows {
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			logger.Warn("Failed to get deleted series for restoration", "email", email, "error", err)
 			// Continue anyway
 		} else {
@@ -134,7 +137,12 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 		return nil, err
 	}
 	if !awsErr.IsNil() {
-		return nil, fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
+		return nil, fmt.Errorf(
+			"--AWSERROR-- Code:%s, Type: %s, Message: %s",
+			awsErr.Code,
+			awsErr.ErrorType,
+			awsErr.Text,
+		)
 	}
 
 	user := models.UserInfo{
@@ -224,7 +232,7 @@ func (d *DAO) GetUserDetails(ctx context.Context, email string) (user *models.Us
 }
 
 // GetAllUsersWithStories retrieves all users with their story titles, sorted by last_accessed
-// This is used by the admin area
+// This is used by the admin area.
 func (d *DAO) GetAllUsersWithStories(ctx context.Context) ([]models.AdminUserSummary, error) {
 	tableName := "users" + GetTableSuffix()
 
@@ -291,7 +299,7 @@ func (d *DAO) GetAllUsersWithStories(ctx context.Context) ([]models.AdminUserSum
 	}
 
 	// Sort by last_accessed descending (most recent first)
-	for i := 0; i < len(result)-1; i++ {
+	for i := range len(result) - 1 {
 		for j := i + 1; j < len(result); j++ {
 			if result[j].LastAccessed > result[i].LastAccessed {
 				result[i], result[j] = result[j], result[i]
@@ -302,7 +310,7 @@ func (d *DAO) GetAllUsersWithStories(ctx context.Context) ([]models.AdminUserSum
 	return result, nil
 }
 
-// GetUserByEmailIncludingDeleted retrieves a user including deleted users
+// GetUserByEmailIncludingDeleted retrieves a user including deleted users.
 func (d *DAO) GetUserByEmailIncludingDeleted(ctx context.Context, email string) (*models.UserInfo, error) {
 	tableName := "users" + GetTableSuffix()
 
@@ -330,7 +338,7 @@ func (d *DAO) GetUserByEmailIncludingDeleted(ctx context.Context, email string) 
 
 /**
  * Either create a user, or update user with last login time
-**/
+*.*/
 func (d *DAO) UpsertUser(ctx context.Context, email string) (*models.UserInfo, error) {
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	input := &dynamodb.UpdateItemInput{
@@ -394,7 +402,7 @@ func (d *DAO) UpdateUser(ctx context.Context, user models.UserInfo) (err error) 
 	if _, err = d.DynamoClient.UpdateItem(ctx, input); err != nil {
 		return err
 	}
-	return
+	return err
 }
 
 func toStatus(s *stripe.Subscription, found bool) SubscriptionStatus {
@@ -417,12 +425,12 @@ func (d *DAO) IsUserSubscribed(ctx context.Context, user models.UserInfo) (*mode
 	if stripe.Key == "" {
 		stripe.Key = os.Getenv("STRIPE_SECRET")
 		if stripe.Key == "" {
-			return nil, fmt.Errorf("missing stripe secret")
+			return nil, errors.New("missing stripe secret")
 		}
 	}
 	sub, err := d.GetSubscription(ctx, user.Email)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			// No subscription on file: treat as not subscribed, not an error
 			user.Subscriber = false
 			return &user, nil
@@ -440,7 +448,8 @@ func (d *DAO) IsUserSubscribed(ctx context.Context, user models.UserInfo) (*mode
 	// Recheck policy:
 	// Re-verify with Stripe if we have a sub id AND the check is stale.
 	const staleAfter = 15 * time.Minute
-	shouldRecheck := sub.SubscriptionID != "" && (sub.LastSubCheck.IsZero() || time.Since(sub.LastSubCheck) > staleAfter)
+	shouldRecheck := sub.SubscriptionID != "" &&
+		(sub.LastSubCheck.IsZero() || time.Since(sub.LastSubCheck) > staleAfter)
 	if shouldRecheck {
 		status, stripeErr := d.verifyStripeSubscription(sub.SubscriptionID, sub.CustomerID)
 		if stripeErr == nil && status.Found {
@@ -460,7 +469,7 @@ func (d *DAO) IsUserSubscribed(ctx context.Context, user models.UserInfo) (*mode
 		user.NotifyExpired = true
 
 		stories, err := d.GetAllStories(ctx, user.Email)
-		if err != nil && err != sql.ErrNoRows {
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return nil, err
 		}
 		for idx, s := range stories {
@@ -515,7 +524,7 @@ func (d *DAO) AddCustomerID(ctx context.Context, email, customerID *string) erro
 	return nil
 }
 
-// sendWelcomeEmail sends a welcome email to a new user
+// sendWelcomeEmail sends a welcome email to a new user.
 func sendWelcomeEmail(userEmail string) error {
 	region := os.Getenv("AWS_REGION")
 	if region == "" {
@@ -591,7 +600,7 @@ The Threadr Team`
 	return nil
 }
 
-// DeleteUser soft deletes a user account and all associated data
+// DeleteUser soft deletes a user account and all associated data.
 func (d *DAO) DeleteUser(ctx context.Context, email string) error {
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 
@@ -600,12 +609,18 @@ func (d *DAO) DeleteUser(ctx context.Context, email string) error {
 	if err == nil && sub.SubscriptionID != "" {
 		// Subscription cancellation is handled via Stripe webhook
 		// We just mark it for cancellation here
-		logger.Info("User has active subscription, will be cancelled", "email", email, "subscriptionID", sub.SubscriptionID)
+		logger.Info(
+			"User has active subscription, will be cancelled",
+			"email",
+			email,
+			"subscriptionID",
+			sub.SubscriptionID,
+		)
 	}
 
 	// 2. Soft delete all user's stories
 	stories, err := d.GetAllStories(ctx, email)
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return err
 	}
 	for _, story := range stories {
@@ -616,7 +631,7 @@ func (d *DAO) DeleteUser(ctx context.Context, email string) error {
 
 	// 3. Soft delete all user's series
 	series, err := d.GetAllSeriesWithStories(ctx, email, false)
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return err
 	}
 	for _, s := range series {
@@ -645,7 +660,7 @@ func (d *DAO) DeleteUser(ctx context.Context, email string) error {
 	return nil
 }
 
-// sendNewUserNotificationEmail sends an email notification to support when a new user signs up
+// sendNewUserNotificationEmail sends an email notification to support when a new user signs up.
 func sendNewUserNotificationEmail(userEmail string) error {
 	region := os.Getenv("AWS_REGION")
 	if region == "" {

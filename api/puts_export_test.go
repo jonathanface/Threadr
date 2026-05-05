@@ -1,15 +1,16 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/gorilla/mux"
 )
@@ -39,7 +40,7 @@ func TestExportStoryEndpoint_MissingType(t *testing.T) {
 func TestExportStoryEndpoint_InvalidJSON(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
-	req := createTestRequestWithSession("PUT", "/story/story123/export?type=pdf", bytes.NewBuffer([]byte("invalid json")))
+	req := createTestRequestWithSession("PUT", "/story/story123/export?type=pdf", bytes.NewBufferString("invalid json"))
 	req = mux.SetURLVars(req, map[string]string{"storyID": "story123"})
 	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
 
@@ -150,15 +151,15 @@ func TestExportStoryEndpoint_DatabaseError(t *testing.T) {
 	if rr.Code != http.StatusInternalServerError {
 		t.Errorf("Expected status 500, got %d", rr.Code)
 
-// Note: Full success tests for ExportStoryEndpoint would require mocking:
-// - AWS config loading
-// - File system operations (os.Remove, os.Open)
-// - S3 client operations
-// - Document conversion functions (converters.HTMLToPDF, etc.)
-//
-// These would be integration tests rather than unit tests and would require
-// more complex mocking infrastructure. The tests above cover the validation
-// and error handling paths that can be tested without external dependencies.
+		// Note: Full success tests for ExportStoryEndpoint would require mocking:
+		// - AWS config loading
+		// - File system operations (os.Remove, os.Open)
+		// - S3 client operations
+		// - Document conversion functions (converters.HTMLToPDF, etc.)
+		//
+		// These would be integration tests rather than unit tests and would require
+		// more complex mocking infrastructure. The tests above cover the validation
+		// and error handling paths that can be tested without external dependencies.
 	}
 }
 

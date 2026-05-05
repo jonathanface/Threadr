@@ -8,7 +8,7 @@ import (
 
 // Tests for NewDAO
 // Note: NewDAO loads AWS credentials from the environment, so these tests
-// verify behavior in a test environment without AWS credentials
+// verify behavior in a test environment without AWS credentials.
 func TestNewDAO(t *testing.T) {
 	testCases := []struct {
 		name    string
@@ -67,7 +67,6 @@ func TestNewDAO(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			dao, err := NewDAO(tc.ctx, tc.opts)
 
@@ -106,7 +105,7 @@ func TestNewDAO(t *testing.T) {
 	}
 }
 
-// Test that constants are defined and have expected values
+// Test that constants are defined and have expected values.
 func TestConstants(t *testing.T) {
 	testCases := []struct {
 		name     string
@@ -151,7 +150,6 @@ func TestConstants(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.constant != tc.expected {
 				t.Errorf("Constant %s = %q, expected %q", tc.name, tc.constant, tc.expected)
@@ -160,7 +158,7 @@ func TestConstants(t *testing.T) {
 	}
 }
 
-// Test that numeric constants have expected values
+// Test that numeric constants have expected values.
 func TestNumericConstants(t *testing.T) {
 	testCases := []struct {
 		name     string
@@ -190,7 +188,6 @@ func TestNumericConstants(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.constant != tc.expected {
 				t.Errorf("Constant %s = %d, expected %d", tc.name, tc.constant, tc.expected)
@@ -201,7 +198,7 @@ func TestNumericConstants(t *testing.T) {
 
 // Test that DAO implements DaoInterface
 // This is verified at compile time by: var _ DaoInterface = (*DAO)(nil)
-// But we can also test it at runtime
+// But we can also test it at runtime.
 func TestDAOImplementsDaoInterface(t *testing.T) {
 	// Create a mock DAO to verify it implements the interface
 	mockDao := NewMockDAO()
@@ -212,7 +209,7 @@ func TestDAOImplementsDaoInterface(t *testing.T) {
 	t.Log("DAO correctly implements DaoInterface")
 }
 
-// Test Options struct can be created with various values
+// Test Options struct can be created with various values.
 func TestOptionsStruct(t *testing.T) {
 	testCases := []struct {
 		name string
@@ -248,7 +245,6 @@ func TestOptionsStruct(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			// Verify we can create Options structs with various values
 			if tc.opts.Region != tc.opts.Region {
@@ -260,10 +256,10 @@ func TestOptionsStruct(t *testing.T) {
 	}
 }
 
-// Benchmark creating Options structs (trivial but comprehensive)
+// Benchmark creating Options structs (trivial but comprehensive).
 func BenchmarkOptionsCreation(b *testing.B) {
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = Options{
 			Region:                     "us-east-1",
 			MaxRetries:                 3,

@@ -1,7 +1,6 @@
 package daos
 
 import (
-	"Threadr/logger"
 	"context"
 	"errors"
 	"fmt"
@@ -9,6 +8,8 @@ import (
 	"path"
 	"strconv"
 	"time"
+
+	"Threadr/logger"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -134,8 +135,10 @@ func (d *DAO) SoftDeleteStory(ctx context.Context, email, storyID string, automa
 	// update the associations to mark them as deleted.
 	if seriesID == "" || deletedSeries {
 		associationScanInput := &dynamodb.ScanInput{
-			TableName:        aws.String("associations" + GetTableSuffix()),
-			FilterExpression: aws.String("author = :eml AND attribute_not_exists(deleted_at) AND story_or_series_id = :sid"),
+			TableName: aws.String("associations" + GetTableSuffix()),
+			FilterExpression: aws.String(
+				"author = :eml AND attribute_not_exists(deleted_at) AND story_or_series_id = :sid",
+			),
 			ExpressionAttributeValues: map[string]types.AttributeValue{
 				":eml": &types.AttributeValueMemberS{Value: email},
 				":sid": &types.AttributeValueMemberS{Value: storyOrSeriesID},
@@ -489,7 +492,7 @@ func (d *DAO) hardDeleteStory(ctx context.Context, email, storyID string) error 
 	return nil
 }
 
-// RestoreStory removes the deleted_at flag from a soft-deleted story
+// RestoreStory removes the deleted_at flag from a soft-deleted story.
 func (d *DAO) RestoreStory(ctx context.Context, email, storyID string) error {
 	logger.Info("RestoreStory started", "email", email, "storyID", storyID)
 
@@ -511,7 +514,7 @@ func (d *DAO) RestoreStory(ctx context.Context, email, storyID string) error {
 	return nil
 }
 
-// RestoreSeries removes the deleted_at flag from a soft-deleted series
+// RestoreSeries removes the deleted_at flag from a soft-deleted series.
 func (d *DAO) RestoreSeries(ctx context.Context, email, seriesID string) error {
 	logger.Info("RestoreSeries started", "email", email, "seriesID", seriesID)
 

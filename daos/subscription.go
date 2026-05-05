@@ -1,14 +1,16 @@
 package daos
 
 import (
-	"Threadr/logger"
-	"Threadr/models"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
+
+	"Threadr/logger"
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -72,7 +74,7 @@ func (d *DAO) UpdateSubscription(ctx context.Context, sub models.Subscription) e
 
 	if sub.Email == "" {
 		logger.Error("UpdateSubscription called with empty email")
-		return fmt.Errorf("UpdateSubscription: email is required")
+		return errors.New("UpdateSubscription: email is required")
 	}
 	if sub.CustomerID != "" {
 		setParts = append(setParts, "customer_id = :cid")
@@ -153,7 +155,7 @@ func (d *DAO) GetEmailByCustomerId(ctx context.Context, custId string) (string, 
 		logger.Warn("Query returned no items, attempting scan for debugging")
 		scanOut, scanErr := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
 			TableName: aws.String(tableName),
-			Limit:     aws.Int32(5),
+			Limit:     aws.Int32(5), //nolint:mnd
 		})
 		if scanErr == nil && len(scanOut.Items) > 0 {
 			logger.Info("Sample items from table",

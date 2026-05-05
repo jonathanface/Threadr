@@ -1,16 +1,17 @@
 package main
 
 import (
-	"Threadr/auth"
-	"Threadr/daos"
-	"Threadr/logger"
-	"Threadr/models"
-	"Threadr/sessions"
 	"context"
 	"os/signal"
 	"strconv"
 	"syscall"
 	"time"
+
+	"Threadr/auth"
+	"Threadr/daos"
+	"Threadr/logger"
+	"Threadr/models"
+	"Threadr/sessions"
 
 	"log"
 	"os"
@@ -24,12 +25,15 @@ import (
 )
 
 const (
-	DEFAULT_MAX_RETRIES              = 3
-	DEFAULT_AWS_BLOCK_WRITE_CAPACITY = 10
-	DEFAULT_AWS_REGION               = "us-east-1"
-	DEFAULT_DYNAMO_WRITE_BATCH_SIZE  = 50
-	DEFAULT_VERSION                  = "dev"
-	DEFAULT_PORT                     = "8080"
+	defaultMaxRetries            = 3
+	defaultAWSBlockWriteCapacity = 10
+	defaultAWSRegion             = "us-east-1"
+	defaultDynamoWriteBatchSize  = 50
+	defaultVersion               = "dev"
+	defaultPort                  = "8080"
+	// serverLifecycleTimeout caps DAO init at startup and graceful HTTP
+	// shutdown — both have to finish promptly or we abandon the operation.
+	serverLifecycleTimeout = 10 * time.Second
 )
 
 func normalizeAddr(p string) string {
@@ -65,9 +69,9 @@ func main() {
 			log.Println("warning: .env not loaded:", err)
 		}
 	}
-	port := getenv("PORT", DEFAULT_PORT)
+	port := getenv("PORT", defaultPort)
 	addr := normalizeAddr(port)
-	version := getenv("VERSION", DEFAULT_VERSION)
+	version := getenv("VERSION", defaultVersion)
 	stripe.Key = getenv("STRIPE_SECRET", "")
 
 	// Initialize and validate session store
@@ -76,16 +80,16 @@ func main() {
 	}
 	sessions.StartTokenCleanup()
 
-	initCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	initCtx, cancel := context.WithTimeout(context.Background(), serverLifecycleTimeout)
 	defer cancel()
 
-	awsRegion := getenv("AWS_REGION", DEFAULT_AWS_REGION)
+	awsRegion := getenv("AWS_REGION", defaultAWSRegion)
 	logger.Info("Initializing DAO", "region", awsRegion)
 	daoOptions := daos.Options{
 		Region:                     awsRegion,
-		MaxRetries:                 DEFAULT_MAX_RETRIES,
-		BlockTableMinWriteCapacity: DEFAULT_AWS_BLOCK_WRITE_CAPACITY,
-		WriteBatchSize:             DEFAULT_DYNAMO_WRITE_BATCH_SIZE,
+		MaxRetries:                 defaultMaxRetries,
+		BlockTableMinWriteCapacity: defaultAWSBlockWriteCapacity,
+		WriteBatchSize:             defaultDynamoWriteBatchSize,
 	}
 	dao, err := daos.NewDAO(initCtx, daoOptions)
 	if err != nil {
@@ -130,13 +134,13 @@ func main() {
 	srv := &http.Server{
 		Addr:              addr,
 		Handler:           rtr,
-		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       15 * time.Second,
-		WriteTimeout:      30 * time.Second,
-		IdleTimeout:       60 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,  //nolint:mnd
+		ReadTimeout:       15 * time.Second, //nolint:mnd
+		WriteTimeout:      30 * time.Second, //nolint:mnd
+		IdleTimeout:       60 * time.Second, //nolint:mnd
 	}
 
-	log.Printf("RichThreadr %s listening on %s (mode=%s)", version, addr, mode)
+	log.Printf("Threadr %s listening on %s (mode=%s)", version, addr, mode)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -155,7 +159,7 @@ func main() {
 		log.Printf("server error: %v", err)
 	}
 
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), serverLifecycleTimeout)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Printf("graceful shutdown error: %v", err)

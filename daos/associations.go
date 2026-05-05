@@ -1,12 +1,14 @@
 package daos
 
 import (
-	"Threadr/models"
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"strconv"
 	"time"
+
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -18,16 +20,17 @@ const (
 	MAX_SHORT_DESCRIPTION_LENGTH = 100
 )
 
-func (d DAO) WriteAssociations(ctx context.Context, email, storyOrSeriesID string, associations []*models.Association) (err error) {
+func (d DAO) WriteAssociations(
+	ctx context.Context,
+	email, storyOrSeriesID string,
+	associations []*models.Association,
+) (err error) {
 	if len(associations) == 0 {
-		return fmt.Errorf("empty associations array")
+		return errors.New("empty associations array")
 	}
 	batches := make([][]*models.Association, 0, (len(associations)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(associations); i += d.writeBatchSize {
-		end := i + d.writeBatchSize
-		if end > len(associations) {
-			end = len(associations)
-		}
+		end := min(i+d.writeBatchSize, len(associations))
 		batches = append(batches, associations[i:end])
 	}
 
@@ -73,9 +76,11 @@ func (d DAO) WriteAssociations(ctx context.Context, email, storyOrSeriesID strin
 			}
 			// Create an update input for the item.
 			updateInput := &types.Update{
-				TableName:        aws.String("associations" + GetTableSuffix()),
-				Key:              key,
-				UpdateExpression: aws.String("set association_name=:nm, author=:eml, created_at=if_not_exists(created_at,:t), last_updated=:t, association_type=:at, portrait=:p, short_description=:sd, case_sensitive=:c, aliases=:al"),
+				TableName: aws.String("associations" + GetTableSuffix()),
+				Key:       key,
+				UpdateExpression: aws.String(
+					"set association_name=:nm, author=:eml, created_at=if_not_exists(created_at,:t), last_updated=:t, association_type=:at, portrait=:p, short_description=:sd, case_sensitive=:c, aliases=:al",
+				),
 				ExpressionAttributeValues: map[string]types.AttributeValue{
 					":nm":  &types.AttributeValueMemberS{Value: item.Name},
 					":eml": &types.AttributeValueMemberS{Value: email},
@@ -127,10 +132,13 @@ func (d DAO) WriteAssociations(ctx context.Context, email, storyOrSeriesID strin
 			return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 		}
 	}
-	return
+	return err
 }
 
-func (d *DAO) UpdateAssociationPortraitEntryInDB(ctx context.Context, email, storyOrSeriesID, associationID, url string) (err error) {
+func (d *DAO) UpdateAssociationPortraitEntryInDB(
+	ctx context.Context,
+	email, storyOrSeriesID, associationID, url string,
+) (err error) {
 	key := map[string]types.AttributeValue{
 		"association_id":     &types.AttributeValueMemberS{Value: associationID},
 		"story_or_series_id": &types.AttributeValueMemberS{Value: storyOrSeriesID},
@@ -155,16 +163,17 @@ func (d *DAO) UpdateAssociationPortraitEntryInDB(ctx context.Context, email, sto
 	return nil
 }
 
-func (d *DAO) DeleteAssociations(ctx context.Context, email, storyID string, associations []*models.Association) (err error) {
+func (d *DAO) DeleteAssociations(
+	ctx context.Context,
+	email, storyID string,
+	associations []*models.Association,
+) (err error) {
 	if len(associations) == 0 {
-		return fmt.Errorf(("no associations provided"))
+		return errors.New(("no associations provided"))
 	}
 	batches := make([][]*models.Association, 0, (len(associations)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(associations); i += d.writeBatchSize {
-		end := i + d.writeBatchSize
-		if end > len(associations) {
-			end = len(associations)
-		}
+		end := min(i+d.writeBatchSize, len(associations))
 		batches = append(batches, associations[i:end])
 	}
 
@@ -239,10 +248,13 @@ func (d *DAO) DeleteAssociations(ctx context.Context, email, storyID string, ass
 			return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 		}
 	}
-	return
+	return err
 }
 
-func (d *DAO) GetAssociationDetails(ctx context.Context, email, storyID, associationID string) (*models.Association, error) {
+func (d *DAO) GetAssociationDetails(
+	ctx context.Context,
+	email, storyID, associationID string,
+) (*models.Association, error) {
 	var (
 		association *models.Association
 		err         error
@@ -311,7 +323,10 @@ func (d *DAO) GetAssociationDetails(ctx context.Context, email, storyID, associa
 	return association, nil
 }
 
-func (d *DAO) GetStoryOrSeriesAssociationThumbnails(ctx context.Context, email, storyID string) ([]*models.SimplifiedAssociation, error) {
+func (d *DAO) GetStoryOrSeriesAssociationThumbnails(
+	ctx context.Context,
+	email, storyID string,
+) ([]*models.SimplifiedAssociation, error) {
 	var (
 		associations []*models.SimplifiedAssociation
 		err          error
