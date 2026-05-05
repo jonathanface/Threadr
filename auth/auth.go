@@ -791,7 +791,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
     </script>
 </body>
 </html>`, html.EscapeString(instructions), html.EscapeString(next), html.EscapeString(next))
-		w.Write([]byte(html))
+		_, _ = w.Write([]byte(html))
 		return
 	}
 
@@ -849,11 +849,13 @@ func MobileSessionHandler() http.HandlerFunc {
 
 		// Return success with session token
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{
+		if err := json.NewEncoder(w).Encode(map[string]any{
 			"success":      true,
 			"user":         userData,
 			"sessionToken": sessionToken,
-		})
+		}); err != nil {
+			logger.Error("Failed to encode mobile session response", "error", err)
+		}
 	}
 }
 

@@ -196,7 +196,11 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 			}
 			for idx, s := range stories {
 				if idx > 0 {
-					go dao.SoftDeleteStory(context.Background(), user.Email, s.ID, true)
+					go func(storyID string) {
+						if delErr := dao.SoftDeleteStory(context.Background(), user.Email, storyID, true); delErr != nil {
+							log.Printf("background SoftDeleteStory failed for %s: %v", storyID, delErr)
+						}
+					}(s.ID)
 				}
 			}
 		}
@@ -226,7 +230,11 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 			}
 			for ev := range events {
 				if ev.Err == nil {
-					if story, err := dao.GetStoryByID(context.Background(), email, ev.StoryID); err == nil { //nolint:govet
+					if story, err := dao.GetStoryByID(
+						context.Background(),
+						email,
+						ev.StoryID,
+					); err == nil { //nolint:govet
 						story.Inactive = false
 						if _, e2 := dao.EditStory(context.Background(), email, *story); e2 != nil {
 							log.Printf("post-restore EditStory failed %s: %v", ev.StoryID, e2)

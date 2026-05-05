@@ -216,8 +216,8 @@ func emailLogin(w http.ResponseWriter, r *http.Request) {
 	user, err := dao.GetUserDetails(r.Context(), req.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			// Run dummy bcrypt to prevent timing-based user enumeration
-			bcrypt.CompareHashAndPassword(
+			// Run dummy bcrypt to prevent timing-based user enumeration; result is intentionally discarded.
+			_ = bcrypt.CompareHashAndPassword(
 				[]byte("$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"),
 				[]byte(req.Password),
 			)
@@ -296,8 +296,10 @@ func emailLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update last_accessed
-	dao.UpsertUser(r.Context(), user.Email)
+	// Update last_accessed (best-effort; login already succeeded)
+	if _, err = dao.UpsertUser(r.Context(), user.Email); err != nil {
+		logger.Warn("Failed to update last_accessed on email login", "email", user.Email, "error", err)
+	}
 
 	logger.Info("Email user login", "email", user.Email)
 	respondJSON(w, http.StatusOK, info)
@@ -553,10 +555,10 @@ func respondJSON(w http.ResponseWriter, code int, payload any) {
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":"internal error"}`))
+		_, _ = w.Write([]byte(`{"error":"internal error"}`))
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	w.Write(response)
+	_, _ = w.Write(response)
 }

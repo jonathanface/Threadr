@@ -70,12 +70,12 @@ func RespondWithJSON(w http.ResponseWriter, code int, payload any) {
 	if response, err = json.Marshal(payload); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	w.Write(response)
+	_, _ = w.Write(response)
 }
 
 func getUserEmail(r *http.Request) (string, error) {

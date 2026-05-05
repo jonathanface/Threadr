@@ -87,9 +87,21 @@ func injectPageBreakMarkers(docxPath string) (string, error) {
 			// Close the parent <w:r>, insert marker in its own run, reopen <w:r>.
 			replacement := `</w:r><w:r><w:t>` + pageBreakMarker + `</w:t></w:r><w:r>`
 			content = pageBreakRe.ReplaceAllString(content, replacement)
-			writer.Write([]byte(content))
+			if _, writeErr := writer.Write([]byte(content)); writeErr != nil {
+				rc.Close()
+				w.Close()
+				tmpFile.Close()
+				os.Remove(tmpFile.Name())
+				return "", writeErr
+			}
 		} else {
-			io.Copy(writer, rc)
+			if _, copyErr := io.Copy(writer, rc); copyErr != nil {
+				rc.Close()
+				w.Close()
+				tmpFile.Close()
+				os.Remove(tmpFile.Name())
+				return "", copyErr
+			}
 		}
 		rc.Close()
 	}

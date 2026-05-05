@@ -281,7 +281,10 @@ func (d *DAO) hardDeleteStory(ctx context.Context, email, storyID string) error 
 		"chapterCount", len(chapterOut.Items))
 
 	for _, item := range chapterOut.Items {
-		chapterID := item["id"].(*types.AttributeValueMemberS)
+		chapterID, ok := item["id"].(*types.AttributeValueMemberS)
+		if !ok {
+			continue
+		}
 		// Delete associated tables
 		chapterKey := map[string]types.AttributeValue{
 			"story_id":   &types.AttributeValueMemberS{Value: storyID},
@@ -410,7 +413,11 @@ func (d *DAO) hardDeleteStory(ctx context.Context, email, storyID string) error 
 			"associationCount", len(associationOut.Items))
 
 		for _, item := range associationOut.Items {
-			assocID := item["association_id"].(*types.AttributeValueMemberS).Value
+			assocAttr, ok := item["association_id"].(*types.AttributeValueMemberS)
+			if !ok {
+				continue
+			}
+			assocID := assocAttr.Value
 			associationKey := map[string]types.AttributeValue{
 				"association_id":     &types.AttributeValueMemberS{Value: assocID},
 				"story_or_series_id": &types.AttributeValueMemberS{Value: storyOrSeriesID},
@@ -434,7 +441,11 @@ func (d *DAO) hardDeleteStory(ctx context.Context, email, storyID string) error 
 			}
 			// delete association images
 			var bucketName string
-			switch item["association_type"].(*types.AttributeValueMemberS).Value {
+			typeAttr, typeOK := item["association_type"].(*types.AttributeValueMemberS)
+			if !typeOK {
+				continue
+			}
+			switch typeAttr.Value {
 			case "character":
 				bucketName = "richdocterportraits"
 			case "event":
@@ -442,7 +453,11 @@ func (d *DAO) hardDeleteStory(ctx context.Context, email, storyID string) error 
 			case "location":
 				bucketName = "richdocterlocations"
 			}
-			parsedPath, err := url.Parse(item["portrait"].(*types.AttributeValueMemberS).Value)
+			portraitAttr, portraitOK := item["portrait"].(*types.AttributeValueMemberS)
+			if !portraitOK {
+				continue
+			}
+			parsedPath, err := url.Parse(portraitAttr.Value)
 			if err != nil {
 				return err
 			}

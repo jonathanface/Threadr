@@ -222,7 +222,11 @@ func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.St
 	}
 
 	for _, item := range associationOut.Items {
-		assocID := item["association_id"].(*types.AttributeValueMemberS).Value
+		assocAttr, ok := item["association_id"].(*types.AttributeValueMemberS)
+		if !ok {
+			continue
+		}
+		assocID := assocAttr.Value
 		associationKey := map[string]types.AttributeValue{
 			"association_id":     &types.AttributeValueMemberS{Value: assocID},
 			"story_or_series_id": &types.AttributeValueMemberS{Value: storyOrSeriesID},

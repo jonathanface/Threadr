@@ -123,7 +123,7 @@ func maintenanceModeMiddleware(enabled bool) func(http.Handler) http.Handler {
     </div>
 </body>
 </html>`
-				w.Write([]byte(html))
+				_, _ = w.Write([]byte(html))
 				return
 			}
 

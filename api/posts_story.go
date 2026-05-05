@@ -57,7 +57,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(
 			w,
 			http.StatusBadRequest,
-			fmt.Sprintf("File size exceeds allowed limit of %dMB", maxFileSize/(1024*1024)),
+			fmt.Sprintf("File size exceeds allowed limit of %dMB", maxFileSize/(oneMB*oneMB)),
 		)
 		return
 	}
@@ -91,7 +91,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(
 			w,
 			http.StatusBadRequest,
-			fmt.Sprintf("Filesize must be < %dMB", maxFileSize/(1024*1024)),
+			fmt.Sprintf("Filesize must be < %dMB", maxFileSize/(oneMB*oneMB)),
 		)
 		return
 	}

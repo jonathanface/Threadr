@@ -825,12 +825,8 @@ var bodyTextStyleIDs = []string{
 }
 
 func applyTypographyToStylesXML(data []byte, typo typography) []byte {
-	// DOCX font sizes are in half-points; Word renders px ≈ pt for body text,
-	// so we treat the user's px choice as points (matches the PDF/EPUB feel).
-	sizeHalfPt := typo.SizePx * 2
-	// DOCX line spacing in "auto" rule is twentieths-of-a-point per line; the
-	// canonical convention is 240 = single, 360 = 1.5×, 480 = double.
-	lineTwips := int(typo.LineSpacing * 240)
+	sizeHalfPt := typo.SizePx * docxHalfPointsPerPoint
+	lineTwips := int(typo.LineSpacing * docxTwipsPerLine)
 
 	fontTag := fmt.Sprintf(
 		`<w:rFonts w:ascii=%q w:hAnsi=%q w:eastAsia=%q w:cs=""/>`,

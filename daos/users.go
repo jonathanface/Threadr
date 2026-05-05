@@ -474,7 +474,11 @@ func (d *DAO) IsUserSubscribed(ctx context.Context, user models.UserInfo) (*mode
 		}
 		for idx, s := range stories {
 			if idx > 0 {
-				go d.SoftDeleteStory(ctx, user.Email, s.ID, true)
+				go func(storyID string) {
+					if delErr := d.SoftDeleteStory(ctx, user.Email, storyID, true); delErr != nil {
+						logger.Warn("background SoftDeleteStory failed", "storyID", storyID, "error", delErr)
+					}
+				}(s.ID)
 			}
 		}
 		sub.CurrentSubscriptionEnd = time.Now()

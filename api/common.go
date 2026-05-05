@@ -84,12 +84,12 @@ func RespondWithJSON(w http.ResponseWriter, code int, payload any) {
 		logger.Error("Failed to marshal JSON response", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":"Internal server error"}`))
+		_, _ = w.Write([]byte(`{"error":"Internal server error"}`))
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	w.Write(response)
+	_, _ = w.Write(response)
 }
 
 // RespondWithInternalError logs the full error and returns a generic message to the client.
