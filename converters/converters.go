@@ -20,8 +20,6 @@ import (
 	"strings"
 	"time"
 
-	"Threadr/models"
-
 	"github.com/SebastiaanKlippert/go-wkhtmltopdf"
 	"github.com/microcosm-cc/bluemonday"
 )
