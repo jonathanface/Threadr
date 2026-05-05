@@ -57,9 +57,9 @@ func TestCreateUser(t *testing.T) {
 				if !ok {
 					t.Fatalf("mockDao.DynamoClient is not a *MockDynamoClient")
 				}
-				mockClient.MockTransactWriteItems = func(ctx context.Context,
-					input *dynamodb.TransactWriteItemsInput,
-					opts ...func(*dynamodb.Options),
+				mockClient.MockTransactWriteItems = func(_ context.Context,
+					_ *dynamodb.TransactWriteItemsInput,
+					_ ...func(*dynamodb.Options),
 				) (*dynamodb.TransactWriteItemsOutput, error) {
 					if tc.mockAwsWriteErr != nil {
 						return nil, tc.mockAwsWriteErr
@@ -165,9 +165,9 @@ func TestUpsertUser(t *testing.T) {
 				if !ok {
 					t.Fatalf("mockDao.DynamoClient is not a *MockDynamoClient")
 				}
-				mockClient.MockUpdateItem = func(ctx context.Context,
-					input *dynamodb.UpdateItemInput,
-					opts ...func(*dynamodb.Options),
+				mockClient.MockUpdateItem = func(_ context.Context,
+					_ *dynamodb.UpdateItemInput,
+					_ ...func(*dynamodb.Options),
 				) (*dynamodb.UpdateItemOutput, error) {
 					return nil, tc.mockUpdateErr
 				}
@@ -239,9 +239,9 @@ func TestUpdateUser(t *testing.T) {
 				if !ok {
 					t.Fatalf("mockDao.DynamoClient is not a *MockDynamoClient")
 				}
-				mockClient.MockUpdateItem = func(ctx context.Context,
-					input *dynamodb.UpdateItemInput,
-					opts ...func(*dynamodb.Options),
+				mockClient.MockUpdateItem = func(_ context.Context,
+					_ *dynamodb.UpdateItemInput,
+					_ ...func(*dynamodb.Options),
 				) (*dynamodb.UpdateItemOutput, error) {
 					return nil, tc.mockUpdateErr
 				}
@@ -375,7 +375,7 @@ func TestIsUserSubscribed(t *testing.T) {
 				Email:      "user@example.com",
 				Subscriber: false,
 			},
-			mockGetSub: func(email string) (*models.Subscription, error) {
+			mockGetSub: func(_ string) (*models.Subscription, error) {
 				return nil, sql.ErrNoRows
 			},
 			wantErr:        false,
@@ -387,7 +387,7 @@ func TestIsUserSubscribed(t *testing.T) {
 				Email:      "nosubid@example.com",
 				Subscriber: false,
 			},
-			mockGetSub: func(email string) (*models.Subscription, error) {
+			mockGetSub: func(_ string) (*models.Subscription, error) {
 				return &models.Subscription{
 					SubscriptionID:         "", // empty subscription ID
 					CustomerID:             "cus_789",
@@ -404,7 +404,7 @@ func TestIsUserSubscribed(t *testing.T) {
 				Email:      "expired@example.com",
 				Subscriber: false,
 			},
-			mockGetSub: func(email string) (*models.Subscription, error) {
+			mockGetSub: func(_ string) (*models.Subscription, error) {
 				return &models.Subscription{
 					SubscriptionID:         "", // no subscription ID
 					CustomerID:             "cus_456",
@@ -484,9 +484,9 @@ func TestAddCustomerID(t *testing.T) {
 				if !ok {
 					t.Fatalf("mockDao.DynamoClient is not a *MockDynamoClient")
 				}
-				mockClient.MockUpdateItem = func(ctx context.Context,
-					input *dynamodb.UpdateItemInput,
-					opts ...func(*dynamodb.Options),
+				mockClient.MockUpdateItem = func(_ context.Context,
+					_ *dynamodb.UpdateItemInput,
+					_ ...func(*dynamodb.Options),
 				) (*dynamodb.UpdateItemOutput, error) {
 					return nil, tc.mockUpdateErr
 				}
@@ -583,7 +583,7 @@ func TestDeleteUser(t *testing.T) {
 			mockDao := NewMockDAO()
 
 			// Mock GetSubscription to avoid dependency issues
-			mockDao.MockGetSubscription = func(email string) (*models.Subscription, error) {
+			mockDao.MockGetSubscription = func(_ string) (*models.Subscription, error) {
 				if tc.mockGetSubErr != nil {
 					return nil, tc.mockGetSubErr
 				}
@@ -598,9 +598,9 @@ func TestDeleteUser(t *testing.T) {
 
 			// Mock Scan (used by GetAllStories)
 			if tc.mockGetStoriesErr != nil {
-				mockClient.MockScan = func(ctx context.Context,
-					input *dynamodb.ScanInput,
-					opts ...func(*dynamodb.Options),
+				mockClient.MockScan = func(_ context.Context,
+					_ *dynamodb.ScanInput,
+					_ ...func(*dynamodb.Options),
 				) (*dynamodb.ScanOutput, error) {
 					return nil, tc.mockGetStoriesErr
 				}
@@ -608,9 +608,9 @@ func TestDeleteUser(t *testing.T) {
 
 			// Mock UpdateItem for the user deletion
 			if tc.mockUpdateItemErr != nil {
-				mockClient.MockUpdateItem = func(ctx context.Context,
-					input *dynamodb.UpdateItemInput,
-					opts ...func(*dynamodb.Options),
+				mockClient.MockUpdateItem = func(_ context.Context,
+					_ *dynamodb.UpdateItemInput,
+					_ ...func(*dynamodb.Options),
 				) (*dynamodb.UpdateItemOutput, error) {
 					return nil, tc.mockUpdateItemErr
 				}

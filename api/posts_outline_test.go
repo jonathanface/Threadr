@@ -104,7 +104,7 @@ func TestCreateOutlineEndpoint_InvalidJSON(t *testing.T) {
 
 func TestCreateOutlineEndpoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockCreateOutline = func(outline models.OutlineRequest) (*models.OutlineRequest, error) {
+	mockDAO.MockCreateOutline = func(_ models.OutlineRequest) (*models.OutlineRequest, error) {
 		return nil, daos.ErrMockDAO
 	}
 
@@ -125,7 +125,7 @@ func TestCreateOutlineEndpoint_DAOError(t *testing.T) {
 
 func TestCreateOutlineEndpoint_AWSError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockCreateOutline = func(outline models.OutlineRequest) (*models.OutlineRequest, error) {
+	mockDAO.MockCreateOutline = func(_ models.OutlineRequest) (*models.OutlineRequest, error) {
 		return nil, &smithy.OperationError{
 			ServiceID:     "DynamoDB",
 			OperationName: "PutItem",

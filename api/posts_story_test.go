@@ -137,7 +137,7 @@ func TestCreateStoryEndpoint_NoDAO(t *testing.T) {
 
 func TestCreateStoryEndpoint_CreateStoryError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockCreateStory = func(email string, story models.Story, seriesTitle string) (string, error) {
+	mockDAO.MockCreateStory = func(_ string, _ models.Story, _ string) (string, error) {
 		return "", errors.New("database error")
 	}
 
@@ -166,7 +166,7 @@ func TestCreateStoryEndpoint_CreateStoryError(t *testing.T) {
 
 func TestCreateStoryEndpoint_AWSError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockCreateStory = func(email string, story models.Story, seriesTitle string) (string, error) {
+	mockDAO.MockCreateStory = func(_ string, _ models.Story, _ string) (string, error) {
 		return "", &smithy.OperationError{
 			ServiceID:     "DynamoDB",
 			OperationName: "PutItem",

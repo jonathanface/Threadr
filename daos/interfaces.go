@@ -12,8 +12,8 @@ import (
 type DaoInterface interface {
 	// GETs
 	GetAllStories(ctx context.Context, email string) ([]*models.Story, error)
-	GetAllStandalone(ctx context.Context, email string, adminRequest bool) ([]models.Story, error)
-	GetAllSeriesWithStories(ctx context.Context, email string, adminRequest bool) ([]models.Series, error)
+	GetAllStandalone(ctx context.Context, email string) ([]models.Story, error)
+	GetAllSeriesWithStories(ctx context.Context, email string) ([]models.Series, error)
 	GetChaptersByStoryID(ctx context.Context, storyID string) ([]models.Chapter, error)
 	GetChaptersByStoryIDs(ctx context.Context, storyIDs []string) (map[string][]models.Chapter, error)
 	GetStoryByID(ctx context.Context, email string, storyID string) (*models.Story, error)
@@ -31,12 +31,12 @@ type DaoInterface interface {
 		email, storyID string,
 	) ([]*models.SimplifiedAssociation, error)
 	GetAssociationDetails(ctx context.Context, email, storyID, associationID string) (*models.Association, error)
-	GetSeriesVolumes(ctx context.Context, email string, seriesID string) ([]*models.Story, error)
+	GetSeriesVolumes(ctx context.Context, seriesID string) ([]*models.Story, error)
 	GetUserDetails(ctx context.Context, email string) (*models.UserInfo, error)
 	GetAllUsersWithStories(ctx context.Context) ([]models.AdminUserSummary, error)
 	GetChapterByID(ctx context.Context, chapterID string) (*models.Chapter, error)
 	GetOutlineByStoryID(ctx context.Context, storyID string, chapters []models.Chapter) (*models.OutlineResponse, error)
-	GetChapterTableStatus(ctx context.Context, storyID, chapterID string) (bool, error)
+	GetChapterTableStatus(ctx context.Context) (bool, error)
 	GetSubscription(ctx context.Context, email string) (*models.Subscription, error)
 	GetEmailByCustomerId(ctx context.Context, customerID string) (string, error)
 	ensureBlocksTableFromBackup(ctx context.Context, backupARN, oldTableName, chapterName string) error
@@ -62,7 +62,7 @@ type DaoInterface interface {
 	UpdateSubscription(ctx context.Context, subscription models.Subscription) error
 
 	// POSTs
-	CreateChapter(ctx context.Context, storyID string, chapter models.Chapter, email string) (models.Chapter, error)
+	CreateChapter(ctx context.Context, storyID string, chapter models.Chapter) (models.Chapter, error)
 	CreateStory(
 		ctx context.Context,
 		email string,

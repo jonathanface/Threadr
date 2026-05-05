@@ -50,17 +50,17 @@ func (d DAO) WriteAssociations(
 			if imgFile == "" {
 				switch item.Type {
 				case "character":
-					imageFileName := rand.Intn(MAX_DEFAULT_PORTRAIT_IMAGES-1) + 1
-					imgFile = S3_PORTRAIT_BASE_URL + strconv.Itoa(imageFileName) + ".jpg"
+					imageFileName := rand.Intn(maxDefaultPortraitImages-1) + 1
+					imgFile = s3PortraitBaseURL + strconv.Itoa(imageFileName) + ".jpg"
 				case "place":
-					imageFileName := rand.Intn(MAX_DEFAULT_LOCATION_IMAGES-1) + 1
-					imgFile = S3_LOCATION_BASE_URL + strconv.Itoa(imageFileName) + ".jpg"
+					imageFileName := rand.Intn(maxDefaultLocationImages-1) + 1
+					imgFile = s3LocationBaseURL + strconv.Itoa(imageFileName) + ".jpg"
 				case "event":
-					imageFileName := rand.Intn(MAX_DEFAULT_EVENT_IMAGES-1) + 1
-					imgFile = S3_EVENT_BASE_URL + strconv.Itoa(imageFileName) + ".jpg"
+					imageFileName := rand.Intn(maxDefaultEventImages-1) + 1
+					imgFile = s3EventBaseURL + strconv.Itoa(imageFileName) + ".jpg"
 				case "item":
-					imageFileName := rand.Intn(MAX_DEFAULT_ITEM_IMAGES-1) + 1
-					imgFile = S3_ITEM_BASE_URL + strconv.Itoa(imageFileName) + ".jpg"
+					imageFileName := rand.Intn(maxDefaultItemImages-1) + 1
+					imgFile = s3ItemBaseURL + strconv.Itoa(imageFileName) + ".jpg"
 				}
 			}
 			shortDescription := item.ShortDescription

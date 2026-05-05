@@ -165,7 +165,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	chap.ID = firstChapterID
 	chap.Title = "Chapter 1"
 	chap.Place = 1
-	newChapter, err := dao.CreateChapter(r.Context(), story.ID, chap, email)
+	newChapter, err := dao.CreateChapter(r.Context(), story.ID, chap)
 	if err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")

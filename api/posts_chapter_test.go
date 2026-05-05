@@ -22,12 +22,9 @@ func init() {
 
 func TestCreateStoryChapterEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockCreateChapter = func(storyID string, chapter models.Chapter, email string) (models.Chapter, error) {
+	mockDAO.MockCreateChapter = func(storyID string, chapter models.Chapter) (models.Chapter, error) {
 		if storyID != "story123" {
 			t.Errorf("Expected storyID story123, got %s", storyID)
-		}
-		if email != "test@example.com" {
-			t.Errorf("Expected email test@example.com, got %s", email)
 		}
 		// Return the chapter with an ID assigned
 		chapter.ID = "new-chapter-id"
@@ -70,7 +67,7 @@ func TestCreateStoryChapterEndpoint_Success(t *testing.T) {
 
 func TestCreateStoryChapterEndpoint_DefaultPlace(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockCreateChapter = func(storyID string, chapter models.Chapter, email string) (models.Chapter, error) {
+	mockDAO.MockCreateChapter = func(_ string, chapter models.Chapter) (models.Chapter, error) {
 		// Check that Place was set to 1 if it was 0
 		if chapter.Place != 1 {
 			t.Errorf("Expected Place to be set to 1, got %d", chapter.Place)
@@ -192,7 +189,7 @@ func TestCreateStoryChapterEndpoint_InvalidJSON(t *testing.T) {
 
 func TestCreateStoryChapterEndpoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockCreateChapter = func(storyID string, chapter models.Chapter, email string) (models.Chapter, error) {
+	mockDAO.MockCreateChapter = func(_ string, _ models.Chapter) (models.Chapter, error) {
 		return models.Chapter{}, daos.ErrMockDAO
 	}
 
@@ -215,7 +212,7 @@ func TestCreateStoryChapterEndpoint_DAOError(t *testing.T) {
 
 func TestCreateStoryChapterEndpoint_AWSError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockCreateChapter = func(storyID string, chapter models.Chapter, email string) (models.Chapter, error) {
+	mockDAO.MockCreateChapter = func(_ string, _ models.Chapter) (models.Chapter, error) {
 		return models.Chapter{}, &smithy.OperationError{
 			ServiceID:     "DynamoDB",
 			OperationName: "PutItem",

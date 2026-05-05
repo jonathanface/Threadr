@@ -25,9 +25,9 @@ func EmailSignupHandler(options OauthOptions) http.HandlerFunc {
 	}
 }
 
-func EmailLoginHandler(options OauthOptions) http.HandlerFunc {
+func EmailLoginHandler(_ OauthOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		emailLogin(w, r, options)
+		emailLogin(w, r)
 	}
 }
 
@@ -189,7 +189,7 @@ func emailSignup(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 	})
 }
 
-func emailLogin(w http.ResponseWriter, r *http.Request, options OauthOptions) {
+func emailLogin(w http.ResponseWriter, r *http.Request) {
 	dao, ok := r.Context().Value(ctxkey.DAO).(daos.DaoInterface)
 	if !ok {
 		respondJSON(

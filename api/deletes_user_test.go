@@ -63,7 +63,7 @@ func TestDeleteUserEndpoint_NoDAO(t *testing.T) {
 
 func TestDeleteUserEndpoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockDeleteUser = func(email string) error {
+	mockDAO.MockDeleteUser = func(_ string) error {
 		return daos.ErrMockDAO
 	}
 
@@ -80,7 +80,7 @@ func TestDeleteUserEndpoint_DAOError(t *testing.T) {
 
 func TestDeleteUserEndpoint_AWSError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockDeleteUser = func(email string) error {
+	mockDAO.MockDeleteUser = func(_ string) error {
 		return &smithy.OperationError{
 			ServiceID:     "DynamoDB",
 			OperationName: "UpdateItem",

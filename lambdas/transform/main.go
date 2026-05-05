@@ -413,7 +413,7 @@ func processTable(svc *dynamodb.DynamoDB, sourceTableName, targetTableName, tagV
 	return nil
 }
 
-func handler(ctx context.Context, event Event) (string, error) {
+func handler(_ context.Context, event Event) (string, error) {
 	if event.UUIDPrefix == "" {
 		return "", errors.New("uuidPrefix parameter is required")
 	}

@@ -69,7 +69,7 @@ func TestGetenv(t *testing.T) {
 			envKey:   "TEST_UNSET_VAR_CMD",
 			defValue: "default-value",
 			expected: "default-value",
-			setup: func(t *testing.T) {
+			setup: func(_ *testing.T) {
 				os.Unsetenv("TEST_UNSET_VAR_CMD")
 			},
 		},

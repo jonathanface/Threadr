@@ -91,9 +91,9 @@ func TestWriteAssociations(t *testing.T) {
 				if !ok {
 					t.Fatalf("mockDao.DynamoClient is not a *MockDynamoClient; got %T", mockDao.DynamoClient)
 				}
-				mockClient.MockTransactWriteItems = func(ctx context.Context,
-					input *dynamodb.TransactWriteItemsInput,
-					opts ...func(*dynamodb.Options),
+				mockClient.MockTransactWriteItems = func(_ context.Context,
+					_ *dynamodb.TransactWriteItemsInput,
+					_ ...func(*dynamodb.Options),
 				) (*dynamodb.TransactWriteItemsOutput, error) {
 					if tc.mockAwsWriteErr != nil {
 						return nil, errors.New(tc.expectedErrContains)
@@ -159,7 +159,7 @@ func TestUpdateAssociationPortraitEntryInDB(t *testing.T) {
 				if !ok {
 					t.Fatalf("mockDao.DynamoClient is not a *MockDynamoClient; got %T", mockDao.DynamoClient)
 				}
-				mockClient.MockUpdateItem = func(ctx context.Context, input *dynamodb.UpdateItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.UpdateItemOutput, error) {
+				mockClient.MockUpdateItem = func(_ context.Context, _ *dynamodb.UpdateItemInput, _ ...func(*dynamodb.Options)) (*dynamodb.UpdateItemOutput, error) {
 					return nil, errors.New("UpdateItem call failed")
 				}
 			}

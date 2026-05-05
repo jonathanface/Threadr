@@ -401,11 +401,8 @@ linters:
         - github.com/jmoiron/sqlx
 
     sloglint:
-      # Report the use of global loggers.
-      # https://github.com/go-simpler/sloglint#no-global-logger
-      # Values: "all", "default"
-      # Default: "" (disabled)
-      no-global: all
+      # Global logger reporting is intentionally left disabled — this codebase
+      # uses the package-level `logger` wrappers throughout, by design.
       # Report the use of functions without a context.Context.
       # https://github.com/go-simpler/sloglint#context-only
       # Values: "all", "scope"

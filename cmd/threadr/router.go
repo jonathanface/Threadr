@@ -35,7 +35,7 @@ func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.OauthOptio
 	limiter := newRateLimiter()
 	rtr.Use(rateLimitMiddleware(limiter))
 
-	rtr.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	rtr.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}).Methods("GET", "OPTIONS")
 

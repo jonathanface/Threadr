@@ -154,7 +154,7 @@ func ImportDocumentEndpoint(w http.ResponseWriter, r *http.Request) {
 			Place:   i + 1,
 		}
 
-		createdChapter, err := dao.CreateChapter(r.Context(), storyID, chapter, email)
+		createdChapter, err := dao.CreateChapter(r.Context(), storyID, chapter)
 		if err != nil {
 			logger.Error("Failed to create chapter during import",
 				"error", err,

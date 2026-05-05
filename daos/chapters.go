@@ -137,7 +137,7 @@ func (d *DAO) GetChaptersByStoryIDs(ctx context.Context, storyIDs []string) (map
 
 // GetChapterTableStatus now always returns true since we use a unified table
 // This maintains backwards compatibility with code checking table readiness.
-func (d *DAO) GetChapterTableStatus(ctx context.Context, storyID, chapterID string) (bool, error) {
+func (d *DAO) GetChapterTableStatus(ctx context.Context) (bool, error) {
 	// With unified table, chapters are always "ready"
 	// Just verify the unified table exists
 	_, err := d.DynamoClient.DescribeTable(ctx, &dynamodb.DescribeTableInput{
@@ -228,7 +228,6 @@ func (d *DAO) CreateChapter(
 	ctx context.Context,
 	storyID string,
 	chapter models.Chapter,
-	email string,
 ) (newChapter models.Chapter, err error) {
 	newChapter = chapter
 	var chapTwi types.TransactWriteItem
@@ -472,7 +471,7 @@ func (d *DAO) deleteAllBlocksForChapter(ctx context.Context, compositeKey string
 }
 
 // GetBlockCountByChapter counts blocks in the unified table for a specific chapter.
-func (d *DAO) GetBlockCountByChapter(ctx context.Context, email, storyID, chapterID string) (count int, err error) {
+func (d *DAO) GetBlockCountByChapter(ctx context.Context, _, storyID, chapterID string) (count int, err error) {
 	compositeKey := buildCompositeKey(storyID, chapterID)
 
 	queryInput := &dynamodb.QueryInput{

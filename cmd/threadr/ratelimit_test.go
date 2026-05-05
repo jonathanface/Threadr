@@ -170,7 +170,7 @@ func TestRateLimitMiddleware(t *testing.T) {
 	middleware := rateLimitMiddleware(limiter)
 
 	// Handler that should be called if rate limit passes
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})

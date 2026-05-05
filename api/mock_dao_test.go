@@ -7,7 +7,6 @@ import (
 	"Threadr/daos"
 	"Threadr/models"
 
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
@@ -31,24 +30,24 @@ type MockDAO struct {
 	UpdateAssociationPortraitEntryInDBFunc    func(email, storyOrSeriesID, associationID, url string) error
 	UpdateOutlineFunc                         func(outline models.OutlineRequest) (*models.OutlineResponse, error)
 	CreateStoryFunc                           func(email string, story models.Story, newSeriesTitle string) (storyID string, err error)
-	CreateChapterFunc                         func(storyID string, chapter models.Chapter, email string) (models.Chapter, error)
+	CreateChapterFunc                         func(storyID string, chapter models.Chapter) (models.Chapter, error)
 	CreateOutlineFunc                         func(outline models.OutlineRequest) (*models.OutlineRequest, error)
 	GetChapterParagraphsFunc                  func(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error)
 	GetStoryBlocksFunc                        func(storyID, chapterID string, exclusiveStartKey *map[string]types.AttributeValue) (*models.BlocksData, error)
 	GetAssociationFunc                        func(email, storyID, associationID string) (*models.Association, error)
 	GetStoryOrSeriesAssociationThumbnailsFunc func(email, storyID string) ([]*models.SimplifiedAssociation, error)
 	GetAllStoriesFunc                         func(email string) ([]*models.Story, error)
-	GetAllStandaloneFunc                      func(email string, adminRequest bool) ([]models.Story, error)
-	GetAllSeriesWithStoriesFunc               func(email string, adminRequest bool) ([]models.Series, error)
+	GetAllStandaloneFunc                      func(email string) ([]models.Story, error)
+	GetAllSeriesWithStoriesFunc               func(email string) ([]models.Series, error)
 	GetChaptersByStoryIDFunc                  func(storyID string) ([]models.Chapter, error)
 	GetStorySettingsByIDFunc                  func(email string, storyID string) (*models.StorySettings, error)
 	GetStorySettingsFunc                      func(storyID string) (*models.StorySettings, error)
 	GetStoryCountByUserFunc                   func(email string) (int, error)
 	GetAssociationDetailsFunc                 func(email, storyID, associationID string) (*models.Association, error)
-	GetSeriesVolumesFunc                      func(email string, seriesID string) ([]*models.Story, error)
+	GetSeriesVolumesFunc                      func(seriesID string) ([]*models.Story, error)
 	GetChapterByIDFunc                        func(chapterID string) (*models.Chapter, error)
 	GetOutlineByStoryIDFunc                   func(storyID string, chapters []models.Chapter) (*models.OutlineResponse, error)
-	GetChapterTableStatusFunc                 func(storyID, chapterID string) (bool, error)
+	GetChapterTableStatusFunc                 func() (bool, error)
 	GetSubscriptionFunc                       func(email string) (*models.Subscription, error)
 	GetEmailByCustomerIdFunc                  func(customerID string) (string, error)
 	UpsertUserFunc                            func(email string) (*models.UserInfo, error)
@@ -114,17 +113,17 @@ func (m *MockDAO) GetAllStories(email string) ([]*models.Story, error) {
 }
 
 // GetAllStandalone mock implementation.
-func (m *MockDAO) GetAllStandalone(email string, adminRequest bool) ([]models.Story, error) {
+func (m *MockDAO) GetAllStandalone(email string) ([]models.Story, error) {
 	if m.GetAllStandaloneFunc != nil {
-		return m.GetAllStandaloneFunc(email, adminRequest)
+		return m.GetAllStandaloneFunc(email)
 	}
 	return []models.Story{}, nil
 }
 
 // GetAllSeriesWithStories mock implementation.
-func (m *MockDAO) GetAllSeriesWithStories(email string, adminRequest bool) ([]models.Series, error) {
+func (m *MockDAO) GetAllSeriesWithStories(email string) ([]models.Series, error) {
 	if m.GetAllSeriesWithStoriesFunc != nil {
-		return m.GetAllSeriesWithStoriesFunc(email, adminRequest)
+		return m.GetAllSeriesWithStoriesFunc(email)
 	}
 	return []models.Series{}, nil
 }
@@ -227,9 +226,9 @@ func (m *MockDAO) GetAssociationDetails(email, storyID, associationID string) (*
 }
 
 // GetSeriesVolumes mock implementation.
-func (m *MockDAO) GetSeriesVolumes(email string, seriesID string) ([]*models.Story, error) {
+func (m *MockDAO) GetSeriesVolumes(seriesID string) ([]*models.Story, error) {
 	if m.GetSeriesVolumesFunc != nil {
-		return m.GetSeriesVolumesFunc(email, seriesID)
+		return m.GetSeriesVolumesFunc(seriesID)
 	}
 	return []*models.Story{}, nil
 }
@@ -259,9 +258,9 @@ func (m *MockDAO) GetOutlineByStoryID(storyID string, chapters []models.Chapter)
 }
 
 // GetChapterTableStatus mock implementation.
-func (m *MockDAO) GetChapterTableStatus(storyID, chapterID string) (bool, error) {
+func (m *MockDAO) GetChapterTableStatus() (bool, error) {
 	if m.GetChapterTableStatusFunc != nil {
-		return m.GetChapterTableStatusFunc(storyID, chapterID)
+		return m.GetChapterTableStatusFunc()
 	}
 	return true, nil
 }
@@ -424,9 +423,9 @@ func (m *MockDAO) UpdateSubscription(subscription models.Subscription) error {
 }
 
 // CreateChapter mock implementation.
-func (m *MockDAO) CreateChapter(storyID string, chapter models.Chapter, email string) (models.Chapter, error) {
+func (m *MockDAO) CreateChapter(storyID string, chapter models.Chapter) (models.Chapter, error) {
 	if m.CreateChapterFunc != nil {
-		return m.CreateChapterFunc(storyID, chapter, email)
+		return m.CreateChapterFunc(storyID, chapter)
 	}
 	return chapter, nil
 }
@@ -544,30 +543,24 @@ func (m *MockDAO) CheckTableStatus(tableName string) (string, error) {
 }
 
 // Private methods that need to be stubbed.
-func (m *MockDAO) ensureBlocksTableFromBackup(ctx context.Context, backupARN, oldTableName, chapterName string) error {
+func (m *MockDAO) ensureBlocksTableFromBackup(_ context.Context, _, _, _ string) error {
 	return nil
 }
 
-func (m *MockDAO) kickoffRestoreAsync(email string) {
+func (m *MockDAO) kickoffRestoreAsync(_ string) {
 	// no-op
 }
 
-func (m *MockDAO) restoreOneStory(email string, story models.Story) error {
+func (m *MockDAO) restoreOneStory(_ string, _ models.Story) error {
 	return nil
 }
 
-func (m *MockDAO) hardDeleteStory(email, storyID string) error {
+func (m *MockDAO) hardDeleteStory(_, _ string) error {
 	return nil
 }
 
-func (m *MockDAO) verifyStripeSubscription(subID, customerID string) (daos.SubscriptionStatus, error) {
+func (m *MockDAO) verifyStripeSubscription(_, _ string) (daos.SubscriptionStatus, error) {
 	return daos.SubscriptionStatus{}, nil
-}
-
-func (m *MockDAO) awsWriteTransaction(
-	writeItemsInput *dynamodb.TransactWriteItemsInput,
-) (awsError models.AwsError, err error) {
-	return models.AwsError{}, nil
 }
 
 // CreateShareLink mock implementation.
@@ -701,25 +694,25 @@ func (m *MockDAO) GetChaptersByStoryIDs(storyIDs []string) (map[string][]models.
 // Helper function to create a mock DAO with default error behavior.
 func NewMockDAOWithError(err error) *MockDAO {
 	return &MockDAO{
-		GetUserDetailsFunc: func(email string) (*models.UserInfo, error) {
+		GetUserDetailsFunc: func(_ string) (*models.UserInfo, error) {
 			return nil, err
 		},
-		UpdateUserFunc: func(user models.UserInfo) error {
+		UpdateUserFunc: func(_ models.UserInfo) error {
 			return err
 		},
-		GetStoryByIDFunc: func(email string, storyID string) (*models.Story, error) {
+		GetStoryByIDFunc: func(_ string, _ string) (*models.Story, error) {
 			return nil, err
 		},
-		EditStoryFunc: func(email string, story models.Story) (models.Story, error) {
+		EditStoryFunc: func(_ string, _ models.Story) (models.Story, error) {
 			return models.Story{}, err
 		},
-		EditChapterFunc: func(storyID string, chapter models.Chapter) (models.Chapter, error) {
+		EditChapterFunc: func(_ string, _ models.Chapter) (models.Chapter, error) {
 			return models.Chapter{}, err
 		},
-		WriteBlocksFunc: func(storyID string, storyBlocks *models.StoryBlocks) error {
+		WriteBlocksFunc: func(_ string, _ *models.StoryBlocks) error {
 			return err
 		},
-		WriteAssociationsFunc: func(email, storyOrSeriesID string, associations []*models.Association) error {
+		WriteAssociationsFunc: func(_, _ string, _ []*models.Association) error {
 			return err
 		},
 	}

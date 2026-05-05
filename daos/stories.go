@@ -107,7 +107,6 @@ func (d *DAO) GetAllStoriesIncludingDeleted(ctx context.Context, email string) (
 func (d *DAO) GetAllStandalone(
 	ctx context.Context,
 	email string,
-	adminRequest bool,
 ) (stories []models.Story, err error) {
 	input := &dynamodb.ScanInput{
 		TableName: aws.String("stories" + GetTableSuffix()),
@@ -232,7 +231,7 @@ func (d *DAO) GetStoryByID(ctx context.Context, email, storyID string) (story *m
 		chap.Title = "Chapter 1"
 		chap.ID = uuid.New().String()
 		chap.StoryID = storyID
-		chapter, err := d.CreateChapter(ctx, storyID, chap, email)
+		chapter, err := d.CreateChapter(ctx, storyID, chap)
 		if err != nil {
 			return story, err
 		}
@@ -1336,7 +1335,7 @@ func (d *DAO) CreateStory(
 				"series_id": &types.AttributeValueMemberS{Value: story.SeriesID},
 				"author":    &types.AttributeValueMemberS{Value: email},
 				"title":     &types.AttributeValueMemberS{Value: newSeriesTitle},
-				"image_url": &types.AttributeValueMemberS{Value: DEFAULT_SERIES_IMAGE_URL},
+				"image_url": &types.AttributeValueMemberS{Value: defaultSeriesImageURL},
 			}
 			seriesTwi := types.TransactWriteItem{
 				Put: &types.Put{

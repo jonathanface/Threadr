@@ -127,7 +127,7 @@ func TestAssociationDetailsEndpoint_NoDAO(t *testing.T) {
 
 func TestAssociationDetailsEndpoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetAssociationDetails = func(email, storyID, associationID string) (*models.Association, error) {
+	mockDAO.MockGetAssociationDetails = func(_, _, _ string) (*models.Association, error) {
 		return nil, errors.New("database error")
 	}
 
@@ -145,7 +145,7 @@ func TestAssociationDetailsEndpoint_DAOError(t *testing.T) {
 
 func TestAssociationDetailsEndpoint_AWSError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetAssociationDetails = func(email, storyID, associationID string) (*models.Association, error) {
+	mockDAO.MockGetAssociationDetails = func(_, _, _ string) (*models.Association, error) {
 		return nil, &smithy.OperationError{
 			ServiceID:     "DynamoDB",
 			OperationName: "GetItem",
@@ -249,7 +249,7 @@ func TestAllAssociationThumbnailsByStoryEndPoint_NoDAO(t *testing.T) {
 
 func TestAllAssociationThumbnailsByStoryEndPoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryOrSeriesAssociationThumbnails = func(email, storyID string) ([]*models.SimplifiedAssociation, error) {
+	mockDAO.MockGetStoryOrSeriesAssociationThumbnails = func(_, _ string) ([]*models.SimplifiedAssociation, error) {
 		return nil, errors.New("database error")
 	}
 

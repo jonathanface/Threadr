@@ -65,7 +65,7 @@ func TestGetUserData_Success(t *testing.T) {
 func TestGetUserData_UserNotFound(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
-	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+	mockDAO.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
 		return nil, sql.ErrNoRows
 	}
 
@@ -83,7 +83,7 @@ func TestGetUserData_UserNotFound(t *testing.T) {
 func TestGetUserData_DatabaseError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
-	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+	mockDAO.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
 		return nil, errors.New("database connection failed")
 	}
 
@@ -102,7 +102,7 @@ func TestGetUserData_WithNewUserFlag(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	testEmail := "test@example.com"
 
-	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+	mockDAO.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
 		return &models.UserInfo{
 			Email:      testEmail,
 			Subscriber: false,
@@ -133,7 +133,7 @@ func TestGetUserData_WithReturningUserFlag(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	testEmail := "test@example.com"
 
-	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+	mockDAO.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
 		return &models.UserInfo{
 			Email:      testEmail,
 			Subscriber: false,
@@ -165,7 +165,7 @@ func TestStoryEndPoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	testStoryID := "story123"
 
-	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_ string, storyID string) (*models.Story, error) {
 		if storyID != testStoryID {
 			t.Errorf("Expected storyID %s, got %s", testStoryID, storyID)
 		}
@@ -220,7 +220,7 @@ func TestStoryEndPoint_NotFound(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	testStoryID := "nonexistent"
 
-	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_ string, _ string) (*models.Story, error) {
 		return nil, sql.ErrNoRows
 	}
 
@@ -253,7 +253,7 @@ func TestAllSeriesEndPoint_Success(t *testing.T) {
 		},
 	}
 
-	mockDAO.MockGetSeriesByID = func(email string, seriesID string) (*models.Series, error) {
+	mockDAO.MockGetSeriesByID = func(_ string, seriesID string) (*models.Series, error) {
 		for _, s := range expectedSeries {
 			if s.ID == seriesID {
 				return s, nil
@@ -278,7 +278,7 @@ func TestSingleSeriesEndPoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	testSeriesID := "series123"
 
-	mockDAO.MockGetSeriesByID = func(email string, seriesID string) (*models.Series, error) {
+	mockDAO.MockGetSeriesByID = func(_ string, seriesID string) (*models.Series, error) {
 		if seriesID != testSeriesID {
 			t.Errorf("Expected seriesID %s, got %s", testSeriesID, seriesID)
 		}
@@ -350,7 +350,7 @@ func TestSingleSeriesEndPoint_NoDAO(t *testing.T) {
 
 func TestSingleSeriesEndPoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetSeriesByID = func(email string, seriesID string) (*models.Series, error) {
+	mockDAO.MockGetSeriesByID = func(_ string, _ string) (*models.Series, error) {
 		return nil, errors.New("database error")
 	}
 
@@ -371,7 +371,7 @@ func TestAllSeriesVolumesEndPoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	testSeriesID := "series123"
 
-	mockDAO.MockGetSeriesVolumes = func(email string, seriesID string) ([]*models.Story, error) {
+	mockDAO.MockGetSeriesVolumes = func(seriesID string) ([]*models.Story, error) {
 		if seriesID != testSeriesID {
 			t.Errorf("Expected seriesID %s, got %s", testSeriesID, seriesID)
 		}
@@ -453,7 +453,7 @@ func TestAllSeriesVolumesEndPoint_NoDAO(t *testing.T) {
 
 func TestAllSeriesVolumesEndPoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetSeriesVolumes = func(email string, seriesID string) ([]*models.Story, error) {
+	mockDAO.MockGetSeriesVolumes = func(_ string) ([]*models.Story, error) {
 		return nil, errors.New("database error")
 	}
 
@@ -474,7 +474,7 @@ func TestStorySettingsEndPoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	testStoryID := "story123"
 
-	mockDAO.MockGetStorySettingsByID = func(email string, storyID string) (*models.StorySettings, error) {
+	mockDAO.MockGetStorySettingsByID = func(_ string, storyID string) (*models.StorySettings, error) {
 		if storyID != testStoryID {
 			t.Errorf("Expected storyID %s, got %s", testStoryID, storyID)
 		}
@@ -512,7 +512,7 @@ func TestStorySettingsEndPoint_NotFound(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	testStoryID := "nonexistent"
 
-	mockDAO.MockGetStorySettingsByID = func(email string, storyID string) (*models.StorySettings, error) {
+	mockDAO.MockGetStorySettingsByID = func(_ string, _ string) (*models.StorySettings, error) {
 		return nil, sql.ErrNoRows
 	}
 
@@ -575,7 +575,7 @@ func TestStoryBlocksEndPoint_NoDAO(t *testing.T) {
 
 func TestStoryBlocksEndPoint_WasStoryDeletedError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockWasStoryDeleted = func(email, storyID string) (bool, error) {
+	mockDAO.MockWasStoryDeleted = func(_, _ string) (bool, error) {
 		return false, errors.New("database error")
 	}
 
@@ -593,7 +593,7 @@ func TestStoryBlocksEndPoint_WasStoryDeletedError(t *testing.T) {
 
 func TestStoryBlocksEndPoint_StoryWasDeleted(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockWasStoryDeleted = func(email, storyID string) (bool, error) {
+	mockDAO.MockWasStoryDeleted = func(_, _ string) (bool, error) {
 		return true, nil
 	}
 
@@ -611,10 +611,10 @@ func TestStoryBlocksEndPoint_StoryWasDeleted(t *testing.T) {
 
 func TestStoryBlocksEndPoint_GetChapterParagraphsError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockWasStoryDeleted = func(email, storyID string) (bool, error) {
+	mockDAO.MockWasStoryDeleted = func(_, _ string) (bool, error) {
 		return false, nil
 	}
-	mockDAO.MockGetChapterParagraphs = func(storyID, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error) {
+	mockDAO.MockGetChapterParagraphs = func(_, _ string, _ *map[string]types.AttributeValue) (*models.BlocksData, error) {
 		return nil, errors.New("database error")
 	}
 
@@ -632,10 +632,10 @@ func TestStoryBlocksEndPoint_GetChapterParagraphsError(t *testing.T) {
 
 func TestStoryBlocksEndPoint_GetChapterParagraphsAWSError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockWasStoryDeleted = func(email, storyID string) (bool, error) {
+	mockDAO.MockWasStoryDeleted = func(_, _ string) (bool, error) {
 		return false, nil
 	}
-	mockDAO.MockGetChapterParagraphs = func(storyID, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error) {
+	mockDAO.MockGetChapterParagraphs = func(_, _ string, _ *map[string]types.AttributeValue) (*models.BlocksData, error) {
 		return nil, &smithy.OperationError{
 			ServiceID:     "DynamoDB",
 			OperationName: "Query",
@@ -657,10 +657,10 @@ func TestStoryBlocksEndPoint_GetChapterParagraphsAWSError(t *testing.T) {
 
 func TestStoryBlocksEndPoint_NoBlocksFound(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockWasStoryDeleted = func(email, storyID string) (bool, error) {
+	mockDAO.MockWasStoryDeleted = func(_, _ string) (bool, error) {
 		return false, nil
 	}
-	mockDAO.MockGetChapterParagraphs = func(storyID, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error) {
+	mockDAO.MockGetChapterParagraphs = func(_, _ string, _ *map[string]types.AttributeValue) (*models.BlocksData, error) {
 		return &models.BlocksData{
 			Items: []map[string]types.AttributeValue{},
 		}, nil
@@ -680,10 +680,10 @@ func TestStoryBlocksEndPoint_NoBlocksFound(t *testing.T) {
 
 func TestStoryBlocksEndPoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockWasStoryDeleted = func(email, storyID string) (bool, error) {
+	mockDAO.MockWasStoryDeleted = func(_, _ string) (bool, error) {
 		return false, nil
 	}
-	mockDAO.MockGetChapterParagraphs = func(storyID, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error) {
+	mockDAO.MockGetChapterParagraphs = func(_, _ string, _ *map[string]types.AttributeValue) (*models.BlocksData, error) {
 		return &models.BlocksData{
 			Items: []map[string]types.AttributeValue{
 				{
@@ -739,7 +739,7 @@ func TestFullStoryEndPoint_StoryNotFound(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	testStoryID := "nonexistent"
 
-	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_ string, _ string) (*models.Story, error) {
 		return nil, sql.ErrNoRows
 	}
 

@@ -25,8 +25,8 @@ func TestSubscribeCustomerEndpoint(t *testing.T) {
 		getUserEmailFn = getUserEmail
 		ensureCustomerFn = ensureCustomer
 	})
-	getUserEmailFn = func(r *http.Request) (string, error) { return "user@example.com", nil }
-	ensureCustomerFn = func(u *models.UserInfo, s *models.Subscription) (string, error) { return "cus_123", nil }
+	getUserEmailFn = func(_ *http.Request) (string, error) { return "user@example.com", nil }
+	ensureCustomerFn = func(_ *models.UserInfo, _ *models.Subscription) (string, error) { return "cus_123", nil }
 
 	daoMock := daos.NewMockDAO()
 	daoMock.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
@@ -127,8 +127,8 @@ func TestSubscribeCustomerEndpoint(t *testing.T) {
 func TestBillingSummaryEndpoint(t *testing.T) {
 	t.Cleanup(func() { getUserEmailFn = getUserEmail; ensureCustomerFn = ensureCustomer })
 
-	getUserEmailFn = func(r *http.Request) (string, error) { return "user@example.com", nil }
-	ensureCustomerFn = func(u *models.UserInfo, s *models.Subscription) (string, error) { return "cus_123", nil }
+	getUserEmailFn = func(_ *http.Request) (string, error) { return "user@example.com", nil }
+	ensureCustomerFn = func(_ *models.UserInfo, _ *models.Subscription) (string, error) { return "cus_123", nil }
 
 	// Happy-path DAO
 	daoMock := daos.NewMockDAO()
@@ -138,7 +138,7 @@ func TestBillingSummaryEndpoint(t *testing.T) {
 
 	// Error DAO
 	daoMockError := daos.NewMockDAO()
-	daoMockError.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+	daoMockError.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
 		return nil, errors.New("db down")
 	}
 
@@ -181,7 +181,7 @@ func TestBillingSummaryEndpoint(t *testing.T) {
 			dao:  daoMock,
 			setupDAO: func() {
 				updateCalled.Store(false)
-				daoMock.MockGetSubscription = func(email string) (*models.Subscription, error) {
+				daoMock.MockGetSubscription = func(_ string) (*models.Subscription, error) {
 					// must return a non-nil sub with an ID
 					return &models.Subscription{SubscriptionID: "sub_123"}, nil
 				}
@@ -213,10 +213,10 @@ func TestBillingSummaryEndpoint(t *testing.T) {
 			name: "no subscriptions found → status none",
 			dao:  daoMock,
 			setupDAO: func() {
-				daoMock.MockGetSubscription = func(email string) (*models.Subscription, error) {
+				daoMock.MockGetSubscription = func(_ string) (*models.Subscription, error) {
 					return nil, sql.ErrNoRows
 				}
-				daoMock.MockUpdateSubscription = func(s models.Subscription) error { return nil }
+				daoMock.MockUpdateSubscription = func(_ models.Subscription) error { return nil }
 			},
 			wantStatus:   http.StatusOK,
 			wantContains: `"status":"none"`,
@@ -226,9 +226,9 @@ func TestBillingSummaryEndpoint(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			if c.overrideGetUserErr != nil {
-				getUserEmailFn = func(r *http.Request) (string, error) { return "", c.overrideGetUserErr }
+				getUserEmailFn = func(_ *http.Request) (string, error) { return "", c.overrideGetUserErr }
 			} else {
-				getUserEmailFn = func(r *http.Request) (string, error) { return "user@example.com", nil }
+				getUserEmailFn = func(_ *http.Request) (string, error) { return "user@example.com", nil }
 			}
 
 			if c.setupDAO != nil {
@@ -275,8 +275,8 @@ func TestBillingSummaryEndpoint(t *testing.T) {
 
 func TestBillingPortalSessionEndpoint(t *testing.T) {
 	t.Cleanup(func() { getUserEmailFn = getUserEmail; ensureCustomerFn = ensureCustomer })
-	getUserEmailFn = func(r *http.Request) (string, error) { return "user@example.com", nil }
-	ensureCustomerFn = func(u *models.UserInfo, s *models.Subscription) (string, error) { return "cus_123", nil }
+	getUserEmailFn = func(_ *http.Request) (string, error) { return "user@example.com", nil }
+	ensureCustomerFn = func(_ *models.UserInfo, _ *models.Subscription) (string, error) { return "cus_123", nil }
 
 	daoMock := daos.NewMockDAO()
 	daoMock.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
@@ -284,7 +284,7 @@ func TestBillingPortalSessionEndpoint(t *testing.T) {
 	}
 
 	daoMockError := daos.NewMockDAO()
-	daoMockError.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+	daoMockError.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
 		return nil, errors.New("db down")
 	}
 
@@ -352,9 +352,9 @@ func TestBillingPortalSessionEndpoint(t *testing.T) {
 			}
 
 			if c.userErr != nil {
-				getUserEmailFn = func(r *http.Request) (string, error) { return "", c.userErr }
+				getUserEmailFn = func(_ *http.Request) (string, error) { return "", c.userErr }
 			} else {
-				getUserEmailFn = func(r *http.Request) (string, error) { return "user@example.com", nil }
+				getUserEmailFn = func(_ *http.Request) (string, error) { return "user@example.com", nil }
 			}
 
 			srv := newStripeServer(t, c.spec)
@@ -410,7 +410,7 @@ func TestStripeWebhookEndpoint(t *testing.T) {
 	cases := []tc{
 		{
 			name: "missing webhook secret",
-			setupEnv: func(t *testing.T) {
+			setupEnv: func(_ *testing.T) {
 				os.Unsetenv("STRIPE_WEBHOOK_SECRET")
 			},
 			payload:      `{"type":"customer.subscription.updated"}`,

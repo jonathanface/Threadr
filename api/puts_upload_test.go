@@ -155,7 +155,7 @@ func TestUploadPortraitEndpoint_NoDAO(t *testing.T) {
 
 func TestUploadPortraitEndpoint_AssociationNotFound(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockUpdateAssociationPortraitEntryInDB = func(email, storyOrSeriesID, associationID, url string) error {
+	mockDAO.MockUpdateAssociationPortraitEntryInDB = func(_, _, _, _ string) error {
 		return sql.ErrNoRows
 	}
 
@@ -185,7 +185,7 @@ func TestUploadPortraitEndpoint_AssociationNotFound(t *testing.T) {
 
 func TestUploadPortraitEndpoint_EditAssociationError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockUpdateAssociationPortraitEntryInDB = func(email, storyOrSeriesID, associationID, url string) error {
+	mockDAO.MockUpdateAssociationPortraitEntryInDB = func(_, _, _, _ string) error {
 		return errors.New("database error")
 	}
 

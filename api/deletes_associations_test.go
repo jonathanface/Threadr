@@ -115,7 +115,7 @@ func TestDeleteAssociationsEndpoint_NoDAO(t *testing.T) {
 
 func TestDeleteAssociationsEndpoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockDeleteAssociations = func(email, storyID string, associations []*models.Association) error {
+	mockDAO.MockDeleteAssociations = func(_, _ string, _ []*models.Association) error {
 		return daos.ErrMockDAO
 	}
 
@@ -138,7 +138,7 @@ func TestDeleteAssociationsEndpoint_DAOError(t *testing.T) {
 
 func TestDeleteAssociationsEndpoint_AWSError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockDeleteAssociations = func(email, storyID string, associations []*models.Association) error {
+	mockDAO.MockDeleteAssociations = func(_, _ string, _ []*models.Association) error {
 		return &smithy.OperationError{
 			ServiceID:     "DynamoDB",
 			OperationName: "DeleteItem",

@@ -109,32 +109,11 @@ func TestGetChaptersByStoryIDs(t *testing.T) {
 
 // Tests for GetChapterTableStatus.
 func TestGetChapterTableStatus(t *testing.T) {
-	testCases := []struct {
-		name      string
-		storyID   string
-		chapterID string
-	}{
-		{
-			name:      "ValidIDs_RequiresMockDB",
-			storyID:   "story123",
-			chapterID: "chapter456",
-		},
-		{
-			name:      "EmptyIDs",
-			storyID:   "",
-			chapterID: "",
-		},
-	}
+	mockDao := NewMockDAO()
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			mockDao := NewMockDAO()
+	exists, err := mockDao.GetChapterTableStatus(context.Background())
 
-			exists, err := mockDao.GetChapterTableStatus(context.Background(), tc.storyID, tc.chapterID)
-
-			t.Logf("GetChapterTableStatus(%q, %q) returned exists=%v, err=%v", tc.storyID, tc.chapterID, exists, err)
-		})
-	}
+	t.Logf("GetChapterTableStatus returned exists=%v, err=%v", exists, err)
 }
 
 // Tests for GetChapterByID.
@@ -389,7 +368,7 @@ func TestCreateChapter(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			mockDao.MockCreateChapter = func(storyID string, chapter models.Chapter, email string) (models.Chapter, error) {
+			mockDao.MockCreateChapter = func(storyID string, chapter models.Chapter) (models.Chapter, error) {
 				if storyID != tc.storyID {
 					t.Errorf("Expected storyID %s, got %s", tc.storyID, storyID)
 				}
@@ -402,13 +381,10 @@ func TestCreateChapter(t *testing.T) {
 				if chapter.Place != tc.chapter.Place {
 					t.Errorf("Expected place %d, got %d", tc.chapter.Place, chapter.Place)
 				}
-				if email != tc.email {
-					t.Errorf("Expected email %s, got %s", tc.email, email)
-				}
 				return tc.mockChapter, tc.mockErr
 			}
 
-			newChapter, err := mockDao.CreateChapter(context.Background(), tc.storyID, tc.chapter, tc.email)
+			newChapter, err := mockDao.CreateChapter(context.Background(), tc.storyID, tc.chapter)
 
 			if tc.wantErr {
 				if err == nil {
@@ -557,7 +533,7 @@ func BenchmarkCreateChapter(b *testing.B) {
 
 	b.ResetTimer()
 	for range b.N {
-		_, _ = mockDao.CreateChapter(context.Background(), "story123", chapter, "bench@example.com")
+		_, _ = mockDao.CreateChapter(context.Background(), "story123", chapter)
 	}
 }
 

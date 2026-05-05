@@ -499,7 +499,7 @@ func TestCheckForSuspendedStories(t *testing.T) {
 			mockDao := NewMockDAO()
 			mockClient := mockDao.DynamoClient.(*MockDynamoClient)
 
-			mockClient.MockScan = func(ctx context.Context, input *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+			mockClient.MockScan = func(_ context.Context, input *dynamodb.ScanInput, _ ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
 				// Verify the filter expression is correct
 				if input.FilterExpression != nil {
 					expectedExpr := "author=:eml AND attribute_exists(deleted_at) AND automated_deletion=:a"
@@ -633,7 +633,7 @@ func TestWasStoryDeleted(t *testing.T) {
 			mockDao := NewMockDAO()
 			mockClient := mockDao.DynamoClient.(*MockDynamoClient)
 
-			mockClient.MockScan = func(ctx context.Context, input *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+			mockClient.MockScan = func(_ context.Context, input *dynamodb.ScanInput, _ ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
 				// Verify the filter expression is correct
 				if input.FilterExpression != nil {
 					expectedExpr := "author=:eml AND story_title=:s AND attribute_exists(deleted_at)"
@@ -764,7 +764,7 @@ func TestGetTotalCreatedStories(t *testing.T) {
 			mockDao := NewMockDAO()
 			mockClient := mockDao.DynamoClient.(*MockDynamoClient)
 
-			mockClient.MockScan = func(ctx context.Context, input *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+			mockClient.MockScan = func(_ context.Context, input *dynamodb.ScanInput, _ ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
 				// Verify the filter expression excludes deleted stories
 				if input.FilterExpression != nil {
 					expectedExpr := "author=:eml AND attribute_not_exists(deleted_at)"

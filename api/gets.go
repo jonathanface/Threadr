@@ -58,7 +58,7 @@ func ChapterTableStatusEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusForbidden, "You do not have permission to access this story")
 		return
 	}
-	isTableReady, err := dao.GetChapterTableStatus(r.Context(), storyID, chapterID)
+	isTableReady, err := dao.GetChapterTableStatus(r.Context())
 	if err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
@@ -384,14 +384,13 @@ func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	userDetails, err := dao.GetUserDetails(r.Context(), email)
-	if err != nil {
+	if _, err = dao.GetUserDetails(r.Context(), email); err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
-	stories, err := dao.GetAllStandalone(r.Context(), email, userDetails.Admin)
+	stories, err := dao.GetAllStandalone(r.Context(), email)
 	if err != nil {
 		opErr := &smithy.OperationError{}
 		if errors.As(err, &opErr) {
@@ -576,13 +575,12 @@ func AllSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	userDetails, err := dao.GetUserDetails(r.Context(), email)
-	if err != nil {
+	if _, err = dao.GetUserDetails(r.Context(), email); err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	series, err := dao.GetAllSeriesWithStories(r.Context(), email, userDetails.Admin)
+	series, err := dao.GetAllSeriesWithStories(r.Context(), email)
 	if err != nil {
 		opErr := &smithy.OperationError{}
 		if errors.As(err, &opErr) {
@@ -604,13 +602,12 @@ func AllSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 
 func AllSeriesVolumesEndPoint(w http.ResponseWriter, r *http.Request) {
 	var (
-		email       string
 		seriesTitle string
 		err         error
 		dao         daos.DaoInterface
 		ok          bool
 	)
-	if email, err = getUserEmail(r); err != nil {
+	if _, err = getUserEmail(r); err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
@@ -627,7 +624,7 @@ func AllSeriesVolumesEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	volumes, err := dao.GetSeriesVolumes(r.Context(), email, seriesTitle)
+	volumes, err := dao.GetSeriesVolumes(r.Context(), seriesTitle)
 	if err != nil {
 		opErr := &smithy.OperationError{}
 		if errors.As(err, &opErr) {

@@ -145,7 +145,7 @@ func TestEmailFunctions_ExpectedBehavior(t *testing.T) {
 
 func TestSendWelcomeEmail_WithMock_Success(t *testing.T) {
 	mockSES := &MockSESv2Client{
-		SendEmailFunc: func(ctx context.Context, input *sesv2.SendEmailInput, optFns ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+		SendEmailFunc: func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
 			if *input.FromEmailAddress != "no-reply@threadr.net" {
 				t.Errorf("Expected source 'no-reply@threadr.net', got %s", *input.FromEmailAddress)
 			}
@@ -167,7 +167,7 @@ func TestSendWelcomeEmail_WithMock_Success(t *testing.T) {
 
 func TestSendWelcomeEmail_WithMock_Error(t *testing.T) {
 	mockSES := &MockSESv2Client{
-		SendEmailFunc: func(ctx context.Context, input *sesv2.SendEmailInput, optFns ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+		SendEmailFunc: func(_ context.Context, _ *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
 			return nil, errors.New("SES service unavailable")
 		},
 	}
@@ -178,7 +178,7 @@ func TestSendWelcomeEmail_WithMock_Error(t *testing.T) {
 
 func TestSendAlertEmail_WithMock_Success(t *testing.T) {
 	mockSES := &MockSESv2Client{
-		SendEmailFunc: func(ctx context.Context, input *sesv2.SendEmailInput, optFns ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+		SendEmailFunc: func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
 			if input.Destination.ToAddresses[0] != "support@threadr.net" {
 				t.Errorf("Expected recipient 'support@threadr.net', got %s", input.Destination.ToAddresses[0])
 			}

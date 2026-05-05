@@ -36,19 +36,16 @@ func TestGetSeriesByID(t *testing.T) {
 // Tests for GetAllSeriesWithStories.
 func TestGetAllSeriesWithStories(t *testing.T) {
 	testCases := []struct {
-		name         string
-		email        string
-		adminRequest bool
+		name  string
+		email string
 	}{
 		{
-			name:         "UserRequest",
-			email:        "user@example.com",
-			adminRequest: false,
+			name:  "UserRequest",
+			email: "user@example.com",
 		},
 		{
-			name:         "AdminRequest",
-			email:        "admin@example.com",
-			adminRequest: true,
+			name:  "AdminRequest",
+			email: "admin@example.com",
 		},
 	}
 
@@ -56,7 +53,7 @@ func TestGetAllSeriesWithStories(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			series, err := mockDao.GetAllSeriesWithStories(context.Background(), tc.email, tc.adminRequest)
+			series, err := mockDao.GetAllSeriesWithStories(context.Background(), tc.email)
 
 			t.Logf("GetAllSeriesWithStories returned %d series, err=%v", len(series), err)
 		})
@@ -81,7 +78,7 @@ func TestGetSeriesVolumes(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			volumes, err := mockDao.GetSeriesVolumes(context.Background(), tc.email, tc.seriesID)
+			volumes, err := mockDao.GetSeriesVolumes(context.Background(), tc.seriesID)
 
 			t.Logf("GetSeriesVolumes returned %d volumes, err=%v", len(volumes), err)
 		})
@@ -333,6 +330,6 @@ func BenchmarkGetAllSeriesWithStories(b *testing.B) {
 
 	b.ResetTimer()
 	for range b.N {
-		_, _ = mockDao.GetAllSeriesWithStories(context.Background(), "bench@example.com", false)
+		_, _ = mockDao.GetAllSeriesWithStories(context.Background(), "bench@example.com")
 	}
 }

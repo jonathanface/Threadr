@@ -125,7 +125,7 @@ func TestAdminDeleteUser_DAOError(t *testing.T) {
 	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
 		return &models.UserInfo{Email: email, Admin: true}, nil
 	}
-	mockDAO.MockDeleteUser = func(email string) error {
+	mockDAO.MockDeleteUser = func(_ string) error {
 		return daos.ErrMockDAO
 	}
 

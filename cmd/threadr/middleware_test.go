@@ -28,7 +28,7 @@ func setupTestSession() {
 
 // Helper to create a test handler that records if it was called.
 func createTestHandler(called *bool) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		*called = true
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
@@ -275,7 +275,7 @@ func TestStrictMiddleware(t *testing.T) {
 		// This test verifies the middleware logic path
 
 		middleware := strictMiddleware(mockDAO)
-		testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		testHandler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			// This won't be reached because UpsertUser will fail without real DB
 			w.WriteHeader(http.StatusOK)
 		})
@@ -397,7 +397,7 @@ func TestStrictMiddleware(t *testing.T) {
 		// This test verifies the middleware attempts to set up the context
 
 		middleware := strictMiddleware(mockDAO)
-		testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		testHandler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			// Won't reach here without real DB
 			w.WriteHeader(http.StatusOK)
 		})

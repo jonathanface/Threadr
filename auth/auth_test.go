@@ -344,7 +344,7 @@ func TestLoginWithOptions_DefaultNextURL(t *testing.T) {
 }
 
 // Test New function.
-func TestNew(t *testing.T) {
+func TestNew(_ *testing.T) {
 	options := OauthOptions{
 		Mode:         models.ModeDevelopment,
 		GoogleId:     "test-google-id",
@@ -395,7 +395,7 @@ func TestLoginHandler(t *testing.T) {
 // Test edge cases for callbackWithOptions with DAO errors.
 func TestCallbackWithOptions_GetUserDetailsError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+	mockDAO.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
 		return nil, http.ErrServerClosed
 	}
 
@@ -420,7 +420,7 @@ func TestCallbackWithOptions_UserNotFoundScenario(t *testing.T) {
 	// This tests the scenario where a user is not found
 	// Note: CreateUser is not mocked in the daos.MockDAO, so we can't fully test this path
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+	mockDAO.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
 		return nil, sql.ErrNoRows
 	}
 

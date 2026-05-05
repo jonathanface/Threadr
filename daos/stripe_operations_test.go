@@ -56,9 +56,9 @@ func TestAddStripeData(t *testing.T) {
 				if !ok {
 					t.Fatalf("mockDao.DynamoClient is not a *MockDynamoClient")
 				}
-				mockClient.MockUpdateItem = func(ctx context.Context,
-					input *dynamodb.UpdateItemInput,
-					opts ...func(*dynamodb.Options),
+				mockClient.MockUpdateItem = func(_ context.Context,
+					_ *dynamodb.UpdateItemInput,
+					_ ...func(*dynamodb.Options),
 				) (*dynamodb.UpdateItemOutput, error) {
 					return nil, tc.mockUpdateErr
 				}
@@ -106,7 +106,7 @@ func TestVerifyStripeSubscription(t *testing.T) {
 			name:       "SubscriptionFoundByID",
 			subID:      "sub_123456",
 			customerID: "cus_123456",
-			mockHandler: func(w http.ResponseWriter, r *http.Request) {
+			mockHandler: func(w http.ResponseWriter, _ *http.Request) {
 				// Mock successful subscription GET response
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte(`{

@@ -55,9 +55,9 @@ func TestCreateBlockTable(t *testing.T) {
 			// Track if CreateTable was called with correct parameters
 			var calledWithTableName string
 			var calledWithTags []types.Tag
-			mockClient.MockCreateTable = func(ctx context.Context,
+			mockClient.MockCreateTable = func(_ context.Context,
 				input *dynamodb.CreateTableInput,
-				opts ...func(*dynamodb.Options),
+				_ ...func(*dynamodb.Options),
 			) (*dynamodb.CreateTableOutput, error) {
 				if input.TableName != nil {
 					calledWithTableName = *input.TableName
@@ -145,9 +145,9 @@ func TestCheckTableStatus(t *testing.T) {
 				t.Fatalf("mockDao.DynamoClient is not a *MockDynamoClient")
 			}
 
-			mockClient.MockDescribeTable = func(ctx context.Context,
-				input *dynamodb.DescribeTableInput,
-				opts ...func(*dynamodb.Options),
+			mockClient.MockDescribeTable = func(_ context.Context,
+				_ *dynamodb.DescribeTableInput,
+				_ ...func(*dynamodb.Options),
 			) (*dynamodb.DescribeTableOutput, error) {
 				if tc.mockErr != nil {
 					return nil, tc.mockErr
@@ -365,9 +365,9 @@ func TestWaitForTableStatus(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockClient := &MockDynamoClient{}
 
-			mockClient.MockDescribeTable = func(ctx context.Context,
-				input *dynamodb.DescribeTableInput,
-				opts ...func(*dynamodb.Options),
+			mockClient.MockDescribeTable = func(_ context.Context,
+				_ *dynamodb.DescribeTableInput,
+				_ ...func(*dynamodb.Options),
 			) (*dynamodb.DescribeTableOutput, error) {
 				if tc.mockErr != nil {
 					return nil, tc.mockErr
@@ -402,9 +402,9 @@ func BenchmarkCheckTableStatus(b *testing.B) {
 	mockDao := NewMockDAO()
 	mockClient, _ := mockDao.DynamoClient.(*MockDynamoClient)
 
-	mockClient.MockDescribeTable = func(ctx context.Context,
-		input *dynamodb.DescribeTableInput,
-		opts ...func(*dynamodb.Options),
+	mockClient.MockDescribeTable = func(_ context.Context,
+		_ *dynamodb.DescribeTableInput,
+		_ ...func(*dynamodb.Options),
 	) (*dynamodb.DescribeTableOutput, error) {
 		return &dynamodb.DescribeTableOutput{
 			Table: &types.TableDescription{

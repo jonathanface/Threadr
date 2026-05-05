@@ -278,7 +278,7 @@ func TestProcessAWSError_UnknownError(t *testing.T) {
 // Tests for staggeredStoryBlockRetrieval.
 func TestStaggeredStoryBlockRetrieval_SinglePage(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetChapterParagraphs = func(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error) {
+	mockDAO.MockGetChapterParagraphs = func(_ string, _ string, _ *map[string]types.AttributeValue) (*models.BlocksData, error) {
 		return &models.BlocksData{
 			Items: []map[string]types.AttributeValue{
 				{
@@ -312,7 +312,7 @@ func TestStaggeredStoryBlockRetrieval_MultiplePages(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	callCount := 0
 
-	mockDAO.MockGetChapterParagraphs = func(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error) {
+	mockDAO.MockGetChapterParagraphs = func(_ string, _ string, _ *map[string]types.AttributeValue) (*models.BlocksData, error) {
 		callCount++
 		if callCount == 1 {
 			// First call - return data with LastEvaluated key
@@ -365,7 +365,7 @@ func TestStaggeredStoryBlockRetrieval_MultiplePages(t *testing.T) {
 
 func TestStaggeredStoryBlockRetrieval_Error(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetChapterParagraphs = func(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error) {
+	mockDAO.MockGetChapterParagraphs = func(_ string, _ string, _ *map[string]types.AttributeValue) (*models.BlocksData, error) {
 		return nil, errors.New("database error")
 	}
 
@@ -381,7 +381,7 @@ func TestStaggeredStoryBlockRetrieval_Error(t *testing.T) {
 
 func TestStaggeredStoryBlockRetrieval_NilResult(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetChapterParagraphs = func(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error) {
+	mockDAO.MockGetChapterParagraphs = func(_ string, _ string, _ *map[string]types.AttributeValue) (*models.BlocksData, error) {
 		return nil, nil
 	}
 

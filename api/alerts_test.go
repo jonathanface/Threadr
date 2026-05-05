@@ -26,7 +26,7 @@ func init() {
 
 func TestGetUserAlertsEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetAlertsForUser = func(email string) ([]models.Alert, error) {
+	mockDAO.MockGetAlertsForUser = func(_ string) ([]models.Alert, error) {
 		return []models.Alert{
 			{ID: "a1", Subject: "Alert 1", AlertType: models.AlertTypeAnnouncement, CreatedBy: "admin"},
 			{ID: "a2", Subject: "Alert 2", AlertType: models.AlertTypePersonal, CreatedBy: "system"},
@@ -98,7 +98,7 @@ func TestGetUserAlertsEndpoint_NoDAO(t *testing.T) {
 
 func TestGetUserAlertsEndpoint_DAOErrorGetAlerts(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetAlertsForUser = func(email string) ([]models.Alert, error) {
+	mockDAO.MockGetAlertsForUser = func(_ string) ([]models.Alert, error) {
 		return nil, errors.New("dynamo connection failed")
 	}
 
@@ -115,10 +115,10 @@ func TestGetUserAlertsEndpoint_DAOErrorGetAlerts(t *testing.T) {
 
 func TestGetUserAlertsEndpoint_DAOErrorGetReads(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetAlertsForUser = func(email string) ([]models.Alert, error) {
+	mockDAO.MockGetAlertsForUser = func(_ string) ([]models.Alert, error) {
 		return []models.Alert{{ID: "a1"}}, nil
 	}
-	mockDAO.MockGetAlertReadsByUser = func(email string) ([]models.AlertRead, error) {
+	mockDAO.MockGetAlertReadsByUser = func(_ string) ([]models.AlertRead, error) {
 		return nil, errors.New("reads table error")
 	}
 
@@ -139,7 +139,7 @@ func TestGetUserAlertsEndpoint_DAOErrorGetReads(t *testing.T) {
 
 func TestGetUnreadAlertCountEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetAlertsForUser = func(email string) ([]models.Alert, error) {
+	mockDAO.MockGetAlertsForUser = func(_ string) ([]models.Alert, error) {
 		return []models.Alert{
 			{ID: "a1"},
 			{ID: "a2"},
@@ -173,7 +173,7 @@ func TestGetUnreadAlertCountEndpoint_Success(t *testing.T) {
 
 func TestGetUnreadAlertCountEndpoint_AllRead(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetAlertsForUser = func(email string) ([]models.Alert, error) {
+	mockDAO.MockGetAlertsForUser = func(_ string) ([]models.Alert, error) {
 		return []models.Alert{
 			{ID: "a1"},
 			{ID: "a2"},
@@ -257,7 +257,7 @@ func TestMarkAlertReadEndpoint_MissingAlertID(t *testing.T) {
 
 func TestMarkAlertReadEndpoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockMarkAlertRead = func(email, alertID string) error {
+	mockDAO.MockMarkAlertRead = func(_, _ string) error {
 		return errors.New("write failed")
 	}
 
@@ -520,10 +520,10 @@ func TestAdminCreateAlertEndpoint_PersonalMissingTargetEmail(t *testing.T) {
 func TestCreateCommentAlert_CreatesWhenNoneExists(t *testing.T) {
 	var createCalled int32
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetAlertsForUser = func(email string) ([]models.Alert, error) {
+	mockDAO.MockGetAlertsForUser = func(_ string) ([]models.Alert, error) {
 		return []models.Alert{}, nil // no existing alerts
 	}
-	mockDAO.MockGetAlertReadsByUser = func(email string) ([]models.AlertRead, error) {
+	mockDAO.MockGetAlertReadsByUser = func(_ string) ([]models.AlertRead, error) {
 		return []models.AlertRead{}, nil
 	}
 	mockDAO.MockCreateAlert = func(alert models.Alert) error {
@@ -557,7 +557,7 @@ func TestCreateCommentAlert_CreatesWhenNoneExists(t *testing.T) {
 func TestCreateCommentAlert_SkipsWhenUnreadAlertExists(t *testing.T) {
 	var createCalled int32
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetAlertsForUser = func(email string) ([]models.Alert, error) {
+	mockDAO.MockGetAlertsForUser = func(_ string) ([]models.Alert, error) {
 		return []models.Alert{
 			{
 				ID:        "existing-alert",
@@ -567,10 +567,10 @@ func TestCreateCommentAlert_SkipsWhenUnreadAlertExists(t *testing.T) {
 			},
 		}, nil
 	}
-	mockDAO.MockGetAlertReadsByUser = func(email string) ([]models.AlertRead, error) {
+	mockDAO.MockGetAlertReadsByUser = func(_ string) ([]models.AlertRead, error) {
 		return []models.AlertRead{}, nil // not read yet
 	}
-	mockDAO.MockCreateAlert = func(alert models.Alert) error {
+	mockDAO.MockCreateAlert = func(_ models.Alert) error {
 		atomic.AddInt32(&createCalled, 1)
 		return nil
 	}
@@ -586,7 +586,7 @@ func TestCreateCommentAlert_SkipsWhenUnreadAlertExists(t *testing.T) {
 func TestCreateCommentAlert_CreatesAfterPreviousWasRead(t *testing.T) {
 	var createCalled int32
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetAlertsForUser = func(email string) ([]models.Alert, error) {
+	mockDAO.MockGetAlertsForUser = func(_ string) ([]models.Alert, error) {
 		return []models.Alert{
 			{
 				ID:        "old-alert",
@@ -601,7 +601,7 @@ func TestCreateCommentAlert_CreatesAfterPreviousWasRead(t *testing.T) {
 			{AlertID: "old-alert", Email: email, ReadAt: 5000}, // already read
 		}, nil
 	}
-	mockDAO.MockCreateAlert = func(alert models.Alert) error {
+	mockDAO.MockCreateAlert = func(_ models.Alert) error {
 		atomic.AddInt32(&createCalled, 1)
 		return nil
 	}
@@ -617,7 +617,7 @@ func TestCreateCommentAlert_CreatesAfterPreviousWasRead(t *testing.T) {
 func TestCreateCommentAlert_DifferentStoryDoesNotDedup(t *testing.T) {
 	var createCalled int32
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetAlertsForUser = func(email string) ([]models.Alert, error) {
+	mockDAO.MockGetAlertsForUser = func(_ string) ([]models.Alert, error) {
 		return []models.Alert{
 			{
 				ID:        "other-story-alert",
@@ -627,10 +627,10 @@ func TestCreateCommentAlert_DifferentStoryDoesNotDedup(t *testing.T) {
 			},
 		}, nil
 	}
-	mockDAO.MockGetAlertReadsByUser = func(email string) ([]models.AlertRead, error) {
+	mockDAO.MockGetAlertReadsByUser = func(_ string) ([]models.AlertRead, error) {
 		return []models.AlertRead{}, nil // unread, but for different story
 	}
-	mockDAO.MockCreateAlert = func(alert models.Alert) error {
+	mockDAO.MockCreateAlert = func(_ models.Alert) error {
 		atomic.AddInt32(&createCalled, 1)
 		return nil
 	}
@@ -646,10 +646,10 @@ func TestCreateCommentAlert_DifferentStoryDoesNotDedup(t *testing.T) {
 func TestCreateCommentAlert_FallsThroughOnGetAlertsError(t *testing.T) {
 	var createCalled int32
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetAlertsForUser = func(email string) ([]models.Alert, error) {
+	mockDAO.MockGetAlertsForUser = func(_ string) ([]models.Alert, error) {
 		return nil, errors.New("dynamo timeout")
 	}
-	mockDAO.MockCreateAlert = func(alert models.Alert) error {
+	mockDAO.MockCreateAlert = func(_ models.Alert) error {
 		atomic.AddInt32(&createCalled, 1)
 		return nil
 	}

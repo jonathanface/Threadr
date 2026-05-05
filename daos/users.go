@@ -268,7 +268,7 @@ func (d *DAO) GetAllUsersWithStories(ctx context.Context) ([]models.AdminUserSum
 		if err == nil {
 			// Build a map of seriesID -> series title for this user
 			seriesMap := make(map[string]string)
-			allSeries, seriesErr := d.GetAllSeriesWithStories(ctx, u.Email, true)
+			allSeries, seriesErr := d.GetAllSeriesWithStories(ctx, u.Email)
 			if seriesErr == nil {
 				for _, s := range allSeries {
 					seriesMap[s.ID] = s.Title
@@ -630,7 +630,7 @@ func (d *DAO) DeleteUser(ctx context.Context, email string) error {
 	}
 
 	// 3. Soft delete all user's series
-	series, err := d.GetAllSeriesWithStories(ctx, email, false)
+	series, err := d.GetAllSeriesWithStories(ctx, email)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return err
 	}

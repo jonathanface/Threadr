@@ -21,5 +21,16 @@ const (
 	defaultBlockBatchSize = 50
 	// defaultTxnBatchSize is the per-transaction batch size for the
 	// delete-then-put block reorder path.
-	defaultTxnBatchSize = 100
+	defaultTxnBatchSize      = 100
+	s3StoryBaseURL           = "https://richdocter-story-portraits.s3.amazonaws.com"
+	s3SeriesBaseURL          = "https://richdocter-series-portraits.s3.amazonaws.com"
+	s3PortraitBaseURL        = "https://richdocterportraits.s3.amazonaws.com/"
+	s3LocationBaseURL        = "https://richdocterlocations.s3.amazonaws.com/"
+	s3EventBaseURL           = "https://richdocterevents.s3.amazonaws.com/"
+	s3ItemBaseURL            = "https://richdocteritems.s3.amazonaws.com/"
+	maxDefaultPortraitImages = 50
+	maxDefaultLocationImages = 20
+	maxDefaultEventImages    = 20
+	maxDefaultItemImages     = 20
+	defaultSeriesImageURL    = "/img/icons/story_series_icon.jpg"
 )

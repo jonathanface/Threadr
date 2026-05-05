@@ -38,9 +38,9 @@ func TestCheckBackupStatus(t *testing.T) {
 			if !ok {
 				t.Fatalf("mockDao.DynamoClient is not a *MockDynamoClient")
 			}
-			mockClient.MockDescribeBackup = func(ctx context.Context,
-				input *dynamodb.DescribeBackupInput,
-				opts ...func(*dynamodb.Options),
+			mockClient.MockDescribeBackup = func(_ context.Context,
+				_ *dynamodb.DescribeBackupInput,
+				_ ...func(*dynamodb.Options),
 			) (*dynamodb.DescribeBackupOutput, error) {
 				return &dynamodb.DescribeBackupOutput{
 					BackupDescription: &types.BackupDescription{

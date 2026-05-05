@@ -94,9 +94,9 @@ func TestHardDeleteStory(t *testing.T) {
 				if !ok {
 					t.Fatalf("mockDao.DynamoClient is not a *MockDynamoClient")
 				}
-				mockClient.MockDeleteItem = func(ctx context.Context,
-					input *dynamodb.DeleteItemInput,
-					opts ...func(*dynamodb.Options),
+				mockClient.MockDeleteItem = func(_ context.Context,
+					_ *dynamodb.DeleteItemInput,
+					_ ...func(*dynamodb.Options),
 				) (*dynamodb.DeleteItemOutput, error) {
 					return nil, tc.mockDeleteErr
 				}

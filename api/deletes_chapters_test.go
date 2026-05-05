@@ -21,7 +21,7 @@ func init() {
 
 func TestDeleteChaptersEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_ string, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID}, nil
 	}
 	mockDAO.MockDeleteChapters = func(storyID string, chapters []models.Chapter) error {
@@ -112,10 +112,10 @@ func TestDeleteChaptersEndpoint_NoDAO(t *testing.T) {
 
 func TestDeleteChaptersEndpoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_ string, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID}, nil
 	}
-	mockDAO.MockDeleteChapters = func(storyID string, chapters []models.Chapter) error {
+	mockDAO.MockDeleteChapters = func(_ string, _ []models.Chapter) error {
 		return daos.ErrMockDAO
 	}
 
@@ -133,10 +133,10 @@ func TestDeleteChaptersEndpoint_DAOError(t *testing.T) {
 
 func TestDeleteChaptersEndpoint_AWSError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_ string, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID}, nil
 	}
-	mockDAO.MockDeleteChapters = func(storyID string, chapters []models.Chapter) error {
+	mockDAO.MockDeleteChapters = func(_ string, _ []models.Chapter) error {
 		return &smithy.OperationError{
 			ServiceID:     "DynamoDB",
 			OperationName: "DeleteItem",

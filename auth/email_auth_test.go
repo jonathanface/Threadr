@@ -66,10 +66,10 @@ func init() {
 
 func TestEmailSignup_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+	mockDAO.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
 		return nil, sql.ErrNoRows
 	}
-	mockDAO.MockCreateEmailUser = func(email, firstName, lastName, passwordHash, verificationToken string, tokenExpires int64) (*models.UserInfo, error) {
+	mockDAO.MockCreateEmailUser = func(email, firstName, lastName, _, _ string, _ int64) (*models.UserInfo, error) {
 		return &models.UserInfo{Email: email, FirstName: firstName, LastName: lastName, AuthType: "email"}, nil
 	}
 
@@ -279,7 +279,7 @@ func TestEmailSignup_ExistingEmailAccount(t *testing.T) {
 
 func TestEmailSignup_DAOErrorOnGetUserDetails(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+	mockDAO.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
 		return nil, errors.New("database connection failed")
 	}
 
@@ -369,7 +369,7 @@ func TestEmailLogin_MissingEmailPassword(t *testing.T) {
 
 func TestEmailLogin_UserNotFound(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+	mockDAO.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
 		return nil, sql.ErrNoRows
 	}
 
@@ -497,7 +497,7 @@ func TestEmailVerify_MissingToken(t *testing.T) {
 
 func TestEmailVerify_TokenNotFound(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockFindUserByVerificationToken = func(token string) (*models.UserInfo, error) {
+	mockDAO.MockFindUserByVerificationToken = func(_ string) (*models.UserInfo, error) {
 		return nil, sql.ErrNoRows
 	}
 
@@ -514,7 +514,7 @@ func TestEmailVerify_TokenNotFound(t *testing.T) {
 
 func TestEmailVerify_TokenExpired(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockFindUserByVerificationToken = func(token string) (*models.UserInfo, error) {
+	mockDAO.MockFindUserByVerificationToken = func(_ string) (*models.UserInfo, error) {
 		return &models.UserInfo{
 			Email:                    "test@example.com",
 			VerificationTokenExpires: time.Now().Add(-1 * time.Hour).Unix(), // expired 1 hour ago
@@ -539,7 +539,7 @@ func TestEmailVerify_TokenExpired(t *testing.T) {
 func TestEmailVerify_Success(t *testing.T) {
 	verifiedEmail := ""
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockFindUserByVerificationToken = func(token string) (*models.UserInfo, error) {
+	mockDAO.MockFindUserByVerificationToken = func(_ string) (*models.UserInfo, error) {
 		return &models.UserInfo{
 			Email:                    "test@example.com",
 			VerificationTokenExpires: time.Now().Add(1 * time.Hour).Unix(), // still valid
@@ -575,7 +575,7 @@ func TestEmailVerify_Success(t *testing.T) {
 
 func TestPasswordResetRequest_AlwaysReturns200(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+	mockDAO.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
 		return nil, sql.ErrNoRows // user doesn't exist
 	}
 
@@ -693,7 +693,7 @@ func TestPasswordReset_PasswordTooShort(t *testing.T) {
 
 func TestPasswordReset_TokenNotFound(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockFindUserByResetToken = func(token string) (*models.UserInfo, error) {
+	mockDAO.MockFindUserByResetToken = func(_ string) (*models.UserInfo, error) {
 		return nil, sql.ErrNoRows
 	}
 
@@ -715,7 +715,7 @@ func TestPasswordReset_TokenNotFound(t *testing.T) {
 
 func TestPasswordReset_TokenExpired(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockFindUserByResetToken = func(token string) (*models.UserInfo, error) {
+	mockDAO.MockFindUserByResetToken = func(_ string) (*models.UserInfo, error) {
 		return &models.UserInfo{
 			Email:             "test@example.com",
 			ResetTokenExpires: time.Now().Add(-1 * time.Hour).Unix(),
@@ -745,7 +745,7 @@ func TestPasswordReset_TokenExpired(t *testing.T) {
 func TestPasswordReset_Success(t *testing.T) {
 	passwordUpdated := false
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockFindUserByResetToken = func(token string) (*models.UserInfo, error) {
+	mockDAO.MockFindUserByResetToken = func(_ string) (*models.UserInfo, error) {
 		return &models.UserInfo{
 			Email:             "test@example.com",
 			ResetTokenExpires: time.Now().Add(1 * time.Hour).Unix(),
@@ -866,7 +866,7 @@ func TestLinkOAuthAccount_Success(t *testing.T) {
 			PasswordHash: testHash,
 		}, nil
 	}
-	mockDAO.MockLinkOAuthAccount = func(email, authType string) error {
+	mockDAO.MockLinkOAuthAccount = func(_, authType string) error {
 		linkedProvider = authType
 		return nil
 	}
@@ -897,7 +897,7 @@ func TestLinkOAuthAccount_Success(t *testing.T) {
 
 func TestLinkOAuthAccount_UserNotFound(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+	mockDAO.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
 		return nil, sql.ErrNoRows
 	}
 
@@ -1018,10 +1018,10 @@ func TestEmailLogin_AmazonOAuthAccount(t *testing.T) {
 
 func TestEmailSignup_CreateUserDAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+	mockDAO.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
 		return nil, sql.ErrNoRows
 	}
-	mockDAO.MockCreateEmailUser = func(email, firstName, lastName, passwordHash, verificationToken string, tokenExpires int64) (*models.UserInfo, error) {
+	mockDAO.MockCreateEmailUser = func(_, _, _, _, _ string, _ int64) (*models.UserInfo, error) {
 		return nil, errors.New("dynamodb write failed")
 	}
 

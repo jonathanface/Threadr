@@ -22,16 +22,16 @@ func init() {
 
 func TestCreateAssociationsEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryOrSeriesAssociationThumbnails = func(email, storyID string) ([]*models.SimplifiedAssociation, error) {
+	mockDAO.MockGetStoryOrSeriesAssociationThumbnails = func(_, _ string) ([]*models.SimplifiedAssociation, error) {
 		// Return less than max to allow creation
 		return []*models.SimplifiedAssociation{
 			{ID: "existing1", Name: "Existing Character"},
 		}, nil
 	}
-	mockDAO.MockIsStoryInASeries = func(email string, storyID string) (string, error) {
+	mockDAO.MockIsStoryInASeries = func(_ string, _ string) (string, error) {
 		return "", nil // Not in a series
 	}
-	mockDAO.MockWriteAssociations = func(email, storyOrSeriesID string, associations []*models.Association) error {
+	mockDAO.MockWriteAssociations = func(email, _ string, _ []*models.Association) error {
 		if email != "test@example.com" {
 			t.Errorf("Expected email test@example.com, got %s", email)
 		}
@@ -85,7 +85,7 @@ func TestCreateAssociationsEndpoint_NonSubscriberLimitReached(t *testing.T) {
 	}
 
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryOrSeriesAssociationThumbnails = func(email, storyID string) ([]*models.SimplifiedAssociation, error) {
+	mockDAO.MockGetStoryOrSeriesAssociationThumbnails = func(_, _ string) ([]*models.SimplifiedAssociation, error) {
 		return existingAssocs, nil
 	}
 
@@ -117,10 +117,10 @@ func TestCreateAssociationsEndpoint_NonSubscriberLimitReached(t *testing.T) {
 
 func TestCreateAssociationsEndpoint_SubscriberNoLimit(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockIsStoryInASeries = func(email string, storyID string) (string, error) {
+	mockDAO.MockIsStoryInASeries = func(_ string, _ string) (string, error) {
 		return "", nil
 	}
-	mockDAO.MockWriteAssociations = func(email, storyOrSeriesID string, associations []*models.Association) error {
+	mockDAO.MockWriteAssociations = func(_, _ string, _ []*models.Association) error {
 		return nil
 	}
 
@@ -247,7 +247,7 @@ func TestCreateAssociationsEndpoint_InvalidJSON(t *testing.T) {
 
 func TestCreateAssociationsEndpoint_GetAssociationError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryOrSeriesAssociationThumbnails = func(email, storyID string) ([]*models.SimplifiedAssociation, error) {
+	mockDAO.MockGetStoryOrSeriesAssociationThumbnails = func(_, _ string) ([]*models.SimplifiedAssociation, error) {
 		return nil, daos.ErrMockDAO
 	}
 
@@ -271,10 +271,10 @@ func TestCreateAssociationsEndpoint_GetAssociationError(t *testing.T) {
 
 func TestCreateAssociationsEndpoint_AWSError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockIsStoryInASeries = func(email string, storyID string) (string, error) {
+	mockDAO.MockIsStoryInASeries = func(_ string, _ string) (string, error) {
 		return "", nil
 	}
-	mockDAO.MockWriteAssociations = func(email, storyOrSeriesID string, associations []*models.Association) error {
+	mockDAO.MockWriteAssociations = func(_, _ string, _ []*models.Association) error {
 		return &smithy.OperationError{
 			ServiceID:     "DynamoDB",
 			OperationName: "PutItem",

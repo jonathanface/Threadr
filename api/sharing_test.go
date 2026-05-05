@@ -29,13 +29,13 @@ func init() {
 
 func TestCreateShareLinkEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID, Title: "Test Story"}, nil
 	}
-	mockDAO.MockGetShareLinksByAuthor = func(email, storyID string) ([]models.ShareLink, error) {
+	mockDAO.MockGetShareLinksByAuthor = func(_, _ string) ([]models.ShareLink, error) {
 		return []models.ShareLink{}, nil
 	}
-	mockDAO.MockCreateShareLink = func(link models.ShareLink) error {
+	mockDAO.MockCreateShareLink = func(_ models.ShareLink) error {
 		return nil
 	}
 
@@ -97,10 +97,10 @@ func TestCreateShareLinkEndpoint_MissingStoryID(t *testing.T) {
 
 func TestCreateShareLinkEndpoint_MissingReaderEmail(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID, Title: "Test Story"}, nil
 	}
-	mockDAO.MockGetShareLinksByAuthor = func(email, storyID string) ([]models.ShareLink, error) {
+	mockDAO.MockGetShareLinksByAuthor = func(_, _ string) ([]models.ShareLink, error) {
 		return []models.ShareLink{}, nil
 	}
 
@@ -124,7 +124,7 @@ func TestCreateShareLinkEndpoint_MissingReaderEmail(t *testing.T) {
 
 func TestCreateShareLinkEndpoint_InvalidEmail(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID, Title: "Test Story"}, nil
 	}
 
@@ -149,7 +149,7 @@ func TestCreateShareLinkEndpoint_InvalidEmail(t *testing.T) {
 
 func TestCreateShareLinkEndpoint_MissingNames(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID, Title: "Test Story"}, nil
 	}
 
@@ -172,7 +172,7 @@ func TestCreateShareLinkEndpoint_MissingNames(t *testing.T) {
 
 func TestCreateShareLinkEndpoint_StoryNotFound(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, _ string) (*models.Story, error) {
 		return nil, sql.ErrNoRows
 	}
 
@@ -197,10 +197,10 @@ func TestCreateShareLinkEndpoint_StoryNotFound(t *testing.T) {
 
 func TestCreateShareLinkEndpoint_DuplicateReader(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID, Title: "Test Story"}, nil
 	}
-	mockDAO.MockGetShareLinksByAuthor = func(email, storyID string) ([]models.ShareLink, error) {
+	mockDAO.MockGetShareLinksByAuthor = func(_, _ string) ([]models.ShareLink, error) {
 		return []models.ShareLink{
 			{Token: "existing-token", ReaderEmail: "reader@test.com", Revoked: false},
 		}, nil
@@ -227,13 +227,13 @@ func TestCreateShareLinkEndpoint_DuplicateReader(t *testing.T) {
 
 func TestCreateShareLinkEndpoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID, Title: "Test Story"}, nil
 	}
-	mockDAO.MockGetShareLinksByAuthor = func(email, storyID string) ([]models.ShareLink, error) {
+	mockDAO.MockGetShareLinksByAuthor = func(_, _ string) ([]models.ShareLink, error) {
 		return []models.ShareLink{}, nil
 	}
-	mockDAO.MockCreateShareLink = func(link models.ShareLink) error {
+	mockDAO.MockCreateShareLink = func(_ models.ShareLink) error {
 		return errors.New("database error")
 	}
 
@@ -263,10 +263,10 @@ func TestCreateShareLinkEndpoint_DAOError(t *testing.T) {
 
 func TestGetShareLinksEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID, Title: "Test Story"}, nil
 	}
-	mockDAO.MockGetShareLinksByAuthor = func(email, storyID string) ([]models.ShareLink, error) {
+	mockDAO.MockGetShareLinksByAuthor = func(_, storyID string) ([]models.ShareLink, error) {
 		return []models.ShareLink{
 			{Token: "token1", StoryID: storyID, ReaderEmail: "reader1@test.com"},
 			{Token: "token2", StoryID: storyID, ReaderEmail: "reader2@test.com"},
@@ -310,7 +310,7 @@ func TestGetShareLinksEndpoint_MissingStoryID(t *testing.T) {
 
 func TestGetShareLinksEndpoint_StoryNotFound(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, _ string) (*models.Story, error) {
 		return nil, sql.ErrNoRows
 	}
 
@@ -335,7 +335,7 @@ func TestRevokeShareLinkEndpoint_Success(t *testing.T) {
 	mockDAO.MockGetShareLink = func(token string) (*models.ShareLink, error) {
 		return &models.ShareLink{Token: token, AuthorEmail: "test@example.com", StoryID: "story123"}, nil
 	}
-	mockDAO.MockRevokeShareLink = func(token string) error {
+	mockDAO.MockRevokeShareLink = func(_ string) error {
 		return nil
 	}
 
@@ -368,7 +368,7 @@ func TestRevokeShareLinkEndpoint_MissingToken(t *testing.T) {
 
 func TestRevokeShareLinkEndpoint_LinkNotFound(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetShareLink = func(token string) (*models.ShareLink, error) {
+	mockDAO.MockGetShareLink = func(_ string) (*models.ShareLink, error) {
 		return nil, sql.ErrNoRows
 	}
 
@@ -411,7 +411,7 @@ func TestRestoreShareLinkEndpoint_Success(t *testing.T) {
 	mockDAO.MockGetShareLink = func(token string) (*models.ShareLink, error) {
 		return &models.ShareLink{Token: token, AuthorEmail: "test@example.com", StoryID: "story123"}, nil
 	}
-	mockDAO.MockRestoreShareLink = func(token string) error {
+	mockDAO.MockRestoreShareLink = func(_ string) error {
 		return nil
 	}
 
@@ -444,7 +444,7 @@ func TestRestoreShareLinkEndpoint_MissingToken(t *testing.T) {
 
 func TestRestoreShareLinkEndpoint_LinkNotFound(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetShareLink = func(token string) (*models.ShareLink, error) {
+	mockDAO.MockGetShareLink = func(_ string) (*models.ShareLink, error) {
 		return nil, sql.ErrNoRows
 	}
 
@@ -487,7 +487,7 @@ func TestDeleteShareLinkEndpoint_Success(t *testing.T) {
 	mockDAO.MockGetShareLink = func(token string) (*models.ShareLink, error) {
 		return &models.ShareLink{Token: token, AuthorEmail: "test@example.com", StoryID: "story123"}, nil
 	}
-	mockDAO.MockDeleteShareLink = func(token string) error {
+	mockDAO.MockDeleteShareLink = func(_ string) error {
 		return nil
 	}
 
@@ -520,7 +520,7 @@ func TestDeleteShareLinkEndpoint_MissingToken(t *testing.T) {
 
 func TestDeleteShareLinkEndpoint_LinkNotFound(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetShareLink = func(token string) (*models.ShareLink, error) {
+	mockDAO.MockGetShareLink = func(_ string) (*models.ShareLink, error) {
 		return nil, sql.ErrNoRows
 	}
 
@@ -560,7 +560,7 @@ func TestDeleteShareLinkEndpoint_NotOwner(t *testing.T) {
 
 func TestGetAuthorCommentsEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID, Title: "Test Story"}, nil
 	}
 	mockDAO.MockGetCommentsByStoryChapter = func(storyID, chapterID string) ([]models.Comment, error) {
@@ -607,7 +607,7 @@ func TestGetAuthorCommentsEndpoint_MissingStoryID(t *testing.T) {
 
 func TestGetAuthorCommentsEndpoint_MissingChapterParam(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID, Title: "Test Story"}, nil
 	}
 
@@ -632,10 +632,10 @@ func TestResolveCommentEndpoint_Success(t *testing.T) {
 	mockDAO.MockGetComment = func(commentID string) (*models.Comment, error) {
 		return &models.Comment{CommentID: commentID, StoryID: "story123", Body: "A comment"}, nil
 	}
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID, Title: "Test Story"}, nil
 	}
-	mockDAO.MockResolveComment = func(commentID string) error {
+	mockDAO.MockResolveComment = func(_ string) error {
 		return nil
 	}
 
@@ -668,7 +668,7 @@ func TestResolveCommentEndpoint_MissingCommentID(t *testing.T) {
 
 func TestResolveCommentEndpoint_CommentNotFound(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetComment = func(commentID string) (*models.Comment, error) {
+	mockDAO.MockGetComment = func(_ string) (*models.Comment, error) {
 		return nil, sql.ErrNoRows
 	}
 
@@ -689,7 +689,7 @@ func TestResolveCommentEndpoint_NotOwner(t *testing.T) {
 	mockDAO.MockGetComment = func(commentID string) (*models.Comment, error) {
 		return &models.Comment{CommentID: commentID, StoryID: "story123", Body: "A comment"}, nil
 	}
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, _ string) (*models.Story, error) {
 		return nil, errors.New("not your story")
 	}
 
@@ -714,10 +714,10 @@ func TestDeleteCommentEndpoint_Success(t *testing.T) {
 	mockDAO.MockGetComment = func(commentID string) (*models.Comment, error) {
 		return &models.Comment{CommentID: commentID, StoryID: "story123", Body: "A comment"}, nil
 	}
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID, Title: "Test Story"}, nil
 	}
-	mockDAO.MockDeleteComment = func(commentID string) error {
+	mockDAO.MockDeleteComment = func(_ string) error {
 		return nil
 	}
 
@@ -750,7 +750,7 @@ func TestDeleteCommentEndpoint_MissingCommentID(t *testing.T) {
 
 func TestDeleteCommentEndpoint_CommentNotFound(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetComment = func(commentID string) (*models.Comment, error) {
+	mockDAO.MockGetComment = func(_ string) (*models.Comment, error) {
 		return nil, sql.ErrNoRows
 	}
 
@@ -771,7 +771,7 @@ func TestDeleteCommentEndpoint_NotOwner(t *testing.T) {
 	mockDAO.MockGetComment = func(commentID string) (*models.Comment, error) {
 		return &models.Comment{CommentID: commentID, StoryID: "story123", Body: "A comment"}, nil
 	}
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, _ string) (*models.Story, error) {
 		return nil, errors.New("not your story")
 	}
 
@@ -812,7 +812,7 @@ func defaultShareLink() *models.ShareLink {
 
 func TestGetSharedStoryEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID, Title: "Shared Story", Description: "A great story"}, nil
 	}
 	// GetChaptersByStoryID falls through to the embedded DAO, which uses MockDynamoClient.MockQuery
@@ -864,7 +864,7 @@ func TestGetSharedStoryEndpoint_NoShareLinkInContext(t *testing.T) {
 
 func TestGetSharedContentEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetChapterParagraphs = func(storyID, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error) {
+	mockDAO.MockGetChapterParagraphs = func(_, _ string, _ *map[string]types.AttributeValue) (*models.BlocksData, error) {
 		return &models.BlocksData{
 			Items: []map[string]types.AttributeValue{
 				{"block_id": &types.AttributeValueMemberS{Value: "block1"}},
@@ -919,7 +919,7 @@ func TestGetSharedContentEndpoint_ChapterScopeEnforcement(t *testing.T) {
 
 func TestCreateCommentEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockCreateComment = func(comment models.Comment) error {
+	mockDAO.MockCreateComment = func(_ models.Comment) error {
 		return nil
 	}
 

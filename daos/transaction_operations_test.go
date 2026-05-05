@@ -50,9 +50,9 @@ func TestAwsWriteTransaction(t *testing.T) {
 				if !ok {
 					t.Fatalf("mockDao.DynamoClient is not a *MockDynamoClient")
 				}
-				mockClient.MockTransactWriteItems = func(ctx context.Context,
-					input *dynamodb.TransactWriteItemsInput,
-					opts ...func(*dynamodb.Options),
+				mockClient.MockTransactWriteItems = func(_ context.Context,
+					_ *dynamodb.TransactWriteItemsInput,
+					_ ...func(*dynamodb.Options),
 				) (*dynamodb.TransactWriteItemsOutput, error) {
 					return nil, tc.mockTransactErr
 				}

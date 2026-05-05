@@ -52,22 +52,19 @@ func TestGetAllStories(t *testing.T) {
 // Tests for GetAllStandalone.
 func TestGetAllStandalone(t *testing.T) {
 	testCases := []struct {
-		name         string
-		email        string
-		adminRequest bool
-		wantErr      bool
+		name    string
+		email   string
+		wantErr bool
 	}{
 		{
-			name:         "UserRequest_RequiresMockDB",
-			email:        "user@example.com",
-			adminRequest: false,
-			wantErr:      false,
+			name:    "UserRequest_RequiresMockDB",
+			email:   "user@example.com",
+			wantErr: false,
 		},
 		{
-			name:         "AdminRequest_RequiresMockDB",
-			email:        "admin@example.com",
-			adminRequest: true,
-			wantErr:      false,
+			name:    "AdminRequest_RequiresMockDB",
+			email:   "admin@example.com",
+			wantErr: false,
 		},
 	}
 
@@ -75,7 +72,7 @@ func TestGetAllStandalone(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			stories, err := mockDao.GetAllStandalone(context.Background(), tc.email, tc.adminRequest)
+			stories, err := mockDao.GetAllStandalone(context.Background(), tc.email)
 
 			if tc.wantErr {
 				if err == nil {
@@ -223,7 +220,7 @@ func TestResetBlockOrder(t *testing.T) {
 			mockDao := NewMockDAO()
 
 			// Mock the ResetBlockOrder function since it requires DynamoDB Query operations
-			mockDao.MockResetBlockOrder = func(storyID string, blocksOrder *models.BlocksOrder) error {
+			mockDao.MockResetBlockOrder = func(_ string, _ *models.BlocksOrder) error {
 				if tc.wantErr {
 					return errors.New("mock error")
 				}

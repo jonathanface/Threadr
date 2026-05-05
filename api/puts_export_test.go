@@ -127,7 +127,7 @@ func TestExportStoryEndpoint_StoryNotFound(t *testing.T) {
 
 func TestExportStoryEndpoint_DatabaseError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID, Title: "Test"}, nil
 	}
 

@@ -45,7 +45,7 @@ func (d *DAO) GetSeriesByID(ctx context.Context, email, seriesID string) (series
 	if len(seriesFromMap) == 0 {
 		return series, ErrSeriesNotFound
 	}
-	seriesFromMap[0].Stories, err = d.GetSeriesVolumes(ctx, email, seriesID)
+	seriesFromMap[0].Stories, err = d.GetSeriesVolumes(ctx, seriesID)
 	if err != nil {
 		return series, err
 	}
@@ -62,7 +62,6 @@ func (d *DAO) GetSeriesByID(ctx context.Context, email, seriesID string) (series
 func (d *DAO) GetAllSeriesWithStories(
 	ctx context.Context,
 	email string,
-	adminRequest bool,
 ) (series []models.Series, err error) {
 	scanInput := &dynamodb.ScanInput{
 		TableName:        aws.String("series" + GetTableSuffix()),
@@ -83,7 +82,7 @@ func (d *DAO) GetAllSeriesWithStories(
 	}
 
 	for i := range series {
-		series[i].Stories, err = d.GetSeriesVolumes(ctx, email, series[i].ID)
+		series[i].Stories, err = d.GetSeriesVolumes(ctx, series[i].ID)
 		if err != nil {
 			return nil, err
 		}
@@ -135,7 +134,7 @@ func (d *DAO) GetAllSeriesIncludingDeleted(ctx context.Context, email string) (s
 	return series, nil
 }
 
-func (d *DAO) GetSeriesVolumes(ctx context.Context, email, seriesID string) (volumes []*models.Story, err error) {
+func (d *DAO) GetSeriesVolumes(ctx context.Context, seriesID string) (volumes []*models.Story, err error) {
 	queryInput := &dynamodb.QueryInput{
 		TableName:              aws.String("stories" + GetTableSuffix()),
 		IndexName:              aws.String("series_id-place-index"),

@@ -23,7 +23,7 @@ func init() {
 func TestUpdateUserEndpoint_Success(t *testing.T) {
 	// Create a mock DAO
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+	mockDAO.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
 		return &models.UserInfo{
 			Email:     "test@example.com",
 			FirstName: "Test",
@@ -132,7 +132,7 @@ func TestUpdateUserEndpoint_NoSession(t *testing.T) {
 func TestUpdateUserEndpoint_UserNotFound(t *testing.T) {
 	// Create a mock DAO that returns error for GetUserDetails
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+	mockDAO.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
 		return nil, daos.ErrMockDAO
 	}
 
@@ -195,7 +195,7 @@ func TestUpdateUserEndpoint_UpdateUserError(t *testing.T) {
 	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
 		return &models.UserInfo{Email: email}, nil
 	}
-	mockDAO.MockUpdateUser = func(user models.UserInfo) error {
+	mockDAO.MockUpdateUser = func(_ models.UserInfo) error {
 		return daos.ErrMockDAO
 	}
 
@@ -231,7 +231,7 @@ func TestUpdateUserEndpoint_AWSError(t *testing.T) {
 	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
 		return &models.UserInfo{Email: email}, nil
 	}
-	mockDAO.MockUpdateUser = func(user models.UserInfo) error {
+	mockDAO.MockUpdateUser = func(_ models.UserInfo) error {
 		// Simulate AWS smithy operation error
 		return &smithy.OperationError{
 			ServiceID:     "DynamoDB",

@@ -86,7 +86,7 @@ func TestAnalyzeChapterEndpoint_NoDAO(t *testing.T) {
 
 func TestAnalyzeChapterEndpoint_BlockRetrievalError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetChapterParagraphs = func(storyID, chapterID string, exclusiveStartKey *map[string]types.AttributeValue) (*models.BlocksData, error) {
+	mockDAO.MockGetChapterParagraphs = func(_, _ string, _ *map[string]types.AttributeValue) (*models.BlocksData, error) {
 		return nil, errors.New("failed to retrieve blocks")
 	}
 
@@ -108,7 +108,7 @@ func TestAnalyzeChapterEndpoint_BlockRetrievalError(t *testing.T) {
 
 func TestAnalyzeChapterEndpoint_EmptyChapter(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetChapterParagraphs = func(storyID, chapterID string, exclusiveStartKey *map[string]types.AttributeValue) (*models.BlocksData, error) {
+	mockDAO.MockGetChapterParagraphs = func(_, _ string, _ *map[string]types.AttributeValue) (*models.BlocksData, error) {
 		// Return empty blocks
 		return &models.BlocksData{
 			Items: []map[string]types.AttributeValue{},
