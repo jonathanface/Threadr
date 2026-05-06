@@ -46,7 +46,7 @@ func (d *DAO) WriteAssociations(
 			if imgFile == "" {
 				// Picking a placeholder image — non-security-sensitive, math/rand is fine.
 				switch item.Type {
-				case "character":
+				case associationTypeCharacter:
 					imageFileName := rand.IntN(maxDefaultPortraitImages-1) + 1 //nolint:gosec
 					imgFile = s3PortraitBaseURL + strconv.Itoa(imageFileName) + ".jpg"
 				case "place":
@@ -68,8 +68,8 @@ func (d *DAO) WriteAssociations(
 			associations[i].Portrait = imgFile
 			// Create a key for the item.
 			key := map[string]types.AttributeValue{
-				"association_id":     &types.AttributeValueMemberS{Value: item.ID},
-				"story_or_series_id": &types.AttributeValueMemberS{Value: storyOrSeriesID},
+				attrAssociationID:   &types.AttributeValueMemberS{Value: item.ID},
+				attrStoryOrSeriesID: &types.AttributeValueMemberS{Value: storyOrSeriesID},
 			}
 			// Create an update input for the item.
 			updateInput := &types.Update{
@@ -137,8 +137,8 @@ func (d *DAO) UpdateAssociationPortraitEntryInDB(
 	email, storyOrSeriesID, associationID, url string,
 ) (err error) {
 	key := map[string]types.AttributeValue{
-		"association_id":     &types.AttributeValueMemberS{Value: associationID},
-		"story_or_series_id": &types.AttributeValueMemberS{Value: storyOrSeriesID},
+		attrAssociationID:   &types.AttributeValueMemberS{Value: associationID},
+		attrStoryOrSeriesID: &types.AttributeValueMemberS{Value: storyOrSeriesID},
 	}
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	updateInput := &dynamodb.UpdateItemInput{
@@ -195,8 +195,8 @@ func (d *DAO) DeleteAssociations(
 		for i, item := range batch {
 			// Create a key for the item.
 			key := map[string]types.AttributeValue{
-				"association_id":     &types.AttributeValueMemberS{Value: item.ID},
-				"story_or_series_id": &types.AttributeValueMemberS{Value: storyOrSeriesID},
+				attrAssociationID:   &types.AttributeValueMemberS{Value: item.ID},
+				attrStoryOrSeriesID: &types.AttributeValueMemberS{Value: storyOrSeriesID},
 			}
 
 			// Create a delete input for the item.

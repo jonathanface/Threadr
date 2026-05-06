@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
+//nolint:funlen // Cascade soft-delete: chapters + series + associations + story; one transactional unit.
 func (d *DAO) SoftDeleteStory(ctx context.Context, email, storyID string, automated bool) error {
 	logger.Info("SoftDeleteStory started",
 		"email", email,
@@ -66,15 +67,15 @@ func (d *DAO) SoftDeleteStory(ctx context.Context, email, storyID string, automa
 
 	// Mark each chapter as deleted (content remains in story_blocks table)
 	for _, item := range chapterOut.Items {
-		chapterIDAttr, ok := item["chapter_id"].(*types.AttributeValueMemberS)
+		chapterIDAttr, ok := item[attrChapterID].(*types.AttributeValueMemberS)
 		if !ok {
 			return errors.New("chapter_id missing or not a string")
 		}
 		chapterID := chapterIDAttr.Value
 
 		chapterKey := map[string]types.AttributeValue{
-			"chapter_id": &types.AttributeValueMemberS{Value: chapterID},
-			"story_id":   &types.AttributeValueMemberS{Value: storyID},
+			attrChapterID: &types.AttributeValueMemberS{Value: chapterID},
+			attrStoryID:   &types.AttributeValueMemberS{Value: storyID},
 		}
 		updateChapter := &types.Update{
 			TableName:        aws.String("chapters" + GetTableSuffix()),
@@ -111,8 +112,8 @@ func (d *DAO) SoftDeleteStory(ctx context.Context, email, storyID string, automa
 				"storyId", storyID,
 				"email", email)
 			seriesKey := map[string]types.AttributeValue{
-				"series_id": &types.AttributeValueMemberS{Value: seriesID},
-				"author":    &types.AttributeValueMemberS{Value: email},
+				attrSeriesID: &types.AttributeValueMemberS{Value: seriesID},
+				"author":     &types.AttributeValueMemberS{Value: email},
 			}
 			seriesUpdate := &types.Update{
 				TableName:        aws.String("series" + GetTableSuffix()),
@@ -158,14 +159,14 @@ func (d *DAO) SoftDeleteStory(ctx context.Context, email, storyID string, automa
 			"storyOrSeriesId", storyOrSeriesID,
 			"associationCount", len(associationOut.Items))
 		for _, item := range associationOut.Items {
-			assocIDAttr, ok := item["association_id"].(*types.AttributeValueMemberS)
+			assocIDAttr, ok := item[attrAssociationID].(*types.AttributeValueMemberS)
 			if !ok {
 				return errors.New("association_id missing or not a string")
 			}
 			assocID := assocIDAttr.Value
 			associationKey := map[string]types.AttributeValue{
-				"association_id":     &types.AttributeValueMemberS{Value: assocID},
-				"story_or_series_id": &types.AttributeValueMemberS{Value: storyOrSeriesID},
+				attrAssociationID:   &types.AttributeValueMemberS{Value: assocID},
+				attrStoryOrSeriesID: &types.AttributeValueMemberS{Value: storyOrSeriesID},
 			}
 			associationUpdate := &types.Update{
 				TableName:        aws.String("associations" + GetTableSuffix()),
@@ -196,8 +197,8 @@ func (d *DAO) SoftDeleteStory(ctx context.Context, email, storyID string, automa
 
 	// --- Process Story Update ---
 	storyKey := map[string]types.AttributeValue{
-		"story_id": &types.AttributeValueMemberS{Value: storyID},
-		"author":   &types.AttributeValueMemberS{Value: email},
+		attrStoryID: &types.AttributeValueMemberS{Value: storyID},
+		"author":    &types.AttributeValueMemberS{Value: email},
 	}
 	storyUpdate := &types.Update{
 		TableName:        aws.String("stories" + GetTableSuffix()),
@@ -242,6 +243,7 @@ func (d *DAO) SoftDeleteStory(ctx context.Context, email, storyID string, automa
 	return nil
 }
 
+//nolint:funlen // Cascade hard-delete: blocks + chapters + associations + S3 cleanup + story.
 func (d *DAO) hardDeleteStory(ctx context.Context, email, storyID string) error {
 	logger.Info("HardDeleteStory started",
 		"email", email,
@@ -287,8 +289,8 @@ func (d *DAO) hardDeleteStory(ctx context.Context, email, storyID string) error 
 		}
 		// Delete associated tables
 		chapterKey := map[string]types.AttributeValue{
-			"story_id":   &types.AttributeValueMemberS{Value: storyID},
-			"chapter_id": chapterID,
+			attrStoryID:   &types.AttributeValueMemberS{Value: storyID},
+			attrChapterID: chapterID,
 		}
 		chapterDeleteInput := &dynamodb.DeleteItemInput{
 			TableName: aws.String("chapters" + GetTableSuffix()),
@@ -307,8 +309,8 @@ func (d *DAO) hardDeleteStory(ctx context.Context, email, storyID string) error 
 
 	// Delete story
 	storyKey := map[string]types.AttributeValue{
-		"story_id": &types.AttributeValueMemberS{Value: storyID},
-		"author":   &types.AttributeValueMemberS{Value: email},
+		attrStoryID: &types.AttributeValueMemberS{Value: storyID},
+		"author":    &types.AttributeValueMemberS{Value: email},
 	}
 	storyDeleteInput := &dynamodb.DeleteItemInput{
 		TableName: aws.String("stories" + GetTableSuffix()),
@@ -341,8 +343,8 @@ func (d *DAO) hardDeleteStory(ctx context.Context, email, storyID string) error 
 		if len(series.Stories)-1 <= 0 {
 			storyOrSeriesID = series.ID
 			seriesKey := map[string]types.AttributeValue{
-				"series_id": &types.AttributeValueMemberS{Value: originalStory.SeriesID},
-				"author":    &types.AttributeValueMemberS{Value: email},
+				attrSeriesID: &types.AttributeValueMemberS{Value: originalStory.SeriesID},
+				"author":     &types.AttributeValueMemberS{Value: email},
 			}
 			seriesDeleteInput := &dynamodb.DeleteItemInput{
 				TableName: aws.String("series" + GetTableSuffix()),
@@ -413,14 +415,14 @@ func (d *DAO) hardDeleteStory(ctx context.Context, email, storyID string) error 
 			"associationCount", len(associationOut.Items))
 
 		for _, item := range associationOut.Items {
-			assocAttr, ok := item["association_id"].(*types.AttributeValueMemberS)
+			assocAttr, ok := item[attrAssociationID].(*types.AttributeValueMemberS)
 			if !ok {
 				continue
 			}
 			assocID := assocAttr.Value
 			associationKey := map[string]types.AttributeValue{
-				"association_id":     &types.AttributeValueMemberS{Value: assocID},
-				"story_or_series_id": &types.AttributeValueMemberS{Value: storyOrSeriesID},
+				attrAssociationID:   &types.AttributeValueMemberS{Value: assocID},
+				attrStoryOrSeriesID: &types.AttributeValueMemberS{Value: storyOrSeriesID},
 			}
 			associationDeleteInput := &dynamodb.DeleteItemInput{
 				TableName: aws.String("associations" + GetTableSuffix()),
@@ -446,7 +448,7 @@ func (d *DAO) hardDeleteStory(ctx context.Context, email, storyID string) error 
 				continue
 			}
 			switch typeAttr.Value {
-			case "character":
+			case associationTypeCharacter:
 				bucketName = "richdocterportraits"
 			case "event":
 				bucketName = "richdocterevents"
@@ -514,8 +516,8 @@ func (d *DAO) RestoreStory(ctx context.Context, email, storyID string) error {
 	input := &dynamodb.UpdateItemInput{
 		TableName: aws.String("stories" + GetTableSuffix()),
 		Key: map[string]types.AttributeValue{
-			"story_id": &types.AttributeValueMemberS{Value: storyID},
-			"author":   &types.AttributeValueMemberS{Value: email},
+			attrStoryID: &types.AttributeValueMemberS{Value: storyID},
+			"author":    &types.AttributeValueMemberS{Value: email},
 		},
 		UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 	}
@@ -536,8 +538,8 @@ func (d *DAO) RestoreSeries(ctx context.Context, email, seriesID string) error {
 	input := &dynamodb.UpdateItemInput{
 		TableName: aws.String("series" + GetTableSuffix()),
 		Key: map[string]types.AttributeValue{
-			"series_id": &types.AttributeValueMemberS{Value: seriesID},
-			"author":    &types.AttributeValueMemberS{Value: email},
+			attrSeriesID: &types.AttributeValueMemberS{Value: seriesID},
+			"author":     &types.AttributeValueMemberS{Value: email},
 		},
 		UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 	}

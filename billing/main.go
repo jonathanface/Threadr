@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -27,9 +26,13 @@ import (
 	"github.com/stripe/stripe-go/v79/billingportal/session"
 )
 
-// stubs to make these funcs mockable in tests.
-var getUserEmailFn = getUserEmail
-var ensureCustomerFn = ensureCustomer
+// Test seams: tests swap these to inject behavior without a full DI graph.
+//
+//nolint:gochecknoglobals // mock-injection points used only by tests.
+var (
+	getUserEmailFn   = getUserEmail
+	ensureCustomerFn = ensureCustomer
+)
 
 // safeReturnURL validates and sanitizes return URLs to prevent open redirect attacks.
 // Only allows:
@@ -52,7 +55,7 @@ func safeReturnURL(returnURL string, r *http.Request) string {
 	if strings.HasPrefix(returnURL, "/") {
 		// Prevent protocol-relative URLs like "//evil.com"
 		if strings.HasPrefix(returnURL, "//") {
-			log.Printf("[safeReturnURL] Rejected protocol-relative URL: %s", returnURL)
+			logger.Warn("safeReturnURL: rejected protocol-relative URL", "returnURL", returnURL)
 			return defaultURL
 		}
 		return scheme + "://" + r.Host + returnURL
@@ -61,25 +64,26 @@ func safeReturnURL(returnURL string, r *http.Request) string {
 	// Validate absolute URLs - must match request host
 	parsed, err := url.Parse(returnURL)
 	if err != nil {
-		log.Printf("[safeReturnURL] Failed to parse URL: %s", returnURL)
+		logger.Warn("safeReturnURL: failed to parse URL", "returnURL", returnURL, "error", err)
 		return defaultURL
 	}
 
 	// Must be http or https
 	if parsed.Scheme != "http" && parsed.Scheme != "https" {
-		log.Printf("[safeReturnURL] Rejected non-http(s) scheme: %s", returnURL)
+		logger.Warn("safeReturnURL: rejected non-http(s) scheme", "returnURL", returnURL)
 		return defaultURL
 	}
 
 	// Host must match (case-insensitive)
 	if !strings.EqualFold(parsed.Host, r.Host) {
-		log.Printf("[safeReturnURL] Rejected mismatched host: got %s, expected %s", parsed.Host, r.Host)
+		logger.Warn("safeReturnURL: rejected mismatched host", "got", parsed.Host, "expected", r.Host)
 		return defaultURL
 	}
 
 	return returnURL
 }
 
+//nolint:funlen // Stripe webhook dispatch: signature verify + event-type switch + cascade DAO writes.
 func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 	const tolerance = 300 * time.Second
 
@@ -127,7 +131,8 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 		email        string
 		user         *models.UserInfo
 	)
-	switch event.Type {
+	// Stripe defines ~270 event types we don't care about; the default branch ACKs them.
+	switch event.Type { //nolint:exhaustive
 	case "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted":
 		var sub stripe.Subscription
 		if err = json.NewDecoder(bytes.NewReader(event.Data.Raw)).Decode(&sub); err != nil {
@@ -136,16 +141,19 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("[StripeWebhook] Processing %s event for subscription %s, customer %s, MODE=%s",
-			event.Type, sub.ID, sub.Customer.ID, os.Getenv("MODE"))
+		logger.Info("StripeWebhook processing event",
+			"eventType", event.Type,
+			"subscriptionID", sub.ID,
+			"customerID", sub.Customer.ID,
+			"mode", os.Getenv("MODE"))
 
 		email, err = dao.GetEmailByCustomerID(context.Background(), sub.Customer.ID)
 		if err != nil || email == "" {
-			log.Printf("[StripeWebhook] Failed to find email for customer %s: %v", sub.Customer.ID, err)
+			logger.Warn("StripeWebhook: failed to find email for customer", "customerID", sub.Customer.ID, "error", err)
 			RespondWithError(w, http.StatusBadRequest, "unknown customer")
 			return
 		}
-		log.Printf("[StripeWebhook] Found email %s for customer %s", email, sub.Customer.ID)
+		logger.Info("StripeWebhook: found email for customer", "email", email, "customerID", sub.Customer.ID)
 
 		if err := dao.UpdateSubscription(context.Background(), models.Subscription{ //nolint:govet
 			Email:                  email,
@@ -203,7 +211,7 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 							storyID,
 							true,
 						); delErr != nil {
-							log.Printf("background SoftDeleteStory failed for %s: %v", storyID, delErr)
+							logger.Error("background SoftDeleteStory failed", "storyID", storyID, "error", delErr)
 						}
 					}(s.ID)
 				}
@@ -230,7 +238,7 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 
 			events, err := dao.RestoreAutomaticallyDeletedStories(ctx, email) //nolint:govet
 			if err != nil {
-				log.Printf("restore start failed for %s: %v", email, err)
+				logger.Error("restore start failed", "email", email, "error", err)
 				return
 			}
 			for ev := range events {
@@ -239,14 +247,15 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 					if getErr == nil {
 						story.Inactive = false
 						if _, e2 := dao.EditStory(context.Background(), email, *story); e2 != nil {
-							log.Printf("post-restore EditStory failed %s: %v", ev.StoryID, e2)
+							logger.Error("post-restore EditStory failed", "storyID", ev.StoryID, "error", e2)
 						}
 					} else {
-						log.Printf("GetStoryByID failed %s: %v", ev.StoryID, getErr)
+						logger.Error("GetStoryByID failed", "storyID", ev.StoryID, "error", getErr)
 					}
-					log.Printf("restored %s (%d/%d)", ev.StoryID, ev.Index, ev.Total)
+					logger.Info("restored story", "storyID", ev.StoryID, "index", ev.Index, "total", ev.Total)
 				} else {
-					log.Printf("restore error %s (%d/%d): %v", ev.StoryID, ev.Index, ev.Total, ev.Err)
+					logger.Error("restore error",
+						"storyID", ev.StoryID, "index", ev.Index, "total", ev.Total, "error", ev.Err)
 				}
 			}
 		}(email)
@@ -299,24 +308,23 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 	// Check if there's an existing incomplete subscription for this customer
 	var s *stripe.Subscription
 	if sub != nil && sub.SubscriptionID != "" {
-		log.Printf("[SubscribeCustomer] Checking existing subscription %s for %s", sub.SubscriptionID, email)
+		logger.Info("SubscribeCustomer: checking existing subscription",
+			"subscriptionID", sub.SubscriptionID, "email", email)
 		existingSub, err := subscription.Get(sub.SubscriptionID, nil) //nolint:govet
 		if err == nil && existingSub.Status == stripe.SubscriptionStatusIncomplete {
-			log.Printf(
-				"[SubscribeCustomer] Reusing existing incomplete subscription %s for %s",
-				sub.SubscriptionID,
-				email,
-			)
+			logger.Info("SubscribeCustomer: reusing existing incomplete subscription",
+				"subscriptionID", sub.SubscriptionID, "email", email)
 			// Reuse the existing incomplete subscription
 			s = existingSub
 		} else if err != nil {
-			log.Printf("[SubscribeCustomer] Could not fetch existing subscription %s: %v", sub.SubscriptionID, err)
+			logger.Warn("SubscribeCustomer: could not fetch existing subscription",
+				"subscriptionID", sub.SubscriptionID, "error", err)
 		}
 	}
 
 	// If no incomplete subscription found, create a new one
 	if s == nil {
-		log.Printf("[SubscribeCustomer] Creating new subscription for %s", email)
+		logger.Info("SubscribeCustomer: creating new subscription", "email", email)
 		params := &stripe.SubscriptionParams{
 			Customer:        stripe.String(custID),
 			Items:           []*stripe.SubscriptionItemsParams{{Price: stripe.String(priceID)}},
@@ -334,7 +342,7 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "An internal error occurred", http.StatusInternalServerError)
 			return
 		}
-		log.Printf("[SubscribeCustomer] Created new subscription %s for %s", s.ID, email)
+		logger.Info("SubscribeCustomer: created new subscription", "subscriptionID", s.ID, "email", email)
 	} else {
 		// Expand the latest invoice for the existing subscription
 		s, err = subscription.Get(s.ID, &stripe.SubscriptionParams{
@@ -417,20 +425,19 @@ func SummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if sub != nil && sub.SubscriptionID != "" {
-		log.Printf("[BillingSummary] Fetching subscription %s from Stripe API for %s", sub.SubscriptionID, email)
+		logger.Info("BillingSummary: fetching subscription from Stripe API",
+			"subscriptionID", sub.SubscriptionID, "email", email)
 		stripeSub, err := subscription.Get(sub.SubscriptionID, nil) //nolint:govet
 		if err != nil {
-			log.Printf("[BillingSummary] Failed to get subscription from Stripe for %s: %v", email, err)
+			logger.Error("BillingSummary: failed to get subscription from Stripe", "email", email, "error", err)
 			RespondWithError(w, http.StatusInternalServerError, "unable to retrieve subscription from stripe")
 			return
 		}
-		log.Printf(
-			"[BillingSummary] Retrieved subscription %s for %s - Status: %s, Customer: %s",
-			stripeSub.ID,
-			email,
-			stripeSub.Status,
-			stripeSub.Customer.ID,
-		)
+		logger.Info("BillingSummary: retrieved subscription",
+			"subscriptionID", stripeSub.ID,
+			"email", email,
+			"status", stripeSub.Status,
+			"customerID", stripeSub.Customer.ID)
 
 		var custID string
 		if stripeSub.Customer != nil && stripeSub.Customer.ID != "" {
@@ -453,11 +460,9 @@ func SummaryEndpoint(w http.ResponseWriter, r *http.Request) {
 		if !cpeTime.IsZero() {
 			cpe = cpeTime.Format(time.RFC3339)
 		}
-		log.Printf(
-			"[BillingSummary] Returning subscription status: %s, CancelAtPeriodEnd: %v",
-			stripeSub.Status,
-			stripeSub.CancelAtPeriodEnd,
-		)
+		logger.Info("BillingSummary: returning subscription status",
+			"status", stripeSub.Status,
+			"cancelAtPeriodEnd", stripeSub.CancelAtPeriodEnd)
 		RespondWithJSON(w, http.StatusOK, map[string]any{
 			"id":                stripeSub.ID,
 			"status":            stripeSub.Status,

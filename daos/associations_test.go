@@ -221,6 +221,7 @@ func TestDeleteAssociations(t *testing.T) {
 
 			err := mockDao.DeleteAssociations(context.Background(), tc.email, tc.storyID, tc.associations)
 			if tc.wantErr {
+				//nolint:gocritic // mixed nil + substring checks; switch would obscure the intent.
 				if err == nil {
 					t.Errorf("Expected error but got nil")
 				} else if tc.expectedErrContains != "" && !contains(err.Error(), tc.expectedErrContains) {
@@ -269,6 +270,7 @@ func TestGetAssociationDetails(t *testing.T) {
 			_, err := mockDao.GetAssociationDetails(context.Background(), tc.email, tc.storyID, tc.associationID)
 
 			if tc.wantErr {
+				//nolint:gocritic // mixed nil + substring checks; switch would obscure the intent.
 				if err == nil {
 					t.Errorf("Expected error but got nil")
 				} else if tc.expectedErrContains != "" && !contains(err.Error(), tc.expectedErrContains) {

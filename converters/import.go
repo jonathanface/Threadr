@@ -226,7 +226,7 @@ func SplitHTMLIntoChapters(htmlContent string, autotab bool, skipFirstPage bool)
 	if len(chapters) == 0 {
 		// No page breaks found — single chapter
 		return []ImportedChapter{{
-			Title:  "Chapter 1",
+			Title:  firstChapterTitle,
 			Blocks: htmlToLexicalBlocks(htmlContent, autotab),
 		}}
 	}
@@ -314,7 +314,7 @@ func htmlParagraphToLexicalNode(html string, autotab bool) map[string]any {
 	}
 
 	return map[string]any{
-		"type":      "paragraph",
+		"type":      tagParagraph,
 		"children":  children,
 		"direction": "ltr",
 		"format":    "",
@@ -441,7 +441,7 @@ func stripPageHeaders(text string) string {
 }
 
 // splitPDFTextIntoChapters splits plain text from pdftotext into chapters.
-// It detects chapter breaks from lines like "Chapter 1", "CHAPTER ONE", "Chapter 1: Title", etc.
+// It detects chapter breaks from lines like firstChapterTitle, "CHAPTER ONE", "Chapter 1: Title", etc.
 func splitPDFTextIntoChapters(text string, autotab bool) []ImportedChapter {
 	text = stripPageHeaders(text)
 
@@ -454,7 +454,7 @@ func splitPDFTextIntoChapters(text string, autotab bool) []ImportedChapter {
 		html := txtToHTML(text)
 		return []ImportedChapter{
 			{
-				Title:  "Chapter 1",
+				Title:  firstChapterTitle,
 				Blocks: htmlToLexicalBlocks(html, autotab),
 			},
 		}
@@ -546,7 +546,7 @@ func ImportDocument(filePath string, format string, autotab bool, skipFirstPage 
 	case "txt":
 		chapters = []ImportedChapter{
 			{
-				Title:  "Chapter 1",
+				Title:  firstChapterTitle,
 				Blocks: htmlToLexicalBlocks(txtToHTML(content), autotab),
 			},
 		}

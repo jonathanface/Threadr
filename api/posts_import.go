@@ -20,6 +20,9 @@ import (
 
 const maxImportFileSize = 20 * 1024 * 1024 // 20MB
 
+// allowedImportFormats is a static lookup table — Go can't make maps const.
+//
+//nolint:gochecknoglobals
 var allowedImportFormats = map[string]string{
 	".docx": "docx",
 	".txt":  "txt",
@@ -31,6 +34,8 @@ var allowedImportFormats = map[string]string{
 // POST /api/v1/stories/{storyID}/import
 // Content-Type: multipart/form-data
 // Form field: "file" (the document to import).
+//
+//nolint:funlen // File upload → format detect → pandoc → split → write chapters; sequential pipeline.
 func ImportDocumentEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		err     error
@@ -68,9 +73,9 @@ func ImportDocumentEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse multipart form with size limit
+	// Parse multipart form with size limit (body already bounded by MaxBytesReader above).
 	r.Body = http.MaxBytesReader(w, r.Body, maxImportFileSize)
-	if err = r.ParseMultipartForm(maxImportFileSize); err != nil {
+	if err = r.ParseMultipartForm(maxImportFileSize); err != nil { //nolint:gosec
 		RespondWithError(w, http.StatusBadRequest, "File too large. Maximum size is 20MB.")
 		return
 	}

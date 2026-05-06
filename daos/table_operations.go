@@ -16,7 +16,7 @@ import (
 
 func (d *DAO) createBlockTable(ctx context.Context, tableName string, tags *[]types.Tag) error {
 	partitionKey := aws.String("key_id")
-	gsiPartKey := aws.String("story_id")
+	gsiPartKey := aws.String(attrStoryID)
 	gsiSortKey := aws.String("place")
 
 	tableSchema := []types.KeySchemaElement{
@@ -74,8 +74,8 @@ func (d *DAO) createBlockTable(ctx context.Context, tableName string, tags *[]ty
 	}
 
 	go func() {
-		// Use Background context as this goroutine needs to outlive the request
-		bgCtx := context.Background()
+		// Detach from request cancellation — the table-creation waiter must outlive the originating request.
+		bgCtx := context.WithoutCancel(ctx)
 		waiter := dynamodb.NewTableExistsWaiter(d.DynamoClient)
 		if err = waiter.Wait(bgCtx, &dynamodb.DescribeTableInput{
 			TableName: aws.String(tableName),

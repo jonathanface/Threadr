@@ -76,6 +76,7 @@ func deleteS3Image(imageURL, bucket string) error {
 	return nil
 }
 
+//nolint:funlen // Series edit: stories merge + image upload + persist; sequential CRUD with optional file path.
 func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		seriesID string
@@ -154,8 +155,10 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	const maxFileSize = 5 * oneMB * oneMB // 5 MB
-	// image upload
-	err = r.ParseMultipartForm(10 << 20)
+	// image upload — bound the entire request body, not just the in-memory portion.
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+	const parseFormMemoryBudget = 10 << 20            // 10 MB in-memory budget; body already bounded above
+	err = r.ParseMultipartForm(parseFormMemoryBudget) //nolint:gosec // body bounded by MaxBytesReader above
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Unable to parse file")
 		return
@@ -188,7 +191,7 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 			)
 			return
 		}
-		allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
+		allowedTypes := []string{contentTypeJPEG, contentTypePNG, contentTypeGIF}
 		fileBytes := make([]byte, handler.Size)
 		if _, err = file.Read(fileBytes); err != nil {
 			logger.Error("Internal error", "error", err)
@@ -340,6 +343,7 @@ func RemoveStoryFromSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, updatedSeries)
 }
 
+//nolint:funlen // Story edit: validation + image upload + DAO persist; sequential CRUD with optional file path.
 func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		storyID string
@@ -390,6 +394,7 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	//nolint:gocritic // chained `len(strings.TrimSpace(...))` checks aren't naturally a switch.
 	if len(strings.TrimSpace(r.FormValue("series_id"))) > 0 {
 		story.SeriesID = strings.TrimSpace(r.FormValue("series_id"))
 	} else if len(strings.TrimSpace(r.FormValue("series_name"))) > 0 {
@@ -399,8 +404,10 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	const maxFileSize = 5 * oneMB * oneMB // 5 MB
-	// image upload
-	err = r.ParseMultipartForm(10 << 20)
+	// image upload — bound the entire request body, not just the in-memory portion.
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+	const parseFormMemoryBudget = 10 << 20            // 10 MB in-memory budget; body already bounded above
+	err = r.ParseMultipartForm(parseFormMemoryBudget) //nolint:gosec // body bounded by MaxBytesReader above
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Unable to parse file")
 		return
@@ -425,7 +432,7 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 				"oldImageURL", story.ImageURL)
 		}
 
-		allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
+		allowedTypes := []string{contentTypeJPEG, contentTypePNG, contentTypeGIF}
 		if handler.Size < 0 || handler.Size > int64(maxFileSize) {
 			RespondWithError(
 				w,

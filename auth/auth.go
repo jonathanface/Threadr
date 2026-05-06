@@ -290,6 +290,7 @@ func safeRedirect(dest, defaultURL string, allowed []string) string {
 	return defaultURL
 }
 
+//nolint:funlen // OAuth callback: provider flows + mobile vs web branches + token mint; meaningfully one operation.
 func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 	logger.Info("=== CALLBACK STARTED ===", "url", r.URL.String(), "remoteAddr", r.RemoteAddr)
 
@@ -572,7 +573,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 		if updated.NotifyExpired {
 			logger.Info("User subscription expired, creating alert", "email", info.Email, "remoteAddr", r.RemoteAddr)
 			go func() {
-				bgCtx := context.Background()
+				bgCtx := context.WithoutCancel(r.Context())
 				alert := models.Alert{
 					ID:          "sub-expired-" + info.Email,
 					Subject:     "Subscription Expired",
@@ -591,7 +592,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 		if updated.NotifyRestored {
 			logger.Info("User subscription restored, creating alert", "email", info.Email, "remoteAddr", r.RemoteAddr)
 			go func() {
-				bgCtx := context.Background()
+				bgCtx := context.WithoutCancel(r.Context())
 				alert := models.Alert{
 					ID:          "sub-restored-" + info.Email + "-" + strconv.FormatInt(time.Now().Unix(), 10),
 					Subject:     "Subscription Restored",
@@ -614,7 +615,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 				daysLeft := int(time.Until(sub.CurrentSubscriptionEnd).Hours() / 24) //nolint:mnd
 				if daysLeft >= 0 && daysLeft <= 7 {
 					go func() {
-						bgCtx := context.Background()
+						bgCtx := context.WithoutCancel(r.Context())
 						// Dedup: use a fixed ID so we don't spam on every login
 						alert := models.Alert{
 							ID:      "sub-expiring-" + info.Email,
@@ -795,7 +796,8 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 		return
 	}
 
-	http.Redirect(w, r, next, http.StatusTemporaryRedirect)
+	// next has been routed through safeRedirect / safeMobileRedirect above; gosec's taint analyzer can't see the validation.
+	http.Redirect(w, r, next, http.StatusTemporaryRedirect) //nolint:gosec
 }
 
 // MobileSessionHandler exchanges a mobile token for a session token.

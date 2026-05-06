@@ -83,13 +83,11 @@ func handler(ctx context.Context) error {
 				log.Printf("Waiting for table %q to be deleted...", newTableName)
 				time.Sleep(tableOpPollInterval)
 			}
-		} else {
+		} else if !strings.Contains(err.Error(), "not found") &&
+			!strings.Contains(err.Error(), "ResourceNotFoundException") {
 			// If error is not "table not found", log unexpected error.
-			if !strings.Contains(err.Error(), "not found") &&
-				!strings.Contains(err.Error(), "ResourceNotFoundException") {
-				log.Printf("Unexpected error describing table %q: %v", newTableName, err)
-				continue
-			}
+			log.Printf("Unexpected error describing table %q: %v", newTableName, err)
+			continue
 		}
 
 		// Create an on-demand backup of the original table.

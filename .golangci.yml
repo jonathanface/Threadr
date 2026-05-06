@@ -282,19 +282,23 @@ linters:
       struct-method: false
 
     funlen:
-      # Checks the number of lines in a function.
-      # If lower than 0, disable the check.
-      # Default: 60
-      lines: 100
-      # Checks the number of statements in a function.
-      # If lower than 0, disable the check.
-      # Default: 40
-      statements: 50
+      # HTTP handlers in this codebase naturally run long because of mandatory
+      # error-handling boilerplate (auth check, DAO context, validation, AWS
+      # error response). Bumped above defaults to filter out borderline cases
+      # and only flag genuinely oversized functions worth refactoring.
+      lines: 150
+      statements: 80
 
     gochecksumtype:
       # Presence of `default` case in switch statements satisfies exhaustiveness, if all members are not listed.
       # Default: true
       default-signifies-exhaustive: false
+
+    goconst:
+      # Skip very short repeated strings — most are JSON wire-format keys
+      # ("error", "email", "title", "true") where a literal is clearer than a
+      # named const, and the cost of a typo is low (test coverage catches it).
+      min-len: 8
 
     gocognit:
       # Minimal code complexity to report.

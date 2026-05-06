@@ -73,11 +73,12 @@ func main() {
 		result := verifyTable(ctx, client, tableInfo)
 		results = append(results, result)
 
-		if result.Match {
+		switch {
+		case result.Match:
 			log.Printf("  ✓ Match: %d items in both tables\n", result.OldTableCount)
-		} else if result.Error != "" {
+		case result.Error != "":
 			log.Printf("  ✗ Error: %s\n", result.Error)
-		} else {
+		default:
 			log.Printf("  ✗ Mismatch: Old=%d, New=%d\n", result.OldTableCount, result.NewTableCount)
 		}
 	}
@@ -275,12 +276,13 @@ func printSummary(results []VerificationResult) {
 		totalOldItems += result.OldTableCount
 		totalNewItems += result.NewTableCount
 
-		if result.Error != "" {
+		switch {
+		case result.Error != "":
 			errorCount++
 			errors = append(errors, result)
-		} else if result.Match {
+		case result.Match:
 			matchCount++
-		} else {
+		default:
 			mismatchCount++
 			mismatches = append(mismatches, result)
 		}

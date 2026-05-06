@@ -19,7 +19,7 @@ lint:
 	golangci-lint run --fix
 
 lint-ui:
-	npm --prefix ./static run lint
+	npm --prefix ./static run lint --fix
 
 unit-test:
 	@go test ./...

@@ -25,7 +25,7 @@ func TestTokenExpiry(t *testing.T) {
 	t.Run("expired token is rejected and removed", func(t *testing.T) {
 		token := GenerateSessionToken()
 		// Store with an already-expired time
-		tokenMap.Store(token, &tokenData{
+		defaultStore.m.Store(token, &tokenData{
 			UserInfo:  "expired@test.com",
 			ExpiresAt: time.Now().Add(-1 * time.Hour),
 		})
@@ -36,7 +36,7 @@ func TestTokenExpiry(t *testing.T) {
 		}
 
 		// Verify it was cleaned up
-		_, exists := tokenMap.Load(token)
+		_, exists := defaultStore.m.Load(token)
 		if exists {
 			t.Error("Expected expired token to be removed from map")
 		}
@@ -44,7 +44,7 @@ func TestTokenExpiry(t *testing.T) {
 
 	t.Run("token near expiry still works", func(t *testing.T) {
 		token := GenerateSessionToken()
-		tokenMap.Store(token, &tokenData{
+		defaultStore.m.Store(token, &tokenData{
 			UserInfo:  "valid@test.com",
 			ExpiresAt: time.Now().Add(1 * time.Minute),
 		})
@@ -72,7 +72,7 @@ func TestTokenExpiry(t *testing.T) {
 		token := GenerateSessionToken()
 		StoreTokenMapping(token, "user@test.com")
 
-		val, _ := tokenMap.Load(token)
+		val, _ := defaultStore.m.Load(token)
 		data := val.(*tokenData)
 
 		expectedExpiry := time.Now().Add(30 * 24 * time.Hour)

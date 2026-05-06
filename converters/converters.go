@@ -327,7 +327,7 @@ func nodeToHTML(node LexicalNode) string {
 	var buf strings.Builder
 
 	switch node.Type {
-	case "paragraph", "custom-paragraph":
+	case tagParagraph, "custom-paragraph":
 		// Get text alignment style
 		var style string
 		if node.Format != nil {
@@ -683,6 +683,8 @@ func buildReferenceDocx(srcPath string, typo typography) (string, func(), error)
 //   - U+FEFF  byte-order mark / word joiner
 //   - U+00AD  soft hyphen — pandoc emits <w:softHyphen/>, which renders as a
 //     comma-like mark when formatting marks are visible.
+//
+//nolint:gochecknoglobals // strings.NewReplacer can't be const; effectively immutable after init.
 var docxNoiseReplacer = strings.NewReplacer(
 	"\t", "",
 	"\u200B", "", // zero-width space
@@ -714,21 +716,25 @@ var lineHeightDeclRe = regexp.MustCompile(`(?i)line-height\s*:\s*([\d.]+)`)
 
 // alignToCustomStyle maps a CSS text-align keyword to its custom paragraph
 // style name. The empty string means "no alignment override".
+//
+//nolint:gochecknoglobals // static lookup table; Go maps can't be const.
 var alignToCustomStyle = map[string]string{
-	"center":  "Centered",
+	"center":  styleCentered,
 	"right":   "Righted",
-	"justify": "Justified",
+	"justify": styleJustified,
 }
 
 // lineHeightToCustomStyle maps the four allowed line-height values (the same
 // set the document-settings dropdown offers) to a custom paragraph style.
+//
+//nolint:gochecknoglobals // static lookup table; Go maps can't be const.
 var lineHeightToCustomStyle = map[string]string{
-	"1":    "LineSingle",
-	"1.0":  "LineSingle",
+	"1":    styleLineSingle,
+	"1.0":  styleLineSingle,
 	"1.15": "Line115",
 	"1.5":  "Line15",
-	"2":    "LineDouble",
-	"2.0":  "LineDouble",
+	"2":    styleLineDouble,
+	"2.0":  styleLineDouble,
 }
 
 // mapParagraphTypographyToCustomStyle wraps any <p> whose alignment or
@@ -815,6 +821,8 @@ var pPrOpenRe = regexp.MustCompile(`<w:pPr>`)
 // in HTML→DOCX conversion (and the styles those inherit from). Updating their
 // line spacing is what makes the user's choice visible in the rendered docx.
 // Headings are intentionally excluded so their existing layout stays intact.
+//
+//nolint:gochecknoglobals // static lookup list; Go slices can't be const.
 var bodyTextStyleIDs = []string{
 	"Normal",
 	"TextBody",
@@ -874,18 +882,18 @@ func applyTypographyToStylesXML(data []byte, typo typography) []byte {
 func lineSpacingOverrideStylesXML() string {
 	bases := []struct{ alignName, baseStyle string }{
 		{"", "TextBody"},
-		{"Centered", "Centered"},
+		{styleCentered, styleCentered},
 		{"Righted", "Righted"},
-		{"Justified", "Justified"},
+		{styleJustified, styleJustified},
 	}
 	lines := []struct {
 		suffix string
 		twips  int
 	}{
-		{"LineSingle", 240},
+		{styleLineSingle, 240},
 		{"Line115", 276},
 		{"Line15", 360},
-		{"LineDouble", 480},
+		{styleLineDouble, 480},
 	}
 	var b strings.Builder
 	for _, base := range bases {
@@ -893,7 +901,7 @@ func lineSpacingOverrideStylesXML() string {
 			id := base.alignName + line.suffix
 			fmt.Fprintf(
 				&b,
-				`<w:style w:type="paragraph" w:styleId=%q w:customStyle="1"><w:name w:val=%q/><w:basedOn w:val=%q/><w:qFormat/><w:pPr><w:spacing w:lineRule="auto" w:line="%d"/></w:pPr></w:style>`,
+				`<w:style w:type=tagParagraph w:styleId=%q w:customStyle="1"><w:name w:val=%q/><w:basedOn w:val=%q/><w:qFormat/><w:pPr><w:spacing w:lineRule="auto" w:line="%d"/></w:pPr></w:style>`,
 				id,
 				id,
 				base.baseStyle,
@@ -983,11 +991,11 @@ func HTMLToPDF(export models.DocumentExportRequest) (string, error) {
 		// don’t turn &amp; back into & before sanitization; sanitizer will normalize safely
 		// don’t convert em dash to double-hyphen
 		// convert only your custom-style wrappers
-		s = regexp.MustCompile(`(?s)<div custom-style="Centered">(.*?)</div>`).
+		s = regexp.MustCompile(`(?s)<div custom-style=styleCentered>(.*?)</div>`).
 			ReplaceAllString(s, `<div style="text-align:center;">$1</div>`)
 		s = regexp.MustCompile(`(?s)<div custom-style="Righted">(.*?)</div>`).
 			ReplaceAllString(s, `<div style="text-align:right;">$1</div>`)
-		s = regexp.MustCompile(`(?s)<div custom-style="Justified">(.*?)</div>`).
+		s = regexp.MustCompile(`(?s)<div custom-style=styleJustified>(.*?)</div>`).
 			ReplaceAllString(s, `<div style="text-align:justify;">$1</div>`)
 		// Generic div normalization across newlines:
 		s = regexp.MustCompile(`(?s)<div>(.*?)</div>`).ReplaceAllString(s, `<div>$1</div>`)

@@ -213,7 +213,7 @@ func (d *DAO) GetComment(ctx context.Context, commentID string) (*models.Comment
 	out, err := d.DynamoClient.GetItem(ctx, &dynamodb.GetItemInput{
 		TableName: aws.String("comments" + GetTableSuffix()),
 		Key: map[string]types.AttributeValue{
-			"comment_id": &types.AttributeValueMemberS{Value: commentID},
+			attrCommentID: &types.AttributeValueMemberS{Value: commentID},
 		},
 	})
 	if err != nil {
@@ -293,7 +293,7 @@ func (d *DAO) ResolveComment(ctx context.Context, commentID string) error {
 	_, err := d.DynamoClient.UpdateItem(ctx, &dynamodb.UpdateItemInput{
 		TableName: aws.String("comments" + GetTableSuffix()),
 		Key: map[string]types.AttributeValue{
-			"comment_id": &types.AttributeValueMemberS{Value: commentID},
+			attrCommentID: &types.AttributeValueMemberS{Value: commentID},
 		},
 		UpdateExpression: aws.String("SET resolved = :r, resolved_at = :t"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -315,7 +315,7 @@ func (d *DAO) DeleteComment(ctx context.Context, commentID string) error {
 	_, err := d.DynamoClient.DeleteItem(ctx, &dynamodb.DeleteItemInput{
 		TableName: aws.String("comments" + GetTableSuffix()),
 		Key: map[string]types.AttributeValue{
-			"comment_id": &types.AttributeValueMemberS{Value: commentID},
+			attrCommentID: &types.AttributeValueMemberS{Value: commentID},
 		},
 	})
 	if err != nil {

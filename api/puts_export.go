@@ -74,6 +74,7 @@ func validateExportRequest(export models.DocumentExportRequest) error {
 	return nil
 }
 
+//nolint:funlen // Multi-format export pipeline: validate, fetch, convert, S3 upload — linear flow.
 func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	// this should be transactified
 	var (

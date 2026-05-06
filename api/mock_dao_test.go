@@ -104,6 +104,34 @@ type MockDAO struct {
 // Note: We cannot enforce interface implementation at compile time due to unexported methods
 // var _ daos.DaoInterface = (*MockDAO)(nil)
 
+// NewMockDAOWithError builds a MockDAO whose every read/write closure returns
+// the given error. Used by tests that want to simulate an unavailable DAO.
+func NewMockDAOWithError(err error) *MockDAO {
+	return &MockDAO{
+		GetUserDetailsFunc: func(_ string) (*models.UserInfo, error) {
+			return nil, err
+		},
+		UpdateUserFunc: func(_ models.UserInfo) error {
+			return err
+		},
+		GetStoryByIDFunc: func(_ string, _ string) (*models.Story, error) {
+			return nil, err
+		},
+		EditStoryFunc: func(_ string, _ models.Story) (models.Story, error) {
+			return models.Story{}, err
+		},
+		EditChapterFunc: func(_ string, _ models.Chapter) (models.Chapter, error) {
+			return models.Chapter{}, err
+		},
+		WriteBlocksFunc: func(_ string, _ *models.StoryBlocks) error {
+			return err
+		},
+		WriteAssociationsFunc: func(_, _ string, _ []*models.Association) error {
+			return err
+		},
+	}
+}
+
 // GetAllStories mock implementation.
 func (m *MockDAO) GetAllStories(email string) ([]*models.Story, error) {
 	if m.GetAllStoriesFunc != nil {
@@ -695,33 +723,6 @@ func (m *MockDAO) GetChaptersByStoryIDs(storyIDs []string) (map[string][]models.
 		return m.GetChaptersByStoryIDsFunc(storyIDs)
 	}
 	return map[string][]models.Chapter{}, nil
-}
-
-// Helper function to create a mock DAO with default error behavior.
-func NewMockDAOWithError(err error) *MockDAO {
-	return &MockDAO{
-		GetUserDetailsFunc: func(_ string) (*models.UserInfo, error) {
-			return nil, err
-		},
-		UpdateUserFunc: func(_ models.UserInfo) error {
-			return err
-		},
-		GetStoryByIDFunc: func(_ string, _ string) (*models.Story, error) {
-			return nil, err
-		},
-		EditStoryFunc: func(_ string, _ models.Story) (models.Story, error) {
-			return models.Story{}, err
-		},
-		EditChapterFunc: func(_ string, _ models.Chapter) (models.Chapter, error) {
-			return models.Chapter{}, err
-		},
-		WriteBlocksFunc: func(_ string, _ *models.StoryBlocks) error {
-			return err
-		},
-		WriteAssociationsFunc: func(_, _ string, _ []*models.Association) error {
-			return err
-		},
-	}
 }
 
 // Email auth mock implementations

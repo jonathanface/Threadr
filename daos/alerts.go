@@ -84,7 +84,10 @@ func (d *DAO) GetAlertsForUser(ctx context.Context, email string) ([]models.Aler
 	}
 
 	var alerts []models.Alert
-	allItems := append(personalOut.Items, announcementOut.Items...)
+	// Build a fresh slice so we don't risk mutating personalOut.Items via shared backing array.
+	allItems := make([]map[string]types.AttributeValue, 0, len(personalOut.Items)+len(announcementOut.Items))
+	allItems = append(allItems, personalOut.Items...)
+	allItems = append(allItems, announcementOut.Items...)
 	if err = attributevalue.UnmarshalListOfMaps(allItems, &alerts); err != nil {
 		return nil, fmt.Errorf("unmarshal alerts: %w", err)
 	}

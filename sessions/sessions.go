@@ -16,10 +16,12 @@ import (
 	gsessions "github.com/gorilla/sessions"
 )
 
-var Store *gsessions.CookieStore
+// Store holds the cookie store used by web (browser) sessions. Set in Initialize().
+var Store *gsessions.CookieStore //nolint:gochecknoglobals // gorilla/sessions API requires a single process-wide cookie store.
 
-// tokenMap stores mobile session tokens -> user data.
-var tokenMap sync.Map
+// defaultStore backs the package-level token-mapping helpers. Tests should
+// construct their own *TokenStore via NewTokenStore() to avoid sharing state.
+var defaultStore = NewTokenStore() //nolint:gochecknoglobals // production singleton; tests should make their own with NewTokenStore.
 
 const mobileTokenTTL = 30 * 24 * time.Hour // 30 days
 
@@ -33,6 +35,73 @@ const sessionTokenBytes = 32
 type tokenData struct {
 	UserInfo  any
 	ExpiresAt time.Time
+}
+
+// TokenStore holds a concurrent-safe map of mobile session tokens to user
+// data. Production uses a single process-wide instance (defaultStore); tests
+// can construct their own to keep state isolated.
+type TokenStore struct {
+	m sync.Map
+}
+
+// NewTokenStore returns an empty TokenStore.
+func NewTokenStore() *TokenStore {
+	return &TokenStore{}
+}
+
+// Store records a token → userInfo mapping that expires in mobileTokenTTL.
+func (s *TokenStore) Store(token string, userInfo any) {
+	s.m.Store(token, &tokenData{
+		UserInfo:  userInfo,
+		ExpiresAt: time.Now().Add(mobileTokenTTL),
+	})
+}
+
+// Lookup returns the user data for a token, or (nil, false) if the token is
+// missing, malformed, or expired. Expired tokens are removed lazily on read.
+func (s *TokenStore) Lookup(token string) (any, bool) {
+	val, ok := s.m.Load(token)
+	if !ok {
+		logger.Debug("sessions: token not found in map")
+		return nil, false
+	}
+	data, ok := val.(*tokenData)
+	if !ok {
+		logger.Debug("sessions: invalid data format for token")
+		return nil, false
+	}
+	if time.Now().After(data.ExpiresAt) {
+		logger.Debug("sessions: token expired, removing")
+		s.m.Delete(token)
+		return nil, false
+	}
+	logger.Debug("sessions: token found in map")
+	return data.UserInfo, true
+}
+
+// Delete removes a token mapping (used for logout).
+func (s *TokenStore) Delete(token string) {
+	s.m.Delete(token)
+}
+
+// StartCleanup runs a background goroutine that periodically purges expired
+// tokens. The goroutine runs for the life of the process.
+func (s *TokenStore) StartCleanup() {
+	go func() {
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+		for range ticker.C {
+			now := time.Now()
+			s.m.Range(func(key, val any) bool {
+				if data, ok := val.(*tokenData); ok {
+					if now.After(data.ExpiresAt) {
+						s.m.Delete(key)
+					}
+				}
+				return true
+			})
+		}
+	}()
 }
 
 // Initialize validates and initializes the session store. Must be called at startup.
@@ -82,12 +151,15 @@ func Delete(w http.ResponseWriter, r *http.Request, key string) error {
 	if err = sess.Save(r, w); err != nil {
 		return err
 	}
-	http.SetCookie(w, &http.Cookie{
+	// Secure is set conditionally on isHTTPS(r) so cookie deletion still works
+	// during local dev over plain HTTP. The cookie itself is empty + immediately
+	// expired — there's no session value to leak.
+	http.SetCookie(w, &http.Cookie{ //nolint:gosec
 		Name: key, Value: "", Path: "/", MaxAge: -1, Expires: time.Unix(0, 0),
 		HttpOnly: true, Secure: isHTTPS(r), SameSite: http.SameSiteLaxMode,
 	})
 	if p := r.URL.Path; p != "" && p != "/" {
-		http.SetCookie(w, &http.Cookie{
+		http.SetCookie(w, &http.Cookie{ //nolint:gosec
 			Name: key, Value: "", Path: p, MaxAge: -1, Expires: time.Unix(0, 0),
 			HttpOnly: true, Secure: isHTTPS(r), SameSite: http.SameSiteLaxMode,
 		})
@@ -105,56 +177,23 @@ func GenerateSessionToken() string {
 	return hex.EncodeToString(b)
 }
 
-// StoreTokenMapping stores a mobile token -> user data mapping with a 30-day expiry.
+// StoreTokenMapping records a token → userInfo mapping in the package-level store.
 func StoreTokenMapping(token string, userInfo any) {
-	tokenMap.Store(token, &tokenData{
-		UserInfo:  userInfo,
-		ExpiresAt: time.Now().Add(mobileTokenTTL),
-	})
+	defaultStore.Store(token, userInfo)
 }
 
-// GetUserByToken retrieves the user data for a mobile token.
-// Returns nil if the token is missing, malformed, or expired.
+// GetUserByToken returns the user data for a mobile token from the package-level store.
+// Returns (nil, false) if the token is missing, malformed, or expired.
 func GetUserByToken(token string) (any, bool) {
-	val, ok := tokenMap.Load(token)
-	if !ok {
-		logger.Debug("sessions: token not found in map")
-		return nil, false
-	}
-	data, ok := val.(*tokenData)
-	if !ok {
-		logger.Debug("sessions: invalid data format for token")
-		return nil, false
-	}
-	if time.Now().After(data.ExpiresAt) {
-		logger.Debug("sessions: token expired, removing")
-		tokenMap.Delete(token)
-		return nil, false
-	}
-	logger.Debug("sessions: token found in map")
-	return data.UserInfo, true
+	return defaultStore.Lookup(token)
 }
 
-// DeleteTokenMapping removes a token mapping (for logout).
+// DeleteTokenMapping removes a token mapping from the package-level store (for logout).
 func DeleteTokenMapping(token string) {
-	tokenMap.Delete(token)
+	defaultStore.Delete(token)
 }
 
-// StartTokenCleanup runs a background goroutine that periodically removes expired tokens.
+// StartTokenCleanup starts the periodic-purge goroutine on the package-level store.
 func StartTokenCleanup() {
-	go func() {
-		ticker := time.NewTicker(1 * time.Hour)
-		defer ticker.Stop()
-		for range ticker.C {
-			now := time.Now()
-			tokenMap.Range(func(key, val any) bool {
-				if data, ok := val.(*tokenData); ok {
-					if now.After(data.ExpiresAt) {
-						tokenMap.Delete(key)
-					}
-				}
-				return true
-			})
-		}
-	}()
+	defaultStore.StartCleanup()
 }

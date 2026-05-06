@@ -32,7 +32,7 @@ func GenerateStoryOutlineSections(typeOf models.OutlineTemplate) []models.Outlin
 		})
 		sections = append(sections, models.OutlineSection{
 			Place:       2,
-			Header:      "Resolution",
+			Header:      outlineHeaderResolution,
 			Description: "Climax and aftermath of the conflict. 25%.",
 		})
 	case models.FiveAct:
@@ -58,7 +58,7 @@ func GenerateStoryOutlineSections(typeOf models.OutlineTemplate) []models.Outlin
 		})
 		sections = append(sections, models.OutlineSection{
 			Place:       4,
-			Header:      "Resolution",
+			Header:      outlineHeaderResolution,
 			Description: "Loose ends are tied up, and the story concludes.",
 		})
 	case models.HeroJourney:
@@ -129,7 +129,7 @@ func GenerateStoryOutlineSections(typeOf models.OutlineTemplate) []models.Outlin
 func GetTableSuffix() string {
 	currentMode := models.AppMode(strings.ToLower(os.Getenv("MODE")))
 	if currentMode != models.ModeProduction {
-		return "_staging"
+		return stagingSuffix
 	}
 	return ""
 }

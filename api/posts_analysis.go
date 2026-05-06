@@ -18,6 +18,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+//nolint:funlen // OpenAI request orchestration: param parsing, block fetch, prompt build, request, parsing.
 func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		err            error

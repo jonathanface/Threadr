@@ -258,11 +258,11 @@ func (d *DAO) EditChapter(
 ) (updatedChapter models.Chapter, err error) {
 	modifiedAtStr := strconv.FormatInt(time.Now().Unix(), 10)
 	item := map[string]types.AttributeValue{
-		"story_id":    &types.AttributeValueMemberS{Value: storyID},
-		"chapter_id":  &types.AttributeValueMemberS{Value: chapter.ID},
-		"chapter_num": &types.AttributeValueMemberN{Value: strconv.Itoa(chapter.Place)},
-		"title":       &types.AttributeValueMemberS{Value: chapter.Title},
-		"modified_at": &types.AttributeValueMemberN{Value: modifiedAtStr},
+		attrStoryID:    &types.AttributeValueMemberS{Value: storyID},
+		attrChapterID:  &types.AttributeValueMemberS{Value: chapter.ID},
+		"chapter_num":  &types.AttributeValueMemberN{Value: strconv.Itoa(chapter.Place)},
+		"title":        &types.AttributeValueMemberS{Value: chapter.Title},
+		attrModifiedAt: &types.AttributeValueMemberN{Value: modifiedAtStr},
 	}
 	updatedChapter = chapter
 	chapterUpdateInput := &dynamodb.PutItemInput{
@@ -316,8 +316,8 @@ func (d *DAO) DeleteChapterParagraphs(
 
 			// Create composite key for deletion
 			key := map[string]types.AttributeValue{
-				"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
-				"place":         &types.AttributeValueMemberN{Value: strconv.FormatInt(placeNum, 10)},
+				attrCompositeKey: &types.AttributeValueMemberS{Value: compositeKey},
+				"place":          &types.AttributeValueMemberN{Value: strconv.FormatInt(placeNum, 10)},
 			}
 
 			// Create a delete input for the item.
@@ -372,8 +372,8 @@ func (d *DAO) DeleteChapters(ctx context.Context, storyID string, chapters []mod
 		for i, item := range batch {
 			// Create a key for the chapter metadata.
 			key := map[string]types.AttributeValue{
-				"chapter_id": &types.AttributeValueMemberS{Value: item.ID},
-				"story_id":   &types.AttributeValueMemberS{Value: storyID},
+				attrChapterID: &types.AttributeValueMemberS{Value: item.ID},
+				attrStoryID:   &types.AttributeValueMemberS{Value: storyID},
 			}
 
 			// Create a delete input for the chapter metadata.

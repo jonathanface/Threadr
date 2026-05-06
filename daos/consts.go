@@ -34,4 +34,32 @@ const (
 	maxDefaultItemImages     = 20
 	maxShorDescriptionLength = 100
 	defaultSeriesImageURL    = "/img/icons/story_series_icon.jpg"
+
+	// DynamoDB attribute names — duplicated in many places where a typo
+	// would silently produce empty Query/Scan results, so they live here.
+	attrStoryID         = "story_id"
+	attrChapterID       = "chapter_id"
+	attrSeriesID        = "series_id"
+	attrCompositeKey    = "composite_key"
+	attrStoryOrSeriesID = "story_or_series_id"
+	attrAssociationID   = "association_id"
+	attrCommentID       = "comment_id"
+	attrImageURL        = "image_url"
+	attrDescription     = "description"
+	attrCreatedAt       = "created_at"
+	attrModifiedAt      = "modified_at"
+
+	// Table-name suffix used for non-prod environments.
+	stagingSuffix   = "_staging"
+	chaptersTable   = "chapters"
+	chaptersStaging = "chapters_staging"
+
+	// Outline section header used by the three-act template.
+	outlineHeaderResolution = "Resolution"
+
+	// Default first-chapter title used by initial-story bootstrap paths.
+	firstChapterTitle = "Chapter 1"
+
+	// Association-type discriminator used in default-image lookup.
+	associationTypeCharacter = "character"
 )

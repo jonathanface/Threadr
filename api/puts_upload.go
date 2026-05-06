@@ -22,6 +22,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+//nolint:funlen // Multi-step portrait upload: validate, scale, S3 put, DAO update; sequential.
 func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		email           string
@@ -60,7 +61,10 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = r.ParseMultipartForm(10 << 20)
+	// Bound the entire request body, not just the in-memory portion.
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+	const parseFormMemoryBudget = 10 << 20            // 10 MB in-memory budget; body already bounded above
+	err = r.ParseMultipartForm(parseFormMemoryBudget) //nolint:gosec // body bounded by MaxBytesReader above
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Unable to parse file")
 		return
@@ -89,7 +93,7 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
+	allowedTypes := []string{contentTypeJPEG, contentTypePNG, contentTypeGIF}
 	fileBytes := make([]byte, handler.Size)
 	if _, err = file.Read(fileBytes); err != nil {
 		logger.Error("Internal error", "error", err)

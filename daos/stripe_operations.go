@@ -51,10 +51,8 @@ func (d *DAO) verifyStripeSubscription(subID, customerID string) (SubscriptionSt
 		"subscriptionId", subID,
 		"customerId", customerID)
 
-	normalize := func(s string) string { return strings.TrimSpace(s) }
-
-	subID = normalize(subID)
-	customerID = normalize(customerID)
+	subID = strings.TrimSpace(subID)
+	customerID = strings.TrimSpace(customerID)
 
 	// 1) Try direct GET if we have a candidate ID
 	if subID != "" {

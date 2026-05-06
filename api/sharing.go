@@ -491,9 +491,9 @@ func GetSharedStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	// Return story metadata and chapters (no associations, outlines, or settings)
 	response := map[string]any{
-		"story_id":           story.ID,
+		fieldStoryID:         story.ID,
 		"title":              story.Title,
-		"description":        story.Description,
+		fieldDescription:     story.Description,
 		"image_url":          story.ImageURL,
 		"author_name":        authorName,
 		"chapters":           chapters,
@@ -649,7 +649,7 @@ func CreateCommentEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	// Notify the author about the new comment (deduped — one alert per reader per story until dismissed)
 	go func() {
-		bgCtx := context.Background()
+		bgCtx := context.WithoutCancel(r.Context())
 		readerName := comment.ReaderFirstName + " " + comment.ReaderLastName
 		storyTitle := link.StoryID // fallback
 		if story, err := dao.GetStoryByID(bgCtx, link.AuthorEmail, link.StoryID); err == nil {

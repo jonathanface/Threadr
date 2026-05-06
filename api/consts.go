@@ -13,8 +13,29 @@ const (
 	maxDescriptionLength   = 5000
 	maxChapterTitleLength  = 500
 	oneMB                  = 1024
-	maxUploadSize          = 5 * oneMB * oneMB // 5 MB for original upload
-	maxScaledSize          = oneMB * oneMB     // 1 MB for final scaled image
-	maxImageWidth          = 400
-	awsPrefix              = "aws:"
+	// maxUploadFileSize caps an individual uploaded file at 5 MB.
+	maxUploadFileSize = 5 * oneMB * oneMB
+	// maxUploadSize caps the total multipart request body. Set 1 MB above
+	// maxUploadFileSize so a maxed-out 5 MB file plus multipart boundaries,
+	// part headers, and any sibling form fields still fits.
+	maxUploadSize = maxUploadFileSize + oneMB*oneMB
+	maxScaledSize = oneMB * oneMB // 1 MB for final scaled image
+	maxImageWidth = 400
+	awsPrefix     = "aws:"
+
+	// firstChapterTitle is the default title given to the first chapter when
+	// a story is created or imported.
+	firstChapterTitle = "Chapter 1"
+
+	// MIME type strings used by upload validators.
+	contentTypeJPEG = "image/jpeg"
+	contentTypePNG  = "image/png"
+	contentTypeGIF  = "image/gif"
+
+	// Validation messages reused across validators.
+	msgStoryTitleRequired = "Story title is required"
+
+	// JSON / DDB attribute names.
+	fieldStoryID     = "story_id"
+	fieldDescription = "description"
 )

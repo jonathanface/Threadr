@@ -22,7 +22,11 @@ import (
 
 type Response struct{ Message string }
 
-// ... existing Response, keyOnly, etc.
+const (
+	chaptersTable   = "chapters"
+	chaptersStaging = "chapters_staging"
+	attrStoryID     = "story_id"
+)
 
 type chapterKey struct {
 	StoryID   string
@@ -31,7 +35,7 @@ type chapterKey struct {
 
 func HandleRequest(ctx context.Context) (Response, error) {
 	baseTables := []string{
-		"chapters",
+		chaptersTable,
 		"stories",
 		"association_details",
 		"associations",
@@ -89,7 +93,7 @@ func HandleRequest(ctx context.Context) (Response, error) {
 
 // isChaptersTable returns true for "chapters" and "chapters_staging".
 func isChaptersTable(name string) bool {
-	return name == "chapters" || name == "chapters_staging"
+	return name == chaptersTable || name == chaptersStaging
 }
 
 func splitCSV(s string) []string {
@@ -113,16 +117,16 @@ type keySpec struct {
 func keyNamesForTable(table string) keySpec {
 	switch table {
 	case "stories", "stories_staging", "story_settings", "story_settings_staging":
-		return keySpec{pk: "story_id", sk: "author", hasSK: true}
+		return keySpec{pk: attrStoryID, sk: "author", hasSK: true}
 	case "associations", "associations_staging", "association_details", "association_details_staging":
 		return keySpec{pk: "association_id", sk: "story_or_series_id", hasSK: true}
 	case "series", "series_staging":
 		return keySpec{pk: "series_id", sk: "author", hasSK: true}
-	case "chapters", "chapters_staging":
+	case chaptersTable, chaptersStaging:
 		// assuming your chapters table uses these attribute names
-		return keySpec{pk: "story_id", sk: "chapter_id", hasSK: true}
+		return keySpec{pk: attrStoryID, sk: "chapter_id", hasSK: true}
 	case "outlines", "outlines_staging":
-		return keySpec{pk: "story_id", sk: "place", hasSK: true}
+		return keySpec{pk: attrStoryID, sk: "place", hasSK: true}
 	case "users", "users_staging":
 		return keySpec{pk: "email", hasSK: false}
 	default:
@@ -171,7 +175,7 @@ func purgeTable(
 	var lastKey map[string]types.AttributeValue
 	keys := make([]map[string]types.AttributeValue, 0, 256) //nolint:mnd
 
-	collectChapters := table == "chapters" || table == "chapters_staging"
+	collectChapters := table == chaptersTable || table == chaptersStaging
 	var chapterIDs []chapterKey
 
 	for {

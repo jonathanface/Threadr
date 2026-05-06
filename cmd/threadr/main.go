@@ -92,7 +92,11 @@ func main() {
 	}
 	dao, err := daos.NewDAO(initCtx, daoOptions)
 	if err != nil {
-		log.Fatalf("Unable to initialize DAO: %v", err)
+		// Don't use log.Fatalf — it skips deferred cancels via os.Exit. We call
+		// cancel() manually first; lint can't see the manual pairing.
+		logger.Error("Unable to initialize DAO", "error", err)
+		cancel()
+		os.Exit(1) //nolint:gocritic
 	}
 	logger.Info("DAO initialized successfully")
 
@@ -139,7 +143,7 @@ func main() {
 		IdleTimeout:       60 * time.Second, //nolint:mnd
 	}
 
-	log.Printf("Threadr %s listening on %s (mode=%s)", version, addr, mode)
+	logger.Info("Threadr listening", "version", version, "addr", addr, "mode", mode)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 

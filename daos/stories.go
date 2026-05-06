@@ -228,7 +228,7 @@ func (d *DAO) GetStoryByID(ctx context.Context, email, storyID string) (story *m
 		// somehow there are no chapters for this story, so create one
 		chap := models.Chapter{}
 		chap.Place = 1
-		chap.Title = "Chapter 1"
+		chap.Title = firstChapterTitle
 		chap.ID = uuid.New().String()
 		chap.StoryID = storyID
 		chapter, err := d.CreateChapter(ctx, storyID, chap) //nolint:govet
@@ -366,8 +366,8 @@ func buildReorderTransactions(
 			if oldPlaceNum != newPlaceNum {
 				// Delete the item from its old location
 				deleteKey := map[string]types.AttributeValue{
-					"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
-					"place":         oldPlace,
+					attrCompositeKey: &types.AttributeValueMemberS{Value: compositeKey},
+					"place":          oldPlace,
 				}
 				deleteItems = append(deleteItems, types.TransactWriteItem{
 					Delete: &types.Delete{
@@ -415,12 +415,12 @@ func buildReorderTransactions(
 				"place", item.Place)
 
 			newItem := map[string]types.AttributeValue{
-				"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
-				"place":         &types.AttributeValueMemberN{Value: strconv.FormatInt(newPlaceNum, 10)},
-				"story_id":      &types.AttributeValueMemberS{Value: storyID},
-				"chapter_id":    &types.AttributeValueMemberS{Value: chapterID},
-				"key_id":        &types.AttributeValueMemberS{Value: item.KeyID},
-				"chunk":         &types.AttributeValueMemberS{Value: string(item.Chunk)},
+				attrCompositeKey: &types.AttributeValueMemberS{Value: compositeKey},
+				"place":          &types.AttributeValueMemberN{Value: strconv.FormatInt(newPlaceNum, 10)},
+				attrStoryID:      &types.AttributeValueMemberS{Value: storyID},
+				attrChapterID:    &types.AttributeValueMemberS{Value: chapterID},
+				"key_id":         &types.AttributeValueMemberS{Value: item.KeyID},
+				"chunk":          &types.AttributeValueMemberS{Value: string(item.Chunk)},
 			}
 
 			putItems = append(putItems, types.TransactWriteItem{
@@ -478,8 +478,8 @@ func (d *DAO) deleteOrphanedBlocks(
 
 		for i, item := range batch {
 			deleteKey := map[string]types.AttributeValue{
-				"composite_key": item["composite_key"],
-				"place":         item["place"],
+				attrCompositeKey: item[attrCompositeKey],
+				"place":          item["place"],
 			}
 			deleteInput.TransactItems[i] = types.TransactWriteItem{
 				Delete: &types.Delete{
@@ -663,6 +663,8 @@ func (d *DAO) ResetBlockOrder(ctx context.Context, storyID string, blocksOrder *
 }
 
 // buildWriteTransactions builds delete and put transaction items for block writing.
+//
+//nolint:funlen // Block-write transaction builder: place-conflict resolution + delete/put split + batch logic.
 func buildWriteTransactions(
 	batch []models.StoryBlock,
 	compositeKey string,
@@ -712,11 +714,11 @@ func buildWriteTransactions(
 
 			// Build new item with updated content
 			newItem := map[string]types.AttributeValue{
-				"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
-				"place":         &types.AttributeValueMemberN{Value: strconv.FormatInt(actualPlace, 10)},
-				"story_id":      &types.AttributeValueMemberS{Value: storyID},
-				"chapter_id":    &types.AttributeValueMemberS{Value: chapterID},
-				"key_id":        &types.AttributeValueMemberS{Value: item.KeyID},
+				attrCompositeKey: &types.AttributeValueMemberS{Value: compositeKey},
+				"place":          &types.AttributeValueMemberN{Value: strconv.FormatInt(actualPlace, 10)},
+				attrStoryID:      &types.AttributeValueMemberS{Value: storyID},
+				attrChapterID:    &types.AttributeValueMemberS{Value: chapterID},
+				"key_id":         &types.AttributeValueMemberS{Value: item.KeyID},
 			}
 
 			// Update chunk - with data loss protection
@@ -780,7 +782,7 @@ func buildWriteTransactions(
 
 			// Preserve other attributes from existing item
 			for k, v := range existingItem {
-				if k != "composite_key" && k != "place" && k != "story_id" && k != "chapter_id" && k != "key_id" &&
+				if k != attrCompositeKey && k != "place" && k != attrStoryID && k != attrChapterID && k != "key_id" &&
 					k != "chunk" {
 					newItem[k] = v
 				}
@@ -789,8 +791,8 @@ func buildWriteTransactions(
 			if oldPlaceNum != newPlaceNum {
 				// Place changed - need to delete from old position first
 				deleteKey := map[string]types.AttributeValue{
-					"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
-					"place":         oldPlace,
+					attrCompositeKey: &types.AttributeValueMemberS{Value: compositeKey},
+					"place":          oldPlace,
 				}
 				deleteItems = append(deleteItems, types.TransactWriteItem{
 					Delete: &types.Delete{
@@ -847,12 +849,12 @@ func buildWriteTransactions(
 			}
 
 			newItem := map[string]types.AttributeValue{
-				"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
-				"place":         &types.AttributeValueMemberN{Value: strconv.FormatInt(actualPlace, 10)},
-				"story_id":      &types.AttributeValueMemberS{Value: storyID},
-				"chapter_id":    &types.AttributeValueMemberS{Value: chapterID},
-				"key_id":        &types.AttributeValueMemberS{Value: item.KeyID},
-				"chunk":         &types.AttributeValueMemberS{Value: string(item.Chunk)},
+				attrCompositeKey: &types.AttributeValueMemberS{Value: compositeKey},
+				"place":          &types.AttributeValueMemberN{Value: strconv.FormatInt(actualPlace, 10)},
+				attrStoryID:      &types.AttributeValueMemberS{Value: storyID},
+				attrChapterID:    &types.AttributeValueMemberS{Value: chapterID},
+				"key_id":         &types.AttributeValueMemberS{Value: item.KeyID},
+				"chunk":          &types.AttributeValueMemberS{Value: string(item.Chunk)},
 			}
 
 			chunkStr := string(item.Chunk)
@@ -877,6 +879,8 @@ func buildWriteTransactions(
 
 // WriteBlocks writes or updates blocks in the unified table
 // It identifies blocks by key_id and handles moving them if their place changed.
+//
+//nolint:funlen // Block-write orchestration: dedupe + ordering + batch transactions + retry; cohesive unit.
 func (d *DAO) WriteBlocks(ctx context.Context, storyID string, storyBlocks *models.StoryBlocks) (err error) {
 	compositeKey := buildCompositeKey(storyID, storyBlocks.ChapterID)
 
@@ -921,11 +925,11 @@ func (d *DAO) WriteBlocks(ctx context.Context, storyID string, storyBlocks *mode
 
 			// Build new item with updated content
 			newItem := map[string]types.AttributeValue{
-				"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
-				"place":         &types.AttributeValueMemberN{Value: item.Place},
-				"story_id":      &types.AttributeValueMemberS{Value: storyID},
-				"chapter_id":    &types.AttributeValueMemberS{Value: storyBlocks.ChapterID},
-				"key_id":        &types.AttributeValueMemberS{Value: item.KeyID},
+				attrCompositeKey: &types.AttributeValueMemberS{Value: compositeKey},
+				"place":          &types.AttributeValueMemberN{Value: item.Place},
+				attrStoryID:      &types.AttributeValueMemberS{Value: storyID},
+				attrChapterID:    &types.AttributeValueMemberS{Value: storyBlocks.ChapterID},
+				"key_id":         &types.AttributeValueMemberS{Value: item.KeyID},
 			}
 
 			// Update chunk - with data loss protection
@@ -975,7 +979,7 @@ func (d *DAO) WriteBlocks(ctx context.Context, storyID string, storyBlocks *mode
 
 			// Preserve other attributes from existing item
 			for k, v := range existingItem {
-				if k != "composite_key" && k != "place" && k != "story_id" && k != "chapter_id" && k != "key_id" &&
+				if k != attrCompositeKey && k != "place" && k != attrStoryID && k != attrChapterID && k != "key_id" &&
 					k != "chunk" {
 					newItem[k] = v
 				}
@@ -984,8 +988,8 @@ func (d *DAO) WriteBlocks(ctx context.Context, storyID string, storyBlocks *mode
 			if oldPlaceNum != newPlaceNum {
 				// Place changed - need to delete from old position first
 				deleteKey := map[string]types.AttributeValue{
-					"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
-					"place":         oldPlace,
+					attrCompositeKey: &types.AttributeValueMemberS{Value: compositeKey},
+					"place":          oldPlace,
 				}
 				allDeleteItems = append(allDeleteItems, types.TransactWriteItem{
 					Delete: &types.Delete{
@@ -1013,12 +1017,12 @@ func (d *DAO) WriteBlocks(ctx context.Context, storyID string, storyBlocks *mode
 			}
 
 			newItem := map[string]types.AttributeValue{
-				"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
-				"place":         &types.AttributeValueMemberN{Value: item.Place},
-				"story_id":      &types.AttributeValueMemberS{Value: storyID},
-				"chapter_id":    &types.AttributeValueMemberS{Value: storyBlocks.ChapterID},
-				"key_id":        &types.AttributeValueMemberS{Value: item.KeyID},
-				"chunk":         &types.AttributeValueMemberS{Value: string(item.Chunk)},
+				attrCompositeKey: &types.AttributeValueMemberS{Value: compositeKey},
+				"place":          &types.AttributeValueMemberN{Value: item.Place},
+				attrStoryID:      &types.AttributeValueMemberS{Value: storyID},
+				attrChapterID:    &types.AttributeValueMemberS{Value: storyBlocks.ChapterID},
+				"key_id":         &types.AttributeValueMemberS{Value: item.KeyID},
+				"chunk":          &types.AttributeValueMemberS{Value: string(item.Chunk)},
 			}
 
 			allPutItems = append(allPutItems, types.TransactWriteItem{
@@ -1116,16 +1120,16 @@ func (d *DAO) WriteBlocks(ctx context.Context, storyID string, storyBlocks *mode
 func (d *DAO) EditStory(ctx context.Context, email string, story models.Story) (updatedStory models.Story, err error) {
 	modifiedAtStr := strconv.FormatInt(time.Now().Unix(), 10)
 	item := map[string]types.AttributeValue{
-		"story_id":    &types.AttributeValueMemberS{Value: story.ID},
-		"title":       &types.AttributeValueMemberS{Value: story.Title},
-		"author":      &types.AttributeValueMemberS{Value: email},
-		"description": &types.AttributeValueMemberS{Value: story.Description},
-		"image_url":   &types.AttributeValueMemberS{Value: story.ImageURL},
-		"modified_at": &types.AttributeValueMemberN{Value: modifiedAtStr},
+		attrStoryID:     &types.AttributeValueMemberS{Value: story.ID},
+		"title":         &types.AttributeValueMemberS{Value: story.Title},
+		"author":        &types.AttributeValueMemberS{Value: email},
+		attrDescription: &types.AttributeValueMemberS{Value: story.Description},
+		attrImageURL:    &types.AttributeValueMemberS{Value: story.ImageURL},
+		attrModifiedAt:  &types.AttributeValueMemberN{Value: modifiedAtStr},
 	}
 	if story.SeriesID != "" {
 		intPlace := strconv.Itoa(story.Place)
-		item["series_id"] = &types.AttributeValueMemberS{Value: story.SeriesID}
+		item[attrSeriesID] = &types.AttributeValueMemberS{Value: story.SeriesID}
 		item["place"] = &types.AttributeValueMemberN{Value: intPlace}
 	}
 	updatedStory = story
@@ -1146,9 +1150,9 @@ func (d *DAO) EditStory(ctx context.Context, email string, story models.Story) (
 				updatedStory.Place = 1
 				seriesID = uuid.New().String()
 				seriesItem := map[string]types.AttributeValue{
-					"series_id": &types.AttributeValueMemberS{Value: seriesID},
-					"title":     &types.AttributeValueMemberS{Value: story.SeriesID},
-					"author":    &types.AttributeValueMemberS{Value: email},
+					attrSeriesID: &types.AttributeValueMemberS{Value: seriesID},
+					"title":      &types.AttributeValueMemberS{Value: story.SeriesID},
+					"author":     &types.AttributeValueMemberS{Value: email},
 				}
 				seriesUpdateInput := &dynamodb.PutItemInput{
 					TableName: aws.String("series" + GetTableSuffix()),
@@ -1169,13 +1173,14 @@ func (d *DAO) EditStory(ctx context.Context, email string, story models.Story) (
 					updatedStory.Place = series.Stories[0].Place + 1
 				}
 			}
-			item["series_id"] = &types.AttributeValueMemberS{Value: seriesID}
+			item[attrSeriesID] = &types.AttributeValueMemberS{Value: seriesID}
 			item["place"] = &types.AttributeValueMemberN{Value: strconv.Itoa(updatedStory.Place)}
 			updatedStory.SeriesID = seriesID
 		} else {
 			// story was removed from series OR new series
 			_, err := d.GetSeriesByID(ctx, email, story.SeriesID) //nolint:govet
 			if err != nil {
+				//nolint:gocritic // mixed errors.Is + field checks; switch would be uglier.
 				if !errors.Is(err, ErrSeriesNotFound) {
 					return updatedStory, err
 				} else if story.SeriesID != "" {
@@ -1183,9 +1188,9 @@ func (d *DAO) EditStory(ctx context.Context, email string, story models.Story) (
 					updatedStory.Place = 1
 					seriesID := uuid.New().String()
 					seriesItem := map[string]types.AttributeValue{
-						"series_id": &types.AttributeValueMemberS{Value: seriesID},
-						"title":     &types.AttributeValueMemberS{Value: story.SeriesID},
-						"author":    &types.AttributeValueMemberS{Value: email},
+						attrSeriesID: &types.AttributeValueMemberS{Value: seriesID},
+						"title":      &types.AttributeValueMemberS{Value: story.SeriesID},
+						"author":     &types.AttributeValueMemberS{Value: email},
 					}
 					seriesUpdateInput := &dynamodb.PutItemInput{
 						TableName: aws.String("series" + GetTableSuffix()),
@@ -1253,8 +1258,8 @@ func (d *DAO) UpdateStorySettings(ctx context.Context, email, storyID string, se
 		Update: &types.Update{
 			TableName: aws.String(tableName),
 			Key: map[string]types.AttributeValue{
-				"story_id": &types.AttributeValueMemberS{Value: storyID},
-				"author":   &types.AttributeValueMemberS{Value: email},
+				attrStoryID: &types.AttributeValueMemberS{Value: storyID},
+				"author":    &types.AttributeValueMemberS{Value: email},
 			},
 			UpdateExpression:          aws.String(updateExpression),
 			ExpressionAttributeNames:  expressionAttributeNames,
@@ -1282,17 +1287,17 @@ func (d *DAO) CreateStory(
 	twii := &dynamodb.TransactWriteItemsInput{}
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	attributes := map[string]types.AttributeValue{
-		"story_id":    &types.AttributeValueMemberS{Value: story.ID},
-		"author":      &types.AttributeValueMemberS{Value: email},
-		"title":       &types.AttributeValueMemberS{Value: story.Title},
-		"description": &types.AttributeValueMemberS{Value: story.Description},
-		"created_at":  &types.AttributeValueMemberN{Value: now},
-		"image_url":   &types.AttributeValueMemberS{Value: story.ImageURL},
+		attrStoryID:     &types.AttributeValueMemberS{Value: story.ID},
+		"author":        &types.AttributeValueMemberS{Value: email},
+		"title":         &types.AttributeValueMemberS{Value: story.Title},
+		attrDescription: &types.AttributeValueMemberS{Value: story.Description},
+		attrCreatedAt:   &types.AttributeValueMemberN{Value: now},
+		attrImageURL:    &types.AttributeValueMemberS{Value: story.ImageURL},
 	}
 
 	if story.SeriesID != "" {
 		intPlace := strconv.Itoa(story.Place)
-		attributes["series_id"] = &types.AttributeValueMemberS{Value: story.SeriesID}
+		attributes[attrSeriesID] = &types.AttributeValueMemberS{Value: story.SeriesID}
 		attributes["place"] = &types.AttributeValueMemberN{Value: intPlace}
 	}
 	twi := types.TransactWriteItem{
@@ -1331,10 +1336,10 @@ func (d *DAO) CreateStory(
 
 		if resp.Count == 0 {
 			attributes := map[string]types.AttributeValue{ //nolint:govet
-				"series_id": &types.AttributeValueMemberS{Value: story.SeriesID},
-				"author":    &types.AttributeValueMemberS{Value: email},
-				"title":     &types.AttributeValueMemberS{Value: newSeriesTitle},
-				"image_url": &types.AttributeValueMemberS{Value: defaultSeriesImageURL},
+				attrSeriesID: &types.AttributeValueMemberS{Value: story.SeriesID},
+				"author":     &types.AttributeValueMemberS{Value: email},
+				"title":      &types.AttributeValueMemberS{Value: newSeriesTitle},
+				attrImageURL: &types.AttributeValueMemberS{Value: defaultSeriesImageURL},
 			}
 			seriesTwi := types.TransactWriteItem{
 				Put: &types.Put{
@@ -1351,8 +1356,8 @@ func (d *DAO) CreateStory(
 			Update: &types.Update{
 				TableName: aws.String("stories" + GetTableSuffix()),
 				Key: map[string]types.AttributeValue{
-					"story_id": &types.AttributeValueMemberS{Value: story.ID},
-					"author":   &types.AttributeValueMemberS{Value: email},
+					attrStoryID: &types.AttributeValueMemberS{Value: story.ID},
+					"author":    &types.AttributeValueMemberS{Value: email},
 				},
 				UpdateExpression: aws.String("set place=:p, series_id=:sid"),
 				ExpressionAttributeValues: map[string]types.AttributeValue{

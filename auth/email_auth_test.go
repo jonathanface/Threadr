@@ -50,6 +50,8 @@ func testOptions() OauthOptions {
 }
 
 // testHash is a bcrypt hash of "password123" using MinCost for speed.
+//
+//nolint:gochecknoglobals // computed once in init() so every test sees the same hash.
 var testHash string
 
 func init() {

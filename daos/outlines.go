@@ -67,7 +67,7 @@ func (d *DAO) GetOutlineByStoryID(
 		if v, ok := item["header"].(*types.AttributeValueMemberS); ok {
 			s.Header = v.Value
 		}
-		if v, ok := item["description"].(*types.AttributeValueMemberS); ok {
+		if v, ok := item[attrDescription].(*types.AttributeValueMemberS); ok {
 			s.Description = v.Value
 		}
 		if v, ok := item["text"].(*types.AttributeValueMemberS); ok {
@@ -131,8 +131,8 @@ func (d *DAO) DeleteOutline(ctx context.Context, storyID string) error {
 			Delete: &types.Delete{
 				TableName: &tableName,
 				Key: map[string]types.AttributeValue{
-					"story_id": &types.AttributeValueMemberS{Value: storyID},
-					"place":    &types.AttributeValueMemberN{Value: placeAttr.Value},
+					attrStoryID: &types.AttributeValueMemberS{Value: storyID},
+					"place":     &types.AttributeValueMemberN{Value: placeAttr.Value},
 				},
 			},
 		}
@@ -183,8 +183,8 @@ func (d *DAO) UpdateOutline(ctx context.Context, outline models.OutlineRequest) 
 			Update: &types.Update{
 				TableName: aws.String(tableName),
 				Key: map[string]types.AttributeValue{
-					"story_id": &types.AttributeValueMemberS{Value: outline.StoryID},
-					"place":    &types.AttributeValueMemberN{Value: strconv.Itoa(section.Place)},
+					attrStoryID: &types.AttributeValueMemberS{Value: outline.StoryID},
+					"place":     &types.AttributeValueMemberN{Value: strconv.Itoa(section.Place)},
 				},
 				UpdateExpression:          aws.String(updateExpression),
 				ExpressionAttributeNames:  expressionAttributeNames,
@@ -228,13 +228,13 @@ func (d *DAO) CreateOutline(ctx context.Context, outline models.OutlineRequest) 
 	outline.Sections = GenerateStoryOutlineSections(outline.Template)
 	for _, section := range outline.Sections {
 		attributes := map[string]types.AttributeValue{
-			"story_id":    &types.AttributeValueMemberS{Value: outline.StoryID},
-			"place":       &types.AttributeValueMemberN{Value: strconv.Itoa(section.Place)},
-			"type":        &types.AttributeValueMemberS{Value: string(outline.Template)},
-			"header":      &types.AttributeValueMemberS{Value: section.Header},
-			"description": &types.AttributeValueMemberS{Value: section.Description},
-			"created_at":  &types.AttributeValueMemberN{Value: now},
-			"backstory":   &types.AttributeValueMemberS{Value: outline.Backstory},
+			attrStoryID:     &types.AttributeValueMemberS{Value: outline.StoryID},
+			"place":         &types.AttributeValueMemberN{Value: strconv.Itoa(section.Place)},
+			"type":          &types.AttributeValueMemberS{Value: string(outline.Template)},
+			"header":        &types.AttributeValueMemberS{Value: section.Header},
+			attrDescription: &types.AttributeValueMemberS{Value: section.Description},
+			attrCreatedAt:   &types.AttributeValueMemberN{Value: now},
+			"backstory":     &types.AttributeValueMemberS{Value: outline.Backstory},
 		}
 		twi := types.TransactWriteItem{
 			Put: &types.Put{

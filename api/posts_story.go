@@ -24,6 +24,7 @@ import (
 	"github.com/google/uuid"
 )
 
+//nolint:funlen // Multi-step file upload + validation + S3 + DAO; sequential by nature.
 func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		email string
@@ -37,8 +38,10 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	const maxFileSize = 5 * 1024 * 1024 // 5 MB
-	// image upload
-	err = r.ParseMultipartForm(10 << 20)
+	// image upload — bound the entire request body, not just the in-memory portion.
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+	const parseFormMemoryBudget = 10 << 20            // 10 MB in-memory budget; body already bounded above
+	err = r.ParseMultipartForm(parseFormMemoryBudget) //nolint:gosec // body bounded by MaxBytesReader above
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Unable to parse file")
 		return
@@ -52,7 +55,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
+	allowedTypes := []string{contentTypeJPEG, contentTypePNG, contentTypeGIF}
 	if handler.Size < 0 || handler.Size > int64(maxFileSize) {
 		RespondWithError(
 			w,
@@ -163,7 +166,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	firstChapterID := uuid.New().String()
 	chap := models.Chapter{}
 	chap.ID = firstChapterID
-	chap.Title = "Chapter 1"
+	chap.Title = firstChapterTitle
 	chap.Place = 1
 	newChapter, err := dao.CreateChapter(r.Context(), story.ID, chap)
 	if err != nil {

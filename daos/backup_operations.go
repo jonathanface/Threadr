@@ -2,6 +2,7 @@ package daos
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -24,16 +25,20 @@ func (d *DAO) checkBackupStatus(ctx context.Context, arn string) error {
 			return err
 		}
 
-		status := output.BackupDescription.BackupDetails.BackupStatus
-		if status == types.BackupStatusAvailable {
-			break
-		} else if status == types.BackupStatusCreating {
+		switch output.BackupDescription.BackupDetails.BackupStatus {
+		case types.BackupStatusAvailable:
+			return nil
+		case types.BackupStatusCreating:
 			time.Sleep(backupPollInterval) // Polling interval
-		} else {
-			return fmt.Errorf("backup creation failed with status: %v", status)
+		case types.BackupStatusDeleted:
+			return errors.New("backup was deleted before it became available")
+		default:
+			return fmt.Errorf(
+				"backup creation failed with status: %v",
+				output.BackupDescription.BackupDetails.BackupStatus,
+			)
 		}
 	}
-	return nil
 }
 
 func (d *DAO) kickoffRestoreAsync(email string) {
@@ -158,8 +163,8 @@ func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.St
 		chapterUpdateInput := &dynamodb.UpdateItemInput{
 			TableName: aws.String("chapters" + GetTableSuffix()),
 			Key: map[string]types.AttributeValue{
-				"chapter_id": &types.AttributeValueMemberS{Value: chapter.ID},
-				"story_id":   &types.AttributeValueMemberS{Value: story.ID},
+				attrChapterID: &types.AttributeValueMemberS{Value: chapter.ID},
+				attrStoryID:   &types.AttributeValueMemberS{Value: story.ID},
 			},
 			UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 		}
@@ -172,8 +177,8 @@ func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.St
 		}
 	}
 	storyKey := map[string]types.AttributeValue{
-		"story_id": &types.AttributeValueMemberS{Value: story.ID},
-		"author":   &types.AttributeValueMemberS{Value: email},
+		attrStoryID: &types.AttributeValueMemberS{Value: story.ID},
+		"author":    &types.AttributeValueMemberS{Value: email},
 	}
 	storyUpdateInput := &dynamodb.UpdateItemInput{
 		TableName:        aws.String("stories" + GetTableSuffix()),
@@ -189,8 +194,8 @@ func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.St
 	if story.SeriesID != "" {
 		storyOrSeriesID = story.SeriesID
 		seriesKey := map[string]types.AttributeValue{
-			"series_id": &types.AttributeValueMemberS{Value: story.SeriesID},
-			"author":    &types.AttributeValueMemberS{Value: email},
+			attrSeriesID: &types.AttributeValueMemberS{Value: story.SeriesID},
+			"author":     &types.AttributeValueMemberS{Value: email},
 		}
 		seriesUpdateInput := &dynamodb.UpdateItemInput{
 			TableName:        aws.String("series" + GetTableSuffix()),
@@ -221,14 +226,14 @@ func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.St
 	}
 
 	for _, item := range associationOut.Items {
-		assocAttr, ok := item["association_id"].(*types.AttributeValueMemberS)
+		assocAttr, ok := item[attrAssociationID].(*types.AttributeValueMemberS)
 		if !ok {
 			continue
 		}
 		assocID := assocAttr.Value
 		associationKey := map[string]types.AttributeValue{
-			"association_id":     &types.AttributeValueMemberS{Value: assocID},
-			"story_or_series_id": &types.AttributeValueMemberS{Value: storyOrSeriesID},
+			attrAssociationID:   &types.AttributeValueMemberS{Value: assocID},
+			attrStoryOrSeriesID: &types.AttributeValueMemberS{Value: storyOrSeriesID},
 		}
 		associationUpdateInput := &dynamodb.UpdateItemInput{
 			TableName:        aws.String("associations" + GetTableSuffix()),

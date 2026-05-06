@@ -105,6 +105,8 @@ type StorySettings struct {
 
 // AllowedFonts is the allowlist of font families a user may pick for a story.
 // Keep in sync with the frontend FONT_OPTIONS constant.
+//
+//nolint:gochecknoglobals // static lookup set; Go maps can't be const.
 var AllowedFonts = map[string]bool{
 	"Arial":           true,
 	"Georgia":         true,

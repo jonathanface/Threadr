@@ -178,12 +178,12 @@ func (d *DAO) EditSeries(
 ) (updatedSeries models.Series, err error) {
 	modifiedAtStr := strconv.FormatInt(time.Now().Unix(), 10)
 	item := map[string]types.AttributeValue{
-		"series_id":   &types.AttributeValueMemberS{Value: series.ID},
-		"title":       &types.AttributeValueMemberS{Value: series.Title},
-		"author":      &types.AttributeValueMemberS{Value: email},
-		"description": &types.AttributeValueMemberS{Value: series.Description},
-		"image_url":   &types.AttributeValueMemberS{Value: series.ImageURL},
-		"modified_at": &types.AttributeValueMemberN{Value: modifiedAtStr},
+		attrSeriesID:    &types.AttributeValueMemberS{Value: series.ID},
+		"title":         &types.AttributeValueMemberS{Value: series.Title},
+		"author":        &types.AttributeValueMemberS{Value: email},
+		attrDescription: &types.AttributeValueMemberS{Value: series.Description},
+		attrImageURL:    &types.AttributeValueMemberS{Value: series.ImageURL},
+		attrModifiedAt:  &types.AttributeValueMemberN{Value: modifiedAtStr},
 	}
 	updatedSeries = series
 
@@ -194,8 +194,8 @@ func (d *DAO) EditSeries(
 			return updatedSeries, err
 		}
 		key := map[string]types.AttributeValue{
-			"story_id": &types.AttributeValueMemberS{Value: story.ID},
-			"author":   &types.AttributeValueMemberS{Value: email},
+			attrStoryID: &types.AttributeValueMemberS{Value: story.ID},
+			"author":    &types.AttributeValueMemberS{Value: email},
 		}
 		storyUpdateInput := &dynamodb.UpdateItemInput{
 			TableName:        aws.String("stories" + GetTableSuffix()),
@@ -228,8 +228,8 @@ func (d *DAO) RemoveStoryFromSeries(
 	series models.Series,
 ) (updatedSeries models.Series, err error) {
 	storyKey := map[string]types.AttributeValue{
-		"story_id": &types.AttributeValueMemberS{Value: storyID},
-		"author":   &types.AttributeValueMemberS{Value: email},
+		attrStoryID: &types.AttributeValueMemberS{Value: storyID},
+		"author":    &types.AttributeValueMemberS{Value: email},
 	}
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	storyUpdateInput := &dynamodb.UpdateItemInput{
@@ -258,8 +258,8 @@ func (d *DAO) RemoveStoryFromSeries(
 func (d *DAO) DeleteSeries(ctx context.Context, email string, series models.Series) error {
 	for _, story := range series.Stories {
 		storyKey := map[string]types.AttributeValue{
-			"story_id": &types.AttributeValueMemberS{Value: story.ID},
-			"author":   &types.AttributeValueMemberS{Value: email},
+			attrStoryID: &types.AttributeValueMemberS{Value: story.ID},
+			"author":    &types.AttributeValueMemberS{Value: email},
 		}
 		now := strconv.FormatInt(time.Now().Unix(), 10)
 		storyUpdateInput := &dynamodb.UpdateItemInput{
@@ -276,8 +276,8 @@ func (d *DAO) DeleteSeries(ctx context.Context, email string, series models.Seri
 		}
 	}
 	seriesKey := map[string]types.AttributeValue{
-		"series_id": &types.AttributeValueMemberS{Value: series.ID},
-		"author":    &types.AttributeValueMemberS{Value: email},
+		attrSeriesID: &types.AttributeValueMemberS{Value: series.ID},
+		"author":     &types.AttributeValueMemberS{Value: email},
 	}
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	seriesUpdateInput := &dynamodb.UpdateItemInput{

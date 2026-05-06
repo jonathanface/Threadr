@@ -55,7 +55,7 @@ func emailSignup(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 		respondJSON(
 			w,
 			http.StatusInternalServerError,
-			map[string]string{"error": "unable to retrieve dao from context"},
+			map[string]string{"error": errDAOFromContext},
 		)
 		return
 	}
@@ -63,7 +63,7 @@ func emailSignup(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxAuthRequestBody)
 	var req models.EmailSignupRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": errInvalidRequestBody})
 		return
 	}
 
@@ -116,8 +116,8 @@ func emailSignup(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 		// Detect OAuth accounts — including legacy ones without auth_type set
 		if authType == "google" || authType == "amazon" {
 			respondJSON(w, http.StatusConflict, map[string]any{
-				"error":     "account_exists_oauth",
-				"auth_type": authType,
+				"error":       "account_exists_oauth",
+				fieldAuthType: authType,
 				"message": fmt.Sprintf(
 					"An account with this email already exists using %s. Please sign in with %s instead.",
 					authType,
@@ -130,8 +130,8 @@ func emailSignup(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 			// Legacy OAuth account without auth_type set
 			provider := "Google or Amazon"
 			respondJSON(w, http.StatusConflict, map[string]any{
-				"error":     "account_exists_oauth",
-				"auth_type": provider,
+				"error":       "account_exists_oauth",
+				fieldAuthType: provider,
 				"message": fmt.Sprintf(
 					"An account with this email already exists using %s. Please sign in with %s instead.",
 					provider,
@@ -195,7 +195,7 @@ func emailLogin(w http.ResponseWriter, r *http.Request) {
 		respondJSON(
 			w,
 			http.StatusInternalServerError,
-			map[string]string{"error": "unable to retrieve dao from context"},
+			map[string]string{"error": errDAOFromContext},
 		)
 		return
 	}
@@ -203,7 +203,7 @@ func emailLogin(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxAuthRequestBody)
 	var req models.EmailLoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": errInvalidRequestBody})
 		return
 	}
 
@@ -221,7 +221,7 @@ func emailLogin(w http.ResponseWriter, r *http.Request) {
 				[]byte("$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"),
 				[]byte(req.Password),
 			)
-			respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Invalid email or password"})
+			respondJSON(w, http.StatusUnauthorized, map[string]string{"error": errInvalidCredentials})
 			return
 		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to retrieve account"})
@@ -237,13 +237,17 @@ func emailLogin(w http.ResponseWriter, r *http.Request) {
 		}
 		if provider != "" {
 			respondJSON(w, http.StatusConflict, map[string]any{
-				"error":     "oauth_account",
-				"auth_type": provider,
-				"message":   fmt.Sprintf("This account uses %s sign-in. Please use %s to log in.", provider, provider),
+				"error":       "oauth_account",
+				fieldAuthType: provider,
+				"message": fmt.Sprintf(
+					"This account uses %s sign-in. Please use %s to log in.",
+					provider,
+					provider,
+				),
 			})
 			return
 		}
-		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Invalid email or password"})
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": errInvalidCredentials})
 		return
 	}
 
@@ -258,7 +262,7 @@ func emailLogin(w http.ResponseWriter, r *http.Request) {
 
 	// Verify password
 	if err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
-		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Invalid email or password"})
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": errInvalidCredentials})
 		return
 	}
 
@@ -311,7 +315,7 @@ func emailVerify(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 		respondJSON(
 			w,
 			http.StatusInternalServerError,
-			map[string]string{"error": "unable to retrieve dao from context"},
+			map[string]string{"error": errDAOFromContext},
 		)
 		return
 	}
@@ -358,7 +362,7 @@ func passwordResetRequest(w http.ResponseWriter, r *http.Request, options OauthO
 		respondJSON(
 			w,
 			http.StatusInternalServerError,
-			map[string]string{"error": "unable to retrieve dao from context"},
+			map[string]string{"error": errDAOFromContext},
 		)
 		return
 	}
@@ -366,7 +370,7 @@ func passwordResetRequest(w http.ResponseWriter, r *http.Request, options OauthO
 	r.Body = http.MaxBytesReader(w, r.Body, maxAuthRequestBody)
 	var req models.PasswordResetRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": errInvalidRequestBody})
 		return
 	}
 
@@ -412,7 +416,7 @@ func passwordReset(w http.ResponseWriter, r *http.Request) {
 		respondJSON(
 			w,
 			http.StatusInternalServerError,
-			map[string]string{"error": "unable to retrieve dao from context"},
+			map[string]string{"error": errDAOFromContext},
 		)
 		return
 	}
@@ -420,7 +424,7 @@ func passwordReset(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxAuthRequestBody)
 	var req models.PasswordResetConfirm
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": errInvalidRequestBody})
 		return
 	}
 
@@ -493,7 +497,7 @@ func linkOAuthAccount(w http.ResponseWriter, r *http.Request) {
 		respondJSON(
 			w,
 			http.StatusInternalServerError,
-			map[string]string{"error": "unable to retrieve dao from context"},
+			map[string]string{"error": errDAOFromContext},
 		)
 		return
 	}
@@ -505,7 +509,7 @@ func linkOAuthAccount(w http.ResponseWriter, r *http.Request) {
 		Provider string `json:"provider"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": errInvalidRequestBody})
 		return
 	}
 
@@ -542,10 +546,10 @@ func linkOAuthAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Info("Account linked to OAuth", "email", req.Email, "provider", req.Provider)
+	logger.Info("Account linked to OAuth", "email", req.Email, fieldProvider, req.Provider)
 	respondJSON(w, http.StatusOK, map[string]string{
-		"message":  "Account linked successfully. Please sign in with " + req.Provider + ".",
-		"provider": req.Provider,
+		"message":     "Account linked successfully. Please sign in with " + req.Provider + ".",
+		fieldProvider: req.Provider,
 	})
 }
 

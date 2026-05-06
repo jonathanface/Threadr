@@ -31,4 +31,18 @@ const (
 	// legitimate single-file payload (document.xml, styles.xml, embedded media)
 	// while still bounding worst-case memory/disk pressure.
 	maxZipEntrySize = 50 * 1024 * 1024
+
+	// Default first-chapter title used when importing a document with no
+	// detectable headings.
+	firstChapterTitle = "Chapter 1"
+
+	// HTML element name used by the chapter splitter.
+	tagParagraph = "paragraph"
+
+	// DOCX custom paragraph style names used by the styles.xml patcher and the
+	// HTML→DOCX preprocessor. These must match entries in the reference docx.
+	styleCentered   = "Centered"
+	styleJustified  = "Justified"
+	styleLineSingle = "LineSingle"
+	styleLineDouble = "LineDouble"
 )

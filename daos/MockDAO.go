@@ -97,6 +97,23 @@ type MockDAO struct {
 
 var _ DaoInterface = (*MockDAO)(nil)
 
+// NewMockDAO returns a MockDAO wired with a sensible test default for the
+// underlying DAO struct (small batch size, mock dynamo client). Individual
+// mock fields can be set on the returned value to override behaviour.
+func NewMockDAO() *MockDAO {
+	maxAWSRetries := 10
+	blockTableMinWriteCapacity := 10
+	mockClient := &MockDynamoClient{}
+	return &MockDAO{
+		DAO: &DAO{
+			writeBatchSize: 2, //nolint:mnd
+			maxRetries:     maxAWSRetries,
+			capacity:       blockTableMinWriteCapacity,
+			DynamoClient:   mockClient,
+		},
+	}
+}
+
 func (m *MockDAO) GetUserDetails(_ context.Context, email string) (*models.UserInfo, error) {
 	if m.MockGetUserDetails != nil {
 		return m.MockGetUserDetails(email)
@@ -786,18 +803,4 @@ func (m *MockDAO) MarkAlertRead(_ context.Context, email, alertID string) error 
 		return m.MockMarkAlertRead(email, alertID)
 	}
 	return nil
-}
-
-func NewMockDAO() *MockDAO {
-	maxAWSRetries := 10
-	blockTableMinWriteCapacity := 10
-	mockClient := &MockDynamoClient{}
-	return &MockDAO{
-		DAO: &DAO{
-			writeBatchSize: 2, //nolint:mnd
-			maxRetries:     maxAWSRetries,
-			capacity:       blockTableMinWriteCapacity,
-			DynamoClient:   mockClient,
-		},
-	}
 }

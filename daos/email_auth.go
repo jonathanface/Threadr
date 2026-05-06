@@ -64,7 +64,7 @@ func (d *DAO) CreateEmailUser(
 	// Create welcome alert (will be waiting when they first log in)
 	// Check if this is a returning user (has soft-deleted stories)
 	go func() {
-		bgCtx := context.Background()
+		bgCtx := context.WithoutCancel(ctx)
 		stories, err := d.GetAllStoriesIncludingDeleted(bgCtx, email) //nolint:govet
 		if err == nil && len(stories) > 0 {
 			d.createWelcomeBackAlert(bgCtx, email)

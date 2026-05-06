@@ -28,7 +28,7 @@ func ValidateStoryTitle(title string) *ValidationError {
 	if trimmed == "" {
 		return &ValidationError{
 			Field:   "title",
-			Message: "Story title is required",
+			Message: msgStoryTitleRequired,
 		}
 	}
 
@@ -66,14 +66,14 @@ func ValidateStoryDescription(description string) *ValidationError {
 
 	if trimmed == "" {
 		return &ValidationError{
-			Field:   "description",
+			Field:   fieldDescription,
 			Message: "A brief description is required",
 		}
 	}
 
 	if len(trimmed) > maxDescriptionLength {
 		return &ValidationError{
-			Field: "description",
+			Field: fieldDescription,
 			Message: fmt.Sprintf(
 				"Description is too long (%d characters). Maximum is %d characters",
 				len(trimmed),

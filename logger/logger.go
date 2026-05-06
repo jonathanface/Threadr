@@ -6,6 +6,7 @@ import (
 	"os"
 )
 
+//nolint:gochecknoglobals // process-wide slog instance; the entire package exists to wrap it.
 var log *slog.Logger
 
 func init() {

@@ -22,6 +22,7 @@ const (
 	authPath       = "/auth"
 )
 
+//nolint:funlen // Route table — all routes wired here on purpose so the API surface is greppable in one place.
 func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.OauthOptions, maintenanceMode bool) *mux.Router {
 	rtr := mux.NewRouter()
 
