@@ -221,18 +221,9 @@ func TestDeleteAssociations(t *testing.T) {
 
 			err := mockDao.DeleteAssociations(context.Background(), tc.email, tc.storyID, tc.associations)
 			if tc.wantErr {
-				//nolint:gocritic // mixed nil + substring checks; switch would obscure the intent.
-				if err == nil {
-					t.Errorf("Expected error but got nil")
-				} else if tc.expectedErrContains != "" && !contains(err.Error(), tc.expectedErrContains) {
-					t.Errorf("Error %q does not contain %q", err.Error(), tc.expectedErrContains)
-				} else {
-					t.Logf("Got expected error: %v", err)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
+				assertExpectedErr(t, err, tc.expectedErrContains)
+			} else if err != nil {
+				t.Errorf("Unexpected error: %v", err)
 			}
 		})
 	}
@@ -270,18 +261,9 @@ func TestGetAssociationDetails(t *testing.T) {
 			_, err := mockDao.GetAssociationDetails(context.Background(), tc.email, tc.storyID, tc.associationID)
 
 			if tc.wantErr {
-				//nolint:gocritic // mixed nil + substring checks; switch would obscure the intent.
-				if err == nil {
-					t.Errorf("Expected error but got nil")
-				} else if tc.expectedErrContains != "" && !contains(err.Error(), tc.expectedErrContains) {
-					t.Errorf("Error %q does not contain %q", err.Error(), tc.expectedErrContains)
-				} else {
-					t.Logf("Got expected error: %v", err)
-				}
-			} else {
-				if err != nil {
-					t.Logf("Got error (expected without full DB mock): %v", err)
-				}
+				assertExpectedErr(t, err, tc.expectedErrContains)
+			} else if err != nil {
+				t.Logf("Got error (expected without full DB mock): %v", err)
 			}
 		})
 	}
@@ -326,6 +308,21 @@ func TestGetStoryOrSeriesAssociationThumbnails(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// assertExpectedErr is the shared "wantErr branch" of every table-driven test in
+// this package: an error must be present, and if `expectedContains` is non-empty
+// it must appear in err.Error(). Cuts the if/elseif/else nesting our tests keep
+// hand-rolling.
+func assertExpectedErr(t *testing.T, err error, expectedContains string) {
+	t.Helper()
+	if err == nil {
+		t.Errorf("Expected error but got nil")
+		return
+	}
+	if expectedContains != "" && !contains(err.Error(), expectedContains) {
+		t.Errorf("Error %q does not contain %q", err.Error(), expectedContains)
 	}
 }
 

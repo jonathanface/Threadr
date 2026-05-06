@@ -176,19 +176,17 @@ func TestVerifyStripeSubscription(t *testing.T) {
 			status, err := mockDao.verifyStripeSubscription(tc.subID, tc.customerID)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Errorf("Expected error but got nil")
-				}
-			} else {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
-				if status.Found != tc.wantFound {
-					t.Errorf("Expected Found=%v, got %v", tc.wantFound, status.Found)
-				}
-				if status.Active != tc.wantActive {
-					t.Errorf("Expected Active=%v, got %v", tc.wantActive, status.Active)
-				}
+				assertExpectedErr(t, err, "")
+				return
+			}
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			if status.Found != tc.wantFound {
+				t.Errorf("Expected Found=%v, got %v", tc.wantFound, status.Found)
+			}
+			if status.Active != tc.wantActive {
+				t.Errorf("Expected Active=%v, got %v", tc.wantActive, status.Active)
 			}
 		})
 	}

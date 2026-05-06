@@ -73,28 +73,24 @@ func TestCreateUser(t *testing.T) {
 			user, err := mockDao.CreateUser(context.Background(), tc.email)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Errorf("Expected error but got nil")
-				} else if tc.expectedErrContains != "" && !contains(err.Error(), tc.expectedErrContains) {
-					t.Errorf("Error %q does not contain %q", err.Error(), tc.expectedErrContains)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
-				if user == nil {
-					t.Error("Expected user to be returned")
-				} else {
-					if user.Email != tc.email {
-						t.Errorf("Expected email %q, got %q", tc.email, user.Email)
-					}
-					if user.Admin {
-						t.Error("New user should not be admin")
-					}
-					if user.Subscriber {
-						t.Error("New user should not be subscriber")
-					}
-				}
+				assertExpectedErr(t, err, tc.expectedErrContains)
+				return
+			}
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			if user == nil {
+				t.Error("Expected user to be returned")
+				return
+			}
+			if user.Email != tc.email {
+				t.Errorf("Expected email %q, got %q", tc.email, user.Email)
+			}
+			if user.Admin {
+				t.Error("New user should not be admin")
+			}
+			if user.Subscriber {
+				t.Error("New user should not be subscriber")
 			}
 		})
 	}
@@ -176,18 +172,14 @@ func TestUpsertUser(t *testing.T) {
 			user, err := mockDao.UpsertUser(context.Background(), tc.email)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Errorf("Expected error but got nil")
-				} else if tc.expectedErrContains != "" && !contains(err.Error(), tc.expectedErrContains) {
-					t.Errorf("Error %q does not contain %q", err.Error(), tc.expectedErrContains)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
-				if user == nil {
-					t.Error("Expected user to be returned")
-				}
+				assertExpectedErr(t, err, tc.expectedErrContains)
+				return
+			}
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			if user == nil {
+				t.Error("Expected user to be returned")
 			}
 		})
 	}

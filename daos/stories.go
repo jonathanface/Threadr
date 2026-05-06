@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"Threadr/logger"
@@ -663,8 +662,6 @@ func (d *DAO) ResetBlockOrder(ctx context.Context, storyID string, blocksOrder *
 }
 
 // buildWriteTransactions builds delete and put transaction items for block writing.
-//
-//nolint:funlen // Block-write transaction builder: place-conflict resolution + delete/put split + batch logic.
 func buildWriteTransactions(
 	batch []models.StoryBlock,
 	compositeKey string,
@@ -673,208 +670,178 @@ func buildWriteTransactions(
 	itemsByKeyID map[string]map[string]types.AttributeValue,
 	itemsByPlace map[int64]map[string]types.AttributeValue,
 ) (deleteItems, putItems []types.TransactWriteItem, err error) {
-	// Track place values being used in this batch to detect conflicts
 	batchPlaceUsage := make(map[int64]string) // place -> key_id
 
 	for _, item := range batch {
-		newPlaceNum, err := strconv.ParseInt(item.Place, 10, 64) //nolint:govet
-		if err != nil {
-			return nil, nil, fmt.Errorf("invalid place value %s: %w", item.Place, err)
+		newPlaceNum, parseErr := strconv.ParseInt(item.Place, 10, 64)
+		if parseErr != nil {
+			return nil, nil, fmt.Errorf("invalid place value %s: %w", item.Place, parseErr)
 		}
 
 		existingItem, exists := itemsByKeyID[item.KeyID]
-
 		if exists {
-			// Block exists - check if place changed
-			oldPlace, ok := existingItem["place"].(*types.AttributeValueMemberN)
-			if !ok {
-				return nil, nil, fmt.Errorf("invalid place attribute for key_id %s", item.KeyID)
+			deleteItem, putItem, bErr := buildExistingBlockTransactions(
+				item, existingItem, newPlaceNum,
+				compositeKey, storyID, chapterID, batchPlaceUsage,
+			)
+			if bErr != nil {
+				return nil, nil, bErr
 			}
-
-			oldPlaceNum, _ := strconv.ParseInt(oldPlace.Value, 10, 64)
-
-			// Check for place conflicts within this batch
-			actualPlace := newPlaceNum
-			if conflictingKeyID, placeInUse := batchPlaceUsage[newPlaceNum]; placeInUse &&
-				conflictingKeyID != item.KeyID {
-				// Another block in this batch is already using this place
-				// Assign a temporary high place value to avoid transaction conflict
-				actualPlace = placeConflictOffset + newPlaceNum
-				logger.Warn("Place conflict detected within batch for existing block",
-					"storyId", storyID,
-					"chapterId", chapterID,
-					"keyId", item.KeyID,
-					"conflictingKeyId", conflictingKeyID,
-					"requestedPlace", newPlaceNum,
-					"temporaryPlace", actualPlace)
-			} else {
-				// Mark this place as used by this key_id
-				batchPlaceUsage[newPlaceNum] = item.KeyID
+			if deleteItem != nil {
+				deleteItems = append(deleteItems, *deleteItem)
 			}
+			putItems = append(putItems, putItem)
+			continue
+		}
 
-			// Build new item with updated content
-			newItem := map[string]types.AttributeValue{
-				attrCompositeKey: &types.AttributeValueMemberS{Value: compositeKey},
-				"place":          &types.AttributeValueMemberN{Value: strconv.FormatInt(actualPlace, 10)},
-				attrStoryID:      &types.AttributeValueMemberS{Value: storyID},
-				attrChapterID:    &types.AttributeValueMemberS{Value: chapterID},
-				"key_id":         &types.AttributeValueMemberS{Value: item.KeyID},
-			}
-
-			// Update chunk - with data loss protection
-			if len(item.Chunk) > 0 {
-				chunkStr := string(item.Chunk)
-
-				// Check if we're overwriting content with empty data
-				if existingChunk, ok := existingItem["chunk"]; ok { //nolint:govet
-					existingChunkStr := ""
-					if s, ok := existingChunk.(*types.AttributeValueMemberS); ok { //nolint:govet
-						existingChunkStr = s.Value
-					}
-
-					// Detect potential data loss from malformed/broken chunks
-					// A properly serialized Lexical paragraph (even empty) is ~100+ chars with structure
-					// Malformed data from race conditions would be very short or literal empty values
-					existingHasContent := len(
-						existingChunkStr,
-					) > minLexicalChunkSize // reasonable threshold for min Lexical JSON
-
-					// Check for clearly malformed data (not properly serialized Lexical JSON)
-					newIsMalformed := chunkStr == "null" ||
-						chunkStr == "[]" ||
-						chunkStr == `""` ||
-						chunkStr == "{}" ||
-						(len(chunkStr) < 30 && (!strings.Contains(chunkStr, "type") || !strings.Contains(chunkStr, "key_id"))) || // Short content must have structure
-						(!strings.Contains(chunkStr, "type") && !strings.Contains(chunkStr, "key_id")) // Must have basic structure
-
-					if existingHasContent && newIsMalformed {
-						// PREVENT data loss by preserving existing content
-						// This catches race conditions where malformed/broken data is sent
-						// but allows properly serialized paragraphs (including intentionally empty ones) through
-						logger.Warn("DATA LOSS PREVENTED: Preserving existing chunk - incoming chunk is malformed",
-							"storyId", storyID,
-							"chapterId", chapterID,
-							"keyId", item.KeyID,
-							"existingLength", len(existingChunkStr),
-							"incomingLength", len(chunkStr),
-							"incomingChunk", chunkStr,
-							"existingChunkPreview", truncateString(existingChunkStr, chunkPreviewLength))
-						// Preserve existing chunk instead of overwriting with malformed data
-						newItem["chunk"] = existingChunk
-					} else {
-						// Safe update - accept the new chunk (including intentionally empty paragraphs)
-						newItem["chunk"] = &types.AttributeValueMemberS{Value: chunkStr}
-					}
-				} else {
-					// No existing chunk, accept the new one
-					newItem["chunk"] = &types.AttributeValueMemberS{Value: chunkStr}
-				}
-			} else {
-				// Zero-length chunk (likely a bug) - preserve existing to prevent data loss
-				if existingChunk, ok := existingItem["chunk"]; ok { //nolint:govet
-					newItem["chunk"] = existingChunk
-					logger.Warn("DATA LOSS PREVENTED: Preserving existing chunk due to zero-length incoming chunk",
-						"storyId", storyID,
-						"chapterId", chapterID,
-						"keyId", item.KeyID)
-				}
-			}
-
-			// Preserve other attributes from existing item
-			for k, v := range existingItem {
-				if k != attrCompositeKey && k != "place" && k != attrStoryID && k != attrChapterID && k != "key_id" &&
-					k != "chunk" {
-					newItem[k] = v
-				}
-			}
-
-			if oldPlaceNum != newPlaceNum {
-				// Place changed - need to delete from old position first
-				deleteKey := map[string]types.AttributeValue{
-					attrCompositeKey: &types.AttributeValueMemberS{Value: compositeKey},
-					"place":          oldPlace,
-				}
-				deleteItems = append(deleteItems, types.TransactWriteItem{
-					Delete: &types.Delete{
-						TableName: aws.String(GetStoryBlocksTableName()),
-						Key:       deleteKey,
-					},
-				})
-			}
-
-			// Always put at the (potentially new) position with updated content
-			putItems = append(putItems, types.TransactWriteItem{
-				Put: &types.Put{
-					TableName: aws.String(GetStoryBlocksTableName()),
-					Item:      newItem,
-				},
-			})
-		} else {
-			// New block - skip only if chunk is truly zero-length (likely a bug)
-			// Allow creation with valid empty JSON (intentional blank paragraphs)
-			if len(item.Chunk) == 0 {
-				logger.Warn("Skipping creation of new block with zero-length chunk (possible frontend bug)",
-					"storyId", storyID,
-					"chapterId", chapterID,
-					"keyId", item.KeyID,
-					"place", item.Place)
-				continue
-			}
-
-			// Check for place conflicts - both in database and within this batch
-			actualPlace := newPlaceNum
-			if conflictingKeyID, placeInUse := batchPlaceUsage[newPlaceNum]; placeInUse &&
-				conflictingKeyID != item.KeyID {
-				// Another block in this batch is already using this place
-				actualPlace = placeConflictOffset + newPlaceNum
-				logger.Warn("Place conflict detected within batch for new block",
-					"storyId", storyID,
-					"chapterId", chapterID,
-					"keyId", item.KeyID,
-					"conflictingKeyId", conflictingKeyID,
-					"requestedPlace", newPlaceNum,
-					"temporaryPlace", actualPlace)
-			} else if _, placeOccupied := itemsByPlace[newPlaceNum]; placeOccupied {
-				// There's already a different block at this place in the database
-				actualPlace = placeConflictOffset + newPlaceNum
-				logger.Warn("Place conflict detected for new block with existing database entry",
-					"storyId", storyID,
-					"chapterId", chapterID,
-					"keyId", item.KeyID,
-					"requestedPlace", newPlaceNum,
-					"temporaryPlace", actualPlace)
-			} else {
-				// Mark this place as used by this key_id
-				batchPlaceUsage[newPlaceNum] = item.KeyID
-			}
-
-			newItem := map[string]types.AttributeValue{
-				attrCompositeKey: &types.AttributeValueMemberS{Value: compositeKey},
-				"place":          &types.AttributeValueMemberN{Value: strconv.FormatInt(actualPlace, 10)},
-				attrStoryID:      &types.AttributeValueMemberS{Value: storyID},
-				attrChapterID:    &types.AttributeValueMemberS{Value: chapterID},
-				"key_id":         &types.AttributeValueMemberS{Value: item.KeyID},
-				"chunk":          &types.AttributeValueMemberS{Value: string(item.Chunk)},
-			}
-
-			chunkStr := string(item.Chunk)
-			if chunkStr == "null" || chunkStr == "[]" || chunkStr == `""` || chunkStr == "{}" {
-				logger.Debug("Creating new block with intentional empty chunk",
-					"storyId", storyID,
-					"chapterId", chapterID,
-					"keyId", item.KeyID,
-					"chunkValue", chunkStr)
-			}
-
-			putItems = append(putItems, types.TransactWriteItem{
-				Put: &types.Put{
-					TableName: aws.String(GetStoryBlocksTableName()),
-					Item:      newItem,
-				},
-			})
+		putItem, skip := buildNewBlockTransaction(
+			item, newPlaceNum,
+			compositeKey, storyID, chapterID,
+			batchPlaceUsage, itemsByPlace,
+		)
+		if !skip {
+			putItems = append(putItems, putItem)
 		}
 	}
 	return deleteItems, putItems, nil
+}
+
+// buildExistingBlockTransactions produces the (optional delete, mandatory put)
+// pair for updating a block that already exists in the database. The delete
+// is returned only if the block's place value is changing; otherwise we just
+// put at the same position with refreshed content. Returns an error if the
+// existing item lacks a valid "place" attribute.
+func buildExistingBlockTransactions(
+	item models.StoryBlock,
+	existingItem map[string]types.AttributeValue,
+	newPlaceNum int64,
+	compositeKey, storyID, chapterID string,
+	batchPlaceUsage map[int64]string,
+) (deleteItem *types.TransactWriteItem, putItem types.TransactWriteItem, err error) {
+	oldPlace, ok := existingItem["place"].(*types.AttributeValueMemberN)
+	if !ok {
+		return nil, types.TransactWriteItem{}, fmt.Errorf("invalid place attribute for key_id %s", item.KeyID)
+	}
+	oldPlaceNum, _ := strconv.ParseInt(oldPlace.Value, 10, 64)
+
+	actualPlace := resolveBatchPlace(newPlaceNum, item.KeyID, batchPlaceUsage, storyID, chapterID, "existing block")
+
+	newItem := map[string]types.AttributeValue{
+		attrCompositeKey: &types.AttributeValueMemberS{Value: compositeKey},
+		"place":          &types.AttributeValueMemberN{Value: strconv.FormatInt(actualPlace, 10)},
+		attrStoryID:      &types.AttributeValueMemberS{Value: storyID},
+		attrChapterID:    &types.AttributeValueMemberS{Value: chapterID},
+		"key_id":         &types.AttributeValueMemberS{Value: item.KeyID},
+	}
+	if chunk := resolveChunkUpdate(item.Chunk, existingItem, storyID, chapterID, item.KeyID); chunk != nil {
+		newItem["chunk"] = chunk
+	}
+	for k, v := range existingItem {
+		if k != attrCompositeKey && k != "place" && k != attrStoryID && k != attrChapterID && k != "key_id" &&
+			k != "chunk" {
+			newItem[k] = v
+		}
+	}
+
+	if oldPlaceNum != newPlaceNum {
+		deleteItem = &types.TransactWriteItem{
+			Delete: &types.Delete{
+				TableName: aws.String(GetStoryBlocksTableName()),
+				Key: map[string]types.AttributeValue{
+					attrCompositeKey: &types.AttributeValueMemberS{Value: compositeKey},
+					"place":          oldPlace,
+				},
+			},
+		}
+	}
+	putItem = types.TransactWriteItem{
+		Put: &types.Put{
+			TableName: aws.String(GetStoryBlocksTableName()),
+			Item:      newItem,
+		},
+	}
+	return deleteItem, putItem, nil
+}
+
+// buildNewBlockTransaction produces the put-transaction for a brand-new block
+// (no existing row in the database). Returns skip=true when the incoming
+// chunk is zero-length — those are dropped to avoid persisting frontend bugs
+// as empty rows. Place conflicts (within batch or against existing DB rows)
+// shift the new row to a temporary high-place slot.
+func buildNewBlockTransaction(
+	item models.StoryBlock,
+	newPlaceNum int64,
+	compositeKey, storyID, chapterID string,
+	batchPlaceUsage map[int64]string,
+	itemsByPlace map[int64]map[string]types.AttributeValue,
+) (putItem types.TransactWriteItem, skip bool) {
+	if len(item.Chunk) == 0 {
+		logger.Warn("Skipping creation of new block with zero-length chunk (possible frontend bug)",
+			"storyId", storyID, "chapterId", chapterID, "keyId", item.KeyID, "place", item.Place)
+		return types.TransactWriteItem{}, true
+	}
+
+	actualPlace := newPlaceNum
+	if conflictingKeyID, placeInUse := batchPlaceUsage[newPlaceNum]; placeInUse && conflictingKeyID != item.KeyID {
+		actualPlace = placeConflictOffset + newPlaceNum
+		logger.Warn("Place conflict detected within batch for new block",
+			"storyId", storyID, "chapterId", chapterID, "keyId", item.KeyID,
+			"conflictingKeyId", conflictingKeyID,
+			"requestedPlace", newPlaceNum, "temporaryPlace", actualPlace)
+	} else if _, placeOccupied := itemsByPlace[newPlaceNum]; placeOccupied {
+		actualPlace = placeConflictOffset + newPlaceNum
+		logger.Warn("Place conflict detected for new block with existing database entry",
+			"storyId", storyID, "chapterId", chapterID, "keyId", item.KeyID,
+			"requestedPlace", newPlaceNum, "temporaryPlace", actualPlace)
+	} else {
+		batchPlaceUsage[newPlaceNum] = item.KeyID
+	}
+
+	newItem := map[string]types.AttributeValue{
+		attrCompositeKey: &types.AttributeValueMemberS{Value: compositeKey},
+		"place":          &types.AttributeValueMemberN{Value: strconv.FormatInt(actualPlace, 10)},
+		attrStoryID:      &types.AttributeValueMemberS{Value: storyID},
+		attrChapterID:    &types.AttributeValueMemberS{Value: chapterID},
+		"key_id":         &types.AttributeValueMemberS{Value: item.KeyID},
+		"chunk":          &types.AttributeValueMemberS{Value: string(item.Chunk)},
+	}
+
+	chunkStr := string(item.Chunk)
+	if chunkStr == "null" || chunkStr == "[]" || chunkStr == `""` || chunkStr == "{}" {
+		logger.Debug("Creating new block with intentional empty chunk",
+			"storyId", storyID, "chapterId", chapterID, "keyId", item.KeyID, "chunkValue", chunkStr)
+	}
+
+	return types.TransactWriteItem{
+		Put: &types.Put{
+			TableName: aws.String(GetStoryBlocksTableName()),
+			Item:      newItem,
+		},
+	}, false
+}
+
+// resolveBatchPlace handles the within-batch place-conflict case shared by
+// buildExistingBlockTransactions and is used by buildNewBlockTransaction's
+// first conflict check. If two items in the same batch claim the same place,
+// the later one is shifted to placeConflictOffset+place to avoid a DDB
+// transaction conflict; a Warn is logged with the kind label so callers can
+// distinguish "existing block" from "new block" in logs.
+func resolveBatchPlace(
+	newPlaceNum int64,
+	keyID string,
+	batchPlaceUsage map[int64]string,
+	storyID, chapterID, kind string,
+) int64 {
+	if conflictingKeyID, placeInUse := batchPlaceUsage[newPlaceNum]; placeInUse && conflictingKeyID != keyID {
+		actualPlace := placeConflictOffset + newPlaceNum
+		logger.Warn("Place conflict detected within batch for "+kind,
+			"storyId", storyID, "chapterId", chapterID, "keyId", keyID,
+			"conflictingKeyId", conflictingKeyID,
+			"requestedPlace", newPlaceNum, "temporaryPlace", actualPlace)
+		return actualPlace
+	}
+	batchPlaceUsage[newPlaceNum] = keyID
+	return newPlaceNum
 }
 
 // WriteBlocks writes or updates blocks in the unified table
@@ -932,49 +899,14 @@ func (d *DAO) WriteBlocks(ctx context.Context, storyID string, storyBlocks *mode
 				"key_id":         &types.AttributeValueMemberS{Value: item.KeyID},
 			}
 
-			// Update chunk - with data loss protection
-			if len(item.Chunk) > 0 {
-				chunkStr := string(item.Chunk)
-
-				if existingChunk, ok := existingItem["chunk"]; ok { //nolint:govet
-					existingChunkStr := ""
-					if s, ok := existingChunk.(*types.AttributeValueMemberS); ok { //nolint:govet
-						existingChunkStr = s.Value
-					}
-
-					existingHasContent := len(existingChunkStr) > minLexicalChunkSize
-
-					newIsMalformed := chunkStr == "null" ||
-						chunkStr == "[]" ||
-						chunkStr == `""` ||
-						chunkStr == "{}" ||
-						(len(chunkStr) < 30 && (!strings.Contains(chunkStr, "type") || !strings.Contains(chunkStr, "key_id"))) ||
-						(!strings.Contains(chunkStr, "type") && !strings.Contains(chunkStr, "key_id"))
-
-					if existingHasContent && newIsMalformed {
-						logger.Warn("DATA LOSS PREVENTED: Preserving existing chunk - incoming chunk is malformed",
-							"storyId", storyID,
-							"chapterId", storyBlocks.ChapterID,
-							"keyId", item.KeyID,
-							"existingLength", len(existingChunkStr),
-							"incomingLength", len(chunkStr),
-							"incomingChunk", chunkStr,
-							"existingChunkPreview", truncateString(existingChunkStr, chunkPreviewLength))
-						newItem["chunk"] = existingChunk
-					} else {
-						newItem["chunk"] = &types.AttributeValueMemberS{Value: chunkStr}
-					}
-				} else {
-					newItem["chunk"] = &types.AttributeValueMemberS{Value: chunkStr}
-				}
-			} else {
-				if existingChunk, ok := existingItem["chunk"]; ok { //nolint:govet
-					newItem["chunk"] = existingChunk
-					logger.Warn("DATA LOSS PREVENTED: Preserving existing chunk due to zero-length incoming chunk",
-						"storyId", storyID,
-						"chapterId", storyBlocks.ChapterID,
-						"keyId", item.KeyID)
-				}
+			if chunk := resolveChunkUpdate(
+				item.Chunk,
+				existingItem,
+				storyID,
+				storyBlocks.ChapterID,
+				item.KeyID,
+			); chunk != nil {
+				newItem["chunk"] = chunk
 			}
 
 			// Preserve other attributes from existing item
@@ -1138,88 +1070,8 @@ func (d *DAO) EditStory(ctx context.Context, email string, story models.Story) (
 		return updatedStory, err
 	}
 	if story.SeriesID != storedStory.SeriesID {
-		// a change in series
-		if story.SeriesID != "" {
-			// check if this is a new or existing series
-			series, err := d.GetSeriesByID(ctx, email, story.SeriesID) //nolint:govet
-			var seriesID string
-			if err != nil {
-				if !errors.Is(err, ErrSeriesNotFound) {
-					return updatedStory, err
-				}
-				updatedStory.Place = 1
-				seriesID = uuid.New().String()
-				seriesItem := map[string]types.AttributeValue{
-					attrSeriesID: &types.AttributeValueMemberS{Value: seriesID},
-					"title":      &types.AttributeValueMemberS{Value: story.SeriesID},
-					"author":     &types.AttributeValueMemberS{Value: email},
-				}
-				seriesUpdateInput := &dynamodb.PutItemInput{
-					TableName: aws.String("series" + GetTableSuffix()),
-					Item:      seriesItem,
-				}
-				_, err = d.DynamoClient.PutItem(ctx, seriesUpdateInput)
-				if err != nil {
-					return updatedStory, err
-				}
-			} else {
-				seriesID = series.ID
-
-				if len(series.Stories) > 1 {
-					sort.Slice(series.Stories, func(i, j int) bool {
-						return series.Stories[i].Place > series.Stories[j].Place
-					})
-				} else if len(series.Stories) == 1 {
-					updatedStory.Place = series.Stories[0].Place + 1
-				}
-			}
-			item[attrSeriesID] = &types.AttributeValueMemberS{Value: seriesID}
-			item["place"] = &types.AttributeValueMemberN{Value: strconv.Itoa(updatedStory.Place)}
-			updatedStory.SeriesID = seriesID
-		} else {
-			// story was removed from series OR new series
-			_, err := d.GetSeriesByID(ctx, email, story.SeriesID) //nolint:govet
-			if err != nil {
-				//nolint:gocritic // mixed errors.Is + field checks; switch would be uglier.
-				if !errors.Is(err, ErrSeriesNotFound) {
-					return updatedStory, err
-				} else if story.SeriesID != "" {
-					// new series
-					updatedStory.Place = 1
-					seriesID := uuid.New().String()
-					seriesItem := map[string]types.AttributeValue{
-						attrSeriesID: &types.AttributeValueMemberS{Value: seriesID},
-						"title":      &types.AttributeValueMemberS{Value: story.SeriesID},
-						"author":     &types.AttributeValueMemberS{Value: email},
-					}
-					seriesUpdateInput := &dynamodb.PutItemInput{
-						TableName: aws.String("series" + GetTableSuffix()),
-						Item:      seriesItem,
-					}
-					_, err = d.DynamoClient.PutItem(ctx, seriesUpdateInput)
-					if err != nil {
-						return updatedStory, err
-					}
-				} else {
-					// remove from series
-					storedSeries, err := d.GetSeriesByID(ctx, email, storedStory.SeriesID) //nolint:govet
-					if err != nil {
-						return updatedStory, err
-					}
-					var newStories []*models.Story
-					for _, seriesStory := range storedSeries.Stories {
-						if seriesStory.ID != updatedStory.ID {
-							newStories = append(newStories, seriesStory)
-						}
-					}
-					storedSeries.Stories = newStories
-					_, err = d.EditSeries(ctx, email, *storedSeries)
-					if err != nil {
-						return updatedStory, err
-					}
-				}
-				updatedStory.Place = 0
-			}
+		if err = d.applySeriesChange(ctx, email, story, storedStory, &updatedStory, item); err != nil {
+			return updatedStory, err
 		}
 	}
 

@@ -31,87 +31,10 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 		return nil, err
 	}
 
-	// If user exists and was deleted, we need to use Update instead of Put
+	// If user exists and was deleted, recreate the account by clearing
+	// the deleted_at flag and restoring their soft-deleted stories/series.
 	if existingUser != nil && existingUser.DeletedAt != "" {
-		// 1. Restore user account
-		input := &dynamodb.UpdateItemInput{
-			TableName: aws.String("users" + GetTableSuffix()),
-			Key: map[string]types.AttributeValue{
-				"email": &types.AttributeValueMemberS{Value: email},
-			},
-			UpdateExpression: aws.String(
-				"set created_at=:t, last_accessed=:t, admin=:a, subscriber=:s REMOVE deleted_at, customer_id, first_name, last_name",
-			),
-			ExpressionAttributeValues: map[string]types.AttributeValue{
-				":t": &types.AttributeValueMemberN{Value: now},
-				":a": &types.AttributeValueMemberBOOL{Value: false},
-				":s": &types.AttributeValueMemberBOOL{Value: false},
-			},
-			ReturnValues: types.ReturnValueAllNew,
-		}
-
-		if _, err = d.DynamoClient.UpdateItem(ctx, input); err != nil {
-			return nil, err
-		}
-
-		// 2. Restore all soft-deleted stories (undelete them)
-		stories, err := d.GetAllStoriesIncludingDeleted(ctx, email) //nolint:govet
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			logger.Warn("Failed to get deleted stories for restoration", "email", email, "error", err)
-			// Continue anyway - don't fail account recreation
-		} else {
-			for _, story := range stories {
-				// Undelete the story by removing deleted_at
-				if err = d.RestoreStory(ctx, email, story.ID); err != nil {
-					logger.Warn("Failed to restore story", "email", email, "storyID", story.ID, "error", err)
-					// Continue with other stories
-				}
-			}
-			logger.Info("Restored stories for returning user", "email", email, "count", len(stories))
-		}
-
-		// 3. Restore all soft-deleted series
-		series, err := d.GetAllSeriesIncludingDeleted(ctx, email)
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			logger.Warn("Failed to get deleted series for restoration", "email", email, "error", err)
-			// Continue anyway
-		} else {
-			for _, s := range series {
-				// Undelete the series by removing deleted_at
-				if err = d.RestoreSeries(ctx, email, s.ID); err != nil {
-					logger.Warn("Failed to restore series", "email", email, "seriesID", s.ID, "error", err)
-					// Continue with other series
-				}
-			}
-			logger.Info("Restored series for returning user", "email", email, "count", len(series))
-		}
-
-		user := models.UserInfo{
-			Email:         email,
-			Admin:         false,
-			Subscriber:    false,
-			ReturningUser: true, // Flag for returning deleted user
-		}
-
-		logger.Info("Account re-created (was previously deleted)", "email", email)
-		// Send emails and create welcome alert asynchronously
-		go func() {
-			bgCtx := context.WithoutCancel(ctx)
-			if err = sendWelcomeEmail(email); err != nil {
-				logger.Error("Failed to send welcome email", "email", email, "error", err)
-			} else {
-				logger.Info("Welcome email sent successfully", "email", email)
-			}
-			if err = sendNewUserNotificationEmail(email); err != nil {
-				logger.Error("Failed to send new user notification email", "email", email, "error", err)
-			} else {
-				logger.Info("New user notification email sent successfully", "email", email)
-			}
-			d.createWelcomeBackAlert(bgCtx, email)
-			d.createSubscribeNowAlert(bgCtx, email)
-		}()
-
-		return &user, nil
+		return d.recreateDeletedUser(ctx, email, now)
 	}
 
 	// Normal new user creation
@@ -180,6 +103,93 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 	}()
 
 	return &user, nil
+}
+
+// recreateDeletedUser handles re-registration of a previously soft-deleted
+// account: clears deleted_at, restores soft-deleted stories and series, then
+// fires the usual welcome notifications. Errors during story/series
+// restoration are logged but not fatal — better to recreate the account with
+// some content lost than to refuse re-registration entirely.
+func (d *DAO) recreateDeletedUser(ctx context.Context, email, now string) (*models.UserInfo, error) {
+	input := &dynamodb.UpdateItemInput{
+		TableName: aws.String("users" + GetTableSuffix()),
+		Key: map[string]types.AttributeValue{
+			"email": &types.AttributeValueMemberS{Value: email},
+		},
+		UpdateExpression: aws.String(
+			"set created_at=:t, last_accessed=:t, admin=:a, subscriber=:s REMOVE deleted_at, customer_id, first_name, last_name",
+		),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":t": &types.AttributeValueMemberN{Value: now},
+			":a": &types.AttributeValueMemberBOOL{Value: false},
+			":s": &types.AttributeValueMemberBOOL{Value: false},
+		},
+		ReturnValues: types.ReturnValueAllNew,
+	}
+	if _, err := d.DynamoClient.UpdateItem(ctx, input); err != nil {
+		return nil, err
+	}
+
+	d.restoreUserStories(ctx, email)
+	d.restoreUserSeries(ctx, email)
+
+	user := models.UserInfo{
+		Email:         email,
+		Admin:         false,
+		Subscriber:    false,
+		ReturningUser: true,
+	}
+
+	logger.Info("Account re-created (was previously deleted)", "email", email)
+	go func() {
+		bgCtx := context.WithoutCancel(ctx)
+		if err := sendWelcomeEmail(email); err != nil {
+			logger.Error("Failed to send welcome email", "email", email, "error", err)
+		} else {
+			logger.Info("Welcome email sent successfully", "email", email)
+		}
+		if err := sendNewUserNotificationEmail(email); err != nil {
+			logger.Error("Failed to send new user notification email", "email", email, "error", err)
+		} else {
+			logger.Info("New user notification email sent successfully", "email", email)
+		}
+		d.createWelcomeBackAlert(bgCtx, email)
+		d.createSubscribeNowAlert(bgCtx, email)
+	}()
+	return &user, nil
+}
+
+// restoreUserStories undeletes every soft-deleted story owned by email.
+// Best-effort: per-story failures are logged and skipped so a single bad row
+// doesn't block the rest of the recreation flow.
+func (d *DAO) restoreUserStories(ctx context.Context, email string) {
+	stories, err := d.GetAllStoriesIncludingDeleted(ctx, email)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		logger.Warn("Failed to get deleted stories for restoration", "email", email, "error", err)
+		return
+	}
+	for _, story := range stories {
+		if err = d.RestoreStory(ctx, email, story.ID); err != nil {
+			logger.Warn("Failed to restore story", "email", email, "storyID", story.ID, "error", err)
+		}
+	}
+	logger.Info("Restored stories for returning user", "email", email, "count", len(stories))
+}
+
+// restoreUserSeries undeletes every soft-deleted series owned by email.
+// Best-effort, same contract as restoreUserStories.
+func (d *DAO) restoreUserSeries(ctx context.Context, email string) {
+	series, err := d.GetAllSeriesIncludingDeleted(ctx, email)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		logger.Warn("Failed to get deleted series for restoration", "email", email, "error", err)
+		return
+	}
+	for _, s := range series {
+		if err = d.RestoreSeries(ctx, email, s.ID); err != nil {
+			logger.Warn("Failed to restore series", "email", email, "seriesID", s.ID, "error", err)
+		}
+	}
+	logger.Info("Restored series for returning user", "email", email, "count", len(series))
 }
 
 func (d *DAO) GetUserDetails(ctx context.Context, email string) (user *models.UserInfo, err error) {

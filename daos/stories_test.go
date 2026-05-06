@@ -122,13 +122,13 @@ func TestGetStoryByID(t *testing.T) {
 				} else {
 					t.Logf("Got expected error: %v", err)
 				}
-			} else {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
-				if story == nil {
-					t.Error("Expected story to be returned")
-				}
+				return
+			}
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			if story == nil {
+				t.Error("Expected story to be returned")
 			}
 		})
 	}

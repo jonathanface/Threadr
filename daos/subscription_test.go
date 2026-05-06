@@ -153,26 +153,9 @@ func TestUpdateSubscription(t *testing.T) {
 			err := mockDao.UpdateSubscription(context.Background(), tc.subscription)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Errorf("Expected error but got nil")
-				} else if tc.errContains != "" {
-					// Simple check if error contains the substring
-					errStr := err.Error()
-					found := false
-					for i := 0; i <= len(errStr)-len(tc.errContains); i++ {
-						if errStr[i:i+len(tc.errContains)] == tc.errContains {
-							found = true
-							break
-						}
-					}
-					if !found {
-						t.Errorf("Expected error to contain %q, got %q", tc.errContains, err.Error())
-					}
-				}
-			} else {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
+				assertExpectedErr(t, err, tc.errContains)
+			} else if err != nil {
+				t.Errorf("Unexpected error: %v", err)
 			}
 		})
 	}

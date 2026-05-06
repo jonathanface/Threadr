@@ -219,19 +219,17 @@ func TestEditSeries(t *testing.T) {
 			result, err := mockDao.EditSeries(context.Background(), tc.email, tc.series)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Errorf("expected error, got nil")
-				}
-			} else {
-				if err != nil {
-					t.Errorf("unexpected error: %v", err)
-				}
-				if result.ID != tc.series.ID {
-					t.Errorf("expected series ID %s, got %s", tc.series.ID, result.ID)
-				}
-				if result.Title != tc.series.Title {
-					t.Errorf("expected title %s, got %s", tc.series.Title, result.Title)
-				}
+				assertExpectedErr(t, err, "")
+				return
+			}
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+			if result.ID != tc.series.ID {
+				t.Errorf("expected series ID %s, got %s", tc.series.ID, result.ID)
+			}
+			if result.Title != tc.series.Title {
+				t.Errorf("expected title %s, got %s", tc.series.Title, result.Title)
 			}
 		})
 	}

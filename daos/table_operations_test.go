@@ -74,21 +74,19 @@ func TestCreateBlockTable(t *testing.T) {
 			err := mockDao.createBlockTable(context.Background(), tc.tableName, tc.tags)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Errorf("Expected error but got nil")
-				}
-			} else {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
-				// Verify CreateTable was called with correct table name
-				if calledWithTableName != tc.tableName {
-					t.Errorf("Expected table name %q, got %q", tc.tableName, calledWithTableName)
-				}
-				// Verify tags were passed correctly
-				if tc.tags != nil && len(calledWithTags) != len(*tc.tags) {
-					t.Errorf("Expected %d tags, got %d", len(*tc.tags), len(calledWithTags))
-				}
+				assertExpectedErr(t, err, "")
+				return
+			}
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			// Verify CreateTable was called with correct table name
+			if calledWithTableName != tc.tableName {
+				t.Errorf("Expected table name %q, got %q", tc.tableName, calledWithTableName)
+			}
+			// Verify tags were passed correctly
+			if tc.tags != nil && len(calledWithTags) != len(*tc.tags) {
+				t.Errorf("Expected %d tags, got %d", len(*tc.tags), len(calledWithTags))
 			}
 
 			// Note: The goroutine for PITR setup is launched asynchronously,

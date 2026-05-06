@@ -390,115 +390,11 @@ func (d *DAO) hardDeleteStory(ctx context.Context, email, storyID string) error 
 	}
 
 	if originalStory.SeriesID == "" || deletedSeries {
-		// Delete associations
-		associationScanInput := &dynamodb.ScanInput{
-			TableName:        aws.String("associations" + GetTableSuffix()),
-			FilterExpression: aws.String("author = :eml AND story_or_series_id = :sid"),
-			ExpressionAttributeValues: map[string]types.AttributeValue{
-				":eml": &types.AttributeValueMemberS{Value: email},
-				":sid": &types.AttributeValueMemberS{Value: storyOrSeriesID},
-			},
-			Select: types.SelectAllAttributes,
-		}
-		associationOut, err := d.DynamoClient.Scan(ctx, associationScanInput) //nolint:govet
-		if err != nil {
-			logger.Error("Failed to scan associations for hard delete",
-				"error", err,
-				"email", email,
-				"storyOrSeriesId", storyOrSeriesID)
+		if err = d.hardDeleteStoryAssociations(ctx, email, storyOrSeriesID); err != nil {
 			return err
 		}
-
-		logger.Info("Found associations to hard delete",
-			"email", email,
-			"storyOrSeriesId", storyOrSeriesID,
-			"associationCount", len(associationOut.Items))
-
-		for _, item := range associationOut.Items {
-			assocAttr, ok := item[attrAssociationID].(*types.AttributeValueMemberS)
-			if !ok {
-				continue
-			}
-			assocID := assocAttr.Value
-			associationKey := map[string]types.AttributeValue{
-				attrAssociationID:   &types.AttributeValueMemberS{Value: assocID},
-				attrStoryOrSeriesID: &types.AttributeValueMemberS{Value: storyOrSeriesID},
-			}
-			associationDeleteInput := &dynamodb.DeleteItemInput{
-				TableName: aws.String("associations" + GetTableSuffix()),
-				Key:       associationKey,
-			}
-			_, err = d.DynamoClient.DeleteItem(ctx, associationDeleteInput)
-			if err != nil {
-				return err
-			}
-
-			associationDetailsDeleteInput := &dynamodb.DeleteItemInput{
-				TableName: aws.String("association_details" + GetTableSuffix()),
-				Key:       associationKey,
-			}
-			_, err = d.DynamoClient.DeleteItem(ctx, associationDetailsDeleteInput)
-			if err != nil {
-				return err
-			}
-			// delete association images
-			var bucketName string
-			typeAttr, typeOK := item["association_type"].(*types.AttributeValueMemberS)
-			if !typeOK {
-				continue
-			}
-			switch typeAttr.Value {
-			case associationTypeCharacter:
-				bucketName = "richdocterportraits"
-			case "event":
-				bucketName = "richdocterevents"
-			case "location":
-				bucketName = "richdocterlocations"
-			}
-			portraitAttr, portraitOK := item["portrait"].(*types.AttributeValueMemberS)
-			if !portraitOK {
-				continue
-			}
-			parsedPath, parseErr := url.Parse(portraitAttr.Value)
-			if parseErr != nil {
-				return parseErr
-			}
-			objectKey := path.Base(parsedPath.Path)
-
-			_, err = d.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
-				Bucket: &bucketName,
-				Key:    &objectKey,
-			})
-			if err != nil {
-				logger.Error("Failed to delete association image from S3",
-					"error", err,
-					"bucket", bucketName,
-					"objectKey", objectKey,
-					"associationId", assocID)
-			}
-		}
-		// delete story portrait image from s3
-		bucketName := "richdocter-story-portraits"
-		parsedPath, err := url.Parse(originalStory.ImageURL)
-		if err != nil {
-			logger.Error("Failed to parse story image URL",
-				"error", err,
-				"storyId", storyID,
-				"imageUrl", originalStory.ImageURL)
+		if err = d.deleteStoryPortrait(ctx, originalStory.ImageURL, storyID); err != nil {
 			return err
-		}
-		objectKey := path.Base(parsedPath.Path)
-
-		_, err = d.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
-			Bucket: &bucketName,
-			Key:    &objectKey,
-		})
-		if err != nil {
-			logger.Error("Failed to delete story portrait from S3",
-				"error", err,
-				"bucket", bucketName,
-				"objectKey", objectKey,
-				"storyId", storyID)
 		}
 	}
 

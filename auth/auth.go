@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"context"
 	"database/sql"
 	"encoding/gob"
 	"encoding/json"
@@ -468,62 +467,20 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	next := frontend
 	if rdx := r.URL.Query().Get("next"); rdx != "" {
 		logger.Info("Found next parameter in callback query", "next", rdx, "remoteAddr", r.RemoteAddr)
-
-		// For mobile app schemes, validate against allowed patterns
-		if strings.HasPrefix(rdx, "minithreadr://") || strings.HasPrefix(rdx, "exp://") {
-			if validURL, ok := safeMobileRedirect(rdx); ok { //nolint:govet
-				logger.Info("Validated mobile redirect URL from query parameter", "url", validURL)
-				next = validURL
-			} else {
-				logger.Warn("Rejected invalid mobile redirect URL", "url", rdx, "remoteAddr", r.RemoteAddr)
-				next = frontend
-			}
-		} else {
-			next = safeRedirect(rdx, frontend, allowedOrigins)
-		}
+		next = resolveRedirectTarget(rdx, frontend, "query", allowedOrigins)
 		logger.Info("After safeRedirect from query", "next", next, "remoteAddr", r.RemoteAddr)
 	} else if loginSess, _ := sessions.Get(r, "login_referral"); loginSess != nil && !loginSess.IsNew {
 		if ref, _ := loginSess.Values["referrer"].(string); ref != "" {
 			logger.Info("Found referrer in login_referral session", "referrer", ref, "remoteAddr", r.RemoteAddr)
-
-			// For mobile app schemes, validate against allowed patterns
-			if strings.HasPrefix(ref, "minithreadr://") || strings.HasPrefix(ref, "exp://") {
-				if validURL, ok := safeMobileRedirect(ref); ok { //nolint:govet
-					logger.Info("Validated mobile redirect URL from session", "url", validURL)
-					next = validURL
-				} else {
-					logger.Warn(
-						"Rejected invalid mobile redirect URL from session",
-						"url",
-						ref,
-						"remoteAddr",
-						r.RemoteAddr,
-					)
-					next = frontend
-				}
-			} else {
-				next = safeRedirect(ref, frontend, allowedOrigins)
-			}
-			logger.Info(
-				"After safeRedirect from session",
-				"next",
-				next,
-				"frontend",
-				frontend,
-				"remoteAddr",
-				r.RemoteAddr,
-			)
+			next = resolveRedirectTarget(ref, frontend, "session", allowedOrigins)
+			logger.Info("After safeRedirect from session",
+				"next", next, "frontend", frontend, "remoteAddr", r.RemoteAddr)
 		}
 		// Clear the one-time referral cookie now that we've used it
 		_ = sessions.Delete(w, r, "login_referral")
 	} else {
-		logger.Info(
-			"No next parameter or referrer found, using default frontend",
-			"frontend",
-			frontend,
-			"remoteAddr",
-			r.RemoteAddr,
-		)
+		logger.Info("No next parameter or referrer found, using default frontend",
+			"frontend", frontend, "remoteAddr", r.RemoteAddr)
 	}
 
 	updated, err := dao.IsUserSubscribed(r.Context(), *userDetails)
@@ -572,83 +529,26 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 		// Create system alerts for subscription status changes
 		if updated.NotifyExpired {
 			logger.Info("User subscription expired, creating alert", "email", info.Email, "remoteAddr", r.RemoteAddr)
-			go func() {
-				bgCtx := context.WithoutCancel(r.Context())
-				alert := models.Alert{
-					ID:          "sub-expired-" + info.Email,
-					Subject:     "Subscription Expired",
-					Message:     "Your subscription has expired. Renew to regain access to premium features.",
-					Link:        "/subscribe",
-					AlertType:   models.AlertTypePersonal,
-					TargetEmail: info.Email,
-					CreatedAt:   time.Now().Unix(),
-					CreatedBy:   "system",
-				}
-				if aErr := dao.CreateAlert(bgCtx, alert); aErr != nil {
-					logger.Error("Failed to create subscription expired alert", "error", aErr, "email", info.Email)
-				}
-			}()
+			sendSubscriptionAlert(r.Context(), dao, models.Alert{
+				ID:          "sub-expired-" + info.Email,
+				Subject:     "Subscription Expired",
+				Message:     "Your subscription has expired. Renew to regain access to premium features.",
+				Link:        "/subscribe",
+				TargetEmail: info.Email,
+			})
 		}
 		if updated.NotifyRestored {
 			logger.Info("User subscription restored, creating alert", "email", info.Email, "remoteAddr", r.RemoteAddr)
-			go func() {
-				bgCtx := context.WithoutCancel(r.Context())
-				alert := models.Alert{
-					ID:          "sub-restored-" + info.Email + "-" + strconv.FormatInt(time.Now().Unix(), 10),
-					Subject:     "Subscription Restored",
-					Message:     "Your subscription is active again. Your stories are being restored and will be available shortly.",
-					Link:        "/stories",
-					AlertType:   models.AlertTypePersonal,
-					TargetEmail: info.Email,
-					CreatedAt:   time.Now().Unix(),
-					CreatedBy:   "system",
-				}
-				if aErr := dao.CreateAlert(bgCtx, alert); aErr != nil {
-					logger.Error("Failed to create subscription restored alert", "error", aErr, "email", info.Email)
-				}
-			}()
+			sendSubscriptionAlert(r.Context(), dao, models.Alert{
+				ID:          "sub-restored-" + info.Email + "-" + strconv.FormatInt(time.Now().Unix(), 10),
+				Subject:     "Subscription Restored",
+				Message:     "Your subscription is active again. Your stories are being restored and will be available shortly.",
+				Link:        "/stories",
+				TargetEmail: info.Email,
+			})
 		}
 		// Proactive: warn if subscription expires within 7 days
-		if updated.Subscriber {
-			sub, subErr := dao.GetSubscription(r.Context(), info.Email)
-			if subErr == nil && !sub.CurrentSubscriptionEnd.IsZero() {
-				daysLeft := int(time.Until(sub.CurrentSubscriptionEnd).Hours() / 24) //nolint:mnd
-				if daysLeft >= 0 && daysLeft <= 7 {
-					go func() {
-						bgCtx := context.WithoutCancel(r.Context())
-						// Dedup: use a fixed ID so we don't spam on every login
-						alert := models.Alert{
-							ID:      "sub-expiring-" + info.Email,
-							Subject: "Subscription Expiring Soon",
-							Message: fmt.Sprintf(
-								"Your subscription expires in %d day%s. Renew to keep access to premium features.",
-								daysLeft,
-								func() string {
-									if daysLeft != 1 {
-										return "s"
-									}
-									return ""
-								}(),
-							),
-							Link:        "/account/subscription",
-							AlertType:   models.AlertTypePersonal,
-							TargetEmail: info.Email,
-							CreatedAt:   time.Now().Unix(),
-							CreatedBy:   "system",
-						}
-						if aErr := dao.CreateAlert(bgCtx, alert); aErr != nil {
-							logger.Error(
-								"Failed to create subscription expiring alert",
-								"error",
-								aErr,
-								"email",
-								info.Email,
-							)
-						}
-					}()
-				}
-			}
-		}
+		maybeSendExpiringSoonAlert(r.Context(), dao, updated, info.Email)
 	}
 
 	logger.Info("OAuth login successful", "email", info.Email, "provider", provider, "remoteAddr", r.RemoteAddr)

@@ -118,25 +118,23 @@ func TestCreateOutline(t *testing.T) {
 			result, err := mockDao.CreateOutline(context.Background(), tc.outline)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Errorf("expected error, got nil")
-				}
+				assertExpectedErr(t, err, "")
 				if result != nil {
 					t.Errorf("expected nil result on error, got %v", result)
 				}
-			} else {
-				if err != nil {
-					t.Errorf("unexpected error: %v", err)
-				}
-				if result == nil {
-					t.Fatal("expected non-nil result, got nil")
-				}
-				if result.StoryID != tc.outline.StoryID {
-					t.Errorf("expected storyID %s, got %s", tc.outline.StoryID, result.StoryID)
-				}
-				if result.Template != tc.outline.Template {
-					t.Errorf("expected template %s, got %s", tc.outline.Template, result.Template)
-				}
+				return
+			}
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+			if result == nil {
+				t.Fatal("expected non-nil result, got nil")
+			}
+			if result.StoryID != tc.outline.StoryID {
+				t.Errorf("expected storyID %s, got %s", tc.outline.StoryID, result.StoryID)
+			}
+			if result.Template != tc.outline.Template {
+				t.Errorf("expected template %s, got %s", tc.outline.Template, result.Template)
 			}
 		})
 	}
@@ -269,25 +267,23 @@ func TestUpdateOutline(t *testing.T) {
 			result, err := mockDao.UpdateOutline(context.Background(), tc.outline)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Errorf("expected error, got nil")
-				}
+				assertExpectedErr(t, err, "")
 				if result != nil {
 					t.Errorf("expected nil result on error, got %v", result)
 				}
-			} else {
-				if err != nil {
-					t.Errorf("unexpected error: %v", err)
-				}
-				if result == nil {
-					t.Fatal("expected non-nil result, got nil")
-				}
-				if result.StoryID != tc.outline.StoryID {
-					t.Errorf("expected storyID %s, got %s", tc.outline.StoryID, result.StoryID)
-				}
-				if len(result.Sections) != len(tc.mockResponse.Sections) {
-					t.Errorf("expected %d sections, got %d", len(tc.mockResponse.Sections), len(result.Sections))
-				}
+				return
+			}
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+			if result == nil {
+				t.Fatal("expected non-nil result, got nil")
+			}
+			if result.StoryID != tc.outline.StoryID {
+				t.Errorf("expected storyID %s, got %s", tc.outline.StoryID, result.StoryID)
+			}
+			if len(result.Sections) != len(tc.mockResponse.Sections) {
+				t.Errorf("expected %d sections, got %d", len(tc.mockResponse.Sections), len(result.Sections))
 			}
 		})
 	}

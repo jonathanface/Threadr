@@ -369,52 +369,6 @@ func StorySettingsEndPoint(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, storySettings)
 }
 
-// listResource is the shared "list everything for the authenticated user" flow:
-// auth + DAO context + user-existence check + DAO list call + AWS-error-aware
-// response. It runs the supplied fetch closure and writes the result as JSON.
-func listResource[T any](
-	w http.ResponseWriter,
-	r *http.Request,
-	fetch func(ctx context.Context, dao daos.DaoInterface, email string) ([]T, error),
-) {
-	email, err := getUserEmail(r)
-	if err != nil {
-		logger.Error("Internal error", "error", err)
-		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-		return
-	}
-	dao, ok := r.Context().Value(ctxkey.DAO).(daos.DaoInterface)
-	if !ok {
-		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
-		return
-	}
-	if _, err = dao.GetUserDetails(r.Context(), email); err != nil {
-		logger.Error("Internal error", "error", err)
-		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-		return
-	}
-
-	result, err := fetch(r.Context(), dao, email)
-	if err != nil {
-		opErr := &smithy.OperationError{}
-		if errors.As(err, &opErr) {
-			awsResponse := processAWSError(opErr)
-			if awsResponse.Code == 0 {
-				logger.Error("Internal error", "error", err)
-				RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-				return
-			}
-			RespondWithError(w, awsResponse.Code, awsResponse.Message)
-			return
-		}
-		logger.Error("Internal error", "error", err)
-		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-		return
-	}
-
-	RespondWithJSON(w, http.StatusOK, result)
-}
-
 func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 	listResource(w, r, func(ctx context.Context, dao daos.DaoInterface, email string) ([]models.Story, error) {
 		return dao.GetAllStandalone(ctx, email)

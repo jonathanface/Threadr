@@ -83,25 +83,19 @@ func TestGetChaptersByStoryIDs(t *testing.T) {
 			chaptersByStory, err := mockDao.GetChaptersByStoryIDs(context.Background(), tc.storyIDs)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Errorf("Expected error but got nil")
-				}
-			} else {
-				if err != nil {
-					t.Logf("Got error: %v (acceptable without full DB mock)", err)
-				} else {
-					t.Logf("GetChaptersByStoryIDs returned map with %d stories", len(chaptersByStory))
-
-					// Verify structure
-					if chaptersByStory == nil {
-						t.Errorf("Expected non-nil map")
-					}
-
-					// For empty input, should return empty map
-					if len(tc.storyIDs) == 0 && len(chaptersByStory) != 0 {
-						t.Errorf("Expected empty map for empty input, got %d items", len(chaptersByStory))
-					}
-				}
+				assertExpectedErr(t, err, "")
+				return
+			}
+			if err != nil {
+				t.Logf("Got error: %v (acceptable without full DB mock)", err)
+				return
+			}
+			t.Logf("GetChaptersByStoryIDs returned map with %d stories", len(chaptersByStory))
+			if chaptersByStory == nil {
+				t.Errorf("Expected non-nil map")
+			}
+			if len(tc.storyIDs) == 0 && len(chaptersByStory) != 0 {
+				t.Errorf("Expected empty map for empty input, got %d items", len(chaptersByStory))
 			}
 		})
 	}
@@ -387,22 +381,20 @@ func TestCreateChapter(t *testing.T) {
 			newChapter, err := mockDao.CreateChapter(context.Background(), tc.storyID, tc.chapter)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Errorf("Expected error but got nil")
-				}
-			} else {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
-				if newChapter.ID != tc.mockChapter.ID {
-					t.Errorf("Expected chapter ID %s, got %s", tc.mockChapter.ID, newChapter.ID)
-				}
-				if newChapter.Title != tc.mockChapter.Title {
-					t.Errorf("Expected title %s, got %s", tc.mockChapter.Title, newChapter.Title)
-				}
-				if newChapter.Place != tc.mockChapter.Place {
-					t.Errorf("Expected place %d, got %d", tc.mockChapter.Place, newChapter.Place)
-				}
+				assertExpectedErr(t, err, "")
+				return
+			}
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			if newChapter.ID != tc.mockChapter.ID {
+				t.Errorf("Expected chapter ID %s, got %s", tc.mockChapter.ID, newChapter.ID)
+			}
+			if newChapter.Title != tc.mockChapter.Title {
+				t.Errorf("Expected title %s, got %s", tc.mockChapter.Title, newChapter.Title)
+			}
+			if newChapter.Place != tc.mockChapter.Place {
+				t.Errorf("Expected place %d, got %d", tc.mockChapter.Place, newChapter.Place)
 			}
 		})
 	}
@@ -503,22 +495,20 @@ func TestEditChapter(t *testing.T) {
 			updatedChapter, err := mockDao.EditChapter(context.Background(), tc.storyID, tc.chapter)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Errorf("Expected error but got nil")
-				}
-			} else {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
-				if updatedChapter.ID != tc.mockChapter.ID {
-					t.Errorf("Expected chapter ID %s, got %s", tc.mockChapter.ID, updatedChapter.ID)
-				}
-				if updatedChapter.Title != tc.mockChapter.Title {
-					t.Errorf("Expected title %s, got %s", tc.mockChapter.Title, updatedChapter.Title)
-				}
-				if updatedChapter.Place != tc.mockChapter.Place {
-					t.Errorf("Expected place %d, got %d", tc.mockChapter.Place, updatedChapter.Place)
-				}
+				assertExpectedErr(t, err, "")
+				return
+			}
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			if updatedChapter.ID != tc.mockChapter.ID {
+				t.Errorf("Expected chapter ID %s, got %s", tc.mockChapter.ID, updatedChapter.ID)
+			}
+			if updatedChapter.Title != tc.mockChapter.Title {
+				t.Errorf("Expected title %s, got %s", tc.mockChapter.Title, updatedChapter.Title)
+			}
+			if updatedChapter.Place != tc.mockChapter.Place {
+				t.Errorf("Expected place %d, got %d", tc.mockChapter.Place, updatedChapter.Place)
 			}
 		})
 	}

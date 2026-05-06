@@ -271,35 +271,10 @@ func LexicalToHTML(lexicalJSON string) (string, error) {
 	}
 
 	if err := json.Unmarshal([]byte(lexicalJSON), &rawData); err == nil && len(rawData.Items) > 0 {
-		// This is BlocksData format - extract chunks and convert
 		var htmlBuilder strings.Builder
-
 		for _, item := range rawData.Items {
-			// Extract the chunk attribute (it's wrapped in DynamoDB AttributeValue format)
-			if chunkRaw, ok := item["chunk"]; ok {
-				// Parse the DynamoDB AttributeValue wrapper
-				var chunkWrapper DynamoDBValue
-				if err = json.Unmarshal(chunkRaw, &chunkWrapper); err == nil {
-					// The Value field contains the Lexical JSON as a string
-					var chunkStr string
-					if str, ok := chunkWrapper.Value.(string); ok { //nolint:govet
-						chunkStr = str
-					} else {
-						// Try to marshal and unmarshal if it's not a string
-						chunkBytes, _ := json.Marshal(chunkWrapper.Value)
-						chunkStr = string(chunkBytes)
-					}
-
-					// Parse the Lexical node from the chunk
-					var node LexicalNode
-					if err = json.Unmarshal([]byte(chunkStr), &node); err == nil {
-						html := nodeToHTML(node)
-						htmlBuilder.WriteString(html)
-					}
-				}
-			}
+			htmlBuilder.WriteString(blocksDataItemToHTML(item))
 		}
-
 		return htmlBuilder.String(), nil
 	}
 
@@ -320,6 +295,30 @@ func LexicalToHTML(lexicalJSON string) (string, error) {
 	}
 
 	return nodeToHTML(node), nil
+}
+
+// blocksDataItemToHTML extracts and renders a single chunk from a DynamoDB-
+// wrapped BlocksData item. Returns "" if any layer (chunk attribute lookup,
+// AttributeValue unwrap, Lexical node parse) fails — best-effort by design.
+func blocksDataItemToHTML(item map[string]json.RawMessage) string {
+	chunkRaw, ok := item["chunk"]
+	if !ok {
+		return ""
+	}
+	var chunkWrapper DynamoDBValue
+	if err := json.Unmarshal(chunkRaw, &chunkWrapper); err != nil {
+		return ""
+	}
+	chunkStr, ok := chunkWrapper.Value.(string)
+	if !ok {
+		chunkBytes, _ := json.Marshal(chunkWrapper.Value)
+		chunkStr = string(chunkBytes)
+	}
+	var node LexicalNode
+	if err := json.Unmarshal([]byte(chunkStr), &node); err != nil {
+		return ""
+	}
+	return nodeToHTML(node)
 }
 
 // nodeToHTML converts a single Lexical node to HTML.

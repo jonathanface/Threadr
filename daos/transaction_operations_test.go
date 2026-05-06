@@ -143,18 +143,14 @@ func TestGenerateStoryChapterTransaction(t *testing.T) {
 			)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Errorf("Expected error but got nil")
-				} else if tc.expectedErrMsg != "" && !contains(err.Error(), tc.expectedErrMsg) {
-					t.Errorf("Error %q does not contain %q", err.Error(), tc.expectedErrMsg)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
-				if transactItem.Put == nil {
-					t.Error("Expected Put operation in transaction item")
-				}
+				assertExpectedErr(t, err, tc.expectedErrMsg)
+				return
+			}
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			if transactItem.Put == nil {
+				t.Error("Expected Put operation in transaction item")
 			}
 		})
 	}

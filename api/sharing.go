@@ -219,57 +219,6 @@ func GetShareLinksEndpoint(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, links)
 }
 
-// loadOwnedShareLink runs the auth + token-parse + ownership-check preamble
-// shared by every per-token share-link endpoint. On any failure it sends an
-// appropriate HTTP error and returns ok=false; callers should just return.
-// On success it returns the DAO, the SHA-256 hash of the URL token, and a
-// nil-checked indication that the authenticated user owns the link.
-//
-// The action label ("revoke", "restore", "delete") is interpolated into the
-// 403 message when ownership doesn't match.
-func loadOwnedShareLink(
-	w http.ResponseWriter,
-	r *http.Request,
-	action string,
-) (dao daos.DaoInterface, tokenHash string, ok bool) {
-	email, err := getUserEmail(r)
-	if err != nil {
-		logger.Error("Authentication failed", "error", err)
-		RespondWithError(w, http.StatusUnauthorized, "Authentication failed")
-		return nil, "", false
-	}
-	rawToken, err := url.PathUnescape(mux.Vars(r)["token"])
-	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Error parsing token")
-		return nil, "", false
-	}
-	if rawToken == "" {
-		RespondWithError(w, http.StatusBadRequest, "Missing token")
-		return nil, "", false
-	}
-	tokenHash = HashShareToken(rawToken)
-	dao, daoOK := r.Context().Value(ctxkey.DAO).(daos.DaoInterface)
-	if !daoOK {
-		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
-		return nil, "", false
-	}
-
-	link, err := dao.GetShareLink(r.Context(), tokenHash)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			RespondWithError(w, http.StatusNotFound, "share link not found")
-			return nil, "", false
-		}
-		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-		return nil, "", false
-	}
-	if link.AuthorEmail != email {
-		RespondWithError(w, http.StatusForbidden, "You do not have permission to "+action+" this share link")
-		return nil, "", false
-	}
-	return dao, tokenHash, true
-}
-
 func RevokeShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 	dao, tokenHash, ok := loadOwnedShareLink(w, r, "revoke")
 	if !ok {
@@ -357,54 +306,6 @@ func GetAuthorCommentsEndpoint(w http.ResponseWriter, r *http.Request) {
 		comments[i].ShareToken = ""
 	}
 	RespondWithJSON(w, http.StatusOK, comments)
-}
-
-// loadOwnedComment runs the auth + commentID-parse + ownership-check preamble
-// shared by every per-comment endpoint. On any failure it sends an appropriate
-// HTTP error and returns ok=false; callers should just return.
-//
-// The action label ("resolve", "delete") is interpolated into the 403 message
-// when ownership doesn't match.
-func loadOwnedComment(
-	w http.ResponseWriter,
-	r *http.Request,
-	action string,
-) (dao daos.DaoInterface, commentID string, ok bool) {
-	email, err := getUserEmail(r)
-	if err != nil {
-		logger.Error("Authentication failed", "error", err)
-		RespondWithError(w, http.StatusUnauthorized, "Authentication failed")
-		return nil, "", false
-	}
-	commentID, err = url.PathUnescape(mux.Vars(r)["commentID"])
-	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Error parsing comment ID")
-		return nil, "", false
-	}
-	if commentID == "" {
-		RespondWithError(w, http.StatusBadRequest, "Missing comment ID")
-		return nil, "", false
-	}
-	dao, daoOK := r.Context().Value(ctxkey.DAO).(daos.DaoInterface)
-	if !daoOK {
-		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
-		return nil, "", false
-	}
-
-	comment, err := dao.GetComment(r.Context(), commentID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			RespondWithError(w, http.StatusNotFound, "comment not found")
-			return nil, "", false
-		}
-		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-		return nil, "", false
-	}
-	if _, err = dao.GetStoryByID(r.Context(), email, comment.StoryID); err != nil {
-		RespondWithError(w, http.StatusForbidden, "You do not have permission to "+action+" this comment")
-		return nil, "", false
-	}
-	return dao, commentID, true
 }
 
 func ResolveCommentEndpoint(w http.ResponseWriter, r *http.Request) {
