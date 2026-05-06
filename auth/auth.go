@@ -1,16 +1,13 @@
 package auth
 
 import (
-	"database/sql"
 	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html"
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -289,7 +286,6 @@ func safeRedirect(dest, defaultURL string, allowed []string) string {
 	return defaultURL
 }
 
-//nolint:funlen // OAuth callback: provider flows + mobile vs web branches + token mint; meaningfully one operation.
 func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 	logger.Info("=== CALLBACK STARTED ===", "url", r.URL.String(), "remoteAddr", r.RemoteAddr)
 
@@ -306,11 +302,9 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	}
 
 	logger.Info("OAuth callback initiated", "provider", provider, "remoteAddr", r.RemoteAddr)
-
 	user, err := gothic.CompleteUserAuth(w, r)
 	if err != nil {
 		logger.Error("OAuth authentication failed", "error", err, "provider", provider, "remoteAddr", r.RemoteAddr)
-		logger.Error("Internal error", "error", err)
 		api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
@@ -328,63 +322,23 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 		api.RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	isNewUser := false
-	isReturningUser := false
 
-	userDetails, err := dao.GetUserDetails(r.Context(), info.Email)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			logger.Info(
-				"New user detected, creating account",
-				"email",
-				info.Email,
-				"provider",
-				provider,
-				"remoteAddr",
-				r.RemoteAddr,
-			)
-			if userDetails, err = dao.CreateUser(r.Context(), info.Email); err != nil {
-				logger.Error("Failed to create new user", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
-				logger.Error("Internal error", "error", err)
-				api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-				return
-			}
-			// Check if this is a brand new user or a returning deleted user
-			isNewUser = userDetails.NewUser
-			isReturningUser = userDetails.ReturningUser
-			logger.Info(
-				"User created successfully",
-				"email",
-				info.Email,
-				"newUser",
-				isNewUser,
-				"returningUser",
-				isReturningUser,
-				"remoteAddr",
-				r.RemoteAddr,
-			)
-		} else {
-			logger.Error(
-				"Failed to retrieve user details",
-				"error",
-				err,
-				"email",
-				info.Email,
-				"remoteAddr",
-				r.RemoteAddr,
-			)
-			logger.Error("Internal error", "error", err)
-			api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-			return
-		}
+	userDetails, isNewUser, isReturningUser, ok := resolveCallbackUser(
+		r.Context(),
+		w,
+		dao,
+		info.Email,
+		r.RemoteAddr,
+		provider,
+	)
+	if !ok {
+		return
 	}
 
-	// Check if this is an email/password account trying to log in via OAuth
-	if userDetails != nil && userDetails.AuthType == "email" && !isNewUser {
+	// Email/password account trying to log in via OAuth — bounce to /link-account.
+	if userDetails.AuthType == "email" && !isNewUser {
 		logger.Info("OAuth login attempted for email account, prompting to link",
-			"email", info.Email,
-			"provider", provider,
-			"remoteAddr", r.RemoteAddr)
+			"email", info.Email, "provider", provider, "remoteAddr", r.RemoteAddr)
 		redirectURL := fmt.Sprintf("%s/link-account?email=%s&provider=%s",
 			options.FrontEndURL,
 			url.QueryEscape(info.Email),
@@ -393,7 +347,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 		return
 	}
 
-	// Update user's name and auth_type from OAuth provider
+	// Update user's name and auth_type from OAuth provider (best-effort; failure is non-fatal).
 	if info.FirstName != "" || info.LastName != "" {
 		updateInfo := models.UserInfo{
 			Email:      info.Email,
@@ -403,158 +357,112 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 			Subscriber: userDetails.Subscriber,
 		}
 		if err = dao.UpdateUser(r.Context(), updateInfo); err != nil {
-			logger.Warn(
-				"Failed to update user name information",
-				"error",
-				err,
-				"email",
-				info.Email,
-				"remoteAddr",
-				r.RemoteAddr,
-			)
-			// Continue even if name update fails - not critical
+			logger.Warn("Failed to update user name information",
+				"error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
 		}
 	}
 
-	// Copy database fields to info before marshaling into token
 	info.Subscriber = userDetails.Subscriber
 	info.Admin = userDetails.Admin
 
-	toJSON, err := json.Marshal(info)
-	if err != nil {
-		logger.Error("Failed to marshal user info", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
-		logger.Error("External service error", "error", err)
-		api.RespondWithError(w, http.StatusBadGateway, "An external service error occurred")
+	if !saveTokenSession(w, r, info) {
 		return
 	}
-
-	tokenSess, err := sessions.Get(r, "token")
-	if err != nil {
-		// Log the error but continue - gorilla/sessions returns a new valid session
-		// even when it can't decrypt the old cookie (e.g., after SESSION_SECRET change)
-		logger.Warn("Could not read existing token session, creating new one",
-			"error", err,
-			"email", info.Email,
-			"remoteAddr", r.RemoteAddr)
-	}
-	tokenSess.Values["token_data"] = toJSON
-
-	opts := sessions.OptionsFor(r)
-	opts.MaxAge = int(oneDay.Seconds())
-	tokenSess.Options = opts
-
-	if err = tokenSess.Save(r, w); err != nil {
-		logger.Error("Failed to save token session", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
-		logger.Error("Internal error", "error", err)
-		api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-		return
-	}
-
-	logger.Debug("Token session saved successfully", "email", info.Email, "remoteAddr", r.RemoteAddr)
 
 	frontend := options.FrontEndURL
+	allowedOrigins := []string{frontend, "minithreadr://auth"}
+	next := resolveCallbackNext(w, r, frontend, allowedOrigins)
 
-	// Build allowed origins list for mobile deep links
-	allowedOrigins := []string{
-		options.FrontEndURL,
-		"minithreadr://auth", // Always allow this for the mobile app's initial request
-	}
-
-	// Allow any exp:// scheme for Expo Go development
-	// Allow minithreadr:// scheme for production builds
-	// These will be validated by the safeRedirect function
-
-	next := frontend
-	if rdx := r.URL.Query().Get("next"); rdx != "" {
-		logger.Info("Found next parameter in callback query", "next", rdx, "remoteAddr", r.RemoteAddr)
-		next = resolveRedirectTarget(rdx, frontend, "query", allowedOrigins)
-		logger.Info("After safeRedirect from query", "next", next, "remoteAddr", r.RemoteAddr)
-	} else if loginSess, _ := sessions.Get(r, "login_referral"); loginSess != nil && !loginSess.IsNew {
-		if ref, _ := loginSess.Values["referrer"].(string); ref != "" {
-			logger.Info("Found referrer in login_referral session", "referrer", ref, "remoteAddr", r.RemoteAddr)
-			next = resolveRedirectTarget(ref, frontend, "session", allowedOrigins)
-			logger.Info("After safeRedirect from session",
-				"next", next, "frontend", frontend, "remoteAddr", r.RemoteAddr)
-		}
-		// Clear the one-time referral cookie now that we've used it
-		_ = sessions.Delete(w, r, "login_referral")
-	} else {
-		logger.Info("No next parameter or referrer found, using default frontend",
-			"frontend", frontend, "remoteAddr", r.RemoteAddr)
-	}
-
-	updated, err := dao.IsUserSubscribed(r.Context(), *userDetails)
-	if err != nil {
-		logger.Error(
-			"Failed to check subscription status",
-			"error",
-			err,
-			"email",
-			info.Email,
-			"remoteAddr",
-			r.RemoteAddr,
-		)
-	} else {
-		logger.Debug(
-			"Subscription status checked",
-			"email",
-			info.Email,
-			"subscriber",
-			updated.Subscriber,
-			"remoteAddr",
-			r.RemoteAddr,
-		)
-		// persist Subscriber flip only when changed
-		if userDetails.Subscriber != updated.Subscriber {
-			logger.Info("Subscription status changed",
-				"email", info.Email,
-				"previousStatus", userDetails.Subscriber,
-				"newStatus", updated.Subscriber,
-				"remoteAddr", r.RemoteAddr)
-			if err = dao.UpdateUser(r.Context(), *updated); err != nil {
-				logger.Error(
-					"Failed to update user subscription status",
-					"error",
-					err,
-					"email",
-					info.Email,
-					"remoteAddr",
-					r.RemoteAddr,
-				)
-				logger.Error("Internal error", "error", err)
-				api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-				return
-			}
-		}
-		// Create system alerts for subscription status changes
-		if updated.NotifyExpired {
-			logger.Info("User subscription expired, creating alert", "email", info.Email, "remoteAddr", r.RemoteAddr)
-			sendSubscriptionAlert(r.Context(), dao, models.Alert{
-				ID:          "sub-expired-" + info.Email,
-				Subject:     "Subscription Expired",
-				Message:     "Your subscription has expired. Renew to regain access to premium features.",
-				Link:        "/subscribe",
-				TargetEmail: info.Email,
-			})
-		}
-		if updated.NotifyRestored {
-			logger.Info("User subscription restored, creating alert", "email", info.Email, "remoteAddr", r.RemoteAddr)
-			sendSubscriptionAlert(r.Context(), dao, models.Alert{
-				ID:          "sub-restored-" + info.Email + "-" + strconv.FormatInt(time.Now().Unix(), 10),
-				Subject:     "Subscription Restored",
-				Message:     "Your subscription is active again. Your stories are being restored and will be available shortly.",
-				Link:        "/stories",
-				TargetEmail: info.Email,
-			})
-		}
-		// Proactive: warn if subscription expires within 7 days
-		maybeSendExpiringSoonAlert(r.Context(), dao, updated, info.Email)
+	if !applyOAuthSubscriptionUpdate(r.Context(), w, dao, userDetails, r.RemoteAddr) {
+		return
 	}
 
 	logger.Info("OAuth login successful", "email", info.Email, "provider", provider, "remoteAddr", r.RemoteAddr)
 	logger.Info("=== FINAL REDIRECT ===", "redirectTo", next, "email", info.Email)
 
-	// Add user status query parameters
+	next = appendStatusQueryParams(next, isNewUser, isReturningUser)
+
+	if strings.HasPrefix(next, "minithreadr://") || strings.HasPrefix(next, "exp://") {
+		separator := "&"
+		if !strings.Contains(next, "?") {
+			separator = "?"
+		}
+		signedToken, tokenErr := createSignedMobileToken(info)
+		if tokenErr != nil {
+			logger.Error("Failed to create signed mobile token", "error", tokenErr, "email", info.Email)
+			api.RespondWithError(w, http.StatusInternalServerError, "Failed to create mobile token")
+			return
+		}
+		next = next + separator + "token=" + url.QueryEscape(signedToken)
+		logger.Info("Appended signed JWT to mobile deep link", "email", info.Email)
+		renderMobileRedirectPage(w, next)
+		return
+	}
+
+	// next has been routed through safeRedirect / safeMobileRedirect above; gosec's taint analyzer can't see the validation.
+	http.Redirect(w, r, next, http.StatusTemporaryRedirect) //nolint:gosec
+}
+
+// saveTokenSession marshals info into the "token" cookie session and writes
+// it back to the response. On failure writes a 500 and returns false.
+func saveTokenSession(w http.ResponseWriter, r *http.Request, info models.UserInfo) bool {
+	toJSON, err := json.Marshal(info)
+	if err != nil {
+		logger.Error("Failed to marshal user info", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
+		api.RespondWithError(w, http.StatusBadGateway, "An external service error occurred")
+		return false
+	}
+	tokenSess, err := sessions.Get(r, "token")
+	if err != nil {
+		// gorilla/sessions returns a new valid session even when it can't
+		// decrypt the old cookie (e.g., after SESSION_SECRET change).
+		logger.Warn("Could not read existing token session, creating new one",
+			"error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
+	}
+	tokenSess.Values["token_data"] = toJSON
+	opts := sessions.OptionsFor(r)
+	opts.MaxAge = int(oneDay.Seconds())
+	tokenSess.Options = opts
+	if err = tokenSess.Save(r, w); err != nil {
+		logger.Error("Failed to save token session", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
+		api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
+		return false
+	}
+	logger.Debug("Token session saved successfully", "email", info.Email, "remoteAddr", r.RemoteAddr)
+	return true
+}
+
+// resolveCallbackNext returns the post-auth redirect target, preferring the
+// ?next= query parameter, then a referrer stored in the login_referral
+// session, then the frontend default. The login_referral cookie is consumed.
+func resolveCallbackNext(w http.ResponseWriter, r *http.Request, frontend string, allowedOrigins []string) string {
+	if rdx := r.URL.Query().Get("next"); rdx != "" {
+		logger.Info("Found next parameter in callback query", "next", rdx, "remoteAddr", r.RemoteAddr)
+		next := resolveRedirectTarget(rdx, frontend, "query", allowedOrigins)
+		logger.Info("After safeRedirect from query", "next", next, "remoteAddr", r.RemoteAddr)
+		return next
+	}
+	loginSess, _ := sessions.Get(r, "login_referral")
+	if loginSess == nil || loginSess.IsNew {
+		logger.Info("No next parameter or referrer found, using default frontend",
+			"frontend", frontend, "remoteAddr", r.RemoteAddr)
+		return frontend
+	}
+	defer func() { _ = sessions.Delete(w, r, "login_referral") }()
+	ref, _ := loginSess.Values["referrer"].(string)
+	if ref == "" {
+		return frontend
+	}
+	logger.Info("Found referrer in login_referral session", "referrer", ref, "remoteAddr", r.RemoteAddr)
+	next := resolveRedirectTarget(ref, frontend, "session", allowedOrigins)
+	logger.Info("After safeRedirect from session",
+		"next", next, "frontend", frontend, "remoteAddr", r.RemoteAddr)
+	return next
+}
+
+// appendStatusQueryParams appends new_user / returning_user query parameters
+// to the redirect target so the frontend can show the right onboarding flow.
+func appendStatusQueryParams(next string, isNewUser, isReturningUser bool) string {
 	separator := "?"
 	if strings.Contains(next, "?") {
 		separator = "&"
@@ -565,139 +473,8 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	}
 	if isReturningUser {
 		next = next + separator + "returning_user=true"
-		separator = "&"
 	}
-
-	// For mobile deep links, append a signed JWT token as a query parameter
-	// since mobile apps can't access browser cookies
-	if strings.HasPrefix(next, "minithreadr://") || strings.HasPrefix(next, "exp://") {
-		signedToken, err := createSignedMobileToken(info) //nolint:govet
-		if err != nil {
-			logger.Error("Failed to create signed mobile token", "error", err, "email", info.Email)
-			api.RespondWithError(w, http.StatusInternalServerError, "Failed to create mobile token")
-			return
-		}
-		next = next + separator + "token=" + url.QueryEscape(signedToken)
-		logger.Info("Appended signed JWT to mobile deep link", "email", info.Email)
-
-		// For mobile deep links, render an HTML page with JavaScript redirect
-		// because HTTP redirects to custom schemes don't work reliably in Chrome Custom Tabs
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-
-		// Check if this is an Expo Go deep link (exp://)
-		isExpoGo := strings.HasPrefix(next, "exp://")
-		instructions := "Tap the link below to return to the app"
-		if isExpoGo {
-			instructions = "Tap the link below to return to Expo Go"
-		}
-
-		html := fmt.Sprintf(`<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redirecting...</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%);
-        }
-        .container {
-            background: white;
-            border-radius: 10px;
-            padding: 40px;
-            text-align: center;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            max-width: 90%%;
-        }
-        h1 { color: #333; margin-bottom: 20px; }
-        p { color: #666; margin: 10px 0; }
-        .instructions {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-            margin: 30px 0 20px 0;
-        }
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-        @keyframes spin {
-            0%% { transform: rotate(0deg); }
-            100%% { transform: rotate(360deg); }
-        }
-        a {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 15px 30px;
-            background: #667eea;
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-size: 18px;
-            font-weight: 600;
-        }
-        a:active {
-            background: #5568d3;
-        }
-        .note {
-            font-size: 14px;
-            color: #999;
-            margin-top: 30px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>✅ Authentication Successful!</h1>
-        <div class="spinner"></div>
-        <p class="instructions">%s:</p>
-        <p><a href="%s" id="deepLink">Return to App</a></p>
-        <p class="note">You can close this page after tapping the link above</p>
-    </div>
-    <script>
-        var redirectUrl = "%s";
-        var attempts = 0;
-        var maxAttempts = 3;
-
-        // Try automatic redirect for non-Expo deep links
-        var isExpoGo = redirectUrl.startsWith('exp://');
-
-        if (!isExpoGo) {
-            // For standard deep links (minithreadr://), try auto-redirect
-            setTimeout(function() {
-                window.location.href = redirectUrl;
-            }, 100);
-
-            // Also try clicking the link programmatically
-            setTimeout(function() {
-                document.getElementById('deepLink').click();
-            }, 500);
-        } else {
-            // For Expo Go, don't auto-redirect - user must tap manually
-            // This is because exp:// links often don't work with auto-redirect
-            document.querySelector('.spinner').style.display = 'none';
-        }
-    </script>
-</body>
-</html>`, html.EscapeString(instructions), html.EscapeString(next), html.EscapeString(next))
-		_, _ = w.Write([]byte(html))
-		return
-	}
-
-	// next has been routed through safeRedirect / safeMobileRedirect above; gosec's taint analyzer can't see the validation.
-	http.Redirect(w, r, next, http.StatusTemporaryRedirect) //nolint:gosec
+	return next
 }
 
 // MobileSessionHandler exchanges a mobile token for a session token.

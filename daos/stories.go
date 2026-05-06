@@ -844,209 +844,191 @@ func resolveBatchPlace(
 	return newPlaceNum
 }
 
-// WriteBlocks writes or updates blocks in the unified table
-// It identifies blocks by key_id and handles moving them if their place changed.
-//
-//nolint:funlen // Block-write orchestration: dedupe + ordering + batch transactions + retry; cohesive unit.
-func (d *DAO) WriteBlocks(ctx context.Context, storyID string, storyBlocks *models.StoryBlocks) (err error) {
+// WriteBlocks writes or updates blocks in the unified table. It identifies
+// blocks by key_id and handles moving them if their place changed. Executes
+// all deletes (for blocks moving to new places) before any puts, so old
+// positions are cleared before new positions are written — this eliminates
+// place conflicts without per-batch conflict resolution.
+func (d *DAO) WriteBlocks(ctx context.Context, storyID string, storyBlocks *models.StoryBlocks) error {
 	compositeKey := buildCompositeKey(storyID, storyBlocks.ChapterID)
-
 	logger.Info("WriteBlocks started",
-		"storyId", storyID,
-		"chapterId", storyBlocks.ChapterID,
-		"blockCount", len(storyBlocks.Blocks))
+		"storyId", storyID, "chapterId", storyBlocks.ChapterID, "blockCount", len(storyBlocks.Blocks))
 
-	// Step 1: Query existing blocks
 	existingItems, err := d.queryExistingBlocks(ctx, compositeKey, storyID, storyBlocks.ChapterID)
 	if err != nil {
 		return err
 	}
-
-	// Step 2: Create lookup maps
 	itemsByKeyID, _ := buildItemMaps(existingItems)
 
-	// Step 3: Build all delete and put transactions from the full block list.
-	// We process all blocks at once (no batching at this stage) so that
-	// place assignments are computed with full knowledge of all moves.
-	// The itemsByPlace conflict check is not needed here because we execute
-	// ALL deletes before ANY puts, guaranteeing old positions are cleared first.
-	var allDeleteItems []types.TransactWriteItem
-	var allPutItems []types.TransactWriteItem
-
-	for _, item := range storyBlocks.Blocks {
-		newPlaceNum, parseErr := strconv.ParseInt(item.Place, 10, 64)
-		if parseErr != nil {
-			return fmt.Errorf("invalid place value %s: %w", item.Place, parseErr)
-		}
-
-		existingItem, exists := itemsByKeyID[item.KeyID]
-
-		if exists {
-			// Block exists - check if place changed
-			oldPlace, ok := existingItem["place"].(*types.AttributeValueMemberN)
-			if !ok {
-				return fmt.Errorf("invalid place attribute for key_id %s", item.KeyID)
-			}
-
-			oldPlaceNum, _ := strconv.ParseInt(oldPlace.Value, 10, 64)
-
-			// Build new item with updated content
-			newItem := map[string]types.AttributeValue{
-				attrCompositeKey: &types.AttributeValueMemberS{Value: compositeKey},
-				"place":          &types.AttributeValueMemberN{Value: item.Place},
-				attrStoryID:      &types.AttributeValueMemberS{Value: storyID},
-				attrChapterID:    &types.AttributeValueMemberS{Value: storyBlocks.ChapterID},
-				"key_id":         &types.AttributeValueMemberS{Value: item.KeyID},
-			}
-
-			if chunk := resolveChunkUpdate(
-				item.Chunk,
-				existingItem,
-				storyID,
-				storyBlocks.ChapterID,
-				item.KeyID,
-			); chunk != nil {
-				newItem["chunk"] = chunk
-			}
-
-			// Preserve other attributes from existing item
-			for k, v := range existingItem {
-				if k != attrCompositeKey && k != "place" && k != attrStoryID && k != attrChapterID && k != "key_id" &&
-					k != "chunk" {
-					newItem[k] = v
-				}
-			}
-
-			if oldPlaceNum != newPlaceNum {
-				// Place changed - need to delete from old position first
-				deleteKey := map[string]types.AttributeValue{
-					attrCompositeKey: &types.AttributeValueMemberS{Value: compositeKey},
-					"place":          oldPlace,
-				}
-				allDeleteItems = append(allDeleteItems, types.TransactWriteItem{
-					Delete: &types.Delete{
-						TableName: aws.String(GetStoryBlocksTableName()),
-						Key:       deleteKey,
-					},
-				})
-			}
-
-			allPutItems = append(allPutItems, types.TransactWriteItem{
-				Put: &types.Put{
-					TableName: aws.String(GetStoryBlocksTableName()),
-					Item:      newItem,
-				},
-			})
-		} else {
-			// New block
-			if len(item.Chunk) == 0 {
-				logger.Warn("Skipping creation of new block with zero-length chunk (possible frontend bug)",
-					"storyId", storyID,
-					"chapterId", storyBlocks.ChapterID,
-					"keyId", item.KeyID,
-					"place", item.Place)
-				continue
-			}
-
-			newItem := map[string]types.AttributeValue{
-				attrCompositeKey: &types.AttributeValueMemberS{Value: compositeKey},
-				"place":          &types.AttributeValueMemberN{Value: item.Place},
-				attrStoryID:      &types.AttributeValueMemberS{Value: storyID},
-				attrChapterID:    &types.AttributeValueMemberS{Value: storyBlocks.ChapterID},
-				"key_id":         &types.AttributeValueMemberS{Value: item.KeyID},
-				"chunk":          &types.AttributeValueMemberS{Value: string(item.Chunk)},
-			}
-
-			allPutItems = append(allPutItems, types.TransactWriteItem{
-				Put: &types.Put{
-					TableName: aws.String(GetStoryBlocksTableName()),
-					Item:      newItem,
-				},
-			})
-		}
+	deletes, puts, err := buildTwoPhaseBlockTransactions(
+		storyBlocks.Blocks, itemsByKeyID,
+		compositeKey, storyID, storyBlocks.ChapterID,
+	)
+	if err != nil {
+		return err
 	}
 
-	// Step 4: Execute all deletes first (in batches), then all puts.
-	// This guarantees old positions are cleared before new positions are written,
-	// eliminating place conflicts entirely.
 	txnBatchSize := d.writeBatchSize
 	if txnBatchSize == 0 {
 		txnBatchSize = defaultTxnBatchSize
 	}
-
-	// Phase 1: Execute all deletes
-	for i := 0; i < len(allDeleteItems); i += txnBatchSize {
-		end := min(i+txnBatchSize, len(allDeleteItems))
-		batch := allDeleteItems[i:end]
-
-		logger.Debug("Phase 1: Deleting blocks from old positions",
-			"storyId", storyID,
-			"chapterId", storyBlocks.ChapterID,
-			"deleteCount", len(batch),
-			"batchStart", i,
-			"totalDeletes", len(allDeleteItems))
-
-		deleteInput := &dynamodb.TransactWriteItemsInput{
-			TransactItems: batch,
-		}
-		awsErr, err := d.awsWriteTransaction(ctx, deleteInput) //nolint:govet
-		if err != nil {
-			logger.Error("Phase 1 delete transaction failed",
-				"error", err,
-				"storyId", storyID,
-				"chapterId", storyBlocks.ChapterID)
-			return err
-		}
-		if !awsErr.IsNil() {
-			logger.Error("Phase 1 delete AWS error",
-				"awsCode", awsErr.Code,
-				"awsErrorType", awsErr.ErrorType,
-				"awsMessage", awsErr.Text,
-				"storyId", storyID,
-				"chapterId", storyBlocks.ChapterID)
-			return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
-		}
+	if err = d.runTransactionBatches(ctx, deletes, txnBatchSize,
+		"Phase 1: Deleting blocks from old positions", storyID, storyBlocks.ChapterID); err != nil {
+		return err
 	}
-
-	// Phase 2: Execute all puts
-	for i := 0; i < len(allPutItems); i += txnBatchSize {
-		end := min(i+txnBatchSize, len(allPutItems))
-		batch := allPutItems[i:end]
-
-		logger.Debug("Phase 2: Writing blocks to new positions",
-			"storyId", storyID,
-			"chapterId", storyBlocks.ChapterID,
-			"putCount", len(batch),
-			"batchStart", i,
-			"totalPuts", len(allPutItems))
-
-		putInput := &dynamodb.TransactWriteItemsInput{
-			TransactItems: batch,
-		}
-		awsErr, err := d.awsWriteTransaction(ctx, putInput) //nolint:govet
-		if err != nil {
-			logger.Error("Phase 2 put transaction failed",
-				"error", err,
-				"storyId", storyID,
-				"chapterId", storyBlocks.ChapterID)
-			return err
-		}
-		if !awsErr.IsNil() {
-			logger.Error("Phase 2 put AWS error",
-				"awsCode", awsErr.Code,
-				"awsErrorType", awsErr.ErrorType,
-				"awsMessage", awsErr.Text,
-				"storyId", storyID,
-				"chapterId", storyBlocks.ChapterID)
-			return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
-		}
+	if err = d.runTransactionBatches(ctx, puts, txnBatchSize,
+		"Phase 2: Writing blocks to new positions", storyID, storyBlocks.ChapterID); err != nil {
+		return err
 	}
 
 	logger.Info("WriteBlocks completed successfully",
-		"storyId", storyID,
-		"chapterId", storyBlocks.ChapterID,
-		"blocksProcessed", len(storyBlocks.Blocks))
-	return err
+		"storyId", storyID, "chapterId", storyBlocks.ChapterID, "blocksProcessed", len(storyBlocks.Blocks))
+	return nil
+}
+
+// buildTwoPhaseBlockTransactions walks the input block list, deciding for
+// each block whether it's an update of an existing row (queue a put, plus
+// a delete-at-old-position if the place is changing) or a new row (queue
+// a put, skipping zero-length chunks). Unlike buildWriteTransactions, this
+// helper does no place-conflict resolution because the caller executes all
+// deletes before any puts.
+func buildTwoPhaseBlockTransactions(
+	blocks []models.StoryBlock,
+	itemsByKeyID map[string]map[string]types.AttributeValue,
+	compositeKey, storyID, chapterID string,
+) (deletes, puts []types.TransactWriteItem, err error) {
+	for _, item := range blocks {
+		if _, parseErr := strconv.ParseInt(item.Place, 10, 64); parseErr != nil {
+			return nil, nil, fmt.Errorf("invalid place value %s: %w", item.Place, parseErr)
+		}
+
+		existingItem, exists := itemsByKeyID[item.KeyID]
+		if exists {
+			deleteItem, putItem, bErr := buildExistingBlockTransactionsNoConflict(
+				item, existingItem, compositeKey, storyID, chapterID,
+			)
+			if bErr != nil {
+				return nil, nil, bErr
+			}
+			if deleteItem != nil {
+				deletes = append(deletes, *deleteItem)
+			}
+			puts = append(puts, putItem)
+			continue
+		}
+
+		if len(item.Chunk) == 0 {
+			logger.Warn("Skipping creation of new block with zero-length chunk (possible frontend bug)",
+				"storyId", storyID, "chapterId", chapterID, "keyId", item.KeyID, "place", item.Place)
+			continue
+		}
+		puts = append(puts, types.TransactWriteItem{
+			Put: &types.Put{
+				TableName: aws.String(GetStoryBlocksTableName()),
+				Item: map[string]types.AttributeValue{
+					attrCompositeKey: &types.AttributeValueMemberS{Value: compositeKey},
+					"place":          &types.AttributeValueMemberN{Value: item.Place},
+					attrStoryID:      &types.AttributeValueMemberS{Value: storyID},
+					attrChapterID:    &types.AttributeValueMemberS{Value: chapterID},
+					"key_id":         &types.AttributeValueMemberS{Value: item.KeyID},
+					"chunk":          &types.AttributeValueMemberS{Value: string(item.Chunk)},
+				},
+			},
+		})
+	}
+	return deletes, puts, nil
+}
+
+// buildExistingBlockTransactionsNoConflict is the WriteBlocks-flavored
+// counterpart to buildExistingBlockTransactions: it doesn't apply
+// placeConflictOffset to actualPlace because the caller serializes deletes
+// before puts. Returns an optional delete (only when place is changing) and
+// the always-required put.
+func buildExistingBlockTransactionsNoConflict(
+	item models.StoryBlock,
+	existingItem map[string]types.AttributeValue,
+	compositeKey, storyID, chapterID string,
+) (deleteItem *types.TransactWriteItem, putItem types.TransactWriteItem, err error) {
+	oldPlace, ok := existingItem["place"].(*types.AttributeValueMemberN)
+	if !ok {
+		return nil, types.TransactWriteItem{}, fmt.Errorf("invalid place attribute for key_id %s", item.KeyID)
+	}
+	oldPlaceNum, _ := strconv.ParseInt(oldPlace.Value, 10, 64)
+	newPlaceNum, _ := strconv.ParseInt(item.Place, 10, 64)
+
+	newItem := map[string]types.AttributeValue{
+		attrCompositeKey: &types.AttributeValueMemberS{Value: compositeKey},
+		"place":          &types.AttributeValueMemberN{Value: item.Place},
+		attrStoryID:      &types.AttributeValueMemberS{Value: storyID},
+		attrChapterID:    &types.AttributeValueMemberS{Value: chapterID},
+		"key_id":         &types.AttributeValueMemberS{Value: item.KeyID},
+	}
+	if chunk := resolveChunkUpdate(item.Chunk, existingItem, storyID, chapterID, item.KeyID); chunk != nil {
+		newItem["chunk"] = chunk
+	}
+	for k, v := range existingItem {
+		if k != attrCompositeKey && k != "place" && k != attrStoryID && k != attrChapterID && k != "key_id" &&
+			k != "chunk" {
+			newItem[k] = v
+		}
+	}
+
+	if oldPlaceNum != newPlaceNum {
+		deleteItem = &types.TransactWriteItem{
+			Delete: &types.Delete{
+				TableName: aws.String(GetStoryBlocksTableName()),
+				Key: map[string]types.AttributeValue{
+					attrCompositeKey: &types.AttributeValueMemberS{Value: compositeKey},
+					"place":          oldPlace,
+				},
+			},
+		}
+	}
+	putItem = types.TransactWriteItem{
+		Put: &types.Put{
+			TableName: aws.String(GetStoryBlocksTableName()),
+			Item:      newItem,
+		},
+	}
+	return deleteItem, putItem, nil
+}
+
+// runTransactionBatches executes a list of TransactWriteItems in
+// txnBatchSize-sized batches. phaseLabel is interpolated into log messages
+// to distinguish phases in the WriteBlocks two-phase commit. Returns on the
+// first batch failure (network error or AWS-side rejection).
+func (d *DAO) runTransactionBatches(
+	ctx context.Context,
+	items []types.TransactWriteItem,
+	txnBatchSize int,
+	phaseLabel string,
+	storyID, chapterID string,
+) error {
+	for i := 0; i < len(items); i += txnBatchSize {
+		end := min(i+txnBatchSize, len(items))
+		batch := items[i:end]
+
+		logger.Debug(phaseLabel,
+			"storyId", storyID, "chapterId", chapterID,
+			"itemCount", len(batch), "batchStart", i, "totalItems", len(items))
+
+		awsErr, err := d.awsWriteTransaction(ctx, &dynamodb.TransactWriteItemsInput{
+			TransactItems: batch,
+		})
+		if err != nil {
+			logger.Error(phaseLabel+" transaction failed",
+				"error", err, "storyId", storyID, "chapterId", chapterID)
+			return err
+		}
+		if !awsErr.IsNil() {
+			logger.Error(phaseLabel+" AWS error",
+				"awsCode", awsErr.Code, "awsErrorType", awsErr.ErrorType, "awsMessage", awsErr.Text,
+				"storyId", storyID, "chapterId", chapterID)
+			return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s",
+				awsErr.Code, awsErr.ErrorType, awsErr.Text)
+		}
+	}
+	return nil
 }
 
 func (d *DAO) EditStory(ctx context.Context, email string, story models.Story) (updatedStory models.Story, err error) {

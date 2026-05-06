@@ -1,12 +1,8 @@
 package billing
 
 import (
-	"bytes"
-	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -17,7 +13,6 @@ import (
 
 	stripe "github.com/stripe/stripe-go/v79"
 	"github.com/stripe/stripe-go/v79/subscription"
-	"github.com/stripe/stripe-go/v79/webhook"
 
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
@@ -83,182 +78,30 @@ func safeReturnURL(returnURL string, r *http.Request) string {
 	return returnURL
 }
 
-//nolint:funlen // Stripe webhook dispatch: signature verify + event-type switch + cascade DAO writes.
+// StripeWebhookEndpoint receives Stripe webhook events. We only care about
+// customer.subscription.* events; everything else is ACKed without action.
+// Stripe defines ~270 event types we don't care about, so the default
+// branch is intentional, not exhaustive.
 func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
-	const tolerance = 300 * time.Second
-
-	payload, _ := io.ReadAll(r.Body)
-	defer r.Body.Close()
-
-	sigHeader := r.Header.Get("Stripe-Signature")
-	endpointSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
-	if endpointSecret == "" {
-		RespondWithError(w, http.StatusInternalServerError, "missing webhook secret")
+	dao, event, ok := setupWebhookEvent(w, r)
+	if !ok {
 		return
 	}
 
-	var (
-		err error
-	)
-	daoOptions := daos.Options{
-		Region:     getenv("AWS_REGION", defaultAwsRegion),
-		MaxRetries: atoiDefault(os.Getenv("AWS_MAX_RETRIES"), defaultMaxRetries),
-		BlockTableMinWriteCapacity: atoiDefault(
-			os.Getenv("AWS_BLOCKTABLE_MIN_WRITE_CAPACITY"),
-			defaultAWSBlockWriteCapacity,
-		),
-		WriteBatchSize: atoiDefault(os.Getenv("DYNAMO_WRITE_BATCH_SIZE"), defaultDynamoWriteBatchSize),
-	}
-	dao, err := daos.NewDAO(context.Background(), daoOptions)
-	if err != nil {
-		logger.Error("Internal error", "error", err)
-		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-		return
-	}
-
-	event, err := webhook.ConstructEventWithOptions(payload, sigHeader, endpointSecret, webhook.ConstructEventOptions{
-		IgnoreAPIVersionMismatch: true,
-		Tolerance:                tolerance,
-	})
-	if err != nil {
-		logger.Error("Stripe signature verification failed", "error", err)
-		http.Error(w, "Invalid request", http.StatusBadRequest)
-		return
-	}
-
-	var (
-		needsRestore bool
-		email        string
-		user         *models.UserInfo
-	)
-	// Stripe defines ~270 event types we don't care about; the default branch ACKs them.
 	switch event.Type { //nolint:exhaustive
-	case "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted":
-		var sub stripe.Subscription
-		if err = json.NewDecoder(bytes.NewReader(event.Data.Raw)).Decode(&sub); err != nil {
-			logger.Error("Bad request", "error", err)
-			RespondWithError(w, http.StatusBadRequest, "Invalid request")
+	case "customer.subscription.created",
+		"customer.subscription.updated",
+		"customer.subscription.deleted":
+		email, needsRestore, handled := handleSubscriptionEvent(w, dao, event)
+		if !handled {
 			return
 		}
-
-		logger.Info("StripeWebhook processing event",
-			"eventType", event.Type,
-			"subscriptionID", sub.ID,
-			"customerID", sub.Customer.ID,
-			"mode", os.Getenv("MODE"))
-
-		email, err = dao.GetEmailByCustomerID(context.Background(), sub.Customer.ID)
-		if err != nil || email == "" {
-			logger.Warn("StripeWebhook: failed to find email for customer", "customerID", sub.Customer.ID, "error", err)
-			RespondWithError(w, http.StatusBadRequest, "unknown customer")
-			return
-		}
-		logger.Info("StripeWebhook: found email for customer", "email", email, "customerID", sub.Customer.ID)
-
-		if err := dao.UpdateSubscription(context.Background(), models.Subscription{ //nolint:govet
-			Email:                  email,
-			CustomerID:             sub.Customer.ID,
-			SubscriptionID:         sub.ID,
-			LastSubCheck:           time.Now(),
-			CurrentSubscriptionEnd: time.Unix(sub.CurrentPeriodEnd, 0).UTC(),
-		}); err != nil {
-			logger.Error("Internal error", "error", err)
-			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-			return
-		}
-
-		user, err = dao.GetUserDetails(context.Background(), email)
-		if err != nil {
-			logger.Error("Internal error", "error", err)
-			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-			return
-		}
-
-		isActive := sub.Status == stripe.SubscriptionStatusActive || sub.Status == stripe.SubscriptionStatusTrialing
-
-		if isActive && !user.Subscriber {
-			user.Subscriber = true
-			if wasSuspended, err := dao.CheckForSuspendedStories( //nolint:govet
-				context.Background(),
-				user.Email,
-			); err == nil &&
-				wasSuspended {
-				needsRestore = true
-				user.NotifyRestored = true
-			} else if err != nil {
-				// validation/state still not ACKed yet, so we can error out
-				logger.Error("Internal error", "error", err)
-				RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-				return
-			}
-		} else if !isActive && user.Subscriber {
-			user.Subscriber = false
-			user.NotifyExpired = true
-
-			// suspend others (async fan-out OK)
-			stories, err := dao.GetAllStories(context.Background(), user.Email) //nolint:govet
-			if err != nil && !errors.Is(err, sql.ErrNoRows) {
-				logger.Error("Internal error", "error", err)
-				RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-				return
-			}
-			for idx, s := range stories {
-				if idx > 0 {
-					go func(storyID string) {
-						if delErr := dao.SoftDeleteStory(
-							context.Background(),
-							user.Email,
-							storyID,
-							true,
-						); delErr != nil {
-							logger.Error("background SoftDeleteStory failed", "storyID", storyID, "error", delErr)
-						}
-					}(s.ID)
-				}
-			}
-		}
-
-		if err = dao.UpdateUser(context.Background(), *user); err != nil {
-			logger.Error("Internal error", "error", err)
-			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-			return
-		}
-
-	default:
-		// Not a type we care about: ACK and return
 		RespondWithJSON(w, http.StatusOK, nil)
-		return
-	}
-	RespondWithJSON(w, http.StatusOK, nil)
-
-	if needsRestore {
-		go func(email string) {
-			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute) //nolint:mnd
-			defer cancel()
-
-			events, err := dao.RestoreAutomaticallyDeletedStories(ctx, email) //nolint:govet
-			if err != nil {
-				logger.Error("restore start failed", "email", email, "error", err)
-				return
-			}
-			for ev := range events {
-				if ev.Err == nil {
-					story, getErr := dao.GetStoryByID(context.Background(), email, ev.StoryID)
-					if getErr == nil {
-						story.Inactive = false
-						if _, e2 := dao.EditStory(context.Background(), email, *story); e2 != nil {
-							logger.Error("post-restore EditStory failed", "storyID", ev.StoryID, "error", e2)
-						}
-					} else {
-						logger.Error("GetStoryByID failed", "storyID", ev.StoryID, "error", getErr)
-					}
-					logger.Info("restored story", "storyID", ev.StoryID, "index", ev.Index, "total", ev.Total)
-				} else {
-					logger.Error("restore error",
-						"storyID", ev.StoryID, "index", ev.Index, "total", ev.Total, "error", ev.Err)
-				}
-			}
-		}(email)
+		if needsRestore {
+			go restoreSuspendedStoriesAsync(dao, email)
+		}
+	default:
+		RespondWithJSON(w, http.StatusOK, nil)
 	}
 }
 

@@ -1,0 +1,221 @@
+package billing
+
+import (
+	"bytes"
+	"context"
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
+	"os"
+	"time"
+
+	"Threadr/daos"
+	"Threadr/logger"
+	"Threadr/models"
+
+	stripe "github.com/stripe/stripe-go/v79"
+	"github.com/stripe/stripe-go/v79/webhook"
+)
+
+// setupWebhookEvent reads the request body, verifies the Stripe signature
+// and returns a constructed event plus a freshly-built DAO. On any failure
+// it writes the appropriate HTTP error and returns ok=false; callers should
+// just return.
+func setupWebhookEvent(w http.ResponseWriter, r *http.Request) (dao daos.DaoInterface, event stripe.Event, ok bool) {
+	const tolerance = 300 * time.Second
+
+	payload, _ := io.ReadAll(r.Body)
+	defer r.Body.Close()
+
+	endpointSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
+	if endpointSecret == "" {
+		RespondWithError(w, http.StatusInternalServerError, "missing webhook secret")
+		return nil, stripe.Event{}, false
+	}
+
+	daoOptions := daos.Options{
+		Region:     getenv("AWS_REGION", defaultAwsRegion),
+		MaxRetries: atoiDefault(os.Getenv("AWS_MAX_RETRIES"), defaultMaxRetries),
+		BlockTableMinWriteCapacity: atoiDefault(
+			os.Getenv("AWS_BLOCKTABLE_MIN_WRITE_CAPACITY"),
+			defaultAWSBlockWriteCapacity,
+		),
+		WriteBatchSize: atoiDefault(os.Getenv("DYNAMO_WRITE_BATCH_SIZE"), defaultDynamoWriteBatchSize),
+	}
+	builtDao, err := daos.NewDAO(context.Background(), daoOptions)
+	if err != nil {
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
+		return nil, stripe.Event{}, false
+	}
+
+	sigHeader := r.Header.Get("Stripe-Signature")
+	ev, err := webhook.ConstructEventWithOptions(payload, sigHeader, endpointSecret, webhook.ConstructEventOptions{
+		IgnoreAPIVersionMismatch: true,
+		Tolerance:                tolerance,
+	})
+	if err != nil {
+		logger.Error("Stripe signature verification failed", "error", err)
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return nil, stripe.Event{}, false
+	}
+	return builtDao, ev, true
+}
+
+// handleSubscriptionEvent processes a customer.subscription.* webhook event:
+// resolves the customer's email, persists the subscription record, mutates
+// the user's subscriber state to match Stripe, and writes the user back.
+// Returns the resolved email and whether a story-restoration goroutine
+// should be launched (true when transitioning suspended → active). On any
+// failure it writes the appropriate HTTP error and returns ok=false.
+func handleSubscriptionEvent(
+	w http.ResponseWriter,
+	dao daos.DaoInterface,
+	event stripe.Event,
+) (email string, needsRestore, ok bool) {
+	var sub stripe.Subscription
+	if err := json.NewDecoder(bytes.NewReader(event.Data.Raw)).Decode(&sub); err != nil {
+		logger.Error("Bad request", "error", err)
+		RespondWithError(w, http.StatusBadRequest, "Invalid request")
+		return "", false, false
+	}
+
+	logger.Info("StripeWebhook processing event",
+		"eventType", event.Type,
+		"subscriptionID", sub.ID,
+		"customerID", sub.Customer.ID,
+		"mode", os.Getenv("MODE"))
+
+	ctx := context.Background()
+	email, err := dao.GetEmailByCustomerID(ctx, sub.Customer.ID)
+	if err != nil || email == "" {
+		logger.Warn("StripeWebhook: failed to find email for customer", "customerID", sub.Customer.ID, "error", err)
+		RespondWithError(w, http.StatusBadRequest, "unknown customer")
+		return "", false, false
+	}
+	logger.Info("StripeWebhook: found email for customer", "email", email, "customerID", sub.Customer.ID)
+
+	if err = dao.UpdateSubscription(ctx, models.Subscription{
+		Email:                  email,
+		CustomerID:             sub.Customer.ID,
+		SubscriptionID:         sub.ID,
+		LastSubCheck:           time.Now(),
+		CurrentSubscriptionEnd: time.Unix(sub.CurrentPeriodEnd, 0).UTC(),
+	}); err != nil {
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
+		return "", false, false
+	}
+
+	user, err := dao.GetUserDetails(ctx, email)
+	if err != nil {
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
+		return "", false, false
+	}
+
+	isActive := sub.Status == stripe.SubscriptionStatusActive || sub.Status == stripe.SubscriptionStatusTrialing
+	needsRestore, err = applySubscriptionTransition(ctx, dao, user, isActive)
+	if err != nil {
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
+		return "", false, false
+	}
+
+	if err = dao.UpdateUser(ctx, *user); err != nil {
+		logger.Error("Internal error", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
+		return "", false, false
+	}
+	return email, needsRestore, true
+}
+
+// applySubscriptionTransition mutates user in-place to reflect a transition
+// to/from active subscription state. Returns needsRestore=true when the
+// transition is suspended→active and the user has stories that were
+// auto-suspended (the caller should kick off the async restore goroutine
+// after the OK response is written).
+func applySubscriptionTransition(
+	ctx context.Context,
+	dao daos.DaoInterface,
+	user *models.UserInfo,
+	isActive bool,
+) (needsRestore bool, err error) {
+	switch {
+	case isActive && !user.Subscriber:
+		user.Subscriber = true
+		wasSuspended, sErr := dao.CheckForSuspendedStories(ctx, user.Email)
+		if sErr != nil {
+			return false, sErr
+		}
+		if wasSuspended {
+			user.NotifyRestored = true
+			return true, nil
+		}
+	case !isActive && user.Subscriber:
+		user.Subscriber = false
+		user.NotifyExpired = true
+		if sErr := suspendUserStories(ctx, dao, user.Email); sErr != nil {
+			return false, sErr
+		}
+	}
+	return false, nil
+}
+
+// suspendUserStories soft-deletes every story owned by email except the
+// first one (kept active so the user retains read access to one project
+// after their subscription lapses). Soft-delete fan-out is launched in
+// background goroutines so the webhook can ACK quickly.
+func suspendUserStories(ctx context.Context, dao daos.DaoInterface, email string) error {
+	stories, err := dao.GetAllStories(ctx, email)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	for idx, s := range stories {
+		if idx == 0 {
+			continue
+		}
+		go func(storyID string) {
+			bgCtx := context.WithoutCancel(ctx)
+			if delErr := dao.SoftDeleteStory(bgCtx, email, storyID, true); delErr != nil {
+				logger.Error("background SoftDeleteStory failed", "storyID", storyID, "error", delErr)
+			}
+		}(s.ID)
+	}
+	return nil
+}
+
+// restoreSuspendedStoriesAsync drives the post-resubscription restoration:
+// streams events from RestoreAutomaticallyDeletedStories and clears each
+// restored story's Inactive flag. Runs with a 30-minute timeout to bound
+// long-running restores.
+func restoreSuspendedStoriesAsync(dao daos.DaoInterface, email string) {
+	const restoreTimeout = 30 * time.Minute
+	ctx, cancel := context.WithTimeout(context.Background(), restoreTimeout)
+	defer cancel()
+
+	events, err := dao.RestoreAutomaticallyDeletedStories(ctx, email)
+	if err != nil {
+		logger.Error("restore start failed", "email", email, "error", err)
+		return
+	}
+	for ev := range events {
+		if ev.Err != nil {
+			logger.Error("restore error",
+				"storyID", ev.StoryID, "index", ev.Index, "total", ev.Total, "error", ev.Err)
+			continue
+		}
+		story, getErr := dao.GetStoryByID(context.Background(), email, ev.StoryID)
+		if getErr != nil {
+			logger.Error("GetStoryByID failed", "storyID", ev.StoryID, "error", getErr)
+			continue
+		}
+		story.Inactive = false
+		if _, e2 := dao.EditStory(context.Background(), email, *story); e2 != nil {
+			logger.Error("post-restore EditStory failed", "storyID", ev.StoryID, "error", e2)
+		}
+		logger.Info("restored story", "storyID", ev.StoryID, "index", ev.Index, "total", ev.Total)
+	}
+}

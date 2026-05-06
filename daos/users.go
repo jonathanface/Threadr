@@ -430,7 +430,6 @@ func toStatus(s *stripe.Subscription, found bool) SubscriptionStatus {
 }
 
 func (d *DAO) IsUserSubscribed(ctx context.Context, user models.UserInfo) (*models.UserInfo, error) {
-	// Only set stripe.Key from environment if not already set (preserves test mocks)
 	if stripe.Key == "" {
 		stripe.Key = os.Getenv("STRIPE_SECRET")
 		if stripe.Key == "" {
@@ -440,7 +439,6 @@ func (d *DAO) IsUserSubscribed(ctx context.Context, user models.UserInfo) (*mode
 	sub, err := d.GetSubscription(ctx, user.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			// No subscription on file: treat as not subscribed, not an error
 			user.Subscriber = false
 			return &user, nil
 		}
@@ -451,69 +449,109 @@ func (d *DAO) IsUserSubscribed(ctx context.Context, user models.UserInfo) (*mode
 		return nil, err
 	}
 
-	// Base truth from DB
+	isSubscribed, err := d.resolveSubscriberStatus(ctx, sub)
+	if err != nil {
+		return nil, err
+	}
+	if err = d.applySubscriberSideEffects(ctx, &user, sub, isSubscribed); err != nil {
+		return nil, err
+	}
+	user.Subscriber = isSubscribed
+	return &user, nil
+}
+
+// resolveSubscriberStatus computes the user's effective subscription state
+// by combining DB truth with a Stripe recheck (when the cached state is
+// stale). On a successful recheck the subscription record is updated in
+// DDB. Stripe-side errors are logged and ignored — we fall back to DB truth.
+func (d *DAO) resolveSubscriberStatus(ctx context.Context, sub *models.Subscription) (bool, error) {
+	const staleAfter = 15 * time.Minute
 	isSubscribed := sub.SubscriptionID != "" && sub.CurrentSubscriptionEnd.After(time.Now())
 
-	// Recheck policy:
-	// Re-verify with Stripe if we have a sub id AND the check is stale.
-	const staleAfter = 15 * time.Minute
 	shouldRecheck := sub.SubscriptionID != "" &&
 		(sub.LastSubCheck.IsZero() || time.Since(sub.LastSubCheck) > staleAfter)
-	if shouldRecheck {
-		status, stripeErr := d.verifyStripeSubscription(sub.SubscriptionID, sub.CustomerID)
-		if stripeErr == nil && status.Found {
-			isSubscribed = status.Active
-			sub.CurrentSubscriptionEnd = status.CurrentPeriodEnd
-			sub.LastSubCheck = time.Now().UTC()
-			if err = d.UpdateSubscription(ctx, *sub); err != nil {
-				return nil, err
-			}
-		} else if stripeErr != nil {
-			// Network/auth issues—log and keep DB truth
-			logger.Warn("verifyStripeSubscription error", "error", stripeErr)
-		}
+	if !shouldRecheck {
+		return isSubscribed, nil
 	}
-	// Side effects: suspend/restore stories + set notify flags for UX
-	if !isSubscribed && user.Subscriber {
-		user.NotifyExpired = true
 
-		stories, err := d.GetAllStories(ctx, user.Email) //nolint:govet
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return nil, err
-		}
-		for idx, s := range stories {
-			if idx > 0 {
-				go func(storyID string) {
-					if delErr := d.SoftDeleteStory(ctx, user.Email, storyID, true); delErr != nil {
-						logger.Warn("background SoftDeleteStory failed", "storyID", storyID, "error", delErr)
-					}
-				}(s.ID)
-			}
-		}
-		sub.CurrentSubscriptionEnd = time.Now()
-		err = d.UpdateSubscription(ctx, *sub)
+	status, stripeErr := d.verifyStripeSubscription(sub.SubscriptionID, sub.CustomerID)
+	if stripeErr != nil {
+		logger.Warn("verifyStripeSubscription error", "error", stripeErr)
+		return isSubscribed, nil
+	}
+	if !status.Found {
+		return isSubscribed, nil
+	}
+	sub.CurrentSubscriptionEnd = status.CurrentPeriodEnd
+	sub.LastSubCheck = time.Now().UTC()
+	if err := d.UpdateSubscription(ctx, *sub); err != nil {
+		return false, err
+	}
+	return status.Active, nil
+}
+
+// applySubscriberSideEffects applies the user-state side-effects of a
+// subscription state change: when transitioning to unsubscribed, story
+// fan-out soft-delete + persist; when transitioning to (still) subscribed,
+// kick off the restore async if any stories were previously auto-suspended.
+// The user struct is mutated in place to record notify flags.
+func (d *DAO) applySubscriberSideEffects(
+	ctx context.Context,
+	user *models.UserInfo,
+	sub *models.Subscription,
+	isSubscribed bool,
+) error {
+	switch {
+	case !isSubscribed && user.Subscriber:
+		return d.applySubscriptionExpired(ctx, user, sub)
+	case isSubscribed:
+		wasSuspended, err := d.CheckForSuspendedStories(ctx, user.Email)
 		if err != nil {
-			return nil, err
-		}
-		user.Subscriber = false
-		err = d.UpdateUser(ctx, user)
-		if err != nil {
-			return nil, err
-		}
-	} else if isSubscribed {
-		wasSuspended, err := d.CheckForSuspendedStories(ctx, user.Email) //nolint:govet // bool
-		if err != nil {
-			return nil, err
+			return err
 		}
 		if wasSuspended {
 			d.kickoffRestoreAsync(user.Email)
 			user.NotifyRestored = true
 		}
 	}
+	return nil
+}
 
-	// Reflect final status back to caller
-	user.Subscriber = isSubscribed
-	return &user, nil
+// applySubscriptionExpired handles the active→expired transition: marks the
+// notify flag, kicks off background soft-deletion of all but the first
+// story (the "free tier" allowance), zeroes out the subscription end date,
+// and persists both records.
+func (d *DAO) applySubscriptionExpired(
+	ctx context.Context,
+	user *models.UserInfo,
+	sub *models.Subscription,
+) error {
+	user.NotifyExpired = true
+
+	stories, err := d.GetAllStories(ctx, user.Email)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	for idx, s := range stories {
+		if idx == 0 {
+			continue
+		}
+		go func(storyID string) {
+			if delErr := d.SoftDeleteStory(ctx, user.Email, storyID, true); delErr != nil {
+				logger.Warn("background SoftDeleteStory failed", "storyID", storyID, "error", delErr)
+			}
+		}(s.ID)
+	}
+
+	sub.CurrentSubscriptionEnd = time.Now()
+	if err = d.UpdateSubscription(ctx, *sub); err != nil {
+		return err
+	}
+	user.Subscriber = false
+	if err = d.UpdateUser(ctx, *user); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (d *DAO) AddCustomerID(ctx context.Context, email, customerID *string) error {

@@ -19,9 +19,13 @@ const (
 	// maxUploadFileSize so a maxed-out 5 MB file plus multipart boundaries,
 	// part headers, and any sibling form fields still fits.
 	maxUploadSize = maxUploadFileSize + oneMB*oneMB
-	maxScaledSize = oneMB * oneMB // 1 MB for final scaled image
-	maxImageWidth = 400
-	awsPrefix     = "aws:"
+	// parseFormMemoryBudget is the in-memory budget for ParseMultipartForm.
+	// The body is bounded above by maxUploadSize via http.MaxBytesReader, so
+	// this controls how much of the form is held in RAM vs. spilled to disk.
+	parseFormMemoryBudget = 10 << 20 // 10 MB
+	maxScaledSize         = oneMB * oneMB
+	maxImageWidth         = 400
+	awsPrefix             = "aws:"
 
 	// firstChapterTitle is the default title given to the first chapter when
 	// a story is created or imported.

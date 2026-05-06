@@ -157,7 +157,37 @@ func purgeTable(
 	cutoffUnix int64,
 ) (int, []chapterKey, error) {
 	tk := keyNamesForTable(table)
+	collectChapters := table == chaptersTable || table == chaptersStaging
 
+	keys, chapterIDs, err := scanForExpiredKeys(ctx, client, table, tk, cutoffUnix, collectChapters)
+	if err != nil {
+		return 0, nil, err
+	}
+	if len(keys) == 0 {
+		fmt.Printf("no items marked for deletion in %s\n", table)
+		return 0, chapterIDs, nil
+	}
+	deletedCount, err := batchDeleteKeys(ctx, client, table, keys)
+	if err != nil {
+		return deletedCount, chapterIDs, err
+	}
+	fmt.Printf("expired rows in %s deleted successfully: %d\n", table, deletedCount)
+	return deletedCount, chapterIDs, nil
+}
+
+// scanForExpiredKeys paginates Scan calls collecting the keys of items
+// where deleted_at < cutoffUnix. When the table holds chapters and
+// collectChapters is true, also accumulates the (storyID, chapterID) pairs
+// so the caller can clean up per-chapter blocks tables. Tables that no
+// longer exist are treated as empty rather than fatal.
+func scanForExpiredKeys(
+	ctx context.Context,
+	client *dynamodb.Client,
+	table string,
+	tk keySpec,
+	cutoffUnix int64,
+	collectChapters bool,
+) ([]map[string]types.AttributeValue, []chapterKey, error) {
 	filter := aws.String("attribute_exists(#deleted_at) AND #deleted_at < :cutoff")
 	eav := map[string]types.AttributeValue{
 		":cutoff": &types.AttributeValueMemberN{Value: strconv.FormatInt(cutoffUnix, 10)},
@@ -172,11 +202,10 @@ func purgeTable(
 		proj += ",#sk"
 	}
 
-	var lastKey map[string]types.AttributeValue
-	keys := make([]map[string]types.AttributeValue, 0, 256) //nolint:mnd
-
-	collectChapters := table == chaptersTable || table == chaptersStaging
+	const initialKeyCapacity = 256
+	keys := make([]map[string]types.AttributeValue, 0, initialKeyCapacity)
 	var chapterIDs []chapterKey
+	var lastKey map[string]types.AttributeValue
 
 	for {
 		out, err := client.Scan(ctx, &dynamodb.ScanInput{
@@ -188,62 +217,66 @@ func purgeTable(
 			ExclusiveStartKey:         lastKey,
 		})
 		if err != nil {
-			// If table's gone, skip gracefully
 			var rnfe *types.ResourceNotFoundException
 			if errors.As(err, &rnfe) {
 				fmt.Printf("table %s not found, skipping\n", table)
-				return 0, nil, nil
+				return nil, nil, nil
 			}
-			return 0, nil, err
+			return nil, nil, err
 		}
-
 		for _, it := range out.Items {
-			pkAttr, ok := it[tk.pk]
-			if !ok || pkAttr == nil {
-				fmt.Printf("warn: %s item missing partition key (%s); skipping\n", table, tk.pk)
+			key, chapter, ok := extractPurgeKey(it, tk, table, collectChapters)
+			if !ok {
 				continue
 			}
-			key := map[string]types.AttributeValue{tk.pk: pkAttr}
-
-			var skAttr types.AttributeValue
-			if tk.hasSK {
-				var ok2 bool
-				skAttr, ok2 = it[tk.sk]
-				if !ok2 || skAttr == nil {
-					fmt.Printf("warn: %s item missing sort key (%s); skipping\n", table, tk.sk)
-					continue
-				}
-				key[tk.sk] = skAttr
-			}
 			keys = append(keys, key)
-
-			if collectChapters {
-				story, sOK := avToString(pkAttr)
-				chap, cOK := avToString(skAttr)
-				if sOK && cOK {
-					chapterIDs = append(chapterIDs, chapterKey{StoryID: story, ChapterID: chap})
-				}
+			if chapter != nil {
+				chapterIDs = append(chapterIDs, *chapter)
 			}
 		}
-
 		if len(out.LastEvaluatedKey) == 0 {
-			break
+			return keys, chapterIDs, nil
 		}
 		lastKey = out.LastEvaluatedKey
 	}
+}
 
-	if len(keys) == 0 {
-		fmt.Printf("no items marked for deletion in %s\n", table)
-		return 0, chapterIDs, nil
+// extractPurgeKey pulls the deletion key (PK plus optional SK) out of one
+// scanned row, and — for chapters tables — returns the corresponding
+// (storyID, chapterID) pair. Returns ok=false (with a warning printed) for
+// rows missing required key attributes.
+func extractPurgeKey(
+	item map[string]types.AttributeValue,
+	tk keySpec,
+	table string,
+	collectChapters bool,
+) (key map[string]types.AttributeValue, chapter *chapterKey, ok bool) {
+	pkAttr, hasPK := item[tk.pk]
+	if !hasPK || pkAttr == nil {
+		fmt.Printf("warn: %s item missing partition key (%s); skipping\n", table, tk.pk)
+		return nil, nil, false
+	}
+	key = map[string]types.AttributeValue{tk.pk: pkAttr}
+
+	var skAttr types.AttributeValue
+	if tk.hasSK {
+		var hasSK bool
+		skAttr, hasSK = item[tk.sk]
+		if !hasSK || skAttr == nil {
+			fmt.Printf("warn: %s item missing sort key (%s); skipping\n", table, tk.sk)
+			return nil, nil, false
+		}
+		key[tk.sk] = skAttr
 	}
 
-	deletedCount, err := batchDeleteKeys(ctx, client, table, keys)
-	if err != nil {
-		return deletedCount, chapterIDs, err
+	if collectChapters {
+		story, sOK := avToString(pkAttr)
+		chap, cOK := avToString(skAttr)
+		if sOK && cOK {
+			chapter = &chapterKey{StoryID: story, ChapterID: chap}
+		}
 	}
-
-	fmt.Printf("expired rows in %s deleted successfully: %d\n", table, deletedCount)
-	return deletedCount, chapterIDs, nil
+	return key, chapter, true
 }
 
 // at top: import "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"

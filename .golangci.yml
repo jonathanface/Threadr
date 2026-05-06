@@ -302,8 +302,10 @@ linters:
 
     gocognit:
       # Minimal code complexity to report.
-      # Default: 30 (but we recommend 10-20)
-      min-complexity: 20
+      # Default: 30 (linter recommends 10-20, but 20 produces too much
+      # noise on table-driven tests and HTTP handlers; 30 still flags the
+      # genuinely tangled functions).
+      min-complexity: 30
 
     gocritic:
       # Settings passed to gocritic.
@@ -474,9 +476,12 @@ linters:
       - path: '(_test\.go|test_helpers\.go)'
         linters:
           - bodyclose
+          - cyclop
           - dupl
           - errcheck
           - funlen
+          - gocognit
+          - gocyclo
           - goconst
           - gosec
           - noctx

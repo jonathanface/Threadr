@@ -323,99 +323,94 @@ func blocksDataItemToHTML(item map[string]json.RawMessage) string {
 
 // nodeToHTML converts a single Lexical node to HTML.
 func nodeToHTML(node LexicalNode) string {
-	var buf strings.Builder
-
 	switch node.Type {
 	case tagParagraph, "custom-paragraph":
-		// Get text alignment style
-		var style string
-		if node.Format != nil {
-			switch fmt.Sprint(node.Format) {
-			case "center":
-				style = ` style="text-align:center;"`
-			case "right":
-				style = ` style="text-align:right;"`
-			case "justify":
-				style = ` style="text-align:justify;"`
-			}
-		}
-
-		buf.WriteString("<div" + style + ">")
-		for _, child := range node.Children {
-			buf.WriteString(nodeToHTML(child))
-		}
-		buf.WriteString("</div>")
-
+		return wrapChildrenHTML("<div"+paragraphAlignmentStyle(node.Format)+">", "</div>", node.Children)
 	case "text":
-		text := html.EscapeString(node.Text)
-
-		// Apply text formatting based on textFormat bitmask
-		// Lexical uses bitmask: 1=bold, 2=italic, 4=strikethrough, 8=underline
-		textFormat := node.TextFormat
-		if textFormat&1 != 0 {
-			text = "<strong>" + text + "</strong>"
-		}
-		if textFormat&2 != 0 {
-			text = "<em>" + text + "</em>"
-		}
-		if textFormat&8 != 0 {
-			text = "<u>" + text + "</u>"
-		}
-		if textFormat&4 != 0 {
-			text = "<s>" + text + "</s>"
-		}
-
-		buf.WriteString(text)
-
+		return applyLexicalTextFormat(html.EscapeString(node.Text), node.TextFormat)
 	case "linebreak":
-		buf.WriteString("<br>")
-
+		return "<br>"
 	case "heading":
-		// Default to h1 if no specific heading level
-		buf.WriteString("<h1>")
-		for _, child := range node.Children {
-			buf.WriteString(nodeToHTML(child))
-		}
-		buf.WriteString("</h1>")
-
+		return wrapChildrenHTML("<h1>", "</h1>", node.Children)
 	case "list":
-		// Check if ordered or unordered (default to ul)
-		listTag := "ul"
-		buf.WriteString("<" + listTag + ">")
-		for _, child := range node.Children {
-			buf.WriteString(nodeToHTML(child))
-		}
-		buf.WriteString("</" + listTag + ">")
-
+		return wrapChildrenHTML("<ul>", "</ul>", node.Children)
 	case "listitem":
-		buf.WriteString("<li>")
-		for _, child := range node.Children {
-			buf.WriteString(nodeToHTML(child))
-		}
-		buf.WriteString("</li>")
-
+		return wrapChildrenHTML("<li>", "</li>", node.Children)
 	case "link":
-		buf.WriteString("<a>")
-		for _, child := range node.Children {
-			buf.WriteString(nodeToHTML(child))
-		}
-		buf.WriteString("</a>")
-
+		return wrapChildrenHTML("<a>", "</a>", node.Children)
 	case "quote":
-		buf.WriteString("<blockquote>")
-		for _, child := range node.Children {
-			buf.WriteString(nodeToHTML(child))
-		}
-		buf.WriteString("</blockquote>")
-
+		return wrapChildrenHTML("<blockquote>", "</blockquote>", node.Children)
 	default:
-		// For unknown node types, just process children
-		for _, child := range node.Children {
-			buf.WriteString(nodeToHTML(child))
-		}
+		return renderChildrenHTML(node.Children)
 	}
+}
 
+// wrapChildrenHTML emits open + recursively-rendered children + closeTag.
+// The dominant pattern in nodeToHTML — block-level tags wrapping their
+// child Lexical nodes.
+func wrapChildrenHTML(open, closeTag string, children []LexicalNode) string {
+	var buf strings.Builder
+	buf.WriteString(open)
+	for _, child := range children {
+		buf.WriteString(nodeToHTML(child))
+	}
+	buf.WriteString(closeTag)
 	return buf.String()
+}
+
+// renderChildrenHTML recursively renders children with no surrounding tag.
+// Used as the fall-through for unknown node types.
+func renderChildrenHTML(children []LexicalNode) string {
+	var buf strings.Builder
+	for _, child := range children {
+		buf.WriteString(nodeToHTML(child))
+	}
+	return buf.String()
+}
+
+// paragraphAlignmentStyle maps a Lexical format value (which is `any`
+// because Lexical sometimes serializes it as a string and sometimes as a
+// number) to an inline text-align style attribute. Returns "" for nil or
+// unrecognized values.
+func paragraphAlignmentStyle(format any) string {
+	if format == nil {
+		return ""
+	}
+	switch fmt.Sprint(format) {
+	case "center":
+		return ` style="text-align:center;"`
+	case "right":
+		return ` style="text-align:right;"`
+	case "justify":
+		return ` style="text-align:justify;"`
+	}
+	return ""
+}
+
+// applyLexicalTextFormat wraps text with HTML tags per the Lexical
+// textFormat bitmask: 1=bold, 2=italic, 4=strikethrough, 8=underline.
+// Order matches what Lexical's editor renders, so round-trip diffs stay
+// minimal.
+func applyLexicalTextFormat(text string, format int) string {
+	const (
+		bold          = 1
+		italic        = 2
+		strikethrough = 4
+		underline     = 8
+	)
+	if format&bold != 0 {
+		text = "<strong>" + text + "</strong>"
+	}
+	if format&italic != 0 {
+		text = "<em>" + text + "</em>"
+	}
+	if format&underline != 0 {
+		text = "<u>" + text + "</u>"
+	}
+	if format&strikethrough != 0 {
+		text = "<s>" + text + "</s>"
+	}
+	return text
 }
 
 func HTMLToEPUB(export models.DocumentExportRequest) (string, error) {
