@@ -102,6 +102,14 @@ const theme = {
   },
 };
 
+const defaultContextData: ContextMenuProps = {
+  visible: false,
+  name: "",
+  x: 0,
+  y: 0,
+  items: [],
+};
+
 export const ThreadWriter = () => {
   const initialConfig = {
     namespace: "ThreadWriterEditor",
@@ -110,14 +118,6 @@ export const ThreadWriter = () => {
     onError: (error: Error) => {
       logger.error("Lexical error:", error);
     },
-  };
-
-  const defaultContextData: ContextMenuProps = {
-    visible: false,
-    name: "",
-    x: 0,
-    y: 0,
-    items: [],
   };
 
   // refs

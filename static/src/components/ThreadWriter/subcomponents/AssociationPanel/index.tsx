@@ -167,7 +167,7 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
     };
     if (props.isAssociationPanelOpen && props.selectedAssociationID)
       fetchAssociationDetails();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [
     selectedAssociationID,
     props.selectedAssociationID,

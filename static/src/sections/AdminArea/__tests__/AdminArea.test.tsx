@@ -6,7 +6,6 @@ import { AdminArea } from '../index';
 import { UserContext, UserContextType } from '../../../contexts/user';
 import { LoaderContext } from '../../../contexts/loader';
 import { MemoryRouter } from 'react-router-dom';
-import { ReactNode } from 'react';
 
 // Mock api module
 const mockGet = vi.fn();

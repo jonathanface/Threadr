@@ -204,6 +204,7 @@ export const CreateOrEditStory: React.FC = () => {
     tempImageFile,
     importFile,
     selectedSeries,
+    skipFirstPage,
     setAlertState,
   ]);
 
