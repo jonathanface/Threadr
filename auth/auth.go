@@ -849,12 +849,12 @@ func MobileSessionHandler() http.HandlerFunc {
 
 		// Return success with session token
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(map[string]any{
+		if encodeErr := json.NewEncoder(w).Encode(map[string]any{
 			"success":      true,
 			"user":         userData,
 			"sessionToken": sessionToken,
-		}); err != nil {
-			logger.Error("Failed to encode mobile session response", "error", err)
+		}); encodeErr != nil {
+			logger.Error("Failed to encode mobile session response", "error", encodeErr)
 		}
 	}
 }

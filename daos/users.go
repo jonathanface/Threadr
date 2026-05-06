@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"time"
@@ -461,7 +460,7 @@ func (d *DAO) IsUserSubscribed(ctx context.Context, user models.UserInfo) (*mode
 			}
 		} else if stripeErr != nil {
 			// Network/auth issues—log and keep DB truth
-			log.Println("verifyStripeSubscription error:", stripeErr)
+			logger.Warn("verifyStripeSubscription error", "error", stripeErr)
 		}
 	}
 	// Side effects: suspend/restore stories + set notify flags for UX

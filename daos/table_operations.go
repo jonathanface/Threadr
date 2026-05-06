@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"Threadr/logger"
@@ -173,7 +172,7 @@ func waitForTableStatus(
 			}
 		} else {
 			got := string(out.Table.TableStatus)
-			log.Printf("table %s status is: %s\n", chapterName, got)
+			logger.Debug("table status", "chapter", chapterName, "status", got)
 			if got == want {
 				return nil
 			}

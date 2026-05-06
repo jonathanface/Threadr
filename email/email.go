@@ -2,7 +2,7 @@ package email
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"os"
 	"strings"
 
@@ -12,6 +12,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 	sesv2types "github.com/aws/aws-sdk-go-v2/service/sesv2/types"
+)
+
+const (
+	fromAddress    = "no-reply@threadr.net"
+	supportAddress = "support@threadr.net"
 )
 
 // sanitizeEmailField strips newlines and control characters from user-provided
@@ -25,10 +30,15 @@ func sanitizeEmailField(s string) string {
 	return s
 }
 
-func SendWelcomeEmail(toEmail string) error {
+// sendBasicEmail centralises the SES v2 plumbing shared by every transactional
+// email sender: AWS region check, config load, request build, send + log. The
+// `kind` label is interpolated into log messages and the missing-region error.
+// Extra log key/value pairs (e.g. additional context fields) can be supplied
+// via logFields.
+func sendBasicEmail(toEmail, subject, body, kind string, logFields ...any) error {
 	region := os.Getenv("AWS_REGION")
 	if region == "" {
-		return errors.New("unable to send welcome email due to missing aws region param")
+		return fmt.Errorf("unable to send %s email due to missing aws region param", kind)
 	}
 
 	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
@@ -37,53 +47,43 @@ func SendWelcomeEmail(toEmail string) error {
 	}
 
 	svc := sesv2.NewFromConfig(cfg)
-
 	input := &sesv2.SendEmailInput{
-		FromEmailAddress: aws.String("no-reply@threadr.net"),
+		FromEmailAddress: aws.String(fromAddress),
 		Destination: &sesv2types.Destination{
 			ToAddresses: []string{toEmail},
 		},
 		Content: &sesv2types.EmailContent{
 			Simple: &sesv2types.Message{
-				Subject: &sesv2types.Content{
-					Data: aws.String("Welcome to RichThreadr"),
-				},
+				Subject: &sesv2types.Content{Data: aws.String(subject)},
 				Body: &sesv2types.Body{
-					Text: &sesv2types.Content{
-						Data: aws.String(
-							"Thank you for signing up for RichThreadr. We're excited to have you on board!",
-						),
-					},
+					Text: &sesv2types.Content{Data: aws.String(body)},
 				},
 			},
 		},
 	}
 
-	logger.Info("Sending welcome email", "to", toEmail)
+	sendArgs := append([]any{"to", toEmail}, logFields...)
+	logger.Info("Sending "+kind+" email", sendArgs...)
 	result, err := svc.SendEmail(context.TODO(), input)
 	if err != nil {
-		logger.Error("Failed to send welcome email", "error", err, "to", toEmail)
+		errArgs := append([]any{"error", err, "to", toEmail}, logFields...)
+		logger.Error("Failed to send "+kind+" email", errArgs...)
 		return err
 	}
-	logger.Info("Welcome email sent",
-		"to", toEmail,
-		"messageId", *result.MessageId)
+	logger.Info(kind+" email sent", "to", toEmail, "messageId", *result.MessageId)
 	return nil
 }
 
+func SendWelcomeEmail(toEmail string) error {
+	return sendBasicEmail(
+		toEmail,
+		"Welcome to RichThreadr",
+		"Thank you for signing up for RichThreadr. We're excited to have you on board!",
+		"welcome",
+	)
+}
+
 func SendShareInviteEmail(toEmail, readerFirstName, authorName, authorEmail, storyTitle, shareURL string) error {
-	region := os.Getenv("AWS_REGION")
-	if region == "" {
-		return errors.New("unable to send invite email due to missing aws region param")
-	}
-
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
-	if err != nil {
-		return err
-	}
-
-	svc := sesv2.NewFromConfig(cfg)
-
 	safeTitle := sanitizeEmailField(storyTitle)
 	safeName := sanitizeEmailField(readerFirstName)
 	safeAuthor := sanitizeEmailField(authorName)
@@ -95,185 +95,35 @@ func SendShareInviteEmail(toEmail, readerFirstName, authorName, authorEmail, sto
 		"Click the link below to start reading:\n" + shareURL + "\n\n" +
 		"Happy reading!"
 
-	input := &sesv2.SendEmailInput{
-		FromEmailAddress: aws.String("no-reply@threadr.net"),
-		Destination: &sesv2types.Destination{
-			ToAddresses: []string{toEmail},
-		},
-		Content: &sesv2types.EmailContent{
-			Simple: &sesv2types.Message{
-				Subject: &sesv2types.Content{
-					Data: aws.String(subject),
-				},
-				Body: &sesv2types.Body{
-					Text: &sesv2types.Content{
-						Data: aws.String(body),
-					},
-				},
-			},
-		},
-	}
-
-	logger.Info("Sending share invite email",
-		"to", toEmail,
-		"author", authorName,
-		"authorEmail", authorEmail,
-		"storyTitle", storyTitle)
-	result, err := svc.SendEmail(context.TODO(), input)
-	if err != nil {
-		logger.Error("Failed to send share invite email",
-			"error", err,
-			"to", toEmail,
-			"author", authorName,
-			"storyTitle", storyTitle)
-		return err
-	}
-	logger.Info("Share invite email sent",
-		"to", toEmail,
-		"messageId", *result.MessageId)
-	return nil
+	return sendBasicEmail(toEmail, subject, body, "share invite",
+		"author", authorName, "authorEmail", authorEmail, "storyTitle", storyTitle)
 }
 
+// SendAlertEmail notifies the support inbox when a new user signs up.
 func SendAlertEmail(userEmail string) error {
-	region := os.Getenv("AWS_REGION")
-	if region == "" {
-		return errors.New("unable to send alert email due to missing aws region param")
-	}
-
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
-	if err != nil {
-		return err
-	}
-
-	svc := sesv2.NewFromConfig(cfg)
-
-	input := &sesv2.SendEmailInput{
-		FromEmailAddress: aws.String("no-reply@threadr.net"),
-		Destination: &sesv2types.Destination{
-			ToAddresses: []string{"support@threadr.net"},
-		},
-		Content: &sesv2types.EmailContent{
-			Simple: &sesv2types.Message{
-				Subject: &sesv2types.Content{
-					Data: aws.String("New User Signup"),
-				},
-				Body: &sesv2types.Body{
-					Text: &sesv2types.Content{
-						Data: aws.String("A new user has signed up for docter: " + userEmail),
-					},
-				},
-			},
-		},
-	}
-
-	logger.Info("Sending alert email", "userEmail", userEmail)
-	result, err := svc.SendEmail(context.TODO(), input)
-	if err != nil {
-		logger.Error("Failed to send alert email", "error", err, "userEmail", userEmail)
-		return err
-	}
-	logger.Info("Alert email sent",
+	return sendBasicEmail(
+		supportAddress,
+		"New User Signup",
+		"A new user has signed up for docter: "+userEmail,
+		"alert",
 		"userEmail", userEmail,
-		"messageId", *result.MessageId)
-	return nil
+	)
 }
 
 func SendVerificationEmail(toEmail, verifyURL string) error {
-	region := os.Getenv("AWS_REGION")
-	if region == "" {
-		return errors.New("unable to send verification email due to missing aws region param")
-	}
-
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
-	if err != nil {
-		return err
-	}
-
-	svc := sesv2.NewFromConfig(cfg)
-
 	subject := "Verify your Threadr account"
 	body := "Welcome to Threadr!\n\n" +
 		"Click the link below to verify your email address:\n" + verifyURL + "\n\n" +
 		"This link expires in 24 hours.\n\n" +
 		"If you didn't create this account, you can safely ignore this email."
-
-	input := &sesv2.SendEmailInput{
-		FromEmailAddress: aws.String("no-reply@threadr.net"),
-		Destination: &sesv2types.Destination{
-			ToAddresses: []string{toEmail},
-		},
-		Content: &sesv2types.EmailContent{
-			Simple: &sesv2types.Message{
-				Subject: &sesv2types.Content{
-					Data: aws.String(subject),
-				},
-				Body: &sesv2types.Body{
-					Text: &sesv2types.Content{
-						Data: aws.String(body),
-					},
-				},
-			},
-		},
-	}
-
-	logger.Info("Sending verification email", "to", toEmail)
-	result, err := svc.SendEmail(context.TODO(), input)
-	if err != nil {
-		logger.Error("Failed to send verification email", "error", err, "to", toEmail)
-		return err
-	}
-	logger.Info("Verification email sent",
-		"to", toEmail,
-		"messageId", *result.MessageId)
-	return nil
+	return sendBasicEmail(toEmail, subject, body, "verification")
 }
 
 func SendPasswordResetEmail(toEmail, resetURL string) error {
-	region := os.Getenv("AWS_REGION")
-	if region == "" {
-		return errors.New("unable to send password reset email due to missing aws region param")
-	}
-
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
-	if err != nil {
-		return err
-	}
-
-	svc := sesv2.NewFromConfig(cfg)
-
 	subject := "Reset your Threadr password"
 	body := "We received a request to reset your password.\n\n" +
 		"Click the link below to set a new password:\n" + resetURL + "\n\n" +
 		"This link expires in 1 hour.\n\n" +
 		"If you didn't request this, you can safely ignore this email."
-
-	input := &sesv2.SendEmailInput{
-		FromEmailAddress: aws.String("no-reply@threadr.net"),
-		Destination: &sesv2types.Destination{
-			ToAddresses: []string{toEmail},
-		},
-		Content: &sesv2types.EmailContent{
-			Simple: &sesv2types.Message{
-				Subject: &sesv2types.Content{
-					Data: aws.String(subject),
-				},
-				Body: &sesv2types.Body{
-					Text: &sesv2types.Content{
-						Data: aws.String(body),
-					},
-				},
-			},
-		},
-	}
-
-	logger.Info("Sending password reset email", "to", toEmail)
-	result, err := svc.SendEmail(context.TODO(), input)
-	if err != nil {
-		logger.Error("Failed to send password reset email", "error", err, "to", toEmail)
-		return err
-	}
-	logger.Info("Password reset email sent",
-		"to", toEmail,
-		"messageId", *result.MessageId)
-	return nil
+	return sendBasicEmail(toEmail, subject, body, "password reset")
 }

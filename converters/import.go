@@ -54,9 +54,9 @@ func injectPageBreakMarkers(docxPath string) (string, error) {
 	for _, f := range r.File {
 		rc, err := f.Open() //nolint:govet
 		if err != nil {
-			w.Close()
-			tmpFile.Close()
-			os.Remove(tmpFile.Name())
+			_ = w.Close()
+			_ = tmpFile.Close()
+			_ = os.Remove(tmpFile.Name())
 			return "", err
 		}
 
@@ -66,20 +66,20 @@ func injectPageBreakMarkers(docxPath string) (string, error) {
 		}
 		writer, err := w.CreateHeader(header)
 		if err != nil {
-			rc.Close()
-			w.Close()
-			tmpFile.Close()
-			os.Remove(tmpFile.Name())
+			_ = rc.Close()
+			_ = w.Close()
+			_ = tmpFile.Close()
+			_ = os.Remove(tmpFile.Name())
 			return "", err
 		}
 
 		if f.Name == "word/document.xml" {
 			data, err := io.ReadAll(rc) //nolint:govet
 			if err != nil {
-				rc.Close()
-				w.Close()
-				tmpFile.Close()
-				os.Remove(tmpFile.Name())
+				_ = rc.Close()
+				_ = w.Close()
+				_ = tmpFile.Close()
+				_ = os.Remove(tmpFile.Name())
 				return "", err
 			}
 			content := string(data)
@@ -88,26 +88,26 @@ func injectPageBreakMarkers(docxPath string) (string, error) {
 			replacement := `</w:r><w:r><w:t>` + pageBreakMarker + `</w:t></w:r><w:r>`
 			content = pageBreakRe.ReplaceAllString(content, replacement)
 			if _, writeErr := writer.Write([]byte(content)); writeErr != nil {
-				rc.Close()
-				w.Close()
-				tmpFile.Close()
-				os.Remove(tmpFile.Name())
+				_ = rc.Close()
+				_ = w.Close()
+				_ = tmpFile.Close()
+				_ = os.Remove(tmpFile.Name())
 				return "", writeErr
 			}
 		} else {
-			if _, copyErr := io.Copy(writer, rc); copyErr != nil {
-				rc.Close()
-				w.Close()
-				tmpFile.Close()
-				os.Remove(tmpFile.Name())
+			if _, copyErr := io.CopyN(writer, rc, maxZipEntrySize); copyErr != nil && !errors.Is(copyErr, io.EOF) {
+				_ = rc.Close()
+				_ = w.Close()
+				_ = tmpFile.Close()
+				_ = os.Remove(tmpFile.Name())
 				return "", copyErr
 			}
 		}
-		rc.Close()
+		_ = rc.Close()
 	}
 
-	w.Close()
-	tmpFile.Close()
+	_ = w.Close()
+	_ = tmpFile.Close()
 	return tmpFile.Name(), nil
 }
 

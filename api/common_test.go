@@ -390,7 +390,7 @@ func TestStaggeredStoryBlockRetrieval_EmptyResult(t *testing.T) {
 		t.Errorf("Expected no error, got %v", err)
 	}
 	if result == nil {
-		t.Errorf("Expected non-nil result, got nil")
+		t.Fatal("Expected non-nil result, got nil")
 	}
 	if len(result.Items) != 0 {
 		t.Errorf("Expected empty Items, got %d", len(result.Items))

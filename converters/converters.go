@@ -219,13 +219,13 @@ func DownloadCoverImage(imageURL string) (string, error) {
 	// Copy image data to file
 	written, err := io.Copy(tmpFile, limitedReader)
 	if err != nil {
-		os.Remove(tmpFile.Name())
+		_ = os.Remove(tmpFile.Name())
 		return "", fmt.Errorf("failed to write image: %w", err)
 	}
 
 	// Check if file exceeded size limit
 	if written > maxSize {
-		os.Remove(tmpFile.Name())
+		_ = os.Remove(tmpFile.Name())
 		return "", errors.New("image file too large: maximum 10MB allowed")
 	}
 
@@ -420,7 +420,7 @@ func nodeToHTML(node LexicalNode) string {
 }
 
 func HTMLToEPUB(export models.DocumentExportRequest) (string, error) {
-	if err := os.MkdirAll("./tmp", 0o755); err != nil {
+	if err := os.MkdirAll("./tmp", tmpDirPerm); err != nil {
 		return "", err
 	}
 
@@ -475,7 +475,7 @@ a { text-decoration: underline; }
 		strconv.FormatFloat(typo.LineSpacing, 'f', -1, 64),
 	)
 	tmpCSS := filepath.Join(os.TempDir(), "epub_style_"+safeTimestamp()+".css")
-	if err := os.WriteFile(tmpCSS, []byte(css), 0o644); err != nil {
+	if err = os.WriteFile(tmpCSS, []byte(css), tmpFilePerm); err != nil {
 		return "", err
 	}
 	defer os.Remove(tmpCSS)
@@ -522,7 +522,7 @@ a { text-decoration: underline; }
 }
 
 func HTMLToDOCX(export models.DocumentExportRequest) (string, error) {
-	if err := os.MkdirAll("./tmp", 0o755); err != nil {
+	if err := os.MkdirAll("./tmp", tmpDirPerm); err != nil {
 		return "", err
 	}
 
@@ -609,7 +609,7 @@ func buildReferenceDocx(srcPath string, typo typography) (string, func(), error)
 	if err != nil {
 		return "", func() {}, err
 	}
-	cleanup := func() { os.Remove(tmp.Name()) }
+	cleanup := func() { _ = os.Remove(tmp.Name()) }
 
 	zw := zip.NewWriter(tmp)
 	for _, f := range src.File {
@@ -618,47 +618,47 @@ func buildReferenceDocx(srcPath string, typo typography) (string, func(), error)
 			Method: f.Method,
 		})
 		if err != nil {
-			zw.Close()
-			tmp.Close()
+			_ = zw.Close()
+			_ = tmp.Close()
 			cleanup()
 			return "", func() {}, err
 		}
 		rc, err := f.Open()
 		if err != nil {
-			zw.Close()
-			tmp.Close()
+			_ = zw.Close()
+			_ = tmp.Close()
 			cleanup()
 			return "", func() {}, err
 		}
 		if f.Name == "word/styles.xml" {
 			data, err := io.ReadAll(rc) //nolint:govet
-			rc.Close()
+			_ = rc.Close()
 			if err != nil {
-				zw.Close()
-				tmp.Close()
+				_ = zw.Close()
+				_ = tmp.Close()
 				cleanup()
 				return "", func() {}, err
 			}
 			data = applyTypographyToStylesXML(data, typo)
 			if _, err = w.Write(data); err != nil {
-				zw.Close()
-				tmp.Close()
+				_ = zw.Close()
+				_ = tmp.Close()
 				cleanup()
 				return "", func() {}, err
 			}
 			continue
 		}
-		if _, err := io.Copy(w, rc); err != nil {
-			rc.Close()
-			zw.Close()
-			tmp.Close()
+		if _, err = io.CopyN(w, rc, maxZipEntrySize); err != nil && !errors.Is(err, io.EOF) {
+			_ = rc.Close()
+			_ = zw.Close()
+			_ = tmp.Close()
 			cleanup()
 			return "", func() {}, err
 		}
-		rc.Close()
+		_ = rc.Close()
 	}
 	if err = zw.Close(); err != nil {
-		tmp.Close()
+		_ = tmp.Close()
 		cleanup()
 		return "", func() {}, err
 	}
@@ -931,7 +931,7 @@ func applyLineSpacingToStyle(out, id string, lineTwips int) string {
 }
 
 func HTMLToPDF(export models.DocumentExportRequest) (string, error) {
-	if err := os.MkdirAll("./tmp", 0o755); err != nil {
+	if err := os.MkdirAll("./tmp", tmpDirPerm); err != nil {
 		return "", err
 	}
 	/* For code blocks: stricter preservation + monospaced font */

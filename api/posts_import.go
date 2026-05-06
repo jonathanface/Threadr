@@ -111,7 +111,7 @@ func ImportDocumentEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "Failed to process file")
 		return
 	}
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	// Check if user wants to skip the first page (title page)
 	skipFirstPage := r.FormValue("skip_first_page") == "true"

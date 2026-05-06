@@ -2,7 +2,6 @@ package email
 
 import (
 	"context"
-	"errors"
 	"os"
 	"testing"
 
@@ -139,57 +138,6 @@ func TestEmailFunctions_ExpectedBehavior(t *testing.T) {
 		// - Body: Contains user's email
 		t.Log("SendAlertEmail notifies support of new signups")
 	})
-}
-
-// Mock-based tests (demonstrating what we'd do with refactored code)
-
-func TestSendWelcomeEmail_WithMock_Success(t *testing.T) {
-	mockSES := &MockSESv2Client{
-		SendEmailFunc: func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
-			if *input.FromEmailAddress != "no-reply@threadr.net" {
-				t.Errorf("Expected source 'no-reply@threadr.net', got %s", *input.FromEmailAddress)
-			}
-			if len(input.Destination.ToAddresses) != 1 {
-				t.Errorf("Expected 1 recipient, got %d", len(input.Destination.ToAddresses))
-			}
-			if input.Destination.ToAddresses[0] != "test@example.com" {
-				t.Errorf("Expected recipient 'test@example.com', got %s", input.Destination.ToAddresses[0])
-			}
-
-			messageID := "test-message-123"
-			return &sesv2.SendEmailOutput{MessageId: &messageID}, nil
-		},
-	}
-
-	t.Log("Mock SES v2 client created successfully, ready for testing")
-	_ = mockSES
-}
-
-func TestSendWelcomeEmail_WithMock_Error(t *testing.T) {
-	mockSES := &MockSESv2Client{
-		SendEmailFunc: func(_ context.Context, _ *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
-			return nil, errors.New("SES service unavailable")
-		},
-	}
-
-	t.Log("Mock SES v2 client configured to return errors")
-	_ = mockSES
-}
-
-func TestSendAlertEmail_WithMock_Success(t *testing.T) {
-	mockSES := &MockSESv2Client{
-		SendEmailFunc: func(_ context.Context, input *sesv2.SendEmailInput, _ ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
-			if input.Destination.ToAddresses[0] != "support@threadr.net" {
-				t.Errorf("Expected recipient 'support@threadr.net', got %s", input.Destination.ToAddresses[0])
-			}
-
-			messageID := "alert-message-456"
-			return &sesv2.SendEmailOutput{MessageId: &messageID}, nil
-		},
-	}
-
-	t.Log("Mock SES v2 client ready to verify alert email behavior")
-	_ = mockSES
 }
 
 // Refactoring suggestion tests.

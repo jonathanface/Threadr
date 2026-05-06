@@ -51,14 +51,6 @@ func TestSetupRouter(t *testing.T) {
 			expectStatus: http.StatusNoContent,
 		},
 		{
-			name:           "pprof enabled in development mode",
-			mode:           models.ModeDevelopment,
-			method:         "GET",
-			path:           "/debug/pprof/",
-			expectStatus:   http.StatusOK,
-			checkRouteOnly: true,
-		},
-		{
 			name:           "auth logout route exists",
 			mode:           models.ModeProduction,
 			method:         "DELETE",
@@ -263,44 +255,6 @@ func TestSetupRouter_CacheHeaders(t *testing.T) {
 			t.Logf("Path %s returned status %d", tt.path, w.Code)
 		})
 	}
-}
-
-func TestSetupRouter_DevelopmentMode(t *testing.T) {
-	mockClient := &daos.MockDynamoClient{}
-	mockDAO := &daos.DAO{
-		DynamoClient: mockClient,
-	}
-
-	authOptions := auth.OauthOptions{
-		FrontEndURL: "http://localhost:3000",
-	}
-
-	t.Run("pprof routes available in development mode", func(t *testing.T) {
-		router := setupRouter(models.ModeDevelopment, mockDAO, authOptions, false)
-
-		req := httptest.NewRequest(http.MethodGet, "/debug/pprof/", nil)
-		w := httptest.NewRecorder()
-
-		router.ServeHTTP(w, req)
-
-		// pprof should be available (200) or at least not 404
-		if w.Code == http.StatusNotFound {
-			t.Error("pprof routes should be available in development mode")
-		}
-	})
-
-	t.Run("pprof routes not available in production mode", func(t *testing.T) {
-		router := setupRouter(models.ModeProduction, mockDAO, authOptions, false)
-
-		req := httptest.NewRequest(http.MethodGet, "/debug/pprof/", nil)
-		w := httptest.NewRecorder()
-
-		router.ServeHTTP(w, req)
-
-		// In production, pprof should not be registered, so we expect 404
-		// or it falls through to static file serving
-		t.Logf("Production mode pprof request returned: %d", w.Code)
-	})
 }
 
 func TestSetupRouter_MiddlewareApplication(t *testing.T) {

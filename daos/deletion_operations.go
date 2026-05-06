@@ -457,9 +457,9 @@ func (d *DAO) hardDeleteStory(ctx context.Context, email, storyID string) error 
 			if !portraitOK {
 				continue
 			}
-			parsedPath, err := url.Parse(portraitAttr.Value)
-			if err != nil {
-				return err
+			parsedPath, parseErr := url.Parse(portraitAttr.Value)
+			if parseErr != nil {
+				return parseErr
 			}
 			objectKey := path.Base(parsedPath.Path)
 

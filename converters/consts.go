@@ -21,4 +21,14 @@ const (
 	// docxTwipsPerLine is the DOCX "auto" line-spacing unit (twentieths of a
 	// point per line). Canonical values: 240 = single, 360 = 1.5×, 480 = double.
 	docxTwipsPerLine = 240
+	// tmpDirPerm is the permission mask for ./tmp scratch dirs created during
+	// export. Owner+group only (the running process is the sole consumer).
+	tmpDirPerm = 0o750
+	// tmpFilePerm is the permission mask for files written to a scratch dir.
+	tmpFilePerm = 0o600
+	// maxZipEntrySize caps the decompressed size of a single zip entry to
+	// guard against decompression-bomb DOCX uploads. 50 MB is well above any
+	// legitimate single-file payload (document.xml, styles.xml, embedded media)
+	// while still bounding worst-case memory/disk pressure.
+	maxZipEntrySize = 50 * 1024 * 1024
 )

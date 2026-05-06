@@ -5,12 +5,13 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"log"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"Threadr/logger"
 
 	gsessions "github.com/gorilla/sessions"
 )
@@ -117,20 +118,20 @@ func StoreTokenMapping(token string, userInfo any) {
 func GetUserByToken(token string) (any, bool) {
 	val, ok := tokenMap.Load(token)
 	if !ok {
-		log.Printf("[sessions] Token not found in map")
+		logger.Debug("sessions: token not found in map")
 		return nil, false
 	}
 	data, ok := val.(*tokenData)
 	if !ok {
-		log.Printf("[sessions] Invalid data format for token")
+		logger.Debug("sessions: invalid data format for token")
 		return nil, false
 	}
 	if time.Now().After(data.ExpiresAt) {
-		log.Printf("[sessions] Token expired, removing")
+		logger.Debug("sessions: token expired, removing")
 		tokenMap.Delete(token)
 		return nil, false
 	}
-	log.Printf("[sessions] Token found in map")
+	logger.Debug("sessions: token found in map")
 	return data.UserInfo, true
 }
 

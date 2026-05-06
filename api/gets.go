@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"net/http"
@@ -368,19 +369,22 @@ func StorySettingsEndPoint(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, storySettings)
 }
 
-func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
-	var (
-		email string
-		err   error
-		dao   daos.DaoInterface
-		ok    bool
-	)
-	if email, err = getUserEmail(r); err != nil {
+// listResource is the shared "list everything for the authenticated user" flow:
+// auth + DAO context + user-existence check + DAO list call + AWS-error-aware
+// response. It runs the supplied fetch closure and writes the result as JSON.
+func listResource[T any](
+	w http.ResponseWriter,
+	r *http.Request,
+	fetch func(ctx context.Context, dao daos.DaoInterface, email string) ([]T, error),
+) {
+	email, err := getUserEmail(r)
+	if err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
+	dao, ok := r.Context().Value(ctxkey.DAO).(daos.DaoInterface)
+	if !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
@@ -390,7 +394,7 @@ func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stories, err := dao.GetAllStandalone(r.Context(), email)
+	result, err := fetch(r.Context(), dao, email)
 	if err != nil {
 		opErr := &smithy.OperationError{}
 		if errors.As(err, &opErr) {
@@ -408,7 +412,13 @@ func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RespondWithJSON(w, http.StatusOK, stories)
+	RespondWithJSON(w, http.StatusOK, result)
+}
+
+func AllStandaloneStoriesEndPoint(w http.ResponseWriter, r *http.Request) {
+	listResource(w, r, func(ctx context.Context, dao daos.DaoInterface, email string) ([]models.Story, error) {
+		return dao.GetAllStandalone(ctx, email)
+	})
 }
 
 func AssociationDetailsEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -560,44 +570,9 @@ func SingleSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func AllSeriesEndPoint(w http.ResponseWriter, r *http.Request) {
-	var (
-		email string
-		err   error
-		dao   daos.DaoInterface
-		ok    bool
-	)
-	if email, err = getUserEmail(r); err != nil {
-		logger.Error("Internal error", "error", err)
-		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-		return
-	}
-	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
-		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
-		return
-	}
-	if _, err = dao.GetUserDetails(r.Context(), email); err != nil {
-		logger.Error("Internal error", "error", err)
-		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-		return
-	}
-	series, err := dao.GetAllSeriesWithStories(r.Context(), email)
-	if err != nil {
-		opErr := &smithy.OperationError{}
-		if errors.As(err, &opErr) {
-			awsResponse := processAWSError(opErr)
-			if awsResponse.Code == 0 {
-				logger.Error("Internal error", "error", err)
-				RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-				return
-			}
-			RespondWithError(w, awsResponse.Code, awsResponse.Message)
-			return
-		}
-		logger.Error("Internal error", "error", err)
-		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-		return
-	}
-	RespondWithJSON(w, http.StatusOK, series)
+	listResource(w, r, func(ctx context.Context, dao daos.DaoInterface, email string) ([]models.Series, error) {
+		return dao.GetAllSeriesWithStories(ctx, email)
+	})
 }
 
 func AllSeriesVolumesEndPoint(w http.ResponseWriter, r *http.Request) {

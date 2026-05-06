@@ -155,10 +155,7 @@ func TestOptionsStruct(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Verify we can create Options structs with various values
-			if tc.opts.Region != tc.opts.Region {
-				t.Error("Options struct fields not accessible")
-			}
+			// Smoke test: just exercise the struct fields so the compiler verifies they exist.
 			t.Logf("Created Options with Region=%q, MaxRetries=%d, Capacity=%d, BatchSize=%d",
 				tc.opts.Region, tc.opts.MaxRetries, tc.opts.BlockTableMinWriteCapacity, tc.opts.WriteBatchSize)
 		})

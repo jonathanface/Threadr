@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
-	"log"
+	"log" //nolint:depguard // test silences stdlib log writer; slog has no equivalent process-wide handle
 	"net/http"
 	"net/http/httptest"
 	"os"

@@ -74,7 +74,7 @@ linters:
     - goconst # finds repeated strings that could be replaced by a constant
     - gocritic # provides diagnostics that check for bugs, performance and style issues
     - gocyclo # computes and checks the cyclomatic complexity of functions
-    - godoclint # checks Golang's documentation practice
+    # - godoclint # disabled: too pedantic about godoc form ("comment must start with symbol name"); existing comments are descriptive but not in canonical form
     - godot # checks if comments end in a period
     - gomoddirectives # manages the use of 'replace', 'retract', and 'excludes' directives in go.mod
     - goprintffuncname # checks that printf-like functions are named with f at the end
@@ -217,6 +217,7 @@ linters:
         "non-main files":
           files:
             - "!**/main.go"
+            - "!**/lambdas/**"
           deny:
             - pkg: log$
               desc: Use log/slog instead, see https://go.dev/blog/slog

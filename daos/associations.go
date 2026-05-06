@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"strconv"
 	"time"
 
@@ -44,18 +44,19 @@ func (d *DAO) WriteAssociations(
 		for i, item := range batch {
 			imgFile := item.Portrait
 			if imgFile == "" {
+				// Picking a placeholder image — non-security-sensitive, math/rand is fine.
 				switch item.Type {
 				case "character":
-					imageFileName := rand.Intn(maxDefaultPortraitImages-1) + 1
+					imageFileName := rand.IntN(maxDefaultPortraitImages-1) + 1 //nolint:gosec
 					imgFile = s3PortraitBaseURL + strconv.Itoa(imageFileName) + ".jpg"
 				case "place":
-					imageFileName := rand.Intn(maxDefaultLocationImages-1) + 1
+					imageFileName := rand.IntN(maxDefaultLocationImages-1) + 1 //nolint:gosec
 					imgFile = s3LocationBaseURL + strconv.Itoa(imageFileName) + ".jpg"
 				case "event":
-					imageFileName := rand.Intn(maxDefaultEventImages-1) + 1
+					imageFileName := rand.IntN(maxDefaultEventImages-1) + 1 //nolint:gosec
 					imgFile = s3EventBaseURL + strconv.Itoa(imageFileName) + ".jpg"
 				case "item":
-					imageFileName := rand.Intn(maxDefaultItemImages-1) + 1
+					imageFileName := rand.IntN(maxDefaultItemImages-1) + 1 //nolint:gosec
 					imgFile = s3ItemBaseURL + strconv.Itoa(imageFileName) + ".jpg"
 				}
 			}

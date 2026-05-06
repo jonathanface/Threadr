@@ -3,7 +3,6 @@ package daos
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"Threadr/logger"
@@ -43,14 +42,14 @@ func (d *DAO) kickoffRestoreAsync(email string) {
 		defer cancel()
 		evCh, err := d.RestoreAutomaticallyDeletedStories(ctx, email)
 		if err != nil {
-			log.Printf("restore: start error for %s: %v", email, err)
+			logger.Error("restore start error", "email", email, "error", err)
 			return
 		}
 		for ev := range evCh {
 			if ev.Err != nil {
-				log.Printf("restore: story %s failed: %v", ev.StoryID, ev.Err)
+				logger.Error("restore story failed", "storyID", ev.StoryID, "error", ev.Err)
 			} else {
-				log.Printf("restore: story %s (%d/%d) OK", ev.StoryID, ev.Index+1, ev.Total)
+				logger.Info("restore story ok", "storyID", ev.StoryID, "index", ev.Index+1, "total", ev.Total)
 			}
 		}
 	}()
@@ -83,15 +82,15 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(ctx context.Context, email stri
 		defer close(ch)
 		for i, story := range stories {
 			story.Inactive = true
-			_, err := d.EditStory(ctx, email, story) //nolint:govet
+			_, _ = d.EditStory(ctx, email, story)
 			select {
 			case <-ctx.Done():
 				return
 			default:
 			}
-			log.Println("Starting restore on story", story.Title)
-			err = d.restoreOneStory(ctx, email, story)
-			ev := RestoreStoryEvent{Index: i, Total: total, StoryID: story.ID, Err: err}
+			logger.Info("Starting restore on story", "title", story.Title)
+			restoreErr := d.restoreOneStory(ctx, email, story)
+			ev := RestoreStoryEvent{Index: i, Total: total, StoryID: story.ID, Err: restoreErr}
 			select {
 			case ch <- ev:
 			case <-ctx.Done():
@@ -111,7 +110,7 @@ func (d *DAO) ensureBlocksTableFromBackup(
 		TableName: aws.String(tableName),
 	})
 	if err == nil {
-		log.Println("waiting for table status")
+		logger.Debug("waiting for table status")
 		return waitForTableStatus(ctx, d.DynamoClient, tableName, chapterName, "ACTIVE", backupActiveStateLimit)
 	}
 	if !isResourceNotFound(err) {
