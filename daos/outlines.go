@@ -1,7 +1,6 @@
 package daos
 
 import (
-	"Threadr/models"
 	"context"
 	"database/sql"
 	"fmt"
@@ -9,92 +8,106 @@ import (
 	"strconv"
 	"time"
 
+	"Threadr/models"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-func (d *DAO) GetOutlineByStoryID(ctx context.Context, storyID string, chapters []models.Chapter) (*models.OutlineResponse, error) {
+func (d *DAO) GetOutlineByStoryID(
+	ctx context.Context,
+	storyID string,
+	chapters []models.Chapter,
+) (*models.OutlineResponse, error) {
 	tableName := "outlines" + GetTableSuffix()
-
-	// Define the query input
-	queryInput := &dynamodb.QueryInput{
+	result, err := d.DynamoClient.Query(ctx, &dynamodb.QueryInput{
 		TableName:              aws.String(tableName),
 		KeyConditionExpression: aws.String("story_id = :storyID"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":storyID": &types.AttributeValueMemberS{Value: storyID},
 		},
-	}
-
-	// Execute the query
-	result, err := d.DynamoClient.Query(ctx, queryInput)
+	})
 	if err != nil {
-		return nil, fmt.Errorf("error querying outline sections: %v", err)
+		return nil, fmt.Errorf("error querying outline sections: %w", err)
 	}
-
-	// Check if no results were found
 	if len(result.Items) == 0 {
 		return nil, sql.ErrNoRows
 	}
-	// Parse the response into OutlineSection models
-	assigned := make(map[string]struct{}, 64)
-	var out models.OutlineResponse
-	out.StoryID = storyID
+
+	const assignedHint = 64
+	assigned := make(map[string]struct{}, assignedHint)
+	out := models.OutlineResponse{StoryID: storyID}
 
 	for _, item := range result.Items {
-		if v, ok := item["backstory"]; ok {
-			var bs string
-			if err := attributevalue.Unmarshal(v, &bs); err != nil {
-				return nil, fmt.Errorf("unmarshal backstory: %w", err)
-			}
-			out.Backstory = bs
+		section, parseErr := parseOutlineSection(item, &out, assigned)
+		if parseErr != nil {
+			return nil, parseErr
 		}
-		var s models.OutlineSection
-
-		if v, ok := item["place"].(*types.AttributeValueMemberN); ok {
-			n, err := strconv.Atoi(v.Value)
-			if err != nil {
-				return nil, fmt.Errorf("error converting place to int: %w", err)
-			}
-			s.Place = n
-		}
-		if v, ok := item["header"].(*types.AttributeValueMemberS); ok {
-			s.Header = v.Value
-		}
-		if v, ok := item["description"].(*types.AttributeValueMemberS); ok {
-			s.Description = v.Value
-		}
-		if v, ok := item["text"].(*types.AttributeValueMemberS); ok {
-			s.Text = v.Value
-		}
-		if v, ok := item["status"].(*types.AttributeValueMemberS); ok {
-			s.Status = models.OutlineSectionStatus(v.Value)
-		}
-		if out.Template == "" {
-			if v, ok := item["template"].(*types.AttributeValueMemberS); ok {
-				out.Template = models.OutlineTemplate(v.Value)
-			}
-		}
-		if v, ok := item["chapters"].(*types.AttributeValueMemberSS); ok {
-			s.Chapters = v.Value
-			for _, id := range v.Value {
-				assigned[id] = struct{}{}
-			}
-		}
-
-		out.Sections = append(out.Sections, s)
+		out.Sections = append(out.Sections, section)
 	}
 
 	sort.Slice(out.Sections, func(i, j int) bool { return out.Sections[i].Place < out.Sections[j].Place })
 
 	for _, ch := range chapters {
 		if _, ok := assigned[ch.ID]; !ok {
-			out.Unassigned = append(out.Unassigned, ch.ID) // or append(ch) if your API expects full objects
+			out.Unassigned = append(out.Unassigned, ch.ID)
 		}
 	}
-
 	return &out, nil
+}
+
+// parseOutlineSection unpacks one DDB outline-section row into an
+// OutlineSection model. Side effects on the shared OutlineResponse: sets
+// Backstory and Template the first time those attributes are seen on any
+// row, and accumulates assigned chapter IDs into the shared `assigned` set
+// so the caller can compute Unassigned.
+func parseOutlineSection(
+	item map[string]types.AttributeValue,
+	out *models.OutlineResponse,
+	assigned map[string]struct{},
+) (models.OutlineSection, error) {
+	if v, ok := item["backstory"]; ok {
+		var bs string
+		if err := attributevalue.Unmarshal(v, &bs); err != nil {
+			return models.OutlineSection{}, fmt.Errorf("unmarshal backstory: %w", err)
+		}
+		out.Backstory = bs
+	}
+
+	var s models.OutlineSection
+	if v, ok := item["place"].(*types.AttributeValueMemberN); ok {
+		n, err := strconv.Atoi(v.Value)
+		if err != nil {
+			return models.OutlineSection{}, fmt.Errorf("error converting place to int: %w", err)
+		}
+		s.Place = n
+	}
+	if v, ok := item["header"].(*types.AttributeValueMemberS); ok {
+		s.Header = v.Value
+	}
+	if v, ok := item[attrDescription].(*types.AttributeValueMemberS); ok {
+		s.Description = v.Value
+	}
+	if v, ok := item["text"].(*types.AttributeValueMemberS); ok {
+		s.Text = v.Value
+	}
+	if v, ok := item["status"].(*types.AttributeValueMemberS); ok {
+		s.Status = models.OutlineSectionStatus(v.Value)
+	}
+	if out.Template == "" {
+		if v, ok := item["template"].(*types.AttributeValueMemberS); ok {
+			out.Template = models.OutlineTemplate(v.Value)
+		}
+	}
+	if v, ok := item["chapters"].(*types.AttributeValueMemberSS); ok {
+		s.Chapters = v.Value
+		for _, id := range v.Value {
+			assigned[id] = struct{}{}
+		}
+	}
+	return s, nil
 }
 
 func (d *DAO) DeleteOutline(ctx context.Context, storyID string) error {
@@ -109,7 +122,7 @@ func (d *DAO) DeleteOutline(ctx context.Context, storyID string) error {
 
 	result, err := d.DynamoClient.Query(ctx, queryInput)
 	if err != nil {
-		return fmt.Errorf("error querying items: %v", err)
+		return fmt.Errorf("error querying items: %w", err)
 	}
 
 	if len(result.Items) == 0 {
@@ -126,8 +139,8 @@ func (d *DAO) DeleteOutline(ctx context.Context, storyID string) error {
 			Delete: &types.Delete{
 				TableName: &tableName,
 				Key: map[string]types.AttributeValue{
-					"story_id": &types.AttributeValueMemberS{Value: storyID},
-					"place":    &types.AttributeValueMemberN{Value: placeAttr.Value},
+					attrStoryID: &types.AttributeValueMemberS{Value: storyID},
+					"place":     &types.AttributeValueMemberN{Value: placeAttr.Value},
 				},
 			},
 		}
@@ -178,8 +191,8 @@ func (d *DAO) UpdateOutline(ctx context.Context, outline models.OutlineRequest) 
 			Update: &types.Update{
 				TableName: aws.String(tableName),
 				Key: map[string]types.AttributeValue{
-					"story_id": &types.AttributeValueMemberS{Value: outline.StoryID},
-					"place":    &types.AttributeValueMemberN{Value: strconv.Itoa(section.Place)},
+					attrStoryID: &types.AttributeValueMemberS{Value: outline.StoryID},
+					"place":     &types.AttributeValueMemberN{Value: strconv.Itoa(section.Place)},
 				},
 				UpdateExpression:          aws.String(updateExpression),
 				ExpressionAttributeNames:  expressionAttributeNames,
@@ -194,7 +207,12 @@ func (d *DAO) UpdateOutline(ctx context.Context, outline models.OutlineRequest) 
 		return nil, err
 	}
 	if !awsErr.IsNil() {
-		return nil, fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
+		return nil, fmt.Errorf(
+			"--AWSERROR-- Code:%s, Type: %s, Message: %s",
+			awsErr.Code,
+			awsErr.ErrorType,
+			awsErr.Text,
+		)
 	}
 
 	allChapters, err := d.GetChaptersByStoryID(ctx, outline.StoryID)
@@ -217,15 +235,14 @@ func (d *DAO) CreateOutline(ctx context.Context, outline models.OutlineRequest) 
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	outline.Sections = GenerateStoryOutlineSections(outline.Template)
 	for _, section := range outline.Sections {
-
 		attributes := map[string]types.AttributeValue{
-			"story_id":    &types.AttributeValueMemberS{Value: outline.StoryID},
-			"place":       &types.AttributeValueMemberN{Value: strconv.Itoa(section.Place)},
-			"type":        &types.AttributeValueMemberS{Value: string(outline.Template)},
-			"header":      &types.AttributeValueMemberS{Value: section.Header},
-			"description": &types.AttributeValueMemberS{Value: section.Description},
-			"created_at":  &types.AttributeValueMemberN{Value: now},
-			"backstory":   &types.AttributeValueMemberS{Value: outline.Backstory},
+			attrStoryID:     &types.AttributeValueMemberS{Value: outline.StoryID},
+			"place":         &types.AttributeValueMemberN{Value: strconv.Itoa(section.Place)},
+			"type":          &types.AttributeValueMemberS{Value: string(outline.Template)},
+			"header":        &types.AttributeValueMemberS{Value: section.Header},
+			attrDescription: &types.AttributeValueMemberS{Value: section.Description},
+			attrCreatedAt:   &types.AttributeValueMemberN{Value: now},
+			"backstory":     &types.AttributeValueMemberS{Value: outline.Backstory},
 		}
 		twi := types.TransactWriteItem{
 			Put: &types.Put{
@@ -241,7 +258,12 @@ func (d *DAO) CreateOutline(ctx context.Context, outline models.OutlineRequest) 
 		return nil, err
 	}
 	if !awsErr.IsNil() {
-		return nil, fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
+		return nil, fmt.Errorf(
+			"--AWSERROR-- Code:%s, Type: %s, Message: %s",
+			awsErr.Code,
+			awsErr.ErrorType,
+			awsErr.Text,
+		)
 	}
 	return &outline, nil
 }

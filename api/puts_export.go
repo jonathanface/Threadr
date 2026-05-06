@@ -1,19 +1,22 @@
 package api
 
 import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"Threadr/converters"
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
 	"Threadr/logger"
 	"Threadr/models"
-	"context"
-	"database/sql"
-	"encoding/json"
-	"fmt"
-	"net/http"
-	"net/url"
-	"os"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -21,39 +24,39 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// validateExportRequest validates the DocumentExportRequest fields
+// validateExportRequest validates the DocumentExportRequest fields.
 func validateExportRequest(export models.DocumentExportRequest) error {
 	// Validate Title
 	if strings.TrimSpace(export.Title) == "" {
-		return fmt.Errorf("title is required")
+		return errors.New("title is required")
 	}
-	if len(export.Title) > 500 {
-		return fmt.Errorf("title too long: maximum 500 characters")
+	if len(export.Title) > maxTitleLength {
+		return fmt.Errorf("title too long: maximum %d characters", maxTitleLength)
 	}
 
 	// Validate StoryID
 	if strings.TrimSpace(export.StoryID) == "" {
-		return fmt.Errorf("story ID is required")
+		return errors.New("story ID is required")
 	}
-	if len(export.StoryID) > 100 {
-		return fmt.Errorf("story ID too long: maximum 100 characters")
+	if len(export.StoryID) > maxStoryIDLength {
+		return fmt.Errorf("story ID too long: maximum %d characters", maxStoryIDLength)
 	}
 
-	// Validate HtmlByChapter
-	if len(export.HtmlByChapter) == 0 {
-		return fmt.Errorf("at least one chapter is required")
+	// Validate HTMLByChapter
+	if len(export.HTMLByChapter) == 0 {
+		return errors.New("at least one chapter is required")
 	}
-	if len(export.HtmlByChapter) > 1000 {
-		return fmt.Errorf("too many chapters: maximum 1000")
+	if len(export.HTMLByChapter) > maxChapterCount {
+		return fmt.Errorf("too many chapters: maximum %d", maxChapterCount)
 	}
 
 	// Validate each chapter
-	for i, chapter := range export.HtmlByChapter {
+	for i, chapter := range export.HTMLByChapter {
 		if strings.TrimSpace(chapter.Chapter) == "" {
 			return fmt.Errorf("chapter %d: chapter title is required", i+1)
 		}
-		if len(chapter.Chapter) > 500 {
-			return fmt.Errorf("chapter %d: chapter title too long (maximum 500 characters)", i+1)
+		if len(chapter.Chapter) > maxChapterTitleLength {
+			return fmt.Errorf("chapter %d: chapter title too long (maximum %d characters)", i+1, maxChapterTitleLength)
 		}
 		// Allow empty HTML content, but validate length if present
 		if len(chapter.HTML) > 10*1024*1024 { // 10MB per chapter
@@ -63,7 +66,7 @@ func validateExportRequest(export models.DocumentExportRequest) error {
 
 	// Validate Author if provided
 	if export.Author != nil && len(*export.Author) > 200 {
-		return fmt.Errorf("author name too long: maximum 200 characters")
+		return errors.New("author name too long: maximum 200 characters")
 	}
 
 	// CoverImage URL validation happens later in the flow with ValidateImageURL
@@ -71,6 +74,7 @@ func validateExportRequest(export models.DocumentExportRequest) error {
 	return nil
 }
 
+//nolint:funlen // Multi-format export pipeline: validate, fetch, convert, S3 upload — linear flow.
 func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	// this should be transactified
 	var (
@@ -92,13 +96,13 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	decoder := json.NewDecoder(r.Body)
 	export := models.DocumentExportRequest{}
-	if err := decoder.Decode(&export); err != nil {
+	if err = decoder.Decode(&export); err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 
 	// Validate export request
-	if err := validateExportRequest(export); err != nil {
+	if err = validateExportRequest(export); err != nil {
 		logger.Error("Bad request", "error", err)
 		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
@@ -119,7 +123,7 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	// Make sure the user actually owns this story
 	_, err = dao.GetStoryByID(r.Context(), email, storyID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithError(w, http.StatusForbidden, "story doesn't belong to you")
 			return
 		}
@@ -142,9 +146,9 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	var coverImagePath string
 	if export.CoverImage != nil && *export.CoverImage != "" && models.ExportFormat(typeOf) == models.FormatEPUB {
 		var imageURL string
-		if imageURL, err = converters.ValidateImageURL(*export.CoverImage); err != nil {
+		if imageURL, err = converters.ValidateImageURL(r.Context(), *export.CoverImage); err != nil {
 			logger.Error("Bad request", "error", err)
-		RespondWithError(w, http.StatusBadRequest, "Invalid request")
+			RespondWithError(w, http.StatusBadRequest, "Invalid request")
 			return
 		}
 		coverImagePath, err = converters.DownloadCoverImage(imageURL)
@@ -158,19 +162,19 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert Lexical JSON to HTML if needed (for mobile app exports)
-	for i := range export.HtmlByChapter {
-		if strings.HasPrefix(export.HtmlByChapter[i].HTML, "__LEXICAL__") {
+	for i := range export.HTMLByChapter {
+		if after, ok0 := strings.CutPrefix(export.HTMLByChapter[i].HTML, "__LEXICAL__"); ok0 {
 			// Extract the Lexical JSON
-			lexicalJSON := strings.TrimPrefix(export.HtmlByChapter[i].HTML, "__LEXICAL__")
+			lexicalJSON := after
 
 			// Convert Lexical JSON to HTML using the converters package
-			html, err := converters.LexicalToHTML(lexicalJSON)
+			html, err := converters.LexicalToHTML(lexicalJSON) //nolint:govet
 			if err != nil {
 				RespondWithError(w, http.StatusBadRequest, "Failed to convert chapter content for export")
 				return
 			}
 
-			export.HtmlByChapter[i].HTML = html
+			export.HTMLByChapter[i].HTML = html
 		}
 	}
 
@@ -192,9 +196,18 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	defer os.Remove(TMP_EXPORT_DIR + "/" + generatedFile)
+	if generatedFile == "" ||
+		generatedFile != filepath.Base(generatedFile) ||
+		strings.Contains(generatedFile, "/") ||
+		strings.Contains(generatedFile, "\\") ||
+		strings.Contains(generatedFile, "..") {
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
+		return
+	}
+	generatedFilePath := filepath.Join(tmpExportDir, generatedFile)
+	defer os.Remove(generatedFilePath)
 
-	reader, err := os.Open(TMP_EXPORT_DIR + "/" + generatedFile)
+	reader, err := os.Open(generatedFilePath)
 	if err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
@@ -202,7 +215,7 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	s3Client := s3.NewFromConfig(awsCfg)
 	if _, err = s3Client.PutObject(context.Background(), &s3.PutObjectInput{
-		Bucket:      aws.String(S3_EXPORTS_BUCKET),
+		Bucket:      aws.String(s3ExportsBucket),
 		Key:         aws.String(generatedFile),
 		Body:        reader,
 		ContentType: aws.String(filetype),
@@ -212,6 +225,6 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	docURL := "https://" + S3_EXPORTS_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + generatedFile
-	RespondWithJson(w, http.StatusCreated, models.Answer{Success: true, URL: docURL})
+	docURL := "https://" + s3ExportsBucket + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + generatedFile
+	RespondWithJSON(w, http.StatusCreated, models.Answer{Success: true, URL: docURL})
 }

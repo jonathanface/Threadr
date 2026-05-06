@@ -1,9 +1,6 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -15,6 +12,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
+
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/smithy-go"
 )
@@ -23,7 +24,7 @@ func init() {
 	SetupTestSession()
 }
 
-// Tests for getUserEmail
+// Tests for getUserEmail.
 func TestGetUserEmail_Success(t *testing.T) {
 	req := createTestRequestWithSession("GET", "/test", nil)
 
@@ -37,7 +38,7 @@ func TestGetUserEmail_Success(t *testing.T) {
 }
 
 func TestGetUserEmail_NoSession(t *testing.T) {
-	req := httptest.NewRequest("GET", "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 
 	email, err := getUserEmail(req)
 	if err == nil {
@@ -51,7 +52,7 @@ func TestGetUserEmail_NoSession(t *testing.T) {
 	}
 }
 
-// Tests for RespondWithError
+// Tests for RespondWithError.
 func TestRespondWithError(t *testing.T) {
 	w := httptest.NewRecorder()
 
@@ -77,23 +78,23 @@ func TestRespondWithError(t *testing.T) {
 	}
 }
 
-// Tests for RespondWithJson
-func TestRespondWithJson_Success(t *testing.T) {
+// Tests for RespondWithJSON.
+func TestRespondWithJSON_Success(t *testing.T) {
 	w := httptest.NewRecorder()
 
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"message": "success",
 		"count":   42,
 		"active":  true,
 	}
 
-	RespondWithJson(w, http.StatusOK, payload)
+	RespondWithJSON(w, http.StatusOK, payload)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", w.Code)
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.NewDecoder(w.Body).Decode(&response)
 	if err != nil {
 		t.Errorf("Failed to decode response: %v", err)
@@ -112,20 +113,20 @@ func TestRespondWithJson_Success(t *testing.T) {
 	}
 }
 
-func TestRespondWithJson_InvalidPayload(t *testing.T) {
+func TestRespondWithJSON_InvalidPayload(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	// Create a payload that can't be marshaled (channels can't be marshaled to JSON)
 	invalidPayload := make(chan int)
 
-	RespondWithJson(w, http.StatusOK, invalidPayload)
+	RespondWithJSON(w, http.StatusOK, invalidPayload)
 
 	if w.Code != http.StatusInternalServerError {
 		t.Errorf("Expected status 500 for marshal error, got %d", w.Code)
 	}
 }
 
-// Tests for processAWSError
+// Tests for processAWSError.
 func TestProcessAWSError_ResourceNotFound(t *testing.T) {
 	message := "Resource not found"
 	innerErr := &types.ResourceNotFoundException{
@@ -274,10 +275,10 @@ func TestProcessAWSError_UnknownError(t *testing.T) {
 	}
 }
 
-// Tests for staggeredStoryBlockRetrieval
+// Tests for staggeredStoryBlockRetrieval.
 func TestStaggeredStoryBlockRetrieval_SinglePage(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetChapterParagraphs = func(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error) {
+	mockDAO.MockGetChapterParagraphs = func(_ string, _ string, _ *map[string]types.AttributeValue) (*models.BlocksData, error) {
 		return &models.BlocksData{
 			Items: []map[string]types.AttributeValue{
 				{
@@ -311,7 +312,7 @@ func TestStaggeredStoryBlockRetrieval_MultiplePages(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	callCount := 0
 
-	mockDAO.MockGetChapterParagraphs = func(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error) {
+	mockDAO.MockGetChapterParagraphs = func(_ string, _ string, _ *map[string]types.AttributeValue) (*models.BlocksData, error) {
 		callCount++
 		if callCount == 1 {
 			// First call - return data with LastEvaluated key
@@ -331,18 +332,17 @@ func TestStaggeredStoryBlockRetrieval_MultiplePages(t *testing.T) {
 				},
 				LastEvaluated: lastEval,
 			}, nil
-		} else {
-			// Second call - return final data
-			return &models.BlocksData{
-				Items: []map[string]types.AttributeValue{
-					{
-						"block_id": &types.AttributeValueMemberS{Value: "block3"},
-						"content":  &types.AttributeValueMemberS{Value: "Content 3"},
-					},
-				},
-				LastEvaluated: nil,
-			}, nil
 		}
+		// Second call - return final data
+		return &models.BlocksData{
+			Items: []map[string]types.AttributeValue{
+				{
+					"block_id": &types.AttributeValueMemberS{Value: "block3"},
+					"content":  &types.AttributeValueMemberS{Value: "Content 3"},
+				},
+			},
+			LastEvaluated: nil,
+		}, nil
 	}
 
 	result, err := staggeredStoryBlockRetrieval(context.Background(), mockDAO, "story123", "chapter456", nil, nil)
@@ -364,7 +364,7 @@ func TestStaggeredStoryBlockRetrieval_MultiplePages(t *testing.T) {
 
 func TestStaggeredStoryBlockRetrieval_Error(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetChapterParagraphs = func(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error) {
+	mockDAO.MockGetChapterParagraphs = func(_ string, _ string, _ *map[string]types.AttributeValue) (*models.BlocksData, error) {
 		return nil, errors.New("database error")
 	}
 
@@ -378,10 +378,10 @@ func TestStaggeredStoryBlockRetrieval_Error(t *testing.T) {
 	}
 }
 
-func TestStaggeredStoryBlockRetrieval_NilResult(t *testing.T) {
+func TestStaggeredStoryBlockRetrieval_EmptyResult(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetChapterParagraphs = func(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error) {
-		return nil, nil
+	mockDAO.MockGetChapterParagraphs = func(_ string, _ string, _ *map[string]types.AttributeValue) (*models.BlocksData, error) {
+		return &models.BlocksData{}, nil
 	}
 
 	result, err := staggeredStoryBlockRetrieval(context.Background(), mockDAO, "story123", "chapter456", nil, nil)
@@ -389,17 +389,20 @@ func TestStaggeredStoryBlockRetrieval_NilResult(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	if result != nil {
-		t.Errorf("Expected nil result, got %v", result)
+	if result == nil {
+		t.Fatal("Expected non-nil result, got nil")
+	}
+	if len(result.Items) != 0 {
+		t.Errorf("Expected empty Items, got %d", len(result.Items))
 	}
 }
 
-// Tests for scaleDownImage
+// Tests for scaleDownImage.
 func createTestPNGImage(width, height int) *bytes.Buffer {
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	// Fill with a color to make it more realistic
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
+	for y := range height {
+		for x := range width {
 			img.Set(x, y, color.RGBA{uint8(x % 256), uint8(y % 256), 100, 255})
 		}
 	}
@@ -412,7 +415,7 @@ func TestScaleDownImage_NoResizeNeeded(t *testing.T) {
 	// Create a 100x100 image
 	imgBuf := createTestPNGImage(100, 100)
 
-	result, format, err := scaleDownImage(imgBuf, 400)
+	result, format, err := scaleDownImage(imgBuf)
 
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -429,7 +432,7 @@ func TestScaleDownImage_ResizeNeeded(t *testing.T) {
 	// Create a 800x600 image
 	imgBuf := createTestPNGImage(800, 600)
 
-	result, format, err := scaleDownImage(imgBuf, 400)
+	result, format, err := scaleDownImage(imgBuf)
 
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -453,9 +456,9 @@ func TestScaleDownImage_ResizeNeeded(t *testing.T) {
 
 func TestScaleDownImage_InvalidImage(t *testing.T) {
 	// Create invalid image data
-	invalidBuf := bytes.NewBuffer([]byte("not an image"))
+	invalidBuf := bytes.NewBufferString("not an image")
 
-	result, format, err := scaleDownImage(invalidBuf, 400)
+	result, format, err := scaleDownImage(invalidBuf)
 
 	if err == nil {
 		t.Errorf("Expected error for invalid image, got nil")
@@ -468,7 +471,7 @@ func TestScaleDownImage_InvalidImage(t *testing.T) {
 	}
 }
 
-// Test context integration
+// Test context integration.
 func TestGetUserEmail_WithContext(t *testing.T) {
 	req := createTestRequestWithSession("GET", "/test", nil)
 	dao := daos.NewMockDAO()

@@ -1,14 +1,15 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
@@ -119,13 +120,13 @@ func TestDeleteSeriesEndpoint_SeriesNotFound(t *testing.T) {
 
 func TestDeleteSeriesEndpoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetSeriesByID = func(email, seriesID string) (*models.Series, error) {
+	mockDAO.MockGetSeriesByID = func(_, seriesID string) (*models.Series, error) {
 		return &models.Series{
 			ID:    seriesID,
 			Title: "Test Series",
 		}, nil
 	}
-	mockDAO.MockDeleteSeries = func(email string, series models.Series) error {
+	mockDAO.MockDeleteSeries = func(_ string, _ models.Series) error {
 		return daos.ErrMockDAO
 	}
 
@@ -143,13 +144,13 @@ func TestDeleteSeriesEndpoint_DAOError(t *testing.T) {
 
 func TestDeleteSeriesEndpoint_AWSError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetSeriesByID = func(email, seriesID string) (*models.Series, error) {
+	mockDAO.MockGetSeriesByID = func(_, seriesID string) (*models.Series, error) {
 		return &models.Series{
 			ID:    seriesID,
 			Title: "Test Series",
 		}, nil
 	}
-	mockDAO.MockDeleteSeries = func(email string, series models.Series) error {
+	mockDAO.MockDeleteSeries = func(_ string, _ models.Series) error {
 		return &smithy.OperationError{
 			ServiceID:     "DynamoDB",
 			OperationName: "DeleteItem",

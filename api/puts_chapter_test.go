@@ -1,15 +1,16 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
@@ -21,7 +22,7 @@ func init() {
 
 func TestUpdateChaptersEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockEditChapter = func(storyID string, chapter models.Chapter) (models.Chapter, error) {
+	mockDAO.MockEditChapter = func(_ string, chapter models.Chapter) (models.Chapter, error) {
 		return chapter, nil
 	}
 
@@ -113,7 +114,7 @@ func TestUpdateChaptersEndpoint_InvalidJSON(t *testing.T) {
 
 func TestUpdateChaptersEndpoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockEditChapter = func(storyID string, chapter models.Chapter) (models.Chapter, error) {
+	mockDAO.MockEditChapter = func(_ string, _ models.Chapter) (models.Chapter, error) {
 		return models.Chapter{}, daos.ErrMockDAO
 	}
 
@@ -135,7 +136,7 @@ func TestUpdateChaptersEndpoint_DAOError(t *testing.T) {
 
 func TestUpdateChaptersEndpoint_AWSError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockEditChapter = func(storyID string, chapter models.Chapter) (models.Chapter, error) {
+	mockDAO.MockEditChapter = func(_ string, _ models.Chapter) (models.Chapter, error) {
 		return models.Chapter{}, &smithy.OperationError{
 			ServiceID:     "DynamoDB",
 			OperationName: "UpdateItem",
@@ -161,7 +162,7 @@ func TestUpdateChaptersEndpoint_AWSError(t *testing.T) {
 
 func TestEditChapterEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockEditChapter = func(storyID string, chapter models.Chapter) (models.Chapter, error) {
+	mockDAO.MockEditChapter = func(_ string, chapter models.Chapter) (models.Chapter, error) {
 		if chapter.ID != "ch1" {
 			t.Errorf("Expected chapterID ch1, got %s", chapter.ID)
 		}
@@ -235,7 +236,7 @@ func TestEditChapterEndpoint_InvalidJSON(t *testing.T) {
 
 func TestEditChapterEndpoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockEditChapter = func(storyID string, chapter models.Chapter) (models.Chapter, error) {
+	mockDAO.MockEditChapter = func(_ string, _ models.Chapter) (models.Chapter, error) {
 		return models.Chapter{}, daos.ErrMockDAO
 	}
 

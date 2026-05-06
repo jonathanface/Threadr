@@ -1,27 +1,22 @@
 package auth
 
 import (
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/mail"
+	"time"
+
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
 	mailer "Threadr/email"
 	"Threadr/logger"
 	"Threadr/models"
 	"Threadr/sessions"
-	"database/sql"
-	"encoding/json"
-	"fmt"
-	"net/http"
-	"net/mail"
-	"time"
 
 	"golang.org/x/crypto/bcrypt"
-)
-
-const (
-	verificationTokenExpiry = 24 * time.Hour
-	resetTokenExpiry        = 1 * time.Hour
-	minPasswordLength       = 8
-	maxPasswordLength       = 72 // bcrypt limit
 )
 
 func EmailSignupHandler(options OauthOptions) http.HandlerFunc {
@@ -30,9 +25,9 @@ func EmailSignupHandler(options OauthOptions) http.HandlerFunc {
 	}
 }
 
-func EmailLoginHandler(options OauthOptions) http.HandlerFunc {
+func EmailLoginHandler(_ OauthOptions) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		emailLogin(w, r, options)
+		emailLogin(w, r)
 	}
 }
 
@@ -57,14 +52,18 @@ func PasswordResetHandler() http.HandlerFunc {
 func emailSignup(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 	dao, ok := r.Context().Value(ctxkey.DAO).(daos.DaoInterface)
 	if !ok {
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "unable to retrieve dao from context"})
+		respondJSON(
+			w,
+			http.StatusInternalServerError,
+			map[string]string{"error": errDAOFromContext},
+		)
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, 4096)
+	r.Body = http.MaxBytesReader(w, r.Body, maxAuthRequestBody)
 	var req models.EmailSignupRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": errInvalidRequestBody})
 		return
 	}
 
@@ -90,17 +89,25 @@ func emailSignup(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 
 	// Validate password
 	if len(req.Password) < minPasswordLength {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("Password must be at least %d characters", minPasswordLength)})
+		respondJSON(
+			w,
+			http.StatusBadRequest,
+			map[string]string{"error": fmt.Sprintf("Password must be at least %d characters", minPasswordLength)},
+		)
 		return
 	}
 	if len(req.Password) > maxPasswordLength {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("Password must be %d characters or less", maxPasswordLength)})
+		respondJSON(
+			w,
+			http.StatusBadRequest,
+			map[string]string{"error": fmt.Sprintf("Password must be %d characters or less", maxPasswordLength)},
+		)
 		return
 	}
 
 	// Check if account already exists
 	existingUser, err := dao.GetUserDetails(r.Context(), req.Email)
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to check existing account"})
 		return
 	}
@@ -108,24 +115,32 @@ func emailSignup(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 		authType := existingUser.AuthType
 		// Detect OAuth accounts — including legacy ones without auth_type set
 		if authType == "google" || authType == "amazon" {
-			respondJSON(w, http.StatusConflict, map[string]interface{}{
-				"error":     "account_exists_oauth",
-				"auth_type": authType,
-				"message":   fmt.Sprintf("An account with this email already exists using %s. Please sign in with %s instead.", authType, authType),
+			respondJSON(w, http.StatusConflict, map[string]any{
+				"error":       "account_exists_oauth",
+				fieldAuthType: authType,
+				"message": fmt.Sprintf(
+					"An account with this email already exists using %s. Please sign in with %s instead.",
+					authType,
+					authType,
+				),
 			})
 			return
 		}
 		if authType != "email" && existingUser.PasswordHash == "" {
 			// Legacy OAuth account without auth_type set
 			provider := "Google or Amazon"
-			respondJSON(w, http.StatusConflict, map[string]interface{}{
-				"error":     "account_exists_oauth",
-				"auth_type": provider,
-				"message":   fmt.Sprintf("An account with this email already exists using %s. Please sign in with %s instead.", provider, provider),
+			respondJSON(w, http.StatusConflict, map[string]any{
+				"error":       "account_exists_oauth",
+				fieldAuthType: provider,
+				"message": fmt.Sprintf(
+					"An account with this email already exists using %s. Please sign in with %s instead.",
+					provider,
+					provider,
+				),
 			})
 			return
 		}
-		respondJSON(w, http.StatusConflict, map[string]interface{}{
+		respondJSON(w, http.StatusConflict, map[string]any{
 			"error":   "account_exists",
 			"message": "An account with this email already exists. Please sign in instead.",
 		})
@@ -145,7 +160,15 @@ func emailSignup(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 	tokenExpires := time.Now().Add(verificationTokenExpiry).Unix()
 
 	// Create user
-	_, err = dao.CreateEmailUser(r.Context(), req.Email, req.FirstName, req.LastName, string(hash), verifyToken, tokenExpires)
+	_, err = dao.CreateEmailUser(
+		r.Context(),
+		req.Email,
+		req.FirstName,
+		req.LastName,
+		string(hash),
+		verifyToken,
+		tokenExpires,
+	)
 	if err != nil {
 		logger.Error("Failed to create email user", "error", err, "email", req.Email)
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to create account"})
@@ -166,17 +189,21 @@ func emailSignup(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 	})
 }
 
-func emailLogin(w http.ResponseWriter, r *http.Request, options OauthOptions) {
+func emailLogin(w http.ResponseWriter, r *http.Request) {
 	dao, ok := r.Context().Value(ctxkey.DAO).(daos.DaoInterface)
 	if !ok {
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "unable to retrieve dao from context"})
+		respondJSON(
+			w,
+			http.StatusInternalServerError,
+			map[string]string{"error": errDAOFromContext},
+		)
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, 4096)
+	r.Body = http.MaxBytesReader(w, r.Body, maxAuthRequestBody)
 	var req models.EmailLoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": errInvalidRequestBody})
 		return
 	}
 
@@ -188,10 +215,13 @@ func emailLogin(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 	// Look up user
 	user, err := dao.GetUserDetails(r.Context(), req.Email)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			// Run dummy bcrypt to prevent timing-based user enumeration
-			bcrypt.CompareHashAndPassword([]byte("$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"), []byte(req.Password))
-			respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Invalid email or password"})
+		if errors.Is(err, sql.ErrNoRows) {
+			// Run dummy bcrypt to prevent timing-based user enumeration; result is intentionally discarded.
+			_ = bcrypt.CompareHashAndPassword(
+				[]byte("$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"),
+				[]byte(req.Password),
+			)
+			respondJSON(w, http.StatusUnauthorized, map[string]string{"error": errInvalidCredentials})
 			return
 		}
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to retrieve account"})
@@ -206,20 +236,24 @@ func emailLogin(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 			provider = "Google or Amazon"
 		}
 		if provider != "" {
-			respondJSON(w, http.StatusConflict, map[string]interface{}{
-				"error":     "oauth_account",
-				"auth_type": provider,
-				"message":   fmt.Sprintf("This account uses %s sign-in. Please use %s to log in.", provider, provider),
+			respondJSON(w, http.StatusConflict, map[string]any{
+				"error":       "oauth_account",
+				fieldAuthType: provider,
+				"message": fmt.Sprintf(
+					"This account uses %s sign-in. Please use %s to log in.",
+					provider,
+					provider,
+				),
 			})
 			return
 		}
-		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Invalid email or password"})
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": errInvalidCredentials})
 		return
 	}
 
 	// Check email verified
 	if !user.EmailVerified {
-		respondJSON(w, http.StatusForbidden, map[string]interface{}{
+		respondJSON(w, http.StatusForbidden, map[string]any{
 			"error":   "email_not_verified",
 			"message": "Please verify your email before signing in.",
 		})
@@ -227,8 +261,8 @@ func emailLogin(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 	}
 
 	// Verify password
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
-		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Invalid email or password"})
+	if err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": errInvalidCredentials})
 		return
 	}
 
@@ -260,14 +294,16 @@ func emailLogin(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 	opts.MaxAge = int(oneDay.Seconds())
 	tokenSess.Options = opts
 
-	if err := tokenSess.Save(r, w); err != nil {
+	if err = tokenSess.Save(r, w); err != nil {
 		logger.Error("Failed to save token session", "error", err, "email", user.Email)
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to create session"})
 		return
 	}
 
-	// Update last_accessed
-	dao.UpsertUser(r.Context(), user.Email)
+	// Update last_accessed (best-effort; login already succeeded)
+	if _, err = dao.UpsertUser(r.Context(), user.Email); err != nil {
+		logger.Warn("Failed to update last_accessed on email login", "email", user.Email, "error", err)
+	}
 
 	logger.Info("Email user login", "email", user.Email)
 	respondJSON(w, http.StatusOK, info)
@@ -276,7 +312,11 @@ func emailLogin(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 func emailVerify(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 	dao, ok := r.Context().Value(ctxkey.DAO).(daos.DaoInterface)
 	if !ok {
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "unable to retrieve dao from context"})
+		respondJSON(
+			w,
+			http.StatusInternalServerError,
+			map[string]string{"error": errDAOFromContext},
+		)
 		return
 	}
 
@@ -299,7 +339,7 @@ func emailVerify(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 		return
 	}
 
-	if err := dao.SetEmailVerified(r.Context(), user.Email); err != nil {
+	if err = dao.SetEmailVerified(r.Context(), user.Email); err != nil {
 		logger.Error("Failed to set email verified", "error", err, "email", user.Email)
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to verify email"})
 		return
@@ -319,14 +359,18 @@ func emailVerify(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 func passwordResetRequest(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 	dao, ok := r.Context().Value(ctxkey.DAO).(daos.DaoInterface)
 	if !ok {
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "unable to retrieve dao from context"})
+		respondJSON(
+			w,
+			http.StatusInternalServerError,
+			map[string]string{"error": errDAOFromContext},
+		)
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, 4096)
+	r.Body = http.MaxBytesReader(w, r.Body, maxAuthRequestBody)
 	var req models.PasswordResetRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": errInvalidRequestBody})
 		return
 	}
 
@@ -348,7 +392,7 @@ func passwordResetRequest(w http.ResponseWriter, r *http.Request, options OauthO
 	resetToken := sessions.GenerateSessionToken()
 	tokenExpires := time.Now().Add(resetTokenExpiry).Unix()
 
-	if err := dao.SetResetToken(r.Context(), req.Email, resetToken, tokenExpires); err != nil {
+	if err = dao.SetResetToken(r.Context(), req.Email, resetToken, tokenExpires); err != nil {
 		logger.Error("Failed to set reset token", "error", err, "email", req.Email)
 		respondJSON(w, http.StatusOK, successMsg)
 		return
@@ -369,14 +413,18 @@ func passwordResetRequest(w http.ResponseWriter, r *http.Request, options OauthO
 func passwordReset(w http.ResponseWriter, r *http.Request) {
 	dao, ok := r.Context().Value(ctxkey.DAO).(daos.DaoInterface)
 	if !ok {
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "unable to retrieve dao from context"})
+		respondJSON(
+			w,
+			http.StatusInternalServerError,
+			map[string]string{"error": errDAOFromContext},
+		)
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, 4096)
+	r.Body = http.MaxBytesReader(w, r.Body, maxAuthRequestBody)
 	var req models.PasswordResetConfirm
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": errInvalidRequestBody})
 		return
 	}
 
@@ -386,11 +434,19 @@ func passwordReset(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(req.NewPassword) < minPasswordLength {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("Password must be at least %d characters", minPasswordLength)})
+		respondJSON(
+			w,
+			http.StatusBadRequest,
+			map[string]string{"error": fmt.Sprintf("Password must be at least %d characters", minPasswordLength)},
+		)
 		return
 	}
 	if len(req.NewPassword) > maxPasswordLength {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": fmt.Sprintf("Password must be %d characters or less", maxPasswordLength)})
+		respondJSON(
+			w,
+			http.StatusBadRequest,
+			map[string]string{"error": fmt.Sprintf("Password must be %d characters or less", maxPasswordLength)},
+		)
 		return
 	}
 
@@ -403,7 +459,11 @@ func passwordReset(w http.ResponseWriter, r *http.Request) {
 
 	// Check expiry
 	if user.ResetTokenExpires > 0 && time.Now().Unix() > user.ResetTokenExpires {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Reset token has expired. Please request a new one."})
+		respondJSON(
+			w,
+			http.StatusBadRequest,
+			map[string]string{"error": "Reset token has expired. Please request a new one."},
+		)
 		return
 	}
 
@@ -415,7 +475,7 @@ func passwordReset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := dao.UpdatePassword(r.Context(), user.Email, string(hash)); err != nil {
+	if err = dao.UpdatePassword(r.Context(), user.Email, string(hash)); err != nil {
 		logger.Error("Failed to update password", "error", err, "email", user.Email)
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to reset password"})
 		return
@@ -434,18 +494,22 @@ func LinkOAuthAccountHandler() http.HandlerFunc {
 func linkOAuthAccount(w http.ResponseWriter, r *http.Request) {
 	dao, ok := r.Context().Value(ctxkey.DAO).(daos.DaoInterface)
 	if !ok {
-		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "unable to retrieve dao from context"})
+		respondJSON(
+			w,
+			http.StatusInternalServerError,
+			map[string]string{"error": errDAOFromContext},
+		)
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, 4096)
+	r.Body = http.MaxBytesReader(w, r.Body, maxAuthRequestBody)
 	var req struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 		Provider string `json:"provider"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": errInvalidRequestBody})
 		return
 	}
 
@@ -470,35 +534,35 @@ func linkOAuthAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Verify password before allowing link
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+	if err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
 		respondJSON(w, http.StatusUnauthorized, map[string]string{"error": "Invalid credentials"})
 		return
 	}
 
 	// Link the account — converts to OAuth, clears password fields
-	if err := dao.LinkOAuthAccount(r.Context(), req.Email, req.Provider); err != nil {
+	if err = dao.LinkOAuthAccount(r.Context(), req.Email, req.Provider); err != nil {
 		logger.Error("Failed to link OAuth account", "error", err, "email", req.Email)
 		respondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to link account"})
 		return
 	}
 
-	logger.Info("Account linked to OAuth", "email", req.Email, "provider", req.Provider)
+	logger.Info("Account linked to OAuth", "email", req.Email, fieldProvider, req.Provider)
 	respondJSON(w, http.StatusOK, map[string]string{
-		"message":  "Account linked successfully. Please sign in with " + req.Provider + ".",
-		"provider": req.Provider,
+		"message":     "Account linked successfully. Please sign in with " + req.Provider + ".",
+		fieldProvider: req.Provider,
 	})
 }
 
-// respondJSON is a local helper to avoid importing the api package (which would create a cycle)
-func respondJSON(w http.ResponseWriter, code int, payload interface{}) {
+// respondJSON is a local helper to avoid importing the api package (which would create a cycle).
+func respondJSON(w http.ResponseWriter, code int, payload any) {
 	response, err := json.Marshal(payload)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":"internal error"}`))
+		_, _ = w.Write([]byte(`{"error":"internal error"}`))
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	w.Write(response)
+	_, _ = w.Write(response)
 }

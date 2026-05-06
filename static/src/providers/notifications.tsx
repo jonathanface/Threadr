@@ -42,6 +42,11 @@ export const NotificationsProvider: React.FC<{ children: ReactNode }> = ({
   );
 
   useEffect(() => {
+    // Initial fetch on mount and on auth-state change. The setState calls
+    // inside fetchAlerts are intentional — this provider owns the alerts
+    // store and synchronizes it from the server. A future migration to
+    // React Query / SWR would remove the need for this pattern.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAlerts();
   }, [fetchAlerts]);
 

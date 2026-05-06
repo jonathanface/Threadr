@@ -1,15 +1,16 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/aws/smithy-go"
 )
@@ -103,7 +104,7 @@ func TestCreateOutlineEndpoint_InvalidJSON(t *testing.T) {
 
 func TestCreateOutlineEndpoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockCreateOutline = func(outline models.OutlineRequest) (*models.OutlineRequest, error) {
+	mockDAO.MockCreateOutline = func(_ models.OutlineRequest) (*models.OutlineRequest, error) {
 		return nil, daos.ErrMockDAO
 	}
 
@@ -124,7 +125,7 @@ func TestCreateOutlineEndpoint_DAOError(t *testing.T) {
 
 func TestCreateOutlineEndpoint_AWSError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockCreateOutline = func(outline models.OutlineRequest) (*models.OutlineRequest, error) {
+	mockDAO.MockCreateOutline = func(_ models.OutlineRequest) (*models.OutlineRequest, error) {
 		return nil, &smithy.OperationError{
 			ServiceID:     "DynamoDB",
 			OperationName: "PutItem",

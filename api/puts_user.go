@@ -1,18 +1,20 @@
 package api
 
 import (
+	"encoding/json"
+	"errors"
+	"net/http"
+
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
 	"Threadr/logger"
 	"Threadr/models"
-	"encoding/json"
-	"net/http"
 
 	"github.com/aws/smithy-go"
 )
 
 func UpdateUserEndpoint(w http.ResponseWriter, r *http.Request) {
-	//var userID string
+	// var userID string
 	var dao daos.DaoInterface
 	var err error
 	var ok bool
@@ -35,14 +37,15 @@ func UpdateUserEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	decoder := json.NewDecoder(r.Body)
 	passedUser := models.UserInfo{}
-	if err := decoder.Decode(&passedUser); err != nil {
+	if err = decoder.Decode(&passedUser); err != nil {
 		logger.Error("Bad request", "error", err)
 		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 
 	if err = dao.UpdateUser(r.Context(), *user); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -56,5 +59,5 @@ func UpdateUserEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, user)
+	RespondWithJSON(w, http.StatusOK, user)
 }

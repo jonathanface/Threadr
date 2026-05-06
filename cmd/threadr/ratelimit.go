@@ -1,16 +1,17 @@
 package main
 
 import (
-	"Threadr/api"
-	"Threadr/logger"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"Threadr/api"
+	"Threadr/logger"
 )
 
 const (
-	// Rate limit: 600 requests per minute per IP (10 req/sec)
+	// Rate limit: 600 requests per minute per IP (10 req/sec).
 	maxRequestsPerMinute = 600
 	rateLimitWindow      = time.Minute
 	cleanupInterval      = 5 * time.Minute
@@ -30,7 +31,7 @@ func newRateLimiter() *rateLimiter {
 	return rl
 }
 
-// cleanup removes old entries from the rate limiter map
+// cleanup removes old entries from the rate limiter map.
 func (rl *rateLimiter) cleanup() {
 	ticker := time.NewTicker(cleanupInterval)
 	defer ticker.Stop()
@@ -48,7 +49,7 @@ func (rl *rateLimiter) cleanup() {
 	}
 }
 
-// allow checks if the request from this IP should be allowed
+// allow checks if the request from this IP should be allowed.
 func (rl *rateLimiter) allow(ip string) bool {
 	now := time.Now()
 	cutoff := now.Add(-rateLimitWindow)
@@ -105,7 +106,7 @@ func getClientIP(r *http.Request) string {
 	return r.RemoteAddr
 }
 
-// authRateLimiter enforces stricter per-endpoint rate limits for authentication endpoints
+// authRateLimiter enforces stricter per-endpoint rate limits for authentication endpoints.
 type authRateLimiter struct {
 	mu       sync.RWMutex
 	requests map[string][]time.Time // key: "ip:path"
@@ -113,15 +114,23 @@ type authRateLimiter struct {
 	window   time.Duration
 }
 
+// Per-minute rate-limit budgets for sensitive auth endpoints. The lower
+// figure (3) covers signup / password-reset *initiation*; the higher figure
+// (5) covers retry-friendly actions like login and consuming a reset link.
+const (
+	authBudgetSensitive = 3
+	authBudgetRetryable = 5
+)
+
 func newAuthRateLimiter() *authRateLimiter {
 	arl := &authRateLimiter{
 		requests: make(map[string][]time.Time),
 		limits: map[string]int{
-			"/email/login":          5, // 5 login attempts per minute per IP
-			"/email/signup":         3, // 3 signups per minute per IP
-			"/email/request-reset":  3, // 3 reset requests per minute per IP
-			"/email/reset-password": 5, // 5 reset attempts per minute per IP
-			"/email/link-oauth":     5, // 5 link attempts per minute per IP
+			"/email/login":          authBudgetRetryable,
+			"/email/signup":         authBudgetSensitive,
+			"/email/request-reset":  authBudgetSensitive,
+			"/email/reset-password": authBudgetRetryable,
+			"/email/link-oauth":     authBudgetRetryable,
 		},
 		window: time.Minute,
 	}
@@ -185,7 +194,7 @@ func (arl *authRateLimiter) allow(ip, path string) bool {
 func authRateLimitMiddleware(limiter *authRateLimiter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == "OPTIONS" {
+			if r.Method == http.MethodOptions {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -205,7 +214,7 @@ func authRateLimitMiddleware(limiter *authRateLimiter) func(http.Handler) http.H
 	}
 }
 
-// rateLimitMiddleware returns a middleware that enforces rate limiting per IP
+// rateLimitMiddleware returns a middleware that enforces rate limiting per IP.
 func rateLimitMiddleware(limiter *rateLimiter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

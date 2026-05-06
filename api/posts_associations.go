@@ -1,13 +1,15 @@
 package api
 
 import (
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/url"
+
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
 	"Threadr/logger"
 	"Threadr/models"
-	"encoding/json"
-	"net/http"
-	"net/url"
 
 	"github.com/aws/smithy-go"
 	"github.com/google/uuid"
@@ -48,9 +50,10 @@ func CreateAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !isSubscriber {
-		existingAssoc, err := dao.GetStoryOrSeriesAssociationThumbnails(r.Context(), email, storyID)
+		existingAssoc, err := dao.GetStoryOrSeriesAssociationThumbnails(r.Context(), email, storyID) //nolint:govet
 		if err != nil {
-			if opErr, ok := err.(*smithy.OperationError); ok {
+			opErr := &smithy.OperationError{}
+			if errors.As(err, &opErr) {
 				awsResponse := processAWSError(opErr)
 				if awsResponse.Code == 0 {
 					logger.Error("Internal error", "error", err)
@@ -64,7 +67,7 @@ func CreateAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
-		if len(existingAssoc) >= NON_SUBSCRIBER_MAX_ASSOC {
+		if len(existingAssoc) >= nonSubscriberMaxAssoc {
 			RespondWithError(w, http.StatusPaymentRequired, "insufficient subscription")
 			return
 		}
@@ -92,7 +95,8 @@ func CreateAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		storyOrSeriesID = storyID
 	}
 	if err = dao.WriteAssociations(r.Context(), email, storyOrSeriesID, associations); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -106,5 +110,5 @@ func CreateAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, associations)
+	RespondWithJSON(w, http.StatusOK, associations)
 }

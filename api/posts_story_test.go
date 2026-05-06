@@ -1,9 +1,6 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"bytes"
 	"context"
 	"errors"
@@ -11,6 +8,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/aws/smithy-go"
 )
@@ -64,7 +65,7 @@ func TestCreateStoryEndpoint_MissingTitle(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	imgBuf := createTestImage(100, 100)
+	imgBuf := createTestImage()
 	part, _ := writer.CreateFormFile("file", "test.png")
 	part.Write(imgBuf.Bytes())
 
@@ -90,7 +91,7 @@ func TestCreateStoryEndpoint_MissingDescription(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	imgBuf := createTestImage(100, 100)
+	imgBuf := createTestImage()
 	part, _ := writer.CreateFormFile("file", "test.png")
 	part.Write(imgBuf.Bytes())
 
@@ -114,7 +115,7 @@ func TestCreateStoryEndpoint_NoDAO(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	imgBuf := createTestImage(100, 100)
+	imgBuf := createTestImage()
 	part, _ := writer.CreateFormFile("file", "test.png")
 	part.Write(imgBuf.Bytes())
 
@@ -136,14 +137,14 @@ func TestCreateStoryEndpoint_NoDAO(t *testing.T) {
 
 func TestCreateStoryEndpoint_CreateStoryError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockCreateStory = func(email string, story models.Story, seriesTitle string) (string, error) {
+	mockDAO.MockCreateStory = func(_ string, _ models.Story, _ string) (string, error) {
 		return "", errors.New("database error")
 	}
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	imgBuf := createTestImage(100, 100)
+	imgBuf := createTestImage()
 	part, _ := writer.CreateFormFile("file", "test.png")
 	part.Write(imgBuf.Bytes())
 
@@ -165,7 +166,7 @@ func TestCreateStoryEndpoint_CreateStoryError(t *testing.T) {
 
 func TestCreateStoryEndpoint_AWSError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockCreateStory = func(email string, story models.Story, seriesTitle string) (string, error) {
+	mockDAO.MockCreateStory = func(_ string, _ models.Story, _ string) (string, error) {
 		return "", &smithy.OperationError{
 			ServiceID:     "DynamoDB",
 			OperationName: "PutItem",
@@ -176,7 +177,7 @@ func TestCreateStoryEndpoint_AWSError(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	imgBuf := createTestImage(100, 100)
+	imgBuf := createTestImage()
 	part, _ := writer.CreateFormFile("file", "test.png")
 	part.Write(imgBuf.Bytes())
 
@@ -194,13 +195,13 @@ func TestCreateStoryEndpoint_AWSError(t *testing.T) {
 	if rr.Code != http.StatusInternalServerError {
 		t.Errorf("Expected status 500, got %d", rr.Code)
 
-// Note: Full success tests for CreateStoryEndpoint would require mocking:
-// - AWS config loading
-// - S3 client operations
-// - UUID generation
-// - File system operations
-//
-// These would be integration tests rather than unit tests. The tests above cover
-// the validation and error handling paths that can be tested without external dependencies.
+		// Note: Full success tests for CreateStoryEndpoint would require mocking:
+		// - AWS config loading
+		// - S3 client operations
+		// - UUID generation
+		// - File system operations
+		//
+		// These would be integration tests rather than unit tests. The tests above cover
+		// the validation and error handling paths that can be tested without external dependencies.
 	}
 }

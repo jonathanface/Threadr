@@ -1,15 +1,16 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
@@ -21,7 +22,7 @@ func init() {
 
 func TestRewriteBlockOrderEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockResetBlockOrder = func(storyID string, blocksOrder *models.BlocksOrder) error {
+	mockDAO.MockResetBlockOrder = func(_ string, _ *models.BlocksOrder) error {
 		return nil
 	}
 
@@ -101,7 +102,7 @@ func TestRewriteBlockOrderEndpoint_NoDAO(t *testing.T) {
 
 func TestRewriteBlockOrderEndpoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockResetBlockOrder = func(storyID string, blocksOrder *models.BlocksOrder) error {
+	mockDAO.MockResetBlockOrder = func(_ string, _ *models.BlocksOrder) error {
 		return daos.ErrMockDAO
 	}
 
@@ -123,7 +124,7 @@ func TestRewriteBlockOrderEndpoint_DAOError(t *testing.T) {
 
 func TestRewriteBlockOrderEndpoint_AWSError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockResetBlockOrder = func(storyID string, blocksOrder *models.BlocksOrder) error {
+	mockDAO.MockResetBlockOrder = func(_ string, _ *models.BlocksOrder) error {
 		return &smithy.OperationError{
 			ServiceID:     "DynamoDB",
 			OperationName: "UpdateItem",
@@ -156,7 +157,7 @@ func TestRewriteBlockOrderEndpoint_NoContentDataAccepted(t *testing.T) {
 
 	// Track what data the DAO receives
 	var receivedBlocksOrder *models.BlocksOrder
-	mockDAO.MockResetBlockOrder = func(storyID string, blocksOrder *models.BlocksOrder) error {
+	mockDAO.MockResetBlockOrder = func(_ string, blocksOrder *models.BlocksOrder) error {
 		receivedBlocksOrder = blocksOrder
 		return nil
 	}
@@ -218,7 +219,7 @@ func TestRewriteBlockOrderEndpoint_NoContentDataAccepted(t *testing.T) {
 
 func TestWriteBlocksToStoryEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockWriteBlocks = func(storyID string, storyBlocks *models.StoryBlocks) error {
+	mockDAO.MockWriteBlocks = func(_ string, _ *models.StoryBlocks) error {
 		return nil
 	}
 
@@ -292,7 +293,7 @@ func TestWriteBlocksToStoryEndpoint_NoDAO(t *testing.T) {
 
 func TestWriteBlocksToStoryEndpoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockWriteBlocks = func(storyID string, storyBlocks *models.StoryBlocks) error {
+	mockDAO.MockWriteBlocks = func(_ string, _ *models.StoryBlocks) error {
 		return daos.ErrMockDAO
 	}
 
@@ -314,7 +315,7 @@ func TestWriteBlocksToStoryEndpoint_DAOError(t *testing.T) {
 
 func TestWriteBlocksToStoryEndpoint_AWSError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockWriteBlocks = func(storyID string, storyBlocks *models.StoryBlocks) error {
+	mockDAO.MockWriteBlocks = func(_ string, _ *models.StoryBlocks) error {
 		return &smithy.OperationError{
 			ServiceID:     "DynamoDB",
 			OperationName: "PutItem",

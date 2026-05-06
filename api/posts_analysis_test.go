@@ -1,14 +1,15 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/gorilla/mux"
@@ -85,7 +86,7 @@ func TestAnalyzeChapterEndpoint_NoDAO(t *testing.T) {
 
 func TestAnalyzeChapterEndpoint_BlockRetrievalError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetChapterParagraphs = func(storyID, chapterID string, exclusiveStartKey *map[string]types.AttributeValue) (*models.BlocksData, error) {
+	mockDAO.MockGetChapterParagraphs = func(_, _ string, _ *map[string]types.AttributeValue) (*models.BlocksData, error) {
 		return nil, errors.New("failed to retrieve blocks")
 	}
 
@@ -107,7 +108,7 @@ func TestAnalyzeChapterEndpoint_BlockRetrievalError(t *testing.T) {
 
 func TestAnalyzeChapterEndpoint_EmptyChapter(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetChapterParagraphs = func(storyID, chapterID string, exclusiveStartKey *map[string]types.AttributeValue) (*models.BlocksData, error) {
+	mockDAO.MockGetChapterParagraphs = func(_, _ string, _ *map[string]types.AttributeValue) (*models.BlocksData, error) {
 		// Return empty blocks
 		return &models.BlocksData{
 			Items: []map[string]types.AttributeValue{},

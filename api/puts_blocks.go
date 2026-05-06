@@ -1,13 +1,15 @@
 package api
 
 import (
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/url"
+
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
 	"Threadr/logger"
 	"Threadr/models"
-	"encoding/json"
-	"net/http"
-	"net/url"
 
 	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
@@ -33,7 +35,7 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	decoder := json.NewDecoder(r.Body)
 	blocksOrder := models.BlocksOrder{}
-	if err := decoder.Decode(&blocksOrder); err != nil {
+	if err = decoder.Decode(&blocksOrder); err != nil {
 		logger.Error("Failed to decode blocks order", "error", err, "storyId", storyID, "remoteAddr", r.RemoteAddr)
 		logger.Error("Bad request", "error", err)
 		RespondWithError(w, http.StatusBadRequest, "Invalid request")
@@ -53,7 +55,8 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = dao.ResetBlockOrder(r.Context(), storyID, &blocksOrder); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("ResetBlockOrder AWS error",
@@ -84,7 +87,7 @@ func RewriteBlockOrderEndpoint(w http.ResponseWriter, r *http.Request) {
 		"storyId", storyID,
 		"chapterId", blocksOrder.ChapterID,
 		"blockCount", len(blocksOrder.Blocks))
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 }
 
 func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -93,7 +96,7 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		storyID string
 		dao     daos.DaoInterface
 		ok      bool
-		//subscriberID string
+		// subscriberID string
 	)
 	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
 		logger.Error("Failed to parse story ID", "error", err, "remoteAddr", r.RemoteAddr)
@@ -145,7 +148,8 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = dao.WriteBlocks(r.Context(), storyID, &storyBlocks); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("WriteBlocks AWS error",
@@ -176,5 +180,5 @@ func WriteBlocksToStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		"storyId", storyID,
 		"chapterId", storyBlocks.ChapterID,
 		"blockCount", len(storyBlocks.Blocks))
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 }

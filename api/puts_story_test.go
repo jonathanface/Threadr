@@ -1,9 +1,6 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -13,6 +10,10 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
@@ -24,13 +25,13 @@ func init() {
 
 func TestEditSeriesEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetSeriesByID = func(email, seriesID string) (*models.Series, error) {
+	mockDAO.MockGetSeriesByID = func(_, seriesID string) (*models.Series, error) {
 		return &models.Series{
 			ID:    seriesID,
 			Title: "Original Title",
 		}, nil
 	}
-	mockDAO.MockEditSeries = func(email string, series models.Series) (models.Series, error) {
+	mockDAO.MockEditSeries = func(_ string, series models.Series) (models.Series, error) {
 		return series, nil
 	}
 
@@ -90,13 +91,13 @@ func TestEditSeriesEndpoint_SeriesNotFound(t *testing.T) {
 
 func TestRemoveStoryFromSeriesEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{
 			ID:    storyID,
 			Title: "Story 1",
 		}, nil
 	}
-	mockDAO.MockGetSeriesByID = func(email, seriesID string) (*models.Series, error) {
+	mockDAO.MockGetSeriesByID = func(_, seriesID string) (*models.Series, error) {
 		story1 := models.Story{ID: "story1", Title: "Story 1"}
 		story2 := models.Story{ID: "story2", Title: "Story 2"}
 		return &models.Series{
@@ -105,7 +106,7 @@ func TestRemoveStoryFromSeriesEndpoint_Success(t *testing.T) {
 			Stories: []*models.Story{&story1, &story2},
 		}, nil
 	}
-	mockDAO.MockRemoveStoryFromSeries = func(email, storyID string, series models.Series) (models.Series, error) {
+	mockDAO.MockRemoveStoryFromSeries = func(_, _ string, series models.Series) (models.Series, error) {
 		return series, nil
 	}
 
@@ -197,13 +198,13 @@ func TestEditSeriesEndpoint_NoDAO(t *testing.T) {
 
 func TestEditSeriesEndpoint_BlankSeriesName(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetSeriesByID = func(email, seriesID string) (*models.Series, error) {
+	mockDAO.MockGetSeriesByID = func(_, seriesID string) (*models.Series, error) {
 		return &models.Series{
 			ID:    seriesID,
 			Title: "Original Title",
 		}, nil
 	}
-	mockDAO.MockEditSeries = func(email string, series models.Series) (models.Series, error) {
+	mockDAO.MockEditSeries = func(_ string, series models.Series) (models.Series, error) {
 		return series, nil
 	}
 
@@ -228,7 +229,7 @@ func TestEditSeriesEndpoint_BlankSeriesName(t *testing.T) {
 
 func TestEditSeriesEndpoint_InvalidStoriesJSON(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetSeriesByID = func(email, seriesID string) (*models.Series, error) {
+	mockDAO.MockGetSeriesByID = func(_, seriesID string) (*models.Series, error) {
 		return &models.Series{
 			ID:    seriesID,
 			Title: "Original Title",
@@ -255,14 +256,14 @@ func TestEditSeriesEndpoint_InvalidStoriesJSON(t *testing.T) {
 
 func TestEditSeriesEndpoint_EditStoryError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetSeriesByID = func(email, seriesID string) (*models.Series, error) {
+	mockDAO.MockGetSeriesByID = func(_, seriesID string) (*models.Series, error) {
 		return &models.Series{
 			ID:      seriesID,
 			Title:   "Original Title",
 			Stories: []*models.Story{},
 		}, nil
 	}
-	mockDAO.MockEditStory = func(email string, story models.Story) (models.Story, error) {
+	mockDAO.MockEditStory = func(_ string, _ models.Story) (models.Story, error) {
 		return models.Story{}, errors.New("database error")
 	}
 
@@ -287,7 +288,7 @@ func TestEditSeriesEndpoint_EditStoryError(t *testing.T) {
 
 func TestEditSeriesEndpoint_ParseMultipartFormError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetSeriesByID = func(email, seriesID string) (*models.Series, error) {
+	mockDAO.MockGetSeriesByID = func(_, _ string) (*models.Series, error) {
 		return &models.Series{
 			ID:    "series123",
 			Title: "Original Title",
@@ -311,13 +312,13 @@ func TestEditSeriesEndpoint_ParseMultipartFormError(t *testing.T) {
 
 func TestEditSeriesEndpoint_EditSeriesDAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetSeriesByID = func(email, seriesID string) (*models.Series, error) {
+	mockDAO.MockGetSeriesByID = func(_, seriesID string) (*models.Series, error) {
 		return &models.Series{
 			ID:    seriesID,
 			Title: "Original Title",
 		}, nil
 	}
-	mockDAO.MockEditSeries = func(email string, series models.Series) (models.Series, error) {
+	mockDAO.MockEditSeries = func(_ string, _ models.Series) (models.Series, error) {
 		return models.Series{}, errors.New("database error")
 	}
 
@@ -341,13 +342,13 @@ func TestEditSeriesEndpoint_EditSeriesDAOError(t *testing.T) {
 
 func TestEditSeriesEndpoint_EditSeriesAWSError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetSeriesByID = func(email, seriesID string) (*models.Series, error) {
+	mockDAO.MockGetSeriesByID = func(_, seriesID string) (*models.Series, error) {
 		return &models.Series{
 			ID:    seriesID,
 			Title: "Original Title",
 		}, nil
 	}
-	mockDAO.MockEditSeries = func(email string, series models.Series) (models.Series, error) {
+	mockDAO.MockEditSeries = func(_ string, _ models.Series) (models.Series, error) {
 		return models.Series{}, &smithy.OperationError{
 			ServiceID:     "DynamoDB",
 			OperationName: "PutItem",
@@ -381,7 +382,7 @@ func TestEditSeriesEndpoint_UpdateExistingStory(t *testing.T) {
 		Description: "Original Description",
 		SeriesID:    "series123",
 	}
-	mockDAO.MockGetSeriesByID = func(email, seriesID string) (*models.Series, error) {
+	mockDAO.MockGetSeriesByID = func(_, seriesID string) (*models.Series, error) {
 		return &models.Series{
 			ID:    seriesID,
 			Title: "Test Series",
@@ -390,7 +391,7 @@ func TestEditSeriesEndpoint_UpdateExistingStory(t *testing.T) {
 			},
 		}, nil
 	}
-	mockDAO.MockEditSeries = func(email string, series models.Series) (models.Series, error) {
+	mockDAO.MockEditSeries = func(_ string, series models.Series) (models.Series, error) {
 		return series, nil
 	}
 
@@ -422,14 +423,14 @@ func TestEditSeriesEndpoint_UpdateExistingStory(t *testing.T) {
 
 func TestEditSeriesEndpoint_SuccessWithImage(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetSeriesByID = func(email, seriesID string) (*models.Series, error) {
+	mockDAO.MockGetSeriesByID = func(_, seriesID string) (*models.Series, error) {
 		return &models.Series{
 			ID:       seriesID,
 			Title:    "Test Series",
 			ImageURL: "https://old-image-url.com/image.jpg",
 		}, nil
 	}
-	mockDAO.MockEditSeries = func(email string, series models.Series) (models.Series, error) {
+	mockDAO.MockEditSeries = func(_ string, series models.Series) (models.Series, error) {
 		return series, nil
 	}
 
@@ -459,13 +460,13 @@ func TestEditSeriesEndpoint_SuccessWithImage(t *testing.T) {
 
 func TestEditStoryEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{
 			ID:    storyID,
 			Title: "Original Title",
 		}, nil
 	}
-	mockDAO.MockEditStory = func(email string, story models.Story) (models.Story, error) {
+	mockDAO.MockEditStory = func(_ string, story models.Story) (models.Story, error) {
 		return story, nil
 	}
 
@@ -525,10 +526,10 @@ func TestEditStoryEndpoint_StoryNotFound(t *testing.T) {
 
 func TestEditStorySettingsEndPoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStorySettingsByID = func(email, storyID string) (*models.StorySettings, error) {
+	mockDAO.MockGetStorySettingsByID = func(_, _ string) (*models.StorySettings, error) {
 		return &models.StorySettings{}, nil
 	}
-	mockDAO.MockUpdateStorySettings = func(email, storyID string, settings models.StorySettings) error {
+	mockDAO.MockUpdateStorySettings = func(_, _ string, _ models.StorySettings) error {
 		return nil
 	}
 
@@ -553,7 +554,7 @@ func TestEditStorySettingsEndPoint_Success(t *testing.T) {
 func TestEditStorySettingsEndPoint_InvalidJSON(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
-	req := createTestRequestWithSession("PUT", "/story/story123/settings", bytes.NewBuffer([]byte("invalid json")))
+	req := createTestRequestWithSession("PUT", "/story/story123/settings", bytes.NewBufferString("invalid json"))
 	req = mux.SetURLVars(req, map[string]string{"storyID": "story123"})
 	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
 
@@ -579,7 +580,7 @@ func TestEditStoryEndpoint_NoDAO(t *testing.T) {
 
 func TestEditStoryEndpoint_ParseMultipartFormError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{
 			ID:    storyID,
 			Title: "Original Title",
@@ -603,7 +604,7 @@ func TestEditStoryEndpoint_ParseMultipartFormError(t *testing.T) {
 
 func TestEditStoryEndpoint_InvalidTitle(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{
 			ID:    storyID,
 			Title: "Original Title",
@@ -612,8 +613,8 @@ func TestEditStoryEndpoint_InvalidTitle(t *testing.T) {
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	// Create a title that's too long (over 256 chars)
-	longTitle := strings.Repeat("a", 257)
+	// Create a title that's too long
+	longTitle := strings.Repeat("a", maxTitleLength+1)
 	writer.WriteField("title", longTitle)
 	writer.Close()
 
@@ -632,7 +633,7 @@ func TestEditStoryEndpoint_InvalidTitle(t *testing.T) {
 
 func TestEditStoryEndpoint_InvalidDescription(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{
 			ID:          storyID,
 			Title:       "Original Title",
@@ -662,13 +663,13 @@ func TestEditStoryEndpoint_InvalidDescription(t *testing.T) {
 
 func TestEditStoryEndpoint_WithSeriesID(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{
 			ID:    storyID,
 			Title: "Original Title",
 		}, nil
 	}
-	mockDAO.MockEditStory = func(email string, story models.Story) (models.Story, error) {
+	mockDAO.MockEditStory = func(_ string, story models.Story) (models.Story, error) {
 		// Verify that SeriesID was set
 		if story.SeriesID != "series456" {
 			t.Errorf("Expected SeriesID 'series456', got '%s'", story.SeriesID)
@@ -696,13 +697,13 @@ func TestEditStoryEndpoint_WithSeriesID(t *testing.T) {
 
 func TestEditStoryEndpoint_AWSError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{
 			ID:    storyID,
 			Title: "Original Title",
 		}, nil
 	}
-	mockDAO.MockEditStory = func(email string, story models.Story) (models.Story, error) {
+	mockDAO.MockEditStory = func(_ string, _ models.Story) (models.Story, error) {
 		return models.Story{}, &smithy.OperationError{
 			ServiceID:     "DynamoDB",
 			OperationName: "PutItem",
@@ -730,13 +731,13 @@ func TestEditStoryEndpoint_AWSError(t *testing.T) {
 
 func TestEditStoryEndpoint_DAOEditError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{
 			ID:    storyID,
 			Title: "Original Title",
 		}, nil
 	}
-	mockDAO.MockEditStory = func(email string, story models.Story) (models.Story, error) {
+	mockDAO.MockEditStory = func(_ string, _ models.Story) (models.Story, error) {
 		return models.Story{}, errors.New("database error")
 	}
 

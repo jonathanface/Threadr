@@ -1,15 +1,16 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
@@ -21,13 +22,13 @@ func init() {
 
 func TestWriteAssocationsEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockIsStoryInASeries = func(email, storyID string) (string, error) {
+	mockDAO.MockIsStoryInASeries = func(_, _ string) (string, error) {
 		return "", nil
 	}
-	mockDAO.MockGetStoryOrSeriesAssociationThumbnails = func(email, storyID string) ([]*models.SimplifiedAssociation, error) {
+	mockDAO.MockGetStoryOrSeriesAssociationThumbnails = func(_, _ string) ([]*models.SimplifiedAssociation, error) {
 		return []*models.SimplifiedAssociation{}, nil
 	}
-	mockDAO.MockWriteAssociations = func(email, storyOrSeriesID string, associations []*models.Association) error {
+	mockDAO.MockWriteAssociations = func(email, storyOrSeriesID string, _ []*models.Association) error {
 		if email != "test@example.com" {
 			t.Errorf("Expected email test@example.com, got %s", email)
 		}
@@ -74,13 +75,13 @@ func TestWriteAssocationsEndpoint_Success(t *testing.T) {
 
 func TestWriteAssocationsEndpoint_StoryInSeries(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockIsStoryInASeries = func(email, storyID string) (string, error) {
+	mockDAO.MockIsStoryInASeries = func(_, _ string) (string, error) {
 		return "series456", nil
 	}
-	mockDAO.MockGetStoryOrSeriesAssociationThumbnails = func(email, storyID string) ([]*models.SimplifiedAssociation, error) {
+	mockDAO.MockGetStoryOrSeriesAssociationThumbnails = func(_, _ string) ([]*models.SimplifiedAssociation, error) {
 		return []*models.SimplifiedAssociation{}, nil
 	}
-	mockDAO.MockWriteAssociations = func(email, storyOrSeriesID string, associations []*models.Association) error {
+	mockDAO.MockWriteAssociations = func(_, storyOrSeriesID string, _ []*models.Association) error {
 		if storyOrSeriesID != "series456" {
 			t.Errorf("Expected storyOrSeriesID to be series456, got %s", storyOrSeriesID)
 		}
@@ -148,7 +149,7 @@ func TestWriteAssocationsEndpoint_MissingStoryID(t *testing.T) {
 func TestWriteAssocationsEndpoint_InvalidJSON(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
-	req := httptest.NewRequest(http.MethodPut, "/api/story/story123/associations", bytes.NewBuffer([]byte("invalid")))
+	req := httptest.NewRequest(http.MethodPut, "/api/story/story123/associations", bytes.NewBufferString("invalid"))
 	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
 	req = mux.SetURLVars(req, map[string]string{"story": "story123"})
 	req = AddSessionCookieToRequest(req, "test@example.com")
@@ -181,7 +182,7 @@ func TestWriteAssocationsEndpoint_NoDAO(t *testing.T) {
 
 func TestWriteAssocationsEndpoint_IsStoryInASeriesError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockIsStoryInASeries = func(email string, storyID string) (string, error) {
+	mockDAO.MockIsStoryInASeries = func(_ string, _ string) (string, error) {
 		return "", daos.ErrMockDAO
 	}
 
@@ -210,7 +211,7 @@ func TestWriteAssocationsEndpoint_IsStoryInASeriesError(t *testing.T) {
 
 func TestWriteAssocationsEndpoint_WriteAssociationsError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockWriteAssociations = func(email, storyOrSeriesID string, associations []*models.Association) error {
+	mockDAO.MockWriteAssociations = func(_, _ string, _ []*models.Association) error {
 		return daos.ErrMockDAO
 	}
 
@@ -233,7 +234,7 @@ func TestWriteAssocationsEndpoint_WriteAssociationsError(t *testing.T) {
 
 func TestWriteAssocationsEndpoint_AWSError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockWriteAssociations = func(email, storyOrSeriesID string, associations []*models.Association) error {
+	mockDAO.MockWriteAssociations = func(_, _ string, _ []*models.Association) error {
 		return &smithy.OperationError{
 			ServiceID:     "DynamoDB",
 			OperationName: "PutItem",

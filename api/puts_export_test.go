@@ -1,15 +1,16 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/gorilla/mux"
 )
@@ -39,7 +40,7 @@ func TestExportStoryEndpoint_MissingType(t *testing.T) {
 func TestExportStoryEndpoint_InvalidJSON(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
-	req := createTestRequestWithSession("PUT", "/story/story123/export?type=pdf", bytes.NewBuffer([]byte("invalid json")))
+	req := createTestRequestWithSession("PUT", "/story/story123/export?type=pdf", bytes.NewBufferString("invalid json"))
 	req = mux.SetURLVars(req, map[string]string{"storyID": "story123"})
 	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
 
@@ -57,7 +58,7 @@ func TestExportStoryEndpoint_MissingStoryID(t *testing.T) {
 	exportReq := models.DocumentExportRequest{
 		Title:   "Test Story",
 		StoryID: "story123",
-		HtmlByChapter: []models.HTMLData{
+		HTMLByChapter: []models.HTMLData{
 			{Chapter: "Chapter 1", HTML: "<p>Test content</p>"},
 		},
 	}
@@ -80,7 +81,7 @@ func TestExportStoryEndpoint_NoDAO(t *testing.T) {
 	exportReq := models.DocumentExportRequest{
 		Title:   "Test Story",
 		StoryID: "story123",
-		HtmlByChapter: []models.HTMLData{
+		HTMLByChapter: []models.HTMLData{
 			{Chapter: "Chapter 1", HTML: "<p>Test content</p>"},
 		},
 	}
@@ -105,7 +106,7 @@ func TestExportStoryEndpoint_StoryNotFound(t *testing.T) {
 	exportReq := models.DocumentExportRequest{
 		Title:   "Test Story",
 		StoryID: "story123",
-		HtmlByChapter: []models.HTMLData{
+		HTMLByChapter: []models.HTMLData{
 			{Chapter: "Chapter 1", HTML: "<p>Test content</p>"},
 		},
 	}
@@ -126,14 +127,14 @@ func TestExportStoryEndpoint_StoryNotFound(t *testing.T) {
 
 func TestExportStoryEndpoint_DatabaseError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID, Title: "Test"}, nil
 	}
 
 	exportReq := models.DocumentExportRequest{
 		Title:   "Test Story",
 		StoryID: "story123",
-		HtmlByChapter: []models.HTMLData{
+		HTMLByChapter: []models.HTMLData{
 			{Chapter: "Chapter 1", HTML: "<p>Test content</p>"},
 		},
 	}
@@ -150,15 +151,15 @@ func TestExportStoryEndpoint_DatabaseError(t *testing.T) {
 	if rr.Code != http.StatusInternalServerError {
 		t.Errorf("Expected status 500, got %d", rr.Code)
 
-// Note: Full success tests for ExportStoryEndpoint would require mocking:
-// - AWS config loading
-// - File system operations (os.Remove, os.Open)
-// - S3 client operations
-// - Document conversion functions (converters.HTMLToPDF, etc.)
-//
-// These would be integration tests rather than unit tests and would require
-// more complex mocking infrastructure. The tests above cover the validation
-// and error handling paths that can be tested without external dependencies.
+		// Note: Full success tests for ExportStoryEndpoint would require mocking:
+		// - AWS config loading
+		// - File system operations (os.Remove, os.Open)
+		// - S3 client operations
+		// - Document conversion functions (converters.HTMLToPDF, etc.)
+		//
+		// These would be integration tests rather than unit tests and would require
+		// more complex mocking infrastructure. The tests above cover the validation
+		// and error handling paths that can be tested without external dependencies.
 	}
 }
 
@@ -169,7 +170,7 @@ func TestValidateExportRequest_Valid(t *testing.T) {
 	export := models.DocumentExportRequest{
 		Title:   "Test Story",
 		StoryID: "story123",
-		HtmlByChapter: []models.HTMLData{
+		HTMLByChapter: []models.HTMLData{
 			{Chapter: "Chapter 1", HTML: "<p>Content</p>"},
 		},
 		Author: &author,
@@ -185,7 +186,7 @@ func TestValidateExportRequest_EmptyTitle(t *testing.T) {
 	export := models.DocumentExportRequest{
 		Title:   "",
 		StoryID: "story123",
-		HtmlByChapter: []models.HTMLData{
+		HTMLByChapter: []models.HTMLData{
 			{Chapter: "Chapter 1", HTML: "<p>Content</p>"},
 		},
 	}
@@ -204,7 +205,7 @@ func TestValidateExportRequest_TitleTooLong(t *testing.T) {
 	export := models.DocumentExportRequest{
 		Title:   longTitle,
 		StoryID: "story123",
-		HtmlByChapter: []models.HTMLData{
+		HTMLByChapter: []models.HTMLData{
 			{Chapter: "Chapter 1", HTML: "<p>Content</p>"},
 		},
 	}
@@ -219,7 +220,7 @@ func TestValidateExportRequest_EmptyStoryID(t *testing.T) {
 	export := models.DocumentExportRequest{
 		Title:   "Test Story",
 		StoryID: "",
-		HtmlByChapter: []models.HTMLData{
+		HTMLByChapter: []models.HTMLData{
 			{Chapter: "Chapter 1", HTML: "<p>Content</p>"},
 		},
 	}
@@ -237,7 +238,7 @@ func TestValidateExportRequest_NoChapters(t *testing.T) {
 	export := models.DocumentExportRequest{
 		Title:         "Test Story",
 		StoryID:       "story123",
-		HtmlByChapter: []models.HTMLData{},
+		HTMLByChapter: []models.HTMLData{},
 	}
 
 	err := validateExportRequest(export)
@@ -253,7 +254,7 @@ func TestValidateExportRequest_EmptyChapterTitle(t *testing.T) {
 	export := models.DocumentExportRequest{
 		Title:   "Test Story",
 		StoryID: "story123",
-		HtmlByChapter: []models.HTMLData{
+		HTMLByChapter: []models.HTMLData{
 			{Chapter: "", HTML: "<p>Content</p>"},
 		},
 	}
@@ -269,7 +270,7 @@ func TestValidateExportRequest_ChapterTitleTooLong(t *testing.T) {
 	export := models.DocumentExportRequest{
 		Title:   "Test Story",
 		StoryID: "story123",
-		HtmlByChapter: []models.HTMLData{
+		HTMLByChapter: []models.HTMLData{
 			{Chapter: longChapterTitle, HTML: "<p>Content</p>"},
 		},
 	}
@@ -285,7 +286,7 @@ func TestValidateExportRequest_ChapterContentTooLarge(t *testing.T) {
 	export := models.DocumentExportRequest{
 		Title:   "Test Story",
 		StoryID: "story123",
-		HtmlByChapter: []models.HTMLData{
+		HTMLByChapter: []models.HTMLData{
 			{Chapter: "Chapter 1", HTML: largeContent},
 		},
 	}
@@ -308,7 +309,7 @@ func TestValidateExportRequest_TooManyChapters(t *testing.T) {
 	export := models.DocumentExportRequest{
 		Title:         "Test Story",
 		StoryID:       "story123",
-		HtmlByChapter: chapters,
+		HTMLByChapter: chapters,
 	}
 
 	err := validateExportRequest(export)
@@ -322,7 +323,7 @@ func TestValidateExportRequest_AuthorTooLong(t *testing.T) {
 	export := models.DocumentExportRequest{
 		Title:   "Test Story",
 		StoryID: "story123",
-		HtmlByChapter: []models.HTMLData{
+		HTMLByChapter: []models.HTMLData{
 			{Chapter: "Chapter 1", HTML: "<p>Content</p>"},
 		},
 		Author: &longAuthor,
@@ -338,7 +339,7 @@ func TestValidateExportRequest_EmptyHTMLAllowed(t *testing.T) {
 	export := models.DocumentExportRequest{
 		Title:   "Test Story",
 		StoryID: "story123",
-		HtmlByChapter: []models.HTMLData{
+		HTMLByChapter: []models.HTMLData{
 			{Chapter: "Chapter 1", HTML: ""},
 		},
 	}

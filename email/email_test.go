@@ -2,19 +2,22 @@ package email
 
 import (
 	"context"
-	"errors"
 	"os"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 )
 
-// MockSESv2Client is a mock implementation of the SES v2 client for testing
+// MockSESv2Client is a mock implementation of the SES v2 client for testing.
 type MockSESv2Client struct {
 	SendEmailFunc func(ctx context.Context, input *sesv2.SendEmailInput, optFns ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error)
 }
 
-func (m *MockSESv2Client) SendEmail(ctx context.Context, input *sesv2.SendEmailInput, optFns ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+func (m *MockSESv2Client) SendEmail(
+	ctx context.Context,
+	input *sesv2.SendEmailInput,
+	optFns ...func(*sesv2.Options),
+) (*sesv2.SendEmailOutput, error) {
 	if m.SendEmailFunc != nil {
 		return m.SendEmailFunc(ctx, input, optFns...)
 	}
@@ -24,13 +27,10 @@ func (m *MockSESv2Client) SendEmail(ctx context.Context, input *sesv2.SendEmailI
 	}, nil
 }
 
-// Tests for SendWelcomeEmail
+// Tests for SendWelcomeEmail.
 func TestSendWelcomeEmail_MissingAWSRegion(t *testing.T) {
-	// Save original env var and restore after test
-	originalRegion := os.Getenv("AWS_REGION")
-	defer os.Setenv("AWS_REGION", originalRegion)
-
-	// Unset AWS_REGION
+	// t.Setenv captures the original AWS_REGION for automatic restoration.
+	t.Setenv("AWS_REGION", "")
 	os.Unsetenv("AWS_REGION")
 
 	err := SendWelcomeEmail("test@example.com")
@@ -43,10 +43,7 @@ func TestSendWelcomeEmail_MissingAWSRegion(t *testing.T) {
 }
 
 func TestSendWelcomeEmail_ValidEmail(t *testing.T) {
-	// Set AWS_REGION for the test
-	originalRegion := os.Getenv("AWS_REGION")
-	os.Setenv("AWS_REGION", "us-east-1")
-	defer os.Setenv("AWS_REGION", originalRegion)
+	t.Setenv("AWS_REGION", "us-east-1")
 
 	// Note: This test will attempt to create a real AWS session
 	// In a real-world scenario, we would need to refactor SendWelcomeEmail
@@ -60,9 +57,7 @@ func TestSendWelcomeEmail_ValidEmail(t *testing.T) {
 
 func TestSendWelcomeEmail_EmailFormat(t *testing.T) {
 	// This test verifies the function validates basic requirements
-	originalRegion := os.Getenv("AWS_REGION")
-	os.Setenv("AWS_REGION", "us-east-1")
-	defer os.Setenv("AWS_REGION", originalRegion)
+	t.Setenv("AWS_REGION", "us-east-1")
 
 	// The function should accept a valid email format
 	// Without mocking AWS, we can only test the early validation
@@ -78,13 +73,10 @@ func TestSendWelcomeEmail_EmailFormat(t *testing.T) {
 	}
 }
 
-// Tests for SendAlertEmail
+// Tests for SendAlertEmail.
 func TestSendAlertEmail_MissingAWSRegion(t *testing.T) {
-	// Save original env var and restore after test
-	originalRegion := os.Getenv("AWS_REGION")
-	defer os.Setenv("AWS_REGION", originalRegion)
-
-	// Unset AWS_REGION
+	// t.Setenv captures the original AWS_REGION for automatic restoration.
+	t.Setenv("AWS_REGION", "")
 	os.Unsetenv("AWS_REGION")
 
 	err := SendAlertEmail("test@example.com")
@@ -97,10 +89,7 @@ func TestSendAlertEmail_MissingAWSRegion(t *testing.T) {
 }
 
 func TestSendAlertEmail_ValidEmail(t *testing.T) {
-	// Set AWS_REGION for the test
-	originalRegion := os.Getenv("AWS_REGION")
-	os.Setenv("AWS_REGION", "us-east-1")
-	defer os.Setenv("AWS_REGION", originalRegion)
+	t.Setenv("AWS_REGION", "us-east-1")
 
 	// Note: This test will attempt to create a real AWS session
 	// The function would need refactoring to properly mock the SES client
@@ -115,9 +104,7 @@ func TestSendAlertEmail_ValidEmail(t *testing.T) {
 
 func TestSendAlertEmail_EmailContent(t *testing.T) {
 	// This test verifies the alert email contains the user email
-	originalRegion := os.Getenv("AWS_REGION")
-	os.Setenv("AWS_REGION", "us-east-1")
-	defer os.Setenv("AWS_REGION", originalRegion)
+	t.Setenv("AWS_REGION", "us-east-1")
 
 	testEmail := "signup@example.com"
 
@@ -153,58 +140,7 @@ func TestEmailFunctions_ExpectedBehavior(t *testing.T) {
 	})
 }
 
-// Mock-based tests (demonstrating what we'd do with refactored code)
-
-func TestSendWelcomeEmail_WithMock_Success(t *testing.T) {
-	mockSES := &MockSESv2Client{
-		SendEmailFunc: func(ctx context.Context, input *sesv2.SendEmailInput, optFns ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
-			if *input.FromEmailAddress != "no-reply@threadr.net" {
-				t.Errorf("Expected source 'no-reply@threadr.net', got %s", *input.FromEmailAddress)
-			}
-			if len(input.Destination.ToAddresses) != 1 {
-				t.Errorf("Expected 1 recipient, got %d", len(input.Destination.ToAddresses))
-			}
-			if input.Destination.ToAddresses[0] != "test@example.com" {
-				t.Errorf("Expected recipient 'test@example.com', got %s", input.Destination.ToAddresses[0])
-			}
-
-			messageID := "test-message-123"
-			return &sesv2.SendEmailOutput{MessageId: &messageID}, nil
-		},
-	}
-
-	t.Log("Mock SES v2 client created successfully, ready for testing")
-	_ = mockSES
-}
-
-func TestSendWelcomeEmail_WithMock_Error(t *testing.T) {
-	mockSES := &MockSESv2Client{
-		SendEmailFunc: func(ctx context.Context, input *sesv2.SendEmailInput, optFns ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
-			return nil, errors.New("SES service unavailable")
-		},
-	}
-
-	t.Log("Mock SES v2 client configured to return errors")
-	_ = mockSES
-}
-
-func TestSendAlertEmail_WithMock_Success(t *testing.T) {
-	mockSES := &MockSESv2Client{
-		SendEmailFunc: func(ctx context.Context, input *sesv2.SendEmailInput, optFns ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
-			if input.Destination.ToAddresses[0] != "support@threadr.net" {
-				t.Errorf("Expected recipient 'support@threadr.net', got %s", input.Destination.ToAddresses[0])
-			}
-
-			messageID := "alert-message-456"
-			return &sesv2.SendEmailOutput{MessageId: &messageID}, nil
-		},
-	}
-
-	t.Log("Mock SES v2 client ready to verify alert email behavior")
-	_ = mockSES
-}
-
-// Refactoring suggestion tests
+// Refactoring suggestion tests.
 func TestEmailFunctions_RefactoringNeeded(t *testing.T) {
 	t.Log("NOTE: SendAlertEmail is now exported and can be used from other packages")
 	t.Log("The sendWelcomeEmail function remains unexported")

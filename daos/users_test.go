@@ -1,18 +1,19 @@
 package daos
 
 import (
-	"Threadr/models"
 	"context"
 	"database/sql"
 	"errors"
 	"testing"
 	"time"
 
+	"Threadr/models"
+
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/stripe/stripe-go/v79"
 )
 
-// Tests for CreateUser
+// Tests for CreateUser.
 func TestCreateUser(t *testing.T) {
 	testCases := []struct {
 		name                string
@@ -48,7 +49,6 @@ func TestCreateUser(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -57,48 +57,46 @@ func TestCreateUser(t *testing.T) {
 				if !ok {
 					t.Fatalf("mockDao.DynamoClient is not a *MockDynamoClient")
 				}
-				mockClient.MockTransactWriteItems = func(ctx context.Context,
-					input *dynamodb.TransactWriteItemsInput,
-					opts ...func(*dynamodb.Options),
+				mockClient.MockTransactWriteItems = func(_ context.Context,
+					_ *dynamodb.TransactWriteItemsInput,
+					_ ...func(*dynamodb.Options),
 				) (*dynamodb.TransactWriteItemsOutput, error) {
 					if tc.mockAwsWriteErr != nil {
 						return nil, tc.mockAwsWriteErr
 					}
-					return nil, errors.New("--AWSERROR-- Code:" + tc.mockAwsWriteAwsErr.Code + ", Type: " + tc.mockAwsWriteAwsErr.ErrorType + ", Message: " + tc.mockAwsWriteAwsErr.Text)
+					return nil, errors.New(
+						"--AWSERROR-- Code:" + tc.mockAwsWriteAwsErr.Code + ", Type: " + tc.mockAwsWriteAwsErr.ErrorType + ", Message: " + tc.mockAwsWriteAwsErr.Text,
+					)
 				}
 			}
 
 			user, err := mockDao.CreateUser(context.Background(), tc.email)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Errorf("Expected error but got nil")
-				} else if tc.expectedErrContains != "" && !contains(err.Error(), tc.expectedErrContains) {
-					t.Errorf("Error %q does not contain %q", err.Error(), tc.expectedErrContains)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
-				if user == nil {
-					t.Error("Expected user to be returned")
-				} else {
-					if user.Email != tc.email {
-						t.Errorf("Expected email %q, got %q", tc.email, user.Email)
-					}
-					if user.Admin {
-						t.Error("New user should not be admin")
-					}
-					if user.Subscriber {
-						t.Error("New user should not be subscriber")
-					}
-				}
+				assertExpectedErr(t, err, tc.expectedErrContains)
+				return
+			}
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			if user == nil {
+				t.Error("Expected user to be returned")
+				return
+			}
+			if user.Email != tc.email {
+				t.Errorf("Expected email %q, got %q", tc.email, user.Email)
+			}
+			if user.Admin {
+				t.Error("New user should not be admin")
+			}
+			if user.Subscriber {
+				t.Error("New user should not be subscriber")
 			}
 		})
 	}
 }
 
-// Tests for GetUserDetails
+// Tests for GetUserDetails.
 func TestGetUserDetails(t *testing.T) {
 	testCases := []struct {
 		name  string
@@ -115,7 +113,6 @@ func TestGetUserDetails(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -132,7 +129,7 @@ func TestGetUserDetails(t *testing.T) {
 	}
 }
 
-// Tests for UpsertUser
+// Tests for UpsertUser.
 func TestUpsertUser(t *testing.T) {
 	testCases := []struct {
 		name                string
@@ -156,7 +153,6 @@ func TestUpsertUser(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -165,9 +161,9 @@ func TestUpsertUser(t *testing.T) {
 				if !ok {
 					t.Fatalf("mockDao.DynamoClient is not a *MockDynamoClient")
 				}
-				mockClient.MockUpdateItem = func(ctx context.Context,
-					input *dynamodb.UpdateItemInput,
-					opts ...func(*dynamodb.Options),
+				mockClient.MockUpdateItem = func(_ context.Context,
+					_ *dynamodb.UpdateItemInput,
+					_ ...func(*dynamodb.Options),
 				) (*dynamodb.UpdateItemOutput, error) {
 					return nil, tc.mockUpdateErr
 				}
@@ -176,24 +172,20 @@ func TestUpsertUser(t *testing.T) {
 			user, err := mockDao.UpsertUser(context.Background(), tc.email)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Errorf("Expected error but got nil")
-				} else if tc.expectedErrContains != "" && !contains(err.Error(), tc.expectedErrContains) {
-					t.Errorf("Error %q does not contain %q", err.Error(), tc.expectedErrContains)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
-				if user == nil {
-					t.Error("Expected user to be returned")
-				}
+				assertExpectedErr(t, err, tc.expectedErrContains)
+				return
+			}
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			if user == nil {
+				t.Error("Expected user to be returned")
 			}
 		})
 	}
 }
 
-// Tests for UpdateUser
+// Tests for UpdateUser.
 func TestUpdateUser(t *testing.T) {
 	testCases := []struct {
 		name                string
@@ -231,7 +223,6 @@ func TestUpdateUser(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -240,9 +231,9 @@ func TestUpdateUser(t *testing.T) {
 				if !ok {
 					t.Fatalf("mockDao.DynamoClient is not a *MockDynamoClient")
 				}
-				mockClient.MockUpdateItem = func(ctx context.Context,
-					input *dynamodb.UpdateItemInput,
-					opts ...func(*dynamodb.Options),
+				mockClient.MockUpdateItem = func(_ context.Context,
+					_ *dynamodb.UpdateItemInput,
+					_ ...func(*dynamodb.Options),
 				) (*dynamodb.UpdateItemOutput, error) {
 					return nil, tc.mockUpdateErr
 				}
@@ -265,7 +256,7 @@ func TestUpdateUser(t *testing.T) {
 	}
 }
 
-// Tests for toStatus
+// Tests for toStatus.
 func TestToStatus(t *testing.T) {
 	testCases := []struct {
 		name         string
@@ -332,7 +323,6 @@ func TestToStatus(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			status := toStatus(tc.subscription, tc.found)
 
@@ -358,18 +348,18 @@ func TestToStatus(t *testing.T) {
 	}
 }
 
-// Tests for IsUserSubscribed
+// Tests for IsUserSubscribed.
 func TestIsUserSubscribed(t *testing.T) {
 	// Note: This function has complex dependencies on GetSubscription, verifyStripeSubscription,
 	// UpdateSubscription, GetAllStories, SoftDeleteStory, CheckForSuspendedStories, kickoffRestoreAsync
 	// We mock GetSubscription to avoid real Stripe API calls
 
 	testCases := []struct {
-		name             string
-		user             models.UserInfo
-		mockGetSub       func(email string) (*models.Subscription, error)
-		wantErr          bool
-		wantSubscriber   bool
+		name           string
+		user           models.UserInfo
+		mockGetSub     func(email string) (*models.Subscription, error)
+		wantErr        bool
+		wantSubscriber bool
 	}{
 		{
 			name: "NoSubscriptionOnFile",
@@ -377,7 +367,7 @@ func TestIsUserSubscribed(t *testing.T) {
 				Email:      "user@example.com",
 				Subscriber: false,
 			},
-			mockGetSub: func(email string) (*models.Subscription, error) {
+			mockGetSub: func(_ string) (*models.Subscription, error) {
 				return nil, sql.ErrNoRows
 			},
 			wantErr:        false,
@@ -389,7 +379,7 @@ func TestIsUserSubscribed(t *testing.T) {
 				Email:      "nosubid@example.com",
 				Subscriber: false,
 			},
-			mockGetSub: func(email string) (*models.Subscription, error) {
+			mockGetSub: func(_ string) (*models.Subscription, error) {
 				return &models.Subscription{
 					SubscriptionID:         "", // empty subscription ID
 					CustomerID:             "cus_789",
@@ -406,9 +396,9 @@ func TestIsUserSubscribed(t *testing.T) {
 				Email:      "expired@example.com",
 				Subscriber: false,
 			},
-			mockGetSub: func(email string) (*models.Subscription, error) {
+			mockGetSub: func(_ string) (*models.Subscription, error) {
 				return &models.Subscription{
-					SubscriptionID:         "",                                   // no subscription ID
+					SubscriptionID:         "", // no subscription ID
 					CustomerID:             "cus_456",
 					CurrentSubscriptionEnd: time.Now().Add(-7 * 24 * time.Hour), // 7 days ago
 					LastSubCheck:           time.Now().Add(-1 * time.Hour),
@@ -420,7 +410,6 @@ func TestIsUserSubscribed(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			// Save and set stripe key for tests
 			originalStripeKey := stripe.Key
@@ -449,7 +438,7 @@ func TestIsUserSubscribed(t *testing.T) {
 	}
 }
 
-// Tests for AddCustomerID
+// Tests for AddCustomerID.
 func TestAddCustomerID(t *testing.T) {
 	email := "user@example.com"
 	customerID := "cus_123456"
@@ -479,7 +468,6 @@ func TestAddCustomerID(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -488,9 +476,9 @@ func TestAddCustomerID(t *testing.T) {
 				if !ok {
 					t.Fatalf("mockDao.DynamoClient is not a *MockDynamoClient")
 				}
-				mockClient.MockUpdateItem = func(ctx context.Context,
-					input *dynamodb.UpdateItemInput,
-					opts ...func(*dynamodb.Options),
+				mockClient.MockUpdateItem = func(_ context.Context,
+					_ *dynamodb.UpdateItemInput,
+					_ ...func(*dynamodb.Options),
 				) (*dynamodb.UpdateItemOutput, error) {
 					return nil, tc.mockUpdateErr
 				}
@@ -513,7 +501,7 @@ func TestAddCustomerID(t *testing.T) {
 	}
 }
 
-// Tests for GetUserDetails with ErrNoRows
+// Tests for GetUserDetails with ErrNoRows.
 func TestGetUserDetails_NoRows(t *testing.T) {
 	mockDao := NewMockDAO()
 
@@ -527,12 +515,12 @@ func TestGetUserDetails_NoRows(t *testing.T) {
 	// Just verify no panic - detailed assertions need full DB mock
 }
 
-// Benchmark tests
+// Benchmark tests.
 func BenchmarkCreateUser(b *testing.B) {
 	mockDao := NewMockDAO()
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_, _ = mockDao.CreateUser(context.Background(), "bench@example.com")
 	}
 }
@@ -545,12 +533,12 @@ func BenchmarkToStatus(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = toStatus(sub, true)
 	}
 }
 
-// Tests for DeleteUser
+// Tests for DeleteUser.
 func TestDeleteUser(t *testing.T) {
 	testCases := []struct {
 		name                string
@@ -583,12 +571,11 @@ func TestDeleteUser(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
 			// Mock GetSubscription to avoid dependency issues
-			mockDao.MockGetSubscription = func(email string) (*models.Subscription, error) {
+			mockDao.MockGetSubscription = func(_ string) (*models.Subscription, error) {
 				if tc.mockGetSubErr != nil {
 					return nil, tc.mockGetSubErr
 				}
@@ -603,9 +590,9 @@ func TestDeleteUser(t *testing.T) {
 
 			// Mock Scan (used by GetAllStories)
 			if tc.mockGetStoriesErr != nil {
-				mockClient.MockScan = func(ctx context.Context,
-					input *dynamodb.ScanInput,
-					opts ...func(*dynamodb.Options),
+				mockClient.MockScan = func(_ context.Context,
+					_ *dynamodb.ScanInput,
+					_ ...func(*dynamodb.Options),
 				) (*dynamodb.ScanOutput, error) {
 					return nil, tc.mockGetStoriesErr
 				}
@@ -613,9 +600,9 @@ func TestDeleteUser(t *testing.T) {
 
 			// Mock UpdateItem for the user deletion
 			if tc.mockUpdateItemErr != nil {
-				mockClient.MockUpdateItem = func(ctx context.Context,
-					input *dynamodb.UpdateItemInput,
-					opts ...func(*dynamodb.Options),
+				mockClient.MockUpdateItem = func(_ context.Context,
+					_ *dynamodb.UpdateItemInput,
+					_ ...func(*dynamodb.Options),
 				) (*dynamodb.UpdateItemOutput, error) {
 					return nil, tc.mockUpdateItemErr
 				}

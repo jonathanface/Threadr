@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// Tests for sanitizeFilename - CRITICAL SECURITY FUNCTION
+// Tests for sanitizeFilename - CRITICAL SECURITY FUNCTION.
 func TestSanitizeFilename(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -228,7 +228,7 @@ func TestSanitizeFilename(t *testing.T) {
 	}
 }
 
-// Test that sanitizeFilename is deterministic
+// Test that sanitizeFilename is deterministic.
 func TestSanitizeFilename_Deterministic(t *testing.T) {
 	inputs := []string{
 		"test file.txt",
@@ -239,7 +239,7 @@ func TestSanitizeFilename_Deterministic(t *testing.T) {
 
 	for _, input := range inputs {
 		first := sanitizeFilename(input)
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			result := sanitizeFilename(input)
 			if result != first {
 				t.Errorf("sanitizeFilename(%q) not deterministic: first=%q, iteration %d=%q",
@@ -249,18 +249,18 @@ func TestSanitizeFilename_Deterministic(t *testing.T) {
 	}
 }
 
-// Fuzz-like test with random-ish inputs
+// Fuzz-like test with random-ish inputs.
 func TestSanitizeFilename_EdgeCases(t *testing.T) {
 	edgeCases := []string{
-		"\x00\x01\x02\x03",                    // control characters
-		string([]byte{0xFF, 0xFE}),           // invalid UTF-8
-		"a\u0000b",                            // null in middle
-		strings.Repeat("/../", 50),           // many traversals
-		"\r\n\r\n",                            // CRLF
-		"\u202E",                              // right-to-left override
-		"CON",                                 // Windows reserved name
-		"LPT1",                                // Windows reserved
-		"file\x00.exe",                        // null byte hiding extension
+		"\x00\x01\x02\x03",         // control characters
+		string([]byte{0xFF, 0xFE}), // invalid UTF-8
+		"a\u0000b",                 // null in middle
+		strings.Repeat("/../", 50), // many traversals
+		"\r\n\r\n",                 // CRLF
+		"\u202E",                   // right-to-left override
+		"CON",                      // Windows reserved name
+		"LPT1",                     // Windows reserved
+		"file\x00.exe",             // null byte hiding extension
 	}
 
 	for _, input := range edgeCases {
@@ -273,7 +273,7 @@ func TestSanitizeFilename_EdgeCases(t *testing.T) {
 	}
 }
 
-// Benchmark sanitizeFilename
+// Benchmark sanitizeFilename.
 func BenchmarkSanitizeFilename(b *testing.B) {
 	inputs := []string{
 		"simple",
@@ -283,7 +283,7 @@ func BenchmarkSanitizeFilename(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		for _, input := range inputs {
 			_ = sanitizeFilename(input)
 		}

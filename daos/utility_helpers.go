@@ -1,17 +1,21 @@
 package daos
 
 import (
-	"Threadr/models"
 	"context"
 	"os"
 	"regexp"
 	"strings"
+
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
+// Place values are inherent narrative outline section position indices, not magic numbers.
+//
+//nolint:mnd
 func GenerateStoryOutlineSections(typeOf models.OutlineTemplate) []models.OutlineSection {
 	var sections []models.OutlineSection
 	switch typeOf {
@@ -28,7 +32,7 @@ func GenerateStoryOutlineSections(typeOf models.OutlineTemplate) []models.Outlin
 		})
 		sections = append(sections, models.OutlineSection{
 			Place:       2,
-			Header:      "Resolution",
+			Header:      outlineHeaderResolution,
 			Description: "Climax and aftermath of the conflict. 25%.",
 		})
 	case models.FiveAct:
@@ -54,7 +58,7 @@ func GenerateStoryOutlineSections(typeOf models.OutlineTemplate) []models.Outlin
 		})
 		sections = append(sections, models.OutlineSection{
 			Place:       4,
-			Header:      "Resolution",
+			Header:      outlineHeaderResolution,
 			Description: "Loose ends are tied up, and the story concludes.",
 		})
 	case models.HeroJourney:
@@ -125,7 +129,7 @@ func GenerateStoryOutlineSections(typeOf models.OutlineTemplate) []models.Outlin
 func GetTableSuffix() string {
 	currentMode := models.AppMode(strings.ToLower(os.Getenv("MODE")))
 	if currentMode != models.ModeProduction {
-		return "_staging"
+		return stagingSuffix
 	}
 	return ""
 }
@@ -144,7 +148,7 @@ func CleanDynamoTagString(input string) string {
 	return strings.TrimSpace(cleaned)
 }
 
-// Check if a story was "suspended" by an account's subscription not renewing
+// Check if a story was "suspended" by an account's subscription not renewing.
 func (d *DAO) CheckForSuspendedStories(ctx context.Context, email string) (bool, error) {
 	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
 		TableName:        aws.String("stories" + GetTableSuffix()),
@@ -182,7 +186,7 @@ func (d *DAO) WasStoryDeleted(ctx context.Context, email string, storyTitle stri
 }
 
 // check if passed story is a member of a series
-// return series ID if yes, blank if no
+// return series ID if yes, blank if no.
 func (d *DAO) IsStoryInASeries(ctx context.Context, email string, storyID string) (string, error) {
 	var (
 		err   error
@@ -207,5 +211,5 @@ func (d *DAO) GetTotalCreatedStories(ctx context.Context, email string) (stories
 		return 0, err
 	}
 	storiesCount = int(out.Count)
-	return
+	return storiesCount, err
 }

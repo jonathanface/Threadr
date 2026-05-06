@@ -1,12 +1,9 @@
 package billing
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"context"
 	"database/sql"
-	"fmt"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -15,7 +12,11 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-	//stripe "github.com/stripe/stripe-go/v79"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
+	// stripe "github.com/stripe/stripe-go/v79".
 )
 
 func TestSubscribeCustomerEndpoint(t *testing.T) {
@@ -24,8 +25,8 @@ func TestSubscribeCustomerEndpoint(t *testing.T) {
 		getUserEmailFn = getUserEmail
 		ensureCustomerFn = ensureCustomer
 	})
-	getUserEmailFn = func(r *http.Request) (string, error) { return "user@example.com", nil }
-	ensureCustomerFn = func(u *models.UserInfo, s *models.Subscription) (string, error) { return "cus_123", nil }
+	getUserEmailFn = func(_ *http.Request) (string, error) { return "user@example.com", nil }
+	ensureCustomerFn = func(_ *models.UserInfo, _ *models.Subscription) (string, error) { return "cus_123", nil }
 
 	daoMock := daos.NewMockDAO()
 	daoMock.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
@@ -126,8 +127,8 @@ func TestSubscribeCustomerEndpoint(t *testing.T) {
 func TestBillingSummaryEndpoint(t *testing.T) {
 	t.Cleanup(func() { getUserEmailFn = getUserEmail; ensureCustomerFn = ensureCustomer })
 
-	getUserEmailFn = func(r *http.Request) (string, error) { return "user@example.com", nil }
-	ensureCustomerFn = func(u *models.UserInfo, s *models.Subscription) (string, error) { return "cus_123", nil }
+	getUserEmailFn = func(_ *http.Request) (string, error) { return "user@example.com", nil }
+	ensureCustomerFn = func(_ *models.UserInfo, _ *models.Subscription) (string, error) { return "cus_123", nil }
 
 	// Happy-path DAO
 	daoMock := daos.NewMockDAO()
@@ -137,8 +138,8 @@ func TestBillingSummaryEndpoint(t *testing.T) {
 
 	// Error DAO
 	daoMockError := daos.NewMockDAO()
-	daoMockError.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
-		return nil, fmt.Errorf("db down")
+	daoMockError.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
+		return nil, errors.New("db down")
 	}
 
 	now := time.Now().UTC().Truncate(time.Second)
@@ -159,7 +160,7 @@ func TestBillingSummaryEndpoint(t *testing.T) {
 	cases := []tc{
 		{
 			name:               "unauthorized if getUserEmail fails",
-			overrideGetUserErr: fmt.Errorf("no token"),
+			overrideGetUserErr: errors.New("no token"),
 			dao:                daoMockError,
 			wantStatus:         http.StatusUnauthorized,
 		},
@@ -180,14 +181,14 @@ func TestBillingSummaryEndpoint(t *testing.T) {
 			dao:  daoMock,
 			setupDAO: func() {
 				updateCalled.Store(false)
-				daoMock.MockGetSubscription = func(email string) (*models.Subscription, error) {
+				daoMock.MockGetSubscription = func(_ string) (*models.Subscription, error) {
 					// must return a non-nil sub with an ID
 					return &models.Subscription{SubscriptionID: "sub_123"}, nil
 				}
 				daoMock.MockUpdateSubscription = func(s models.Subscription) error {
 					// optional sanity checks; don't require CustomerID if you didn't expand it
 					if s.LastSubCheck.IsZero() {
-						return fmt.Errorf("LastSubCheck not set")
+						return errors.New("LastSubCheck not set")
 					}
 					updateCalled.Store(true)
 					return nil
@@ -212,10 +213,10 @@ func TestBillingSummaryEndpoint(t *testing.T) {
 			name: "no subscriptions found → status none",
 			dao:  daoMock,
 			setupDAO: func() {
-				daoMock.MockGetSubscription = func(email string) (*models.Subscription, error) {
+				daoMock.MockGetSubscription = func(_ string) (*models.Subscription, error) {
 					return nil, sql.ErrNoRows
 				}
-				daoMock.MockUpdateSubscription = func(s models.Subscription) error { return nil }
+				daoMock.MockUpdateSubscription = func(_ models.Subscription) error { return nil }
 			},
 			wantStatus:   http.StatusOK,
 			wantContains: `"status":"none"`,
@@ -225,9 +226,9 @@ func TestBillingSummaryEndpoint(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			if c.overrideGetUserErr != nil {
-				getUserEmailFn = func(r *http.Request) (string, error) { return "", c.overrideGetUserErr }
+				getUserEmailFn = func(_ *http.Request) (string, error) { return "", c.overrideGetUserErr }
 			} else {
-				getUserEmailFn = func(r *http.Request) (string, error) { return "user@example.com", nil }
+				getUserEmailFn = func(_ *http.Request) (string, error) { return "user@example.com", nil }
 			}
 
 			if c.setupDAO != nil {
@@ -246,7 +247,7 @@ func TestBillingSummaryEndpoint(t *testing.T) {
 			}
 			rec := httptest.NewRecorder()
 
-			BillingSummaryEndpoint(rec, req)
+			SummaryEndpoint(rec, req)
 
 			res := rec.Result()
 			defer res.Body.Close()
@@ -274,8 +275,8 @@ func TestBillingSummaryEndpoint(t *testing.T) {
 
 func TestBillingPortalSessionEndpoint(t *testing.T) {
 	t.Cleanup(func() { getUserEmailFn = getUserEmail; ensureCustomerFn = ensureCustomer })
-	getUserEmailFn = func(r *http.Request) (string, error) { return "user@example.com", nil }
-	ensureCustomerFn = func(u *models.UserInfo, s *models.Subscription) (string, error) { return "cus_123", nil }
+	getUserEmailFn = func(_ *http.Request) (string, error) { return "user@example.com", nil }
+	ensureCustomerFn = func(_ *models.UserInfo, _ *models.Subscription) (string, error) { return "cus_123", nil }
 
 	daoMock := daos.NewMockDAO()
 	daoMock.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
@@ -283,8 +284,8 @@ func TestBillingPortalSessionEndpoint(t *testing.T) {
 	}
 
 	daoMockError := daos.NewMockDAO()
-	daoMockError.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
-		return nil, fmt.Errorf("db down")
+	daoMockError.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
+		return nil, errors.New("db down")
 	}
 
 	type tc struct {
@@ -301,7 +302,7 @@ func TestBillingPortalSessionEndpoint(t *testing.T) {
 	cases := []tc{
 		{
 			name:       "unauthorized when getUserEmail fails",
-			userErr:    fmt.Errorf("no token"),
+			userErr:    errors.New("no token"),
 			dao:        daoMockError,
 			wantStatus: http.StatusUnauthorized,
 		},
@@ -351,9 +352,9 @@ func TestBillingPortalSessionEndpoint(t *testing.T) {
 			}
 
 			if c.userErr != nil {
-				getUserEmailFn = func(r *http.Request) (string, error) { return "", c.userErr }
+				getUserEmailFn = func(_ *http.Request) (string, error) { return "", c.userErr }
 			} else {
-				getUserEmailFn = func(r *http.Request) (string, error) { return "user@example.com", nil }
+				getUserEmailFn = func(_ *http.Request) (string, error) { return "user@example.com", nil }
 			}
 
 			srv := newStripeServer(t, c.spec)
@@ -371,7 +372,7 @@ func TestBillingPortalSessionEndpoint(t *testing.T) {
 			}
 
 			rec := httptest.NewRecorder()
-			BillingPortalSessionEndpoint(rec, req)
+			PortalSessionEndpoint(rec, req)
 			res := rec.Result()
 			defer res.Body.Close()
 
@@ -399,7 +400,7 @@ func TestBillingPortalSessionEndpoint(t *testing.T) {
 func TestStripeWebhookEndpoint(t *testing.T) {
 	type tc struct {
 		name         string
-		setupEnv     func()
+		setupEnv     func(t *testing.T)
 		payload      string
 		signature    string
 		wantStatus   int
@@ -409,7 +410,7 @@ func TestStripeWebhookEndpoint(t *testing.T) {
 	cases := []tc{
 		{
 			name: "missing webhook secret",
-			setupEnv: func() {
+			setupEnv: func(_ *testing.T) {
 				os.Unsetenv("STRIPE_WEBHOOK_SECRET")
 			},
 			payload:      `{"type":"customer.subscription.updated"}`,
@@ -418,9 +419,9 @@ func TestStripeWebhookEndpoint(t *testing.T) {
 		},
 		{
 			name: "invalid signature verification",
-			setupEnv: func() {
-				os.Setenv("STRIPE_WEBHOOK_SECRET", "whsec_test_secret")
-				os.Setenv("AWS_REGION", "us-east-1")
+			setupEnv: func(t *testing.T) {
+				t.Setenv("STRIPE_WEBHOOK_SECRET", "whsec_test_secret")
+				t.Setenv("AWS_REGION", "us-east-1")
 			},
 			signature:    "t=1,v1=invalid_signature",
 			payload:      `{"type":"customer.subscription.updated"}`,
@@ -432,7 +433,7 @@ func TestStripeWebhookEndpoint(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			if c.setupEnv != nil {
-				c.setupEnv()
+				c.setupEnv(t)
 			}
 
 			req := httptest.NewRequest(http.MethodPost, "/billing/webhook", strings.NewReader(c.payload))

@@ -1,12 +1,13 @@
 package daos
 
 import (
-	"Threadr/logger"
-	"Threadr/models"
 	"context"
 	"fmt"
 	"sort"
 	"time"
+
+	"Threadr/logger"
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -83,8 +84,11 @@ func (d *DAO) GetAlertsForUser(ctx context.Context, email string) ([]models.Aler
 	}
 
 	var alerts []models.Alert
-	allItems := append(personalOut.Items, announcementOut.Items...)
-	if err := attributevalue.UnmarshalListOfMaps(allItems, &alerts); err != nil {
+	// Build a fresh slice so we don't risk mutating personalOut.Items via shared backing array.
+	allItems := make([]map[string]types.AttributeValue, 0, len(personalOut.Items)+len(announcementOut.Items))
+	allItems = append(allItems, personalOut.Items...)
+	allItems = append(allItems, announcementOut.Items...)
+	if err = attributevalue.UnmarshalListOfMaps(allItems, &alerts); err != nil {
 		return nil, fmt.Errorf("unmarshal alerts: %w", err)
 	}
 
@@ -119,7 +123,7 @@ func (d *DAO) GetAlertReadsByUser(ctx context.Context, email string) ([]models.A
 	}
 
 	var reads []models.AlertRead
-	if err := attributevalue.UnmarshalListOfMaps(out.Items, &reads); err != nil {
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &reads); err != nil {
 		return nil, fmt.Errorf("unmarshal alert reads: %w", err)
 	}
 	return reads, nil

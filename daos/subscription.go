@@ -1,14 +1,16 @@
 package daos
 
 import (
-	"Threadr/logger"
-	"Threadr/models"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
+
+	"Threadr/logger"
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -72,7 +74,7 @@ func (d *DAO) UpdateSubscription(ctx context.Context, sub models.Subscription) e
 
 	if sub.Email == "" {
 		logger.Error("UpdateSubscription called with empty email")
-		return fmt.Errorf("UpdateSubscription: email is required")
+		return errors.New("UpdateSubscription: email is required")
 	}
 	if sub.CustomerID != "" {
 		setParts = append(setParts, "customer_id = :cid")
@@ -118,10 +120,10 @@ func (d *DAO) UpdateSubscription(ctx context.Context, sub models.Subscription) e
 	return err
 }
 
-func (d *DAO) GetEmailByCustomerId(ctx context.Context, custId string) (string, error) {
+func (d *DAO) GetEmailByCustomerID(ctx context.Context, custID string) (string, error) {
 	tableName := "subscriptions" + GetTableSuffix()
 	logger.Debug("Looking up email by customer ID",
-		"customerId", custId,
+		"customerId", custID,
 		"tableName", tableName)
 
 	// Use Query on the GSI instead of Scan
@@ -130,20 +132,20 @@ func (d *DAO) GetEmailByCustomerId(ctx context.Context, custId string) (string, 
 		IndexName:              aws.String("customer-id-index"),
 		KeyConditionExpression: aws.String("customer_id = :c"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":c": &types.AttributeValueMemberS{Value: custId},
+			":c": &types.AttributeValueMemberS{Value: custID},
 		},
 		Limit: aws.Int32(1),
 	})
 	if err != nil {
 		logger.Error("Failed to query subscriptions by customer ID",
 			"error", err,
-			"customerId", custId,
+			"customerId", custID,
 			"tableName", tableName,
 			"indexName", "customer-id-index")
 		return "", err
 	}
 	logger.Info("Query completed",
-		"customerId", custId,
+		"customerId", custID,
 		"itemsFound", len(out.Items),
 		"tableName", tableName,
 		"indexName", "customer-id-index")
@@ -153,7 +155,7 @@ func (d *DAO) GetEmailByCustomerId(ctx context.Context, custId string) (string, 
 		logger.Warn("Query returned no items, attempting scan for debugging")
 		scanOut, scanErr := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
 			TableName: aws.String(tableName),
-			Limit:     aws.Int32(5),
+			Limit:     aws.Int32(5), //nolint:mnd
 		})
 		if scanErr == nil && len(scanOut.Items) > 0 {
 			logger.Info("Sample items from table",
@@ -161,7 +163,7 @@ func (d *DAO) GetEmailByCustomerId(ctx context.Context, custId string) (string, 
 				"sampleCount", len(scanOut.Items))
 			for i, item := range scanOut.Items {
 				if emailAttr, ok := item["email"].(*types.AttributeValueMemberS); ok {
-					if custAttr, ok := item["customer_id"].(*types.AttributeValueMemberS); ok {
+					if custAttr, ok := item["customer_id"].(*types.AttributeValueMemberS); ok { //nolint:govet
 						logger.Info("Sample item",
 							"index", i,
 							"email", emailAttr.Value,
@@ -173,20 +175,20 @@ func (d *DAO) GetEmailByCustomerId(ctx context.Context, custId string) (string, 
 	}
 	if len(out.Items) == 0 {
 		logger.Warn("No subscription found for customer ID",
-			"customerId", custId,
+			"customerId", custID,
 			"tableName", tableName)
-		return "", fmt.Errorf("no subscription found for customer %s", custId)
+		return "", fmt.Errorf("no subscription found for customer %s", custID)
 	}
 
 	emailAttr, ok := out.Items[0]["email"].(*types.AttributeValueMemberS)
 	if !ok {
 		logger.Error("Email attribute missing or wrong type",
-			"customerId", custId)
-		return "", fmt.Errorf("email attribute missing or wrong type for customer %s", custId)
+			"customerId", custID)
+		return "", fmt.Errorf("email attribute missing or wrong type for customer %s", custID)
 	}
 
 	logger.Info("Email found for customer ID",
-		"customerId", custId,
+		"customerId", custID,
 		"email", emailAttr.Value)
 	return emailAttr.Value, nil
 }

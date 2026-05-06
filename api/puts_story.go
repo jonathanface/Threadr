@@ -1,19 +1,18 @@
 package api
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/url"
+	"os"
+	"strings"
+
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
 	"Threadr/logger"
 	"Threadr/models"
-	"context"
-	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
-	"net/url"
-	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -23,7 +22,7 @@ import (
 )
 
 // deleteS3Image deletes an image from S3 given its full URL
-// Returns nil if successful or if the URL is empty/default
+// Returns nil if successful or if the URL is empty/default.
 func deleteS3Image(imageURL, bucket string) error {
 	if imageURL == "" {
 		return nil
@@ -38,7 +37,7 @@ func deleteS3Image(imageURL, bucket string) error {
 	// Extract the key (filename) from the URL
 	// URL format: https://bucket.s3.region.amazonaws.com/filename
 	parts := strings.Split(imageURL, "/")
-	if len(parts) < 4 {
+	if len(parts) < 4 { //nolint:mnd
 		logger.Warn("Invalid S3 URL format, skipping deletion", "url", imageURL)
 		return nil
 	}
@@ -74,24 +73,19 @@ func deleteS3Image(imageURL, bucket string) error {
 }
 
 func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
-	var (
-		seriesID string
-		email    string
-		err      error
-		dao      daos.DaoInterface
-		ok       bool
-	)
-	if email, err = getUserEmail(r); err != nil {
+	email, err := getUserEmail(r)
+	if err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
+	dao, ok := r.Context().Value(ctxkey.DAO).(daos.DaoInterface)
+	if !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-
-	if seriesID, err = url.PathUnescape(mux.Vars(r)["seriesID"]); err != nil {
+	seriesID, err := url.PathUnescape(mux.Vars(r)["seriesID"])
+	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing series ID")
 		return
 	}
@@ -105,164 +99,35 @@ func EditSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusNotFound, "Unable to locate series")
 		return
 	}
-	if len(strings.TrimSpace(r.FormValue("series_name"))) > 0 {
-		series.Title = strings.TrimSpace(r.FormValue("series_name"))
-		if series.Title == "" {
-			RespondWithError(w, http.StatusBadRequest, "Series name cannot be blank")
-			return
-		}
-	}
 
-	if len(strings.TrimSpace(r.FormValue("series_description"))) > 0 {
-		series.Description = strings.TrimSpace(r.FormValue("series_description"))
+	if title := strings.TrimSpace(r.FormValue("series_name")); title != "" {
+		series.Title = title
 	}
-
-	storiesJSON := r.FormValue("stories")
-	if storiesJSON != "" {
-		var stories []models.Story
-		err := json.Unmarshal([]byte(storiesJSON), &stories)
-		if err != nil {
-			logger.Error("Bad request", "error", err)
-		RespondWithError(w, http.StatusBadRequest, "Invalid request")
-			return
-		}
-		for idx, fromForm := range stories {
-			exists := false
-			for storedIdx, storedStory := range series.Stories {
-				if storedStory.ID == fromForm.ID {
-					// an existing story was changed
-					storyCopy := stories[idx]
-					series.Stories[storedIdx] = &storyCopy
-					exists = true
-				}
-			}
-			if !exists {
-				// new story was added
-				fromForm.SeriesID = seriesID
-				series.Stories = append(series.Stories, &fromForm)
-				_, err = dao.EditStory(r.Context(), email, fromForm)
-				if err != nil {
-					logger.Error("Internal error", "error", err)
-					RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-					return
-				}
-			}
-		}
+	if desc := strings.TrimSpace(r.FormValue("series_description")); desc != "" {
+		series.Description = desc
 	}
-
-	const maxFileSize = 5 * 1024 * 1024 // 5 MB
-	// image upload
-	err = r.ParseMultipartForm(10 << 20)
-	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, "Unable to parse file")
+	if !mergeFormStoriesIntoSeries(w, r, dao, email, seriesID, series) {
 		return
 	}
 
-	file, handler, err := r.FormFile("file")
-	if err != nil {
-		if err != http.ErrMissingFile {
-			logger.Error("Bad request", "error", err)
-		RespondWithError(w, http.StatusBadRequest, "Invalid request")
-			return
-		}
-	}
-	if file != nil {
-		defer file.Close()
-
-		// Delete the old image before uploading the new one
-		if err := deleteS3Image(series.ImageURL, S3_SERIES_IMAGE_BUCKET); err != nil {
-			logger.Warn("Failed to delete old series image, continuing with upload",
-				"error", err,
-				"seriesId", seriesID,
-				"oldImageURL", series.ImageURL)
-		}
-
-		if handler.Size < 0 || handler.Size > maxFileSize {
-			RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("File size exceeds allowed limit of %dMB", maxFileSize/(1024*1024)))
-			return
-		}
-		allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
-		fileBytes := make([]byte, handler.Size)
-		if _, err := file.Read(fileBytes); err != nil {
-			logger.Error("Internal error", "error", err)
-			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-			return
-		}
-		fileType := http.DetectContentType(fileBytes)
-		allowed := false
-		for _, t := range allowedTypes {
-			if fileType == t {
-				allowed = true
-				break
-			}
-		}
-		if !allowed {
-			RespondWithError(w, http.StatusBadRequest, "Invalid file type")
-			return
-		}
-
-		if _, err := file.Seek(0, io.SeekStart); err != nil {
-			RespondWithError(w, http.StatusInternalServerError, "Failed to read the image file")
-			return
-		}
-		// Scale down the image if it exceeds the maximum width
-		scaledImageBuf, _, err := scaleDownImage(file, uint(400))
-		if err != nil {
-			logger.Error("Internal error", "error", err)
-			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-			return
-		}
-		// Check the size of the scaled image
-		if scaledImageBuf.Len() > maxFileSize {
-			RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Filesize must be < %dMB", maxFileSize/(1024*1024)))
-			return
-		}
-
-		ext := filepath.Ext(handler.Filename)
-
-		safeEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-		filename := safeEmail + "_" + seriesID + ext
-
-		var awsCfg aws.Config
-		if awsCfg, err = config.LoadDefaultConfig(context.TODO(), func(opts *config.LoadOptions) error {
-			opts.Region = os.Getenv("AWS_REGION")
-			return nil
-		}); err != nil {
-			logger.Error("Internal error", "error", err)
-			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-			return
-		}
-		s3Client := s3.NewFromConfig(awsCfg)
-		if _, err = s3Client.PutObject(context.Background(), &s3.PutObjectInput{
-			Bucket:      aws.String(S3_SERIES_IMAGE_BUCKET),
-			Key:         aws.String(filename),
-			Body:        scaledImageBuf,
-			ContentType: aws.String(fileType),
-		}); err != nil {
-			logger.Error("Internal error", "error", err)
-			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-			return
-		}
-		series.ImageURL = "https://" + S3_SERIES_IMAGE_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
-	}
-
-	var updatedSeries models.Series
-	if updatedSeries, err = dao.EditSeries(r.Context(), email, *series); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
-			awsResponse := processAWSError(opErr)
-			if awsResponse.Code == 0 {
-				logger.Error("Internal error", "error", err)
-				RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-				return
-			}
-			RespondWithError(w, awsResponse.Code, awsResponse.Message)
-			return
-		}
-		logger.Error("Internal error", "error", err)
-		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
+	if !parseStoryUploadForm(w, r) {
 		return
 	}
-	RespondWithJson(w, http.StatusOK, updatedSeries)
+	safeEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
+	newURL, ok := uploadPortraitImage(w, r, series.ImageURL, s3SeriesImageBucket, safeEmail+"_"+seriesID)
+	if !ok {
+		return
+	}
+	if newURL != "" {
+		series.ImageURL = newURL
+	}
+
+	updatedSeries, err := dao.EditSeries(r.Context(), email, *series)
+	if err != nil {
+		respondToDAOWriteError(w, err)
+		return
+	}
+	RespondWithJSON(w, http.StatusOK, updatedSeries)
 }
 
 func RemoveStoryFromSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -314,7 +179,8 @@ func RemoveStoryFromSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	var updatedSeries models.Series
 	if updatedSeries, err = dao.RemoveStoryFromSeries(r.Context(), email, story.ID, *series); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -328,28 +194,23 @@ func RemoveStoryFromSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, updatedSeries)
+	RespondWithJSON(w, http.StatusOK, updatedSeries)
 }
 
 func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
-	var (
-		storyID string
-		email   string
-		err     error
-		dao     daos.DaoInterface
-		ok      bool
-	)
-	if email, err = getUserEmail(r); err != nil {
+	email, err := getUserEmail(r)
+	if err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	if dao, ok = r.Context().Value(ctxkey.DAO).(daos.DaoInterface); !ok {
+	dao, ok := r.Context().Value(ctxkey.DAO).(daos.DaoInterface)
+	if !ok {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-
-	if storyID, err = url.PathUnescape(mux.Vars(r)["story"]); err != nil {
+	storyID, err := url.PathUnescape(mux.Vars(r)["story"])
+	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Error parsing story name")
 		return
 	}
@@ -363,145 +224,58 @@ func EditStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusNotFound, "Unable to locate story")
 		return
 	}
-	if len(strings.TrimSpace(r.FormValue("title"))) > 0 {
-		story.Title = strings.TrimSpace(r.FormValue("title"))
-		// Validate title (matches frontend validation)
-		if err := ValidateStoryTitle(story.Title); err != nil {
-			RespondWithError(w, http.StatusBadRequest, err.Message)
-			return
-		}
+	if !applyStoryFormFields(w, r, story) {
+		return
 	}
 
-	if len(strings.TrimSpace(r.FormValue("description"))) > 0 {
-		story.Description = strings.TrimSpace(r.FormValue("description"))
-		// Validate description (matches frontend validation)
-		if err := ValidateStoryDescription(story.Description); err != nil {
-			RespondWithError(w, http.StatusBadRequest, err.Message)
-			return
-		}
+	if !parseStoryUploadForm(w, r) {
+		return
+	}
+	safeEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
+	newURL, ok := uploadPortraitImage(w, r, story.ImageURL, s3StoryImagebucket, safeEmail+"_"+storyID)
+	if !ok {
+		return
+	}
+	if newURL != "" {
+		story.ImageURL = newURL
 	}
 
-	if len(strings.TrimSpace(r.FormValue("series_id"))) > 0 {
+	updatedStory, err := dao.EditStory(r.Context(), email, *story)
+	if err != nil {
+		respondToDAOWriteError(w, err)
+		return
+	}
+	RespondWithJSON(w, http.StatusOK, updatedStory)
+}
+
+// applyStoryFormFields applies the optional title/description/series form
+// fields onto story in-place, running the same validations as the frontend.
+// Returns false if a 400 has already been written for an invalid field.
+func applyStoryFormFields(w http.ResponseWriter, r *http.Request, story *models.Story) bool {
+	if title := strings.TrimSpace(r.FormValue("title")); title != "" {
+		if vErr := ValidateStoryTitle(title); vErr != nil {
+			RespondWithError(w, http.StatusBadRequest, vErr.Message)
+			return false
+		}
+		story.Title = title
+	}
+	if desc := strings.TrimSpace(r.FormValue("description")); desc != "" {
+		if vErr := ValidateStoryDescription(desc); vErr != nil {
+			RespondWithError(w, http.StatusBadRequest, vErr.Message)
+			return false
+		}
+		story.Description = desc
+	}
+
+	switch {
+	case strings.TrimSpace(r.FormValue("series_id")) != "":
 		story.SeriesID = strings.TrimSpace(r.FormValue("series_id"))
-	} else if len(strings.TrimSpace(r.FormValue("series_name"))) > 0 {
+	case strings.TrimSpace(r.FormValue("series_name")) != "":
 		story.SeriesID = strings.TrimSpace(r.FormValue("series_name"))
-	} else {
+	default:
 		story.SeriesID = ""
 	}
-
-	const maxFileSize = 5 * 1024 * 1024 // 5 MB
-	// image upload
-	err = r.ParseMultipartForm(10 << 20)
-	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, "Unable to parse file")
-		return
-	}
-
-	file, handler, err := r.FormFile("file")
-	if err != nil {
-		if err != http.ErrMissingFile {
-			logger.Error("Bad request", "error", err)
-		RespondWithError(w, http.StatusBadRequest, "Invalid request")
-			return
-		}
-	}
-	if file != nil {
-		defer file.Close()
-
-		// Delete the old image before uploading the new one
-		if err := deleteS3Image(story.ImageURL, S3_STORY_IMAGE_BUCKET); err != nil {
-			logger.Warn("Failed to delete old story image, continuing with upload",
-				"error", err,
-				"storyId", storyID,
-				"oldImageURL", story.ImageURL)
-		}
-
-		allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
-		if handler.Size < 0 || handler.Size > int64(maxFileSize) {
-			RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("File size exceeds allowed limit of %dMB", maxFileSize/(1024*1024)))
-			return
-		}
-		fileBytes := make([]byte, handler.Size)
-		if _, err := file.Read(fileBytes); err != nil {
-			logger.Error("Internal error", "error", err)
-			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-			return
-		}
-		fileType := http.DetectContentType(fileBytes)
-		allowed := false
-		for _, t := range allowedTypes {
-			if fileType == t {
-				allowed = true
-				break
-			}
-		}
-		if !allowed {
-			RespondWithError(w, http.StatusBadRequest, "Invalid file type")
-			return
-		}
-
-		if _, err := file.Seek(0, io.SeekStart); err != nil {
-			RespondWithError(w, http.StatusInternalServerError, "Failed to read the image file")
-			return
-		}
-		// Scale down the image if it exceeds the maximum width
-		scaledImageBuf, _, err := scaleDownImage(file, uint(400))
-		if err != nil {
-			logger.Error("Internal error", "error", err)
-			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-			return
-		}
-		// Check the size of the scaled image
-		if scaledImageBuf.Len() > maxFileSize {
-			RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Filesize must be < %dMB", maxFileSize/(1024*1024)))
-			return
-		}
-
-		ext := filepath.Ext(handler.Filename)
-
-		safeEmail := strings.ToLower(strings.ReplaceAll(email, "@", "-"))
-		filename := safeEmail + "_" + storyID + ext
-
-		var awsCfg aws.Config
-		if awsCfg, err = config.LoadDefaultConfig(context.TODO(), func(opts *config.LoadOptions) error {
-			opts.Region = os.Getenv("AWS_REGION")
-			return nil
-		}); err != nil {
-			logger.Error("Internal error", "error", err)
-			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-			return
-		}
-		s3Client := s3.NewFromConfig(awsCfg)
-		if _, err = s3Client.PutObject(context.Background(), &s3.PutObjectInput{
-			Bucket:      aws.String(S3_STORY_IMAGE_BUCKET),
-			Key:         aws.String(filename),
-			Body:        scaledImageBuf,
-			ContentType: aws.String(fileType),
-		}); err != nil {
-			logger.Error("Internal error", "error", err)
-			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-			return
-		}
-		story.ImageURL = "https://" + S3_STORY_IMAGE_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
-	}
-
-	var updatedStory models.Story
-	if updatedStory, err = dao.EditStory(r.Context(), email, *story); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
-			awsResponse := processAWSError(opErr)
-			if awsResponse.Code == 0 {
-				logger.Error("Internal error", "error", err)
-				RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-				return
-			}
-			RespondWithError(w, awsResponse.Code, awsResponse.Message)
-			return
-		}
-		logger.Error("Internal error", "error", err)
-		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-		return
-	}
-	RespondWithJson(w, http.StatusOK, updatedStory)
+	return true
 }
 
 func EditStorySettingsEndPoint(w http.ResponseWriter, r *http.Request) {
@@ -532,13 +306,13 @@ func EditStorySettingsEndPoint(w http.ResponseWriter, r *http.Request) {
 	}
 	decoder := json.NewDecoder(r.Body)
 	updateSettings := models.StorySettings{}
-	if err := decoder.Decode(&updateSettings); err != nil {
+	if err = decoder.Decode(&updateSettings); err != nil {
 		logger.Error("Bad request", "error", err)
 		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
 
-	if err := validateStorySettings(&updateSettings); err != nil {
+	if err = validateStorySettings(&updateSettings); err != nil {
 		logger.Error("Bad request", "error", err)
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
@@ -550,5 +324,5 @@ func EditStorySettingsEndPoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, updateSettings)
+	RespondWithJSON(w, http.StatusOK, updateSettings)
 }

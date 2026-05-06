@@ -1,8 +1,9 @@
 package daos
 
 import (
-	"Threadr/models"
 	"context"
+
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
@@ -11,25 +12,33 @@ import (
 type DaoInterface interface {
 	// GETs
 	GetAllStories(ctx context.Context, email string) ([]*models.Story, error)
-	GetAllStandalone(ctx context.Context, email string, adminRequest bool) ([]models.Story, error)
-	GetAllSeriesWithStories(ctx context.Context, email string, adminRequest bool) ([]models.Series, error)
+	GetAllStandalone(ctx context.Context, email string) ([]models.Story, error)
+	GetAllSeriesWithStories(ctx context.Context, email string) ([]models.Series, error)
 	GetChaptersByStoryID(ctx context.Context, storyID string) ([]models.Chapter, error)
 	GetChaptersByStoryIDs(ctx context.Context, storyIDs []string) (map[string][]models.Chapter, error)
 	GetStoryByID(ctx context.Context, email string, storyID string) (*models.Story, error)
 	GetStorySettingsByID(ctx context.Context, email string, storyID string) (*models.StorySettings, error)
 	GetSeriesByID(ctx context.Context, email string, seriesID string) (*models.Series, error)
 	GetStoryCountByUser(ctx context.Context, email string) (int, error)
-	GetChapterParagraphs(ctx context.Context, storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error)
-	GetStoryOrSeriesAssociationThumbnails(ctx context.Context, email, storyID string) ([]*models.SimplifiedAssociation, error)
+	GetChapterParagraphs(
+		ctx context.Context,
+		storyID string,
+		chapterID string,
+		key *map[string]types.AttributeValue,
+	) (*models.BlocksData, error)
+	GetStoryOrSeriesAssociationThumbnails(
+		ctx context.Context,
+		email, storyID string,
+	) ([]*models.SimplifiedAssociation, error)
 	GetAssociationDetails(ctx context.Context, email, storyID, associationID string) (*models.Association, error)
-	GetSeriesVolumes(ctx context.Context, email string, seriesID string) ([]*models.Story, error)
+	GetSeriesVolumes(ctx context.Context, seriesID string) ([]*models.Story, error)
 	GetUserDetails(ctx context.Context, email string) (*models.UserInfo, error)
 	GetAllUsersWithStories(ctx context.Context) ([]models.AdminUserSummary, error)
 	GetChapterByID(ctx context.Context, chapterID string) (*models.Chapter, error)
 	GetOutlineByStoryID(ctx context.Context, storyID string, chapters []models.Chapter) (*models.OutlineResponse, error)
-	GetChapterTableStatus(ctx context.Context, storyID, chapterID string) (bool, error)
+	GetChapterTableStatus(ctx context.Context) (bool, error)
 	GetSubscription(ctx context.Context, email string) (*models.Subscription, error)
-	GetEmailByCustomerId(ctx context.Context, customerID string) (string, error)
+	GetEmailByCustomerID(ctx context.Context, customerID string) (string, error)
 	ensureBlocksTableFromBackup(ctx context.Context, backupARN, oldTableName, chapterName string) error
 	kickoffRestoreAsync(email string)
 
@@ -53,8 +62,13 @@ type DaoInterface interface {
 	UpdateSubscription(ctx context.Context, subscription models.Subscription) error
 
 	// POSTs
-	CreateChapter(ctx context.Context, storyID string, chapter models.Chapter, email string) (models.Chapter, error)
-	CreateStory(ctx context.Context, email string, story models.Story, newSeriesTitle string) (storyID string, err error)
+	CreateChapter(ctx context.Context, storyID string, chapter models.Chapter) (models.Chapter, error)
+	CreateStory(
+		ctx context.Context,
+		email string,
+		story models.Story,
+		newSeriesTitle string,
+	) (storyID string, err error)
 	CreateUser(ctx context.Context, email string) (*models.UserInfo, error)
 	CreateOutline(ctx context.Context, outline models.OutlineRequest) (*models.OutlineRequest, error)
 
@@ -85,7 +99,11 @@ type DaoInterface interface {
 	DeleteComment(ctx context.Context, commentID string) error
 
 	// Email/Password Auth
-	CreateEmailUser(ctx context.Context, email, firstName, lastName, passwordHash, verificationToken string, tokenExpires int64) (*models.UserInfo, error)
+	CreateEmailUser(
+		ctx context.Context,
+		email, firstName, lastName, passwordHash, verificationToken string,
+		tokenExpires int64,
+	) (*models.UserInfo, error)
 	SetEmailVerified(ctx context.Context, email string) error
 	SetVerificationToken(ctx context.Context, email, token string, expires int64) error
 	SetResetToken(ctx context.Context, email, token string, expires int64) error
@@ -110,5 +128,8 @@ type DaoInterface interface {
 	GetTotalCreatedStories(ctx context.Context, email string) (int, error)
 	CheckForSuspendedStories(ctx context.Context, email string) (bool, error)
 	CheckTableStatus(ctx context.Context, tableName string) (string, error)
-	awsWriteTransaction(ctx context.Context, writeItemsInput *dynamodb.TransactWriteItemsInput) (awsError models.AwsError, err error)
+	awsWriteTransaction(
+		ctx context.Context,
+		writeItemsInput *dynamodb.TransactWriteItemsInput,
+	) (awsError models.AwsError, err error)
 }

@@ -1,15 +1,16 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/gorilla/mux"
 )
@@ -50,10 +51,10 @@ func TestHashShareToken(t *testing.T) {
 
 func TestCreateShareLink_StoresHash_ReturnsRawToken(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID, Title: "Test Story"}, nil
 	}
-	mockDAO.MockGetShareLinksByAuthor = func(email, storyID string) ([]models.ShareLink, error) {
+	mockDAO.MockGetShareLinksByAuthor = func(_, _ string) ([]models.ShareLink, error) {
 		return []models.ShareLink{}, nil
 	}
 

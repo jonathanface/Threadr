@@ -1,15 +1,16 @@
 package main
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
-	"Threadr/sessions"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
+	"Threadr/sessions"
 
 	gsessions "github.com/gorilla/sessions"
 )
@@ -25,16 +26,16 @@ func setupTestSession() {
 	sessions.Store = gsessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))
 }
 
-// Helper to create a test handler that records if it was called
+// Helper to create a test handler that records if it was called.
 func createTestHandler(called *bool) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		*called = true
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
 }
 
-// Helper to create request with session
+// Helper to create request with session.
 func createRequestWithSession(method, url, email string) *http.Request {
 	req := httptest.NewRequest(method, url, nil)
 	w := httptest.NewRecorder()
@@ -54,7 +55,7 @@ func createRequestWithSession(method, url, email string) *http.Request {
 	return req
 }
 
-// Tests for looseMiddleware
+// Tests for looseMiddleware.
 func TestLooseMiddleware(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
@@ -63,7 +64,7 @@ func TestLooseMiddleware(t *testing.T) {
 		middleware := looseMiddleware(mockDAO)
 		handler := middleware(createTestHandler(&handlerCalled))
 
-		req := httptest.NewRequest("OPTIONS", "/test", nil)
+		req := httptest.NewRequest(http.MethodOptions, "/test", nil)
 		w := httptest.NewRecorder()
 
 		handler.ServeHTTP(w, req)
@@ -87,7 +88,7 @@ func TestLooseMiddleware(t *testing.T) {
 		})
 		handler := middleware(testHandler)
 
-		req := httptest.NewRequest("GET", "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		w := httptest.NewRecorder()
 
 		handler.ServeHTTP(w, req)
@@ -114,14 +115,14 @@ func TestLooseMiddleware(t *testing.T) {
 		})
 		handler := middleware(testHandler)
 
-		req := httptest.NewRequest("POST", "/test", nil)
+		req := httptest.NewRequest(http.MethodPost, "/test", nil)
 		w := httptest.NewRecorder()
 
 		handler.ServeHTTP(w, req)
 	})
 }
 
-// Tests for billingMiddleware
+// Tests for billingMiddleware.
 func TestBillingMiddleware(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
@@ -132,7 +133,7 @@ func TestBillingMiddleware(t *testing.T) {
 		middleware := billingMiddleware(mockDAO)
 		handler := middleware(createTestHandler(&handlerCalled))
 
-		req := httptest.NewRequest("OPTIONS", "/billing/test", nil)
+		req := httptest.NewRequest(http.MethodOptions, "/billing/test", nil)
 		w := httptest.NewRecorder()
 
 		handler.ServeHTTP(w, req)
@@ -151,7 +152,7 @@ func TestBillingMiddleware(t *testing.T) {
 		middleware := billingMiddleware(mockDAO)
 		handler := middleware(createTestHandler(&handlerCalled))
 
-		req := httptest.NewRequest("POST", "/billing/test", nil)
+		req := httptest.NewRequest(http.MethodPost, "/billing/test", nil)
 		w := httptest.NewRecorder()
 
 		handler.ServeHTTP(w, req)
@@ -194,7 +195,7 @@ func TestBillingMiddleware(t *testing.T) {
 		middleware := billingMiddleware(mockDAO)
 		handler := middleware(createTestHandler(&handlerCalled))
 
-		req := httptest.NewRequest("POST", "/billing/test", nil)
+		req := httptest.NewRequest(http.MethodPost, "/billing/test", nil)
 		w := httptest.NewRecorder()
 
 		// Create a new session but mark it as new
@@ -218,7 +219,7 @@ func TestBillingMiddleware(t *testing.T) {
 	})
 }
 
-// Tests for strictMiddleware
+// Tests for strictMiddleware.
 func TestStrictMiddleware(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	// strictMiddleware calls UpsertUser, not GetUserDetails
@@ -236,7 +237,7 @@ func TestStrictMiddleware(t *testing.T) {
 		middleware := strictMiddleware(mockDAO)
 		handler := middleware(createTestHandler(&handlerCalled))
 
-		req := httptest.NewRequest("OPTIONS", "/api/test", nil)
+		req := httptest.NewRequest(http.MethodOptions, "/api/test", nil)
 		w := httptest.NewRecorder()
 
 		handler.ServeHTTP(w, req)
@@ -255,7 +256,7 @@ func TestStrictMiddleware(t *testing.T) {
 		middleware := strictMiddleware(mockDAO)
 		handler := middleware(createTestHandler(&handlerCalled))
 
-		req := httptest.NewRequest("GET", "/api/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/test", nil)
 		w := httptest.NewRecorder()
 
 		handler.ServeHTTP(w, req)
@@ -274,7 +275,7 @@ func TestStrictMiddleware(t *testing.T) {
 		// This test verifies the middleware logic path
 
 		middleware := strictMiddleware(mockDAO)
-		testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		testHandler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			// This won't be reached because UpsertUser will fail without real DB
 			w.WriteHeader(http.StatusOK)
 		})
@@ -396,7 +397,7 @@ func TestStrictMiddleware(t *testing.T) {
 		// This test verifies the middleware attempts to set up the context
 
 		middleware := strictMiddleware(mockDAO)
-		testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		testHandler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			// Won't reach here without real DB
 			w.WriteHeader(http.StatusOK)
 		})

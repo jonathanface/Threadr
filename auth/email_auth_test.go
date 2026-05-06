@@ -1,20 +1,20 @@
 package auth
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -27,7 +27,7 @@ func makeCtxWithDAO(req *http.Request, dao daos.DaoInterface) *http.Request {
 	return req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, dao))
 }
 
-func jsonBody(t *testing.T, v interface{}) *bytes.Buffer {
+func jsonBody(t *testing.T, v any) *bytes.Buffer {
 	t.Helper()
 	b, err := json.Marshal(v)
 	if err != nil {
@@ -36,9 +36,9 @@ func jsonBody(t *testing.T, v interface{}) *bytes.Buffer {
 	return bytes.NewBuffer(b)
 }
 
-func decodeJSON(t *testing.T, rr *httptest.ResponseRecorder) map[string]interface{} {
+func decodeJSON(t *testing.T, rr *httptest.ResponseRecorder) map[string]any {
 	t.Helper()
-	var m map[string]interface{}
+	var m map[string]any
 	if err := json.NewDecoder(rr.Body).Decode(&m); err != nil {
 		t.Fatalf("failed to decode response body: %v", err)
 	}
@@ -50,6 +50,8 @@ func testOptions() OauthOptions {
 }
 
 // testHash is a bcrypt hash of "password123" using MinCost for speed.
+//
+//nolint:gochecknoglobals // computed once in init() so every test sees the same hash.
 var testHash string
 
 func init() {
@@ -66,10 +68,10 @@ func init() {
 
 func TestEmailSignup_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+	mockDAO.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
 		return nil, sql.ErrNoRows
 	}
-	mockDAO.MockCreateEmailUser = func(email, firstName, lastName, passwordHash, verificationToken string, tokenExpires int64) (*models.UserInfo, error) {
+	mockDAO.MockCreateEmailUser = func(email, firstName, lastName, _, _ string, _ int64) (*models.UserInfo, error) {
 		return &models.UserInfo{Email: email, FirstName: firstName, LastName: lastName, AuthType: "email"}, nil
 	}
 
@@ -80,7 +82,7 @@ func TestEmailSignup_Success(t *testing.T) {
 		LastName:  "User",
 	})
 
-	req := httptest.NewRequest("POST", "/auth/email/signup", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -102,7 +104,7 @@ func TestEmailSignup_MissingEmail(t *testing.T) {
 		LastName:  "User",
 	})
 
-	req := httptest.NewRequest("POST", "/auth/email/signup", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -124,7 +126,7 @@ func TestEmailSignup_InvalidEmailFormat(t *testing.T) {
 		LastName:  "User",
 	})
 
-	req := httptest.NewRequest("POST", "/auth/email/signup", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -150,7 +152,7 @@ func TestEmailSignup_MissingNames(t *testing.T) {
 		LastName:  "",
 	})
 
-	req := httptest.NewRequest("POST", "/auth/email/signup", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -176,7 +178,7 @@ func TestEmailSignup_PasswordTooShort(t *testing.T) {
 		LastName:  "User",
 	})
 
-	req := httptest.NewRequest("POST", "/auth/email/signup", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -203,7 +205,7 @@ func TestEmailSignup_PasswordTooLong(t *testing.T) {
 		LastName:  "User",
 	})
 
-	req := httptest.NewRequest("POST", "/auth/email/signup", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -232,7 +234,7 @@ func TestEmailSignup_ExistingOAuthAccount(t *testing.T) {
 		LastName:  "User",
 	})
 
-	req := httptest.NewRequest("POST", "/auth/email/signup", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -261,7 +263,7 @@ func TestEmailSignup_ExistingEmailAccount(t *testing.T) {
 		LastName:  "User",
 	})
 
-	req := httptest.NewRequest("POST", "/auth/email/signup", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -279,7 +281,7 @@ func TestEmailSignup_ExistingEmailAccount(t *testing.T) {
 
 func TestEmailSignup_DAOErrorOnGetUserDetails(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+	mockDAO.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
 		return nil, errors.New("database connection failed")
 	}
 
@@ -290,7 +292,7 @@ func TestEmailSignup_DAOErrorOnGetUserDetails(t *testing.T) {
 		LastName:  "User",
 	})
 
-	req := httptest.NewRequest("POST", "/auth/email/signup", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -327,7 +329,7 @@ func TestEmailLogin_Success(t *testing.T) {
 		Password: "password123",
 	})
 
-	req := httptest.NewRequest("POST", "/auth/email/login", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/email/login", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -355,7 +357,7 @@ func TestEmailLogin_MissingEmailPassword(t *testing.T) {
 		Password: "",
 	})
 
-	req := httptest.NewRequest("POST", "/auth/email/login", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/email/login", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -369,7 +371,7 @@ func TestEmailLogin_MissingEmailPassword(t *testing.T) {
 
 func TestEmailLogin_UserNotFound(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+	mockDAO.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
 		return nil, sql.ErrNoRows
 	}
 
@@ -378,7 +380,7 @@ func TestEmailLogin_UserNotFound(t *testing.T) {
 		Password: "password123",
 	})
 
-	req := httptest.NewRequest("POST", "/auth/email/login", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/email/login", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -401,7 +403,7 @@ func TestEmailLogin_OAuthAccount(t *testing.T) {
 		Password: "password123",
 	})
 
-	req := httptest.NewRequest("POST", "/auth/email/login", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/email/login", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -433,7 +435,7 @@ func TestEmailLogin_EmailNotVerified(t *testing.T) {
 		Password: "password123",
 	})
 
-	req := httptest.NewRequest("POST", "/auth/email/login", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/email/login", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -465,7 +467,7 @@ func TestEmailLogin_WrongPassword(t *testing.T) {
 		Password: "wrongpassword",
 	})
 
-	req := httptest.NewRequest("POST", "/auth/email/login", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/email/login", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -484,7 +486,7 @@ func TestEmailLogin_WrongPassword(t *testing.T) {
 func TestEmailVerify_MissingToken(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
-	req := httptest.NewRequest("GET", "/auth/email/verify", nil)
+	req := httptest.NewRequest(http.MethodGet, "/auth/email/verify", nil)
 	req = makeCtxWithDAO(req, mockDAO)
 
 	rr := httptest.NewRecorder()
@@ -497,11 +499,11 @@ func TestEmailVerify_MissingToken(t *testing.T) {
 
 func TestEmailVerify_TokenNotFound(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockFindUserByVerificationToken = func(token string) (*models.UserInfo, error) {
+	mockDAO.MockFindUserByVerificationToken = func(_ string) (*models.UserInfo, error) {
 		return nil, sql.ErrNoRows
 	}
 
-	req := httptest.NewRequest("GET", "/auth/email/verify?token=badtoken", nil)
+	req := httptest.NewRequest(http.MethodGet, "/auth/email/verify?token=badtoken", nil)
 	req = makeCtxWithDAO(req, mockDAO)
 
 	rr := httptest.NewRecorder()
@@ -514,14 +516,14 @@ func TestEmailVerify_TokenNotFound(t *testing.T) {
 
 func TestEmailVerify_TokenExpired(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockFindUserByVerificationToken = func(token string) (*models.UserInfo, error) {
+	mockDAO.MockFindUserByVerificationToken = func(_ string) (*models.UserInfo, error) {
 		return &models.UserInfo{
 			Email:                    "test@example.com",
 			VerificationTokenExpires: time.Now().Add(-1 * time.Hour).Unix(), // expired 1 hour ago
 		}, nil
 	}
 
-	req := httptest.NewRequest("GET", "/auth/email/verify?token=expiredtoken", nil)
+	req := httptest.NewRequest(http.MethodGet, "/auth/email/verify?token=expiredtoken", nil)
 	req = makeCtxWithDAO(req, mockDAO)
 
 	rr := httptest.NewRecorder()
@@ -539,7 +541,7 @@ func TestEmailVerify_TokenExpired(t *testing.T) {
 func TestEmailVerify_Success(t *testing.T) {
 	verifiedEmail := ""
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockFindUserByVerificationToken = func(token string) (*models.UserInfo, error) {
+	mockDAO.MockFindUserByVerificationToken = func(_ string) (*models.UserInfo, error) {
 		return &models.UserInfo{
 			Email:                    "test@example.com",
 			VerificationTokenExpires: time.Now().Add(1 * time.Hour).Unix(), // still valid
@@ -550,7 +552,7 @@ func TestEmailVerify_Success(t *testing.T) {
 		return nil
 	}
 
-	req := httptest.NewRequest("GET", "/auth/email/verify?token=goodtoken", nil)
+	req := httptest.NewRequest(http.MethodGet, "/auth/email/verify?token=goodtoken", nil)
 	req = makeCtxWithDAO(req, mockDAO)
 
 	rr := httptest.NewRecorder()
@@ -575,12 +577,12 @@ func TestEmailVerify_Success(t *testing.T) {
 
 func TestPasswordResetRequest_AlwaysReturns200(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+	mockDAO.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
 		return nil, sql.ErrNoRows // user doesn't exist
 	}
 
 	body := jsonBody(t, models.PasswordResetRequest{Email: "nobody@example.com"})
-	req := httptest.NewRequest("POST", "/auth/password/reset-request", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/password/reset-request", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -613,7 +615,7 @@ func TestPasswordResetRequest_SetsTokenForValidUser(t *testing.T) {
 	}
 
 	body := jsonBody(t, models.PasswordResetRequest{Email: "test@example.com"})
-	req := httptest.NewRequest("POST", "/auth/password/reset-request", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/password/reset-request", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -632,7 +634,7 @@ func TestPasswordResetRequest_EmptyEmail(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
 	body := jsonBody(t, models.PasswordResetRequest{Email: ""})
-	req := httptest.NewRequest("POST", "/auth/password/reset-request", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/password/reset-request", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -656,7 +658,7 @@ func TestPasswordReset_MissingToken(t *testing.T) {
 		Token:       "",
 		NewPassword: "newpassword123",
 	})
-	req := httptest.NewRequest("POST", "/auth/password/reset", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/password/reset", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -675,7 +677,7 @@ func TestPasswordReset_PasswordTooShort(t *testing.T) {
 		Token:       "validtoken",
 		NewPassword: "short",
 	})
-	req := httptest.NewRequest("POST", "/auth/password/reset", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/password/reset", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -693,7 +695,7 @@ func TestPasswordReset_PasswordTooShort(t *testing.T) {
 
 func TestPasswordReset_TokenNotFound(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockFindUserByResetToken = func(token string) (*models.UserInfo, error) {
+	mockDAO.MockFindUserByResetToken = func(_ string) (*models.UserInfo, error) {
 		return nil, sql.ErrNoRows
 	}
 
@@ -701,7 +703,7 @@ func TestPasswordReset_TokenNotFound(t *testing.T) {
 		Token:       "badtoken",
 		NewPassword: "newpassword123",
 	})
-	req := httptest.NewRequest("POST", "/auth/password/reset", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/password/reset", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -715,7 +717,7 @@ func TestPasswordReset_TokenNotFound(t *testing.T) {
 
 func TestPasswordReset_TokenExpired(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockFindUserByResetToken = func(token string) (*models.UserInfo, error) {
+	mockDAO.MockFindUserByResetToken = func(_ string) (*models.UserInfo, error) {
 		return &models.UserInfo{
 			Email:             "test@example.com",
 			ResetTokenExpires: time.Now().Add(-1 * time.Hour).Unix(),
@@ -726,7 +728,7 @@ func TestPasswordReset_TokenExpired(t *testing.T) {
 		Token:       "expiredtoken",
 		NewPassword: "newpassword123",
 	})
-	req := httptest.NewRequest("POST", "/auth/password/reset", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/password/reset", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -745,7 +747,7 @@ func TestPasswordReset_TokenExpired(t *testing.T) {
 func TestPasswordReset_Success(t *testing.T) {
 	passwordUpdated := false
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockFindUserByResetToken = func(token string) (*models.UserInfo, error) {
+	mockDAO.MockFindUserByResetToken = func(_ string) (*models.UserInfo, error) {
 		return &models.UserInfo{
 			Email:             "test@example.com",
 			ResetTokenExpires: time.Now().Add(1 * time.Hour).Unix(),
@@ -767,7 +769,7 @@ func TestPasswordReset_Success(t *testing.T) {
 		Token:       "goodtoken",
 		NewPassword: "newpassword123",
 	})
-	req := httptest.NewRequest("POST", "/auth/password/reset", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/password/reset", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -789,7 +791,7 @@ func TestPasswordReset_PasswordTooLong(t *testing.T) {
 		Token:       "validtoken",
 		NewPassword: strings.Repeat("x", 73),
 	})
-	req := httptest.NewRequest("POST", "/auth/password/reset", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/password/reset", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -817,7 +819,7 @@ func TestLinkOAuthAccount_MissingFields(t *testing.T) {
 		"password": "",
 		"provider": "",
 	})
-	req := httptest.NewRequest("POST", "/auth/link-oauth", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/link-oauth", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -844,7 +846,7 @@ func TestLinkOAuthAccount_WrongPassword(t *testing.T) {
 		"password": "wrongpassword",
 		"provider": "google",
 	})
-	req := httptest.NewRequest("POST", "/auth/link-oauth", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/link-oauth", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -866,7 +868,7 @@ func TestLinkOAuthAccount_Success(t *testing.T) {
 			PasswordHash: testHash,
 		}, nil
 	}
-	mockDAO.MockLinkOAuthAccount = func(email, authType string) error {
+	mockDAO.MockLinkOAuthAccount = func(_, authType string) error {
 		linkedProvider = authType
 		return nil
 	}
@@ -876,7 +878,7 @@ func TestLinkOAuthAccount_Success(t *testing.T) {
 		"password": "password123",
 		"provider": "google",
 	})
-	req := httptest.NewRequest("POST", "/auth/link-oauth", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/link-oauth", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -897,7 +899,7 @@ func TestLinkOAuthAccount_Success(t *testing.T) {
 
 func TestLinkOAuthAccount_UserNotFound(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+	mockDAO.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
 		return nil, sql.ErrNoRows
 	}
 
@@ -906,7 +908,7 @@ func TestLinkOAuthAccount_UserNotFound(t *testing.T) {
 		"password": "password123",
 		"provider": "google",
 	})
-	req := httptest.NewRequest("POST", "/auth/link-oauth", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/link-oauth", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -932,7 +934,7 @@ func TestLinkOAuthAccount_NotEmailAccount(t *testing.T) {
 		"password": "password123",
 		"provider": "amazon",
 	})
-	req := httptest.NewRequest("POST", "/auth/link-oauth", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/link-oauth", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -965,7 +967,7 @@ func TestEmailSignup_ExistingAmazonOAuthAccount(t *testing.T) {
 		LastName:  "User",
 	})
 
-	req := httptest.NewRequest("POST", "/auth/email/signup", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -996,7 +998,7 @@ func TestEmailLogin_AmazonOAuthAccount(t *testing.T) {
 		Password: "password123",
 	})
 
-	req := httptest.NewRequest("POST", "/auth/email/login", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/email/login", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -1018,11 +1020,11 @@ func TestEmailLogin_AmazonOAuthAccount(t *testing.T) {
 
 func TestEmailSignup_CreateUserDAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+	mockDAO.MockGetUserDetails = func(_ string) (*models.UserInfo, error) {
 		return nil, sql.ErrNoRows
 	}
-	mockDAO.MockCreateEmailUser = func(email, firstName, lastName, passwordHash, verificationToken string, tokenExpires int64) (*models.UserInfo, error) {
-		return nil, fmt.Errorf("dynamodb write failed")
+	mockDAO.MockCreateEmailUser = func(_, _, _, _, _ string, _ int64) (*models.UserInfo, error) {
+		return nil, errors.New("dynamodb write failed")
 	}
 
 	body := jsonBody(t, models.EmailSignupRequest{
@@ -1032,7 +1034,7 @@ func TestEmailSignup_CreateUserDAOError(t *testing.T) {
 		LastName:  "User",
 	})
 
-	req := httptest.NewRequest("POST", "/auth/email/signup", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 
@@ -1055,7 +1057,7 @@ func TestPasswordResetRequest_OAuthUser(t *testing.T) {
 	}
 
 	body := jsonBody(t, models.PasswordResetRequest{Email: "oauth@example.com"})
-	req := httptest.NewRequest("POST", "/auth/password/reset-request", body)
+	req := httptest.NewRequest(http.MethodPost, "/auth/password/reset-request", body)
 	req.Header.Set("Content-Type", "application/json")
 	req = makeCtxWithDAO(req, mockDAO)
 

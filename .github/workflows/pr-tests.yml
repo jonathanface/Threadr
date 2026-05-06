@@ -1,5 +1,8 @@
 name: Pull Request Tests
 
+permissions:
+  contents: read
+
 on:
   pull_request:
     branches:
@@ -71,3 +74,51 @@ jobs:
           else
             echo "❌ Tests failed" >> $GITHUB_STEP_SUMMARY
           fi
+
+  lint:
+    name: Run linters
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v7
+        with:
+          # golangci-lint v2 requires golangci-lint-action v7+.
+          # Pin the linter major version so CI doesn't break on a surprise
+          # upgrade — bump deliberately when local devs upgrade.
+          version: v2.12
+          # No --fix in CI: linters report, they don't mutate.
+          args: --timeout=5m
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        with:
+          path: static/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('static/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install frontend dependencies
+        working-directory: ./static
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: ./static
+        # `npm run lint` invokes eslint with --fix, which would silently
+        # auto-mutate code in CI. Call eslint directly instead and treat
+        # warnings as errors so a future contributor can't introduce one
+        # under the radar.
+        run: npx eslint . --max-warnings 0

@@ -1,8 +1,6 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
 	"bytes"
 	"context"
 	"database/sql"
@@ -14,6 +12,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+
 	"github.com/gorilla/mux"
 )
 
@@ -21,9 +22,9 @@ func init() {
 	SetupTestSession()
 }
 
-// createTestImage creates a small test PNG image
-func createTestImage(width, height int) *bytes.Buffer {
-	img := image.NewRGBA(image.Rect(0, 0, width, height))
+// createTestImage creates a small 100x100 test PNG image.
+func createTestImage() *bytes.Buffer {
+	img := image.NewRGBA(image.Rect(0, 0, 100, 100))
 	buf := new(bytes.Buffer)
 	png.Encode(buf, img)
 	return buf
@@ -63,7 +64,7 @@ func TestUploadPortraitEndpoint_MissingAssociationType(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	imgBuf := createTestImage(100, 100)
+	imgBuf := createTestImage()
 	part, _ := writer.CreateFormFile("file", "test.png")
 	part.Write(imgBuf.Bytes())
 	writer.Close()
@@ -131,7 +132,7 @@ func TestUploadPortraitEndpoint_NoDAO(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	imgBuf := createTestImage(100, 100)
+	imgBuf := createTestImage()
 	part, _ := writer.CreateFormFile("file", "test.png")
 	part.Write(imgBuf.Bytes())
 	writer.Close()
@@ -154,14 +155,14 @@ func TestUploadPortraitEndpoint_NoDAO(t *testing.T) {
 
 func TestUploadPortraitEndpoint_AssociationNotFound(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockUpdateAssociationPortraitEntryInDB = func(email, storyOrSeriesID, associationID, url string) error {
+	mockDAO.MockUpdateAssociationPortraitEntryInDB = func(_, _, _, _ string) error {
 		return sql.ErrNoRows
 	}
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	imgBuf := createTestImage(100, 100)
+	imgBuf := createTestImage()
 	part, _ := writer.CreateFormFile("file", "test.png")
 	part.Write(imgBuf.Bytes())
 	writer.Close()
@@ -184,14 +185,14 @@ func TestUploadPortraitEndpoint_AssociationNotFound(t *testing.T) {
 
 func TestUploadPortraitEndpoint_EditAssociationError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockUpdateAssociationPortraitEntryInDB = func(email, storyOrSeriesID, associationID, url string) error {
+	mockDAO.MockUpdateAssociationPortraitEntryInDB = func(_, _, _, _ string) error {
 		return errors.New("database error")
 	}
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	imgBuf := createTestImage(100, 100)
+	imgBuf := createTestImage()
 	part, _ := writer.CreateFormFile("file", "test.png")
 	part.Write(imgBuf.Bytes())
 	writer.Close()

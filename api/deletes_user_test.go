@@ -1,13 +1,14 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
 
 	"github.com/aws/smithy-go"
 )
@@ -62,7 +63,7 @@ func TestDeleteUserEndpoint_NoDAO(t *testing.T) {
 
 func TestDeleteUserEndpoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockDeleteUser = func(email string) error {
+	mockDAO.MockDeleteUser = func(_ string) error {
 		return daos.ErrMockDAO
 	}
 
@@ -79,7 +80,7 @@ func TestDeleteUserEndpoint_DAOError(t *testing.T) {
 
 func TestDeleteUserEndpoint_AWSError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockDeleteUser = func(email string) error {
+	mockDAO.MockDeleteUser = func(_ string) error {
 		return &smithy.OperationError{
 			ServiceID:     "DynamoDB",
 			OperationName: "UpdateItem",
@@ -102,7 +103,7 @@ func TestDeleteUserEndpoint_NoSession(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
 	// Create request without session
-	req := httptest.NewRequest("DELETE", "/user", nil)
+	req := httptest.NewRequest(http.MethodDelete, "/user", nil)
 	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
 
 	rr := httptest.NewRecorder()

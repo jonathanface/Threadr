@@ -1,15 +1,16 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
@@ -76,7 +77,7 @@ func TestDeleteAssociationsEndpoint_MissingStoryID(t *testing.T) {
 func TestDeleteAssociationsEndpoint_InvalidJSON(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
-	req := createTestRequestWithSession("DELETE", "/story/story123/associations", bytes.NewBuffer([]byte("invalid json")))
+	req := createTestRequestWithSession("DELETE", "/story/story123/associations", bytes.NewBufferString("invalid json"))
 	req = mux.SetURLVars(req, map[string]string{"story": "story123"})
 	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
 
@@ -114,7 +115,7 @@ func TestDeleteAssociationsEndpoint_NoDAO(t *testing.T) {
 
 func TestDeleteAssociationsEndpoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockDeleteAssociations = func(email, storyID string, associations []*models.Association) error {
+	mockDAO.MockDeleteAssociations = func(_, _ string, _ []*models.Association) error {
 		return daos.ErrMockDAO
 	}
 
@@ -137,7 +138,7 @@ func TestDeleteAssociationsEndpoint_DAOError(t *testing.T) {
 
 func TestDeleteAssociationsEndpoint_AWSError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockDeleteAssociations = func(email, storyID string, associations []*models.Association) error {
+	mockDAO.MockDeleteAssociations = func(_, _ string, _ []*models.Association) error {
 		return &smithy.OperationError{
 			ServiceID:     "DynamoDB",
 			OperationName: "DeleteItem",

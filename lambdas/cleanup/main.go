@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,12 +22,11 @@ import (
 
 type Response struct{ Message string }
 
-type keyOnly struct {
-	PK types.AttributeValue `dynamodbav:"partitionKey"`
-	SK types.AttributeValue `dynamodbav:"sortKey"`
-}
-
-// ... existing Response, keyOnly, etc.
+const (
+	chaptersTable   = "chapters"
+	chaptersStaging = "chapters_staging"
+	attrStoryID     = "story_id"
+)
 
 type chapterKey struct {
 	StoryID   string
@@ -35,7 +35,7 @@ type chapterKey struct {
 
 func HandleRequest(ctx context.Context) (Response, error) {
 	baseTables := []string{
-		"chapters",
+		chaptersTable,
 		"stories",
 		"association_details",
 		"associations",
@@ -73,7 +73,7 @@ func HandleRequest(ctx context.Context) (Response, error) {
 	total := 0
 	for _, tbl := range tables {
 		// purgeTable now also returns discovered chapter keys for cascade
-		n, chapterKeys, err := purgeTable(ctx, client, tbl, cutoff)
+		n, chapterKeys, err := purgeTable(ctx, client, tbl, cutoff) //nolint:govet
 		if err != nil {
 			return Response{}, fmt.Errorf("%s: %w", tbl, err)
 		}
@@ -82,7 +82,7 @@ func HandleRequest(ctx context.Context) (Response, error) {
 		// If this is a chapters* table, cascade delete its blocks tables + backups
 		if isChaptersTable(tbl) && len(chapterKeys) > 0 {
 			staging := strings.HasSuffix(tbl, "_staging")
-			if err := deleteBlocksTablesAndBackups(ctx, client, chapterKeys, staging); err != nil {
+			if err = deleteBlocksTablesAndBackups(ctx, client, chapterKeys, staging); err != nil {
 				return Response{}, fmt.Errorf("cascade (%s): %w", tbl, err)
 			}
 		}
@@ -91,9 +91,9 @@ func HandleRequest(ctx context.Context) (Response, error) {
 	return Response{Message: fmt.Sprintf("expired rows deleted successfully, %d rows purged", total)}, nil
 }
 
-// isChaptersTable returns true for "chapters" and "chapters_staging"
+// isChaptersTable returns true for "chapters" and "chapters_staging".
 func isChaptersTable(name string) bool {
-	return name == "chapters" || name == "chapters_staging"
+	return name == chaptersTable || name == chaptersStaging
 }
 
 func splitCSV(s string) []string {
@@ -117,16 +117,16 @@ type keySpec struct {
 func keyNamesForTable(table string) keySpec {
 	switch table {
 	case "stories", "stories_staging", "story_settings", "story_settings_staging":
-		return keySpec{pk: "story_id", sk: "author", hasSK: true}
+		return keySpec{pk: attrStoryID, sk: "author", hasSK: true}
 	case "associations", "associations_staging", "association_details", "association_details_staging":
 		return keySpec{pk: "association_id", sk: "story_or_series_id", hasSK: true}
 	case "series", "series_staging":
 		return keySpec{pk: "series_id", sk: "author", hasSK: true}
-	case "chapters", "chapters_staging":
+	case chaptersTable, chaptersStaging:
 		// assuming your chapters table uses these attribute names
-		return keySpec{pk: "story_id", sk: "chapter_id", hasSK: true}
+		return keySpec{pk: attrStoryID, sk: "chapter_id", hasSK: true}
 	case "outlines", "outlines_staging":
-		return keySpec{pk: "story_id", sk: "place", hasSK: true}
+		return keySpec{pk: attrStoryID, sk: "place", hasSK: true}
 	case "users", "users_staging":
 		return keySpec{pk: "email", hasSK: false}
 	default:
@@ -150,12 +150,47 @@ func avToString(av types.AttributeValue) (string, bool) {
 	}
 }
 
-func purgeTable(ctx context.Context, client *dynamodb.Client, table string, cutoffUnix int64) (int, []chapterKey, error) {
+func purgeTable(
+	ctx context.Context,
+	client *dynamodb.Client,
+	table string,
+	cutoffUnix int64,
+) (int, []chapterKey, error) {
 	tk := keyNamesForTable(table)
+	collectChapters := table == chaptersTable || table == chaptersStaging
 
+	keys, chapterIDs, err := scanForExpiredKeys(ctx, client, table, tk, cutoffUnix, collectChapters)
+	if err != nil {
+		return 0, nil, err
+	}
+	if len(keys) == 0 {
+		fmt.Printf("no items marked for deletion in %s\n", table)
+		return 0, chapterIDs, nil
+	}
+	deletedCount, err := batchDeleteKeys(ctx, client, table, keys)
+	if err != nil {
+		return deletedCount, chapterIDs, err
+	}
+	fmt.Printf("expired rows in %s deleted successfully: %d\n", table, deletedCount)
+	return deletedCount, chapterIDs, nil
+}
+
+// scanForExpiredKeys paginates Scan calls collecting the keys of items
+// where deleted_at < cutoffUnix. When the table holds chapters and
+// collectChapters is true, also accumulates the (storyID, chapterID) pairs
+// so the caller can clean up per-chapter blocks tables. Tables that no
+// longer exist are treated as empty rather than fatal.
+func scanForExpiredKeys(
+	ctx context.Context,
+	client *dynamodb.Client,
+	table string,
+	tk keySpec,
+	cutoffUnix int64,
+	collectChapters bool,
+) ([]map[string]types.AttributeValue, []chapterKey, error) {
 	filter := aws.String("attribute_exists(#deleted_at) AND #deleted_at < :cutoff")
 	eav := map[string]types.AttributeValue{
-		":cutoff": &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", cutoffUnix)},
+		":cutoff": &types.AttributeValueMemberN{Value: strconv.FormatInt(cutoffUnix, 10)},
 	}
 	ean := map[string]string{
 		"#deleted_at": "deleted_at",
@@ -167,11 +202,10 @@ func purgeTable(ctx context.Context, client *dynamodb.Client, table string, cuto
 		proj += ",#sk"
 	}
 
-	var lastKey map[string]types.AttributeValue
-	keys := make([]map[string]types.AttributeValue, 0, 256)
-
-	collectChapters := table == "chapters" || table == "chapters_staging"
+	const initialKeyCapacity = 256
+	keys := make([]map[string]types.AttributeValue, 0, initialKeyCapacity)
 	var chapterIDs []chapterKey
+	var lastKey map[string]types.AttributeValue
 
 	for {
 		out, err := client.Scan(ctx, &dynamodb.ScanInput{
@@ -183,62 +217,66 @@ func purgeTable(ctx context.Context, client *dynamodb.Client, table string, cuto
 			ExclusiveStartKey:         lastKey,
 		})
 		if err != nil {
-			// If table's gone, skip gracefully
 			var rnfe *types.ResourceNotFoundException
 			if errors.As(err, &rnfe) {
 				fmt.Printf("table %s not found, skipping\n", table)
-				return 0, nil, nil
+				return nil, nil, nil
 			}
-			return 0, nil, err
+			return nil, nil, err
 		}
-
 		for _, it := range out.Items {
-			pkAttr, ok := it[tk.pk]
-			if !ok || pkAttr == nil {
-				fmt.Printf("warn: %s item missing partition key (%s); skipping\n", table, tk.pk)
+			key, chapter, ok := extractPurgeKey(it, tk, table, collectChapters)
+			if !ok {
 				continue
 			}
-			key := map[string]types.AttributeValue{tk.pk: pkAttr}
-
-			var skAttr types.AttributeValue
-			if tk.hasSK {
-				var ok2 bool
-				skAttr, ok2 = it[tk.sk]
-				if !ok2 || skAttr == nil {
-					fmt.Printf("warn: %s item missing sort key (%s); skipping\n", table, tk.sk)
-					continue
-				}
-				key[tk.sk] = skAttr
-			}
 			keys = append(keys, key)
-
-			if collectChapters {
-				story, sOK := avToString(pkAttr)
-				chap, cOK := avToString(skAttr)
-				if sOK && cOK {
-					chapterIDs = append(chapterIDs, chapterKey{StoryID: story, ChapterID: chap})
-				}
+			if chapter != nil {
+				chapterIDs = append(chapterIDs, *chapter)
 			}
 		}
-
 		if len(out.LastEvaluatedKey) == 0 {
-			break
+			return keys, chapterIDs, nil
 		}
 		lastKey = out.LastEvaluatedKey
 	}
+}
 
-	if len(keys) == 0 {
-		fmt.Printf("no items marked for deletion in %s\n", table)
-		return 0, chapterIDs, nil
+// extractPurgeKey pulls the deletion key (PK plus optional SK) out of one
+// scanned row, and — for chapters tables — returns the corresponding
+// (storyID, chapterID) pair. Returns ok=false (with a warning printed) for
+// rows missing required key attributes.
+func extractPurgeKey(
+	item map[string]types.AttributeValue,
+	tk keySpec,
+	table string,
+	collectChapters bool,
+) (key map[string]types.AttributeValue, chapter *chapterKey, ok bool) {
+	pkAttr, hasPK := item[tk.pk]
+	if !hasPK || pkAttr == nil {
+		fmt.Printf("warn: %s item missing partition key (%s); skipping\n", table, tk.pk)
+		return nil, nil, false
+	}
+	key = map[string]types.AttributeValue{tk.pk: pkAttr}
+
+	var skAttr types.AttributeValue
+	if tk.hasSK {
+		var hasSK bool
+		skAttr, hasSK = item[tk.sk]
+		if !hasSK || skAttr == nil {
+			fmt.Printf("warn: %s item missing sort key (%s); skipping\n", table, tk.sk)
+			return nil, nil, false
+		}
+		key[tk.sk] = skAttr
 	}
 
-	deletedCount, err := batchDeleteKeys(ctx, client, table, keys)
-	if err != nil {
-		return deletedCount, chapterIDs, err
+	if collectChapters {
+		story, sOK := avToString(pkAttr)
+		chap, cOK := avToString(skAttr)
+		if sOK && cOK {
+			chapter = &chapterKey{StoryID: story, ChapterID: chap}
+		}
 	}
-
-	fmt.Printf("expired rows in %s deleted successfully: %d\n", table, deletedCount)
-	return deletedCount, chapterIDs, nil
+	return key, chapter, true
 }
 
 // at top: import "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
@@ -251,10 +289,9 @@ func batchDeleteKeys(
 ) (int, error) {
 	deleted := 0
 	for i := 0; i < len(keys); i += 25 {
-		end := i + 25
-		if end > len(keys) {
-			end = len(keys)
-		}
+		end := min(
+			//nolint:mnd
+			i+25, len(keys))
 
 		initial := make([]types.WriteRequest, 0, end-i)
 		for _, k := range keys[i:end] {
@@ -286,8 +323,13 @@ func batchDeleteKeys(
 	return deleted, nil
 }
 
-// Deletes all tables that start with the blocks base name and their on-demand backups
-func deleteBlocksTablesAndBackups(ctx context.Context, client *dynamodb.Client, chapters []chapterKey, staging bool) error {
+// Deletes all tables that start with the blocks base name and their on-demand backups.
+func deleteBlocksTablesAndBackups(
+	ctx context.Context,
+	client *dynamodb.Client,
+	chapters []chapterKey,
+	staging bool,
+) error {
 	// de-dup bases
 	seen := make(map[string]struct{})
 	for _, ck := range chapters {
@@ -322,13 +364,13 @@ func deleteBlocksTablesAndBackups(ctx context.Context, client *dynamodb.Client, 
 
 		for _, t := range matches {
 			// Delete on-demand backups of this table first (optional but tidy)
-			if err := deleteAllBackupsForTable(ctx, client, t); err != nil {
+			if err = deleteAllBackupsForTable(ctx, client, t); err != nil {
 				// log and continue; backups can be absent or permissions restricted
 				fmt.Printf("warn: delete backups for %s: %v\n", t, err)
 			}
 
 			// Delete the table
-			if err := deleteTableIfExists(ctx, client, t); err != nil {
+			if err = deleteTableIfExists(ctx, client, t); err != nil {
 				return fmt.Errorf("delete table %s: %w", t, err)
 			}
 			fmt.Printf("block table %s was deleted\n", base)
@@ -343,7 +385,7 @@ func listAllTables(ctx context.Context, client *dynamodb.Client) ([]string, erro
 	for {
 		out, err := client.ListTables(ctx, &dynamodb.ListTablesInput{
 			ExclusiveStartTableName: last,
-			Limit:                   aws.Int32(100),
+			Limit:                   aws.Int32(100), //nolint:mnd
 		})
 		if err != nil {
 			return nil, err

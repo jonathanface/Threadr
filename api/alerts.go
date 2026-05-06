@@ -1,15 +1,16 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/logger"
-	"Threadr/models"
 	"context"
 	"encoding/json"
 	"html"
 	"net/http"
 	"time"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/logger"
+	"Threadr/models"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -64,7 +65,7 @@ func GetUserAlertsEndpoint(w http.ResponseWriter, r *http.Request) {
 		userAlerts = append(userAlerts, ua)
 	}
 
-	RespondWithJson(w, http.StatusOK, models.AlertsResponse{
+	RespondWithJSON(w, http.StatusOK, models.AlertsResponse{
 		Alerts:      userAlerts,
 		UnreadCount: unreadCount,
 	})
@@ -113,7 +114,7 @@ func GetUnreadAlertCountEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	RespondWithJson(w, http.StatusOK, map[string]int{"unread_count": unreadCount})
+	RespondWithJSON(w, http.StatusOK, map[string]int{"unread_count": unreadCount})
 }
 
 func MarkAlertReadEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -144,7 +145,7 @@ func MarkAlertReadEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 }
 
 func AdminCreateAlertEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -176,7 +177,7 @@ func AdminCreateAlertEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, 4096)
+	r.Body = http.MaxBytesReader(w, r.Body, 4096) //nolint:mnd
 	decoder := json.NewDecoder(r.Body)
 	var req models.CreateAlertRequest
 	if err = decoder.Decode(&req); err != nil {
@@ -217,7 +218,7 @@ func AdminCreateAlertEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusCreated, alert)
+	RespondWithJSON(w, http.StatusCreated, alert)
 }
 
 // CreateSystemAlert is an exported helper for other endpoints to create system-generated alerts.
@@ -241,7 +242,11 @@ func CreateSystemAlert(ctx context.Context, dao daos.DaoInterface, targetEmail, 
 
 // CreateCommentAlert creates a comment notification only if there isn't already
 // an unread alert from the same reader about the same story.
-func CreateCommentAlert(ctx context.Context, dao daos.DaoInterface, authorEmail, readerName, storyTitle, storyID string) {
+func CreateCommentAlert(
+	ctx context.Context,
+	dao daos.DaoInterface,
+	authorEmail, readerName, storyTitle, storyID string,
+) {
 	subject := "New comment on " + storyTitle
 	// Check if there's already an unread alert about this reader + story
 	alerts, err := dao.GetAlertsForUser(ctx, authorEmail)
@@ -275,7 +280,7 @@ func CreateCommentAlert(ctx context.Context, dao daos.DaoInterface, authorEmail,
 		CreatedAt:   time.Now().Unix(),
 		CreatedBy:   "system",
 	}
-	if err := dao.CreateAlert(ctx, alert); err != nil {
+	if err = dao.CreateAlert(ctx, alert); err != nil {
 		logger.Error("Failed to create comment alert",
 			"error", err,
 			"authorEmail", authorEmail)

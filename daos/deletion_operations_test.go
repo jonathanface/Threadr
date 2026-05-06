@@ -37,7 +37,6 @@ func TestSoftDeleteStory(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -50,13 +49,17 @@ func TestSoftDeleteStory(t *testing.T) {
 			if err == nil {
 				t.Logf("No error returned (acceptable if story exists in mock)")
 			} else if !contains(err.Error(), tc.expectErrPattern) {
-				t.Logf("Error %q does not contain expected pattern %q (acceptable for mock limitations)", err.Error(), tc.expectErrPattern)
+				t.Logf(
+					"Error %q does not contain expected pattern %q (acceptable for mock limitations)",
+					err.Error(),
+					tc.expectErrPattern,
+				)
 			}
 		})
 	}
 }
 
-// Tests for hardDeleteStory
+// Tests for hardDeleteStory.
 func TestHardDeleteStory(t *testing.T) {
 	testCases := []struct {
 		name           string
@@ -83,7 +86,6 @@ func TestHardDeleteStory(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -92,9 +94,9 @@ func TestHardDeleteStory(t *testing.T) {
 				if !ok {
 					t.Fatalf("mockDao.DynamoClient is not a *MockDynamoClient")
 				}
-				mockClient.MockDeleteItem = func(ctx context.Context,
-					input *dynamodb.DeleteItemInput,
-					opts ...func(*dynamodb.Options),
+				mockClient.MockDeleteItem = func(_ context.Context,
+					_ *dynamodb.DeleteItemInput,
+					_ ...func(*dynamodb.Options),
 				) (*dynamodb.DeleteItemOutput, error) {
 					return nil, tc.mockDeleteErr
 				}
@@ -107,12 +109,12 @@ func TestHardDeleteStory(t *testing.T) {
 	}
 }
 
-// Benchmark tests
+// Benchmark tests.
 func BenchmarkSoftDeleteStory(b *testing.B) {
 	mockDao := NewMockDAO()
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = mockDao.SoftDeleteStory(context.Background(), "bench@example.com", "story123", false)
 	}
 }

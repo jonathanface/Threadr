@@ -37,7 +37,9 @@ func TestNodeToHTML_EscapesText(t *testing.T) {
 			Text: `She said "hello"`,
 		}
 		result := nodeToHTML(node)
-		if strings.Contains(result, `"hello"`) && !strings.Contains(result, "&34;") && !strings.Contains(result, "&#34;") && !strings.Contains(result, "&quot;") {
+		if strings.Contains(result, `"hello"`) && !strings.Contains(result, "&34;") &&
+			!strings.Contains(result, "&#34;") &&
+			!strings.Contains(result, "&quot;") {
 			// html.EscapeString escapes " to &#34;
 			if !strings.Contains(result, "&#34;") {
 				t.Errorf("Expected escaped quotes, got: %s", result)

@@ -1,13 +1,15 @@
 package api
 
 import (
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/url"
+
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
 	"Threadr/logger"
 	"Threadr/models"
-	"encoding/json"
-	"net/http"
-	"net/url"
 
 	"github.com/aws/smithy-go"
 	"github.com/google/uuid"
@@ -22,9 +24,8 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		dao        daos.DaoInterface
 		ok         bool
 		newChapter models.Chapter
-		email      string
 	)
-	if email, err = getUserEmail(r); err != nil {
+	if _, err = getUserEmail(r); err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
@@ -44,7 +45,7 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	decoder := json.NewDecoder(r.Body)
 	chapter := models.Chapter{}
-	if err := decoder.Decode(&chapter); err != nil {
+	if err = decoder.Decode(&chapter); err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
@@ -53,8 +54,9 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		chapter.Place = 1
 	}
 
-	if newChapter, err = dao.CreateChapter(r.Context(), storyID, chapter, email); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+	if newChapter, err = dao.CreateChapter(r.Context(), storyID, chapter); err != nil {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -68,5 +70,5 @@ func CreateStoryChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, newChapter)
+	RespondWithJSON(w, http.StatusOK, newChapter)
 }

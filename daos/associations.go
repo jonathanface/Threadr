@@ -1,12 +1,14 @@
 package daos
 
 import (
-	"Threadr/models"
 	"context"
+	"errors"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"strconv"
 	"time"
+
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -14,20 +16,17 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-const (
-	MAX_SHORT_DESCRIPTION_LENGTH = 100
-)
-
-func (d DAO) WriteAssociations(ctx context.Context, email, storyOrSeriesID string, associations []*models.Association) (err error) {
+func (d *DAO) WriteAssociations(
+	ctx context.Context,
+	email, storyOrSeriesID string,
+	associations []*models.Association,
+) (err error) {
 	if len(associations) == 0 {
-		return fmt.Errorf("empty associations array")
+		return errors.New("empty associations array")
 	}
 	batches := make([][]*models.Association, 0, (len(associations)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(associations); i += d.writeBatchSize {
-		end := i + d.writeBatchSize
-		if end > len(associations) {
-			end = len(associations)
-		}
+		end := min(i+d.writeBatchSize, len(associations))
 		batches = append(batches, associations[i:end])
 	}
 
@@ -45,37 +44,40 @@ func (d DAO) WriteAssociations(ctx context.Context, email, storyOrSeriesID strin
 		for i, item := range batch {
 			imgFile := item.Portrait
 			if imgFile == "" {
+				// Picking a placeholder image — non-security-sensitive, math/rand is fine.
 				switch item.Type {
-				case "character":
-					imageFileName := rand.Intn(MAX_DEFAULT_PORTRAIT_IMAGES-1) + 1
-					imgFile = S3_PORTRAIT_BASE_URL + strconv.Itoa(imageFileName) + ".jpg"
+				case associationTypeCharacter:
+					imageFileName := rand.IntN(maxDefaultPortraitImages-1) + 1 //nolint:gosec
+					imgFile = s3PortraitBaseURL + strconv.Itoa(imageFileName) + ".jpg"
 				case "place":
-					imageFileName := rand.Intn(MAX_DEFAULT_LOCATION_IMAGES-1) + 1
-					imgFile = S3_LOCATION_BASE_URL + strconv.Itoa(imageFileName) + ".jpg"
+					imageFileName := rand.IntN(maxDefaultLocationImages-1) + 1 //nolint:gosec
+					imgFile = s3LocationBaseURL + strconv.Itoa(imageFileName) + ".jpg"
 				case "event":
-					imageFileName := rand.Intn(MAX_DEFAULT_EVENT_IMAGES-1) + 1
-					imgFile = S3_EVENT_BASE_URL + strconv.Itoa(imageFileName) + ".jpg"
+					imageFileName := rand.IntN(maxDefaultEventImages-1) + 1 //nolint:gosec
+					imgFile = s3EventBaseURL + strconv.Itoa(imageFileName) + ".jpg"
 				case "item":
-					imageFileName := rand.Intn(MAX_DEFAULT_ITEM_IMAGES-1) + 1
-					imgFile = S3_ITEM_BASE_URL + strconv.Itoa(imageFileName) + ".jpg"
+					imageFileName := rand.IntN(maxDefaultItemImages-1) + 1 //nolint:gosec
+					imgFile = s3ItemBaseURL + strconv.Itoa(imageFileName) + ".jpg"
 				}
 			}
 			shortDescription := item.ShortDescription
-			if len(item.ShortDescription) > MAX_SHORT_DESCRIPTION_LENGTH {
-				shortDescription = item.ShortDescription[:MAX_SHORT_DESCRIPTION_LENGTH]
+			if len(item.ShortDescription) > maxShorDescriptionLength {
+				shortDescription = item.ShortDescription[:maxShorDescriptionLength]
 			}
 			extendedDescription := item.Details.ExtendedDescription
 			associations[i].Portrait = imgFile
 			// Create a key for the item.
 			key := map[string]types.AttributeValue{
-				"association_id":     &types.AttributeValueMemberS{Value: item.ID},
-				"story_or_series_id": &types.AttributeValueMemberS{Value: storyOrSeriesID},
+				attrAssociationID:   &types.AttributeValueMemberS{Value: item.ID},
+				attrStoryOrSeriesID: &types.AttributeValueMemberS{Value: storyOrSeriesID},
 			}
 			// Create an update input for the item.
 			updateInput := &types.Update{
-				TableName:        aws.String("associations" + GetTableSuffix()),
-				Key:              key,
-				UpdateExpression: aws.String("set association_name=:nm, author=:eml, created_at=if_not_exists(created_at,:t), last_updated=:t, association_type=:at, portrait=:p, short_description=:sd, case_sensitive=:c, aliases=:al"),
+				TableName: aws.String("associations" + GetTableSuffix()),
+				Key:       key,
+				UpdateExpression: aws.String(
+					"set association_name=:nm, author=:eml, created_at=if_not_exists(created_at,:t), last_updated=:t, association_type=:at, portrait=:p, short_description=:sd, case_sensitive=:c, aliases=:al",
+				),
 				ExpressionAttributeValues: map[string]types.AttributeValue{
 					":nm":  &types.AttributeValueMemberS{Value: item.Name},
 					":eml": &types.AttributeValueMemberS{Value: email},
@@ -119,7 +121,7 @@ func (d DAO) WriteAssociations(ctx context.Context, email, storyOrSeriesID strin
 			return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 		}
 
-		awsErr, err := d.awsWriteTransaction(ctx, writeItemsDetailsInput)
+		awsErr, err := d.awsWriteTransaction(ctx, writeItemsDetailsInput) //nolint:govet
 		if err != nil {
 			return err
 		}
@@ -127,13 +129,16 @@ func (d DAO) WriteAssociations(ctx context.Context, email, storyOrSeriesID strin
 			return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 		}
 	}
-	return
+	return err
 }
 
-func (d *DAO) UpdateAssociationPortraitEntryInDB(ctx context.Context, email, storyOrSeriesID, associationID, url string) (err error) {
+func (d *DAO) UpdateAssociationPortraitEntryInDB(
+	ctx context.Context,
+	email, storyOrSeriesID, associationID, url string,
+) (err error) {
 	key := map[string]types.AttributeValue{
-		"association_id":     &types.AttributeValueMemberS{Value: associationID},
-		"story_or_series_id": &types.AttributeValueMemberS{Value: storyOrSeriesID},
+		attrAssociationID:   &types.AttributeValueMemberS{Value: associationID},
+		attrStoryOrSeriesID: &types.AttributeValueMemberS{Value: storyOrSeriesID},
 	}
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	updateInput := &dynamodb.UpdateItemInput{
@@ -155,16 +160,17 @@ func (d *DAO) UpdateAssociationPortraitEntryInDB(ctx context.Context, email, sto
 	return nil
 }
 
-func (d *DAO) DeleteAssociations(ctx context.Context, email, storyID string, associations []*models.Association) (err error) {
+func (d *DAO) DeleteAssociations(
+	ctx context.Context,
+	email, storyID string,
+	associations []*models.Association,
+) (err error) {
 	if len(associations) == 0 {
-		return fmt.Errorf(("no associations provided"))
+		return errors.New(("no associations provided"))
 	}
 	batches := make([][]*models.Association, 0, (len(associations)+(d.writeBatchSize-1))/d.writeBatchSize)
 	for i := 0; i < len(associations); i += d.writeBatchSize {
-		end := i + d.writeBatchSize
-		if end > len(associations) {
-			end = len(associations)
-		}
+		end := min(i+d.writeBatchSize, len(associations))
 		batches = append(batches, associations[i:end])
 	}
 
@@ -189,8 +195,8 @@ func (d *DAO) DeleteAssociations(ctx context.Context, email, storyID string, ass
 		for i, item := range batch {
 			// Create a key for the item.
 			key := map[string]types.AttributeValue{
-				"association_id":     &types.AttributeValueMemberS{Value: item.ID},
-				"story_or_series_id": &types.AttributeValueMemberS{Value: storyOrSeriesID},
+				attrAssociationID:   &types.AttributeValueMemberS{Value: item.ID},
+				attrStoryOrSeriesID: &types.AttributeValueMemberS{Value: storyOrSeriesID},
 			}
 
 			// Create a delete input for the item.
@@ -231,7 +237,7 @@ func (d *DAO) DeleteAssociations(ctx context.Context, email, storyID string, ass
 			return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 		}
 
-		awsErr, err := d.awsWriteTransaction(ctx, writeItemsDetailsInput)
+		awsErr, err := d.awsWriteTransaction(ctx, writeItemsDetailsInput) //nolint:govet
 		if err != nil {
 			return err
 		}
@@ -239,10 +245,13 @@ func (d *DAO) DeleteAssociations(ctx context.Context, email, storyID string, ass
 			return fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
 		}
 	}
-	return
+	return err
 }
 
-func (d *DAO) GetAssociationDetails(ctx context.Context, email, storyID, associationID string) (*models.Association, error) {
+func (d *DAO) GetAssociationDetails(
+	ctx context.Context,
+	email, storyID, associationID string,
+) (*models.Association, error) {
 	var (
 		association *models.Association
 		err         error
@@ -311,7 +320,10 @@ func (d *DAO) GetAssociationDetails(ctx context.Context, email, storyID, associa
 	return association, nil
 }
 
-func (d *DAO) GetStoryOrSeriesAssociationThumbnails(ctx context.Context, email, storyID string) ([]*models.SimplifiedAssociation, error) {
+func (d *DAO) GetStoryOrSeriesAssociationThumbnails(
+	ctx context.Context,
+	email, storyID string,
+) ([]*models.SimplifiedAssociation, error) {
 	var (
 		associations []*models.SimplifiedAssociation
 		err          error
@@ -356,8 +368,8 @@ func (d *DAO) GetStoryOrSeriesAssociationThumbnails(ctx context.Context, email, 
 		return associations, err
 	}
 	for i, v := range associations {
-		if len(v.ShortDescription) > MAX_SHORT_DESCRIPTION_LENGTH {
-			associations[i].ShortDescription = v.ShortDescription[:MAX_SHORT_DESCRIPTION_LENGTH]
+		if len(v.ShortDescription) > maxShorDescriptionLength {
+			associations[i].ShortDescription = v.ShortDescription[:maxShorDescriptionLength]
 		}
 	}
 	return associations, nil

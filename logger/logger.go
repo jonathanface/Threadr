@@ -6,6 +6,7 @@ import (
 	"os"
 )
 
+//nolint:gochecknoglobals // process-wide slog instance; the entire package exists to wrap it.
 var log *slog.Logger
 
 func init() {
@@ -33,47 +34,47 @@ func init() {
 	log = slog.New(handler)
 }
 
-// Debug logs a debug message with optional key-value pairs
+// Debug logs a debug message with optional key-value pairs.
 func Debug(msg string, args ...any) {
 	log.Debug(msg, args...)
 }
 
-// Info logs an info message with optional key-value pairs
+// Info logs an info message with optional key-value pairs.
 func Info(msg string, args ...any) {
 	log.Info(msg, args...)
 }
 
-// Warn logs a warning message with optional key-value pairs
+// Warn logs a warning message with optional key-value pairs.
 func Warn(msg string, args ...any) {
 	log.Warn(msg, args...)
 }
 
-// Error logs an error message with optional key-value pairs
+// Error logs an error message with optional key-value pairs.
 func Error(msg string, args ...any) {
 	log.Error(msg, args...)
 }
 
-// DebugContext logs a debug message with context
+// DebugContext logs a debug message with context.
 func DebugContext(ctx context.Context, msg string, args ...any) {
 	log.DebugContext(ctx, msg, args...)
 }
 
-// InfoContext logs an info message with context
+// InfoContext logs an info message with context.
 func InfoContext(ctx context.Context, msg string, args ...any) {
 	log.InfoContext(ctx, msg, args...)
 }
 
-// WarnContext logs a warning message with context
+// WarnContext logs a warning message with context.
 func WarnContext(ctx context.Context, msg string, args ...any) {
 	log.WarnContext(ctx, msg, args...)
 }
 
-// ErrorContext logs an error message with context
+// ErrorContext logs an error message with context.
 func ErrorContext(ctx context.Context, msg string, args ...any) {
 	log.ErrorContext(ctx, msg, args...)
 }
 
-// With returns a new logger with the given attributes
+// With returns a new logger with the given attributes.
 func With(args ...any) *slog.Logger {
 	return log.With(args...)
 }

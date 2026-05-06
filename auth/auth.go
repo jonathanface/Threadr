@@ -1,25 +1,22 @@
 package auth
 
 import (
+	"encoding/gob"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/url"
+	"os"
+	"strings"
+	"time"
+
 	"Threadr/api"
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
 	"Threadr/logger"
 	"Threadr/models"
 	"Threadr/sessions"
-	"context"
-	"database/sql"
-	"encoding/gob"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"html"
-	"net/http"
-	"net/url"
-	"os"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
@@ -31,6 +28,10 @@ import (
 
 const (
 	oneDay = 24 * time.Hour
+	// mobileTokenExchangeTTL is the lifetime of the JWT we hand back during
+	// the mobile OAuth callback. The token is one-time-use (it's traded for
+	// a real session) so we keep its window short.
+	mobileTokenExchangeTTL = 5 * time.Minute
 )
 
 func init() {
@@ -38,9 +39,10 @@ func init() {
 	gob.Register(models.UserInfo{})
 }
 
-// MobileTokenClaims represents the JWT claims for mobile token exchange
+// MobileTokenClaims represents the JWT claims for mobile token exchange.
 type MobileTokenClaims struct {
 	jwt.RegisteredClaims
+
 	Email      string `json:"email"`
 	FirstName  string `json:"first_name"`
 	LastName   string `json:"last_name"`
@@ -50,7 +52,7 @@ type MobileTokenClaims struct {
 }
 
 // createSignedMobileToken creates a signed JWT for mobile token exchange
-// The token is short-lived (5 minutes) as it's only used for the OAuth callback -> session exchange
+// The token is short-lived (5 minutes) as it's only used for the OAuth callback -> session exchange.
 func createSignedMobileToken(info models.UserInfo) (string, error) {
 	secret := os.Getenv("SESSION_SECRET")
 	if secret == "" {
@@ -59,7 +61,7 @@ func createSignedMobileToken(info models.UserInfo) (string, error) {
 
 	claims := MobileTokenClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(5 * time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(mobileTokenExchangeTTL)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Issuer:    "threadr.net",
 		},
@@ -75,14 +77,14 @@ func createSignedMobileToken(info models.UserInfo) (string, error) {
 	return token.SignedString([]byte(secret))
 }
 
-// verifyMobileToken verifies and parses a signed JWT mobile token
+// verifyMobileToken verifies and parses a signed JWT mobile token.
 func verifyMobileToken(tokenString string) (*models.UserInfo, error) {
 	secret := os.Getenv("SESSION_SECRET")
 	if secret == "" {
 		return nil, errors.New("SESSION_SECRET not configured")
 	}
 
-	token, err := jwt.ParseWithClaims(tokenString, &MobileTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &MobileTokenClaims{}, func(token *jwt.Token) (any, error) {
 		// Validate signing method
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -112,8 +114,8 @@ func verifyMobileToken(tokenString string) (*models.UserInfo, error) {
 func New(options OauthOptions) {
 	gothic.Store = sessions.Store
 	goth.UseProviders(
-		google.New(options.GoogleId, options.GoogleSecret, options.GoogleUrl, "email", "profile"),
-		amazon.New(options.AmazonId, options.AmazonSecret, options.AmazonUrl),
+		google.New(options.GoogleID, options.GoogleSecret, options.GoogleURL, "email", "profile"),
+		amazon.New(options.AmazonID, options.AmazonSecret, options.AmazonURL),
 	)
 }
 
@@ -129,7 +131,7 @@ func determineFirstName(info goth.User) string {
 	}
 	// Amazon only provides full Name — split it
 	if info.Name != "" {
-		parts := strings.SplitN(info.Name, " ", 2)
+		parts := strings.SplitN(info.Name, " ", 2) //nolint:mnd
 		return parts[0]
 	}
 	if info.NickName != "" {
@@ -144,7 +146,7 @@ func determineLastName(info goth.User) string {
 	}
 	// Amazon only provides full Name — split it
 	if info.Name != "" {
-		parts := strings.SplitN(info.Name, " ", 2)
+		parts := strings.SplitN(info.Name, " ", 2) //nolint:mnd
 		if len(parts) > 1 {
 			return parts[1]
 		}
@@ -154,7 +156,7 @@ func determineLastName(info goth.User) string {
 
 // safeMobileRedirect validates mobile deep link URLs to prevent open redirect attacks.
 // For minithreadr://, only allows the "auth" host (minithreadr://auth/...)
-// For exp://, only allows localhost and private IP ranges (for development)
+// For exp://, only allows localhost and private IP ranges (for development).
 func safeMobileRedirect(dest string) (string, bool) {
 	u, err := url.Parse(dest)
 	if err != nil {
@@ -168,7 +170,7 @@ func safeMobileRedirect(dest string) (string, bool) {
 		// minithreadr:// URLs use the host as the path identifier
 		// Only allow "auth" as the host (e.g., minithreadr://auth or minithreadr://auth/callback)
 		if strings.ToLower(u.Host) == "auth" {
-			return dest, true
+			return u.String(), true
 		}
 		return "", false
 
@@ -177,7 +179,7 @@ func safeMobileRedirect(dest string) (string, bool) {
 		// Only allow localhost and private IP ranges
 		host := u.Hostname()
 		if isLocalOrPrivateHost(host) {
-			return dest, true
+			return u.String(), true
 		}
 		return "", false
 
@@ -186,7 +188,7 @@ func safeMobileRedirect(dest string) (string, bool) {
 	}
 }
 
-// isLocalOrPrivateHost checks if a host is localhost or a private IP address
+// isLocalOrPrivateHost checks if a host is localhost or a private IP address.
 func isLocalOrPrivateHost(host string) bool {
 	// Allow localhost
 	if host == "localhost" || host == "127.0.0.1" || host == "::1" {
@@ -196,7 +198,7 @@ func isLocalOrPrivateHost(host string) bool {
 	// Parse as IP and check for private ranges
 	// Private ranges: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
 	parts := strings.Split(host, ".")
-	if len(parts) != 4 {
+	if len(parts) != 4 { //nolint:mnd
 		return false
 	}
 
@@ -217,15 +219,15 @@ func isLocalOrPrivateHost(host string) bool {
 	return false
 }
 
-// parseOctet parses a string as an IP octet (0-255)
+// parseOctet parses a string as an IP octet (0-255).
 func parseOctet(s string) (int, error) {
 	var n int
 	for _, c := range s {
 		if c < '0' || c > '9' {
 			return 0, errors.New("invalid octet")
 		}
-		n = n*10 + int(c-'0')
-		if n > 255 {
+		n = n*10 + int(c-'0') //nolint:mnd
+		if n > 255 {          //nolint:mnd
 			return 0, errors.New("octet overflow")
 		}
 	}
@@ -263,7 +265,17 @@ func safeRedirect(dest, defaultURL string, allowed []string) string {
 	logger.Debug("safeRedirect: checking against allowed origins", "destScheme", u.Scheme, "destHost", u.Host)
 	for _, origin := range allowed {
 		a, _ := url.Parse(origin)
-		logger.Debug("safeRedirect: comparing", "destScheme", u.Scheme, "allowedScheme", a.Scheme, "destHost", u.Host, "allowedHost", a.Host)
+		logger.Debug(
+			"safeRedirect: comparing",
+			"destScheme",
+			u.Scheme,
+			"allowedScheme",
+			a.Scheme,
+			"destHost",
+			u.Host,
+			"allowedHost",
+			a.Host,
+		)
 		if strings.EqualFold(u.Scheme, a.Scheme) && strings.EqualFold(u.Host, a.Host) {
 			// ok: preserve path/query from dest
 			logger.Info("safeRedirect: MATCH found, allowing redirect", "dest", u.String())
@@ -290,11 +302,9 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	}
 
 	logger.Info("OAuth callback initiated", "provider", provider, "remoteAddr", r.RemoteAddr)
-
 	user, err := gothic.CompleteUserAuth(w, r)
 	if err != nil {
 		logger.Error("OAuth authentication failed", "error", err, "provider", provider, "remoteAddr", r.RemoteAddr)
-		logger.Error("Internal error", "error", err)
 		api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
@@ -312,37 +322,23 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 		api.RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
-	isNewUser := false
-	isReturningUser := false
 
-	userDetails, err := dao.GetUserDetails(r.Context(), info.Email)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			logger.Info("New user detected, creating account", "email", info.Email, "provider", provider, "remoteAddr", r.RemoteAddr)
-			if userDetails, err = dao.CreateUser(r.Context(), info.Email); err != nil {
-				logger.Error("Failed to create new user", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
-				logger.Error("Internal error", "error", err)
-		api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-				return
-			}
-			// Check if this is a brand new user or a returning deleted user
-			isNewUser = userDetails.NewUser
-			isReturningUser = userDetails.ReturningUser
-			logger.Info("User created successfully", "email", info.Email, "newUser", isNewUser, "returningUser", isReturningUser, "remoteAddr", r.RemoteAddr)
-		} else {
-			logger.Error("Failed to retrieve user details", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
-			logger.Error("Internal error", "error", err)
-		api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-			return
-		}
+	userDetails, isNewUser, isReturningUser, ok := resolveCallbackUser(
+		r.Context(),
+		w,
+		dao,
+		info.Email,
+		r.RemoteAddr,
+		provider,
+	)
+	if !ok {
+		return
 	}
 
-	// Check if this is an email/password account trying to log in via OAuth
-	if userDetails != nil && userDetails.AuthType == "email" && !isNewUser {
+	// Email/password account trying to log in via OAuth — bounce to /link-account.
+	if userDetails.AuthType == "email" && !isNewUser {
 		logger.Info("OAuth login attempted for email account, prompting to link",
-			"email", info.Email,
-			"provider", provider,
-			"remoteAddr", r.RemoteAddr)
+			"email", info.Email, "provider", provider, "remoteAddr", r.RemoteAddr)
 		redirectURL := fmt.Sprintf("%s/link-account?email=%s&provider=%s",
 			options.FrontEndURL,
 			url.QueryEscape(info.Email),
@@ -351,7 +347,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 		return
 	}
 
-	// Update user's name and auth_type from OAuth provider
+	// Update user's name and auth_type from OAuth provider (best-effort; failure is non-fatal).
 	if info.FirstName != "" || info.LastName != "" {
 		updateInfo := models.UserInfo{
 			Email:      info.Email,
@@ -360,191 +356,114 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 			AuthType:   info.AuthType,
 			Subscriber: userDetails.Subscriber,
 		}
-		if err := dao.UpdateUser(r.Context(), updateInfo); err != nil {
-			logger.Warn("Failed to update user name information", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
-			// Continue even if name update fails - not critical
+		if err = dao.UpdateUser(r.Context(), updateInfo); err != nil {
+			logger.Warn("Failed to update user name information",
+				"error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
 		}
 	}
 
-	// Copy database fields to info before marshaling into token
 	info.Subscriber = userDetails.Subscriber
 	info.Admin = userDetails.Admin
 
-	toJSON, err := json.Marshal(info)
-	if err != nil {
-		logger.Error("Failed to marshal user info", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
-		logger.Error("External service error", "error", err)
-		api.RespondWithError(w, http.StatusBadGateway, "An external service error occurred")
+	if !saveTokenSession(w, r, info) {
 		return
 	}
-
-	tokenSess, err := sessions.Get(r, "token")
-	if err != nil {
-		// Log the error but continue - gorilla/sessions returns a new valid session
-		// even when it can't decrypt the old cookie (e.g., after SESSION_SECRET change)
-		logger.Warn("Could not read existing token session, creating new one",
-			"error", err,
-			"email", info.Email,
-			"remoteAddr", r.RemoteAddr)
-	}
-	tokenSess.Values["token_data"] = toJSON
-
-	opts := sessions.OptionsFor(r)
-	opts.MaxAge = int(oneDay.Seconds())
-	tokenSess.Options = opts
-
-	if err := tokenSess.Save(r, w); err != nil {
-		logger.Error("Failed to save token session", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
-		logger.Error("Internal error", "error", err)
-		api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-		return
-	}
-
-	logger.Debug("Token session saved successfully", "email", info.Email, "remoteAddr", r.RemoteAddr)
 
 	frontend := options.FrontEndURL
+	allowedOrigins := []string{frontend, "minithreadr://auth"}
+	next := resolveCallbackNext(w, r, frontend, allowedOrigins)
 
-	// Build allowed origins list for mobile deep links
-	allowedOrigins := []string{
-		options.FrontEndURL,
-		"minithreadr://auth", // Always allow this for the mobile app's initial request
-	}
-
-	// Allow any exp:// scheme for Expo Go development
-	// Allow minithreadr:// scheme for production builds
-	// These will be validated by the safeRedirect function
-
-	next := frontend
-	if rdx := r.URL.Query().Get("next"); rdx != "" {
-		logger.Info("Found next parameter in callback query", "next", rdx, "remoteAddr", r.RemoteAddr)
-
-		// For mobile app schemes, validate against allowed patterns
-		if strings.HasPrefix(rdx, "minithreadr://") || strings.HasPrefix(rdx, "exp://") {
-			if validURL, ok := safeMobileRedirect(rdx); ok {
-				logger.Info("Validated mobile redirect URL from query parameter", "url", validURL)
-				next = validURL
-			} else {
-				logger.Warn("Rejected invalid mobile redirect URL", "url", rdx, "remoteAddr", r.RemoteAddr)
-				next = frontend
-			}
-		} else {
-			next = safeRedirect(rdx, frontend, allowedOrigins)
-		}
-		logger.Info("After safeRedirect from query", "next", next, "remoteAddr", r.RemoteAddr)
-	} else if loginSess, _ := sessions.Get(r, "login_referral"); loginSess != nil && !loginSess.IsNew {
-		if ref, _ := loginSess.Values["referrer"].(string); ref != "" {
-			logger.Info("Found referrer in login_referral session", "referrer", ref, "remoteAddr", r.RemoteAddr)
-
-			// For mobile app schemes, validate against allowed patterns
-			if strings.HasPrefix(ref, "minithreadr://") || strings.HasPrefix(ref, "exp://") {
-				if validURL, ok := safeMobileRedirect(ref); ok {
-					logger.Info("Validated mobile redirect URL from session", "url", validURL)
-					next = validURL
-				} else {
-					logger.Warn("Rejected invalid mobile redirect URL from session", "url", ref, "remoteAddr", r.RemoteAddr)
-					next = frontend
-				}
-			} else {
-				next = safeRedirect(ref, frontend, allowedOrigins)
-			}
-			logger.Info("After safeRedirect from session", "next", next, "frontend", frontend, "remoteAddr", r.RemoteAddr)
-		}
-		// Clear the one-time referral cookie now that we've used it
-		_ = sessions.Delete(w, r, "login_referral")
-	} else {
-		logger.Info("No next parameter or referrer found, using default frontend", "frontend", frontend, "remoteAddr", r.RemoteAddr)
-	}
-
-	updated, err := dao.IsUserSubscribed(r.Context(), *userDetails)
-	if err != nil {
-		logger.Error("Failed to check subscription status", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
-	} else {
-		logger.Debug("Subscription status checked", "email", info.Email, "subscriber", updated.Subscriber, "remoteAddr", r.RemoteAddr)
-		// persist Subscriber flip only when changed
-		if userDetails.Subscriber != updated.Subscriber {
-			logger.Info("Subscription status changed",
-				"email", info.Email,
-				"previousStatus", userDetails.Subscriber,
-				"newStatus", updated.Subscriber,
-				"remoteAddr", r.RemoteAddr)
-			if err := dao.UpdateUser(r.Context(), *updated); err != nil {
-				logger.Error("Failed to update user subscription status", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
-				logger.Error("Internal error", "error", err)
-		api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
-				return
-			}
-		}
-		// Create system alerts for subscription status changes
-		if updated.NotifyExpired {
-			logger.Info("User subscription expired, creating alert", "email", info.Email, "remoteAddr", r.RemoteAddr)
-			go func() {
-				bgCtx := context.Background()
-				alert := models.Alert{
-					ID:          "sub-expired-" + info.Email,
-					Subject:     "Subscription Expired",
-					Message:     "Your subscription has expired. Renew to regain access to premium features.",
-					Link:        "/subscribe",
-					AlertType:   models.AlertTypePersonal,
-					TargetEmail: info.Email,
-					CreatedAt:   time.Now().Unix(),
-					CreatedBy:   "system",
-				}
-				if aErr := dao.CreateAlert(bgCtx, alert); aErr != nil {
-					logger.Error("Failed to create subscription expired alert", "error", aErr, "email", info.Email)
-				}
-			}()
-		}
-		if updated.NotifyRestored {
-			logger.Info("User subscription restored, creating alert", "email", info.Email, "remoteAddr", r.RemoteAddr)
-			go func() {
-				bgCtx := context.Background()
-				alert := models.Alert{
-					ID:          "sub-restored-" + info.Email + "-" + strconv.FormatInt(time.Now().Unix(), 10),
-					Subject:     "Subscription Restored",
-					Message:     "Your subscription is active again. Your stories are being restored and will be available shortly.",
-					Link:        "/stories",
-					AlertType:   models.AlertTypePersonal,
-					TargetEmail: info.Email,
-					CreatedAt:   time.Now().Unix(),
-					CreatedBy:   "system",
-				}
-				if aErr := dao.CreateAlert(bgCtx, alert); aErr != nil {
-					logger.Error("Failed to create subscription restored alert", "error", aErr, "email", info.Email)
-				}
-			}()
-		}
-		// Proactive: warn if subscription expires within 7 days
-		if updated.Subscriber {
-			sub, subErr := dao.GetSubscription(r.Context(), info.Email)
-			if subErr == nil && !sub.CurrentSubscriptionEnd.IsZero() {
-				daysLeft := int(time.Until(sub.CurrentSubscriptionEnd).Hours() / 24)
-				if daysLeft >= 0 && daysLeft <= 7 {
-					go func() {
-						bgCtx := context.Background()
-						// Dedup: use a fixed ID so we don't spam on every login
-						alert := models.Alert{
-							ID:          "sub-expiring-" + info.Email,
-							Subject:     "Subscription Expiring Soon",
-							Message:     fmt.Sprintf("Your subscription expires in %d day%s. Renew to keep access to premium features.", daysLeft, func() string { if daysLeft != 1 { return "s" } ; return "" }()),
-							Link:        "/account/subscription",
-							AlertType:   models.AlertTypePersonal,
-							TargetEmail: info.Email,
-							CreatedAt:   time.Now().Unix(),
-							CreatedBy:   "system",
-						}
-						if aErr := dao.CreateAlert(bgCtx, alert); aErr != nil {
-							logger.Error("Failed to create subscription expiring alert", "error", aErr, "email", info.Email)
-						}
-					}()
-				}
-			}
-		}
+	if !applyOAuthSubscriptionUpdate(r.Context(), w, dao, userDetails, r.RemoteAddr) {
+		return
 	}
 
 	logger.Info("OAuth login successful", "email", info.Email, "provider", provider, "remoteAddr", r.RemoteAddr)
 	logger.Info("=== FINAL REDIRECT ===", "redirectTo", next, "email", info.Email)
 
-	// Add user status query parameters
+	next = appendStatusQueryParams(next, isNewUser, isReturningUser)
+	next = resolveRedirectTarget(next, frontend, "final", allowedOrigins)
+
+	if strings.HasPrefix(next, "minithreadr://") || strings.HasPrefix(next, "exp://") {
+		separator := "&"
+		if !strings.Contains(next, "?") {
+			separator = "?"
+		}
+		signedToken, tokenErr := createSignedMobileToken(info)
+		if tokenErr != nil {
+			logger.Error("Failed to create signed mobile token", "error", tokenErr, "email", info.Email)
+			api.RespondWithError(w, http.StatusInternalServerError, "Failed to create mobile token")
+			return
+		}
+		next = next + separator + "token=" + url.QueryEscape(signedToken)
+		logger.Info("Appended signed JWT to mobile deep link", "email", info.Email)
+		renderMobileRedirectPage(w, next)
+		return
+	}
+
+	// next has been routed through safeRedirect / safeMobileRedirect above; gosec's taint analyzer can't see the validation.
+	http.Redirect(w, r, next, http.StatusTemporaryRedirect) //nolint:gosec
+}
+
+// saveTokenSession marshals info into the "token" cookie session and writes
+// it back to the response. On failure writes a 500 and returns false.
+func saveTokenSession(w http.ResponseWriter, r *http.Request, info models.UserInfo) bool {
+	toJSON, err := json.Marshal(info)
+	if err != nil {
+		logger.Error("Failed to marshal user info", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
+		api.RespondWithError(w, http.StatusBadGateway, "An external service error occurred")
+		return false
+	}
+	tokenSess, err := sessions.Get(r, "token")
+	if err != nil {
+		// gorilla/sessions returns a new valid session even when it can't
+		// decrypt the old cookie (e.g., after SESSION_SECRET change).
+		logger.Warn("Could not read existing token session, creating new one",
+			"error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
+	}
+	tokenSess.Values["token_data"] = toJSON
+	opts := sessions.OptionsFor(r)
+	opts.MaxAge = int(oneDay.Seconds())
+	tokenSess.Options = opts
+	if err = tokenSess.Save(r, w); err != nil {
+		logger.Error("Failed to save token session", "error", err, "email", info.Email, "remoteAddr", r.RemoteAddr)
+		api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
+		return false
+	}
+	logger.Debug("Token session saved successfully", "email", info.Email, "remoteAddr", r.RemoteAddr)
+	return true
+}
+
+// resolveCallbackNext returns the post-auth redirect target, preferring the
+// ?next= query parameter, then a referrer stored in the login_referral
+// session, then the frontend default. The login_referral cookie is consumed.
+func resolveCallbackNext(w http.ResponseWriter, r *http.Request, frontend string, allowedOrigins []string) string {
+	if rdx := r.URL.Query().Get("next"); rdx != "" {
+		logger.Info("Found next parameter in callback query", "next", rdx, "remoteAddr", r.RemoteAddr)
+		next := resolveRedirectTarget(rdx, frontend, "query", allowedOrigins)
+		logger.Info("After safeRedirect from query", "next", next, "remoteAddr", r.RemoteAddr)
+		return next
+	}
+	loginSess, _ := sessions.Get(r, "login_referral")
+	if loginSess == nil || loginSess.IsNew {
+		logger.Info("No next parameter or referrer found, using default frontend",
+			"frontend", frontend, "remoteAddr", r.RemoteAddr)
+		return frontend
+	}
+	defer func() { _ = sessions.Delete(w, r, "login_referral") }()
+	ref, _ := loginSess.Values["referrer"].(string)
+	if ref == "" {
+		return frontend
+	}
+	logger.Info("Found referrer in login_referral session", "referrer", ref, "remoteAddr", r.RemoteAddr)
+	next := resolveRedirectTarget(ref, frontend, "session", allowedOrigins)
+	logger.Info("After safeRedirect from session",
+		"next", next, "frontend", frontend, "remoteAddr", r.RemoteAddr)
+	return next
+}
+
+// appendStatusQueryParams appends new_user / returning_user query parameters
+// to the redirect target so the frontend can show the right onboarding flow.
+func appendStatusQueryParams(next string, isNewUser, isReturningUser bool) string {
 	separator := "?"
 	if strings.Contains(next, "?") {
 		separator = "&"
@@ -555,141 +474,11 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	}
 	if isReturningUser {
 		next = next + separator + "returning_user=true"
-		separator = "&"
 	}
-
-	// For mobile deep links, append a signed JWT token as a query parameter
-	// since mobile apps can't access browser cookies
-	if strings.HasPrefix(next, "minithreadr://") || strings.HasPrefix(next, "exp://") {
-		signedToken, err := createSignedMobileToken(info)
-		if err != nil {
-			logger.Error("Failed to create signed mobile token", "error", err, "email", info.Email)
-			api.RespondWithError(w, http.StatusInternalServerError, "Failed to create mobile token")
-			return
-		}
-		next = next + separator + "token=" + url.QueryEscape(signedToken)
-		logger.Info("Appended signed JWT to mobile deep link", "email", info.Email)
-
-		// For mobile deep links, render an HTML page with JavaScript redirect
-		// because HTTP redirects to custom schemes don't work reliably in Chrome Custom Tabs
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-
-		// Check if this is an Expo Go deep link (exp://)
-		isExpoGo := strings.HasPrefix(next, "exp://")
-		instructions := "Tap the link below to return to the app"
-		if isExpoGo {
-			instructions = "Tap the link below to return to Expo Go"
-		}
-
-		html := fmt.Sprintf(`<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redirecting...</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%);
-        }
-        .container {
-            background: white;
-            border-radius: 10px;
-            padding: 40px;
-            text-align: center;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            max-width: 90%%;
-        }
-        h1 { color: #333; margin-bottom: 20px; }
-        p { color: #666; margin: 10px 0; }
-        .instructions {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-            margin: 30px 0 20px 0;
-        }
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-        @keyframes spin {
-            0%% { transform: rotate(0deg); }
-            100%% { transform: rotate(360deg); }
-        }
-        a {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 15px 30px;
-            background: #667eea;
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-size: 18px;
-            font-weight: 600;
-        }
-        a:active {
-            background: #5568d3;
-        }
-        .note {
-            font-size: 14px;
-            color: #999;
-            margin-top: 30px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>✅ Authentication Successful!</h1>
-        <div class="spinner"></div>
-        <p class="instructions">%s:</p>
-        <p><a href="%s" id="deepLink">Return to App</a></p>
-        <p class="note">You can close this page after tapping the link above</p>
-    </div>
-    <script>
-        var redirectUrl = "%s";
-        var attempts = 0;
-        var maxAttempts = 3;
-
-        // Try automatic redirect for non-Expo deep links
-        var isExpoGo = redirectUrl.startsWith('exp://');
-
-        if (!isExpoGo) {
-            // For standard deep links (minithreadr://), try auto-redirect
-            setTimeout(function() {
-                window.location.href = redirectUrl;
-            }, 100);
-
-            // Also try clicking the link programmatically
-            setTimeout(function() {
-                document.getElementById('deepLink').click();
-            }, 500);
-        } else {
-            // For Expo Go, don't auto-redirect - user must tap manually
-            // This is because exp:// links often don't work with auto-redirect
-            document.querySelector('.spinner').style.display = 'none';
-        }
-    </script>
-</body>
-</html>`, html.EscapeString(instructions), html.EscapeString(next), html.EscapeString(next))
-		w.Write([]byte(html))
-		return
-	}
-
-	http.Redirect(w, r, next, http.StatusTemporaryRedirect)
+	return next
 }
 
-// MobileSessionHandler exchanges a mobile token for a session token
+// MobileSessionHandler exchanges a mobile token for a session token.
 func MobileSessionHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Get token from request body
@@ -727,7 +516,7 @@ func MobileSessionHandler() http.HandlerFunc {
 		sess.Values["mobile_token"] = sessionToken
 		sess.Options = sessions.OptionsFor(r)
 
-		if err := sess.Save(r, w); err != nil {
+		if err = sess.Save(r, w); err != nil {
 			logger.Error("Failed to save user_data session", "error", err)
 			api.RespondWithError(w, http.StatusInternalServerError, "Failed to save session")
 			return
@@ -740,11 +529,13 @@ func MobileSessionHandler() http.HandlerFunc {
 
 		// Return success with session token
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		if encodeErr := json.NewEncoder(w).Encode(map[string]any{
 			"success":      true,
 			"user":         userData,
 			"sessionToken": sessionToken,
-		})
+		}); encodeErr != nil {
+			logger.Error("Failed to encode mobile session response", "error", encodeErr)
+		}
 	}
 }
 
@@ -760,12 +551,20 @@ func loginWithOptions(w http.ResponseWriter, r *http.Request, options OauthOptio
 
 	sess, err := sessions.Get(r, "login_referral")
 	if err != nil {
-		logger.Error("Failed to get login_referral session", "error", err, "provider", provider, "remoteAddr", r.RemoteAddr)
+		logger.Error(
+			"Failed to get login_referral session",
+			"error",
+			err,
+			"provider",
+			provider,
+			"remoteAddr",
+			r.RemoteAddr,
+		)
 	}
 
 	// Use shared options, then set TTL
 	opts := sessions.OptionsFor(r)
-	opts.MaxAge = int((5 * time.Minute).Seconds())
+	opts.MaxAge = int(mobileTokenExchangeTTL.Seconds())
 	sess.Options = opts
 
 	next := r.URL.Query().Get("next")
@@ -775,7 +574,15 @@ func loginWithOptions(w http.ResponseWriter, r *http.Request, options OauthOptio
 	sess.Values["referrer"] = next
 
 	if err = sess.Save(r, w); err != nil {
-		logger.Error("Failed to save login_referral session", "error", err, "provider", provider, "remoteAddr", r.RemoteAddr)
+		logger.Error(
+			"Failed to save login_referral session",
+			"error",
+			err,
+			"provider",
+			provider,
+			"remoteAddr",
+			r.RemoteAddr,
+		)
 		logger.Error("Internal error", "error", err)
 		api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
@@ -783,7 +590,7 @@ func loginWithOptions(w http.ResponseWriter, r *http.Request, options OauthOptio
 
 	logger.Debug("Login referral session saved", "provider", provider, "next", next, "remoteAddr", r.RemoteAddr)
 
-	if _, err := gothic.CompleteUserAuth(w, r); err != nil {
+	if _, err = gothic.CompleteUserAuth(w, r); err != nil {
 		logger.Debug("Starting OAuth flow", "provider", provider, "remoteAddr", r.RemoteAddr)
 		gothic.BeginAuthHandler(w, r)
 	}
@@ -801,7 +608,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 		// Delete the token from the token map
 		sessions.DeleteTokenMapping(sessionToken)
 		logger.Info("Mobile logout successful")
-		api.RespondWithJson(w, http.StatusOK, nil)
+		api.RespondWithJSON(w, http.StatusOK, nil)
 		return
 	}
 
@@ -816,5 +623,5 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	_ = gothic.Logout(w, r)
 
 	logger.Info("Web logout successful", "remoteAddr", r.RemoteAddr)
-	api.RespondWithJson(w, http.StatusOK, nil)
+	api.RespondWithJSON(w, http.StatusOK, nil)
 }

@@ -1,21 +1,24 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/logger"
-	"Threadr/models"
 	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/logger"
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/gorilla/mux"
 )
 
+//nolint:funlen // OpenAI request orchestration: param parsing, block fetch, prompt build, request, parsing.
 func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		err            error
@@ -62,20 +65,22 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	chapterText := ""
+	var chapterTextSb65 strings.Builder
 	for _, block := range blocks.Items {
-		chunkAttributeValue, ok := block["chunk"].(*types.AttributeValueMemberS)
+		chunkAttributeValue, ok := block["chunk"].(*types.AttributeValueMemberS) //nolint:govet
 		if !ok {
 			continue // Skip this item or handle the error as appropriate
 		}
 		chk := models.Chunk{}
-		err := json.Unmarshal([]byte(chunkAttributeValue.Value), &chk)
+		err := json.Unmarshal([]byte(chunkAttributeValue.Value), &chk) //nolint:govet
 		if err != nil {
 			logger.Error("Internal error", "error", err)
 			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
-		chapterText += chk.Text
+		chapterTextSb65.WriteString(chk.Text)
 	}
+	chapterText += chapterTextSb65.String()
 	if chapterText == "" {
 		RespondWithError(w, http.StatusUnprocessableEntity, "Cannot process chapter")
 		return
@@ -83,7 +88,7 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	openAIKey := os.Getenv("OPENAI_API_KEY")
 	url := "https://api.openai.com/v1/chat/completions"
 
-	//A helpful rule of thumb is that one token generally corresponds to ~4 characters of text for common English text. This translates to roughly ¾ of a word (so 100 tokens ~= 75 words).
+	// A helpful rule of thumb is that one token generally corresponds to ~4 characters of text for common English text. This translates to roughly ¾ of a word (so 100 tokens ~= 75 words).
 
 	var instructions, content string
 	switch typeOfAnalysis {
@@ -99,7 +104,7 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	// Data structure that matches the JSON payload structure of the request
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"model": "gpt-3.5-turbo",
 		"messages": []map[string]string{
 			{
@@ -121,7 +126,7 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create a new HTTP request with the appropriate method, URL, and payload
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodPost, url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		logger.Error("External service error", "error", err)
 		RespondWithError(w, http.StatusBadGateway, "External service error")
@@ -155,7 +160,7 @@ func AnalyzeChapterEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(response.Choices) > 0 && response.Choices[0].Message.Content != "" {
-		RespondWithJson(w, http.StatusOK, response.Choices[0].Message)
+		RespondWithJSON(w, http.StatusOK, response.Choices[0].Message)
 	} else {
 		RespondWithError(w, http.StatusNoContent, "invalid response from gpt")
 	}

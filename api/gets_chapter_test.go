@@ -1,15 +1,16 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/gorilla/mux"
 )
@@ -22,16 +23,10 @@ func init() {
 
 func TestChapterTableStatusEndpoint_Success_TableReady(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_ string, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID, Title: "Test Story"}, nil
 	}
-	mockDAO.MockGetChapterTableStatus = func(storyID, chapterID string) (bool, error) {
-		if storyID != "story123" {
-			t.Errorf("Expected storyID story123, got %s", storyID)
-		}
-		if chapterID != "ch1" {
-			t.Errorf("Expected chapterID ch1, got %s", chapterID)
-		}
+	mockDAO.MockGetChapterTableStatus = func() (bool, error) {
 		return true, nil
 	}
 
@@ -49,10 +44,10 @@ func TestChapterTableStatusEndpoint_Success_TableReady(t *testing.T) {
 
 func TestChapterTableStatusEndpoint_TableNotReady(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_ string, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID, Title: "Test Story"}, nil
 	}
-	mockDAO.MockGetChapterTableStatus = func(storyID, chapterID string) (bool, error) {
+	mockDAO.MockGetChapterTableStatus = func() (bool, error) {
 		return false, nil
 	}
 
@@ -137,10 +132,10 @@ func TestChapterTableStatusEndpoint_NoDAO(t *testing.T) {
 
 func TestChapterTableStatusEndpoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_ string, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID, Title: "Test Story"}, nil
 	}
-	mockDAO.MockGetChapterTableStatus = func(storyID, chapterID string) (bool, error) {
+	mockDAO.MockGetChapterTableStatus = func() (bool, error) {
 		return false, errors.New("database error")
 	}
 
@@ -159,7 +154,7 @@ func TestChapterTableStatusEndpoint_DAOError(t *testing.T) {
 func TestChapterTableStatusEndpoint_UnauthorizedAccess(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	// Return error to simulate user doesn't own the story
-	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_ string, _ string) (*models.Story, error) {
 		return nil, errors.New("story not found")
 	}
 
@@ -179,7 +174,7 @@ func TestChapterTableStatusEndpoint_UnauthorizedAccess(t *testing.T) {
 
 func TestChapterDetailsEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_ string, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID, Title: "Test Story"}, nil
 	}
 	mockDAO.MockGetChapterByID = func(chapterID string) (*models.Chapter, error) {
@@ -282,10 +277,10 @@ func TestChapterDetailsEndpoint_NoDAO(t *testing.T) {
 
 func TestChapterDetailsEndpoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_ string, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID, Title: "Test Story"}, nil
 	}
-	mockDAO.MockGetChapterByID = func(chapterID string) (*models.Chapter, error) {
+	mockDAO.MockGetChapterByID = func(_ string) (*models.Chapter, error) {
 		return nil, errors.New("database error")
 	}
 
@@ -304,7 +299,7 @@ func TestChapterDetailsEndpoint_DAOError(t *testing.T) {
 func TestChapterDetailsEndpoint_UnauthorizedAccess(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 	// Return error to simulate user doesn't own the story
-	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_ string, _ string) (*models.Story, error) {
 		return nil, errors.New("story not found")
 	}
 

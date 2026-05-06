@@ -1,17 +1,18 @@
 package daos
 
 import (
-	"Threadr/models"
 	"context"
 	"errors"
 	"os"
 	"testing"
 
+	"Threadr/models"
+
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-// Tests for GenerateStoryOutlineSections
+// Tests for GenerateStoryOutlineSections.
 func TestGenerateStoryOutlineSections(t *testing.T) {
 	t.Run("ThreeAct template generates 3 sections", func(t *testing.T) {
 		sections := GenerateStoryOutlineSections(models.ThreeAct)
@@ -136,18 +137,8 @@ func TestGenerateStoryOutlineSections(t *testing.T) {
 	})
 }
 
-// Tests for GetTableSuffix
+// Tests for GetTableSuffix.
 func TestGetTableSuffix(t *testing.T) {
-	// Save original MODE and restore after test
-	originalMode := os.Getenv("MODE")
-	defer func() {
-		if originalMode != "" {
-			os.Setenv("MODE", originalMode)
-		} else {
-			os.Unsetenv("MODE")
-		}
-	}()
-
 	tests := []struct {
 		name     string
 		mode     string
@@ -202,9 +193,8 @@ func TestGetTableSuffix(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.mode != "" {
-				os.Setenv("MODE", tt.mode)
-			} else {
+			t.Setenv("MODE", tt.mode)
+			if tt.mode == "" {
 				os.Unsetenv("MODE")
 			}
 
@@ -216,7 +206,7 @@ func TestGetTableSuffix(t *testing.T) {
 	}
 }
 
-// Tests for CleanDynamoTagString
+// Tests for CleanDynamoTagString.
 func TestCleanDynamoTagString(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -355,7 +345,7 @@ func TestCleanDynamoTagString(t *testing.T) {
 	}
 }
 
-// Test CleanDynamoTagString is deterministic
+// Test CleanDynamoTagString is deterministic.
 func TestCleanDynamoTagString_Deterministic(t *testing.T) {
 	inputs := []string{
 		"aws:my-tag!@#",
@@ -366,7 +356,7 @@ func TestCleanDynamoTagString_Deterministic(t *testing.T) {
 
 	for _, input := range inputs {
 		first := CleanDynamoTagString(input)
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			result := CleanDynamoTagString(input)
 			if result != first {
 				t.Errorf("CleanDynamoTagString(%q) not deterministic: first=%q, iteration %d=%q",
@@ -376,30 +366,30 @@ func TestCleanDynamoTagString_Deterministic(t *testing.T) {
 	}
 }
 
-// Benchmark tests
+// Benchmark tests.
 func BenchmarkGenerateStoryOutlineSections_ThreeAct(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = GenerateStoryOutlineSections(models.ThreeAct)
 	}
 }
 
 func BenchmarkGenerateStoryOutlineSections_FiveAct(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = GenerateStoryOutlineSections(models.FiveAct)
 	}
 }
 
 func BenchmarkGenerateStoryOutlineSections_HeroJourney(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = GenerateStoryOutlineSections(models.HeroJourney)
 	}
 }
 
 func BenchmarkGetTableSuffix(b *testing.B) {
-	os.Setenv("MODE", "staging")
+	b.Setenv("MODE", "staging")
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = GetTableSuffix()
 	}
 }
@@ -413,14 +403,14 @@ func BenchmarkCleanDynamoTagString(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		for _, input := range inputs {
 			_ = CleanDynamoTagString(input)
 		}
 	}
 }
 
-// Tests for CheckForSuspendedStories
+// Tests for CheckForSuspendedStories.
 func TestCheckForSuspendedStories(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -436,9 +426,9 @@ func TestCheckForSuspendedStories(t *testing.T) {
 			mockScanOutput: &dynamodb.ScanOutput{
 				Items: []map[string]types.AttributeValue{
 					{
-						"story_id":          &types.AttributeValueMemberS{Value: "story-123"},
-						"author":            &types.AttributeValueMemberS{Value: "user@example.com"},
-						"deleted_at":        &types.AttributeValueMemberN{Value: "1234567890"},
+						"story_id":           &types.AttributeValueMemberS{Value: "story-123"},
+						"author":             &types.AttributeValueMemberS{Value: "user@example.com"},
+						"deleted_at":         &types.AttributeValueMemberN{Value: "1234567890"},
 						"automated_deletion": &types.AttributeValueMemberBOOL{Value: true},
 					},
 				},
@@ -484,15 +474,15 @@ func TestCheckForSuspendedStories(t *testing.T) {
 			mockScanOutput: &dynamodb.ScanOutput{
 				Items: []map[string]types.AttributeValue{
 					{
-						"story_id":          &types.AttributeValueMemberS{Value: "story-1"},
-						"author":            &types.AttributeValueMemberS{Value: "user@example.com"},
-						"deleted_at":        &types.AttributeValueMemberN{Value: "1234567890"},
+						"story_id":           &types.AttributeValueMemberS{Value: "story-1"},
+						"author":             &types.AttributeValueMemberS{Value: "user@example.com"},
+						"deleted_at":         &types.AttributeValueMemberN{Value: "1234567890"},
 						"automated_deletion": &types.AttributeValueMemberBOOL{Value: true},
 					},
 					{
-						"story_id":          &types.AttributeValueMemberS{Value: "story-2"},
-						"author":            &types.AttributeValueMemberS{Value: "user@example.com"},
-						"deleted_at":        &types.AttributeValueMemberN{Value: "1234567891"},
+						"story_id":           &types.AttributeValueMemberS{Value: "story-2"},
+						"author":             &types.AttributeValueMemberS{Value: "user@example.com"},
+						"deleted_at":         &types.AttributeValueMemberN{Value: "1234567891"},
 						"automated_deletion": &types.AttributeValueMemberBOOL{Value: true},
 					},
 				},
@@ -509,7 +499,7 @@ func TestCheckForSuspendedStories(t *testing.T) {
 			mockDao := NewMockDAO()
 			mockClient := mockDao.DynamoClient.(*MockDynamoClient)
 
-			mockClient.MockScan = func(ctx context.Context, input *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+			mockClient.MockScan = func(_ context.Context, input *dynamodb.ScanInput, _ ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
 				// Verify the filter expression is correct
 				if input.FilterExpression != nil {
 					expectedExpr := "author=:eml AND attribute_exists(deleted_at) AND automated_deletion=:a"
@@ -542,7 +532,7 @@ func TestCheckForSuspendedStories(t *testing.T) {
 	}
 }
 
-// Tests for WasStoryDeleted
+// Tests for WasStoryDeleted.
 func TestWasStoryDeleted(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -643,7 +633,7 @@ func TestWasStoryDeleted(t *testing.T) {
 			mockDao := NewMockDAO()
 			mockClient := mockDao.DynamoClient.(*MockDynamoClient)
 
-			mockClient.MockScan = func(ctx context.Context, input *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+			mockClient.MockScan = func(_ context.Context, input *dynamodb.ScanInput, _ ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
 				// Verify the filter expression is correct
 				if input.FilterExpression != nil {
 					expectedExpr := "author=:eml AND story_title=:s AND attribute_exists(deleted_at)"
@@ -676,7 +666,7 @@ func TestWasStoryDeleted(t *testing.T) {
 	}
 }
 
-// Tests for GetTotalCreatedStories
+// Tests for GetTotalCreatedStories.
 func TestGetTotalCreatedStories(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -774,7 +764,7 @@ func TestGetTotalCreatedStories(t *testing.T) {
 			mockDao := NewMockDAO()
 			mockClient := mockDao.DynamoClient.(*MockDynamoClient)
 
-			mockClient.MockScan = func(ctx context.Context, input *dynamodb.ScanInput, optFns ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+			mockClient.MockScan = func(_ context.Context, input *dynamodb.ScanInput, _ ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
 				// Verify the filter expression excludes deleted stories
 				if input.FilterExpression != nil {
 					expectedExpr := "author=:eml AND attribute_not_exists(deleted_at)"

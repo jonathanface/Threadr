@@ -1,14 +1,15 @@
 package daos
 
 import (
-	"Threadr/models"
 	"context"
 	"errors"
 	"testing"
 	"time"
+
+	"Threadr/models"
 )
 
-// Tests for GetSubscription
+// Tests for GetSubscription.
 func TestGetSubscription(t *testing.T) {
 	testCases := []struct {
 		name  string
@@ -21,7 +22,6 @@ func TestGetSubscription(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -32,10 +32,10 @@ func TestGetSubscription(t *testing.T) {
 	}
 }
 
-// Tests for GetEmailByCustomerId
-func TestGetEmailByCustomerId(t *testing.T) {
+// Tests for GetEmailByCustomerID.
+func TestGetEmailByCustomerID(t *testing.T) {
 	testCases := []struct {
-		name     string
+		name       string
 		customerID string
 	}{
 		{
@@ -45,28 +45,27 @@ func TestGetEmailByCustomerId(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			email, err := mockDao.GetEmailByCustomerId(context.Background(), tc.customerID)
+			email, err := mockDao.GetEmailByCustomerID(context.Background(), tc.customerID)
 
-			t.Logf("GetEmailByCustomerId(%q) returned email=%q, err=%v", tc.customerID, email, err)
+			t.Logf("GetEmailByCustomerID(%q) returned email=%q, err=%v", tc.customerID, email, err)
 		})
 	}
 }
 
-// Tests for UpdateSubscription
+// Tests for UpdateSubscription.
 func TestUpdateSubscription(t *testing.T) {
 	now := time.Now()
 	futureTime := now.Add(30 * 24 * time.Hour) // 30 days from now
 
 	testCases := []struct {
-		name        string
+		name         string
 		subscription models.Subscription
-		mockErr     error
-		wantErr     bool
-		errContains string
+		mockErr      error
+		wantErr      bool
+		errContains  string
 	}{
 		{
 			name: "SuccessfulUpdate_AllFields",
@@ -127,7 +126,6 @@ func TestUpdateSubscription(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -155,38 +153,20 @@ func TestUpdateSubscription(t *testing.T) {
 			err := mockDao.UpdateSubscription(context.Background(), tc.subscription)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Errorf("Expected error but got nil")
-				} else if tc.errContains != "" {
-					// Simple check if error contains the substring
-					errStr := err.Error()
-					found := false
-					for i := 0; i <= len(errStr)-len(tc.errContains); i++ {
-						if errStr[i:i+len(tc.errContains)] == tc.errContains {
-							found = true
-							break
-						}
-					}
-					if !found {
-						t.Errorf("Expected error to contain %q, got %q", tc.errContains, err.Error())
-					}
-				}
-			} else {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
+				assertExpectedErr(t, err, tc.errContains)
+			} else if err != nil {
+				t.Errorf("Unexpected error: %v", err)
 			}
 		})
 	}
 }
 
-// Benchmark tests
+// Benchmark tests.
 func BenchmarkGetSubscription(b *testing.B) {
 	mockDao := NewMockDAO()
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_, _ = mockDao.GetSubscription(context.Background(), "bench@example.com")
 	}
 }
-

@@ -1,12 +1,6 @@
 package api
 
 import (
-	"Threadr/converters"
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/logger"
-	"Threadr/models"
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
@@ -14,12 +8,21 @@ import (
 	"path/filepath"
 	"strings"
 
+	"Threadr/converters"
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/logger"
+	"Threadr/models"
+
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
 
 const maxImportFileSize = 20 * 1024 * 1024 // 20MB
 
+// allowedImportFormats is a static lookup table — Go can't make maps const.
+//
+//nolint:gochecknoglobals
 var allowedImportFormats = map[string]string{
 	".docx": "docx",
 	".txt":  "txt",
@@ -30,7 +33,9 @@ var allowedImportFormats = map[string]string{
 //
 // POST /api/v1/stories/{storyID}/import
 // Content-Type: multipart/form-data
-// Form field: "file" (the document to import)
+// Form field: "file" (the document to import).
+//
+//nolint:funlen // File upload → format detect → pandoc → split → write chapters; sequential pipeline.
 func ImportDocumentEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		err     error
@@ -68,9 +73,9 @@ func ImportDocumentEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse multipart form with size limit
+	// Parse multipart form with size limit (body already bounded by MaxBytesReader above).
 	r.Body = http.MaxBytesReader(w, r.Body, maxImportFileSize)
-	if err = r.ParseMultipartForm(maxImportFileSize); err != nil {
+	if err = r.ParseMultipartForm(maxImportFileSize); err != nil { //nolint:gosec
 		RespondWithError(w, http.StatusBadRequest, "File too large. Maximum size is 20MB.")
 		return
 	}
@@ -111,7 +116,7 @@ func ImportDocumentEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "Failed to process file")
 		return
 	}
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	// Check if user wants to skip the first page (title page)
 	skipFirstPage := r.FormValue("skip_first_page") == "true"
@@ -124,7 +129,11 @@ func ImportDocumentEndpoint(w http.ResponseWriter, r *http.Request) {
 			"storyId", storyID,
 			"filename", header.Filename,
 			"format", format)
-		RespondWithError(w, http.StatusUnprocessableEntity, "Failed to import document. The file may be corrupted or in an unsupported format.")
+		RespondWithError(
+			w,
+			http.StatusUnprocessableEntity,
+			"Failed to import document. The file may be corrupted or in an unsupported format.",
+		)
 		return
 	}
 
@@ -149,7 +158,7 @@ func ImportDocumentEndpoint(w http.ResponseWriter, r *http.Request) {
 			Place:   i + 1,
 		}
 
-		createdChapter, err := dao.CreateChapter(r.Context(), storyID, chapter, email)
+		createdChapter, err := dao.CreateChapter(r.Context(), storyID, chapter) //nolint:govet
 		if err != nil {
 			logger.Error("Failed to create chapter during import",
 				"error", err,
@@ -169,7 +178,7 @@ func ImportDocumentEndpoint(w http.ResponseWriter, r *http.Request) {
 			for _, block := range imported.Blocks {
 				storyBlocks.Blocks = append(storyBlocks.Blocks, models.StoryBlock{
 					KeyID: block.KeyID,
-					Chunk: json.RawMessage(block.Chunk),
+					Chunk: block.Chunk,
 					Place: block.Place,
 				})
 			}
@@ -193,7 +202,7 @@ func ImportDocumentEndpoint(w http.ResponseWriter, r *http.Request) {
 		"filename", header.Filename,
 		"chaptersCreated", len(createdChapters))
 
-	RespondWithJson(w, http.StatusOK, map[string]interface{}{
+	RespondWithJSON(w, http.StatusOK, map[string]any{
 		"chapters": createdChapters,
 		"count":    len(createdChapters),
 	})

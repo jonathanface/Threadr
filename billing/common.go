@@ -1,13 +1,14 @@
 package billing
 
 import (
-	"Threadr/api"
-	"Threadr/models"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"os"
 	"strconv"
+
+	"Threadr/api"
+	"Threadr/models"
 
 	stripe "github.com/stripe/stripe-go/v79"
 	"github.com/stripe/stripe-go/v79/customer"
@@ -58,10 +59,10 @@ func ensureCustomer(u *models.UserInfo, s *models.Subscription) (string, error) 
 }
 
 func RespondWithError(w http.ResponseWriter, code int, msg string) {
-	RespondWithJson(w, code, map[string]string{"error": msg})
+	RespondWithJSON(w, code, map[string]string{"error": msg})
 }
 
-func RespondWithJson(w http.ResponseWriter, code int, payload interface{}) {
+func RespondWithJSON(w http.ResponseWriter, code int, payload any) {
 	var (
 		response []byte
 		err      error
@@ -69,12 +70,12 @@ func RespondWithJson(w http.ResponseWriter, code int, payload interface{}) {
 	if response, err = json.Marshal(payload); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		_, _ = w.Write([]byte(err.Error()))
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	w.Write(response)
+	_, _ = w.Write(response)
 }
 
 func getUserEmail(r *http.Request) (string, error) {

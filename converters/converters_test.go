@@ -1,6 +1,7 @@
 package converters
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,7 +16,7 @@ import (
 
 // --- Test helpers ------------------------------------------------------------
 
-func writeFakePandoc(t *testing.T, dir string) string {
+func writeFakePandoc(t *testing.T, dir string) {
 	t.Helper()
 	var name, contents string
 	if runtime.GOOS == "windows" {
@@ -58,17 +59,14 @@ fi
 	if err := os.WriteFile(full, []byte(contents), 0o755); err != nil {
 		t.Fatalf("write fake pandoc: %v", err)
 	}
-	return full
 }
 
 func withPathPrepended(t *testing.T, dir string) (restore func()) {
 	t.Helper()
 	old := os.Getenv("PATH")
 	sep := string(os.PathListSeparator)
-	if err := os.Setenv("PATH", dir+sep+old); err != nil {
-		t.Fatalf("set PATH: %v", err)
-	}
-	return func() { _ = os.Setenv("PATH", old) }
+	t.Setenv("PATH", dir+sep+old)
+	return func() {}
 }
 
 func mustTempDir(t *testing.T) string {
@@ -87,7 +85,7 @@ type testChapter struct {
 
 type testExport struct {
 	Title         string
-	HtmlByChapter []testChapter
+	HTMLByChapter []testChapter
 	CoverImage    *string
 	Author        *string
 }
@@ -98,12 +96,12 @@ func toRealExport(te testExport) models.DocumentExportRequest {
 	var chapters []models.HTMLData // adjust to your actual field type if needed
 	// If your actual model is []struct{ Chapter, HTML string }, you can convert directly:
 	// (This adapter assumes the same field names.)
-	for _, c := range te.HtmlByChapter {
+	for _, c := range te.HTMLByChapter {
 		chapters = append(chapters, models.HTMLData{Chapter: c.Chapter, HTML: c.HTML})
 	}
 	return models.DocumentExportRequest{
 		Title:         te.Title,
-		HtmlByChapter: chapters,
+		HTMLByChapter: chapters,
 		CoverImage:    te.CoverImage,
 		Author:        te.Author,
 	}
@@ -170,7 +168,6 @@ func TestDetab_TableDriven(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			got := detab(tc.in, tc.tabWidth)
 			if got != tc.want {
@@ -182,7 +179,7 @@ func TestDetab_TableDriven(t *testing.T) {
 
 func TestSafeTimestampFormat(t *testing.T) {
 	re := regexp.MustCompile(`^\d{8}T\d{6}Z$`)
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		ts := safeTimestamp()
 		if !re.MatchString(ts) {
 			t.Fatalf("safeTimestamp() = %q; want format YYYYMMDDThhmmssZ", ts)
@@ -194,14 +191,14 @@ func TestSafeTimestampFormat(t *testing.T) {
 func TestHTMLToDOCX_UsesPandocStub_WritesFile(t *testing.T) {
 	// Arrange: fake pandoc
 	fakeDir := mustTempDir(t)
-	_ = writeFakePandoc(t, fakeDir)
+	writeFakePandoc(t, fakeDir)
 	restore := withPathPrepended(t, fakeDir)
 	defer restore()
 
 	// Use a minimal export
 	exp := toRealExport(testExport{
 		Title: "DocxTitle",
-		HtmlByChapter: []testChapter{
+		HTMLByChapter: []testChapter{
 			{Chapter: "One", HTML: "<div>Hello</div>"},
 		},
 	})
@@ -229,13 +226,13 @@ func TestHTMLToDOCX_UsesPandocStub_WritesFile(t *testing.T) {
 func TestHTMLToEPUB_UsesPandocStub_WritesFile(t *testing.T) {
 	// Arrange: fake pandoc
 	fakeDir := mustTempDir(t)
-	_ = writeFakePandoc(t, fakeDir)
+	writeFakePandoc(t, fakeDir)
 	restore := withPathPrepended(t, fakeDir)
 	defer restore()
 
 	exp := toRealExport(testExport{
 		Title: "EpubTitle",
-		HtmlByChapter: []testChapter{
+		HTMLByChapter: []testChapter{
 			{Chapter: "Intro", HTML: "<p>Hi</p>"},
 			{Chapter: "Next", HTML: "<p>There</p>"},
 		},
@@ -270,7 +267,7 @@ func TestHTMLToPDF_Smoke(t *testing.T) {
 	}
 	exp := toRealExport(testExport{
 		Title: "PdfTitle",
-		HtmlByChapter: []testChapter{
+		HTMLByChapter: []testChapter{
 			{Chapter: "C1", HTML: "A\tB\nC\tD"},
 		},
 	})
@@ -296,7 +293,7 @@ func TestHTMLToPDF_Smoke(t *testing.T) {
 
 func TestValidateImageURL_ValidHTTPSURL(t *testing.T) {
 	// Valid public URL should pass
-	result, err := ValidateImageURL("https://example.com/image.jpg")
+	result, err := ValidateImageURL(context.Background(), "https://example.com/image.jpg")
 	if err != nil {
 		t.Errorf("Expected valid HTTPS URL to pass, got error: %v", err)
 	}
@@ -307,7 +304,7 @@ func TestValidateImageURL_ValidHTTPSURL(t *testing.T) {
 
 func TestValidateImageURL_ValidHTTPURL(t *testing.T) {
 	// Valid HTTP URL should pass
-	result, err := ValidateImageURL("http://example.com/image.png")
+	result, err := ValidateImageURL(context.Background(), "http://example.com/image.png")
 	if err != nil {
 		t.Errorf("Expected valid HTTP URL to pass, got error: %v", err)
 	}
@@ -325,7 +322,7 @@ func TestValidateImageURL_InvalidScheme(t *testing.T) {
 	}
 
 	for _, url := range tests {
-		_, err := ValidateImageURL(url)
+		_, err := ValidateImageURL(context.Background(), url)
 		if err == nil {
 			t.Errorf("Expected URL with invalid scheme to fail: %s", url)
 		}
@@ -344,7 +341,7 @@ func TestValidateImageURL_Localhost(t *testing.T) {
 	}
 
 	for _, url := range tests {
-		_, err := ValidateImageURL(url)
+		_, err := ValidateImageURL(context.Background(), url)
 		if err == nil {
 			t.Errorf("Expected localhost URL to fail: %s", url)
 		}
@@ -362,7 +359,7 @@ func TestValidateImageURL_PrivateIP(t *testing.T) {
 	}
 
 	for _, url := range tests {
-		_, err := ValidateImageURL(url)
+		_, err := ValidateImageURL(context.Background(), url)
 		if err == nil {
 			t.Errorf("Expected private IP URL to fail: %s", url)
 		}
@@ -373,7 +370,7 @@ func TestValidateImageURL_PrivateIP(t *testing.T) {
 }
 
 func TestValidateImageURL_MissingHostname(t *testing.T) {
-	_, err := ValidateImageURL("http:///path/to/image.jpg")
+	_, err := ValidateImageURL(context.Background(), "http:///path/to/image.jpg")
 	if err == nil {
 		t.Errorf("Expected URL without hostname to fail")
 	}
@@ -383,7 +380,7 @@ func TestValidateImageURL_MissingHostname(t *testing.T) {
 }
 
 func TestValidateImageURL_InvalidURL(t *testing.T) {
-	_, err := ValidateImageURL("not a url at all")
+	_, err := ValidateImageURL(context.Background(), "not a url at all")
 	if err == nil {
 		t.Errorf("Expected invalid URL to fail")
 	}

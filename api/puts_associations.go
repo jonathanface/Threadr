@@ -1,13 +1,15 @@
 package api
 
 import (
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/url"
+
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
 	"Threadr/logger"
 	"Threadr/models"
-	"encoding/json"
-	"net/http"
-	"net/url"
 
 	"github.com/aws/smithy-go"
 	"github.com/google/uuid"
@@ -62,7 +64,8 @@ func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = dao.WriteAssociations(r.Context(), email, storyOrSeriesID, associations); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -76,5 +79,5 @@ func WriteAssocationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, associations)
+	RespondWithJSON(w, http.StatusOK, associations)
 }

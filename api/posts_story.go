@@ -1,18 +1,21 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/logger"
-	"Threadr/models"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/logger"
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -21,6 +24,7 @@ import (
 	"github.com/google/uuid"
 )
 
+//nolint:funlen // Multi-step file upload + validation + S3 + DAO; sequential by nature.
 func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		email string
@@ -34,8 +38,10 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	const maxFileSize = 5 * 1024 * 1024 // 5 MB
-	// image upload
-	err = r.ParseMultipartForm(10 << 20)
+	// image upload — bound the entire request body, not just the in-memory portion.
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+	const parseFormMemoryBudget = 10 << 20            // 10 MB in-memory budget; body already bounded above
+	err = r.ParseMultipartForm(parseFormMemoryBudget) //nolint:gosec // body bounded by MaxBytesReader above
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Unable to parse file")
 		return
@@ -49,37 +55,35 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	allowedTypes := []string{"image/jpeg", "image/png", "image/gif"}
+	allowedTypes := []string{contentTypeJPEG, contentTypePNG, contentTypeGIF}
 	if handler.Size < 0 || handler.Size > int64(maxFileSize) {
-		RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("File size exceeds allowed limit of %dMB", maxFileSize/(1024*1024)))
+		RespondWithError(
+			w,
+			http.StatusBadRequest,
+			fmt.Sprintf("File size exceeds allowed limit of %dMB", maxFileSize/(oneMB*oneMB)),
+		)
 		return
 	}
 	fileBytes := make([]byte, handler.Size)
-	if _, err := file.Read(fileBytes); err != nil {
+	if _, err = file.Read(fileBytes); err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	fileType := http.DetectContentType(fileBytes)
-	allowed := false
-	for _, t := range allowedTypes {
-		if fileType == t {
-			allowed = true
-			break
-		}
-	}
+	allowed := slices.Contains(allowedTypes, fileType)
 	if !allowed {
 		RespondWithError(w, http.StatusBadRequest, "Invalid file type")
 		return
 	}
 
-	if _, err := file.Seek(0, io.SeekStart); err != nil {
+	if _, err = file.Seek(0, io.SeekStart); err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Failed to read the image file")
 		return
 	}
 
 	// Scale down the image if it exceeds the maximum width
-	scaledImageBuf, _, err := scaleDownImage(file, uint(400))
+	scaledImageBuf, _, err := scaleDownImage(file)
 	if err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
@@ -87,7 +91,11 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	// Check the size of the scaled image
 	if scaledImageBuf.Len() > maxFileSize {
-		RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("Filesize must be < %dMB", maxFileSize/(1024*1024)))
+		RespondWithError(
+			w,
+			http.StatusBadRequest,
+			fmt.Sprintf("Filesize must be < %dMB", maxFileSize/(oneMB*oneMB)),
+		)
 		return
 	}
 
@@ -128,7 +136,7 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	s3Client := s3.NewFromConfig(awsCfg)
 	if _, err = s3Client.PutObject(context.Background(), &s3.PutObjectInput{
-		Bucket:      aws.String(S3_STORY_IMAGE_BUCKET),
+		Bucket:      aws.String(s3StoryImagebucket),
 		Key:         aws.String(filename),
 		Body:        bytes.NewReader(scaledImageBuf.Bytes()),
 		ContentType: aws.String(fileType),
@@ -137,9 +145,10 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	story.ImageURL = "https://" + S3_STORY_IMAGE_BUCKET + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
+	story.ImageURL = "https://" + s3StoryImagebucket + ".s3." + os.Getenv("AWS_REGION") + ".amazonaws.com/" + filename
 	if story.ID, err = dao.CreateStory(r.Context(), email, story, seriesTitle); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -157,14 +166,14 @@ func CreateStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	firstChapterID := uuid.New().String()
 	chap := models.Chapter{}
 	chap.ID = firstChapterID
-	chap.Title = "Chapter 1"
+	chap.Title = firstChapterTitle
 	chap.Place = 1
-	newChapter, err := dao.CreateChapter(r.Context(), story.ID, chap, email)
+	newChapter, err := dao.CreateChapter(r.Context(), story.ID, chap)
 	if err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 	story.Chapters = append(story.Chapters, newChapter)
-	RespondWithJson(w, http.StatusOK, story)
+	RespondWithJSON(w, http.StatusOK, story)
 }

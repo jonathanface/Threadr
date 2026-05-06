@@ -12,7 +12,7 @@ import (
 	"github.com/aws/smithy-go"
 )
 
-// Tests for createBlockTable
+// Tests for createBlockTable.
 func TestCreateBlockTable(t *testing.T) {
 	testCases := []struct {
 		name          string
@@ -45,7 +45,6 @@ func TestCreateBlockTable(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 			mockClient, ok := mockDao.DynamoClient.(*MockDynamoClient)
@@ -56,9 +55,9 @@ func TestCreateBlockTable(t *testing.T) {
 			// Track if CreateTable was called with correct parameters
 			var calledWithTableName string
 			var calledWithTags []types.Tag
-			mockClient.MockCreateTable = func(ctx context.Context,
+			mockClient.MockCreateTable = func(_ context.Context,
 				input *dynamodb.CreateTableInput,
-				opts ...func(*dynamodb.Options),
+				_ ...func(*dynamodb.Options),
 			) (*dynamodb.CreateTableOutput, error) {
 				if input.TableName != nil {
 					calledWithTableName = *input.TableName
@@ -75,21 +74,19 @@ func TestCreateBlockTable(t *testing.T) {
 			err := mockDao.createBlockTable(context.Background(), tc.tableName, tc.tags)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Errorf("Expected error but got nil")
-				}
-			} else {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
-				// Verify CreateTable was called with correct table name
-				if calledWithTableName != tc.tableName {
-					t.Errorf("Expected table name %q, got %q", tc.tableName, calledWithTableName)
-				}
-				// Verify tags were passed correctly
-				if tc.tags != nil && len(calledWithTags) != len(*tc.tags) {
-					t.Errorf("Expected %d tags, got %d", len(*tc.tags), len(calledWithTags))
-				}
+				assertExpectedErr(t, err, "")
+				return
+			}
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			// Verify CreateTable was called with correct table name
+			if calledWithTableName != tc.tableName {
+				t.Errorf("Expected table name %q, got %q", tc.tableName, calledWithTableName)
+			}
+			// Verify tags were passed correctly
+			if tc.tags != nil && len(calledWithTags) != len(*tc.tags) {
+				t.Errorf("Expected %d tags, got %d", len(*tc.tags), len(calledWithTags))
 			}
 
 			// Note: The goroutine for PITR setup is launched asynchronously,
@@ -99,7 +96,7 @@ func TestCreateBlockTable(t *testing.T) {
 	}
 }
 
-// Tests for CheckTableStatus
+// Tests for CheckTableStatus.
 func TestCheckTableStatus(t *testing.T) {
 	testCases := []struct {
 		name           string
@@ -124,10 +121,10 @@ func TestCheckTableStatus(t *testing.T) {
 			wantErr:        false,
 		},
 		{
-			name:       "DescribeTableError",
-			tableName:  "error_table",
-			mockErr:    errors.New("describe failed"),
-			wantErr:    true,
+			name:      "DescribeTableError",
+			tableName: "error_table",
+			mockErr:   errors.New("describe failed"),
+			wantErr:   true,
 		},
 		{
 			name:           "DeletingTable",
@@ -139,7 +136,6 @@ func TestCheckTableStatus(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 			mockClient, ok := mockDao.DynamoClient.(*MockDynamoClient)
@@ -147,9 +143,9 @@ func TestCheckTableStatus(t *testing.T) {
 				t.Fatalf("mockDao.DynamoClient is not a *MockDynamoClient")
 			}
 
-			mockClient.MockDescribeTable = func(ctx context.Context,
-				input *dynamodb.DescribeTableInput,
-				opts ...func(*dynamodb.Options),
+			mockClient.MockDescribeTable = func(_ context.Context,
+				_ *dynamodb.DescribeTableInput,
+				_ ...func(*dynamodb.Options),
 			) (*dynamodb.DescribeTableOutput, error) {
 				if tc.mockErr != nil {
 					return nil, tc.mockErr
@@ -179,7 +175,7 @@ func TestCheckTableStatus(t *testing.T) {
 	}
 }
 
-// Tests for isResourceNotFound
+// Tests for isResourceNotFound.
 func TestIsResourceNotFound(t *testing.T) {
 	testCases := []struct {
 		name     string
@@ -217,7 +213,6 @@ func TestIsResourceNotFound(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			result := isResourceNotFound(tc.err)
 			if result != tc.expected {
@@ -227,7 +222,7 @@ func TestIsResourceNotFound(t *testing.T) {
 	}
 }
 
-// Tests for isTableInUse
+// Tests for isTableInUse.
 func TestIsTableInUse(t *testing.T) {
 	testCases := []struct {
 		name     string
@@ -265,7 +260,6 @@ func TestIsTableInUse(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			result := isTableInUse(tc.err)
 			if result != tc.expected {
@@ -275,7 +269,7 @@ func TestIsTableInUse(t *testing.T) {
 	}
 }
 
-// Tests for isTableAlreadyExists
+// Tests for isTableAlreadyExists.
 func TestIsTableAlreadyExists(t *testing.T) {
 	testCases := []struct {
 		name     string
@@ -313,7 +307,6 @@ func TestIsTableAlreadyExists(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			result := isTableAlreadyExists(tc.err)
 			if result != tc.expected {
@@ -323,7 +316,7 @@ func TestIsTableAlreadyExists(t *testing.T) {
 	}
 }
 
-// Tests for waitForTableStatus
+// Tests for waitForTableStatus.
 func TestWaitForTableStatus(t *testing.T) {
 	testCases := []struct {
 		name        string
@@ -367,13 +360,12 @@ func TestWaitForTableStatus(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockClient := &MockDynamoClient{}
 
-			mockClient.MockDescribeTable = func(ctx context.Context,
-				input *dynamodb.DescribeTableInput,
-				opts ...func(*dynamodb.Options),
+			mockClient.MockDescribeTable = func(_ context.Context,
+				_ *dynamodb.DescribeTableInput,
+				_ ...func(*dynamodb.Options),
 			) (*dynamodb.DescribeTableOutput, error) {
 				if tc.mockErr != nil {
 					return nil, tc.mockErr
@@ -403,14 +395,14 @@ func TestWaitForTableStatus(t *testing.T) {
 	}
 }
 
-// Benchmark tests
+// Benchmark tests.
 func BenchmarkCheckTableStatus(b *testing.B) {
 	mockDao := NewMockDAO()
 	mockClient, _ := mockDao.DynamoClient.(*MockDynamoClient)
 
-	mockClient.MockDescribeTable = func(ctx context.Context,
-		input *dynamodb.DescribeTableInput,
-		opts ...func(*dynamodb.Options),
+	mockClient.MockDescribeTable = func(_ context.Context,
+		_ *dynamodb.DescribeTableInput,
+		_ ...func(*dynamodb.Options),
 	) (*dynamodb.DescribeTableOutput, error) {
 		return &dynamodb.DescribeTableOutput{
 			Table: &types.TableDescription{
@@ -420,7 +412,7 @@ func BenchmarkCheckTableStatus(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_, _ = mockDao.CheckTableStatus(context.Background(), "benchmark_table")
 	}
 }
@@ -433,7 +425,7 @@ func BenchmarkIsResourceNotFound(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = isResourceNotFound(err)
 	}
 }

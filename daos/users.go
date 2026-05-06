@@ -1,16 +1,16 @@
 package daos
 
 import (
-	"Threadr/logger"
-	"Threadr/models"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"time"
+
+	"Threadr/logger"
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -27,98 +27,23 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 
 	// First, check if this is a re-registration of a deleted account
 	existingUser, err := d.GetUserByEmailIncludingDeleted(ctx, email)
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, err
 	}
 
-	// If user exists and was deleted, we need to use Update instead of Put
+	// If user exists and was deleted, recreate the account by clearing
+	// the deleted_at flag and restoring their soft-deleted stories/series.
 	if existingUser != nil && existingUser.DeletedAt != "" {
-		// 1. Restore user account
-		input := &dynamodb.UpdateItemInput{
-			TableName: aws.String("users" + GetTableSuffix()),
-			Key: map[string]types.AttributeValue{
-				"email": &types.AttributeValueMemberS{Value: email},
-			},
-			UpdateExpression: aws.String("set created_at=:t, last_accessed=:t, admin=:a, subscriber=:s REMOVE deleted_at, customer_id, first_name, last_name"),
-			ExpressionAttributeValues: map[string]types.AttributeValue{
-				":t": &types.AttributeValueMemberN{Value: now},
-				":a": &types.AttributeValueMemberBOOL{Value: false},
-				":s": &types.AttributeValueMemberBOOL{Value: false},
-			},
-			ReturnValues: types.ReturnValueAllNew,
-		}
-
-		if _, err := d.DynamoClient.UpdateItem(ctx, input); err != nil {
-			return nil, err
-		}
-
-		// 2. Restore all soft-deleted stories (undelete them)
-		stories, err := d.GetAllStoriesIncludingDeleted(ctx, email)
-		if err != nil && err != sql.ErrNoRows {
-			logger.Warn("Failed to get deleted stories for restoration", "email", email, "error", err)
-			// Continue anyway - don't fail account recreation
-		} else {
-			for _, story := range stories {
-				// Undelete the story by removing deleted_at
-				if err := d.RestoreStory(ctx, email, story.ID); err != nil {
-					logger.Warn("Failed to restore story", "email", email, "storyID", story.ID, "error", err)
-					// Continue with other stories
-				}
-			}
-			logger.Info("Restored stories for returning user", "email", email, "count", len(stories))
-		}
-
-		// 3. Restore all soft-deleted series
-		series, err := d.GetAllSeriesIncludingDeleted(ctx, email)
-		if err != nil && err != sql.ErrNoRows {
-			logger.Warn("Failed to get deleted series for restoration", "email", email, "error", err)
-			// Continue anyway
-		} else {
-			for _, s := range series {
-				// Undelete the series by removing deleted_at
-				if err := d.RestoreSeries(ctx, email, s.ID); err != nil {
-					logger.Warn("Failed to restore series", "email", email, "seriesID", s.ID, "error", err)
-					// Continue with other series
-				}
-			}
-			logger.Info("Restored series for returning user", "email", email, "count", len(series))
-		}
-
-		user := models.UserInfo{
-			Email:         email,
-			Admin:         false,
-			Subscriber:    false,
-			ReturningUser: true, // Flag for returning deleted user
-		}
-
-		logger.Info("Account re-created (was previously deleted)", "email", email)
-		// Send emails and create welcome alert asynchronously
-		go func() {
-			bgCtx := context.Background()
-			if err := sendWelcomeEmail(email); err != nil {
-				logger.Error("Failed to send welcome email", "email", email, "error", err)
-			} else {
-				logger.Info("Welcome email sent successfully", "email", email)
-			}
-			if err := sendNewUserNotificationEmail(email); err != nil {
-				logger.Error("Failed to send new user notification email", "email", email, "error", err)
-			} else {
-				logger.Info("New user notification email sent successfully", "email", email)
-			}
-			d.createWelcomeBackAlert(bgCtx, email)
-			d.createSubscribeNowAlert(bgCtx, email)
-		}()
-
-		return &user, nil
+		return d.recreateDeletedUser(ctx, email, now)
 	}
 
 	// Normal new user creation
 	twii := &dynamodb.TransactWriteItemsInput{}
 	attributes := map[string]types.AttributeValue{
-		"email":      &types.AttributeValueMemberS{Value: email},
-		"admin":      &types.AttributeValueMemberBOOL{Value: false},
-		"subscriber": &types.AttributeValueMemberBOOL{Value: false},
-		"created_at": &types.AttributeValueMemberN{Value: now},
+		"email":       &types.AttributeValueMemberS{Value: email},
+		"admin":       &types.AttributeValueMemberBOOL{Value: false},
+		"subscriber":  &types.AttributeValueMemberBOOL{Value: false},
+		attrCreatedAt: &types.AttributeValueMemberN{Value: now},
 	}
 	twi := types.TransactWriteItem{
 		Put: &types.Put{
@@ -134,7 +59,12 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 		return nil, err
 	}
 	if !awsErr.IsNil() {
-		return nil, fmt.Errorf("--AWSERROR-- Code:%s, Type: %s, Message: %s", awsErr.Code, awsErr.ErrorType, awsErr.Text)
+		return nil, fmt.Errorf(
+			"--AWSERROR-- Code:%s, Type: %s, Message: %s",
+			awsErr.Code,
+			awsErr.ErrorType,
+			awsErr.Text,
+		)
 	}
 
 	user := models.UserInfo{
@@ -147,10 +77,10 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 	logger.Info("New account created", "email", email)
 	// Send emails and create welcome alert asynchronously
 	go func() {
-		bgCtx := context.Background()
+		bgCtx := context.WithoutCancel(ctx)
 
 		// Send welcome email to user
-		if err := sendWelcomeEmail(email); err != nil {
+		if err = sendWelcomeEmail(email); err != nil {
 			logger.Error("Failed to send welcome email",
 				"email", email,
 				"error", err)
@@ -159,7 +89,7 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 		}
 
 		// Send notification email to support
-		if err := sendNewUserNotificationEmail(email); err != nil {
+		if err = sendNewUserNotificationEmail(email); err != nil {
 			logger.Error("Failed to send new user notification email",
 				"email", email,
 				"error", err)
@@ -173,6 +103,93 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 	}()
 
 	return &user, nil
+}
+
+// recreateDeletedUser handles re-registration of a previously soft-deleted
+// account: clears deleted_at, restores soft-deleted stories and series, then
+// fires the usual welcome notifications. Errors during story/series
+// restoration are logged but not fatal — better to recreate the account with
+// some content lost than to refuse re-registration entirely.
+func (d *DAO) recreateDeletedUser(ctx context.Context, email, now string) (*models.UserInfo, error) {
+	input := &dynamodb.UpdateItemInput{
+		TableName: aws.String("users" + GetTableSuffix()),
+		Key: map[string]types.AttributeValue{
+			"email": &types.AttributeValueMemberS{Value: email},
+		},
+		UpdateExpression: aws.String(
+			"set created_at=:t, last_accessed=:t, admin=:a, subscriber=:s REMOVE deleted_at, customer_id, first_name, last_name",
+		),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":t": &types.AttributeValueMemberN{Value: now},
+			":a": &types.AttributeValueMemberBOOL{Value: false},
+			":s": &types.AttributeValueMemberBOOL{Value: false},
+		},
+		ReturnValues: types.ReturnValueAllNew,
+	}
+	if _, err := d.DynamoClient.UpdateItem(ctx, input); err != nil {
+		return nil, err
+	}
+
+	d.restoreUserStories(ctx, email)
+	d.restoreUserSeries(ctx, email)
+
+	user := models.UserInfo{
+		Email:         email,
+		Admin:         false,
+		Subscriber:    false,
+		ReturningUser: true,
+	}
+
+	logger.Info("Account re-created (was previously deleted)", "email", email)
+	go func() {
+		bgCtx := context.WithoutCancel(ctx)
+		if err := sendWelcomeEmail(email); err != nil {
+			logger.Error("Failed to send welcome email", "email", email, "error", err)
+		} else {
+			logger.Info("Welcome email sent successfully", "email", email)
+		}
+		if err := sendNewUserNotificationEmail(email); err != nil {
+			logger.Error("Failed to send new user notification email", "email", email, "error", err)
+		} else {
+			logger.Info("New user notification email sent successfully", "email", email)
+		}
+		d.createWelcomeBackAlert(bgCtx, email)
+		d.createSubscribeNowAlert(bgCtx, email)
+	}()
+	return &user, nil
+}
+
+// restoreUserStories undeletes every soft-deleted story owned by email.
+// Best-effort: per-story failures are logged and skipped so a single bad row
+// doesn't block the rest of the recreation flow.
+func (d *DAO) restoreUserStories(ctx context.Context, email string) {
+	stories, err := d.GetAllStoriesIncludingDeleted(ctx, email)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		logger.Warn("Failed to get deleted stories for restoration", "email", email, "error", err)
+		return
+	}
+	for _, story := range stories {
+		if err = d.RestoreStory(ctx, email, story.ID); err != nil {
+			logger.Warn("Failed to restore story", "email", email, "storyID", story.ID, "error", err)
+		}
+	}
+	logger.Info("Restored stories for returning user", "email", email, "count", len(stories))
+}
+
+// restoreUserSeries undeletes every soft-deleted series owned by email.
+// Best-effort, same contract as restoreUserStories.
+func (d *DAO) restoreUserSeries(ctx context.Context, email string) {
+	series, err := d.GetAllSeriesIncludingDeleted(ctx, email)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		logger.Warn("Failed to get deleted series for restoration", "email", email, "error", err)
+		return
+	}
+	for _, s := range series {
+		if err = d.RestoreSeries(ctx, email, s.ID); err != nil {
+			logger.Warn("Failed to restore series", "email", email, "seriesID", s.ID, "error", err)
+		}
+	}
+	logger.Info("Restored series for returning user", "email", email, "count", len(series))
 }
 
 func (d *DAO) GetUserDetails(ctx context.Context, email string) (user *models.UserInfo, err error) {
@@ -224,7 +241,7 @@ func (d *DAO) GetUserDetails(ctx context.Context, email string) (user *models.Us
 }
 
 // GetAllUsersWithStories retrieves all users with their story titles, sorted by last_accessed
-// This is used by the admin area
+// This is used by the admin area.
 func (d *DAO) GetAllUsersWithStories(ctx context.Context) ([]models.AdminUserSummary, error) {
 	tableName := "users" + GetTableSuffix()
 
@@ -255,12 +272,12 @@ func (d *DAO) GetAllUsersWithStories(ctx context.Context) ([]models.AdminUserSum
 	result := make([]models.AdminUserSummary, 0, len(users))
 	for _, u := range users {
 		// Get stories for this user
-		stories, err := d.GetAllStories(ctx, u.Email)
+		stories, err := d.GetAllStories(ctx, u.Email) //nolint:govet
 		var storyInfos []models.AdminStoryInfo
 		if err == nil {
 			// Build a map of seriesID -> series title for this user
 			seriesMap := make(map[string]string)
-			allSeries, seriesErr := d.GetAllSeriesWithStories(ctx, u.Email, true)
+			allSeries, seriesErr := d.GetAllSeriesWithStories(ctx, u.Email)
 			if seriesErr == nil {
 				for _, s := range allSeries {
 					seriesMap[s.ID] = s.Title
@@ -291,7 +308,7 @@ func (d *DAO) GetAllUsersWithStories(ctx context.Context) ([]models.AdminUserSum
 	}
 
 	// Sort by last_accessed descending (most recent first)
-	for i := 0; i < len(result)-1; i++ {
+	for i := range len(result) - 1 {
 		for j := i + 1; j < len(result); j++ {
 			if result[j].LastAccessed > result[i].LastAccessed {
 				result[i], result[j] = result[j], result[i]
@@ -302,7 +319,7 @@ func (d *DAO) GetAllUsersWithStories(ctx context.Context) ([]models.AdminUserSum
 	return result, nil
 }
 
-// GetUserByEmailIncludingDeleted retrieves a user including deleted users
+// GetUserByEmailIncludingDeleted retrieves a user including deleted users.
 func (d *DAO) GetUserByEmailIncludingDeleted(ctx context.Context, email string) (*models.UserInfo, error) {
 	tableName := "users" + GetTableSuffix()
 
@@ -321,7 +338,7 @@ func (d *DAO) GetUserByEmailIncludingDeleted(ctx context.Context, email string) 
 	}
 
 	var user models.UserInfo
-	if err := attributevalue.UnmarshalMap(out.Item, &user); err != nil {
+	if err = attributevalue.UnmarshalMap(out.Item, &user); err != nil {
 		return nil, err
 	}
 
@@ -330,7 +347,7 @@ func (d *DAO) GetUserByEmailIncludingDeleted(ctx context.Context, email string) 
 
 /**
  * Either create a user, or update user with last login time
-**/
+*.*/
 func (d *DAO) UpsertUser(ctx context.Context, email string) (*models.UserInfo, error) {
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 	input := &dynamodb.UpdateItemInput{
@@ -352,7 +369,7 @@ func (d *DAO) UpsertUser(ctx context.Context, email string) (*models.UserInfo, e
 
 	var user models.UserInfo
 	if out.Attributes != nil {
-		if err := attributevalue.UnmarshalMap(out.Attributes, &user); err != nil {
+		if err = attributevalue.UnmarshalMap(out.Attributes, &user); err != nil {
 			return nil, err
 		}
 	}
@@ -394,7 +411,7 @@ func (d *DAO) UpdateUser(ctx context.Context, user models.UserInfo) (err error) 
 	if _, err = d.DynamoClient.UpdateItem(ctx, input); err != nil {
 		return err
 	}
-	return
+	return err
 }
 
 func toStatus(s *stripe.Subscription, found bool) SubscriptionStatus {
@@ -413,17 +430,15 @@ func toStatus(s *stripe.Subscription, found bool) SubscriptionStatus {
 }
 
 func (d *DAO) IsUserSubscribed(ctx context.Context, user models.UserInfo) (*models.UserInfo, error) {
-	// Only set stripe.Key from environment if not already set (preserves test mocks)
 	if stripe.Key == "" {
 		stripe.Key = os.Getenv("STRIPE_SECRET")
 		if stripe.Key == "" {
-			return nil, fmt.Errorf("missing stripe secret")
+			return nil, errors.New("missing stripe secret")
 		}
 	}
 	sub, err := d.GetSubscription(ctx, user.Email)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			// No subscription on file: treat as not subscribed, not an error
+		if errors.Is(err, sql.ErrNoRows) {
 			user.Subscriber = false
 			return &user, nil
 		}
@@ -434,64 +449,109 @@ func (d *DAO) IsUserSubscribed(ctx context.Context, user models.UserInfo) (*mode
 		return nil, err
 	}
 
-	// Base truth from DB
+	isSubscribed, err := d.resolveSubscriberStatus(ctx, sub)
+	if err != nil {
+		return nil, err
+	}
+	if err = d.applySubscriberSideEffects(ctx, &user, sub, isSubscribed); err != nil {
+		return nil, err
+	}
+	user.Subscriber = isSubscribed
+	return &user, nil
+}
+
+// resolveSubscriberStatus computes the user's effective subscription state
+// by combining DB truth with a Stripe recheck (when the cached state is
+// stale). On a successful recheck the subscription record is updated in
+// DDB. Stripe-side errors are logged and ignored — we fall back to DB truth.
+func (d *DAO) resolveSubscriberStatus(ctx context.Context, sub *models.Subscription) (bool, error) {
+	const staleAfter = 15 * time.Minute
 	isSubscribed := sub.SubscriptionID != "" && sub.CurrentSubscriptionEnd.After(time.Now())
 
-	// Recheck policy:
-	// Re-verify with Stripe if we have a sub id AND the check is stale.
-	const staleAfter = 15 * time.Minute
-	shouldRecheck := sub.SubscriptionID != "" && (sub.LastSubCheck.IsZero() || time.Since(sub.LastSubCheck) > staleAfter)
-	if shouldRecheck {
-		status, stripeErr := d.verifyStripeSubscription(sub.SubscriptionID, sub.CustomerID)
-		if stripeErr == nil && status.Found {
-			isSubscribed = status.Active
-			sub.CurrentSubscriptionEnd = status.CurrentPeriodEnd
-			sub.LastSubCheck = time.Now().UTC()
-			if err := d.UpdateSubscription(ctx, *sub); err != nil {
-				return nil, err
-			}
-		} else if stripeErr != nil {
-			// Network/auth issues—log and keep DB truth
-			log.Println("verifyStripeSubscription error:", stripeErr)
-		}
+	shouldRecheck := sub.SubscriptionID != "" &&
+		(sub.LastSubCheck.IsZero() || time.Since(sub.LastSubCheck) > staleAfter)
+	if !shouldRecheck {
+		return isSubscribed, nil
 	}
-	// Side effects: suspend/restore stories + set notify flags for UX
-	if !isSubscribed && user.Subscriber {
-		user.NotifyExpired = true
 
-		stories, err := d.GetAllStories(ctx, user.Email)
-		if err != nil && err != sql.ErrNoRows {
-			return nil, err
-		}
-		for idx, s := range stories {
-			if idx > 0 {
-				go d.SoftDeleteStory(ctx, user.Email, s.ID, true)
-			}
-		}
-		sub.CurrentSubscriptionEnd = time.Now()
-		err = d.UpdateSubscription(ctx, *sub)
+	status, stripeErr := d.verifyStripeSubscription(sub.SubscriptionID, sub.CustomerID)
+	if stripeErr != nil {
+		logger.Warn("verifyStripeSubscription error", "error", stripeErr)
+		return isSubscribed, nil
+	}
+	if !status.Found {
+		return isSubscribed, nil
+	}
+	sub.CurrentSubscriptionEnd = status.CurrentPeriodEnd
+	sub.LastSubCheck = time.Now().UTC()
+	if err := d.UpdateSubscription(ctx, *sub); err != nil {
+		return false, err
+	}
+	return status.Active, nil
+}
+
+// applySubscriberSideEffects applies the user-state side-effects of a
+// subscription state change: when transitioning to unsubscribed, story
+// fan-out soft-delete + persist; when transitioning to (still) subscribed,
+// kick off the restore async if any stories were previously auto-suspended.
+// The user struct is mutated in place to record notify flags.
+func (d *DAO) applySubscriberSideEffects(
+	ctx context.Context,
+	user *models.UserInfo,
+	sub *models.Subscription,
+	isSubscribed bool,
+) error {
+	switch {
+	case !isSubscribed && user.Subscriber:
+		return d.applySubscriptionExpired(ctx, user, sub)
+	case isSubscribed:
+		wasSuspended, err := d.CheckForSuspendedStories(ctx, user.Email)
 		if err != nil {
-			return nil, err
-		}
-		user.Subscriber = false
-		err = d.UpdateUser(ctx, user)
-		if err != nil {
-			return nil, err
-		}
-	} else if isSubscribed {
-		wasSuspended, err := d.CheckForSuspendedStories(ctx, user.Email) // bool
-		if err != nil {
-			return nil, err
+			return err
 		}
 		if wasSuspended {
 			d.kickoffRestoreAsync(user.Email)
 			user.NotifyRestored = true
 		}
 	}
+	return nil
+}
 
-	// Reflect final status back to caller
-	user.Subscriber = isSubscribed
-	return &user, nil
+// applySubscriptionExpired handles the active→expired transition: marks the
+// notify flag, kicks off background soft-deletion of all but the first
+// story (the "free tier" allowance), zeroes out the subscription end date,
+// and persists both records.
+func (d *DAO) applySubscriptionExpired(
+	ctx context.Context,
+	user *models.UserInfo,
+	sub *models.Subscription,
+) error {
+	user.NotifyExpired = true
+
+	stories, err := d.GetAllStories(ctx, user.Email)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+	for idx, s := range stories {
+		if idx == 0 {
+			continue
+		}
+		go func(storyID string) {
+			if delErr := d.SoftDeleteStory(ctx, user.Email, storyID, true); delErr != nil {
+				logger.Warn("background SoftDeleteStory failed", "storyID", storyID, "error", delErr)
+			}
+		}(s.ID)
+	}
+
+	sub.CurrentSubscriptionEnd = time.Now()
+	if err = d.UpdateSubscription(ctx, *sub); err != nil {
+		return err
+	}
+	user.Subscriber = false
+	if err = d.UpdateUser(ctx, *user); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (d *DAO) AddCustomerID(ctx context.Context, email, customerID *string) error {
@@ -515,7 +575,7 @@ func (d *DAO) AddCustomerID(ctx context.Context, email, customerID *string) erro
 	return nil
 }
 
-// sendWelcomeEmail sends a welcome email to a new user
+// sendWelcomeEmail sends a welcome email to a new user.
 func sendWelcomeEmail(userEmail string) error {
 	region := os.Getenv("AWS_REGION")
 	if region == "" {
@@ -591,7 +651,7 @@ The Threadr Team`
 	return nil
 }
 
-// DeleteUser soft deletes a user account and all associated data
+// DeleteUser soft deletes a user account and all associated data.
 func (d *DAO) DeleteUser(ctx context.Context, email string) error {
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 
@@ -600,27 +660,33 @@ func (d *DAO) DeleteUser(ctx context.Context, email string) error {
 	if err == nil && sub.SubscriptionID != "" {
 		// Subscription cancellation is handled via Stripe webhook
 		// We just mark it for cancellation here
-		logger.Info("User has active subscription, will be cancelled", "email", email, "subscriptionID", sub.SubscriptionID)
+		logger.Info(
+			"User has active subscription, will be cancelled",
+			"email",
+			email,
+			"subscriptionID",
+			sub.SubscriptionID,
+		)
 	}
 
 	// 2. Soft delete all user's stories
 	stories, err := d.GetAllStories(ctx, email)
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return err
 	}
 	for _, story := range stories {
-		if err := d.SoftDeleteStory(ctx, email, story.ID, false); err != nil {
+		if err = d.SoftDeleteStory(ctx, email, story.ID, false); err != nil {
 			return err
 		}
 	}
 
 	// 3. Soft delete all user's series
-	series, err := d.GetAllSeriesWithStories(ctx, email, false)
-	if err != nil && err != sql.ErrNoRows {
+	series, err := d.GetAllSeriesWithStories(ctx, email)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return err
 	}
 	for _, s := range series {
-		if err := d.DeleteSeries(ctx, email, s); err != nil {
+		if err = d.DeleteSeries(ctx, email, s); err != nil {
 			return err
 		}
 	}
@@ -637,7 +703,7 @@ func (d *DAO) DeleteUser(ctx context.Context, email string) error {
 		},
 	}
 
-	if _, err := d.DynamoClient.UpdateItem(ctx, input); err != nil {
+	if _, err = d.DynamoClient.UpdateItem(ctx, input); err != nil {
 		return err
 	}
 
@@ -645,7 +711,7 @@ func (d *DAO) DeleteUser(ctx context.Context, email string) error {
 	return nil
 }
 
-// sendNewUserNotificationEmail sends an email notification to support when a new user signs up
+// sendNewUserNotificationEmail sends an email notification to support when a new user signs up.
 func sendNewUserNotificationEmail(userEmail string) error {
 	region := os.Getenv("AWS_REGION")
 	if region == "" {

@@ -1,10 +1,6 @@
 package api
 
 import (
-	"Threadr/daos"
-	"Threadr/logger"
-	"Threadr/models"
-	"Threadr/sessions"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -18,18 +14,14 @@ import (
 	"net/http"
 	"strings"
 
+	"Threadr/daos"
+	"Threadr/logger"
+	"Threadr/models"
+	"Threadr/sessions"
+
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/smithy-go"
 	"github.com/nfnt/resize"
-)
-
-const (
-	S3_CUSTOM_PORTRAIT_BUCKET = "richdocter-custom-portraits"
-	S3_EXPORTS_BUCKET         = "richdocter-document-exports"
-	S3_STORY_IMAGE_BUCKET     = "richdocter-story-portraits"
-	S3_SERIES_IMAGE_BUCKET    = "richdocter-series-portraits"
-	TMP_EXPORT_DIR            = "./tmp"
-	NON_SUBSCRIBER_MAX_ASSOC  = 10
 )
 
 // GetAuthenticatedUser extracts user info from either mobile token (Authorization header)
@@ -37,11 +29,11 @@ const (
 func GetAuthenticatedUser(r *http.Request) (*models.UserInfo, error) {
 	// Try mobile token-based auth first
 	authHeader := r.Header.Get("Authorization")
-	if strings.HasPrefix(authHeader, "Bearer ") {
-		sessionToken := strings.TrimPrefix(authHeader, "Bearer ")
+	if after, ok := strings.CutPrefix(authHeader, "Bearer "); ok {
+		sessionToken := after
 
 		// Get user data from token map
-		userVal, ok := sessions.GetUserByToken(sessionToken)
+		userVal, ok := sessions.GetUserByToken(sessionToken) //nolint:govet
 		if !ok {
 			return nil, errors.New("invalid session token")
 		}
@@ -70,7 +62,7 @@ func GetAuthenticatedUser(r *http.Request) (*models.UserInfo, error) {
 }
 
 // getUserEmail is a convenience wrapper around getAuthenticatedUser
-// for handlers that only need the email address
+// for handlers that only need the email address.
 func getUserEmail(r *http.Request) (string, error) {
 	user, err := GetAuthenticatedUser(r)
 	if err != nil {
@@ -80,10 +72,10 @@ func getUserEmail(r *http.Request) (string, error) {
 }
 
 func RespondWithError(w http.ResponseWriter, code int, msg string) {
-	RespondWithJson(w, code, map[string]string{"error": msg})
+	RespondWithJSON(w, code, map[string]string{"error": msg})
 }
 
-func RespondWithJson(w http.ResponseWriter, code int, payload interface{}) {
+func RespondWithJSON(w http.ResponseWriter, code int, payload any) {
 	var (
 		response []byte
 		err      error
@@ -92,12 +84,12 @@ func RespondWithJson(w http.ResponseWriter, code int, payload interface{}) {
 		logger.Error("Failed to marshal JSON response", "error", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":"Internal server error"}`))
+		_, _ = w.Write([]byte(`{"error":"Internal server error"}`))
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	w.Write(response)
+	_, _ = w.Write(response)
 }
 
 // RespondWithInternalError logs the full error and returns a generic message to the client.
@@ -112,14 +104,14 @@ func processAWSError(opErr *smithy.OperationError) (err models.AwsStatusResponse
 	if errors.As(opErr.Unwrap(), &resourceErr) {
 		err.Message = *resourceErr.Message
 		err.Code = http.StatusNotImplemented
-		return
+		return err
 	}
 
 	var conditionErr *types.ConditionalCheckFailedException
 	if errors.As(opErr.Unwrap(), &conditionErr) {
 		err.Message = *conditionErr.Message
 		err.Code = http.StatusNotImplemented
-		return
+		return err
 	}
 
 	var txnErr *types.TransactionCanceledException
@@ -147,7 +139,14 @@ func processAWSError(opErr *smithy.OperationError) (err models.AwsStatusResponse
 	return err
 }
 
-func staggeredStoryBlockRetrieval(ctx context.Context, dao daos.DaoInterface, storyID string, chapterID string, key *map[string]types.AttributeValue, accumulatedBlocks *models.BlocksData) (*models.BlocksData, error) {
+func staggeredStoryBlockRetrieval(
+	ctx context.Context,
+	dao daos.DaoInterface,
+	storyID string,
+	chapterID string,
+	key *map[string]types.AttributeValue,
+	accumulatedBlocks *models.BlocksData,
+) (*models.BlocksData, error) {
 	// If this is the first call, initialize accumulatedBlocks
 	if accumulatedBlocks == nil {
 		accumulatedBlocks = &models.BlocksData{}
@@ -156,9 +155,6 @@ func staggeredStoryBlockRetrieval(ctx context.Context, dao daos.DaoInterface, st
 	blocks, err := dao.GetChapterParagraphs(ctx, storyID, chapterID, key)
 	if err != nil {
 		return nil, err
-	}
-	if blocks == nil {
-		return nil, nil
 	}
 
 	// Append the retrieved blocks to accumulatedBlocks
@@ -171,7 +167,7 @@ func staggeredStoryBlockRetrieval(ctx context.Context, dao daos.DaoInterface, st
 	return accumulatedBlocks, nil
 }
 
-func scaleDownImage(file io.Reader, maxWidth uint) (*bytes.Buffer, string, error) {
+func scaleDownImage(file io.Reader) (*bytes.Buffer, string, error) {
 	// Decode the image
 	img, format, err := image.Decode(file)
 	if err != nil {
@@ -179,8 +175,8 @@ func scaleDownImage(file io.Reader, maxWidth uint) (*bytes.Buffer, string, error
 	}
 
 	// Resize if necessary
-	if img.Bounds().Dx() > int(maxWidth) {
-		img = resize.Resize(maxWidth, 0, img, resize.Lanczos3)
+	if img.Bounds().Dx() > maxImageWidth {
+		img = resize.Resize(maxImageWidth, 0, img, resize.Lanczos3)
 	}
 
 	// Encode the image to a buffer
@@ -191,7 +187,7 @@ func scaleDownImage(file io.Reader, maxWidth uint) (*bytes.Buffer, string, error
 	case "png":
 		err = png.Encode(buf, img)
 	case "gif":
-		err = gif.Encode(buf, img, &gif.Options{NumColors: 256})
+		err = gif.Encode(buf, img, &gif.Options{NumColors: 256}) //nolint:mnd
 	default:
 		err = fmt.Errorf("unsupported image format: %s", format)
 	}

@@ -74,7 +74,7 @@ func handler(ctx context.Context) (string, error) {
 		// Extract aliases (optional).
 		var aliases string
 		if aliasAttr, exists := item["aliases"]; exists {
-			if a, ok := aliasAttr.(*dynatypes.AttributeValueMemberS); ok {
+			if a, ok := aliasAttr.(*dynatypes.AttributeValueMemberS); ok { //nolint:govet
 				aliases = a.Value
 			}
 		}
@@ -82,7 +82,7 @@ func handler(ctx context.Context) (string, error) {
 		// Extract case_sensitive (optional).
 		var caseSensitive bool
 		if csAttr, exists := item["case_sensitive"]; exists {
-			if cs, ok := csAttr.(*dynatypes.AttributeValueMemberBOOL); ok {
+			if cs, ok := csAttr.(*dynatypes.AttributeValueMemberBOOL); ok { //nolint:govet
 				caseSensitive = cs.Value
 			}
 		}
@@ -102,7 +102,7 @@ func handler(ctx context.Context) (string, error) {
 			},
 		}
 
-		_, err := dynamoClient.UpdateItem(ctx, updateAssociationsInput)
+		_, err := dynamoClient.UpdateItem(ctx, updateAssociationsInput) //nolint:govet
 		if err != nil {
 			log.Printf("Failed to update associations for association_id=%s, story_or_series_id=%s: %v",
 				associationID.Value, storyOrSeriesID.Value, err)
@@ -122,12 +122,20 @@ func handler(ctx context.Context) (string, error) {
 
 		_, err = dynamoClient.UpdateItem(ctx, updateDetailsInput)
 		if err != nil {
-			log.Printf("Failed to remove attributes from association_details for association_id=%s, story_or_series_id=%s: %v",
-				associationID.Value, storyOrSeriesID.Value, err)
+			log.Printf(
+				"Failed to remove attributes from association_details for association_id=%s, story_or_series_id=%s: %v",
+				associationID.Value,
+				storyOrSeriesID.Value,
+				err,
+			)
 			continue
 		}
 
-		log.Printf("Processed association_id=%s, story_or_series_id=%s successfully", associationID.Value, storyOrSeriesID.Value)
+		log.Printf(
+			"Processed association_id=%s, story_or_series_id=%s successfully",
+			associationID.Value,
+			storyOrSeriesID.Value,
+		)
 	}
 
 	return "Completed updating associations", nil

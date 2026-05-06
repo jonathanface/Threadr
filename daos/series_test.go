@@ -1,13 +1,14 @@
 package daos
 
 import (
-	"Threadr/models"
 	"context"
 	"errors"
 	"testing"
+
+	"Threadr/models"
 )
 
-// Tests for GetSeriesByID
+// Tests for GetSeriesByID.
 func TestGetSeriesByID(t *testing.T) {
 	testCases := []struct {
 		name     string
@@ -22,7 +23,6 @@ func TestGetSeriesByID(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -33,38 +33,34 @@ func TestGetSeriesByID(t *testing.T) {
 	}
 }
 
-// Tests for GetAllSeriesWithStories
+// Tests for GetAllSeriesWithStories.
 func TestGetAllSeriesWithStories(t *testing.T) {
 	testCases := []struct {
-		name         string
-		email        string
-		adminRequest bool
+		name  string
+		email string
 	}{
 		{
-			name:         "UserRequest",
-			email:        "user@example.com",
-			adminRequest: false,
+			name:  "UserRequest",
+			email: "user@example.com",
 		},
 		{
-			name:         "AdminRequest",
-			email:        "admin@example.com",
-			adminRequest: true,
+			name:  "AdminRequest",
+			email: "admin@example.com",
 		},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			series, err := mockDao.GetAllSeriesWithStories(context.Background(), tc.email, tc.adminRequest)
+			series, err := mockDao.GetAllSeriesWithStories(context.Background(), tc.email)
 
 			t.Logf("GetAllSeriesWithStories returned %d series, err=%v", len(series), err)
 		})
 	}
 }
 
-// Tests for GetSeriesVolumes
+// Tests for GetSeriesVolumes.
 func TestGetSeriesVolumes(t *testing.T) {
 	testCases := []struct {
 		name     string
@@ -79,18 +75,17 @@ func TestGetSeriesVolumes(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			volumes, err := mockDao.GetSeriesVolumes(context.Background(), tc.email, tc.seriesID)
+			volumes, err := mockDao.GetSeriesVolumes(context.Background(), tc.seriesID)
 
 			t.Logf("GetSeriesVolumes returned %d volumes, err=%v", len(volumes), err)
 		})
 	}
 }
 
-// Tests for RemoveStoryFromSeries
+// Tests for RemoveStoryFromSeries.
 func TestRemoveStoryFromSeries(t *testing.T) {
 	testCases := []struct {
 		name    string
@@ -110,7 +105,6 @@ func TestRemoveStoryFromSeries(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -121,15 +115,15 @@ func TestRemoveStoryFromSeries(t *testing.T) {
 	}
 }
 
-// Tests for EditSeries
+// Tests for EditSeries.
 func TestEditSeries(t *testing.T) {
 	testCases := []struct {
-		name          string
-		email         string
-		series        models.Series
-		mockSeries    models.Series
-		mockErr       error
-		wantErr       bool
+		name       string
+		email      string
+		series     models.Series
+		mockSeries models.Series
+		mockErr    error
+		wantErr    bool
 	}{
 		{
 			name:  "SuccessfulEdit_BasicFields",
@@ -207,7 +201,6 @@ func TestEditSeries(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 			mockDao.MockEditSeries = func(email string, series models.Series) (models.Series, error) {
@@ -226,25 +219,23 @@ func TestEditSeries(t *testing.T) {
 			result, err := mockDao.EditSeries(context.Background(), tc.email, tc.series)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Errorf("expected error, got nil")
-				}
-			} else {
-				if err != nil {
-					t.Errorf("unexpected error: %v", err)
-				}
-				if result.ID != tc.series.ID {
-					t.Errorf("expected series ID %s, got %s", tc.series.ID, result.ID)
-				}
-				if result.Title != tc.series.Title {
-					t.Errorf("expected title %s, got %s", tc.series.Title, result.Title)
-				}
+				assertExpectedErr(t, err, "")
+				return
+			}
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+			if result.ID != tc.series.ID {
+				t.Errorf("expected series ID %s, got %s", tc.series.ID, result.ID)
+			}
+			if result.Title != tc.series.Title {
+				t.Errorf("expected title %s, got %s", tc.series.Title, result.Title)
 			}
 		})
 	}
 }
 
-// Tests for DeleteSeries
+// Tests for DeleteSeries.
 func TestDeleteSeries(t *testing.T) {
 	testCases := []struct {
 		name    string
@@ -305,7 +296,6 @@ func TestDeleteSeries(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 			mockDao.MockDeleteSeries = func(email string, series models.Series) error {
@@ -337,7 +327,7 @@ func BenchmarkGetAllSeriesWithStories(b *testing.B) {
 	mockDao := NewMockDAO()
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, _ = mockDao.GetAllSeriesWithStories(context.Background(), "bench@example.com", false)
+	for range b.N {
+		_, _ = mockDao.GetAllSeriesWithStories(context.Background(), "bench@example.com")
 	}
 }

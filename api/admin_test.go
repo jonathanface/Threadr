@@ -1,14 +1,15 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/gorilla/mux"
 )
@@ -124,7 +125,7 @@ func TestAdminDeleteUser_DAOError(t *testing.T) {
 	mockDAO.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
 		return &models.UserInfo{Email: email, Admin: true}, nil
 	}
-	mockDAO.MockDeleteUser = func(email string) error {
+	mockDAO.MockDeleteUser = func(_ string) error {
 		return daos.ErrMockDAO
 	}
 

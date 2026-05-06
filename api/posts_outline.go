@@ -1,12 +1,14 @@
 package api
 
 import (
+	"encoding/json"
+	"errors"
+	"net/http"
+
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
 	"Threadr/logger"
 	"Threadr/models"
-	"encoding/json"
-	"net/http"
 
 	"github.com/aws/smithy-go"
 )
@@ -33,7 +35,8 @@ func CreateOutlineEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	outlineResponse, err := dao.CreateOutline(r.Context(), outline)
 	if err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -47,5 +50,5 @@ func CreateOutlineEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, outlineResponse)
+	RespondWithJSON(w, http.StatusOK, outlineResponse)
 }

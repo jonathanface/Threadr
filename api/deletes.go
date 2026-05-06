@@ -1,13 +1,15 @@
 package api
 
 import (
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/url"
+
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
 	"Threadr/logger"
 	"Threadr/models"
-	"encoding/json"
-	"net/http"
-	"net/url"
 
 	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
@@ -36,7 +38,7 @@ func DeleteBlocksFromStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	decoder := json.NewDecoder(r.Body)
 	storyBlocks := models.StoryBlocks{}
-	if err := decoder.Decode(&storyBlocks); err != nil {
+	if err = decoder.Decode(&storyBlocks); err != nil {
 		logger.Error("Bad request", "error", err)
 		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
@@ -51,7 +53,8 @@ func DeleteBlocksFromStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err = dao.DeleteChapterParagraphs(r.Context(), storyID, &storyBlocks); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -65,7 +68,7 @@ func DeleteBlocksFromStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 }
 
 func DeleteAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +95,7 @@ func DeleteAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	associations := []*models.Association{}
 
-	if err := decoder.Decode(&associations); err != nil {
+	if err = decoder.Decode(&associations); err != nil {
 		logger.Error("Bad request", "error", err)
 		RespondWithError(w, http.StatusBadRequest, "Invalid request")
 		return
@@ -103,7 +106,8 @@ func DeleteAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err = dao.DeleteAssociations(r.Context(), email, storyID, associations); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -117,7 +121,7 @@ func DeleteAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 }
 
 func DeleteChaptersEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -165,7 +169,8 @@ func DeleteChaptersEndpoint(w http.ResponseWriter, r *http.Request) {
 	chapter.ID = chapterID
 	chapters = append(chapters, chapter)
 	if err = dao.DeleteChapters(r.Context(), storyID, chapters); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -179,7 +184,7 @@ func DeleteChaptersEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 }
 
 func DeleteStoryEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -209,7 +214,8 @@ func DeleteStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err = dao.SoftDeleteStory(r.Context(), email, storyID, false); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -223,7 +229,7 @@ func DeleteStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 }
 
 func DeleteSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -261,7 +267,8 @@ func DeleteSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = dao.DeleteSeries(r.Context(), email, *series); err != nil {
-		if opErr, ok := err.(*smithy.OperationError); ok {
+		opErr := &smithy.OperationError{}
+		if errors.As(err, &opErr) {
 			awsResponse := processAWSError(opErr)
 			if awsResponse.Code == 0 {
 				logger.Error("Internal error", "error", err)
@@ -275,5 +282,5 @@ func DeleteSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
-	RespondWithJson(w, http.StatusOK, nil)
+	RespondWithJSON(w, http.StatusOK, nil)
 }

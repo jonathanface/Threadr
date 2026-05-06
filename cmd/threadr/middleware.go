@@ -1,19 +1,24 @@
 package main
 
 import (
-	"Threadr/api"
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
 	"context"
-	"log"
 	"net/http"
 	"strings"
 	"time"
 
+	"Threadr/api"
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/logger"
+
 	"github.com/gorilla/mux"
 )
 
-// corsMiddleware adds CORS headers to all responses
+// middlewareDeadline caps how long any individual request handler may spend
+// inside the chained middlewares (auth lookup, rate-limit check, CORS, etc.).
+const middlewareDeadline = 20 * time.Second
+
+// corsMiddleware adds CORS headers to all responses.
 func corsMiddleware(allowedOrigin string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -26,10 +31,11 @@ func corsMiddleware(allowedOrigin string) func(http.Handler) http.Handler {
 			}
 
 			// Handle preflight requests — only respond if origin is allowed
-			if r.Method == "OPTIONS" {
+			if r.Method == http.MethodOptions {
 				if origin == allowedOrigin {
 					w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-					w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin")
+					w.Header().
+						Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin")
 					w.Header().Set("Access-Control-Max-Age", "86400") // 24 hours
 				}
 				w.WriteHeader(http.StatusNoContent)
@@ -42,7 +48,7 @@ func corsMiddleware(allowedOrigin string) func(http.Handler) http.Handler {
 }
 
 // maintenanceModeMiddleware returns a maintenance page when enabled
-// Set MAINTENANCE_MODE=true environment variable to enable
+// Set MAINTENANCE_MODE=true environment variable to enable.
 func maintenanceModeMiddleware(enabled bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -117,7 +123,7 @@ func maintenanceModeMiddleware(enabled bool) func(http.Handler) http.Handler {
     </div>
 </body>
 </html>`
-				w.Write([]byte(html))
+				_, _ = w.Write([]byte(html))
 				return
 			}
 
@@ -129,7 +135,7 @@ func maintenanceModeMiddleware(enabled bool) func(http.Handler) http.Handler {
 func looseMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+			ctx, cancel := context.WithTimeout(r.Context(), middlewareDeadline)
 			defer cancel()
 			ctx = context.WithValue(ctx, ctxkey.DAO, d)
 			r = r.WithContext(ctx)
@@ -141,19 +147,19 @@ func looseMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 func billingMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			log.Printf("[billingMiddleware] %s %s", r.Method, r.URL.Path)
+			logger.Debug("billingMiddleware request", "method", r.Method, "path", r.URL.Path)
 
 			// Use the common auth helper
 			userPtr, err := api.GetAuthenticatedUser(r)
 			if err != nil {
-				log.Printf("[billingMiddleware] Authentication failed: %v", err)
+				logger.Warn("billingMiddleware authentication failed", "error", err)
 				api.RespondWithError(w, http.StatusUnauthorized, "Authentication failed")
 				return
 			}
 			user := *userPtr
-			log.Printf("[billingMiddleware] Auth successful for user: %s", user.Email)
+			logger.Debug("billingMiddleware auth ok", "email", user.Email)
 
-			ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+			ctx, cancel := context.WithTimeout(r.Context(), middlewareDeadline)
 			defer cancel()
 			ctx = context.WithValue(ctx, ctxkey.DAO, d)
 			r = r.WithContext(ctx)
@@ -164,7 +170,7 @@ func billingMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 func sharedMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			log.Printf("[sharedMiddleware] %s %s", r.Method, r.URL.Path)
+			logger.Debug("sharedMiddleware request", "method", r.Method, "path", r.URL.Path)
 
 			rawToken := mux.Vars(r)["token"]
 			if rawToken == "" {
@@ -173,13 +179,13 @@ func sharedMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 			}
 			tokenHash := api.HashShareToken(rawToken)
 
-			ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+			ctx, cancel := context.WithTimeout(r.Context(), middlewareDeadline)
 			defer cancel()
 			ctx = context.WithValue(ctx, ctxkey.DAO, d)
 
 			link, err := d.GetShareLink(ctx, tokenHash)
 			if err != nil {
-				log.Printf("[sharedMiddleware] Share link not found: %v", err)
+				logger.Warn("sharedMiddleware share link not found", "error", err)
 				api.RespondWithError(w, http.StatusNotFound, "Share link not found")
 				return
 			}
@@ -193,7 +199,7 @@ func sharedMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 			}
 
 			ctx = context.WithValue(ctx, ctxkey.ShareLink, link)
-			log.Printf("[sharedMiddleware] Share link validated for reader: %s", link.ReaderEmail)
+			logger.Debug("sharedMiddleware share link validated", "reader", link.ReaderEmail)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -202,40 +208,40 @@ func sharedMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 func strictMiddleware(d daos.DaoInterface) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			log.Printf("[strictMiddleware] %s %s", r.Method, r.URL.Path)
+			logger.Debug("strictMiddleware request", "method", r.Method, "path", r.URL.Path)
 
 			// Use the common auth helper
 			userPtr, err := api.GetAuthenticatedUser(r)
 			if err != nil {
-				log.Printf("[strictMiddleware] Authentication failed: %v", err)
+				logger.Warn("strictMiddleware authentication failed", "error", err)
 				api.RespondWithError(w, http.StatusUnauthorized, "Authentication failed")
 				return
 			}
 			user := *userPtr
-			log.Printf("[strictMiddleware] Auth successful for user: %s", user.Email)
+			logger.Debug("strictMiddleware auth ok", "email", user.Email)
 
-			ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+			ctx, cancel := context.WithTimeout(r.Context(), middlewareDeadline)
 			defer cancel()
 
 			userDetails, err := d.UpsertUser(ctx, user.Email)
 			if err != nil {
-				log.Printf("[strictMiddleware] Failed to upsert user: %v", err)
+				logger.Error("strictMiddleware failed to upsert user", "error", err)
 				api.RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 				return
 			}
-			log.Printf("[strictMiddleware] User %s upserted, subscriber=%v", user.Email, userDetails.Subscriber)
+			logger.Debug("strictMiddleware user upserted", "email", user.Email, "subscriber", userDetails.Subscriber)
 			ctx = context.WithValue(ctx, ctxkey.Subscriber, userDetails.Subscriber)
 			ctx = context.WithValue(ctx, ctxkey.DAO, d)
 
 			// Only block exports for non-subscribers, not story creation
-			needsSub := (r.Method == "PUT" && strings.HasSuffix(r.URL.Path, "/export"))
+			needsSub := (r.Method == http.MethodPut && strings.HasSuffix(r.URL.Path, "/export"))
 			if needsSub && !userDetails.Subscriber {
-				log.Printf("[strictMiddleware] Blocking export for non-subscriber: %s", user.Email)
+				logger.Info("strictMiddleware blocking export for non-subscriber", "email", user.Email)
 				api.RespondWithError(w, http.StatusPaymentRequired, "insufficient subscription")
 				return
 			}
 
-			log.Printf("[strictMiddleware] Auth complete, proceeding to handler")
+			logger.Debug("strictMiddleware auth complete")
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

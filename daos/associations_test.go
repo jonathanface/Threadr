@@ -1,17 +1,18 @@
 package daos
 
 import (
-	"Threadr/models"
 	"context"
 	"errors"
 	"testing"
+
+	"Threadr/models"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 )
 
 // (Similarly, if you need to mock DAO.DynamoClient.UpdateItem, you can override or define an interface)
 
-// setupTest can run before each subtest
+// setupTest can run before each subtest.
 func setupTest(t *testing.T, testName string) func() {
 	// E.g. connect to test DB, set up environment, etc.
 	// Here we just print for illustration
@@ -82,7 +83,6 @@ func TestWriteAssociations(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
 			teardown := setupTest(t, tc.name)
 			defer teardown()
@@ -91,14 +91,16 @@ func TestWriteAssociations(t *testing.T) {
 				if !ok {
 					t.Fatalf("mockDao.DynamoClient is not a *MockDynamoClient; got %T", mockDao.DynamoClient)
 				}
-				mockClient.MockTransactWriteItems = func(ctx context.Context,
-					input *dynamodb.TransactWriteItemsInput,
-					opts ...func(*dynamodb.Options),
+				mockClient.MockTransactWriteItems = func(_ context.Context,
+					_ *dynamodb.TransactWriteItemsInput,
+					_ ...func(*dynamodb.Options),
 				) (*dynamodb.TransactWriteItemsOutput, error) {
 					if tc.mockAwsWriteErr != nil {
 						return nil, errors.New(tc.expectedErrContains)
 					}
-					return nil, errors.New("AWSERROR-- Code:" + tc.mockAwsWriteAwsErr.Code + ", Type: " + tc.mockAwsWriteAwsErr.ErrorType + ", Message: " + tc.mockAwsWriteAwsErr.Text)
+					return nil, errors.New(
+						"AWSERROR-- Code:" + tc.mockAwsWriteAwsErr.Code + ", Type: " + tc.mockAwsWriteAwsErr.ErrorType + ", Message: " + tc.mockAwsWriteAwsErr.Text,
+					)
 				}
 			}
 			err := mockDao.WriteAssociations(context.Background(), tc.email, tc.storyOrSeriesID, tc.associations)
@@ -148,7 +150,6 @@ func TestUpdateAssociationPortraitEntryInDB(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			teardown := setupTest(t, tc.name)
 			defer teardown()
@@ -158,12 +159,18 @@ func TestUpdateAssociationPortraitEntryInDB(t *testing.T) {
 				if !ok {
 					t.Fatalf("mockDao.DynamoClient is not a *MockDynamoClient; got %T", mockDao.DynamoClient)
 				}
-				mockClient.MockUpdateItem = func(ctx context.Context, input *dynamodb.UpdateItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.UpdateItemOutput, error) {
+				mockClient.MockUpdateItem = func(_ context.Context, _ *dynamodb.UpdateItemInput, _ ...func(*dynamodb.Options)) (*dynamodb.UpdateItemOutput, error) {
 					return nil, errors.New("UpdateItem call failed")
 				}
 			}
 
-			err := mockDao.UpdateAssociationPortraitEntryInDB(context.Background(), tc.email, tc.storyOrID, tc.assocID, tc.newURL)
+			err := mockDao.UpdateAssociationPortraitEntryInDB(
+				context.Background(),
+				tc.email,
+				tc.storyOrID,
+				tc.assocID,
+				tc.newURL,
+			)
 			if tc.wantErr {
 				if err == nil {
 					t.Errorf("Expected error but got nil")
@@ -206,7 +213,6 @@ func TestDeleteAssociations(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			teardown := setupTest(t, tc.name)
 			defer teardown()
@@ -215,17 +221,9 @@ func TestDeleteAssociations(t *testing.T) {
 
 			err := mockDao.DeleteAssociations(context.Background(), tc.email, tc.storyID, tc.associations)
 			if tc.wantErr {
-				if err == nil {
-					t.Errorf("Expected error but got nil")
-				} else if tc.expectedErrContains != "" && !contains(err.Error(), tc.expectedErrContains) {
-					t.Errorf("Error %q does not contain %q", err.Error(), tc.expectedErrContains)
-				} else {
-					t.Logf("Got expected error: %v", err)
-				}
-			} else {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
+				assertExpectedErr(t, err, tc.expectedErrContains)
+			} else if err != nil {
+				t.Errorf("Unexpected error: %v", err)
 			}
 		})
 	}
@@ -253,7 +251,6 @@ func TestGetAssociationDetails(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			teardown := setupTest(t, tc.name)
 			defer teardown()
@@ -264,17 +261,9 @@ func TestGetAssociationDetails(t *testing.T) {
 			_, err := mockDao.GetAssociationDetails(context.Background(), tc.email, tc.storyID, tc.associationID)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Errorf("Expected error but got nil")
-				} else if tc.expectedErrContains != "" && !contains(err.Error(), tc.expectedErrContains) {
-					t.Errorf("Error %q does not contain %q", err.Error(), tc.expectedErrContains)
-				} else {
-					t.Logf("Got expected error: %v", err)
-				}
-			} else {
-				if err != nil {
-					t.Logf("Got error (expected without full DB mock): %v", err)
-				}
+				assertExpectedErr(t, err, tc.expectedErrContains)
+			} else if err != nil {
+				t.Logf("Got error (expected without full DB mock): %v", err)
 			}
 		})
 	}
@@ -298,7 +287,6 @@ func TestGetStoryOrSeriesAssociationThumbnails(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			teardown := setupTest(t, tc.name)
 			defer teardown()
@@ -323,7 +311,22 @@ func TestGetStoryOrSeriesAssociationThumbnails(t *testing.T) {
 	}
 }
 
-// contains is a small helper for substring checks
+// assertExpectedErr is the shared "wantErr branch" of every table-driven test in
+// this package: an error must be present, and if `expectedContains` is non-empty
+// it must appear in err.Error(). Cuts the if/elseif/else nesting our tests keep
+// hand-rolling.
+func assertExpectedErr(t *testing.T, err error, expectedContains string) {
+	t.Helper()
+	if err == nil {
+		t.Errorf("Expected error but got nil")
+		return
+	}
+	if expectedContains != "" && !contains(err.Error(), expectedContains) {
+		t.Errorf("Error %q does not contain %q", err.Error(), expectedContains)
+	}
+}
+
+// contains is a small helper for substring checks.
 func contains(haystack, needle string) bool {
 	return len(haystack) >= len(needle) && (func() bool {
 		// or simply strings.Contains if you prefer

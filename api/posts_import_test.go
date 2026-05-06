@@ -1,9 +1,6 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"bytes"
 	"context"
 	"database/sql"
@@ -12,6 +9,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/gorilla/mux"
 )
@@ -35,7 +36,7 @@ func createImportRequest(t *testing.T, storyID string, filename string, content 
 
 func TestImportDocument_OwnershipCheck(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, _ string) (*models.Story, error) {
 		return nil, sql.ErrNoRows // user doesn't own the story
 	}
 
@@ -52,7 +53,7 @@ func TestImportDocument_OwnershipCheck(t *testing.T) {
 
 func TestImportDocument_MissingFile(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID}, nil
 	}
 
@@ -71,7 +72,7 @@ func TestImportDocument_MissingFile(t *testing.T) {
 
 func TestImportDocument_UnsupportedFormat(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID}, nil
 	}
 
@@ -91,18 +92,18 @@ func TestImportDocument_UnsupportedFormat(t *testing.T) {
 
 func TestImportDocument_TxtSuccess(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID, Title: "Test"}, nil
 	}
 
 	var createdChapters []models.Chapter
-	mockDAO.MockCreateChapter = func(storyID string, chapter models.Chapter, email string) (models.Chapter, error) {
+	mockDAO.MockCreateChapter = func(_ string, chapter models.Chapter) (models.Chapter, error) {
 		createdChapters = append(createdChapters, chapter)
 		return chapter, nil
 	}
 
 	var writtenBlocks int
-	mockDAO.MockWriteBlocks = func(storyID string, blocks *models.StoryBlocks) error {
+	mockDAO.MockWriteBlocks = func(_ string, blocks *models.StoryBlocks) error {
 		writtenBlocks += len(blocks.Blocks)
 		return nil
 	}
@@ -126,7 +127,7 @@ func TestImportDocument_TxtSuccess(t *testing.T) {
 		t.Error("Expected blocks to be written")
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	json.Unmarshal(rr.Body.Bytes(), &response)
 	if response["count"] != float64(1) {
 		t.Errorf("Expected count 1, got %v", response["count"])
@@ -150,7 +151,7 @@ func TestImportDocument_MissingStoryID(t *testing.T) {
 
 func TestImportDocument_ErrorMessagesSanitized(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID}, nil
 	}
 

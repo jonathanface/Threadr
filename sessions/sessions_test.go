@@ -19,17 +19,17 @@ func init() {
 	}
 }
 
-// Tests for Get function
+// Tests for Get function.
 func TestGet(t *testing.T) {
 	t.Run("returns session for valid request", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		session, err := Get(req, "test-session")
 
 		if err != nil {
 			t.Errorf("Get() returned error: %v", err)
 		}
 		if session == nil {
-			t.Error("Get() returned nil session")
+			t.Fatal("Get() returned nil session")
 		}
 		if !session.IsNew {
 			t.Error("New session should be marked as IsNew")
@@ -37,7 +37,7 @@ func TestGet(t *testing.T) {
 	})
 
 	t.Run("returns session with correct name", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		sessionName := "my-session"
 		session, err := Get(req, sessionName)
 
@@ -51,7 +51,7 @@ func TestGet(t *testing.T) {
 
 	t.Run("returns existing session from cookie", func(t *testing.T) {
 		// Create a session
-		req := httptest.NewRequest("GET", "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		w := httptest.NewRecorder()
 
 		session, _ := Get(req, "test-session")
@@ -65,7 +65,7 @@ func TestGet(t *testing.T) {
 		}
 
 		// Create new request with the cookie
-		req2 := httptest.NewRequest("GET", "/test", nil)
+		req2 := httptest.NewRequest(http.MethodGet, "/test", nil)
 		for _, cookie := range cookies {
 			req2.AddCookie(cookie)
 		}
@@ -84,7 +84,7 @@ func TestGet(t *testing.T) {
 	})
 
 	t.Run("handles multiple session names", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 
 		session1, _ := Get(req, "session1")
 		session2, _ := Get(req, "session2")
@@ -95,7 +95,7 @@ func TestGet(t *testing.T) {
 	})
 }
 
-// Tests for isHTTPS function
+// Tests for isHTTPS function.
 func TestIsHTTPS(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -105,7 +105,7 @@ func TestIsHTTPS(t *testing.T) {
 		{
 			name: "TLS connection returns true",
 			setupReq: func() *http.Request {
-				req := httptest.NewRequest("GET", "/test", nil)
+				req := httptest.NewRequest(http.MethodGet, "/test", nil)
 				req.TLS = &tls.ConnectionState{}
 				return req
 			},
@@ -114,7 +114,7 @@ func TestIsHTTPS(t *testing.T) {
 		{
 			name: "X-Forwarded-Proto: https returns true",
 			setupReq: func() *http.Request {
-				req := httptest.NewRequest("GET", "/test", nil)
+				req := httptest.NewRequest(http.MethodGet, "/test", nil)
 				req.Header.Set("X-Forwarded-Proto", "https")
 				return req
 			},
@@ -123,7 +123,7 @@ func TestIsHTTPS(t *testing.T) {
 		{
 			name: "X-Forwarded-Proto: HTTPS (uppercase) returns true",
 			setupReq: func() *http.Request {
-				req := httptest.NewRequest("GET", "/test", nil)
+				req := httptest.NewRequest(http.MethodGet, "/test", nil)
 				req.Header.Set("X-Forwarded-Proto", "HTTPS")
 				return req
 			},
@@ -132,7 +132,7 @@ func TestIsHTTPS(t *testing.T) {
 		{
 			name: "X-Forwarded-Proto: HtTpS (mixed case) returns true",
 			setupReq: func() *http.Request {
-				req := httptest.NewRequest("GET", "/test", nil)
+				req := httptest.NewRequest(http.MethodGet, "/test", nil)
 				req.Header.Set("X-Forwarded-Proto", "HtTpS")
 				return req
 			},
@@ -141,7 +141,7 @@ func TestIsHTTPS(t *testing.T) {
 		{
 			name: "X-Forwarded-Proto: http returns false",
 			setupReq: func() *http.Request {
-				req := httptest.NewRequest("GET", "/test", nil)
+				req := httptest.NewRequest(http.MethodGet, "/test", nil)
 				req.Header.Set("X-Forwarded-Proto", "http")
 				return req
 			},
@@ -150,14 +150,14 @@ func TestIsHTTPS(t *testing.T) {
 		{
 			name: "no TLS and no header returns false",
 			setupReq: func() *http.Request {
-				return httptest.NewRequest("GET", "/test", nil)
+				return httptest.NewRequest(http.MethodGet, "/test", nil)
 			},
 			want: false,
 		},
 		{
 			name: "TLS takes precedence over http header",
 			setupReq: func() *http.Request {
-				req := httptest.NewRequest("GET", "/test", nil)
+				req := httptest.NewRequest(http.MethodGet, "/test", nil)
 				req.TLS = &tls.ConnectionState{}
 				req.Header.Set("X-Forwarded-Proto", "http")
 				return req
@@ -167,7 +167,7 @@ func TestIsHTTPS(t *testing.T) {
 		{
 			name: "empty X-Forwarded-Proto returns false",
 			setupReq: func() *http.Request {
-				req := httptest.NewRequest("GET", "/test", nil)
+				req := httptest.NewRequest(http.MethodGet, "/test", nil)
 				req.Header.Set("X-Forwarded-Proto", "")
 				return req
 			},
@@ -186,10 +186,10 @@ func TestIsHTTPS(t *testing.T) {
 	}
 }
 
-// Tests for OptionsFor function
+// Tests for OptionsFor function.
 func TestOptionsFor(t *testing.T) {
 	t.Run("HTTP request returns non-secure options", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		opts := OptionsFor(req)
 
 		if opts.Path != "/" {
@@ -207,7 +207,7 @@ func TestOptionsFor(t *testing.T) {
 	})
 
 	t.Run("HTTPS request returns secure options", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		req.TLS = &tls.ConnectionState{}
 		opts := OptionsFor(req)
 
@@ -226,7 +226,7 @@ func TestOptionsFor(t *testing.T) {
 	})
 
 	t.Run("X-Forwarded-Proto: https returns secure options", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		req.Header.Set("X-Forwarded-Proto", "https")
 		opts := OptionsFor(req)
 
@@ -236,7 +236,7 @@ func TestOptionsFor(t *testing.T) {
 	})
 
 	t.Run("always sets HttpOnly", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		opts := OptionsFor(req)
 
 		if !opts.HttpOnly {
@@ -245,7 +245,7 @@ func TestOptionsFor(t *testing.T) {
 	})
 
 	t.Run("always sets SameSite to Lax", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		opts := OptionsFor(req)
 
 		if opts.SameSite != http.SameSiteLaxMode {
@@ -254,11 +254,11 @@ func TestOptionsFor(t *testing.T) {
 	})
 }
 
-// Tests for Delete function
+// Tests for Delete function.
 func TestDelete(t *testing.T) {
 	t.Run("deletes session successfully", func(t *testing.T) {
 		// Create a session with data
-		req := httptest.NewRequest("GET", "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		w := httptest.NewRecorder()
 
 		session, _ := Get(req, "test-session")
@@ -268,7 +268,7 @@ func TestDelete(t *testing.T) {
 
 		// Get the cookie
 		cookies := w.Result().Cookies()
-		req2 := httptest.NewRequest("GET", "/test", nil)
+		req2 := httptest.NewRequest(http.MethodGet, "/test", nil)
 		for _, cookie := range cookies {
 			req2.AddCookie(cookie)
 		}
@@ -301,7 +301,7 @@ func TestDelete(t *testing.T) {
 	})
 
 	t.Run("clears session values", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		w := httptest.NewRecorder()
 
 		// Create session with values
@@ -310,7 +310,7 @@ func TestDelete(t *testing.T) {
 		session.Save(req, w)
 
 		// Delete session
-		req2 := httptest.NewRequest("GET", "/test", nil)
+		req2 := httptest.NewRequest(http.MethodGet, "/test", nil)
 		for _, cookie := range w.Result().Cookies() {
 			req2.AddCookie(cookie)
 		}
@@ -319,7 +319,7 @@ func TestDelete(t *testing.T) {
 		Delete(w2, req2, "test-session")
 
 		// Try to get the session again
-		req3 := httptest.NewRequest("GET", "/test", nil)
+		req3 := httptest.NewRequest(http.MethodGet, "/test", nil)
 		for _, cookie := range w2.Result().Cookies() {
 			req3.AddCookie(cookie)
 		}
@@ -332,7 +332,7 @@ func TestDelete(t *testing.T) {
 
 	t.Run("sets multiple deletion cookies for different paths", func(t *testing.T) {
 		// Request with specific path
-		req := httptest.NewRequest("GET", "/auth/logout", nil)
+		req := httptest.NewRequest(http.MethodGet, "/auth/logout", nil)
 		w := httptest.NewRecorder()
 
 		session, _ := Get(req, "test-session")
@@ -340,7 +340,7 @@ func TestDelete(t *testing.T) {
 		session.Save(req, w)
 
 		// Delete with specific path
-		req2 := httptest.NewRequest("GET", "/auth/logout", nil)
+		req2 := httptest.NewRequest(http.MethodGet, "/auth/logout", nil)
 		w2 := httptest.NewRecorder()
 		Delete(w2, req2, "test-session")
 
@@ -367,7 +367,7 @@ func TestDelete(t *testing.T) {
 	})
 
 	t.Run("sets HttpOnly and SameSite on deletion cookies", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		w := httptest.NewRecorder()
 
 		Delete(w, req, "test-session")
@@ -386,7 +386,7 @@ func TestDelete(t *testing.T) {
 	})
 
 	t.Run("sets Secure flag on HTTPS deletion", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		req.TLS = &tls.ConnectionState{}
 		w := httptest.NewRecorder()
 
@@ -407,7 +407,7 @@ func TestDelete(t *testing.T) {
 	})
 
 	t.Run("handles root path request", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/", nil)
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		w := httptest.NewRecorder()
 
 		err := Delete(w, req, "test-session")
@@ -438,7 +438,7 @@ func TestDelete(t *testing.T) {
 	})
 
 	t.Run("handles deletion without existing session", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		w := httptest.NewRecorder()
 
 		// Delete session that doesn't exist
@@ -455,13 +455,13 @@ func TestDelete(t *testing.T) {
 	})
 }
 
-// Integration test
+// Integration test.
 func TestSessionWorkflow(t *testing.T) {
 	t.Run("complete session lifecycle", func(t *testing.T) {
 		sessionName := "integration-test-session"
 
 		// 1. Create session
-		req1 := httptest.NewRequest("GET", "/login", nil)
+		req1 := httptest.NewRequest(http.MethodGet, "/login", nil)
 		w1 := httptest.NewRecorder()
 
 		session, _ := Get(req1, sessionName)
@@ -476,7 +476,7 @@ func TestSessionWorkflow(t *testing.T) {
 		}
 
 		// 2. Retrieve session
-		req2 := httptest.NewRequest("GET", "/dashboard", nil)
+		req2 := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
 		for _, cookie := range cookies {
 			req2.AddCookie(cookie)
 		}
@@ -490,7 +490,7 @@ func TestSessionWorkflow(t *testing.T) {
 		}
 
 		// 3. Delete session
-		req3 := httptest.NewRequest("GET", "/logout", nil)
+		req3 := httptest.NewRequest(http.MethodGet, "/logout", nil)
 		for _, cookie := range cookies {
 			req3.AddCookie(cookie)
 		}
@@ -502,7 +502,7 @@ func TestSessionWorkflow(t *testing.T) {
 		}
 
 		// 4. Verify session is deleted (or at least cleared)
-		req4 := httptest.NewRequest("GET", "/", nil)
+		req4 := httptest.NewRequest(http.MethodGet, "/", nil)
 		// Don't add the deletion cookies - create a fresh request as if user refreshed
 
 		session4, _ := Get(req4, sessionName)
@@ -525,21 +525,21 @@ func TestSessionWorkflow(t *testing.T) {
 	})
 }
 
-// Benchmark tests
+// Benchmark tests.
 func BenchmarkGet(b *testing.B) {
-	req := httptest.NewRequest("GET", "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_, _ = Get(req, "bench-session")
 	}
 }
 
 func BenchmarkOptionsFor(b *testing.B) {
-	req := httptest.NewRequest("GET", "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = OptionsFor(req)
 	}
 }
@@ -547,8 +547,8 @@ func BenchmarkOptionsFor(b *testing.B) {
 func BenchmarkDelete(b *testing.B) {
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest("GET", "/test", nil)
+	for range b.N {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		w := httptest.NewRecorder()
 		_ = Delete(w, req, "bench-session")
 	}

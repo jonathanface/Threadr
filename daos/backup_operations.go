@@ -1,12 +1,13 @@
 package daos
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"time"
+
 	"Threadr/logger"
 	"Threadr/models"
-	"context"
-	"fmt"
-	"log"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -24,39 +25,55 @@ func (d *DAO) checkBackupStatus(ctx context.Context, arn string) error {
 			return err
 		}
 
-		status := output.BackupDescription.BackupDetails.BackupStatus
-		if status == types.BackupStatusAvailable {
-			break
-		} else if status == types.BackupStatusCreating {
-			time.Sleep(10 * time.Second) // Polling interval
-		} else {
-			return fmt.Errorf("backup creation failed with status: %v", status)
+		switch output.BackupDescription.BackupDetails.BackupStatus {
+		case types.BackupStatusAvailable:
+			return nil
+		case types.BackupStatusCreating:
+			time.Sleep(backupPollInterval) // Polling interval
+		case types.BackupStatusDeleted:
+			return errors.New("backup was deleted before it became available")
+		default:
+			return fmt.Errorf(
+				"backup creation failed with status: %v",
+				output.BackupDescription.BackupDetails.BackupStatus,
+			)
 		}
 	}
-	return nil
 }
 
 func (d *DAO) kickoffRestoreAsync(email string) {
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute) //nolint:mnd
 		defer cancel()
 		evCh, err := d.RestoreAutomaticallyDeletedStories(ctx, email)
 		if err != nil {
-			log.Printf("restore: start error for %s: %v", email, err)
+			logger.Error("restore start error", "email", email, "error", err)
 			return
 		}
 		for ev := range evCh {
 			if ev.Err != nil {
-				log.Printf("restore: story %s failed: %v", ev.StoryID, ev.Err)
+				logger.Error("restore story failed", "storyID", ev.StoryID, "error", ev.Err)
 			} else {
-				log.Printf("restore: story %s (%d/%d) OK", ev.StoryID, ev.Index+1, ev.Total)
+				logger.Info("restore story ok", "storyID", ev.StoryID, "index", ev.Index+1, "total", ev.Total)
 			}
 		}
 	}()
 }
 
 func (d *DAO) RestoreAutomaticallyDeletedStories(ctx context.Context, email string) (<-chan RestoreStoryEvent, error) {
-	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{TableName: aws.String("stories" + GetTableSuffix()), FilterExpression: aws.String("author=:eml AND attribute_exists(deleted_at) AND automated_deletion=:a"), ExpressionAttributeValues: map[string]types.AttributeValue{":eml": &types.AttributeValueMemberS{Value: email}, ":a": &types.AttributeValueMemberBOOL{Value: true}}})
+	out, err := d.DynamoClient.Scan(
+		ctx,
+		&dynamodb.ScanInput{
+			TableName: aws.String("stories" + GetTableSuffix()),
+			FilterExpression: aws.String(
+				"author=:eml AND attribute_exists(deleted_at) AND automated_deletion=:a",
+			),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":eml": &types.AttributeValueMemberS{Value: email},
+				":a":   &types.AttributeValueMemberBOOL{Value: true},
+			},
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -64,21 +81,21 @@ func (d *DAO) RestoreAutomaticallyDeletedStories(ctx context.Context, email stri
 	if err = attributevalue.UnmarshalListOfMaps(out.Items, &stories); err != nil {
 		return nil, err
 	}
-	ch := make(chan RestoreStoryEvent, 8) // small buffer helps if receiver does light work
+	ch := make(chan RestoreStoryEvent, 8) //nolint:mnd // small buffer helps if receiver does light work
 	total := len(stories)
 	go func() {
 		defer close(ch)
 		for i, story := range stories {
 			story.Inactive = true
-			_, err := d.EditStory(ctx, email, story)
+			_, _ = d.EditStory(ctx, email, story)
 			select {
 			case <-ctx.Done():
 				return
 			default:
 			}
-			log.Println("Starting restore on story", story.Title)
-			err = d.restoreOneStory(ctx, email, story)
-			ev := RestoreStoryEvent{Index: i, Total: total, StoryID: story.ID, Err: err}
+			logger.Info("Starting restore on story", "title", story.Title)
+			restoreErr := d.restoreOneStory(ctx, email, story)
+			ev := RestoreStoryEvent{Index: i, Total: total, StoryID: story.ID, Err: restoreErr}
 			select {
 			case ch <- ev:
 			case <-ctx.Done():
@@ -98,8 +115,8 @@ func (d *DAO) ensureBlocksTableFromBackup(
 		TableName: aws.String(tableName),
 	})
 	if err == nil {
-		log.Println("waiting for table status")
-		return waitForTableStatus(ctx, d.DynamoClient, tableName, chapterName, "ACTIVE", 10*time.Minute)
+		logger.Debug("waiting for table status")
+		return waitForTableStatus(ctx, d.DynamoClient, tableName, chapterName, "ACTIVE", backupActiveStateLimit)
 	}
 	if !isResourceNotFound(err) {
 		return err
@@ -112,13 +129,13 @@ func (d *DAO) ensureBlocksTableFromBackup(
 	})
 	if err != nil {
 		// If another attempt already created/is creating it, just wait
-		if !(isTableInUse(err) || isTableAlreadyExists(err)) {
+		if !isTableInUse(err) && !isTableAlreadyExists(err) {
 			return err
 		}
 	}
 
 	// 3) Either we kicked it off or someone else did; wait until ACTIVE
-	return waitForTableStatus(ctx, d.DynamoClient, tableName, chapterName, "ACTIVE", 10*time.Minute)
+	return waitForTableStatus(ctx, d.DynamoClient, tableName, chapterName, "ACTIVE", backupActiveStateLimit)
 }
 
 func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.Story) error {
@@ -146,8 +163,8 @@ func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.St
 		chapterUpdateInput := &dynamodb.UpdateItemInput{
 			TableName: aws.String("chapters" + GetTableSuffix()),
 			Key: map[string]types.AttributeValue{
-				"chapter_id": &types.AttributeValueMemberS{Value: chapter.ID},
-				"story_id":   &types.AttributeValueMemberS{Value: story.ID},
+				attrChapterID: &types.AttributeValueMemberS{Value: chapter.ID},
+				attrStoryID:   &types.AttributeValueMemberS{Value: story.ID},
 			},
 			UpdateExpression: aws.String("REMOVE deleted_at, automated_deletion"),
 		}
@@ -160,8 +177,8 @@ func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.St
 		}
 	}
 	storyKey := map[string]types.AttributeValue{
-		"story_id": &types.AttributeValueMemberS{Value: story.ID},
-		"author":   &types.AttributeValueMemberS{Value: email},
+		attrStoryID: &types.AttributeValueMemberS{Value: story.ID},
+		"author":    &types.AttributeValueMemberS{Value: email},
 	}
 	storyUpdateInput := &dynamodb.UpdateItemInput{
 		TableName:        aws.String("stories" + GetTableSuffix()),
@@ -177,8 +194,8 @@ func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.St
 	if story.SeriesID != "" {
 		storyOrSeriesID = story.SeriesID
 		seriesKey := map[string]types.AttributeValue{
-			"series_id": &types.AttributeValueMemberS{Value: story.SeriesID},
-			"author":    &types.AttributeValueMemberS{Value: email},
+			attrSeriesID: &types.AttributeValueMemberS{Value: story.SeriesID},
+			"author":     &types.AttributeValueMemberS{Value: email},
 		}
 		seriesUpdateInput := &dynamodb.UpdateItemInput{
 			TableName:        aws.String("series" + GetTableSuffix()),
@@ -192,8 +209,10 @@ func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.St
 	}
 
 	associationScanInput := &dynamodb.ScanInput{
-		TableName:        aws.String("associations" + GetTableSuffix()),
-		FilterExpression: aws.String("author = :eml AND attribute_exists(deleted_at) AND automated_deletion = :a AND story_or_series_id = :sid"),
+		TableName: aws.String("associations" + GetTableSuffix()),
+		FilterExpression: aws.String(
+			"author = :eml AND attribute_exists(deleted_at) AND automated_deletion = :a AND story_or_series_id = :sid",
+		),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
 			":a":   &types.AttributeValueMemberBOOL{Value: true},
@@ -207,10 +226,14 @@ func (d *DAO) restoreOneStory(ctx context.Context, email string, story models.St
 	}
 
 	for _, item := range associationOut.Items {
-		assocID := item["association_id"].(*types.AttributeValueMemberS).Value
+		assocAttr, ok := item[attrAssociationID].(*types.AttributeValueMemberS)
+		if !ok {
+			continue
+		}
+		assocID := assocAttr.Value
 		associationKey := map[string]types.AttributeValue{
-			"association_id":     &types.AttributeValueMemberS{Value: assocID},
-			"story_or_series_id": &types.AttributeValueMemberS{Value: storyOrSeriesID},
+			attrAssociationID:   &types.AttributeValueMemberS{Value: assocID},
+			attrStoryOrSeriesID: &types.AttributeValueMemberS{Value: storyOrSeriesID},
 		}
 		associationUpdateInput := &dynamodb.UpdateItemInput{
 			TableName:        aws.String("associations" + GetTableSuffix()),

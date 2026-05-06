@@ -1,10 +1,10 @@
 package converters
 
 import (
-	"Threadr/models"
 	"archive/zip"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html"
 	"io"
@@ -19,12 +19,14 @@ import (
 	"strings"
 	"time"
 
+	"Threadr/models"
+
 	"github.com/SebastiaanKlippert/go-wkhtmltopdf"
 	"github.com/microcosm-cc/bluemonday"
 )
 
 // sanitizeFilename makes a filename safe to use, only allows
-// basic ASCII, replaces spaces with underscores, and strips path traversal
+// basic ASCII, replaces spaces with underscores, and strips path traversal.
 func sanitizeFilename(name string) string {
 	// Remove path separators and ".."
 	name = strings.ReplaceAll(name, "/", "_")
@@ -34,20 +36,11 @@ func sanitizeFilename(name string) string {
 	re := regexp.MustCompile(`[^\w\d_-]`)
 	name = re.ReplaceAllString(name, "_")
 	// Limit length to 64 chars
-	if len(name) > 64 {
+	if len(name) > 64 { //nolint:mnd
 		name = name[:64]
 	}
 	return name
 }
-
-const (
-	FONT_NAME         = "Arial"
-	FONT_PATH         = "assets/fonts/arial.ttf"
-	FONT_SIZE_DEFAULT = "12px"
-	FONT_SIZE_HEADER  = "18px"
-	LINE_HEIGHT       = "24px"
-	MARGIN_1INCH      = "1in"
-)
 
 // typography pulls user-chosen font/size/line-spacing from the export request,
 // falling back to export defaults when the request leaves a field unset.
@@ -101,7 +94,7 @@ func detab(s string, tabWidth int) string {
 			col = 0
 		case '\t':
 			spaces := tabWidth - (col % tabWidth)
-			for i := 0; i < spaces; i++ {
+			for range spaces {
 				b.WriteByte(' ')
 			}
 			col += spaces
@@ -118,8 +111,8 @@ func safeTimestamp() string {
 	return time.Now().UTC().Format("20060102T150405Z")
 }
 
-// validateImageURL checks if a URL is safe to fetch (prevents SSRF attacks)
-func ValidateImageURL(imageURL string) (string, error) {
+// validateImageURL checks if a URL is safe to fetch (prevents SSRF attacks).
+func ValidateImageURL(ctx context.Context, imageURL string) (string, error) {
 	// Parse the URL
 	parsedURL, err := url.Parse(imageURL)
 	if err != nil {
@@ -128,60 +121,60 @@ func ValidateImageURL(imageURL string) (string, error) {
 
 	// Only allow HTTP and HTTPS schemes
 	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
-		return "", fmt.Errorf("invalid URL scheme: only http and https are allowed")
+		return "", errors.New("invalid URL scheme: only http and https are allowed")
 	}
 
 	// Extract hostname
 	hostname := parsedURL.Hostname()
 	if hostname == "" {
-		return "", fmt.Errorf("invalid URL: missing hostname")
+		return "", errors.New("invalid URL: missing hostname")
 	}
 
 	// Resolve hostname to IP addresses
-	ips, err := net.LookupIP(hostname)
+	addrs, err := net.DefaultResolver.LookupIPAddr(ctx, hostname)
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve hostname: %w", err)
 	}
 
 	// Check each resolved IP address
-	for _, ip := range ips {
+	for _, addr := range addrs {
+		ip := addr.IP
 		// Block AWS metadata service IP explicitly
 		if ip.String() == "169.254.169.254" {
-			return "", fmt.Errorf("access to cloud metadata services is not allowed")
+			return "", errors.New("access to cloud metadata services is not allowed")
 		}
 
 		// Block loopback addresses (127.0.0.0/8, ::1)
 		if ip.IsLoopback() {
-			return "", fmt.Errorf("access to loopback addresses is not allowed")
+			return "", errors.New("access to loopback addresses is not allowed")
 		}
 
 		// Block private IP ranges (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fc00::/7)
 		if ip.IsPrivate() {
-			return "", fmt.Errorf("access to private IP addresses is not allowed")
+			return "", errors.New("access to private IP addresses is not allowed")
 		}
 
 		// Block link-local addresses (169.254.0.0/16, fe80::/10)
 		if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
-			return "", fmt.Errorf("access to link-local addresses is not allowed")
+			return "", errors.New("access to link-local addresses is not allowed")
 		}
 
 		// Block multicast addresses
 		if ip.IsMulticast() {
-			return "", fmt.Errorf("access to multicast addresses is not allowed")
+			return "", errors.New("access to multicast addresses is not allowed")
 		}
 	}
 
 	return imageURL, nil
 }
 
-// DownloadCoverImage downloads an image from a URL to a temporary file
+// DownloadCoverImage downloads an image from a URL to a temporary file.
 func DownloadCoverImage(imageURL string) (string, error) {
-
 	// Create a GET request with a timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), pandocTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", imageURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, imageURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
@@ -220,39 +213,39 @@ func DownloadCoverImage(imageURL string) (string, error) {
 	defer tmpFile.Close()
 
 	// Limit file size to 10MB to prevent abuse
-	maxSize := int64(10 * 1024 * 1024) // 10MB
+	maxSize := int64(10 * 1024 * 1024) //nolint:mnd // 10MB
 	limitedReader := io.LimitReader(resp.Body, maxSize+1)
 
 	// Copy image data to file
 	written, err := io.Copy(tmpFile, limitedReader)
 	if err != nil {
-		os.Remove(tmpFile.Name())
+		_ = os.Remove(tmpFile.Name())
 		return "", fmt.Errorf("failed to write image: %w", err)
 	}
 
 	// Check if file exceeded size limit
 	if written > maxSize {
-		os.Remove(tmpFile.Name())
-		return "", fmt.Errorf("image file too large: maximum 10MB allowed")
+		_ = os.Remove(tmpFile.Name())
+		return "", errors.New("image file too large: maximum 10MB allowed")
 	}
 
 	return tmpFile.Name(), nil
 }
 
-// LexicalNode represents a node in the Lexical editor state
+// LexicalNode represents a node in the Lexical editor state.
 type LexicalNode struct {
-	Type       string         `json:"type"`
-	Children   []LexicalNode  `json:"children,omitempty"`
-	Text       string         `json:"text,omitempty"`
-	Format     interface{}    `json:"format,omitempty"`
-	TextFormat int            `json:"textFormat,omitempty"`
-	TextStyle  string         `json:"textStyle,omitempty"`
-	Direction  string         `json:"direction,omitempty"`
-	Indent     int            `json:"indent,omitempty"`
-	Version    int            `json:"version,omitempty"`
+	Type       string        `json:"type"`
+	Children   []LexicalNode `json:"children,omitempty"`
+	Text       string        `json:"text,omitempty"`
+	Format     any           `json:"format,omitempty"`
+	TextFormat int           `json:"textFormat,omitempty"`
+	TextStyle  string        `json:"textStyle,omitempty"`
+	Direction  string        `json:"direction,omitempty"`
+	Indent     int           `json:"indent,omitempty"`
+	Version    int           `json:"version,omitempty"`
 }
 
-// LexicalEditorState represents the root structure of Lexical JSON
+// LexicalEditorState represents the root structure of Lexical JSON.
 type LexicalEditorState struct {
 	Root struct {
 		Children  []LexicalNode `json:"children"`
@@ -264,13 +257,13 @@ type LexicalEditorState struct {
 	} `json:"root"`
 }
 
-// DynamoDBValue represents a DynamoDB AttributeValue with a Value field
+// DynamoDBValue represents a DynamoDB AttributeValue with a Value field.
 type DynamoDBValue struct {
-	Value interface{} `json:"Value"`
+	Value any `json:"Value"`
 }
 
 // LexicalToHTML converts Lexical JSON format to HTML
-// The input can be either a full editor state or a BlocksData structure from the mobile API
+// The input can be either a full editor state or a BlocksData structure from the mobile API.
 func LexicalToHTML(lexicalJSON string) (string, error) {
 	// First try to parse as BlocksData (mobile app format with DynamoDB AttributeValues)
 	var rawData struct {
@@ -278,35 +271,10 @@ func LexicalToHTML(lexicalJSON string) (string, error) {
 	}
 
 	if err := json.Unmarshal([]byte(lexicalJSON), &rawData); err == nil && len(rawData.Items) > 0 {
-		// This is BlocksData format - extract chunks and convert
 		var htmlBuilder strings.Builder
-
 		for _, item := range rawData.Items {
-			// Extract the chunk attribute (it's wrapped in DynamoDB AttributeValue format)
-			if chunkRaw, ok := item["chunk"]; ok {
-				// Parse the DynamoDB AttributeValue wrapper
-				var chunkWrapper DynamoDBValue
-				if err := json.Unmarshal(chunkRaw, &chunkWrapper); err == nil {
-					// The Value field contains the Lexical JSON as a string
-					var chunkStr string
-					if str, ok := chunkWrapper.Value.(string); ok {
-						chunkStr = str
-					} else {
-						// Try to marshal and unmarshal if it's not a string
-						chunkBytes, _ := json.Marshal(chunkWrapper.Value)
-						chunkStr = string(chunkBytes)
-					}
-
-					// Parse the Lexical node from the chunk
-					var node LexicalNode
-					if err := json.Unmarshal([]byte(chunkStr), &node); err == nil {
-						html := nodeToHTML(node)
-						htmlBuilder.WriteString(html)
-					}
-				}
-			}
+			htmlBuilder.WriteString(blocksDataItemToHTML(item))
 		}
-
 		return htmlBuilder.String(), nil
 	}
 
@@ -329,105 +297,124 @@ func LexicalToHTML(lexicalJSON string) (string, error) {
 	return nodeToHTML(node), nil
 }
 
-// nodeToHTML converts a single Lexical node to HTML
-func nodeToHTML(node LexicalNode) string {
-	var buf strings.Builder
-
-	switch node.Type {
-	case "paragraph", "custom-paragraph":
-		// Get text alignment style
-		var style string
-		if node.Format != nil {
-			switch fmt.Sprint(node.Format) {
-			case "center":
-				style = ` style="text-align:center;"`
-			case "right":
-				style = ` style="text-align:right;"`
-			case "justify":
-				style = ` style="text-align:justify;"`
-			}
-		}
-
-		buf.WriteString("<div" + style + ">")
-		for _, child := range node.Children {
-			buf.WriteString(nodeToHTML(child))
-		}
-		buf.WriteString("</div>")
-
-	case "text":
-		text := html.EscapeString(node.Text)
-
-		// Apply text formatting based on textFormat bitmask
-		// Lexical uses bitmask: 1=bold, 2=italic, 4=strikethrough, 8=underline
-		textFormat := node.TextFormat
-		if textFormat&1 != 0 {
-			text = "<strong>" + text + "</strong>"
-		}
-		if textFormat&2 != 0 {
-			text = "<em>" + text + "</em>"
-		}
-		if textFormat&8 != 0 {
-			text = "<u>" + text + "</u>"
-		}
-		if textFormat&4 != 0 {
-			text = "<s>" + text + "</s>"
-		}
-
-		buf.WriteString(text)
-
-	case "linebreak":
-		buf.WriteString("<br>")
-
-	case "heading":
-		// Default to h1 if no specific heading level
-		buf.WriteString("<h1>")
-		for _, child := range node.Children {
-			buf.WriteString(nodeToHTML(child))
-		}
-		buf.WriteString("</h1>")
-
-	case "list":
-		// Check if ordered or unordered (default to ul)
-		listTag := "ul"
-		buf.WriteString("<" + listTag + ">")
-		for _, child := range node.Children {
-			buf.WriteString(nodeToHTML(child))
-		}
-		buf.WriteString("</" + listTag + ">")
-
-	case "listitem":
-		buf.WriteString("<li>")
-		for _, child := range node.Children {
-			buf.WriteString(nodeToHTML(child))
-		}
-		buf.WriteString("</li>")
-
-	case "link":
-		buf.WriteString("<a>")
-		for _, child := range node.Children {
-			buf.WriteString(nodeToHTML(child))
-		}
-		buf.WriteString("</a>")
-
-	case "quote":
-		buf.WriteString("<blockquote>")
-		for _, child := range node.Children {
-			buf.WriteString(nodeToHTML(child))
-		}
-		buf.WriteString("</blockquote>")
-
-	default:
-		// For unknown node types, just process children
-		for _, child := range node.Children {
-			buf.WriteString(nodeToHTML(child))
-		}
+// blocksDataItemToHTML extracts and renders a single chunk from a DynamoDB-
+// wrapped BlocksData item. Returns "" if any layer (chunk attribute lookup,
+// AttributeValue unwrap, Lexical node parse) fails — best-effort by design.
+func blocksDataItemToHTML(item map[string]json.RawMessage) string {
+	chunkRaw, ok := item["chunk"]
+	if !ok {
+		return ""
 	}
+	var chunkWrapper DynamoDBValue
+	if err := json.Unmarshal(chunkRaw, &chunkWrapper); err != nil {
+		return ""
+	}
+	chunkStr, ok := chunkWrapper.Value.(string)
+	if !ok {
+		chunkBytes, _ := json.Marshal(chunkWrapper.Value)
+		chunkStr = string(chunkBytes)
+	}
+	var node LexicalNode
+	if err := json.Unmarshal([]byte(chunkStr), &node); err != nil {
+		return ""
+	}
+	return nodeToHTML(node)
+}
 
+// nodeToHTML converts a single Lexical node to HTML.
+func nodeToHTML(node LexicalNode) string {
+	switch node.Type {
+	case tagParagraph, "custom-paragraph":
+		return wrapChildrenHTML("<div"+paragraphAlignmentStyle(node.Format)+">", "</div>", node.Children)
+	case "text":
+		return applyLexicalTextFormat(html.EscapeString(node.Text), node.TextFormat)
+	case "linebreak":
+		return "<br>"
+	case "heading":
+		return wrapChildrenHTML("<h1>", "</h1>", node.Children)
+	case "list":
+		return wrapChildrenHTML("<ul>", "</ul>", node.Children)
+	case "listitem":
+		return wrapChildrenHTML("<li>", "</li>", node.Children)
+	case "link":
+		return wrapChildrenHTML("<a>", "</a>", node.Children)
+	case "quote":
+		return wrapChildrenHTML("<blockquote>", "</blockquote>", node.Children)
+	default:
+		return renderChildrenHTML(node.Children)
+	}
+}
+
+// wrapChildrenHTML emits open + recursively-rendered children + closeTag.
+// The dominant pattern in nodeToHTML — block-level tags wrapping their
+// child Lexical nodes.
+func wrapChildrenHTML(open, closeTag string, children []LexicalNode) string {
+	var buf strings.Builder
+	buf.WriteString(open)
+	for _, child := range children {
+		buf.WriteString(nodeToHTML(child))
+	}
+	buf.WriteString(closeTag)
 	return buf.String()
 }
 
+// renderChildrenHTML recursively renders children with no surrounding tag.
+// Used as the fall-through for unknown node types.
+func renderChildrenHTML(children []LexicalNode) string {
+	var buf strings.Builder
+	for _, child := range children {
+		buf.WriteString(nodeToHTML(child))
+	}
+	return buf.String()
+}
+
+// paragraphAlignmentStyle maps a Lexical format value (which is `any`
+// because Lexical sometimes serializes it as a string and sometimes as a
+// number) to an inline text-align style attribute. Returns "" for nil or
+// unrecognized values.
+func paragraphAlignmentStyle(format any) string {
+	if format == nil {
+		return ""
+	}
+	switch fmt.Sprint(format) {
+	case "center":
+		return ` style="text-align:center;"`
+	case "right":
+		return ` style="text-align:right;"`
+	case "justify":
+		return ` style="text-align:justify;"`
+	}
+	return ""
+}
+
+// applyLexicalTextFormat wraps text with HTML tags per the Lexical
+// textFormat bitmask: 1=bold, 2=italic, 4=strikethrough, 8=underline.
+// Order matches what Lexical's editor renders, so round-trip diffs stay
+// minimal.
+func applyLexicalTextFormat(text string, format int) string {
+	const (
+		bold          = 1
+		italic        = 2
+		strikethrough = 4
+		underline     = 8
+	)
+	if format&bold != 0 {
+		text = "<strong>" + text + "</strong>"
+	}
+	if format&italic != 0 {
+		text = "<em>" + text + "</em>"
+	}
+	if format&underline != 0 {
+		text = "<u>" + text + "</u>"
+	}
+	if format&strikethrough != 0 {
+		text = "<s>" + text + "</s>"
+	}
+	return text
+}
+
 func HTMLToEPUB(export models.DocumentExportRequest) (string, error) {
-	if err := os.MkdirAll("./tmp", 0o755); err != nil {
+	if err := os.MkdirAll("./tmp", tmpDirPerm); err != nil {
 		return "", err
 	}
 
@@ -435,11 +422,12 @@ func HTMLToEPUB(export models.DocumentExportRequest) (string, error) {
 
 	// ---- Build a single sanitized HTML doc (like your DOCX path) ----
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf(
+	fmt.Fprintf(
+		&b,
 		`<html><head><meta charset="utf-8"></head><body style="font-family: %s; line-height: %s; margin: 0 0 1rem;">`,
 		typo.cssFontStack(),
 		strconv.FormatFloat(typo.LineSpacing, 'f', -1, 64),
-	))
+	)
 
 	sanitizer := bluemonday.UGCPolicy()
 	// Allow minimal formatting commonly used in prose; tweak as needed
@@ -448,7 +436,7 @@ func HTMLToEPUB(export models.DocumentExportRequest) (string, error) {
 	sanitizer.AllowAttrs("href").OnElements("a")
 	sanitizer.AllowAttrs("src", "alt", "title").OnElements("img")
 
-	for _, htmlData := range export.HtmlByChapter {
+	for _, htmlData := range export.HTMLByChapter {
 		title := html.EscapeString(htmlData.Chapter)
 		b.WriteString(`<h1>` + title + `</h1>`)
 		b.WriteString(sanitizer.Sanitize(htmlData.HTML))
@@ -461,7 +449,7 @@ func HTMLToEPUB(export models.DocumentExportRequest) (string, error) {
 		return "", err
 	}
 	defer os.Remove(tmpHTML.Name())
-	if _, err := tmpHTML.WriteString(b.String()); err != nil {
+	if _, err = tmpHTML.WriteString(b.String()); err != nil {
 		return "", err
 	}
 	_ = tmpHTML.Close()
@@ -481,7 +469,7 @@ a { text-decoration: underline; }
 		strconv.FormatFloat(typo.LineSpacing, 'f', -1, 64),
 	)
 	tmpCSS := filepath.Join(os.TempDir(), "epub_style_"+safeTimestamp()+".css")
-	if err := os.WriteFile(tmpCSS, []byte(css), 0o644); err != nil {
+	if err = os.WriteFile(tmpCSS, []byte(css), tmpFilePerm); err != nil {
 		return "", err
 	}
 	defer os.Remove(tmpCSS)
@@ -518,17 +506,17 @@ a { text-decoration: underline; }
 	}
 
 	// ---- Run pandoc with a timeout ----
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), pandocTimeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, "pandoc", args...)
-	if err := cmd.Run(); err != nil {
+	if err = cmd.Run(); err != nil {
 		return "", err
 	}
 	return outName, nil
 }
 
 func HTMLToDOCX(export models.DocumentExportRequest) (string, error) {
-	if err := os.MkdirAll("./tmp", 0o755); err != nil {
+	if err := os.MkdirAll("./tmp", tmpDirPerm); err != nil {
 		return "", err
 	}
 
@@ -538,7 +526,7 @@ func HTMLToDOCX(export models.DocumentExportRequest) (string, error) {
 	typo.SizePx = models.DefaultExportFontSize
 
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf(`
+	fmt.Fprintf(&b, `
 		<html>
 			<head>
 				<meta charset="utf-8">
@@ -546,12 +534,11 @@ func HTMLToDOCX(export models.DocumentExportRequest) (string, error) {
 			<body style="font-family:%s;font-size:%dpx;line-height:%s;margin:0">`,
 		typo.cssFontStack(),
 		typo.SizePx,
-		strconv.FormatFloat(typo.LineSpacing, 'f', -1, 64),
-	))
+		strconv.FormatFloat(typo.LineSpacing, 'f', -1, 64))
 	sanitizer := bluemonday.UGCPolicy()
 	sanitizer.AllowAttrs("style", "custom-style").OnElements("div", "p")
 
-	for _, htmlData := range export.HtmlByChapter {
+	for _, htmlData := range export.HTMLByChapter {
 		title := html.EscapeString(htmlData.Chapter)
 		b.WriteString(`<h1>` + title + `</h1>`)
 		b.WriteString(sanitizer.Sanitize(mapParagraphTypographyToCustomStyle(stripDocxNoise(htmlData.HTML))))
@@ -563,7 +550,7 @@ func HTMLToDOCX(export models.DocumentExportRequest) (string, error) {
 		return "", err
 	}
 	defer os.Remove(tmpHTML.Name())
-	if _, err := tmpHTML.WriteString(b.String()); err != nil {
+	if _, err = tmpHTML.WriteString(b.String()); err != nil {
 		return "", err
 	}
 	_ = tmpHTML.Close()
@@ -583,14 +570,14 @@ func HTMLToDOCX(export models.DocumentExportRequest) (string, error) {
 	docTitle := safeTitle + "_" + iso
 	out := "./tmp/" + docTitle + ".docx"
 	// Add a timeout so pandoc can’t hang your handler forever
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), pandocTimeout)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "pandoc", "-f", "html", "-t", "docx",
 		"--reference-doc", refDoc,
 		"-o", out, tmpHTML.Name(),
 	)
-	if err := cmd.Run(); err != nil {
+	if err = cmd.Run(); err != nil {
 		return "", err
 	}
 	return docTitle + ".docx", nil
@@ -616,60 +603,60 @@ func buildReferenceDocx(srcPath string, typo typography) (string, func(), error)
 	if err != nil {
 		return "", func() {}, err
 	}
-	cleanup := func() { os.Remove(tmp.Name()) }
+	cleanup := func() { _ = os.Remove(tmp.Name()) }
 
 	zw := zip.NewWriter(tmp)
 	for _, f := range src.File {
-		w, err := zw.CreateHeader(&zip.FileHeader{
+		w, err := zw.CreateHeader(&zip.FileHeader{ //nolint:govet
 			Name:   f.Name,
 			Method: f.Method,
 		})
 		if err != nil {
-			zw.Close()
-			tmp.Close()
+			_ = zw.Close()
+			_ = tmp.Close()
 			cleanup()
 			return "", func() {}, err
 		}
 		rc, err := f.Open()
 		if err != nil {
-			zw.Close()
-			tmp.Close()
+			_ = zw.Close()
+			_ = tmp.Close()
 			cleanup()
 			return "", func() {}, err
 		}
 		if f.Name == "word/styles.xml" {
-			data, err := io.ReadAll(rc)
-			rc.Close()
+			data, err := io.ReadAll(rc) //nolint:govet
+			_ = rc.Close()
 			if err != nil {
-				zw.Close()
-				tmp.Close()
+				_ = zw.Close()
+				_ = tmp.Close()
 				cleanup()
 				return "", func() {}, err
 			}
 			data = applyTypographyToStylesXML(data, typo)
-			if _, err := w.Write(data); err != nil {
-				zw.Close()
-				tmp.Close()
+			if _, err = w.Write(data); err != nil {
+				_ = zw.Close()
+				_ = tmp.Close()
 				cleanup()
 				return "", func() {}, err
 			}
 			continue
 		}
-		if _, err := io.Copy(w, rc); err != nil {
-			rc.Close()
-			zw.Close()
-			tmp.Close()
+		if _, err = io.CopyN(w, rc, maxZipEntrySize); err != nil && !errors.Is(err, io.EOF) {
+			_ = rc.Close()
+			_ = zw.Close()
+			_ = tmp.Close()
 			cleanup()
 			return "", func() {}, err
 		}
-		rc.Close()
+		_ = rc.Close()
 	}
-	if err := zw.Close(); err != nil {
-		tmp.Close()
+	if err = zw.Close(); err != nil {
+		_ = tmp.Close()
 		cleanup()
 		return "", func() {}, err
 	}
-	if err := tmp.Close(); err != nil {
+	if err = tmp.Close(); err != nil {
 		cleanup()
 		return "", func() {}, err
 	}
@@ -690,6 +677,8 @@ func buildReferenceDocx(srcPath string, typo typography) (string, func(), error)
 //   - U+FEFF  byte-order mark / word joiner
 //   - U+00AD  soft hyphen — pandoc emits <w:softHyphen/>, which renders as a
 //     comma-like mark when formatting marks are visible.
+//
+//nolint:gochecknoglobals // strings.NewReplacer can't be const; effectively immutable after init.
 var docxNoiseReplacer = strings.NewReplacer(
 	"\t", "",
 	"\u200B", "", // zero-width space
@@ -721,21 +710,25 @@ var lineHeightDeclRe = regexp.MustCompile(`(?i)line-height\s*:\s*([\d.]+)`)
 
 // alignToCustomStyle maps a CSS text-align keyword to its custom paragraph
 // style name. The empty string means "no alignment override".
+//
+//nolint:gochecknoglobals // static lookup table; Go maps can't be const.
 var alignToCustomStyle = map[string]string{
-	"center":  "Centered",
+	"center":  styleCentered,
 	"right":   "Righted",
-	"justify": "Justified",
+	"justify": styleJustified,
 }
 
 // lineHeightToCustomStyle maps the four allowed line-height values (the same
 // set the document-settings dropdown offers) to a custom paragraph style.
+//
+//nolint:gochecknoglobals // static lookup table; Go maps can't be const.
 var lineHeightToCustomStyle = map[string]string{
-	"1":    "LineSingle",
-	"1.0":  "LineSingle",
+	"1":    styleLineSingle,
+	"1.0":  styleLineSingle,
 	"1.15": "Line115",
 	"1.5":  "Line15",
-	"2":    "LineDouble",
-	"2.0":  "LineDouble",
+	"2":    styleLineDouble,
+	"2.0":  styleLineDouble,
 }
 
 // mapParagraphTypographyToCustomStyle wraps any <p> whose alignment or
@@ -822,6 +815,8 @@ var pPrOpenRe = regexp.MustCompile(`<w:pPr>`)
 // in HTML→DOCX conversion (and the styles those inherit from). Updating their
 // line spacing is what makes the user's choice visible in the rendered docx.
 // Headings are intentionally excluded so their existing layout stays intact.
+//
+//nolint:gochecknoglobals // static lookup list; Go slices can't be const.
 var bodyTextStyleIDs = []string{
 	"Normal",
 	"TextBody",
@@ -832,12 +827,8 @@ var bodyTextStyleIDs = []string{
 }
 
 func applyTypographyToStylesXML(data []byte, typo typography) []byte {
-	// DOCX font sizes are in half-points; Word renders px ≈ pt for body text,
-	// so we treat the user's px choice as points (matches the PDF/EPUB feel).
-	sizeHalfPt := typo.SizePx * 2
-	// DOCX line spacing in "auto" rule is twentieths-of-a-point per line; the
-	// canonical convention is 240 = single, 360 = 1.5×, 480 = double.
-	lineTwips := int(typo.LineSpacing * 240)
+	sizeHalfPt := typo.SizePx * docxHalfPointsPerPoint
+	lineTwips := int(typo.LineSpacing * docxTwipsPerLine)
 
 	fontTag := fmt.Sprintf(
 		`<w:rFonts w:ascii=%q w:hAnsi=%q w:eastAsia=%q w:cs=""/>`,
@@ -885,27 +876,31 @@ func applyTypographyToStylesXML(data []byte, typo typography) []byte {
 func lineSpacingOverrideStylesXML() string {
 	bases := []struct{ alignName, baseStyle string }{
 		{"", "TextBody"},
-		{"Centered", "Centered"},
+		{styleCentered, styleCentered},
 		{"Righted", "Righted"},
-		{"Justified", "Justified"},
+		{styleJustified, styleJustified},
 	}
 	lines := []struct {
 		suffix string
 		twips  int
 	}{
-		{"LineSingle", 240},
+		{styleLineSingle, 240},
 		{"Line115", 276},
 		{"Line15", 360},
-		{"LineDouble", 480},
+		{styleLineDouble, 480},
 	}
 	var b strings.Builder
 	for _, base := range bases {
 		for _, line := range lines {
 			id := base.alignName + line.suffix
-			b.WriteString(fmt.Sprintf(
-				`<w:style w:type="paragraph" w:styleId=%q w:customStyle="1"><w:name w:val=%q/><w:basedOn w:val=%q/><w:qFormat/><w:pPr><w:spacing w:lineRule="auto" w:line="%d"/></w:pPr></w:style>`,
-				id, id, base.baseStyle, line.twips,
-			))
+			fmt.Fprintf(
+				&b,
+				`<w:style w:type=tagParagraph w:styleId=%q w:customStyle="1"><w:name w:val=%q/><w:basedOn w:val=%q/><w:qFormat/><w:pPr><w:spacing w:lineRule="auto" w:line="%d"/></w:pPr></w:style>`,
+				id,
+				id,
+				base.baseStyle,
+				line.twips,
+			)
 		}
 	}
 	return b.String()
@@ -938,7 +933,7 @@ func applyLineSpacingToStyle(out, id string, lineTwips int) string {
 }
 
 func HTMLToPDF(export models.DocumentExportRequest) (string, error) {
-	if err := os.MkdirAll("./tmp", 0o755); err != nil {
+	if err := os.MkdirAll("./tmp", tmpDirPerm); err != nil {
 		return "", err
 	}
 	/* For code blocks: stricter preservation + monospaced font */
@@ -966,7 +961,7 @@ func HTMLToPDF(export models.DocumentExportRequest) (string, error) {
 						tab-size: 4;
 					}
 					body { font-family:` + typo.cssFontStack() + `; font-size:` + bodyFontSize + `; line-height:` + bodyLineHeight + `; margin:0; }
-					.h1 { text-align:center; font-weight:bold; font-size:` + FONT_SIZE_HEADER + `; line-height:` + FONT_SIZE_HEADER + `; margin: 0 0 ` + FONT_SIZE_HEADER + ` 0; }
+					.h1 { text-align:center; font-weight:bold; font-size:` + fontSizeHeader + `; line-height:` + fontSizeHeader + `; margin: 0 0 ` + fontSizeHeader + ` 0; }
 					.chapter { page-break-before: always; }
 					.chapter:first-child { page-break-before: auto; }
 					div, p { margin:0; padding:0; white-space: pre-wrap; }
@@ -990,15 +985,18 @@ func HTMLToPDF(export models.DocumentExportRequest) (string, error) {
 		// don’t turn &amp; back into & before sanitization; sanitizer will normalize safely
 		// don’t convert em dash to double-hyphen
 		// convert only your custom-style wrappers
-		s = regexp.MustCompile(`(?s)<div custom-style="Centered">(.*?)</div>`).ReplaceAllString(s, `<div style="text-align:center;">$1</div>`)
-		s = regexp.MustCompile(`(?s)<div custom-style="Righted">(.*?)</div>`).ReplaceAllString(s, `<div style="text-align:right;">$1</div>`)
-		s = regexp.MustCompile(`(?s)<div custom-style="Justified">(.*?)</div>`).ReplaceAllString(s, `<div style="text-align:justify;">$1</div>`)
+		s = regexp.MustCompile(`(?s)<div custom-style=styleCentered>(.*?)</div>`).
+			ReplaceAllString(s, `<div style="text-align:center;">$1</div>`)
+		s = regexp.MustCompile(`(?s)<div custom-style="Righted">(.*?)</div>`).
+			ReplaceAllString(s, `<div style="text-align:right;">$1</div>`)
+		s = regexp.MustCompile(`(?s)<div custom-style=styleJustified>(.*?)</div>`).
+			ReplaceAllString(s, `<div style="text-align:justify;">$1</div>`)
 		// Generic div normalization across newlines:
 		s = regexp.MustCompile(`(?s)<div>(.*?)</div>`).ReplaceAllString(s, `<div>$1</div>`)
 		return s
 	}
 
-	for i, htmlData := range export.HtmlByChapter {
+	for i, htmlData := range export.HTMLByChapter {
 		title := html.EscapeString(htmlData.Chapter)
 		sectionClass := "chapter"
 		if i == 0 {
@@ -1006,7 +1004,7 @@ func HTMLToPDF(export models.DocumentExportRequest) (string, error) {
 		}
 		b.WriteString(`<section class="` + sectionClass + `">`)
 		b.WriteString(`<div class="h1">` + title + `</div>`)
-		raw := detab(htmlData.HTML, 4)
+		raw := detab(htmlData.HTML, 4) //nolint:mnd
 		body := align(raw)
 		b.WriteString(sanitizer.Sanitize(body))
 		b.WriteString(`</section>`)
@@ -1026,12 +1024,12 @@ func HTMLToPDF(export models.DocumentExportRequest) (string, error) {
 
 	// Margins can be set either via CSS @page or here; we already set @page,
 	// but setting here is OK and explicit:
-	pdfg.MarginTop.Set(25) // ~1in at 96dpi; wkhtmltopdf uses mm by default, but lib converts
-	pdfg.MarginRight.Set(25)
-	pdfg.MarginBottom.Set(25)
-	pdfg.MarginLeft.Set(25)
+	pdfg.MarginTop.Set(pdfMarginMM) // ~1in at 96dpi; wkhtmltopdf uses mm by default, but lib converts
+	pdfg.MarginRight.Set(pdfMarginMM)
+	pdfg.MarginBottom.Set(pdfMarginMM)
+	pdfg.MarginLeft.Set(pdfMarginMM)
 
-	if err := pdfg.Create(); err != nil {
+	if err = pdfg.Create(); err != nil {
 		return "", err
 	}
 	now := time.Now().UTC()
@@ -1040,7 +1038,7 @@ func HTMLToPDF(export models.DocumentExportRequest) (string, error) {
 	docTitle := safeTitle + "_" + iso
 	name := docTitle + ".pdf"
 	out := "./tmp/" + name
-	if err := pdfg.WriteFile(out); err != nil {
+	if err = pdfg.WriteFile(out); err != nil {
 		return "", err
 	}
 	return name, nil

@@ -1,12 +1,12 @@
 package daos
 
 import (
-	"Threadr/logger"
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"time"
+
+	"Threadr/logger"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -16,7 +16,7 @@ import (
 
 func (d *DAO) createBlockTable(ctx context.Context, tableName string, tags *[]types.Tag) error {
 	partitionKey := aws.String("key_id")
-	gsiPartKey := aws.String("story_id")
+	gsiPartKey := aws.String(attrStoryID)
 	gsiSortKey := aws.String("place")
 
 	tableSchema := []types.KeySchemaElement{
@@ -74,8 +74,8 @@ func (d *DAO) createBlockTable(ctx context.Context, tableName string, tags *[]ty
 	}
 
 	go func() {
-		// Use Background context as this goroutine needs to outlive the request
-		bgCtx := context.Background()
+		// Detach from request cancellation — the table-creation waiter must outlive the originating request.
+		bgCtx := context.WithoutCancel(ctx)
 		waiter := dynamodb.NewTableExistsWaiter(d.DynamoClient)
 		if err = waiter.Wait(bgCtx, &dynamodb.DescribeTableInput{
 			TableName: aws.String(tableName),
@@ -92,7 +92,7 @@ func (d *DAO) createBlockTable(ctx context.Context, tableName string, tags *[]ty
 		}
 
 		for {
-			_, err := d.DynamoClient.UpdateContinuousBackups(bgCtx, pitrInput)
+			_, err := d.DynamoClient.UpdateContinuousBackups(bgCtx, pitrInput) //nolint:govet
 			if err == nil {
 				break // PITR enabled successfully
 			}
@@ -103,10 +103,10 @@ func (d *DAO) createBlockTable(ctx context.Context, tableName string, tags *[]ty
 				return
 			}
 			logger.Info("Waiting for backups to be enabled", "tableName", tableName)
-			time.Sleep(10 * time.Second)
+			time.Sleep(10 * time.Second) //nolint:mnd
 		}
 
-		_, err := d.DynamoClient.UpdateContinuousBackups(bgCtx, pitrInput)
+		_, err := d.DynamoClient.UpdateContinuousBackups(bgCtx, pitrInput) //nolint:govet
 		if err != nil {
 			logger.Error("Error enabling continuous backups", "error", err, "tableName", tableName)
 		}
@@ -131,7 +131,7 @@ func isResourceNotFound(err error) bool {
 	return false
 }
 
-// Detect TableInUse from RestoreTableFromBackup
+// Detect TableInUse from RestoreTableFromBackup.
 func isTableInUse(err error) bool {
 	var op *smithy.OperationError
 	if errors.As(err, &op) {
@@ -150,9 +150,14 @@ func isTableAlreadyExists(err error) bool {
 	return false
 }
 
-func waitForTableStatus(ctx context.Context, client dynamoDBClient, tableName, chapterName, want string, timeout time.Duration) error {
+func waitForTableStatus(
+	ctx context.Context,
+	client dynamoDBClient,
+	tableName, chapterName, want string,
+	timeout time.Duration,
+) error {
 	deadline := time.Now().Add(timeout)
-	backoff := 500 * time.Millisecond
+	backoff := 500 * time.Millisecond //nolint:mnd
 
 	for {
 		if time.Now().After(deadline) {
@@ -167,7 +172,7 @@ func waitForTableStatus(ctx context.Context, client dynamoDBClient, tableName, c
 			}
 		} else {
 			got := string(out.Table.TableStatus)
-			log.Printf("table %s status is: %s\n", chapterName, got)
+			logger.Debug("table status", "chapter", chapterName, "status", got)
 			if got == want {
 				return nil
 			}

@@ -1,13 +1,14 @@
 package daos
 
 import (
-	"Threadr/models"
 	"context"
 	"errors"
 	"testing"
+
+	"Threadr/models"
 )
 
-// Tests for GetOutlineByStoryID
+// Tests for GetOutlineByStoryID.
 func TestGetOutlineByStoryID(t *testing.T) {
 	testCases := []struct {
 		name     string
@@ -30,7 +31,6 @@ func TestGetOutlineByStoryID(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -41,7 +41,7 @@ func TestGetOutlineByStoryID(t *testing.T) {
 	}
 }
 
-// Tests for CreateOutline
+// Tests for CreateOutline.
 func TestCreateOutline(t *testing.T) {
 	testCases := []struct {
 		name        string
@@ -103,7 +103,6 @@ func TestCreateOutline(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 			mockDao.MockCreateOutline = func(outline models.OutlineRequest) (*models.OutlineRequest, error) {
@@ -119,31 +118,29 @@ func TestCreateOutline(t *testing.T) {
 			result, err := mockDao.CreateOutline(context.Background(), tc.outline)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Errorf("expected error, got nil")
-				}
+				assertExpectedErr(t, err, "")
 				if result != nil {
 					t.Errorf("expected nil result on error, got %v", result)
 				}
-			} else {
-				if err != nil {
-					t.Errorf("unexpected error: %v", err)
-				}
-				if result == nil {
-					t.Fatal("expected non-nil result, got nil")
-				}
-				if result.StoryID != tc.outline.StoryID {
-					t.Errorf("expected storyID %s, got %s", tc.outline.StoryID, result.StoryID)
-				}
-				if result.Template != tc.outline.Template {
-					t.Errorf("expected template %s, got %s", tc.outline.Template, result.Template)
-				}
+				return
+			}
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+			if result == nil {
+				t.Fatal("expected non-nil result, got nil")
+			}
+			if result.StoryID != tc.outline.StoryID {
+				t.Errorf("expected storyID %s, got %s", tc.outline.StoryID, result.StoryID)
+			}
+			if result.Template != tc.outline.Template {
+				t.Errorf("expected template %s, got %s", tc.outline.Template, result.Template)
 			}
 		})
 	}
 }
 
-// Tests for UpdateOutline
+// Tests for UpdateOutline.
 func TestUpdateOutline(t *testing.T) {
 	testCases := []struct {
 		name         string
@@ -255,7 +252,6 @@ func TestUpdateOutline(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 			mockDao.MockUpdateOutline = func(outline models.OutlineRequest) (*models.OutlineResponse, error) {
@@ -271,25 +267,23 @@ func TestUpdateOutline(t *testing.T) {
 			result, err := mockDao.UpdateOutline(context.Background(), tc.outline)
 
 			if tc.wantErr {
-				if err == nil {
-					t.Errorf("expected error, got nil")
-				}
+				assertExpectedErr(t, err, "")
 				if result != nil {
 					t.Errorf("expected nil result on error, got %v", result)
 				}
-			} else {
-				if err != nil {
-					t.Errorf("unexpected error: %v", err)
-				}
-				if result == nil {
-					t.Fatal("expected non-nil result, got nil")
-				}
-				if result.StoryID != tc.outline.StoryID {
-					t.Errorf("expected storyID %s, got %s", tc.outline.StoryID, result.StoryID)
-				}
-				if len(result.Sections) != len(tc.mockResponse.Sections) {
-					t.Errorf("expected %d sections, got %d", len(tc.mockResponse.Sections), len(result.Sections))
-				}
+				return
+			}
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+			if result == nil {
+				t.Fatal("expected non-nil result, got nil")
+			}
+			if result.StoryID != tc.outline.StoryID {
+				t.Errorf("expected storyID %s, got %s", tc.outline.StoryID, result.StoryID)
+			}
+			if len(result.Sections) != len(tc.mockResponse.Sections) {
+				t.Errorf("expected %d sections, got %d", len(tc.mockResponse.Sections), len(result.Sections))
 			}
 		})
 	}
@@ -302,7 +296,7 @@ func BenchmarkCreateOutline(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_, _ = mockDao.CreateOutline(context.Background(), outline)
 	}
 }
@@ -312,7 +306,7 @@ func BenchmarkGetOutlineByStoryID(b *testing.B) {
 	chapters := []models.Chapter{}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_, _ = mockDao.GetOutlineByStoryID(context.Background(), "story123", chapters)
 	}
 }

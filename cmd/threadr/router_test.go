@@ -1,19 +1,19 @@
 package main
 
 import (
-	"Threadr/auth"
-	"Threadr/daos"
-	"Threadr/models"
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"Threadr/auth"
+	"Threadr/daos"
+	"Threadr/models"
 )
 
-// Tests for setupRouter
+// Tests for setupRouter.
 func TestSetupRouter(t *testing.T) {
 	// Create a mock DAO
 	mockClient := &daos.MockDynamoClient{}
@@ -22,9 +22,9 @@ func TestSetupRouter(t *testing.T) {
 	}
 
 	authOptions := auth.OauthOptions{
-		GoogleId:     "test-google-id",
+		GoogleID:     "test-google-id",
 		GoogleSecret: "test-google-secret",
-		GoogleUrl:    "http://localhost/auth/google/callback",
+		GoogleURL:    "http://localhost/auth/google/callback",
 		FrontEndURL:  "http://localhost:3000",
 	}
 
@@ -49,14 +49,6 @@ func TestSetupRouter(t *testing.T) {
 			method:       "OPTIONS",
 			path:         "/health",
 			expectStatus: http.StatusNoContent,
-		},
-		{
-			name:           "pprof enabled in development mode",
-			mode:           models.ModeDevelopment,
-			method:         "GET",
-			path:           "/debug/pprof/",
-			expectStatus:   http.StatusOK,
-			checkRouteOnly: true,
 		},
 		{
 			name:           "auth logout route exists",
@@ -206,7 +198,7 @@ func TestSetupRouter_StaticFileServing(t *testing.T) {
 		router := setupRouter(models.ModeProduction, mockDAO, authOptions, false)
 
 		// Path traversal attempt
-		req := httptest.NewRequest("GET", "/../../../etc/passwd", nil)
+		req := httptest.NewRequest(http.MethodGet, "/../../../etc/passwd", nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -218,7 +210,7 @@ func TestSetupRouter_StaticFileServing(t *testing.T) {
 		}
 	})
 
-	_ = tmpDir // Mark as used
+	_ = tmpDir            // Mark as used
 	_ = originalStaticDir // Mark as used
 }
 
@@ -253,7 +245,7 @@ func TestSetupRouter_CacheHeaders(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest("GET", tt.path, nil)
+			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
 			w := httptest.NewRecorder()
 
 			router.ServeHTTP(w, req)
@@ -263,44 +255,6 @@ func TestSetupRouter_CacheHeaders(t *testing.T) {
 			t.Logf("Path %s returned status %d", tt.path, w.Code)
 		})
 	}
-}
-
-func TestSetupRouter_DevelopmentMode(t *testing.T) {
-	mockClient := &daos.MockDynamoClient{}
-	mockDAO := &daos.DAO{
-		DynamoClient: mockClient,
-	}
-
-	authOptions := auth.OauthOptions{
-		FrontEndURL: "http://localhost:3000",
-	}
-
-	t.Run("pprof routes available in development mode", func(t *testing.T) {
-		router := setupRouter(models.ModeDevelopment, mockDAO, authOptions, false)
-
-		req := httptest.NewRequest("GET", "/debug/pprof/", nil)
-		w := httptest.NewRecorder()
-
-		router.ServeHTTP(w, req)
-
-		// pprof should be available (200) or at least not 404
-		if w.Code == http.StatusNotFound {
-			t.Error("pprof routes should be available in development mode")
-		}
-	})
-
-	t.Run("pprof routes not available in production mode", func(t *testing.T) {
-		router := setupRouter(models.ModeProduction, mockDAO, authOptions, false)
-
-		req := httptest.NewRequest("GET", "/debug/pprof/", nil)
-		w := httptest.NewRecorder()
-
-		router.ServeHTTP(w, req)
-
-		// In production, pprof should not be registered, so we expect 404
-		// or it falls through to static file serving
-		t.Logf("Production mode pprof request returned: %d", w.Code)
-	})
 }
 
 func TestSetupRouter_MiddlewareApplication(t *testing.T) {
@@ -317,7 +271,7 @@ func TestSetupRouter_MiddlewareApplication(t *testing.T) {
 
 	t.Run("auth routes use looseMiddleware (no auth required for login)", func(t *testing.T) {
 		// Auth routes should be accessible without authentication
-		req := httptest.NewRequest("GET", "/auth/google", nil)
+		req := httptest.NewRequest(http.MethodGet, "/auth/google", nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -331,7 +285,7 @@ func TestSetupRouter_MiddlewareApplication(t *testing.T) {
 
 	t.Run("billing routes require authentication", func(t *testing.T) {
 		// Billing routes should require authentication
-		req := httptest.NewRequest("POST", "/billing/subscribe", nil)
+		req := httptest.NewRequest(http.MethodPost, "/billing/subscribe", nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -344,7 +298,7 @@ func TestSetupRouter_MiddlewareApplication(t *testing.T) {
 
 	t.Run("api routes require strict authentication", func(t *testing.T) {
 		// API routes should require strict authentication
-		req := httptest.NewRequest("GET", "/api/v1/stories", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/stories", nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -370,7 +324,7 @@ func TestMaintenanceMode(t *testing.T) {
 		router := setupRouter(models.ModeProduction, mockDAO, authOptions, true)
 
 		// Health check should still work
-		req := httptest.NewRequest("GET", "/health", nil)
+		req := httptest.NewRequest(http.MethodGet, "/health", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -379,7 +333,7 @@ func TestMaintenanceMode(t *testing.T) {
 		}
 
 		// API route should return maintenance page
-		req = httptest.NewRequest("GET", "/api/v1/stories", nil)
+		req = httptest.NewRequest(http.MethodGet, "/api/v1/stories", nil)
 		w = httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -393,7 +347,7 @@ func TestMaintenanceMode(t *testing.T) {
 		}
 
 		// Static route should also show maintenance page
-		req = httptest.NewRequest("GET", "/", nil)
+		req = httptest.NewRequest(http.MethodGet, "/", nil)
 		w = httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -406,7 +360,7 @@ func TestMaintenanceMode(t *testing.T) {
 		router := setupRouter(models.ModeProduction, mockDAO, authOptions, false)
 
 		// Health check should work
-		req := httptest.NewRequest("GET", "/health", nil)
+		req := httptest.NewRequest(http.MethodGet, "/health", nil)
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -415,7 +369,7 @@ func TestMaintenanceMode(t *testing.T) {
 		}
 
 		// API route should return 401 (auth required, not maintenance)
-		req = httptest.NewRequest("GET", "/api/v1/stories", nil)
+		req = httptest.NewRequest(http.MethodGet, "/api/v1/stories", nil)
 		w = httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
@@ -425,7 +379,7 @@ func TestMaintenanceMode(t *testing.T) {
 	})
 }
 
-// Benchmark for router setup
+// Benchmark for router setup.
 func BenchmarkSetupRouter(b *testing.B) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -439,14 +393,14 @@ func BenchmarkSetupRouter(b *testing.B) {
 	}
 
 	// Skip actual AWS connection in benchmark
-	os.Setenv("AWS_REGION", "us-east-1")
+	b.Setenv("AWS_REGION", "us-east-1")
 
 	authOptions := auth.OauthOptions{
 		FrontEndURL: "http://localhost:3000",
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		// Create minimal mock DAO for benchmarking
 		mockClient := &daos.MockDynamoClient{}
 		mockDAO := &daos.DAO{

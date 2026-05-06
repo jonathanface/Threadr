@@ -140,7 +140,7 @@ describe("NotificationsBell", () => {
       mockUnreadCount = 1;
       const user = userEvent.setup();
 
-      const { container } = render(
+      render(
         <div>
           <div data-testid="outside">Outside area</div>
           <NotificationsBell />

@@ -1,15 +1,16 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
-	"Threadr/models"
 	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
@@ -21,10 +22,10 @@ func init() {
 
 func TestDeleteBlocksFromStoryEndpoint_Success(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_ string, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID}, nil
 	}
-	mockDAO.MockDeleteChapterParagraphs = func(storyID string, storyBlocks *models.StoryBlocks) error {
+	mockDAO.MockDeleteChapterParagraphs = func(storyID string, _ *models.StoryBlocks) error {
 		if storyID != "story123" {
 			t.Errorf("Expected storyID story123, got %s", storyID)
 		}
@@ -74,7 +75,7 @@ func TestDeleteBlocksFromStoryEndpoint_MissingStoryID(t *testing.T) {
 func TestDeleteBlocksFromStoryEndpoint_InvalidJSON(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
-	req := createTestRequestWithSession("DELETE", "/story/story123/blocks", bytes.NewBuffer([]byte("invalid json")))
+	req := createTestRequestWithSession("DELETE", "/story/story123/blocks", bytes.NewBufferString("invalid json"))
 	req = mux.SetURLVars(req, map[string]string{"storyID": "story123"})
 	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
 
@@ -113,10 +114,10 @@ func TestDeleteBlocksFromStoryEndpoint_NoDAO(t *testing.T) {
 
 func TestDeleteBlocksFromStoryEndpoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_ string, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID}, nil
 	}
-	mockDAO.MockDeleteChapterParagraphs = func(storyID string, storyBlocks *models.StoryBlocks) error {
+	mockDAO.MockDeleteChapterParagraphs = func(_ string, _ *models.StoryBlocks) error {
 		return daos.ErrMockDAO
 	}
 
@@ -140,10 +141,10 @@ func TestDeleteBlocksFromStoryEndpoint_DAOError(t *testing.T) {
 
 func TestDeleteBlocksFromStoryEndpoint_AWSError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockGetStoryByID = func(email string, storyID string) (*models.Story, error) {
+	mockDAO.MockGetStoryByID = func(_ string, storyID string) (*models.Story, error) {
 		return &models.Story{ID: storyID}, nil
 	}
-	mockDAO.MockDeleteChapterParagraphs = func(storyID string, storyBlocks *models.StoryBlocks) error {
+	mockDAO.MockDeleteChapterParagraphs = func(_ string, _ *models.StoryBlocks) error {
 		return &smithy.OperationError{
 			ServiceID:     "DynamoDB",
 			OperationName: "DeleteItem",

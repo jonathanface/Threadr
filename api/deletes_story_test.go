@@ -1,13 +1,14 @@
 package api
 
 import (
-	ctxkey "Threadr/ctxkeys"
-	"Threadr/daos"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ctxkey "Threadr/ctxkeys"
+	"Threadr/daos"
 
 	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
@@ -86,7 +87,7 @@ func TestDeleteStoryEndpoint_NoDAO(t *testing.T) {
 
 func TestDeleteStoryEndpoint_DAOError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockSoftDeleteStory = func(email, storyID string, includeBlocks bool) error {
+	mockDAO.MockSoftDeleteStory = func(_, _ string, _ bool) error {
 		return daos.ErrMockDAO
 	}
 
@@ -104,7 +105,7 @@ func TestDeleteStoryEndpoint_DAOError(t *testing.T) {
 
 func TestDeleteStoryEndpoint_AWSError(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
-	mockDAO.MockSoftDeleteStory = func(email, storyID string, includeBlocks bool) error {
+	mockDAO.MockSoftDeleteStory = func(_, _ string, _ bool) error {
 		return &smithy.OperationError{
 			ServiceID:     "DynamoDB",
 			OperationName: "DeleteItem",

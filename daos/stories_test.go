@@ -1,7 +1,6 @@
 package daos
 
 import (
-	"Threadr/models"
 	"context"
 	"encoding/json"
 	"errors"
@@ -9,11 +8,13 @@ import (
 	"strconv"
 	"testing"
 
+	"Threadr/models"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-// Tests for GetAllStories
+// Tests for GetAllStories.
 func TestGetAllStories(t *testing.T) {
 	testCases := []struct {
 		name    string
@@ -28,7 +29,6 @@ func TestGetAllStories(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -49,34 +49,30 @@ func TestGetAllStories(t *testing.T) {
 	}
 }
 
-// Tests for GetAllStandalone
+// Tests for GetAllStandalone.
 func TestGetAllStandalone(t *testing.T) {
 	testCases := []struct {
-		name         string
-		email        string
-		adminRequest bool
-		wantErr      bool
+		name    string
+		email   string
+		wantErr bool
 	}{
 		{
-			name:         "UserRequest_RequiresMockDB",
-			email:        "user@example.com",
-			adminRequest: false,
-			wantErr:      false,
+			name:    "UserRequest_RequiresMockDB",
+			email:   "user@example.com",
+			wantErr: false,
 		},
 		{
-			name:         "AdminRequest_RequiresMockDB",
-			email:        "admin@example.com",
-			adminRequest: true,
-			wantErr:      false,
+			name:    "AdminRequest_RequiresMockDB",
+			email:   "admin@example.com",
+			wantErr: false,
 		},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
-			stories, err := mockDao.GetAllStandalone(context.Background(), tc.email, tc.adminRequest)
+			stories, err := mockDao.GetAllStandalone(context.Background(), tc.email)
 
 			if tc.wantErr {
 				if err == nil {
@@ -92,7 +88,7 @@ func TestGetAllStandalone(t *testing.T) {
 	}
 }
 
-// Tests for GetStoryByID
+// Tests for GetStoryByID.
 func TestGetStoryByID(t *testing.T) {
 	testCases := []struct {
 		name    string
@@ -115,7 +111,6 @@ func TestGetStoryByID(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -127,19 +122,19 @@ func TestGetStoryByID(t *testing.T) {
 				} else {
 					t.Logf("Got expected error: %v", err)
 				}
-			} else {
-				if err != nil {
-					t.Errorf("Unexpected error: %v", err)
-				}
-				if story == nil {
-					t.Error("Expected story to be returned")
-				}
+				return
+			}
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			if story == nil {
+				t.Error("Expected story to be returned")
 			}
 		})
 	}
 }
 
-// Tests for GetStorySettingsByID
+// Tests for GetStorySettingsByID.
 func TestGetStorySettingsByID(t *testing.T) {
 	testCases := []struct {
 		name    string
@@ -154,7 +149,6 @@ func TestGetStorySettingsByID(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -166,7 +160,7 @@ func TestGetStorySettingsByID(t *testing.T) {
 	}
 }
 
-// Tests for GetStoryCountByUser
+// Tests for GetStoryCountByUser.
 func TestGetStoryCountByUser(t *testing.T) {
 	testCases := []struct {
 		name    string
@@ -181,7 +175,6 @@ func TestGetStoryCountByUser(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -201,7 +194,7 @@ func TestGetStoryCountByUser(t *testing.T) {
 	}
 }
 
-// Tests for WriteBlocks and ResetBlockOrder
+// Tests for WriteBlocks and ResetBlockOrder.
 func TestResetBlockOrder(t *testing.T) {
 	testCases := []struct {
 		name        string
@@ -223,12 +216,11 @@ func TestResetBlockOrder(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
 			// Mock the ResetBlockOrder function since it requires DynamoDB Query operations
-			mockDao.MockResetBlockOrder = func(storyID string, blocksOrder *models.BlocksOrder) error {
+			mockDao.MockResetBlockOrder = func(_ string, _ *models.BlocksOrder) error {
 				if tc.wantErr {
 					return errors.New("mock error")
 				}
@@ -250,7 +242,7 @@ func TestResetBlockOrder(t *testing.T) {
 	}
 }
 
-// Benchmark tests
+// Benchmark tests.
 func BenchmarkCreateStory(b *testing.B) {
 	mockDao := NewMockDAO()
 	story := models.Story{
@@ -259,7 +251,7 @@ func BenchmarkCreateStory(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_, _ = mockDao.CreateStory(context.Background(), "bench@example.com", story, "")
 	}
 }
@@ -268,12 +260,12 @@ func BenchmarkGetAllStories(b *testing.B) {
 	mockDao := NewMockDAO()
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_, _ = mockDao.GetAllStories(context.Background(), "bench@example.com")
 	}
 }
 
-// Tests for UpdateStorySettings
+// Tests for UpdateStorySettings.
 func TestUpdateStorySettings(t *testing.T) {
 	testCases := []struct {
 		name     string
@@ -330,7 +322,6 @@ func TestUpdateStorySettings(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -365,7 +356,7 @@ func TestUpdateStorySettings(t *testing.T) {
 	}
 }
 
-// Tests for CreateStory
+// Tests for CreateStory.
 func TestCreateStory(t *testing.T) {
 	testCases := []struct {
 		name           string
@@ -439,7 +430,6 @@ func TestCreateStory(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -477,15 +467,15 @@ func TestCreateStory(t *testing.T) {
 	}
 }
 
-// Tests for EditStory
+// Tests for EditStory.
 func TestEditStory(t *testing.T) {
 	testCases := []struct {
-		name          string
-		email         string
-		story         models.Story
-		mockStory     models.Story
-		mockErr       error
-		wantErr       bool
+		name      string
+		email     string
+		story     models.Story
+		mockStory models.Story
+		mockErr   error
+		wantErr   bool
 	}{
 		{
 			name:  "SuccessfulEdit_BasicFields",
@@ -543,7 +533,6 @@ func TestEditStory(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -578,7 +567,7 @@ func TestEditStory(t *testing.T) {
 	}
 }
 
-// Tests for WriteBlocks
+// Tests for WriteBlocks.
 func TestWriteBlocks(t *testing.T) {
 	testCases := []struct {
 		name        string
@@ -658,7 +647,6 @@ func TestWriteBlocks(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			mockDao := NewMockDAO()
 
@@ -690,9 +678,9 @@ func TestWriteBlocks(t *testing.T) {
 	}
 }
 
-// Helper to create a valid Lexical paragraph chunk JSON for test blocks
+// Helper to create a valid Lexical paragraph chunk JSON for test blocks.
 func makeChunk(text string) json.RawMessage {
-	chunk := map[string]interface{}{
+	chunk := map[string]any{
 		"type":       "custom-paragraph",
 		"version":    1,
 		"direction":  "ltr",
@@ -701,7 +689,7 @@ func makeChunk(text string) json.RawMessage {
 		"textFormat": 0,
 		"textStyle":  "",
 		"key_id":     "test",
-		"children": []map[string]interface{}{
+		"children": []map[string]any{
 			{
 				"type":    "text",
 				"version": 1,
@@ -717,8 +705,12 @@ func makeChunk(text string) json.RawMessage {
 	return data
 }
 
-// Helper to create a DynamoDB item representing an existing block
-func makeExistingItem(compositeKey, storyID, chapterID, keyID string, place int64, text string) map[string]types.AttributeValue {
+// Helper to create a DynamoDB item representing an existing block.
+func makeExistingItem(
+	compositeKey, storyID, chapterID, keyID string,
+	place int64,
+	text string,
+) map[string]types.AttributeValue {
 	return map[string]types.AttributeValue{
 		"composite_key": &types.AttributeValueMemberS{Value: compositeKey},
 		"story_id":      &types.AttributeValueMemberS{Value: storyID},
@@ -949,10 +941,10 @@ func buildWriteBlocksTransactions(
 			})
 		}
 	}
-	return
+	return deleteItems, putItems, err
 }
 
-// verifyPlaces checks that all put items have correct place values
+// verifyPlaces checks that all put items have correct place values.
 func verifyPlaces(t *testing.T, putItems []types.TransactWriteItem, expected map[string]int64) {
 	t.Helper()
 	finalPlaces := make(map[string]int64)
@@ -974,7 +966,7 @@ func verifyPlaces(t *testing.T, putItems []types.TransactWriteItem, expected map
 	}
 }
 
-// Test reversing all block positions (the original cross-batch bug scenario)
+// Test reversing all block positions (the original cross-batch bug scenario).
 func TestWriteBlocksTransactions_ReversedOrder(t *testing.T) {
 	compositeKey := "story1#chapter1"
 	existing := []map[string]types.AttributeValue{
@@ -1007,7 +999,7 @@ func TestWriteBlocksTransactions_ReversedOrder(t *testing.T) {
 	verifyPlaces(t, putItems, map[string]int64{"k4": 0, "k3": 1, "k2": 2, "k1": 3})
 }
 
-// Test inserting new paragraphs between existing ones
+// Test inserting new paragraphs between existing ones.
 func TestWriteBlocksTransactions_MixedNewAndExisting(t *testing.T) {
 	compositeKey := "story1#chapter1"
 	existing := []map[string]types.AttributeValue{
@@ -1039,7 +1031,7 @@ func TestWriteBlocksTransactions_MixedNewAndExisting(t *testing.T) {
 	verifyPlaces(t, putItems, map[string]int64{"k1": 0, "new-a": 1, "k2": 2, "new-b": 3})
 }
 
-// Test that all new blocks get correct places
+// Test that all new blocks get correct places.
 func TestWriteBlocksTransactions_AllNew(t *testing.T) {
 	blocks := []models.StoryBlock{
 		{KeyID: "k1", Chunk: makeChunk("first"), Place: "0"},
@@ -1058,7 +1050,7 @@ func TestWriteBlocksTransactions_AllNew(t *testing.T) {
 	verifyPlaces(t, putItems, map[string]int64{"k1": 0, "k2": 1, "k3": 2})
 }
 
-// Test blocks that don't change position
+// Test blocks that don't change position.
 func TestWriteBlocksTransactions_NoMovement(t *testing.T) {
 	compositeKey := "s#c"
 	existing := []map[string]types.AttributeValue{
