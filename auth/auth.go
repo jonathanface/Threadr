@@ -170,7 +170,7 @@ func safeMobileRedirect(dest string) (string, bool) {
 		// minithreadr:// URLs use the host as the path identifier
 		// Only allow "auth" as the host (e.g., minithreadr://auth or minithreadr://auth/callback)
 		if strings.ToLower(u.Host) == "auth" {
-			return dest, true
+			return u.String(), true
 		}
 		return "", false
 
@@ -179,7 +179,7 @@ func safeMobileRedirect(dest string) (string, bool) {
 		// Only allow localhost and private IP ranges
 		host := u.Hostname()
 		if isLocalOrPrivateHost(host) {
-			return dest, true
+			return u.String(), true
 		}
 		return "", false
 
@@ -381,6 +381,7 @@ func callbackWithOptions(w http.ResponseWriter, r *http.Request, options OauthOp
 	logger.Info("=== FINAL REDIRECT ===", "redirectTo", next, "email", info.Email)
 
 	next = appendStatusQueryParams(next, isNewUser, isReturningUser)
+	next = resolveRedirectTarget(next, frontend, "final", allowedOrigins)
 
 	if strings.HasPrefix(next, "minithreadr://") || strings.HasPrefix(next, "exp://") {
 		separator := "&"
