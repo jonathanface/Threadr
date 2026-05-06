@@ -2,7 +2,7 @@
 
 Novel-writing rich text web app with the goal of having interactive, highlighted text elements such as characters, settings, events, etc.
 
-GoLang backend, React Frontend, DraftJS
+GoLang backend, React Frontend, Lexical
 
 Built using Visual Studio Code, and includes some "on-save" actions to auto-compile webpack.
 
