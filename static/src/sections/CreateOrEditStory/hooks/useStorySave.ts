@@ -10,6 +10,7 @@ import { AlertToastType } from "../../../types/AlertToasts";
 import { Story } from "../../../types/Story";
 import { Series } from "../../../types/Series";
 import { buildStoryFormData } from "../utils/formDataBuilder";
+import { usePostHog } from "@posthog/react";
 
 interface AvailableSeries {
   series_id?: string;
@@ -28,6 +29,7 @@ interface SaveStoryParams {
 }
 
 export const useStorySave = () => {
+  const posthog = usePostHog();
   const { showLoader, hideLoader } = useLoader();
   const { setAlertState } = useToaster();
   const { seriesList, setSeriesList, storiesList, setStoriesList } = useWorksList();
@@ -164,6 +166,7 @@ export const useStorySave = () => {
                 headers: { "Content-Type": "multipart/form-data" },
               }
             );
+            posthog?.capture("document_imported", { story_id: savedStory.story_id });
           } catch (importError) {
             if (axios.isAxiosError(importError)) {
               console.error("Document import failed:", importError.response?.data);
@@ -183,6 +186,12 @@ export const useStorySave = () => {
           savedStory,
           (formData.series_name || formData.series_title) as string | undefined
         );
+
+        if (isEdit) {
+          posthog?.capture("story_updated", { story_id: savedStory.story_id, title: savedStory.title, has_series: Boolean(savedStory.series_id) });
+        } else {
+          posthog?.capture("story_created", { story_id: savedStory.story_id, title: savedStory.title, has_series: Boolean(savedStory.series_id), has_import: Boolean(importFile) });
+        }
 
         setAlertState({
           title: isEdit
@@ -220,6 +229,7 @@ export const useStorySave = () => {
       }
     },
     [
+      posthog,
       showLoader,
       hideLoader,
       setAlertState,

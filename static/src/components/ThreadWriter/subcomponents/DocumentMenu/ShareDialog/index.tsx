@@ -23,6 +23,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "../../../../../api";
 import { useSelections } from "../../../../../hooks/useSelections";
 import { ShareLink } from "../../../../../types/Sharing";
+import { usePostHog } from "@posthog/react";
 
 interface ShareDialogProps {
   open: boolean;
@@ -30,6 +31,7 @@ interface ShareDialogProps {
 }
 
 export const ShareDialog = ({ open, setOpen }: ShareDialogProps) => {
+  const posthog = usePostHog();
   const { story } = useSelections();
   const [shareLinks, setShareLinks] = useState<ShareLink[]>([]);
   const [loading, setLoading] = useState(false);
@@ -83,6 +85,7 @@ export const ShareDialog = ({ open, setOpen }: ShareDialogProps) => {
         comments_enabled: commentsEnabled,
         expires_at: 0,
       });
+      posthog?.capture("story_shared", { story_id: story.story_id, comments_enabled: commentsEnabled });
       const invitedName = `${readerFirstName} ${readerLastName}`;
       setSuccessMessage(
         `${invitedName} has been invited and will receive an email with their link. You can also copy the link next to their name and send it to them yourself.`,
@@ -107,6 +110,7 @@ export const ShareDialog = ({ open, setOpen }: ShareDialogProps) => {
   const handleRemove = async (token: string) => {
     try {
       await api.put(`/share-links/${token}/revoke`);
+      posthog?.capture("share_link_revoked", { story_id: story?.story_id });
       fetchLinks();
     } catch (err) {
       console.error("Failed to remove reader:", err);

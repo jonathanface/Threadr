@@ -3,6 +3,7 @@ import { UserContext } from "../contexts/user";
 import { useLoader } from "../hooks/useLoader";
 import { UserDetails } from "../types/User";
 import { api } from "../api";
+import posthog from "posthog-js";
 
 export const UserProvider: React.FC<{ children: ReactNode }> = ({
   children,
@@ -50,9 +51,24 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
     const loadData = async () => {
       try {
         showLoader();
+        const urlParams = new URLSearchParams(window.location.search);
+        const isNewUserCallback = urlParams.get("new_user") === "true";
+        const isReturningUserCallback = urlParams.get("returning_user") === "true";
+
         const user = await fetchUserData();
         setIsLoggedIn(true);
         setUserDetails(user);
+        posthog.identify(user.email, {
+          email: user.email,
+          name: `${user.first_name} ${user.last_name}`,
+          is_subscriber: user.subscriber,
+          auth_type: user.auth_type,
+        });
+        if (isNewUserCallback) {
+          posthog.capture("user_signed_up", { auth_type: user.auth_type });
+        } else if (isReturningUserCallback) {
+          posthog.capture("user_logged_in", { auth_type: user.auth_type });
+        }
       } catch (error) {
         console.error(`Error retrieving user: ${error}`);
         setIsLoggedIn(false);

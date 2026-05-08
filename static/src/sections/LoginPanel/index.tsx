@@ -1,10 +1,12 @@
 import axios from "axios";
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { usePostHog } from "@posthog/react";
 import styles from "./loginpanel.module.css";
 
 export const LoginPanel = () => {
   const navigate = useNavigate();
+  const posthog = usePostHog();
   const [searchParams] = useSearchParams();
   const search = window.location.search;
 
@@ -35,6 +37,7 @@ export const LoginPanel = () => {
     setLoading(true);
     try {
       await axios.post("/auth/email/login", { email, password }, { withCredentials: true });
+      posthog?.capture("user_logged_in", { auth_type: "email" });
       window.location.href = "/stories";
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data) {

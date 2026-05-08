@@ -15,6 +15,22 @@ import { AuthRunner } from "./components/AuthRunner";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { useMemo, useState, useEffect } from "react";
 import { initFaviconSpinner } from "./utils/faviconSpinner";
+import posthog from "posthog-js";
+import { PostHogErrorBoundary, PostHogProvider } from "@posthog/react";
+
+const posthogToken = import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN;
+const posthogHost = import.meta.env.VITE_PUBLIC_POSTHOG_HOST;
+const isProductionDeploy = import.meta.env.VITE_MODE === "production";
+if (isProductionDeploy && posthogToken && posthogHost) {
+  posthog.init(posthogToken, {
+    api_host: posthogHost,
+    defaults: "2026-01-30",
+  });
+} else if (!isProductionDeploy) {
+  console.info("PostHog disabled outside production deploys");
+} else {
+  console.warn("PostHog token/host missing — analytics disabled");
+}
 
 initFaviconSpinner();
 
@@ -76,27 +92,31 @@ const AppWithTheme = () => {
   const theme = useMemo(() => (isDark ? darkTheme : lightTheme), [isDark]);
 
   return (
-    <ThemeProvider theme={theme}>
-      <ErrorBoundary>
-        <BrowserRouter>
-          <LoaderProvider>
-            <AlertProvider>
-              <UserProvider>
-                <NotificationsProvider>
-                  <SelectionsProvider>
-                    <WorksListProvider>
-                      <Toaster />
-                      <Loader />
-                      <Threadr />
-                    </WorksListProvider>
-                  </SelectionsProvider>
-                </NotificationsProvider>
-              </UserProvider>
-            </AlertProvider>
-          </LoaderProvider>
-        </BrowserRouter>
-      </ErrorBoundary>
-    </ThemeProvider>
+    <PostHogProvider client={posthog}>
+      <PostHogErrorBoundary>
+        <ThemeProvider theme={theme}>
+          <ErrorBoundary>
+            <BrowserRouter>
+              <LoaderProvider>
+                <AlertProvider>
+                  <UserProvider>
+                    <NotificationsProvider>
+                      <SelectionsProvider>
+                        <WorksListProvider>
+                          <Toaster />
+                          <Loader />
+                          <Threadr />
+                        </WorksListProvider>
+                      </SelectionsProvider>
+                    </NotificationsProvider>
+                  </UserProvider>
+                </AlertProvider>
+              </LoaderProvider>
+            </BrowserRouter>
+          </ErrorBoundary>
+        </ThemeProvider>
+      </PostHogErrorBoundary>
+    </PostHogProvider>
   );
 };
 

@@ -45,12 +45,18 @@ jobs:
 
     steps:
       - name: Load VITE vars (staging/prod aware)
+        env:
+          POSTHOG_PROJECT_TOKEN_SECRET: ${{ secrets.POSTHOG_PROJECT_TOKEN }}
+          POSTHOG_HOST_SECRET: ${{ secrets.POSTHOG_HOST }}
         run: |
           STRIPE_KEY_VALUE="${{ github.base_ref == 'production' && secrets.STRIPE_PUB_KEY_PROD || secrets.STRIPE_PUB_KEY_STAGE }}"
           echo "::add-mask::$STRIPE_KEY_VALUE"
+          echo "::add-mask::$POSTHOG_PROJECT_TOKEN_SECRET"
           echo "APP_VERSION=${GITHUB_SHA}" >> "$GITHUB_ENV"
           echo "MODE=${{ github.base_ref }}"   >> "$GITHUB_ENV"
           echo "STRIPE_KEY=$STRIPE_KEY_VALUE" >> "$GITHUB_ENV"
+          echo "POSTHOG_PROJECT_TOKEN=$POSTHOG_PROJECT_TOKEN_SECRET" >> "$GITHUB_ENV"
+          echo "POSTHOG_HOST=$POSTHOG_HOST_SECRET" >> "$GITHUB_ENV"
 
           # Cognito is only used for staging
           if [ "${{ github.base_ref }}" == "staging" ]; then
@@ -106,7 +112,9 @@ jobs:
             --build-arg COGNITO_CLIENT_ID=${{ env.COGNITO_CLIENT_ID }} \
             --build-arg COGNITO_REDIRECT_URI=${{ env.COGNITO_REDIRECT_URI }} \
             --build-arg COGNITO_DOMAIN=${{ env.COGNITO_DOMAIN }} \
-            --build-arg COGNITO_LOGOUT_URI=${{ env.COGNITO_LOGOUT_URI }}
+            --build-arg COGNITO_LOGOUT_URI=${{ env.COGNITO_LOGOUT_URI }} \
+            --build-arg POSTHOG_PROJECT_TOKEN=${{ env.POSTHOG_PROJECT_TOKEN }} \
+            --build-arg POSTHOG_HOST=${{ env.POSTHOG_HOST }}
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
           echo "$ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}" > image.txt
 

@@ -18,9 +18,16 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import CloseIcon from "@mui/icons-material/Close";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import { useEffect } from "react";
+import { usePostHog } from "@posthog/react";
 
 export const SubscribePage = () => {
   const nav = useNavigate();
+  const posthog = usePostHog();
+
+  useEffect(() => {
+    posthog?.capture("subscribe_page_viewed");
+  }, [posthog]);
 
   return (
     <Box
@@ -160,7 +167,7 @@ export const SubscribePage = () => {
               variant="contained"
               color="primary"
               endIcon={<ArrowForwardIosIcon fontSize="small" />}
-              onClick={() => nav("/checkout")}
+              onClick={() => { posthog?.capture("checkout_started", { plan: "$10/month" }); nav("/checkout"); }}
               sx={(t) => ({
                 width: { xs: '100%', sm: 'auto' },
                 py: { xs: 1.5, sm: 1 },

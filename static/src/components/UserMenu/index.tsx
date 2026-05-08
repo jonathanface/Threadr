@@ -9,6 +9,7 @@ import { useFetchUserData } from "../../hooks/useFetchUserData";
 import { api } from "../../api";
 import axios from "axios";
 import { useSelections } from "../../hooks/useSelections";
+import { usePostHog } from "@posthog/react";
 
 export const UserMenu = () => {
   const userData = useContext(UserContext);
@@ -17,6 +18,7 @@ export const UserMenu = () => {
   const { setStory } = useSelections();
   const navigate = useNavigate();
 
+  const posthog = usePostHog();
   const [isOpen, setIsOpen] = useState(false);
 
   const signout = async () => {
@@ -24,6 +26,8 @@ export const UserMenu = () => {
     try {
       await api.delete("/auth/logout", { baseURL: "" });
 
+      posthog?.capture("user_logged_out");
+      posthog?.reset();
       setIsLoggedIn(false);
       navigate("/");
     } catch (error) {
