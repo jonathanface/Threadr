@@ -21,9 +21,11 @@ import { api } from "../../../api";
 import { SubscriptionSummary } from "../../../types/billing";
 import { useFetchUserData } from "../../../hooks/useFetchUserData";
 import { useSelections } from "../../../hooks/useSelections";
+import { usePostHog } from "@posthog/react";
 
 export const AccountSubscriptionPage = () => {
   const navigate = useNavigate();
+  const posthog = usePostHog();
   const { setIsLoggedIn } = useFetchUserData();
   const { setStory } = useSelections();
   const [data, setData] = useState<SubscriptionSummary | null>(null);
@@ -111,6 +113,8 @@ export const AccountSubscriptionPage = () => {
     try {
       await api.delete("/user");
 
+      posthog?.capture("account_deleted");
+      posthog?.reset();
       // Account deleted successfully - sign out
       setDeleteDialogOpen(false);
       setIsLoggedIn(false);

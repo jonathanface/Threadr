@@ -7,12 +7,18 @@ import {
   Container,
   Typography,
 } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../../../api";
+import { usePostHog } from "@posthog/react";
 
 export const SuccessPage = () => {
+  const posthog = usePostHog();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    posthog?.capture("checkout_completed", { plan: "$10/month" });
+  }, [posthog]);
 
   const openPortal = async () => {
     setLoading(true);

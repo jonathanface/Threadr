@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import axios from "axios";
+import { usePostHog } from "@posthog/react";
 import styles from "../LoginPanel/loginpanel.module.css";
 
 export const VerifyEmailPage = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
+  const posthog = usePostHog();
   const [status, setStatus] = useState<"loading" | "success" | "error">(token ? "loading" : "error");
   const [message, setMessage] = useState(token ? "" : "Missing verification token.");
 
@@ -23,11 +25,13 @@ export const VerifyEmailPage = () => {
           maxRedirects: 0,
           validateStatus: (s) => s >= 200 && s < 400,
         });
+        posthog?.capture("user_email_verified");
         setStatus("success");
         setMessage("Email verified successfully!");
       } catch (err: unknown) {
         if (axios.isAxiosError(err) && err.response?.status === 302) {
           // Redirect means success
+          posthog?.capture("user_email_verified");
           setStatus("success");
           setMessage("Email verified successfully!");
         } else if (axios.isAxiosError(err) && err.response?.data?.error) {
@@ -41,7 +45,7 @@ export const VerifyEmailPage = () => {
     };
 
     verify();
-  }, [token]);
+  }, [token, posthog]);
 
   return (
     <div className={styles.loginPanel}>
