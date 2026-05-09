@@ -430,11 +430,12 @@ export const ToolbarDemo = ({ chapterName, onSaveClick, onBackClick }: ToolbarDe
             textTransform: "none",
             borderRadius: "8px",
             whiteSpace: "nowrap",
-            color: "var(--text-primary)",
-            borderColor: "var(--border-medium)",
+            color: "#fafaf9",
+            backgroundColor: "transparent",
+            borderColor: "rgba(255, 255, 255, 0.3)",
             "&:hover": {
-              borderColor: "var(--text-primary)",
-              backgroundColor: "color-mix(in srgb, var(--text-primary) 6%, transparent)",
+              borderColor: "#fafaf9",
+              backgroundColor: "rgba(255, 255, 255, 0.08)",
             },
             "& .MuiButton-startIcon": {
               mr: 1,

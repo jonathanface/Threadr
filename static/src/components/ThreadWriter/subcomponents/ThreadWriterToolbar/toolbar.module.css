@@ -41,19 +41,18 @@
 }
 
 /* MUI Buttons (Save / Back / etc.) opt out of the square 40x40 sizing above
-   so their labels and padding render at MUI's native dimensions. */
+   so their labels and padding render at MUI's native dimensions. The earlier
+   `revert` versions of border/background/box-shadow fell through to UA
+   defaults (e.g. ButtonFace grey) instead of letting MUI's variant styles
+   take over — leave those properties to MUI + sx instead. */
 .toolbar :global(button.MuiButton-root) {
     width: auto;
     height: auto;
     padding: 8px 22px;
     font-size: 1rem;
-    border: revert;
-    background: revert;
-    box-shadow: revert;
 }
 .toolbar :global(button.MuiButton-root):hover {
     transform: none;
-    box-shadow: revert;
 }
 
 .toolbar button:hover {
