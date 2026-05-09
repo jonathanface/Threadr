@@ -5,7 +5,9 @@ import { SplashPage } from "./sections/SplashPage";
 import { StoryAndSeriesListing } from "./sections/StoryAndSeriesListing";
 import { useFetchUserData } from "./hooks/useFetchUserData";
 import { HeaderMenu } from "./components/HeaderMenu";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { DEMO_PENDING_CONVERSION_KEY } from "./sections/Demo/storage";
 import { LoginPanel } from "./sections/LoginPanel";
 import { EditSeries } from "./sections/EditSeries";
 
@@ -24,9 +26,20 @@ import { VerifyEmailPage } from "./sections/VerifyEmail";
 import { ForgotPasswordPage } from "./sections/ForgotPassword";
 import { ResetPasswordPage } from "./sections/ResetPassword";
 import { LinkAccountPage } from "./sections/LinkAccount";
+import { DemoPage } from "./sections/Demo";
+import { ImportDraftPage } from "./sections/Demo/ImportDraftPage";
 
 export const Threadr = () => {
   const { isLoggedIn, userLoading } = useFetchUserData();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!isLoggedIn || userLoading) return;
+    if (localStorage.getItem(DEMO_PENDING_CONVERSION_KEY) !== "true") return;
+    if (location.pathname === "/import-draft") return;
+    navigate("/import-draft", { replace: true });
+  }, [isLoggedIn, userLoading, location.pathname, navigate]);
 
   if (userLoading) {
     return <div />;
@@ -34,7 +47,7 @@ export const Threadr = () => {
 
   return (
     <div className="App">
-      <HeaderMenu />
+      {location.pathname !== "/try" && <HeaderMenu />}
       <MobileAppBanner />
       <main>
         <Routes>
@@ -135,6 +148,14 @@ export const Threadr = () => {
           />
           {/* Shared reader (no auth required) */}
           <Route path="/shared/:token" element={<SharedReaderPage />} />
+          {/* Demo writer (no auth required) */}
+          <Route path="/try" element={<DemoPage />} />
+          <Route
+            path="/import-draft"
+            element={
+              isLoggedIn ? <ImportDraftPage /> : <Navigate to="/signup?from=demo" replace />
+            }
+          />
           {/* Catch-all 404 */}
           <Route path="*" element={<NotFoundPage isLoggedIn={isLoggedIn} />} />
         </Routes>

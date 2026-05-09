@@ -397,7 +397,7 @@ export const Toolbar = () => {
               fontFamily: selFontFamily || undefined,
               color: "var(--text-primary)",
               ".MuiOutlinedInput-notchedOutline": {
-                borderColor: "rgba(255,255,255,0.3)",
+                borderColor: "var(--border-medium)",
               },
               ".MuiSvgIcon-root": { color: "var(--text-primary)" },
             }}
@@ -430,7 +430,7 @@ export const Toolbar = () => {
               minWidth: { xs: 80, sm: 100 },
               color: "var(--text-primary)",
               ".MuiOutlinedInput-notchedOutline": {
-                borderColor: "rgba(255,255,255,0.3)",
+                borderColor: "var(--border-medium)",
               },
               ".MuiSvgIcon-root": { color: "var(--text-primary)" },
             }}
@@ -469,7 +469,7 @@ export const Toolbar = () => {
               minWidth: { xs: 110, sm: 140 },
               color: "var(--text-primary)",
               ".MuiOutlinedInput-notchedOutline": {
-                borderColor: "rgba(255,255,255,0.3)",
+                borderColor: "var(--border-medium)",
               },
               ".MuiSvgIcon-root": { color: "var(--text-primary)" },
             }}

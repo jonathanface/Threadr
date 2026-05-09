@@ -55,6 +55,8 @@ func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.OauthOptio
 	authRtr.HandleFunc("/email/login", auth.EmailLoginHandler(authOptions)).Methods("POST", "OPTIONS")
 	authRtr.HandleFunc("/email/verify", auth.EmailVerifyHandler(authOptions)).Methods("GET", "OPTIONS")
 	authRtr.HandleFunc("/email/request-reset", auth.PasswordResetRequestHandler(authOptions)).Methods("POST", "OPTIONS")
+	authRtr.HandleFunc("/email/resend-verification", auth.ResendVerificationHandler(authOptions)).
+		Methods("POST", "OPTIONS")
 	authRtr.HandleFunc("/email/reset-password", auth.PasswordResetHandler()).Methods("POST", "OPTIONS")
 	authRtr.HandleFunc("/email/link-oauth", auth.LinkOAuthAccountHandler()).Methods("POST", "OPTIONS")
 	authRtr.HandleFunc("/{provider}", auth.LoginHandler(authOptions)).Methods("GET", "PUT", "OPTIONS")

@@ -14,6 +14,9 @@ export const LoginPanel = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showResend, setShowResend] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState("");
 
   const verified = searchParams.get("verified") === "true";
   const reset = searchParams.get("reset") === "true";
@@ -29,6 +32,8 @@ export const LoginPanel = () => {
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setShowResend(false);
+    setResendMessage("");
     if (!email || !password) {
       setError("Email and password are required");
       return;
@@ -46,6 +51,7 @@ export const LoginPanel = () => {
           setError(`This account uses ${data.auth_type} sign-in. Please use the ${data.auth_type} button above.`);
         } else if (data.error === "email_not_verified") {
           setError("Please verify your email before signing in. Check your inbox for the verification link.");
+          setShowResend(true);
         } else {
           setError(data.error || data.message || "Invalid email or password");
         }
@@ -54,6 +60,31 @@ export const LoginPanel = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setResending(true);
+    setResendMessage("");
+    try {
+      const res = await axios.post(
+        "/auth/email/resend-verification",
+        { email },
+        { withCredentials: true },
+      );
+      setResendMessage(
+        res.data?.message ||
+          "If that email needs verification, a new link has been sent.",
+      );
+      setShowResend(false);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.status === 429) {
+        setResendMessage("Please wait a moment before requesting another email.");
+      } else {
+        setResendMessage("Couldn't send the verification email. Please try again later.");
+      }
+    } finally {
+      setResending(false);
     }
   };
 
@@ -106,6 +137,27 @@ export const LoginPanel = () => {
 
       <form className={styles.emailForm} onSubmit={handleEmailLogin}>
         {error && <p className={styles.errorMessage}>{error}</p>}
+        {showResend && (
+          <button
+            type="button"
+            className={styles.link}
+            onClick={handleResendVerification}
+            disabled={resending}
+            style={{
+              background: "none",
+              border: "none",
+              padding: 0,
+              cursor: resending ? "default" : "pointer",
+              textAlign: "left",
+              marginBottom: "0.5rem",
+            }}
+          >
+            {resending ? "Sending..." : "Resend verification email"}
+          </button>
+        )}
+        {resendMessage && (
+          <p className={styles.successMessage}>{resendMessage}</p>
+        )}
         <input
           type="email"
           placeholder="Email"

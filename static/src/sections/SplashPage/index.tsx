@@ -1,17 +1,60 @@
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ThreadWriterDemo } from "../../components/demoComponents/ThreadWriterDemo";
 import { IntroAnimation } from "./IntroAnimation";
 import styles from "./splash.module.css";
 export const SplashPage = () => {
   const navigate = useNavigate();
+  const heroRef = useRef<HTMLDivElement | null>(null);
+  const [showStickyCTA, setShowStickyCTA] = useState(false);
 
-  const showLoginPanel = () => {
-    navigate("/signin");
+  const goToDemo = () => {
+    window.scrollTo(0, 0);
+    if (document.documentElement) document.documentElement.scrollTop = 0;
+    if (document.body) document.body.scrollTop = 0;
+    navigate("/try");
   };
+
+  useEffect(() => {
+    const heroEl = heroRef.current;
+    if (!heroEl) return;
+
+    if (typeof IntersectionObserver === "undefined") {
+      // Fallback: simple scroll listener
+      const onScroll = () => {
+        const rect = heroEl.getBoundingClientRect();
+        setShowStickyCTA(rect.bottom < 0);
+      };
+      window.addEventListener("scroll", onScroll, { passive: true });
+      onScroll();
+      return () => window.removeEventListener("scroll", onScroll);
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // When the hero is no longer intersecting (scrolled past), show sticky CTA
+        setShowStickyCTA(!entry.isIntersecting && entry.boundingClientRect.top < 0);
+      },
+      { threshold: 0, rootMargin: "0px 0px -100% 0px" }
+    );
+    observer.observe(heroEl);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div className={styles.splash}>
-      <div className={styles.heroSection}>
+      <button
+        type="button"
+        onClick={goToDemo}
+        className={`${styles.stickyCTA} ${showStickyCTA ? styles.stickyCTAVisible : ""}`}
+        aria-hidden={!showStickyCTA}
+        tabIndex={showStickyCTA ? 0 : -1}
+      >
+        Try Now
+        <span className={styles.stickyCTAArrow} aria-hidden="true">→</span>
+      </button>
+
+      <div className={styles.heroSection} ref={heroRef}>
         <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>
             Your Characters Remember Everything.{" "}
@@ -25,13 +68,17 @@ export const SplashPage = () => {
           <div className={styles.heroCTA}>
             <button
               type="button"
-              onClick={showLoginPanel}
-              className={styles.primaryCTA}
+              onClick={goToDemo}
+              className={`${styles.primaryCTA} ${styles.primaryCTAHero}`}
             >
-              Start Writing Free
+              <span>Try Now — No Signup Required</span>
+              <span className={styles.ctaArrow} aria-hidden="true">→</span>
             </button>
+            <p className={styles.ctaReassurance}>
+              Your draft saves in your browser — sign up later to keep it forever.
+            </p>
             <p className={styles.ctaSubtext}>
-              Free forever with unlimited stories • Pro unlocks everything for $10/mo
+              Works in your browser. Saves locally. Sign up only when you're ready to keep it.
             </p>
           </div>
         </div>
@@ -42,7 +89,6 @@ export const SplashPage = () => {
 
       <div className={styles.demoSection}>
         <h2 className={styles.sectionTitle}>See It in Action</h2>
-        <p className={styles.sectionSubtitle}>No signup required</p>
         <p className={styles.demoInstructions}>
           The highlighted words below are linked story elements. Click one to
           pull up its profile — then try editing the text yourself.
@@ -79,6 +125,15 @@ export const SplashPage = () => {
               No tabs, no searching, no breaking your flow.
             </p>
           </div>
+        </div>
+        <div className={styles.howItWorksFunnel}>
+          <button
+            type="button"
+            onClick={goToDemo}
+            className={styles.softLink}
+          >
+            <span aria-hidden="true">→</span> Try the editor with a sample story
+          </button>
         </div>
       </div>
 
@@ -117,37 +172,6 @@ export const SplashPage = () => {
         </div>
       </div>
 
-      <div className={styles.howItWorks}>
-        <div className={styles.blurb}>
-          <span className={styles.column + " " + styles.leftText}>
-            <h2>What Was Her Eye Color in Chapter Three?</h2>
-            <p>
-              Every writer knows the feeling — you're 200 pages in and you can't
-              remember if the tavern was on Birch Street or Elm, or whether the
-              detective's partner was named Torres or Torrez.
-            </p>
-            <p>
-              Threadr solves this by turning your manuscript into a connected
-              document. Link a character's name once, and their full profile —
-              appearance, motivations, history — is one click away from every
-              mention in every chapter.
-            </p>
-            <p>
-              No more searching through old chapters. No more separate wikis.
-              Your story's world lives inside your story.
-            </p>
-          </span>
-          <span className={styles.column}>
-            <figure>
-              <img
-                src="./img/writerdesk.jpg"
-                alt="Writer at desk with notes and manuscript"
-              />
-            </figure>
-          </span>
-        </div>
-      </div>
-
       <div className={styles.faqSection}>
         <h2 className={styles.sectionTitle}>Common Questions</h2>
         <div className={styles.faqGrid}>
@@ -183,19 +207,20 @@ export const SplashPage = () => {
       </div>
 
       <div className={styles.finalCTA}>
-        <h2>Your Next Chapter Is Waiting</h2>
+        <h2>Take It for a Spin</h2>
         <p>
           Start writing with the editor that remembers your world so you don't have to.
         </p>
         <button
           type="button"
-          onClick={showLoginPanel}
-          className={styles.primaryCTA}
+          onClick={goToDemo}
+          className={`${styles.primaryCTA} ${styles.primaryCTAHero}`}
         >
-          Start Writing Free
+          <span>Try Now — No Signup Required</span>
+          <span className={styles.ctaArrow} aria-hidden="true">→</span>
         </button>
         <p className={styles.ctaSubtext}>
-          No credit card required • Free forever
+          Takes about 2 minutes. No account needed to start.
         </p>
       </div>
     </div>

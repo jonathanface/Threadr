@@ -1,6 +1,7 @@
 import axios from "axios";
 import { Tooltip } from "@mui/material";
 import { useLocation } from "react-router-dom";
+import { useFetchUserData } from "../../hooks/useFetchUserData";
 import { useLoader } from "../../hooks/useLoader";
 import { useSelections } from "../../hooks/useSelections";
 import { useToaster } from "../../hooks/useToaster";
@@ -17,6 +18,7 @@ import styles from "./headermenu.module.css";
 export const HeaderMenu = () => {
   const location = useLocation();
   const isSharedReader = location.pathname.startsWith("/shared/");
+  const { isLoggedIn } = useFetchUserData();
 
   const {
     story,
@@ -183,7 +185,7 @@ export const HeaderMenu = () => {
       </span>
       <span className={styles.rightPane}>
         <ThemeToggle />
-        {!isSharedReader && <NotificationsBell />}
+        {!isSharedReader && isLoggedIn && <NotificationsBell />}
         {!isSharedReader && <UserMenu />}
       </span>
     </header>

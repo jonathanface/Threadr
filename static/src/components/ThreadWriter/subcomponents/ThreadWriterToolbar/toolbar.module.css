@@ -1,12 +1,16 @@
 /* Toolbar Styling */
 .toolbar {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     border-bottom: 1px solid var(--border-light);
     border-top: 1px solid var(--border-light);
     padding: 16px 20px;
     position: sticky;
-    top: 100px;
+    /* Default expects the 100px global HeaderMenu above; pages without it
+       (e.g. /try) override this via the --toolbar-sticky-top CSS variable
+       so the toolbar doesn't end up behind their own sticky chrome. */
+    top: var(--toolbar-sticky-top, 100px);
     left: 0;
     z-index: 10;
     background: var(--bg-toolbar);
@@ -34,6 +38,22 @@
     transition: all 0.2s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     color: var(--text-primary);
+}
+
+/* MUI Buttons (Save / Back / etc.) opt out of the square 40x40 sizing above
+   so their labels and padding render at MUI's native dimensions. */
+.toolbar :global(button.MuiButton-root) {
+    width: auto;
+    height: auto;
+    padding: 8px 22px;
+    font-size: 1rem;
+    border: revert;
+    background: revert;
+    box-shadow: revert;
+}
+.toolbar :global(button.MuiButton-root):hover {
+    transform: none;
+    box-shadow: revert;
 }
 
 .toolbar button:hover {
@@ -98,11 +118,23 @@
     height: 40px;
     background: rgba(255, 255, 255, 0.08);
     border-radius: 8px;
+    color: var(--text-primary);
 }
 
 .toolbar .typographySelect :global(.MuiSelect-select) {
     padding: 6px 32px 6px 10px;
     font-size: 0.85rem;
+}
+
+/* Light mode - typography selects need a higher-contrast surface against the
+   light toolbar background and dark borders/icons that read on it. */
+:global([data-theme="light"]) .toolbar .typographySelect {
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--text-primary);
+}
+
+:global([data-theme="light"]) .toolbar .typographySelect :global(.MuiSvgIcon-root) {
+    color: var(--text-primary);
 }
 
 @media only screen and (max-width: 600px) {

@@ -738,7 +738,7 @@ func sendNewUserNotificationEmail(userEmail string) error {
 	svc := sesv2.NewFromConfig(cfg)
 	logger.Debug("Created SES v2 client for notification email", "userEmail", userEmail)
 
-	emailBody := "A new user has signed up for docter: " + userEmail
+	emailBody := "A new user has signed up for threadr: " + userEmail
 
 	input := &sesv2.SendEmailInput{
 		FromEmailAddress: aws.String("no-reply@threadr.net"),
