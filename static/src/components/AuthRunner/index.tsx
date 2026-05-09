@@ -5,6 +5,15 @@ interface AuthRunnerProps {
   children?: ReactNode;
 }
 
+const PUBLIC_PATH_PREFIXES = ["/try", "/shared/"];
+
+const isPublicPath = (pathname: string | undefined): boolean => {
+  if (!pathname) return false;
+  return PUBLIC_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(prefix + "/"),
+  );
+};
+
 export const AuthRunner = ({ children }: AuthRunnerProps) => {
   const auth = useAuth();
 
@@ -15,6 +24,10 @@ export const AuthRunner = ({ children }: AuthRunnerProps) => {
     window.location.href = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(logoutUri)}`;
   };
 
+  if (isPublicPath(window.location.pathname)) {
+    return <>{children}</>;
+  }
+
   if (auth.isLoading) {
     return <div>Loading...</div>;
   }
@@ -24,9 +37,7 @@ export const AuthRunner = ({ children }: AuthRunnerProps) => {
   }
 
   if (auth.isAuthenticated) {
-    if (auth.isAuthenticated) {
-      return <>{children}</>;
-    }
+    return <>{children}</>;
   }
 
   return (

@@ -43,6 +43,12 @@ func PasswordResetRequestHandler(options OauthOptions) http.HandlerFunc {
 	}
 }
 
+func ResendVerificationHandler(options OauthOptions) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		resendVerification(w, r, options)
+	}
+}
+
 func PasswordResetHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		passwordReset(w, r)
@@ -407,6 +413,62 @@ func passwordResetRequest(w http.ResponseWriter, r *http.Request, options OauthO
 	}()
 
 	logger.Info("Password reset requested", "email", req.Email)
+	respondJSON(w, http.StatusOK, successMsg)
+}
+
+func resendVerification(w http.ResponseWriter, r *http.Request, options OauthOptions) {
+	dao, ok := r.Context().Value(ctxkey.DAO).(daos.DaoInterface)
+	if !ok {
+		respondJSON(
+			w,
+			http.StatusInternalServerError,
+			map[string]string{"error": errDAOFromContext},
+		)
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxAuthRequestBody)
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, http.StatusBadRequest, map[string]string{"error": errInvalidRequestBody})
+		return
+	}
+
+	// Always return success to prevent user enumeration.
+	successMsg := map[string]string{
+		"message": "If that email needs verification, a new link has been sent.",
+	}
+
+	if req.Email == "" {
+		respondJSON(w, http.StatusOK, successMsg)
+		return
+	}
+
+	user, err := dao.GetUserDetails(r.Context(), req.Email)
+	if err != nil || user == nil || user.AuthType != "email" || user.EmailVerified {
+		respondJSON(w, http.StatusOK, successMsg)
+		return
+	}
+
+	verifyToken := sessions.GenerateSessionToken()
+	tokenExpires := time.Now().Add(verificationTokenExpiry).Unix()
+
+	if err = dao.SetVerificationToken(r.Context(), req.Email, verifyToken, tokenExpires); err != nil {
+		logger.Error("Failed to set verification token on resend", "error", err, "email", req.Email)
+		respondJSON(w, http.StatusOK, successMsg)
+		return
+	}
+
+	go func() {
+		verifyURL := fmt.Sprintf("%s/verify-email?token=%s", options.FrontEndURL, verifyToken)
+		if emailErr := mailer.SendVerificationEmail(req.Email, verifyURL); emailErr != nil {
+			logger.Error("Failed to resend verification email", "error", emailErr, "email", req.Email)
+		}
+	}()
+
+	logger.Info("Verification email resent", "email", req.Email)
 	respondJSON(w, http.StatusOK, successMsg)
 }
 

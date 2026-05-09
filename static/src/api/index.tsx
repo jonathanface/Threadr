@@ -85,7 +85,10 @@ api.interceptors.response.use(
         path.startsWith("/verify-email") ||
         path.startsWith("/forgot-password") ||
         path.startsWith("/reset-password") ||
-        path.startsWith("/link-account");
+        path.startsWith("/link-account") ||
+        path === "/try" ||
+        path.startsWith("/try/") ||
+        path === "/import-draft";
 
       logger.warn("API 401 Unauthorized detected", {
         ...errorContext,
