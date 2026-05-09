@@ -178,9 +178,9 @@ export const TryWriter = ({
   const isProgrammaticChange = useRef(false);
   const pastedParagraphKeys = useRef(new Set<string>());
   const isInitialLoad = useRef(true);
-  const selectedAssociation = useRef<string | null>(null);
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sizeWarnedRef = useRef(false);
+  const [selectedAssociationID, setSelectedAssociationID] = useState<string | null>(null);
 
   const [storyBlocks] = useState<SerializedEditorState | null>(initialEditorState);
   const [contextMenuData, setContextMenuData] =
@@ -299,9 +299,9 @@ export const TryWriter = ({
 
   const handleDeleteAssociationClick = () => {
     setContextMenuData(defaultContextData);
-    if (selectedAssociation.current?.length) {
-      const idToDelete = selectedAssociation.current;
-      selectedAssociation.current = null;
+    if (selectedAssociationID && selectedAssociationID.length) {
+      const idToDelete = selectedAssociationID;
+      setSelectedAssociationID(null);
       setAssociations((prev) =>
         prev.filter((assoc) => assoc.association_id !== idToDelete),
       );
@@ -450,7 +450,7 @@ export const TryWriter = ({
 
   const handleAssociationLeftClick = (data: ClickData) => {
     if (!data.id) return;
-    selectedAssociation.current = data.id;
+    setSelectedAssociationID(data.id);
     setIsAssociationPanelOpen(true);
   };
 
@@ -458,7 +458,7 @@ export const TryWriter = ({
     if (!data.id) return;
     const rootElement = editorRef.current?.getRootElement();
     if (!rootElement) return;
-    selectedAssociation.current = data.id;
+    setSelectedAssociationID(data.id);
     const containerRect = rootElement
       .closest(`.${styles.editorArea}`)
       ?.getBoundingClientRect();
@@ -538,7 +538,7 @@ export const TryWriter = ({
                 onEditCallback={onAssociationEditCallback}
                 isAssociationPanelOpen={isAssociationPanelOpen}
                 setIsAssociationPanelOpen={setIsAssociationPanelOpen}
-                selectedAssociationID={selectedAssociation.current}
+                selectedAssociationID={selectedAssociationID}
               />
               <ContextMenu
                 name={contextMenuData.name}
