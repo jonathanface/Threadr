@@ -19,7 +19,7 @@ export const SignupPanel = () => {
   const [loading, setLoading] = useState(false);
 
   const handleBack = () => {
-    navigate("/signin");
+    navigate(-1);
   };
 
   const handleSignup = async (e: React.FormEvent) => {

@@ -39,6 +39,7 @@ interface ToolbarDemoProps {
   chapterName?: string;
   onSaveClick?: () => void;
   onBackClick?: () => void;
+  showTypographyControls?: boolean;
 }
 
 const INHERIT = "__inherit__";
@@ -61,7 +62,12 @@ const paragraphsInSelection = (nodes: LexicalNode[]): ElementNode[] => {
   return result;
 };
 
-export const ToolbarDemo = ({ chapterName, onSaveClick, onBackClick }: ToolbarDemoProps) => {
+export const ToolbarDemo = ({
+  chapterName,
+  onSaveClick,
+  onBackClick,
+  showTypographyControls = true,
+}: ToolbarDemoProps) => {
   const [editor] = useLexicalComposerContext();
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
@@ -297,7 +303,9 @@ export const ToolbarDemo = ({ chapterName, onSaveClick, onBackClick }: ToolbarDe
           </IconButton>
         </Tooltip>
 
-        <Tooltip title="Font (selection)" placement="top">
+        {showTypographyControls && (
+          <>
+            <Tooltip title="Font (selection)" placement="top">
           <Select
             size="small"
             variant="outlined"
@@ -408,6 +416,8 @@ export const ToolbarDemo = ({ chapterName, onSaveClick, onBackClick }: ToolbarDe
             ))}
           </Select>
         </Tooltip>
+          </>
+        )}
       </div>
       {chapterName && (
         <div className={styles.chapterTitle} style={{ marginLeft: "auto" }}>{chapterName}</div>

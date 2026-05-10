@@ -516,7 +516,7 @@ export const ThreadWriterDemo = () => {
             },
           }}
         >
-          <ToolbarDemo chapterName={chapterName} />
+          <ToolbarDemo chapterName={chapterName} showTypographyControls={false} />
           <div className={styles.editorRow}>
             <div className={styles.editorArea}>
               <RichTextPlugin

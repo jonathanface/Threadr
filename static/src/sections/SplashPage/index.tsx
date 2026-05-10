@@ -74,6 +74,14 @@ export const SplashPage = () => {
               <span>Try Now — No Signup Required</span>
               <span className={styles.ctaArrow} aria-hidden="true">→</span>
             </button>
+            <button
+              type="button"
+              onClick={() => navigate("/signup")}
+              className={styles.softLink}
+            >
+              Skip the demo — sign up now
+              <span aria-hidden="true">→</span>
+            </button>
             <p className={styles.ctaReassurance}>
               Your draft saves in your browser — sign up later to keep it forever.
             </p>
@@ -132,7 +140,7 @@ export const SplashPage = () => {
             onClick={goToDemo}
             className={styles.softLink}
           >
-            <span aria-hidden="true">→</span> Try the editor with a sample story
+            <span aria-hidden="true">→</span> Try the editor — no signup needed
           </button>
         </div>
       </div>
@@ -219,9 +227,14 @@ export const SplashPage = () => {
           <span>Try Now — No Signup Required</span>
           <span className={styles.ctaArrow} aria-hidden="true">→</span>
         </button>
-        <p className={styles.ctaSubtext}>
-          Takes about 2 minutes. No account needed to start.
-        </p>
+        <button
+          type="button"
+          onClick={() => navigate("/signup")}
+          className={styles.softLink}
+        >
+          Skip the demo — sign up now
+          <span aria-hidden="true">→</span>
+        </button>
       </div>
     </div>
   );

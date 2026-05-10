@@ -87,7 +87,9 @@
 .toolbar .chapterTitle {
     font-size: 1.4rem;
     margin-right: 10px;
-    color: var(--text-primary);
+    /* Toolbar bg is dark in both themes, so the chapter title needs light
+       text in both modes (var(--text-primary) is dark navy in light mode). */
+    color: #fafaf9;
 }
 
 .toolbar .chapterTitle input {

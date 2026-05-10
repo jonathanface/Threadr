@@ -667,12 +667,6 @@
   animation: fadeUp 0.6s ease-out 0.3s both;
 }
 
-.finalCTA .ctaSubtext {
-  margin-top: 14px;
-  position: relative;
-  animation: fadeUp 0.6s ease-out 0.4s both;
-}
-
 /* --- Legacy classes (unused but kept for safety) --- */
 .loginBtn {
   text-align: center;
