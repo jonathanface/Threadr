@@ -132,7 +132,7 @@ export const SplashPage = () => {
             onClick={goToDemo}
             className={styles.softLink}
           >
-            <span aria-hidden="true">→</span> Try the editor with a sample story
+            <span aria-hidden="true">→</span> Try the editor — no signup needed
           </button>
         </div>
       </div>
@@ -219,9 +219,6 @@ export const SplashPage = () => {
           <span>Try Now — No Signup Required</span>
           <span className={styles.ctaArrow} aria-hidden="true">→</span>
         </button>
-        <p className={styles.ctaSubtext}>
-          Takes about 2 minutes. No account needed to start.
-        </p>
       </div>
     </div>
   );
