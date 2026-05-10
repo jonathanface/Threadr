@@ -74,6 +74,14 @@ export const SplashPage = () => {
               <span>Try Now — No Signup Required</span>
               <span className={styles.ctaArrow} aria-hidden="true">→</span>
             </button>
+            <button
+              type="button"
+              onClick={() => navigate("/signup")}
+              className={styles.softLink}
+            >
+              Skip the demo — sign up now
+              <span aria-hidden="true">→</span>
+            </button>
             <p className={styles.ctaReassurance}>
               Your draft saves in your browser — sign up later to keep it forever.
             </p>
@@ -218,6 +226,14 @@ export const SplashPage = () => {
         >
           <span>Try Now — No Signup Required</span>
           <span className={styles.ctaArrow} aria-hidden="true">→</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate("/signup")}
+          className={styles.softLink}
+        >
+          Skip the demo — sign up now
+          <span aria-hidden="true">→</span>
         </button>
       </div>
     </div>
