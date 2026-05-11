@@ -699,7 +699,20 @@
     gap: 40px;
   }
 
+  /* On mobile, lead with the animation so the visual lands at the top of
+     the viewport before the heading/CTAs. The animation's internal cards use
+     overflow: visible to pop out of their container — keep .heroVisual on a
+     higher stacking layer so those pop-outs sit on top of the heading text
+     when they overlap. */
+  .heroVisual {
+    order: 1;
+    z-index: 2;
+  }
+
   .heroContent {
+    order: 2;
+    position: relative;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
