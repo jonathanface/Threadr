@@ -741,6 +741,12 @@
 }
 
 @media only screen and (max-width: 600px) {
+  /* The embedded Lexical demo doesn't shrink gracefully to phone widths;
+     hide it here and let the hero CTA + IntroAnimation carry the page. */
+  .demoSection {
+    display: none;
+  }
+
   .heroTitle {
     font-size: 2rem;
   }

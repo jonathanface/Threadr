@@ -44,7 +44,7 @@ func setupWebhookEvent(w http.ResponseWriter, r *http.Request) (dao daos.DaoInte
 		),
 		WriteBatchSize: atoiDefault(os.Getenv("DYNAMO_WRITE_BATCH_SIZE"), defaultDynamoWriteBatchSize),
 	}
-	builtDao, err := daos.NewDAO(context.Background(), daoOptions)
+	builtDao, err := newDAOFn(context.Background(), daoOptions)
 	if err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")

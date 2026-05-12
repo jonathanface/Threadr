@@ -58,6 +58,12 @@ vi.mock("../../../hooks/useLoader", () => ({
   }),
 }));
 
+vi.mock("../../../hooks/useFetchUserData", () => ({
+  useFetchUserData: () => ({
+    isLoggedIn: true,
+  }),
+}));
+
 vi.mock("react-router-dom", () => ({
   useLocation: () => ({ pathname: "/stories" }),
 }));
