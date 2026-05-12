@@ -46,25 +46,28 @@ func TestApplySubscriptionTransition(t *testing.T) {
 		}
 	})
 
-	t.Run("active and not subscriber with suspended stories: flags NotifyRestored and asks for restore", func(t *testing.T) {
-		dao := daos.NewMockDAO()
-		dao.MockCheckForSuspendedStories = func(_ string) (bool, error) { return true, nil }
-		user := &models.UserInfo{Email: "a@x.com", Subscriber: false}
+	t.Run(
+		"active and not subscriber with suspended stories: flags NotifyRestored and asks for restore",
+		func(t *testing.T) {
+			dao := daos.NewMockDAO()
+			dao.MockCheckForSuspendedStories = func(_ string) (bool, error) { return true, nil }
+			user := &models.UserInfo{Email: "a@x.com", Subscriber: false}
 
-		needsRestore, err := applySubscriptionTransition(ctx, dao, user, true)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if !user.Subscriber {
-			t.Errorf("Subscriber: got false, want true")
-		}
-		if !user.NotifyRestored {
-			t.Errorf("NotifyRestored: want true when stories were previously suspended")
-		}
-		if !needsRestore {
-			t.Errorf("needsRestore: want true so the caller can launch the restore goroutine")
-		}
-	})
+			needsRestore, err := applySubscriptionTransition(ctx, dao, user, true)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if !user.Subscriber {
+				t.Errorf("Subscriber: got false, want true")
+			}
+			if !user.NotifyRestored {
+				t.Errorf("NotifyRestored: want true when stories were previously suspended")
+			}
+			if !needsRestore {
+				t.Errorf("needsRestore: want true so the caller can launch the restore goroutine")
+			}
+		},
+	)
 
 	t.Run("inactive and currently subscriber: demotes user and suspends stories", func(t *testing.T) {
 		dao := daos.NewMockDAO()
@@ -149,7 +152,7 @@ func TestApplySubscriptionTransition(t *testing.T) {
 		dao := daos.NewMockDAO()
 		dao.MockGetAllStories = func(_ string) ([]*models.Story, error) {
 			t.Fatalf("suspendUserStories should not be called for a no-op transition")
-			return nil, nil
+			return nil, errors.New("unreachable")
 		}
 		user := &models.UserInfo{Email: "a@x.com", Subscriber: false}
 
@@ -392,7 +395,7 @@ func TestRestoreSuspendedStoriesAsync(t *testing.T) {
 		}
 		dao.MockGetStoryByID = func(_, _ string) (*models.Story, error) {
 			t.Fatalf("GetStoryByID should not be called when kickoff fails")
-			return nil, nil
+			return nil, errors.New("unreachable")
 		}
 		restoreSuspendedStoriesAsync(dao, "a@x.com") // should not panic
 	})
@@ -411,8 +414,8 @@ func TestRestoreSuspendedStoriesAsync(t *testing.T) {
 			return &models.Story{ID: storyID, Inactive: true}, nil
 		}
 		var (
-			mu      sync.Mutex
-			edits   []models.Story
+			mu    sync.Mutex
+			edits []models.Story
 		)
 		dao.MockEditStory = func(_ string, s models.Story) (models.Story, error) {
 			mu.Lock()
@@ -444,8 +447,8 @@ func TestRestoreSuspendedStoriesAsync(t *testing.T) {
 			return ch, nil
 		}
 		var (
-			mu       sync.Mutex
-			fetched  []string
+			mu      sync.Mutex
+			fetched []string
 		)
 		dao.MockGetStoryByID = func(_, storyID string) (*models.Story, error) {
 			mu.Lock()
@@ -705,9 +708,9 @@ func TestHandleSubscriptionEvent(t *testing.T) {
 		dao.MockGetAllStories = func(_ string) ([]*models.Story, error) {
 			return []*models.Story{{ID: "keep"}, {ID: "drop"}}, nil
 		}
-		var deletedCount int32
+		var deletedCount atomic.Int32
 		dao.MockSoftDeleteStory = func(_, _ string, _ bool) error {
-			atomic.AddInt32(&deletedCount, 1)
+			deletedCount.Add(1)
 			return nil
 		}
 		var savedUser models.UserInfo
@@ -733,14 +736,13 @@ func TestHandleSubscriptionEvent(t *testing.T) {
 		// suspendUserStories fans soft-deletes out into goroutines.
 		deadline := time.Now().Add(time.Second)
 		for time.Now().Before(deadline) {
-			if atomic.LoadInt32(&deletedCount) == 1 {
+			if deletedCount.Load() == 1 {
 				break
 			}
 			time.Sleep(5 * time.Millisecond)
 		}
-		if got := atomic.LoadInt32(&deletedCount); got != 1 {
+		if got := deletedCount.Load(); got != 1 {
 			t.Fatalf("soft-deletes: got %d, want 1", got)
 		}
 	})
 }
-

@@ -608,6 +608,8 @@ func contextWithDAO(ctx context.Context, dao daos.DaoInterface) context.Context 
 
 // signedWebhookReq builds an *http.Request with a valid Stripe-Signature
 // header for the given JSON payload + secret.
+//
+//nolint:unparam // secret is kept as a param so the helper reads top-to-bottom even though tests currently use a single secret.
 func signedWebhookReq(t *testing.T, payload []byte, secret string) *http.Request {
 	t.Helper()
 	signed := webhook.GenerateTestSignedPayload(&webhook.UnsignedPayload{
@@ -688,7 +690,14 @@ func TestStripeWebhookEndpoint_FullFlow(t *testing.T) {
 		t.Setenv("STRIPE_WEBHOOK_SECRET", secret)
 
 		periodEnd := time.Now().Add(30 * 24 * time.Hour).Unix()
-		payload := subscriptionEventPayload(t, "customer.subscription.created", "sub_777", "cus_777", "active", periodEnd)
+		payload := subscriptionEventPayload(
+			t,
+			"customer.subscription.created",
+			"sub_777",
+			"cus_777",
+			"active",
+			periodEnd,
+		)
 
 		rec := httptest.NewRecorder()
 		StripeWebhookEndpoint(rec, signedWebhookReq(t, payload, secret))
@@ -743,7 +752,14 @@ func TestStripeWebhookEndpoint_FullFlow(t *testing.T) {
 		t.Cleanup(installMockDAOFactory(t, dao))
 		t.Setenv("STRIPE_WEBHOOK_SECRET", secret)
 
-		payload := subscriptionEventPayload(t, "customer.subscription.updated", "sub_x", "cus_unknown", "active", time.Now().Unix())
+		payload := subscriptionEventPayload(
+			t,
+			"customer.subscription.updated",
+			"sub_x",
+			"cus_unknown",
+			"active",
+			time.Now().Unix(),
+		)
 
 		rec := httptest.NewRecorder()
 		StripeWebhookEndpoint(rec, signedWebhookReq(t, payload, secret))

@@ -23,11 +23,11 @@ type MockDAO struct {
 	MockGetAllUsersWithStories func() ([]models.AdminUserSummary, error)
 
 	// billing
-	MockGetSubscription              func(email string) (*models.Subscription, error)
-	MockUpdateSubscription           func(s models.Subscription) error
-	MockGetEmailByCustomerID         func(customerID string) (string, error)
-	MockCheckForSuspendedStories     func(email string) (bool, error)
-	MockGetAllStories                func(email string) ([]*models.Story, error)
+	MockGetSubscription                    func(email string) (*models.Subscription, error)
+	MockUpdateSubscription                 func(s models.Subscription) error
+	MockGetEmailByCustomerID               func(customerID string) (string, error)
+	MockCheckForSuspendedStories           func(email string) (bool, error)
+	MockGetAllStories                      func(email string) ([]*models.Story, error)
 	MockRestoreAutomaticallyDeletedStories func(email string) (<-chan RestoreStoryEvent, error)
 
 	// API endpoint mocking functions
@@ -179,7 +179,10 @@ func (m *MockDAO) GetAllStories(ctx context.Context, email string) ([]*models.St
 	return m.DAO.GetAllStories(ctx, email)
 }
 
-func (m *MockDAO) RestoreAutomaticallyDeletedStories(ctx context.Context, email string) (<-chan RestoreStoryEvent, error) {
+func (m *MockDAO) RestoreAutomaticallyDeletedStories(
+	ctx context.Context,
+	email string,
+) (<-chan RestoreStoryEvent, error) {
 	if m.MockRestoreAutomaticallyDeletedStories != nil {
 		return m.MockRestoreAutomaticallyDeletedStories(email)
 	}
