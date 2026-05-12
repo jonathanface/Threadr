@@ -56,14 +56,8 @@ describe('SplashPage', () => {
     it('should render primary CTA buttons', () => {
       renderSplashPage();
 
-      const ctaButtons = screen.getAllByRole('button', { name: /start writing free/i });
+      const ctaButtons = screen.getAllByRole('button', { name: /try now/i });
       expect(ctaButtons.length).toBeGreaterThanOrEqual(1);
-    });
-
-    it('should render pricing information', () => {
-      renderSplashPage();
-
-      expect(screen.getByText(/Free forever with unlimited stories/i)).toBeInTheDocument();
     });
 
     it('should render demo section', () => {
@@ -80,41 +74,51 @@ describe('SplashPage', () => {
   });
 
   describe('Navigation', () => {
-    it('should navigate to /signin when CTA button clicked', async () => {
+    it('should navigate to /try when primary CTA clicked', async () => {
       const user = userEvent.setup();
       renderSplashPage();
 
-      const ctaButton = screen.getAllByRole('button', { name: /start writing free/i })[0];
+      const ctaButton = screen.getAllByRole('button', { name: /try now/i })[0];
       await user.click(ctaButton);
 
-      expect(mockNavigate).toHaveBeenCalledWith('/signin');
+      expect(mockNavigate).toHaveBeenCalledWith('/try');
     });
 
-    it('should navigate to /signin when final CTA clicked', async () => {
+    it('should navigate to /try when final CTA clicked', async () => {
       const user = userEvent.setup();
       renderSplashPage();
 
-      const ctaButtons = screen.getAllByRole('button', { name: /start writing free/i });
+      const ctaButtons = screen.getAllByRole('button', { name: /try now/i });
       const finalCTA = ctaButtons[ctaButtons.length - 1];
       await user.click(finalCTA);
 
-      expect(mockNavigate).toHaveBeenCalledWith('/signin');
+      expect(mockNavigate).toHaveBeenCalledWith('/try');
     });
 
-    it('should have multiple CTA buttons that all navigate to signin', async () => {
+    it('should have multiple Try Now CTA buttons that all navigate to /try', async () => {
       const user = userEvent.setup();
       renderSplashPage();
 
-      const ctaButtons = screen.getAllByRole('button', { name: /start writing free/i });
+      const ctaButtons = screen.getAllByRole('button', { name: /try now/i });
       expect(ctaButtons.length).toBeGreaterThanOrEqual(2);
 
-      // Click each button and verify navigation
       for (const button of ctaButtons) {
         await user.click(button);
       }
 
-      expect(mockNavigate).toHaveBeenCalledWith('/signin');
+      expect(mockNavigate).toHaveBeenCalledWith('/try');
       expect(mockNavigate).toHaveBeenCalledTimes(ctaButtons.length);
+    });
+
+    it('should navigate to /signup when "Skip the demo" link clicked', async () => {
+      const user = userEvent.setup();
+      renderSplashPage();
+
+      const skipButtons = screen.getAllByRole('button', { name: /skip the demo/i });
+      expect(skipButtons.length).toBeGreaterThanOrEqual(1);
+      await user.click(skipButtons[0]);
+
+      expect(mockNavigate).toHaveBeenCalledWith('/signup');
     });
   });
 
@@ -188,28 +192,6 @@ describe('SplashPage', () => {
     });
   });
 
-  describe('Blurb Section', () => {
-    it('should render blurb section', () => {
-      renderSplashPage();
-
-      expect(screen.getByRole('heading', { name: /What Was Her Eye Color in Chapter Three/i })).toBeInTheDocument();
-    });
-
-    it('should render blurb content', () => {
-      renderSplashPage();
-
-      expect(screen.getByText(/Every writer knows the feeling/i)).toBeInTheDocument();
-      expect(screen.getByText(/Threadr solves this by turning your manuscript/i)).toBeInTheDocument();
-    });
-
-    it('should render writer desk image', () => {
-      renderSplashPage();
-
-      const images = screen.getAllByAltText(/writer/i);
-      expect(images.length).toBeGreaterThanOrEqual(1);
-    });
-  });
-
   describe('FAQ Section', () => {
     it('should render FAQ section', () => {
       renderSplashPage();
@@ -263,19 +245,13 @@ describe('SplashPage', () => {
     it('should render final CTA heading', () => {
       renderSplashPage();
 
-      expect(screen.getByRole('heading', { name: /Your Next Chapter Is Waiting/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Take It for a Spin/i })).toBeInTheDocument();
     });
 
     it('should render final CTA description', () => {
       renderSplashPage();
 
       expect(screen.getByText(/Start writing with the editor that remembers your world/i)).toBeInTheDocument();
-    });
-
-    it('should render no credit card message', () => {
-      renderSplashPage();
-
-      expect(screen.getByText(/No credit card required • Free forever/i)).toBeInTheDocument();
     });
   });
 
@@ -302,11 +278,13 @@ describe('SplashPage', () => {
       });
     });
 
-    it('should have alt text for images', () => {
+    it('should have alt text for all images', () => {
       renderSplashPage();
 
-      const images = screen.getAllByAltText(/writer/i);
-      expect(images.length).toBeGreaterThanOrEqual(1);
+      const images = screen.queryAllByRole('img');
+      images.forEach((img) => {
+        expect(img).toHaveAccessibleName();
+      });
     });
   });
 
@@ -326,14 +304,11 @@ describe('SplashPage', () => {
       // Features
       expect(screen.getByRole('heading', { name: /Built for the Long Haul/i })).toBeInTheDocument();
 
-      // Blurb
-      expect(screen.getByRole('heading', { name: /What Was Her Eye Color/i })).toBeInTheDocument();
-
       // FAQ
       expect(screen.getByRole('heading', { name: /Common Questions/i })).toBeInTheDocument();
 
       // Final CTA
-      expect(screen.getByRole('heading', { name: /Your Next Chapter Is Waiting/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Take It for a Spin/i })).toBeInTheDocument();
     });
   });
 });

@@ -23,8 +23,12 @@ type MockDAO struct {
 	MockGetAllUsersWithStories func() ([]models.AdminUserSummary, error)
 
 	// billing
-	MockGetSubscription    func(email string) (*models.Subscription, error)
-	MockUpdateSubscription func(s models.Subscription) error
+	MockGetSubscription                    func(email string) (*models.Subscription, error)
+	MockUpdateSubscription                 func(s models.Subscription) error
+	MockGetEmailByCustomerID               func(customerID string) (string, error)
+	MockCheckForSuspendedStories           func(email string) (bool, error)
+	MockGetAllStories                      func(email string) ([]*models.Story, error)
+	MockRestoreAutomaticallyDeletedStories func(email string) (<-chan RestoreStoryEvent, error)
 
 	// API endpoint mocking functions
 	MockCreateStory                           func(email string, story models.Story, newSeriesTitle string) (storyID string, err error)
@@ -149,6 +153,41 @@ func (m *MockDAO) UpdateSubscription(_ context.Context, sub models.Subscription)
 		return m.MockUpdateSubscription(sub)
 	}
 	return nil
+}
+
+func (m *MockDAO) GetEmailByCustomerID(ctx context.Context, customerID string) (string, error) {
+	if m.MockGetEmailByCustomerID != nil {
+		return m.MockGetEmailByCustomerID(customerID)
+	}
+	// Fall back to real implementation to use mocked DynamoClient
+	return m.DAO.GetEmailByCustomerID(ctx, customerID)
+}
+
+func (m *MockDAO) CheckForSuspendedStories(ctx context.Context, email string) (bool, error) {
+	if m.MockCheckForSuspendedStories != nil {
+		return m.MockCheckForSuspendedStories(email)
+	}
+	// Fall back to real implementation to use mocked DynamoClient
+	return m.DAO.CheckForSuspendedStories(ctx, email)
+}
+
+func (m *MockDAO) GetAllStories(ctx context.Context, email string) ([]*models.Story, error) {
+	if m.MockGetAllStories != nil {
+		return m.MockGetAllStories(email)
+	}
+	// Fall back to real implementation to use mocked DynamoClient
+	return m.DAO.GetAllStories(ctx, email)
+}
+
+func (m *MockDAO) RestoreAutomaticallyDeletedStories(
+	ctx context.Context,
+	email string,
+) (<-chan RestoreStoryEvent, error) {
+	if m.MockRestoreAutomaticallyDeletedStories != nil {
+		return m.MockRestoreAutomaticallyDeletedStories(email)
+	}
+	// Fall back to real implementation to use mocked DynamoClient
+	return m.DAO.RestoreAutomaticallyDeletedStories(ctx, email)
 }
 
 type MockDynamoClient struct {

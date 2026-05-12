@@ -1,6 +1,7 @@
 package billing
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"net/http"
@@ -27,6 +28,11 @@ import (
 var (
 	getUserEmailFn   = getUserEmail
 	ensureCustomerFn = ensureCustomer
+	// newDAOFn returns the interface, not the concrete *DAO, so tests can
+	// inject a *daos.MockDAO without touching DynamoDB.
+	newDAOFn = func(ctx context.Context, opts daos.Options) (daos.DaoInterface, error) {
+		return daos.NewDAO(ctx, opts)
+	}
 )
 
 // safeReturnURL validates and sanitizes return URLs to prevent open redirect attacks.
