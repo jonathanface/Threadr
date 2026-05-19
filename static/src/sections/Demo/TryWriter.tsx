@@ -1,3 +1,6 @@
+import { Box, Button, useMediaQuery } from "@mui/material";
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
@@ -139,6 +142,7 @@ export const TryWriter = ({
   onBackClick,
   reportSnapshot,
 }: TryWriterProps) => {
+  const isMobile = useMediaQuery("(max-width: 600px)");
   const initialDraft = useMemo(() => readDraft(), []);
 
   const initialEditorState = useMemo<SerializedEditorState>(() => {
@@ -480,8 +484,17 @@ export const TryWriter = ({
 
   return (
     <AssociationsContext.Provider value={associationsContextValue}>
-      <div className={styles.outerWrapper}>
-        <div style={{ padding: "8px 20px" }}>
+      <div className={`${styles.outerWrapper} ${styles.fullWidth}`}>
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: 1.5,
+            rowGap: 1,
+            padding: "8px 20px 12px",
+          }}
+        >
           <input
             type="text"
             value={title}
@@ -489,7 +502,8 @@ export const TryWriter = ({
             placeholder="Untitled story"
             aria-label="Story title"
             style={{
-              width: "100%",
+              flex: "1 1 200px",
+              minWidth: 0,
               fontSize: "1.4rem",
               fontWeight: 600,
               border: "none",
@@ -499,7 +513,68 @@ export const TryWriter = ({
             }}
             maxLength={200}
           />
-        </div>
+          <Button
+            variant="outlined"
+            color="inherit"
+            onClick={onBackClick}
+            startIcon={<ArrowBackRoundedIcon />}
+            sx={{
+              flexShrink: 0,
+              px: 2.5,
+              py: 0.875,
+              fontFamily: '"Outfit", system-ui, sans-serif',
+              fontWeight: 500,
+              fontSize: "0.9375rem",
+              letterSpacing: "0.04em",
+              textTransform: "none",
+              borderRadius: "8px",
+              whiteSpace: "nowrap",
+              color: "var(--text-primary)",
+              borderColor: "var(--border-medium)",
+              "&:hover": {
+                borderColor: "var(--text-primary)",
+                backgroundColor: "color-mix(in srgb, var(--text-primary) 6%, transparent)",
+              },
+            }}
+          >
+            Back
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={onSaveClick}
+            endIcon={<ArrowForwardRoundedIcon />}
+            sx={{
+              flexShrink: 0,
+              px: 2.5,
+              py: 0.875,
+              fontFamily: '"Outfit", system-ui, sans-serif',
+              fontWeight: 600,
+              fontSize: "0.9375rem",
+              letterSpacing: "0.04em",
+              textTransform: "none",
+              borderRadius: "8px",
+              whiteSpace: "nowrap",
+              boxShadow:
+                "0 1px 0 rgba(255,255,255,0.08) inset, 0 6px 16px -8px color-mix(in srgb, var(--primary) 55%, transparent)",
+              transition: "transform 160ms ease, box-shadow 160ms ease",
+              "&:hover": {
+                transform: "translateY(-1px)",
+                boxShadow:
+                  "0 1px 0 rgba(255,255,255,0.12) inset, 0 10px 22px -8px color-mix(in srgb, var(--primary) 70%, transparent)",
+              },
+              "& .MuiButton-endIcon": {
+                ml: 1,
+                transition: "transform 160ms ease",
+              },
+              "&:hover .MuiButton-endIcon": {
+                transform: "translateX(2px)",
+              },
+            }}
+          >
+            Save my draft
+          </Button>
+        </Box>
         <LexicalComposer
           initialConfig={{
             ...initialConfig,
@@ -508,7 +583,7 @@ export const TryWriter = ({
             },
           }}
         >
-          <ToolbarDemo onSaveClick={onSaveClick} onBackClick={onBackClick} />
+          <ToolbarDemo showTypographyControls={!isMobile} />
           <div className={styles.editorRow}>
             <div className={styles.editorArea}>
               <RichTextPlugin
@@ -518,6 +593,9 @@ export const TryWriter = ({
                     className={styles.editorInput}
                     spellCheck={true}
                   />
+                }
+                placeholder={
+                  <div className={styles.placeholder}>Start your scene…</div>
                 }
                 ErrorBoundary={LexicalErrorBoundary}
               />

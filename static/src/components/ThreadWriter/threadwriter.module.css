@@ -22,18 +22,17 @@
   position: relative;
 }
 
-/* Editor.module.css */
+/* Overlay above the contentEditable. Lexical renders the placeholder as a
+   sibling, not a child, so it needs position:absolute against .editorArea
+   (which is position:relative). Offsets match .editorInput's padding. */
 .placeholder {
-  position: relative;
+  position: absolute;
   top: 1in;
-  /* Align with padding */
   left: 1in;
-  /* Align with padding */
   font-size: 16px;
   font-style: italic;
   color: var(--text-tertiary);
   pointer-events: none;
-  /* Prevent interactions */
 }
 
 /* General editor styling */
@@ -158,5 +157,17 @@ li {
   .editorInput {
     padding: 10px;
     min-height: calc(100vh - 150px);
+  }
+
+  .placeholder {
+    top: 10px;
+    left: 10px;
+  }
+
+  /* Opt-in: editor fills its row on mobile (keeps the 10px row margins
+     for breathing space, but drops the extra 40px inset on .editorArea).
+     Applied to .outerWrapper by the /try page. */
+  .fullWidth .editorArea {
+    width: 100%;
   }
 }

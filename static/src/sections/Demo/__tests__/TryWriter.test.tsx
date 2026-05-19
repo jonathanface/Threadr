@@ -108,28 +108,8 @@ vi.mock("../../../components/demoComponents/AssociationPanelDemo", () => ({
   AssociationPanelDemo: () => null,
 }));
 
-// Real-button stub so we can assert pass-through of onSaveClick / onBackClick.
 vi.mock("../../../components/demoComponents/ThreadWriterToolbarDemo", () => ({
-  ToolbarDemo: ({
-    onSaveClick,
-    onBackClick,
-  }: {
-    onSaveClick?: () => void;
-    onBackClick?: () => void;
-  }) => (
-    <div data-testid="toolbar-demo">
-      {onBackClick && (
-        <button type="button" onClick={onBackClick}>
-          Back
-        </button>
-      )}
-      {onSaveClick && (
-        <button type="button" onClick={onSaveClick}>
-          Save my draft
-        </button>
-      )}
-    </div>
-  ),
+  ToolbarDemo: () => <div data-testid="toolbar-demo" />,
 }));
 
 import { TryWriter, MAX_DEMO_ASSOCIATIONS, DEMO_BYTES_LIMIT } from "../TryWriter";
@@ -275,8 +255,8 @@ describe("TryWriter", () => {
     });
   });
 
-  describe("toolbar pass-through", () => {
-    it("invokes onBackClick when the toolbar Back button is clicked", async () => {
+  describe("action buttons", () => {
+    it("invokes onBackClick when the Back button is clicked", async () => {
       const user = userEvent.setup();
       const onBackClick = vi.fn();
       renderTryWriter({ onBackClick });
@@ -285,7 +265,7 @@ describe("TryWriter", () => {
       expect(onBackClick).toHaveBeenCalledTimes(1);
     });
 
-    it("invokes onSaveClick when the toolbar Save button is clicked", async () => {
+    it("invokes onSaveClick when the Save button is clicked", async () => {
       const user = userEvent.setup();
       const onSaveClick = vi.fn();
       renderTryWriter({ onSaveClick });
