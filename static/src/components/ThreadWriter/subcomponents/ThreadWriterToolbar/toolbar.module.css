@@ -145,7 +145,7 @@
         margin: 10px;
         border-radius: 5px;
         padding: 15px;
-        top: 70px;
+        top: var(--toolbar-sticky-top, 70px);
         margin-top: 0px;
     }
 

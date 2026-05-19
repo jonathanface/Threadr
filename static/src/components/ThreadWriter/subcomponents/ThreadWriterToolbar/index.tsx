@@ -389,7 +389,7 @@ export const Toolbar = () => {
             onChange={handleSelectionFontChange}
             className={styles.typographySelect}
             renderValue={(v) =>
-              v === INHERIT ? "Font: —" : `Font: ${v as string}`
+              v === INHERIT ? "Font: Default" : `Font: ${v as string}`
             }
             MenuProps={{ disablePortal: false }}
             sx={{
@@ -424,7 +424,7 @@ export const Toolbar = () => {
             onChange={handleSelectionSizeChange}
             className={styles.typographySelect}
             renderValue={(v) =>
-              v === INHERIT ? "Size: —" : `Size: ${v as string}`
+              v === INHERIT ? "Size: Default" : `Size: ${v as string}`
             }
             sx={{
               minWidth: { xs: 80, sm: 100 },
@@ -459,7 +459,7 @@ export const Toolbar = () => {
             onChange={handleSelectionLineSpacingChange}
             className={styles.typographySelect}
             renderValue={(v) => {
-              if (v === INHERIT) return "Spacing: —";
+              if (v === INHERIT) return "Spacing: Default";
               const match = LINE_SPACING_OPTIONS.find(
                 (o) => String(o.value) === v
               );
