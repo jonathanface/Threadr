@@ -78,12 +78,6 @@ export default defineConfig({
     environment: "jsdom", // Simulate browser-like environment
     setupFiles: "./vitest.setup.ts", // Optional setup file for global configurations
     pool: "threads", // Use threads for isolation
-    poolOptions: {
-      threads: {
-        singleThread: false, // Allow some parallelism
-      },
-    },
     maxWorkers: 2, // Limit to 2 workers to reduce memory pressure
-    minWorkers: 1,
   },
 });
