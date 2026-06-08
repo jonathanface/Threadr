@@ -47,13 +47,16 @@ const mockAssociation: SimplifiedAssociation = {
   case_sensitive: false,
 };
 
+type SetStoriesListFn = (list: Story[] | null) => void;
+type SetSeriesListFn = (list: Series[] | null) => void;
+
 describe('useSelections', () => {
-  let mockSetStoriesList: ReturnType<typeof vi.fn>;
-  let mockSetSeriesList: ReturnType<typeof vi.fn>;
+  let mockSetStoriesList: ReturnType<typeof vi.fn<SetStoriesListFn>>;
+  let mockSetSeriesList: ReturnType<typeof vi.fn<SetSeriesListFn>>;
 
   beforeEach(() => {
-    mockSetStoriesList = vi.fn();
-    mockSetSeriesList = vi.fn();
+    mockSetStoriesList = vi.fn<SetStoriesListFn>();
+    mockSetSeriesList = vi.fn<SetSeriesListFn>();
 
     vi.spyOn(useWorksListModule, 'useWorksList').mockReturnValue({
       storiesList: [mockStory],

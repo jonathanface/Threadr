@@ -7,6 +7,8 @@ import { ReactNode } from 'react';
 
 const mockUserDetails: UserDetails = {
   email: 'test@example.com',
+  first_name: 'Test',
+  last_name: 'User',
   subscriber: false,
 };
 
@@ -273,6 +275,8 @@ describe('useFetchUserData', () => {
     it('should handle user details with minimal data', () => {
       const minimalUserDetails: UserDetails = {
         email: 'test@example.com',
+        first_name: '',
+        last_name: '',
         subscriber: false,
       };
 

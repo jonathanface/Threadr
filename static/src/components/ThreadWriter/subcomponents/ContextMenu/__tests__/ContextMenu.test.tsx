@@ -1,23 +1,25 @@
 import { fireEvent, render, screen, act } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { ContextMenu, ContextMenuProps } from "../index";
 import { MenuItemEntry } from "../../../../../types/MenuItemEntry";
 
+type CommandFn = NonNullable<MenuItemEntry["command"]>;
+
 describe("ContextMenu", () => {
-  let onDismiss: ReturnType<typeof vi.fn>;
+  let onDismiss: Mock<() => void>;
   let items: MenuItemEntry[];
-  let commandSpy: ReturnType<typeof vi.fn>;
+  let commandSpy: Mock<CommandFn>;
 
   beforeEach(() => {
     vi.useFakeTimers();
-    onDismiss = vi.fn();
-    commandSpy = vi.fn();
+    onDismiss = vi.fn<() => void>();
+    commandSpy = vi.fn<CommandFn>();
     items = [
       { name: "Copy", command: commandSpy },
-      { name: "Paste", command: vi.fn() },
+      { name: "Paste", command: vi.fn<CommandFn>() },
       {
         name: "Make Association",
-        subItems: [{ name: "Character", command: vi.fn() }],
+        subItems: [{ name: "Character", command: vi.fn<CommandFn>() }],
       },
     ];
   });
