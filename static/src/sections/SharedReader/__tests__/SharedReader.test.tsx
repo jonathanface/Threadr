@@ -36,6 +36,7 @@ const makeStoryResponse = (
   title: 'My Test Story',
   description: 'A description of the story',
   image_url: '',
+  author_name: 'Test Author',
   chapters: [
     { id: 'ch1', story_id: 's1', place: 0, title: 'Chapter One' },
   ],
@@ -43,6 +44,7 @@ const makeStoryResponse = (
   reader_email: 'reader@example.com',
   reader_first_name: 'Alice',
   reader_last_name: 'Smith',
+  reader_has_account: false,
   ...overrides,
 });
 
