@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -725,6 +726,16 @@ func TestStripeWebhookEndpoint_FullFlow(t *testing.T) {
 		}
 		var savedUser models.UserInfo
 		dao.MockUpdateUser = func(u models.UserInfo) error { savedUser = u; return nil }
+		var (
+			alertMu sync.Mutex
+			alerts  []models.Alert
+		)
+		dao.MockCreateAlert = func(a models.Alert) error {
+			alertMu.Lock()
+			alerts = append(alerts, a)
+			alertMu.Unlock()
+			return nil
+		}
 
 		t.Cleanup(installMockDAOFactory(t, dao))
 		t.Setenv("STRIPE_WEBHOOK_SECRET", secret)
@@ -740,8 +751,28 @@ func TestStripeWebhookEndpoint_FullFlow(t *testing.T) {
 		if savedUser.Subscriber {
 			t.Errorf("user.Subscriber: want false after demotion")
 		}
-		if !savedUser.NotifyExpired {
-			t.Errorf("user.NotifyExpired: want true")
+		if savedUser.NotifyExpired {
+			t.Errorf("user.NotifyExpired: want false (alert is fired directly by webhook path)")
+		}
+
+		// fireSubscriptionExpiredAlert spawns CreateAlert in a goroutine.
+		alertDeadline := time.Now().Add(time.Second)
+		for time.Now().Before(alertDeadline) {
+			alertMu.Lock()
+			done := len(alerts) == 1
+			alertMu.Unlock()
+			if done {
+				break
+			}
+			time.Sleep(5 * time.Millisecond)
+		}
+		alertMu.Lock()
+		defer alertMu.Unlock()
+		if len(alerts) != 1 {
+			t.Fatalf("expected 1 subscription-expired alert, got %d", len(alerts))
+		}
+		if got, want := alerts[0].ID, "sub-expired-a@x.com"; got != want {
+			t.Errorf("alert ID: got %q, want %q", got, want)
 		}
 	})
 
