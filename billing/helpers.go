@@ -156,12 +156,36 @@ func applySubscriptionTransition(
 		}
 	case !isActive && user.Subscriber:
 		user.Subscriber = false
-		user.NotifyExpired = true
 		if sErr := suspendUserStories(ctx, dao, user.Email); sErr != nil {
 			return false, sErr
 		}
+		fireSubscriptionExpiredAlert(ctx, dao, user.Email)
 	}
 	return false, nil
+}
+
+// fireSubscriptionExpiredAlert writes a persisted "Subscription Expired" alert
+// so the user sees the notification on any page, not just after their next
+// OAuth login. The alert ID is deterministic so a later OAuth-path retry
+// upserts the same row.
+func fireSubscriptionExpiredAlert(ctx context.Context, dao daos.DaoInterface, email string) {
+	alert := models.Alert{
+		ID:          "sub-expired-" + email,
+		Subject:     "Subscription Expired",
+		Message:     "Your subscription has expired and your additional stories have been archived. Resubscribe within 30 days to restore them — after that, they will be permanently deleted.",
+		Link:        "/subscribe",
+		TargetEmail: email,
+		AlertType:   models.AlertTypePersonal,
+		CreatedAt:   time.Now().Unix(),
+		CreatedBy:   "system",
+	}
+	go func() {
+		bgCtx := context.WithoutCancel(ctx)
+		if err := dao.CreateAlert(bgCtx, alert); err != nil {
+			logger.Error("failed to create subscription-expired alert",
+				"error", err, "email", email, "alertID", alert.ID)
+		}
+	}()
 }
 
 // suspendUserStories soft-deletes every story owned by email except the

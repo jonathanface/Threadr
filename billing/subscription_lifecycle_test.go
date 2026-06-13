@@ -88,6 +88,16 @@ func TestApplySubscriptionTransition(t *testing.T) {
 			mu.Unlock()
 			return nil
 		}
+		var (
+			alertMu sync.Mutex
+			alerts  []models.Alert
+		)
+		dao.MockCreateAlert = func(a models.Alert) error {
+			alertMu.Lock()
+			alerts = append(alerts, a)
+			alertMu.Unlock()
+			return nil
+		}
 		user := &models.UserInfo{Email: "a@x.com", Subscriber: true}
 
 		needsRestore, err := applySubscriptionTransition(ctx, dao, user, false)
@@ -97,8 +107,8 @@ func TestApplySubscriptionTransition(t *testing.T) {
 		if user.Subscriber {
 			t.Errorf("Subscriber: want false after demotion")
 		}
-		if !user.NotifyExpired {
-			t.Errorf("NotifyExpired: want true after demotion")
+		if user.NotifyExpired {
+			t.Errorf("NotifyExpired: want false (alert is fired directly by webhook path)")
 		}
 		if needsRestore {
 			t.Errorf("needsRestore: should be false on demotion")
@@ -125,6 +135,29 @@ func TestApplySubscriptionTransition(t *testing.T) {
 			if id == "keep" {
 				t.Errorf("the first story should be retained, not suspended")
 			}
+		}
+
+		// fireSubscriptionExpiredAlert spawns the CreateAlert call in a goroutine.
+		alertDeadline := time.Now().Add(time.Second)
+		for time.Now().Before(alertDeadline) {
+			alertMu.Lock()
+			done := len(alerts) == 1
+			alertMu.Unlock()
+			if done {
+				break
+			}
+			time.Sleep(5 * time.Millisecond)
+		}
+		alertMu.Lock()
+		defer alertMu.Unlock()
+		if len(alerts) != 1 {
+			t.Fatalf("expected 1 subscription-expired alert, got %d", len(alerts))
+		}
+		if got, want := alerts[0].ID, "sub-expired-a@x.com"; got != want {
+			t.Errorf("alert ID: got %q, want %q", got, want)
+		}
+		if alerts[0].Subject != "Subscription Expired" {
+			t.Errorf("alert Subject: got %q, want %q", alerts[0].Subject, "Subscription Expired")
 		}
 	})
 
@@ -715,6 +748,16 @@ func TestHandleSubscriptionEvent(t *testing.T) {
 		}
 		var savedUser models.UserInfo
 		dao.MockUpdateUser = func(u models.UserInfo) error { savedUser = u; return nil }
+		var (
+			alertMu sync.Mutex
+			alerts  []models.Alert
+		)
+		dao.MockCreateAlert = func(a models.Alert) error {
+			alertMu.Lock()
+			alerts = append(alerts, a)
+			alertMu.Unlock()
+			return nil
+		}
 
 		w := httptest.NewRecorder()
 		ev := newSubEvent(t, "customer.subscription.deleted", "sub_1", "cus_1", "canceled", 0)
@@ -729,8 +772,8 @@ func TestHandleSubscriptionEvent(t *testing.T) {
 		if savedUser.Subscriber {
 			t.Errorf("user.Subscriber: want false after demotion")
 		}
-		if !savedUser.NotifyExpired {
-			t.Errorf("user.NotifyExpired: want true")
+		if savedUser.NotifyExpired {
+			t.Errorf("user.NotifyExpired: want false (alert is fired directly by webhook path)")
 		}
 
 		// suspendUserStories fans soft-deletes out into goroutines.
@@ -743,6 +786,26 @@ func TestHandleSubscriptionEvent(t *testing.T) {
 		}
 		if got := deletedCount.Load(); got != 1 {
 			t.Fatalf("soft-deletes: got %d, want 1", got)
+		}
+
+		// fireSubscriptionExpiredAlert spawns the CreateAlert call in a goroutine.
+		alertDeadline := time.Now().Add(time.Second)
+		for time.Now().Before(alertDeadline) {
+			alertMu.Lock()
+			done := len(alerts) == 1
+			alertMu.Unlock()
+			if done {
+				break
+			}
+			time.Sleep(5 * time.Millisecond)
+		}
+		alertMu.Lock()
+		defer alertMu.Unlock()
+		if len(alerts) != 1 {
+			t.Fatalf("expected 1 subscription-expired alert, got %d", len(alerts))
+		}
+		if got, want := alerts[0].ID, "sub-expired-a@x.com"; got != want {
+			t.Errorf("alert ID: got %q, want %q", got, want)
 		}
 	})
 }
