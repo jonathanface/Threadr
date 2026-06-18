@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Box,
   Button,
@@ -23,6 +23,13 @@ import { usePostHog } from "@posthog/react";
 
 export const SubscribePage = () => {
   const nav = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Forward ?promo=... from /subscribe to /checkout so the welcome-email
+  // pre-fill survives the marketing-page hop.
+  const checkoutPath = (() => {
+    const promo = searchParams.get("promo")?.trim();
+    return promo ? `/checkout?promo=${encodeURIComponent(promo)}` : "/checkout";
+  })();
   const posthog = usePostHog();
 
   useEffect(() => {
@@ -167,7 +174,7 @@ export const SubscribePage = () => {
               variant="contained"
               color="primary"
               endIcon={<ArrowForwardIosIcon fontSize="small" />}
-              onClick={() => { posthog?.capture("checkout_started", { plan: "$10/month" }); nav("/checkout"); }}
+              onClick={() => { posthog?.capture("checkout_started", { plan: "$10/month" }); nav(checkoutPath); }}
               sx={(t) => ({
                 width: { xs: '100%', sm: 'auto' },
                 py: { xs: 1.5, sm: 1 },

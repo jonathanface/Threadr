@@ -67,11 +67,37 @@ describe("<CheckoutPage />", () => {
     expect(postMock).not.toHaveBeenCalled();
   });
 
-  it("pre-fills the promo code from the ?promo= URL query string", () => {
+  it("auto-fires the subscribe call when ?promo= is in the URL", async () => {
+    postMock.mockResolvedValueOnce({ data: { client_secret: "cs_test_123" } });
+
     renderAt("/checkout?promo=WELCxyz");
 
+    // Shows the "Applying your promo code…" loader, not the form.
+    expect(screen.getByText(/Applying your promo code/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Promo code/i)).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(postMock).toHaveBeenCalledWith(
+        "/billing/subscribe",
+        { promo_code: "WELCxyz" },
+        { baseURL: "" },
+      );
+    });
+  });
+
+  it("falls back to the form with the bad code pre-filled when auto-fire fails", async () => {
+    postMock.mockRejectedValueOnce({
+      response: { data: { error: "promo code has expired" } },
+    });
+
+    renderAt("/checkout?promo=OLDCODE");
+
+    // After the error, the form re-appears with the bad code pre-filled.
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(/expired/i);
+    });
     const input = screen.getByLabelText(/Promo code/i) as HTMLInputElement;
-    expect(input.value).toBe("WELCxyz");
+    expect(input.value).toBe("OLDCODE");
   });
 
   it("sends the typed promo code to /billing/subscribe on Continue", async () => {
@@ -97,7 +123,7 @@ describe("<CheckoutPage />", () => {
   it("transitions to the Stripe PaymentElement on successful subscribe", async () => {
     postMock.mockResolvedValueOnce({ data: { client_secret: "cs_test_123" } });
 
-    renderAt("/checkout?promo=WELCxyz");
+    renderAt("/checkout");
 
     fireEvent.click(
       screen.getByRole("button", { name: /Continue to payment/i }),
