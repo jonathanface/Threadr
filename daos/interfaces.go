@@ -81,6 +81,11 @@ type DaoInterface interface {
 	DeleteSeries(ctx context.Context, email string, series models.Series) error
 	DeleteUser(ctx context.Context, email string) error
 
+	// Subscription-lapse suspension/restoration of excess associations.
+	SuspendExcessAssociations(ctx context.Context, email string) error
+	RestoreSuspendedAssociations(ctx context.Context, email string) error
+	HasSuspendedAssociations(ctx context.Context, email string) (bool, error)
+
 	// Sharing
 	CreateShareLink(ctx context.Context, link models.ShareLink) error
 	GetShareLink(ctx context.Context, token string) (*models.ShareLink, error)

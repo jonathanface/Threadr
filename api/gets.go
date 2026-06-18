@@ -471,6 +471,11 @@ func AllAssociationThumbnailsByStoryEndPoint(w http.ResponseWriter, r *http.Requ
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
+	// Hide associations marked suspended_at from non-subscribers so a lapsed
+	// user only sees their cap-many. Subscribers see everything.
+	if isSub, sok := r.Context().Value(ctxkey.Subscriber).(bool); sok && !isSub {
+		associations = FilterSuspendedAssociations(associations)
+	}
 	if len(associations) == 0 {
 		RespondWithError(w, http.StatusNotFound, "no associations found for this story")
 		return

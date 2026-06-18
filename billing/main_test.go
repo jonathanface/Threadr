@@ -721,8 +721,9 @@ func TestStripeWebhookEndpoint_FullFlow(t *testing.T) {
 		dao.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
 			return &models.UserInfo{Email: email, Subscriber: true}, nil
 		}
-		dao.MockGetAllStories = func(_ string) ([]*models.Story, error) {
-			return []*models.Story{{ID: "only"}}, nil // 1 story → none soft-deleted
+		dao.MockSoftDeleteStory = func(_, storyID string, _ bool) error {
+			t.Fatalf("stories should not be soft-deleted on subscription lapse (got %q)", storyID)
+			return nil
 		}
 		var savedUser models.UserInfo
 		dao.MockUpdateUser = func(u models.UserInfo) error { savedUser = u; return nil }

@@ -57,16 +57,29 @@ type Association struct {
 	Details          AssociationDetails `json:"details"`
 	CaseSensitive    bool               `json:"case_sensitive"    dynamodbav:"case_sensitive"`
 	Aliases          string             `json:"aliases"           dynamodbav:"aliases"`
+	// CreatedAt is the unix timestamp when the association first hit the DB.
+	// Populated by WriteAssociations via if_not_exists, so existing rows that
+	// predate this field are returned as 0. Used by the suspension logic to
+	// preserve the oldest associations and suspend the newest.
+	CreatedAt int64 `json:"created_at,omitempty" dynamodbav:"created_at,omitempty"`
+	// SuspendedAt is set (Unix timestamp) when this association is over the
+	// non-subscriber cap after a subscription lapse. Non-subscriber read
+	// paths hide rows where this is non-zero; subscribers see everything.
+	// Cleared on resubscribe by RestoreSuspendedAssociations.
+	SuspendedAt int64 `json:"suspended_at,omitempty" dynamodbav:"suspended_at,omitempty"`
 }
 
 type SimplifiedAssociation struct {
-	ID               string `json:"association_id"    dynamodbav:"association_id"`
-	Name             string `json:"association_name"  dynamodbav:"association_name"`
-	Type             string `json:"association_type"  dynamodbav:"association_type"`
-	Portrait         string `json:"portrait"          dynamodbav:"portrait"`
-	ShortDescription string `json:"short_description" dynamodbav:"short_description"`
-	CaseSensitive    bool   `json:"case_sensitive"    dynamodbav:"case_sensitive"`
-	Aliases          string `json:"aliases"           dynamodbav:"aliases"`
+	ID               string `json:"association_id"     dynamodbav:"association_id"`
+	Name             string `json:"association_name"   dynamodbav:"association_name"`
+	Type             string `json:"association_type"   dynamodbav:"association_type"`
+	Portrait         string `json:"portrait"           dynamodbav:"portrait"`
+	ShortDescription string `json:"short_description"  dynamodbav:"short_description"`
+	CaseSensitive    bool   `json:"case_sensitive"     dynamodbav:"case_sensitive"`
+	Aliases          string `json:"aliases"            dynamodbav:"aliases"`
+	CreatedAt        int64  `json:"created_at,omitempty"   dynamodbav:"created_at,omitempty"`
+	// See Association.SuspendedAt.
+	SuspendedAt int64 `json:"suspended_at,omitempty" dynamodbav:"suspended_at,omitempty"`
 }
 
 type Chapter struct {

@@ -2,11 +2,13 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
 
+	ctxkey "Threadr/ctxkeys"
 	"Threadr/models"
 	"Threadr/sessions"
 
@@ -62,5 +64,9 @@ func createTestRequestWithSession(method, url string, body any) *http.Request {
 	} else {
 		req = httptest.NewRequest(method, url, nil)
 	}
-	return AddSessionCookieToRequest(req, "test@example.com")
+	req = AddSessionCookieToRequest(req, "test@example.com")
+	// Default to a subscribed user so handler-level RequireSubscriber gates
+	// pass; tests that exercise the gate explicitly should override with
+	// req.WithContext(context.WithValue(..., ctxkey.Subscriber, false)).
+	return req.WithContext(context.WithValue(req.Context(), ctxkey.Subscriber, true))
 }

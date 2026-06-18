@@ -84,6 +84,9 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok      bool
 		storyID string
 	)
+	if !RequireSubscriber(w, r, models.BenefitExport) {
+		return
+	}
 	typeOf := r.URL.Query().Get("type")
 	if typeOf == "" {
 		RespondWithError(w, http.StatusBadRequest, "no type provided")

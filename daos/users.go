@@ -79,8 +79,18 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 	go func() {
 		bgCtx := context.WithoutCancel(ctx)
 
+		// Mint a one-shot 30-day promo code so the welcome email can offer
+		// the user their first month free. A failure here shouldn't block
+		// the welcome email — fall through with an empty code and the
+		// welcome body skips the promo section.
+		promoCode, promoExpiresAt, promoErr := CreateWelcomePromoCode(email)
+		if promoErr != nil {
+			logger.Warn("Welcome promo code generation failed; sending welcome without code",
+				"email", email, "error", promoErr)
+		}
+
 		// Send welcome email to user
-		if err = sendWelcomeEmail(email); err != nil {
+		if err = sendWelcomeEmail(email, promoCode, promoExpiresAt); err != nil {
 			logger.Error("Failed to send welcome email",
 				"email", email,
 				"error", err)
@@ -143,7 +153,9 @@ func (d *DAO) recreateDeletedUser(ctx context.Context, email, now string) (*mode
 	logger.Info("Account re-created (was previously deleted)", "email", email)
 	go func() {
 		bgCtx := context.WithoutCancel(ctx)
-		if err := sendWelcomeEmail(email); err != nil {
+		// Returning users (previously soft-deleted accounts) don't get the
+		// new-signup promo code.
+		if err := sendWelcomeEmail(email, "", 0); err != nil {
 			logger.Error("Failed to send welcome email", "email", email, "error", err)
 		} else {
 			logger.Info("Welcome email sent successfully", "email", email)
@@ -505,11 +517,15 @@ func (d *DAO) applySubscriberSideEffects(
 	case !isSubscribed && user.Subscriber:
 		return d.applySubscriptionExpired(ctx, user, sub)
 	case isSubscribed:
-		wasSuspended, err := d.CheckForSuspendedStories(ctx, user.Email)
+		wasSuspendedStories, err := d.CheckForSuspendedStories(ctx, user.Email)
 		if err != nil {
 			return err
 		}
-		if wasSuspended {
+		wasSuspendedAssoc, err := d.HasSuspendedAssociations(ctx, user.Email)
+		if err != nil {
+			return err
+		}
+		if wasSuspendedStories || wasSuspendedAssoc {
 			d.kickoffRestoreAsync(user.Email)
 			user.NotifyRestored = true
 		}
@@ -517,10 +533,11 @@ func (d *DAO) applySubscriberSideEffects(
 	return nil
 }
 
-// applySubscriptionExpired handles the active→expired transition: marks the
-// notify flag, kicks off background soft-deletion of all but the first
-// story (the "free tier" allowance), zeroes out the subscription end date,
-// and persists both records.
+// applySubscriptionExpired handles the active→expired transition. Stories
+// stay accessible — only the per-story associations cap, export, and share
+// are gated. Marks the notify flag, kicks off background suspension of
+// excess associations, zeroes out the subscription end date, and persists
+// both records.
 func (d *DAO) applySubscriptionExpired(
 	ctx context.Context,
 	user *models.UserInfo,
@@ -528,30 +545,22 @@ func (d *DAO) applySubscriptionExpired(
 ) error {
 	user.NotifyExpired = true
 
-	stories, err := d.GetAllStories(ctx, user.Email)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return err
-	}
-	for idx, s := range stories {
-		if idx == 0 {
-			continue
+	// Suspend cap-excess associations in the background so a slow scan
+	// doesn't stall the login flow that discovered this expiry.
+	go func(email string) {
+		bgCtx := context.WithoutCancel(ctx)
+		if err := d.SuspendExcessAssociations(bgCtx, email); err != nil {
+			logger.Warn("background SuspendExcessAssociations failed",
+				"email", email, "error", err)
 		}
-		go func(storyID string) {
-			if delErr := d.SoftDeleteStory(ctx, user.Email, storyID, true); delErr != nil {
-				logger.Warn("background SoftDeleteStory failed", "storyID", storyID, "error", delErr)
-			}
-		}(s.ID)
-	}
+	}(user.Email)
 
 	sub.CurrentSubscriptionEnd = time.Now()
-	if err = d.UpdateSubscription(ctx, *sub); err != nil {
+	if err := d.UpdateSubscription(ctx, *sub); err != nil {
 		return err
 	}
 	user.Subscriber = false
-	if err = d.UpdateUser(ctx, *user); err != nil {
-		return err
-	}
-	return nil
+	return d.UpdateUser(ctx, *user)
 }
 
 func (d *DAO) AddCustomerID(ctx context.Context, email, customerID *string) error {
@@ -575,8 +584,10 @@ func (d *DAO) AddCustomerID(ctx context.Context, email, customerID *string) erro
 	return nil
 }
 
-// sendWelcomeEmail sends a welcome email to a new user.
-func sendWelcomeEmail(userEmail string) error {
+// sendWelcomeEmail sends a welcome email to a new user. When promoCode is
+// non-empty, a "first month free" section is appended with the code and its
+// expiry date (promoExpiresAt is a Unix timestamp).
+func sendWelcomeEmail(userEmail, promoCode string, promoExpiresAt int64) error {
 	region := os.Getenv("AWS_REGION")
 	if region == "" {
 		logger.Error("Unable to send welcome email - missing AWS_REGION environment variable")
@@ -613,7 +624,21 @@ Getting Started:
 3. Highlight text to create references to characters, places, and events
 4. Click any reference to view its details without losing your place
 
-Visit Threadr: https://threadr.net
+Visit Threadr: https://threadr.net`
+
+	// Subscription upsell: benefits copy from welcome_benefits.txt, plus
+	// a per-user promo code when one was minted.
+	emailBody += "\n\n--\n\n" + WelcomeBenefitsCopy()
+	if promoCode != "" {
+		expiry := time.Unix(promoExpiresAt, 0).UTC().Format("January 2, 2006")
+		emailBody += "\n\nFirst month on us: use promo code " + promoCode +
+			" at checkout. This code is for you only and expires on " + expiry + "."
+	}
+	emailBody += "\n\nSubscribe at https://threadr.net/subscribe"
+
+	emailBody += `
+
+--
 
 Need help? Have questions or feedback? Email us at support@threadr.net - we'd love to hear from you!
 

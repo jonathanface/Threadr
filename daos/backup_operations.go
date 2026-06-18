@@ -45,6 +45,11 @@ func (d *DAO) kickoffRestoreAsync(email string) {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute) //nolint:mnd
 		defer cancel()
+		// Always restore suspended associations on resubscribe — cheap when
+		// nothing's marked, decisive when something is.
+		if err := d.RestoreSuspendedAssociations(ctx, email); err != nil {
+			logger.Error("RestoreSuspendedAssociations failed", "email", email, "error", err)
+		}
 		evCh, err := d.RestoreAutomaticallyDeletedStories(ctx, email)
 		if err != nil {
 			logger.Error("restore start error", "email", email, "error", err)

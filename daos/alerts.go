@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"Threadr/logger"
@@ -182,7 +183,7 @@ func (d *DAO) createSubscribeNowAlert(ctx context.Context, email string) {
 	alert := models.Alert{
 		ID:          fmt.Sprintf("subscribe-%s", email),
 		Subject:     "Subscriber features",
-		Message:     "FYI: paid accounts get unlimited associations plus full export capability. Subscribe here!",
+		Message:     subscribeNowMessage(),
 		Link:        "/subscribe",
 		AlertType:   models.AlertTypePersonal,
 		TargetEmail: email,
@@ -191,6 +192,27 @@ func (d *DAO) createSubscribeNowAlert(ctx context.Context, email string) {
 	}
 	if err := d.CreateAlert(ctx, alert); err != nil {
 		logger.Error("Failed to create welcome alert", "error", err, "email", email)
+	}
+}
+
+// subscribeNowMessage renders the in-app subscribe prompt from the
+// authoritative benefits list so it stays in sync with the welcome email
+// and any future /subscribe page.
+func subscribeNowMessage() string {
+	titles := make([]string, 0, len(models.SubscriberBenefits))
+	for _, b := range models.SubscriberBenefits {
+		titles = append(titles, strings.ToLower(b.Title))
+	}
+	switch len(titles) {
+	case 0:
+		return "Subscribe to unlock premium features."
+	case 1:
+		return "FYI: paid accounts get " + titles[0] + ". Subscribe here!"
+	case 2:
+		return "FYI: paid accounts get " + titles[0] + " and " + titles[1] + ". Subscribe here!"
+	default:
+		joined := strings.Join(titles[:len(titles)-1], ", ") + ", and " + titles[len(titles)-1]
+		return "FYI: paid accounts get " + joined + ". Subscribe here!"
 	}
 }
 

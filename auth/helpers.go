@@ -88,7 +88,7 @@ func applyOAuthSubscriptionUpdate(
 		sendSubscriptionAlert(ctx, dao, models.Alert{
 			ID:          "sub-expired-" + userDetails.Email,
 			Subject:     "Subscription Expired",
-			Message:     "Your subscription has expired and your additional stories have been archived. Resubscribe within 30 days to restore them — after that, they will be permanently deleted.",
+			Message:     "Your subscription has expired. Your stories are safe, but exporting, sharing with readers, and adding more than 10 associations per story are paused until you resubscribe.",
 			Link:        "/subscribe",
 			TargetEmail: userDetails.Email,
 		})
@@ -101,7 +101,7 @@ func applyOAuthSubscriptionUpdate(
 		sendSubscriptionAlert(ctx, dao, models.Alert{
 			ID:          "sub-restored-" + userDetails.Email + "-" + strconv.FormatInt(time.Now().Unix(), 10),
 			Subject:     "Subscription Restored",
-			Message:     "Your subscription is active again. Your stories are being restored and will be available shortly.",
+			Message:     "Welcome back! Your subscription is active again — exporting, sharing, and unlimited associations are unlocked.",
 			Link:        "/stories",
 			TargetEmail: userDetails.Email,
 		})
