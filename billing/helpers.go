@@ -184,7 +184,6 @@ func fireSubscriptionExpiredAlert(ctx context.Context, dao daos.DaoInterface, em
 	}()
 }
 
-
 // suspendExcessAssociationsAsync runs SuspendExcessAssociations in a
 // background goroutine so the Stripe webhook can ACK quickly. Failures are
 // logged but never block the response — a missed suspension just means the

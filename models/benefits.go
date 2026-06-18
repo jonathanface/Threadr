@@ -16,10 +16,10 @@ type SubscriberBenefit struct {
 //     "subscribe to unlock X" prompt
 //   - audit logs / metrics that want to slice by gated feature
 const (
-	BenefitAssociations     = "associations"
-	BenefitExport           = "export"
-	BenefitShare            = "share"
-	BenefitPrioritySupport  = "priority_support"
+	BenefitAssociations    = "associations"
+	BenefitExport          = "export"
+	BenefitShare           = "share"
+	BenefitPrioritySupport = "priority_support"
 )
 
 // MaxFreeAssociationsPerStory is the per-story (or per-series) cap on
@@ -31,6 +31,8 @@ const MaxFreeAssociationsPerStory = 10
 // SubscriberBenefits is the ordered, authoritative list of features that
 // require a subscription. Display surfaces (welcome email, /subscribe page,
 // in-app prompts) should iterate this slice rather than hard-coding copy.
+//
+//nolint:gochecknoglobals // Authoritative canonical list — read by handlers, alerts, and the welcome email.
 var SubscriberBenefits = []SubscriberBenefit{
 	{
 		ID:    BenefitAssociations,

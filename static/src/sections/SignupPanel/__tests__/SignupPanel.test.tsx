@@ -94,6 +94,7 @@ describe('SignupPanel', () => {
     fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'john@test.com' } });
     fireEvent.change(screen.getByPlaceholderText('Password (min 8 characters)'), { target: { value: 'password123' } });
     fireEvent.change(screen.getByPlaceholderText('Confirm Password'), { target: { value: 'password123' } });
+    fireEvent.click(screen.getByLabelText(/Accept Terms of Service/i));
 
     fireEvent.click(screen.getByRole('button', { name: /create account/i }));
 
@@ -103,8 +104,24 @@ describe('SignupPanel', () => {
         password: 'password123',
         first_name: 'John',
         last_name: 'Doe',
+        terms_accepted: true,
       });
     });
+  });
+
+  it('blocks submit and shows ToS error when checkbox unchecked', async () => {
+    renderComponent();
+
+    fireEvent.change(screen.getByPlaceholderText('First Name'), { target: { value: 'John' } });
+    fireEvent.change(screen.getByPlaceholderText('Last Name'), { target: { value: 'Doe' } });
+    fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'john@test.com' } });
+    fireEvent.change(screen.getByPlaceholderText('Password (min 8 characters)'), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByPlaceholderText('Confirm Password'), { target: { value: 'password123' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /create account/i }));
+
+    expect(await screen.findByText(/You must agree to the Terms of Service/i)).toBeInTheDocument();
+    expect(axios.post).not.toHaveBeenCalled();
   });
 
   it('shows success message after successful signup', async () => {
@@ -119,6 +136,7 @@ describe('SignupPanel', () => {
     fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'john@test.com' } });
     fireEvent.change(screen.getByPlaceholderText('Password (min 8 characters)'), { target: { value: 'password123' } });
     fireEvent.change(screen.getByPlaceholderText('Confirm Password'), { target: { value: 'password123' } });
+    fireEvent.click(screen.getByLabelText(/Accept Terms of Service/i));
 
     fireEvent.click(screen.getByRole('button', { name: /create account/i }));
 
@@ -142,6 +160,7 @@ describe('SignupPanel', () => {
     fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'john@test.com' } });
     fireEvent.change(screen.getByPlaceholderText('Password (min 8 characters)'), { target: { value: 'password123' } });
     fireEvent.change(screen.getByPlaceholderText('Confirm Password'), { target: { value: 'password123' } });
+    fireEvent.click(screen.getByLabelText(/Accept Terms of Service/i));
 
     fireEvent.click(screen.getByRole('button', { name: /create account/i }));
 
@@ -164,6 +183,7 @@ describe('SignupPanel', () => {
     fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'john@test.com' } });
     fireEvent.change(screen.getByPlaceholderText('Password (min 8 characters)'), { target: { value: 'password123' } });
     fireEvent.change(screen.getByPlaceholderText('Confirm Password'), { target: { value: 'password123' } });
+    fireEvent.click(screen.getByLabelText(/Accept Terms of Service/i));
 
     fireEvent.click(screen.getByRole('button', { name: /create account/i }));
 

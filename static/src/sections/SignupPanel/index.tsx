@@ -14,6 +14,7 @@ export const SignupPanel = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,6 +40,10 @@ export const SignupPanel = () => {
       setError("Passwords do not match");
       return;
     }
+    if (!termsAccepted) {
+      setError("You must agree to the Terms of Service and Privacy Policy");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -47,6 +52,7 @@ export const SignupPanel = () => {
         password,
         first_name: firstName,
         last_name: lastName,
+        terms_accepted: termsAccepted,
       });
       posthog?.capture("user_signed_up", { auth_type: "email" });
       setSuccess(res.data.message || "Account created! Check your email to verify.");
@@ -141,7 +147,31 @@ export const SignupPanel = () => {
               className={styles.input}
               autoComplete="new-password"
             />
-            <button type="submit" className={styles.submitButton} disabled={loading}>
+            <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "0.9rem", marginTop: "0.5rem" }}>
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                style={{ marginTop: "0.2rem", flexShrink: 0 }}
+                aria-label="Accept Terms of Service and Privacy Policy"
+              />
+              <span>
+                I agree to the{" "}
+                <a href="/terms.html" target="_blank" rel="noopener noreferrer" className={styles.link}>
+                  Terms of Service
+                </a>{" "}
+                and{" "}
+                <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className={styles.link}>
+                  Privacy Policy
+                </a>
+                .
+              </span>
+            </label>
+            <button
+              type="submit"
+              className={styles.submitButton}
+              disabled={loading}
+            >
               {loading ? "Creating account..." : "Create Account"}
             </button>
           </form>

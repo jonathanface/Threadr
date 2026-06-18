@@ -208,7 +208,7 @@ func subscribeNowMessage() string {
 		return "Subscribe to unlock premium features."
 	case 1:
 		return "FYI: paid accounts get " + titles[0] + ". Subscribe here!"
-	case 2:
+	case 2: //nolint:mnd // Two-item list uses "A and B" instead of "A, and B".
 		return "FYI: paid accounts get " + titles[0] + " and " + titles[1] + ". Subscribe here!"
 	default:
 		joined := strings.Join(titles[:len(titles)-1], ", ") + ", and " + titles[len(titles)-1]

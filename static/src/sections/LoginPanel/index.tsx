@@ -129,6 +129,17 @@ export const LoginPanel = () => {
             />
           </a>
         </div>
+        <p style={{ fontSize: "0.8rem", opacity: 0.75, textAlign: "center", marginTop: "0.5rem" }}>
+          By continuing, you agree to our{" "}
+          <a href="/terms.html" target="_blank" rel="noopener noreferrer" className={styles.link}>
+            Terms of Service
+          </a>{" "}
+          and{" "}
+          <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className={styles.link}>
+            Privacy Policy
+          </a>
+          .
+        </p>
       </div>
 
       <div className={styles.divider}>

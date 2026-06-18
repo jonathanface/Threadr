@@ -40,10 +40,12 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 	// Normal new user creation
 	twii := &dynamodb.TransactWriteItemsInput{}
 	attributes := map[string]types.AttributeValue{
-		"email":       &types.AttributeValueMemberS{Value: email},
-		"admin":       &types.AttributeValueMemberBOOL{Value: false},
-		"subscriber":  &types.AttributeValueMemberBOOL{Value: false},
-		attrCreatedAt: &types.AttributeValueMemberN{Value: now},
+		"email":             &types.AttributeValueMemberS{Value: email},
+		"admin":             &types.AttributeValueMemberBOOL{Value: false},
+		"subscriber":        &types.AttributeValueMemberBOOL{Value: false},
+		attrCreatedAt:       &types.AttributeValueMemberN{Value: now},
+		"terms_accepted_at": &types.AttributeValueMemberN{Value: now},
+		"terms_version":     &types.AttributeValueMemberS{Value: models.CurrentTermsVersion},
 	}
 	twi := types.TransactWriteItem{
 		Put: &types.Put{
@@ -67,11 +69,14 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 		)
 	}
 
+	nowInt, _ := strconv.ParseInt(now, 10, 64)
 	user := models.UserInfo{
-		Email:      email,
-		Admin:      false,
-		Subscriber: false,
-		NewUser:    true, // Flag for brand new user
+		Email:           email,
+		Admin:           false,
+		Subscriber:      false,
+		TermsAcceptedAt: nowInt,
+		TermsVersion:    models.CurrentTermsVersion,
+		NewUser:         true, // Flag for brand new user
 	}
 
 	logger.Info("New account created", "email", email)

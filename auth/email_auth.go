@@ -73,6 +73,14 @@ func emailSignup(w http.ResponseWriter, r *http.Request, options OauthOptions) {
 		return
 	}
 
+	// Validate ToS acceptance — the React signup form requires the checkbox,
+	// but defend in depth against direct POSTs.
+	if !req.TermsAccepted {
+		respondJSON(w, http.StatusBadRequest,
+			map[string]string{"error": "You must accept the Terms of Service and Privacy Policy"})
+		return
+	}
+
 	// Validate email
 	if req.Email == "" {
 		respondJSON(w, http.StatusBadRequest, map[string]string{"error": "Email is required"})

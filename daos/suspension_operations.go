@@ -62,7 +62,7 @@ func (d *DAO) SuspendExcessAssociations(ctx context.Context, email string) error
 				continue
 			}
 			var createdAt int64
-			if ca, ok := item["created_at"].(*types.AttributeValueMemberN); ok {
+			if ca, caOK := item["created_at"].(*types.AttributeValueMemberN); caOK {
 				createdAt, _ = strconv.ParseInt(ca.Value, 10, 64)
 			}
 			grouped[sosIDAttr.Value] = append(grouped[sosIDAttr.Value], assocKey{
