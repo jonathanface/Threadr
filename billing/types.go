@@ -4,6 +4,12 @@ type createSubResp struct {
 	SubscriptionID string `json:"subscription_id"`
 	ClientSecret   string `json:"client_secret"`
 	Status         string `json:"status"`
+	// Mode is "payment" when the client secret belongs to a PaymentIntent
+	// (the typical case: there's an amount to charge now) and "setup" when
+	// it belongs to a SetupIntent (the $0-first-invoice case after a 100%
+	// promo code — Stripe still wants a saved card for the next renewal).
+	// The frontend picks confirmPayment vs confirmSetup based on this.
+	Mode string `json:"mode"`
 }
 
 // type stripeRouteSpec struct {

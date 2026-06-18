@@ -194,6 +194,10 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 			},
 			Expand: []*string{
 				stripe.String("latest_invoice.payment_intent"),
+				// pending_setup_intent is what Stripe attaches when the
+				// first invoice is $0 (e.g., 100% promo). We need its
+				// client_secret to collect a payment method for renewals.
+				stripe.String("pending_setup_intent"),
 			},
 		}
 		// Optional promotion code from the request body. Resolve the
@@ -222,6 +226,7 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 			Params: stripe.Params{
 				Expand: []*string{
 					stripe.String("latest_invoice.payment_intent"),
+					stripe.String("pending_setup_intent"),
 				},
 			},
 		})
@@ -232,11 +237,25 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	inv := s.LatestInvoice
-	if inv == nil || inv.PaymentIntent == nil {
+	// Pick the right Intent. PaymentIntent is the typical case (there's an
+	// amount to charge now). SetupIntent is what Stripe attaches when the
+	// first invoice is $0 (e.g., a 100% welcome promo) — we still want a
+	// saved card so we can charge the next renewal.
+	var (
+		clientSecret string
+		intentMode   string
+	)
+	if inv := s.LatestInvoice; inv != nil && inv.PaymentIntent != nil {
+		clientSecret = inv.PaymentIntent.ClientSecret
+		intentMode = "payment"
+	} else if s.PendingSetupIntent != nil {
+		clientSecret = s.PendingSetupIntent.ClientSecret
+		intentMode = "setup"
+	} else {
 		RespondWithError(w, http.StatusFailedDependency, "missing payment_intent")
 		return
 	}
+
 	var periodEnd time.Time
 	if s.CurrentPeriodEnd > 0 {
 		periodEnd = time.Unix(s.CurrentPeriodEnd, 0).UTC()
@@ -256,7 +275,8 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, createSubResp{
 		SubscriptionID: s.ID,
 		Status:         string(s.Status),
-		ClientSecret:   inv.PaymentIntent.ClientSecret,
+		ClientSecret:   clientSecret,
+		Mode:           intentMode,
 	})
 }
 
