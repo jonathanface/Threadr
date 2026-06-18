@@ -76,10 +76,11 @@ func TestEmailSignup_Success(t *testing.T) {
 	}
 
 	body := jsonBody(t, models.EmailSignupRequest{
-		Email:     "test@example.com",
-		Password:  "password123",
-		FirstName: "Test",
-		LastName:  "User",
+		TermsAccepted: true,
+		Email:         "test@example.com",
+		Password:      "password123",
+		FirstName:     "Test",
+		LastName:      "User",
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)
@@ -94,14 +95,46 @@ func TestEmailSignup_Success(t *testing.T) {
 	}
 }
 
+func TestEmailSignup_RequiresTermsAccepted(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+	mockDAO.MockCreateEmailUser = func(_, _, _, _, _ string, _ int64) (*models.UserInfo, error) {
+		t.Fatalf("CreateEmailUser should not be called when terms_accepted is false")
+		return nil, nil //nolint:nilnil // unreachable, fatal-ed above.
+	}
+
+	body := jsonBody(t, models.EmailSignupRequest{
+		// TermsAccepted intentionally false (zero value)
+		Email:     "test@example.com",
+		Password:  "password123",
+		FirstName: "Test",
+		LastName:  "User",
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)
+	req.Header.Set("Content-Type", "application/json")
+	req = makeCtxWithDAO(req, mockDAO)
+
+	rr := httptest.NewRecorder()
+	EmailSignupHandler(testOptions()).ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("Expected 400, got %d. Body: %s", rr.Code, rr.Body.String())
+	}
+	resp := decodeJSON(t, rr)
+	if msg, _ := resp["error"].(string); !strings.Contains(msg, "Terms of Service") {
+		t.Errorf("Expected ToS rejection message, got: %v", resp["error"])
+	}
+}
+
 func TestEmailSignup_MissingEmail(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
 	body := jsonBody(t, models.EmailSignupRequest{
-		Email:     "",
-		Password:  "password123",
-		FirstName: "Test",
-		LastName:  "User",
+		TermsAccepted: true,
+		Email:         "",
+		Password:      "password123",
+		FirstName:     "Test",
+		LastName:      "User",
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)
@@ -120,10 +153,11 @@ func TestEmailSignup_InvalidEmailFormat(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
 	body := jsonBody(t, models.EmailSignupRequest{
-		Email:     "not-an-email",
-		Password:  "password123",
-		FirstName: "Test",
-		LastName:  "User",
+		TermsAccepted: true,
+		Email:         "not-an-email",
+		Password:      "password123",
+		FirstName:     "Test",
+		LastName:      "User",
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)
@@ -146,10 +180,11 @@ func TestEmailSignup_MissingNames(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
 	body := jsonBody(t, models.EmailSignupRequest{
-		Email:     "test@example.com",
-		Password:  "password123",
-		FirstName: "",
-		LastName:  "",
+		TermsAccepted: true,
+		Email:         "test@example.com",
+		Password:      "password123",
+		FirstName:     "",
+		LastName:      "",
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)
@@ -172,10 +207,11 @@ func TestEmailSignup_PasswordTooShort(t *testing.T) {
 	mockDAO := daos.NewMockDAO()
 
 	body := jsonBody(t, models.EmailSignupRequest{
-		Email:     "test@example.com",
-		Password:  "short",
-		FirstName: "Test",
-		LastName:  "User",
+		TermsAccepted: true,
+		Email:         "test@example.com",
+		Password:      "short",
+		FirstName:     "Test",
+		LastName:      "User",
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)
@@ -199,10 +235,11 @@ func TestEmailSignup_PasswordTooLong(t *testing.T) {
 
 	longPassword := strings.Repeat("a", 73) // exceeds bcrypt limit of 72
 	body := jsonBody(t, models.EmailSignupRequest{
-		Email:     "test@example.com",
-		Password:  longPassword,
-		FirstName: "Test",
-		LastName:  "User",
+		TermsAccepted: true,
+		Email:         "test@example.com",
+		Password:      longPassword,
+		FirstName:     "Test",
+		LastName:      "User",
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)
@@ -228,10 +265,11 @@ func TestEmailSignup_ExistingOAuthAccount(t *testing.T) {
 	}
 
 	body := jsonBody(t, models.EmailSignupRequest{
-		Email:     "test@example.com",
-		Password:  "password123",
-		FirstName: "Test",
-		LastName:  "User",
+		TermsAccepted: true,
+		Email:         "test@example.com",
+		Password:      "password123",
+		FirstName:     "Test",
+		LastName:      "User",
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)
@@ -257,10 +295,11 @@ func TestEmailSignup_ExistingEmailAccount(t *testing.T) {
 	}
 
 	body := jsonBody(t, models.EmailSignupRequest{
-		Email:     "test@example.com",
-		Password:  "password123",
-		FirstName: "Test",
-		LastName:  "User",
+		TermsAccepted: true,
+		Email:         "test@example.com",
+		Password:      "password123",
+		FirstName:     "Test",
+		LastName:      "User",
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)
@@ -286,10 +325,11 @@ func TestEmailSignup_DAOErrorOnGetUserDetails(t *testing.T) {
 	}
 
 	body := jsonBody(t, models.EmailSignupRequest{
-		Email:     "test@example.com",
-		Password:  "password123",
-		FirstName: "Test",
-		LastName:  "User",
+		TermsAccepted: true,
+		Email:         "test@example.com",
+		Password:      "password123",
+		FirstName:     "Test",
+		LastName:      "User",
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)
@@ -961,10 +1001,11 @@ func TestEmailSignup_ExistingAmazonOAuthAccount(t *testing.T) {
 	}
 
 	body := jsonBody(t, models.EmailSignupRequest{
-		Email:     "test@example.com",
-		Password:  "password123",
-		FirstName: "Test",
-		LastName:  "User",
+		TermsAccepted: true,
+		Email:         "test@example.com",
+		Password:      "password123",
+		FirstName:     "Test",
+		LastName:      "User",
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)
@@ -1028,10 +1069,11 @@ func TestEmailSignup_CreateUserDAOError(t *testing.T) {
 	}
 
 	body := jsonBody(t, models.EmailSignupRequest{
-		Email:     "test@example.com",
-		Password:  "password123",
-		FirstName: "Test",
-		LastName:  "User",
+		TermsAccepted: true,
+		Email:         "test@example.com",
+		Password:      "password123",
+		FirstName:     "Test",
+		LastName:      "User",
 	})
 
 	req := httptest.NewRequest(http.MethodPost, "/auth/email/signup", body)

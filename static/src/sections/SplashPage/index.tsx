@@ -166,15 +166,24 @@ export const SplashPage = () => {
             Group stories into series, track characters across books, and keep your saga consistent
           </div>
           <div className={styles.featureItem}>
-            <strong>Share with Beta Readers</strong>
+            <strong>
+              Share with Beta Readers
+              <span className={styles.proBadge}>Pro</span>
+            </strong>
             Invite readers by email with a unique link. They see your manuscript in a clean, read-only view — no account required
           </div>
           <div className={styles.featureItem}>
-            <strong>Inline Reader Comments</strong>
+            <strong>
+              Inline Reader Comments
+              <span className={styles.proBadge}>Pro</span>
+            </strong>
             Readers highlight text and leave comments right on the passage. You see every note anchored to the exact words they're referencing
           </div>
           <div className={styles.featureItem}>
-            <strong>Export Your Way</strong>
+            <strong>
+              Export Your Way
+              <span className={styles.proBadge}>Pro</span>
+            </strong>
             Download finished work as PDF, DOCX, or EPUB — formatted and ready to share or submit
           </div>
         </div>
@@ -187,14 +196,16 @@ export const SplashPage = () => {
             <h3>What's free?</h3>
             <p>
               Unlimited stories with up to 10 story elements (characters,
-              places, events) each. No time limit, no credit card.
+              places, events) each. No time limit, no credit card. Sharing
+              with readers and document export are Pro features.
             </p>
           </div>
           <div className={styles.faqItem}>
             <h3>What does Pro add?</h3>
             <p>
               Unlimited story elements per story, document export (PDF, DOCX,
-              EPUB), and priority support. $10/month, cancel anytime.
+              EPUB), sharing with beta readers, and priority support.
+              $10/month, cancel anytime.
             </p>
           </div>
           <div className={styles.faqItem}>

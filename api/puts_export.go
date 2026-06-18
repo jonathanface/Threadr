@@ -74,7 +74,7 @@ func validateExportRequest(export models.DocumentExportRequest) error {
 	return nil
 }
 
-//nolint:funlen // Multi-format export pipeline: validate, fetch, convert, S3 upload — linear flow.
+//nolint:funlen,gocognit,gocyclo,cyclop // Multi-format export pipeline: validate, fetch, convert, S3 upload — linear flow.
 func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	// this should be transactified
 	var (
@@ -84,6 +84,9 @@ func ExportStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		ok      bool
 		storyID string
 	)
+	if !RequireSubscriber(w, r, models.BenefitExport) {
+		return
+	}
 	typeOf := r.URL.Query().Get("type")
 	if typeOf == "" {
 		RespondWithError(w, http.StatusBadRequest, "no type provided")

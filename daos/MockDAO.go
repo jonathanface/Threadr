@@ -60,6 +60,9 @@ type MockDAO struct {
 	MockSoftDeleteStory                       func(email, storyID string, includeBlocks bool) error
 	MockDeleteSeries                          func(email string, series models.Series) error
 	MockDeleteUser                            func(email string) error
+	MockSuspendExcessAssociations             func(email string) error
+	MockRestoreSuspendedAssociations          func(email string) error
+	MockHasSuspendedAssociations              func(email string) (bool, error)
 	MockGetChapterTableStatus                 func() (bool, error)
 	MockGetChapterByID                        func(chapterID string) (*models.Chapter, error)
 	MockWasStoryDeleted                       func(email, storyID string) (bool, error)
@@ -842,4 +845,25 @@ func (m *MockDAO) MarkAlertRead(_ context.Context, email, alertID string) error 
 		return m.MockMarkAlertRead(email, alertID)
 	}
 	return nil
+}
+
+func (m *MockDAO) SuspendExcessAssociations(_ context.Context, email string) error {
+	if m.MockSuspendExcessAssociations != nil {
+		return m.MockSuspendExcessAssociations(email)
+	}
+	return nil
+}
+
+func (m *MockDAO) RestoreSuspendedAssociations(_ context.Context, email string) error {
+	if m.MockRestoreSuspendedAssociations != nil {
+		return m.MockRestoreSuspendedAssociations(email)
+	}
+	return nil
+}
+
+func (m *MockDAO) HasSuspendedAssociations(_ context.Context, email string) (bool, error) {
+	if m.MockHasSuspendedAssociations != nil {
+		return m.MockHasSuspendedAssociations(email)
+	}
+	return false, nil
 }

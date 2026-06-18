@@ -26,8 +26,7 @@
 
 .flyoutMenu {
     width: 400px;
-    height: 100%;
-    background-color: var(--bg-primary);
+    min-height: 100%;
     color: var(--text-primary);
     padding: 20px;
     box-sizing: border-box;
@@ -35,7 +34,6 @@
 
 /* Light mode - flyout menu */
 :global([data-theme="light"]) .flyoutMenu {
-    background-color: #ffffff;
     color: var(--text-primary-light);
 }
 

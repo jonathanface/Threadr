@@ -67,7 +67,11 @@ func CreateAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 			return
 		}
-		if len(existingAssoc) >= nonSubscriberMaxAssoc {
+		// Count only visible (non-suspended) associations against the cap so a
+		// lapsed user who already has suspended excess can't be tricked into
+		// the wrong count.
+		visible := FilterSuspendedAssociations(existingAssoc)
+		if len(visible) >= models.MaxFreeAssociationsPerStory {
 			RespondWithError(w, http.StatusPaymentRequired, "insufficient subscription")
 			return
 		}

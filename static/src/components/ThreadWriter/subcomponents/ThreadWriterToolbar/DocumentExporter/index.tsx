@@ -138,6 +138,11 @@ export const DocumentExporter = () => {
             aria-label="export"
             disabled={disabled}
             onClick={() => (!disabled ? setIsOpen(!isOpen) : null)}
+            sx={{
+              "&.Mui-disabled": {
+                opacity: 0.4,
+              },
+            }}
           >
             <FileDownloadIcon fontSize="small" />
           </IconButton>

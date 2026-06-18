@@ -46,6 +46,11 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
     return null;
   }
 
+  const shareDisabled = !userSettings.userDetails.subscriber;
+  const shareTooltip = shareDisabled
+    ? "Sharing with readers is only available to subscribers"
+    : "Share";
+
   return (
     <div>
       <Paper
@@ -91,15 +96,25 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
             <Settings />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Share" placement="right">
-          <IconButton
-            onClick={() => {
-              setIsShareDialogOpen(true);
-            }}
-            sx={{ color: "var(--text-primary)" }}
-          >
-            <ShareIcon />
-          </IconButton>
+        <Tooltip title={shareTooltip} placement="right">
+          <span>
+            <IconButton
+              onClick={() => {
+                if (shareDisabled) return;
+                setIsShareDialogOpen(true);
+              }}
+              disabled={shareDisabled}
+              sx={{
+                color: "var(--text-primary)",
+                "&.Mui-disabled": {
+                  color: "var(--text-primary)",
+                  opacity: 0.4,
+                },
+              }}
+            >
+              <ShareIcon />
+            </IconButton>
+          </span>
         </Tooltip>
         <Tooltip title="Reader Comments" placement="right">
           <IconButton
@@ -165,6 +180,7 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
           </IconButton>
           <ChapterMenu
             onChapterSelect={() => setIsEditorChapterMenuOpen(false)}
+            isOpen={isEditorChapterMenuOpen}
           />
         </Box>
       </Drawer>

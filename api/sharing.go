@@ -50,6 +50,9 @@ func CreateShareLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 		dao     daos.DaoInterface
 		ok      bool
 	)
+	if !RequireSubscriber(w, r, models.BenefitShare) {
+		return
+	}
 	author, err := GetAuthenticatedUser(r)
 	if err != nil {
 		logger.Error("Authentication failed", "error", err)

@@ -57,16 +57,29 @@ type Association struct {
 	Details          AssociationDetails `json:"details"`
 	CaseSensitive    bool               `json:"case_sensitive"    dynamodbav:"case_sensitive"`
 	Aliases          string             `json:"aliases"           dynamodbav:"aliases"`
+	// CreatedAt is the unix timestamp when the association first hit the DB.
+	// Populated by WriteAssociations via if_not_exists, so existing rows that
+	// predate this field are returned as 0. Used by the suspension logic to
+	// preserve the oldest associations and suspend the newest.
+	CreatedAt int64 `json:"created_at,omitempty" dynamodbav:"created_at,omitempty"`
+	// SuspendedAt is set (Unix timestamp) when this association is over the
+	// non-subscriber cap after a subscription lapse. Non-subscriber read
+	// paths hide rows where this is non-zero; subscribers see everything.
+	// Cleared on resubscribe by RestoreSuspendedAssociations.
+	SuspendedAt int64 `json:"suspended_at,omitempty" dynamodbav:"suspended_at,omitempty"`
 }
 
 type SimplifiedAssociation struct {
-	ID               string `json:"association_id"    dynamodbav:"association_id"`
-	Name             string `json:"association_name"  dynamodbav:"association_name"`
-	Type             string `json:"association_type"  dynamodbav:"association_type"`
-	Portrait         string `json:"portrait"          dynamodbav:"portrait"`
-	ShortDescription string `json:"short_description" dynamodbav:"short_description"`
-	CaseSensitive    bool   `json:"case_sensitive"    dynamodbav:"case_sensitive"`
-	Aliases          string `json:"aliases"           dynamodbav:"aliases"`
+	ID               string `json:"association_id"       dynamodbav:"association_id"`
+	Name             string `json:"association_name"     dynamodbav:"association_name"`
+	Type             string `json:"association_type"     dynamodbav:"association_type"`
+	Portrait         string `json:"portrait"             dynamodbav:"portrait"`
+	ShortDescription string `json:"short_description"    dynamodbav:"short_description"`
+	CaseSensitive    bool   `json:"case_sensitive"       dynamodbav:"case_sensitive"`
+	Aliases          string `json:"aliases"              dynamodbav:"aliases"`
+	CreatedAt        int64  `json:"created_at,omitempty" dynamodbav:"created_at,omitempty"`
+	// See Association.SuspendedAt.
+	SuspendedAt int64 `json:"suspended_at,omitempty" dynamodbav:"suspended_at,omitempty"`
 }
 
 type Chapter struct {
@@ -166,15 +179,22 @@ type UserInfo struct {
 	NotifyExpired            bool   `json:"notify_expired,omitempty"`
 	NotifyRestored           bool   `json:"notify_restored,omitempty"`
 	DeletedAt                string `json:"deleted_at,omitempty"      dynamodbav:"deleted_at"`
-	NewUser                  bool   `json:"showWelcome,omitempty"`     // Transient flag for brand new users (not stored in DB)
-	ReturningUser            bool   `json:"isReturningUser,omitempty"` // Transient flag for returning deleted users (not stored in DB)
+	// TermsAcceptedAt is the unix timestamp when this user accepted the ToS
+	// and Privacy Policy. Email-signup users acknowledge via a required
+	// checkbox; OAuth users acknowledge implicitly by clicking the provider
+	// button (LoginPanel surfaces the "by continuing, you agree" copy).
+	TermsAcceptedAt int64  `json:"terms_accepted_at,omitempty" dynamodbav:"terms_accepted_at,omitempty"`
+	TermsVersion    string `json:"terms_version,omitempty"     dynamodbav:"terms_version,omitempty"`
+	NewUser         bool   `json:"showWelcome,omitempty"`     // Transient flag for brand new users (not stored in DB)
+	ReturningUser   bool   `json:"isReturningUser,omitempty"` // Transient flag for returning deleted users (not stored in DB)
 }
 
 type EmailSignupRequest struct {
-	Email     string `json:"email"`
-	Password  string `json:"password"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
+	Email         string `json:"email"`
+	Password      string `json:"password"`
+	FirstName     string `json:"first_name"`
+	LastName      string `json:"last_name"`
+	TermsAccepted bool   `json:"terms_accepted"`
 }
 
 type EmailLoginRequest struct {

@@ -158,6 +158,8 @@ export const ChapterTreeItem = ({
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           className={chapter?.id === itemChapter.id ? styles.activeChapter : ""}
+          // Marker used by ChapterMenu's "scroll active chapter to top on open" effect.
+          data-active-chapter={chapter?.id === itemChapter.id ? "true" : undefined}
           label={
             <Tooltip
               title={

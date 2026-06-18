@@ -9,7 +9,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -69,23 +68,20 @@ func TestApplySubscriptionTransition(t *testing.T) {
 		},
 	)
 
-	t.Run("inactive and currently subscriber: demotes user and suspends stories", func(t *testing.T) {
+	t.Run("inactive and currently subscriber: demotes user and fires alert, no story archival", func(t *testing.T) {
 		dao := daos.NewMockDAO()
-		dao.MockGetAllStories = func(_ string) ([]*models.Story, error) {
-			return []*models.Story{
-				{ID: "keep"},
-				{ID: "suspend-1"},
-				{ID: "suspend-2"},
-			}, nil
+		dao.MockSoftDeleteStory = func(_, storyID string, _ bool) error {
+			t.Fatalf("stories should not be soft-deleted on subscription lapse (got %q)", storyID)
+			return nil
 		}
 		var (
-			mu          sync.Mutex
-			softDeletes []string
+			suspendMu       sync.Mutex
+			suspendedEmails []string
 		)
-		dao.MockSoftDeleteStory = func(_, storyID string, _ bool) error {
-			mu.Lock()
-			softDeletes = append(softDeletes, storyID)
-			mu.Unlock()
+		dao.MockSuspendExcessAssociations = func(email string) error {
+			suspendMu.Lock()
+			suspendedEmails = append(suspendedEmails, email)
+			suspendMu.Unlock()
 			return nil
 		}
 		var (
@@ -114,29 +110,6 @@ func TestApplySubscriptionTransition(t *testing.T) {
 			t.Errorf("needsRestore: should be false on demotion")
 		}
 
-		// SoftDeleteStory runs in goroutines launched by suspendUserStories.
-		// Wait briefly for them to commit.
-		deadline := time.Now().Add(time.Second)
-		for time.Now().Before(deadline) {
-			mu.Lock()
-			done := len(softDeletes) == 2
-			mu.Unlock()
-			if done {
-				break
-			}
-			time.Sleep(5 * time.Millisecond)
-		}
-		mu.Lock()
-		defer mu.Unlock()
-		if len(softDeletes) != 2 {
-			t.Fatalf("expected 2 stories to be suspended, got %d", len(softDeletes))
-		}
-		for _, id := range softDeletes {
-			if id == "keep" {
-				t.Errorf("the first story should be retained, not suspended")
-			}
-		}
-
 		// fireSubscriptionExpiredAlert spawns the CreateAlert call in a goroutine.
 		alertDeadline := time.Now().Add(time.Second)
 		for time.Now().Before(alertDeadline) {
@@ -158,6 +131,23 @@ func TestApplySubscriptionTransition(t *testing.T) {
 		}
 		if alerts[0].Subject != "Subscription Expired" {
 			t.Errorf("alert Subject: got %q, want %q", alerts[0].Subject, "Subscription Expired")
+		}
+
+		// SuspendExcessAssociations should have been invoked for this user.
+		suspendDeadline := time.Now().Add(time.Second)
+		for time.Now().Before(suspendDeadline) {
+			suspendMu.Lock()
+			done := len(suspendedEmails) == 1
+			suspendMu.Unlock()
+			if done {
+				break
+			}
+			time.Sleep(5 * time.Millisecond)
+		}
+		suspendMu.Lock()
+		defer suspendMu.Unlock()
+		if len(suspendedEmails) != 1 || suspendedEmails[0] != "a@x.com" {
+			t.Errorf("SuspendExcessAssociations: got %v, want [a@x.com]", suspendedEmails)
 		}
 	})
 
@@ -208,111 +198,6 @@ func TestApplySubscriptionTransition(t *testing.T) {
 		user := &models.UserInfo{Email: "a@x.com", Subscriber: false}
 
 		_, err := applySubscriptionTransition(ctx, dao, user, true)
-		if !errors.Is(err, want) {
-			t.Fatalf("got %v, want %v", err, want)
-		}
-	})
-
-	t.Run("GetAllStories error during suspend is propagated", func(t *testing.T) {
-		dao := daos.NewMockDAO()
-		want := errors.New("scan blew up")
-		dao.MockGetAllStories = func(_ string) ([]*models.Story, error) { return nil, want }
-		user := &models.UserInfo{Email: "a@x.com", Subscriber: true}
-
-		_, err := applySubscriptionTransition(ctx, dao, user, false)
-		if !errors.Is(err, want) {
-			t.Fatalf("got %v, want %v", err, want)
-		}
-	})
-}
-
-// ----------------------------------------------------------------------
-// suspendUserStories
-// ----------------------------------------------------------------------
-
-func TestSuspendUserStories(t *testing.T) {
-	t.Run("no stories: nothing to do", func(t *testing.T) {
-		dao := daos.NewMockDAO()
-		dao.MockGetAllStories = func(_ string) ([]*models.Story, error) {
-			return []*models.Story{}, nil
-		}
-		dao.MockSoftDeleteStory = func(_, _ string, _ bool) error {
-			t.Fatalf("SoftDeleteStory should not be called when there are no stories")
-			return nil
-		}
-		if err := suspendUserStories(context.Background(), dao, "a@x.com"); err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-	})
-
-	t.Run("one story: kept, no soft-deletes", func(t *testing.T) {
-		dao := daos.NewMockDAO()
-		dao.MockGetAllStories = func(_ string) ([]*models.Story, error) {
-			return []*models.Story{{ID: "solo"}}, nil
-		}
-		dao.MockSoftDeleteStory = func(_, _ string, _ bool) error {
-			t.Fatalf("the user's first story should be retained")
-			return nil
-		}
-		if err := suspendUserStories(context.Background(), dao, "a@x.com"); err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-	})
-
-	t.Run("three stories: first kept, remaining two soft-deleted in background", func(t *testing.T) {
-		dao := daos.NewMockDAO()
-		dao.MockGetAllStories = func(_ string) ([]*models.Story, error) {
-			return []*models.Story{
-				{ID: "keep"},
-				{ID: "drop-1"},
-				{ID: "drop-2"},
-			}, nil
-		}
-		var (
-			mu      sync.Mutex
-			deleted []string
-		)
-		dao.MockSoftDeleteStory = func(_, storyID string, includeBlocks bool) error {
-			if !includeBlocks {
-				t.Errorf("SoftDeleteStory should be called with includeBlocks=true (got false for %s)", storyID)
-			}
-			mu.Lock()
-			deleted = append(deleted, storyID)
-			mu.Unlock()
-			return nil
-		}
-
-		if err := suspendUserStories(context.Background(), dao, "a@x.com"); err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-
-		deadline := time.Now().Add(time.Second)
-		for time.Now().Before(deadline) {
-			mu.Lock()
-			done := len(deleted) == 2
-			mu.Unlock()
-			if done {
-				break
-			}
-			time.Sleep(5 * time.Millisecond)
-		}
-		mu.Lock()
-		defer mu.Unlock()
-		if len(deleted) != 2 {
-			t.Fatalf("expected 2 background soft-deletes, got %d (%v)", len(deleted), deleted)
-		}
-		for _, id := range deleted {
-			if id == "keep" {
-				t.Errorf("the first story should never be soft-deleted")
-			}
-		}
-	})
-
-	t.Run("GetAllStories error is propagated", func(t *testing.T) {
-		dao := daos.NewMockDAO()
-		want := errors.New("scan failed")
-		dao.MockGetAllStories = func(_ string) ([]*models.Story, error) { return nil, want }
-		err := suspendUserStories(context.Background(), dao, "a@x.com")
 		if !errors.Is(err, want) {
 			t.Fatalf("got %v, want %v", err, want)
 		}
@@ -731,81 +616,68 @@ func TestHandleSubscriptionEvent(t *testing.T) {
 		}
 	})
 
-	t.Run("inactive status demotes a previously-subscribed user and suspends stories", func(t *testing.T) {
-		dao := daos.NewMockDAO()
-		dao.MockGetEmailByCustomerID = func(_ string) (string, error) { return "a@x.com", nil }
-		dao.MockUpdateSubscription = func(_ models.Subscription) error { return nil }
-		dao.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
-			return &models.UserInfo{Email: email, Subscriber: true}, nil
-		}
-		dao.MockGetAllStories = func(_ string) ([]*models.Story, error) {
-			return []*models.Story{{ID: "keep"}, {ID: "drop"}}, nil
-		}
-		var deletedCount atomic.Int32
-		dao.MockSoftDeleteStory = func(_, _ string, _ bool) error {
-			deletedCount.Add(1)
-			return nil
-		}
-		var savedUser models.UserInfo
-		dao.MockUpdateUser = func(u models.UserInfo) error { savedUser = u; return nil }
-		var (
-			alertMu sync.Mutex
-			alerts  []models.Alert
-		)
-		dao.MockCreateAlert = func(a models.Alert) error {
-			alertMu.Lock()
-			alerts = append(alerts, a)
-			alertMu.Unlock()
-			return nil
-		}
-
-		w := httptest.NewRecorder()
-		ev := newSubEvent(t, "customer.subscription.deleted", "sub_1", "cus_1", "canceled", 0)
-
-		_, needsRestore, ok := handleSubscriptionEvent(w, dao, ev)
-		if !ok {
-			t.Fatalf("ok: want true (body=%q)", w.Body.String())
-		}
-		if needsRestore {
-			t.Errorf("needsRestore: want false on demotion")
-		}
-		if savedUser.Subscriber {
-			t.Errorf("user.Subscriber: want false after demotion")
-		}
-		if savedUser.NotifyExpired {
-			t.Errorf("user.NotifyExpired: want false (alert is fired directly by webhook path)")
-		}
-
-		// suspendUserStories fans soft-deletes out into goroutines.
-		deadline := time.Now().Add(time.Second)
-		for time.Now().Before(deadline) {
-			if deletedCount.Load() == 1 {
-				break
+	t.Run(
+		"inactive status demotes a previously-subscribed user and fires alert, no story archival",
+		func(t *testing.T) {
+			dao := daos.NewMockDAO()
+			dao.MockGetEmailByCustomerID = func(_ string) (string, error) { return "a@x.com", nil }
+			dao.MockUpdateSubscription = func(_ models.Subscription) error { return nil }
+			dao.MockGetUserDetails = func(email string) (*models.UserInfo, error) {
+				return &models.UserInfo{Email: email, Subscriber: true}, nil
 			}
-			time.Sleep(5 * time.Millisecond)
-		}
-		if got := deletedCount.Load(); got != 1 {
-			t.Fatalf("soft-deletes: got %d, want 1", got)
-		}
-
-		// fireSubscriptionExpiredAlert spawns the CreateAlert call in a goroutine.
-		alertDeadline := time.Now().Add(time.Second)
-		for time.Now().Before(alertDeadline) {
-			alertMu.Lock()
-			done := len(alerts) == 1
-			alertMu.Unlock()
-			if done {
-				break
+			dao.MockSoftDeleteStory = func(_, storyID string, _ bool) error {
+				t.Fatalf("stories should not be soft-deleted on subscription lapse (got %q)", storyID)
+				return nil
 			}
-			time.Sleep(5 * time.Millisecond)
-		}
-		alertMu.Lock()
-		defer alertMu.Unlock()
-		if len(alerts) != 1 {
-			t.Fatalf("expected 1 subscription-expired alert, got %d", len(alerts))
-		}
-		if got, want := alerts[0].ID, "sub-expired-a@x.com"; got != want {
-			t.Errorf("alert ID: got %q, want %q", got, want)
-		}
-	})
+			var savedUser models.UserInfo
+			dao.MockUpdateUser = func(u models.UserInfo) error { savedUser = u; return nil }
+			var (
+				alertMu sync.Mutex
+				alerts  []models.Alert
+			)
+			dao.MockCreateAlert = func(a models.Alert) error {
+				alertMu.Lock()
+				alerts = append(alerts, a)
+				alertMu.Unlock()
+				return nil
+			}
+
+			w := httptest.NewRecorder()
+			ev := newSubEvent(t, "customer.subscription.deleted", "sub_1", "cus_1", "canceled", 0)
+
+			_, needsRestore, ok := handleSubscriptionEvent(w, dao, ev)
+			if !ok {
+				t.Fatalf("ok: want true (body=%q)", w.Body.String())
+			}
+			if needsRestore {
+				t.Errorf("needsRestore: want false on demotion")
+			}
+			if savedUser.Subscriber {
+				t.Errorf("user.Subscriber: want false after demotion")
+			}
+			if savedUser.NotifyExpired {
+				t.Errorf("user.NotifyExpired: want false (alert is fired directly by webhook path)")
+			}
+
+			// fireSubscriptionExpiredAlert spawns the CreateAlert call in a goroutine.
+			alertDeadline := time.Now().Add(time.Second)
+			for time.Now().Before(alertDeadline) {
+				alertMu.Lock()
+				done := len(alerts) == 1
+				alertMu.Unlock()
+				if done {
+					break
+				}
+				time.Sleep(5 * time.Millisecond)
+			}
+			alertMu.Lock()
+			defer alertMu.Unlock()
+			if len(alerts) != 1 {
+				t.Fatalf("expected 1 subscription-expired alert, got %d", len(alerts))
+			}
+			if got, want := alerts[0].ID, "sub-expired-a@x.com"; got != want {
+				t.Errorf("alert ID: got %q, want %q", got, want)
+			}
+		},
+	)
 }

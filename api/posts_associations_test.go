@@ -76,8 +76,8 @@ func TestCreateAssociationsEndpoint_Success(t *testing.T) {
 
 func TestCreateAssociationsEndpoint_NonSubscriberLimitReached(t *testing.T) {
 	// Create max number of associations for non-subscriber
-	existingAssocs := make([]*models.SimplifiedAssociation, nonSubscriberMaxAssoc)
-	for i := range nonSubscriberMaxAssoc {
+	existingAssocs := make([]*models.SimplifiedAssociation, models.MaxFreeAssociationsPerStory)
+	for i := range models.MaxFreeAssociationsPerStory {
 		existingAssocs[i] = &models.SimplifiedAssociation{
 			ID:   string(rune('a' + i)),
 			Name: "Character " + string(rune('A'+i)),

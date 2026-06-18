@@ -3,9 +3,7 @@ package billing
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
 	"os"
@@ -156,9 +154,7 @@ func applySubscriptionTransition(
 		}
 	case !isActive && user.Subscriber:
 		user.Subscriber = false
-		if sErr := suspendUserStories(ctx, dao, user.Email); sErr != nil {
-			return false, sErr
-		}
+		suspendExcessAssociationsAsync(ctx, dao, user.Email)
 		fireSubscriptionExpiredAlert(ctx, dao, user.Email)
 	}
 	return false, nil
@@ -172,7 +168,7 @@ func fireSubscriptionExpiredAlert(ctx context.Context, dao daos.DaoInterface, em
 	alert := models.Alert{
 		ID:          "sub-expired-" + email,
 		Subject:     "Subscription Expired",
-		Message:     "Your subscription has expired and your additional stories have been archived. Resubscribe within 30 days to restore them — after that, they will be permanently deleted.",
+		Message:     "Your subscription has expired. Your stories are safe, but exporting, sharing with readers, and adding more than 10 associations per story are paused until you resubscribe.",
 		Link:        "/subscribe",
 		TargetEmail: email,
 		AlertType:   models.AlertTypePersonal,
@@ -188,37 +184,36 @@ func fireSubscriptionExpiredAlert(ctx context.Context, dao daos.DaoInterface, em
 	}()
 }
 
-// suspendUserStories soft-deletes every story owned by email except the
-// first one (kept active so the user retains read access to one project
-// after their subscription lapses). Soft-delete fan-out is launched in
-// background goroutines so the webhook can ACK quickly.
-func suspendUserStories(ctx context.Context, dao daos.DaoInterface, email string) error {
-	stories, err := dao.GetAllStories(ctx, email)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return err
-	}
-	for idx, s := range stories {
-		if idx == 0 {
-			continue
+// suspendExcessAssociationsAsync runs SuspendExcessAssociations in a
+// background goroutine so the Stripe webhook can ACK quickly. Failures are
+// logged but never block the response — a missed suspension just means the
+// user temporarily sees over-cap associations until the next cleanup pass
+// or until they touch the data.
+func suspendExcessAssociationsAsync(ctx context.Context, dao daos.DaoInterface, email string) {
+	go func() {
+		bgCtx := context.WithoutCancel(ctx)
+		if err := dao.SuspendExcessAssociations(bgCtx, email); err != nil {
+			logger.Error("background SuspendExcessAssociations failed",
+				"email", email, "error", err)
 		}
-		go func(storyID string) {
-			bgCtx := context.WithoutCancel(ctx)
-			if delErr := dao.SoftDeleteStory(bgCtx, email, storyID, true); delErr != nil {
-				logger.Error("background SoftDeleteStory failed", "storyID", storyID, "error", delErr)
-			}
-		}(s.ID)
-	}
-	return nil
+	}()
 }
 
 // restoreSuspendedStoriesAsync drives the post-resubscription restoration:
-// streams events from RestoreAutomaticallyDeletedStories and clears each
-// restored story's Inactive flag. Runs with a 30-minute timeout to bound
+// streams events from RestoreAutomaticallyDeletedStories, clears each
+// restored story's Inactive flag, and removes any suspended_at flags on
+// the user's associations. Runs with a 30-minute timeout to bound
 // long-running restores.
 func restoreSuspendedStoriesAsync(dao daos.DaoInterface, email string) {
 	const restoreTimeout = 30 * time.Minute
 	ctx, cancel := context.WithTimeout(context.Background(), restoreTimeout)
 	defer cancel()
+
+	// Clear suspended_at on associations so the user immediately sees them
+	// again, independently of the (legacy) story restoration loop below.
+	if err := dao.RestoreSuspendedAssociations(ctx, email); err != nil {
+		logger.Error("RestoreSuspendedAssociations failed", "email", email, "error", err)
+	}
 
 	events, err := dao.RestoreAutomaticallyDeletedStories(ctx, email)
 	if err != nil {

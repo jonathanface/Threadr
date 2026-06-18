@@ -6,7 +6,6 @@ const (
 	s3StoryImagebucket     = "richdocter-story-portraits"
 	s3SeriesImageBucket    = "richdocter-series-portraits"
 	tmpExportDir           = "./tmp"
-	nonSubscriberMaxAssoc  = 10
 	maxStoryIDLength       = 100
 	maxChapterCount        = 1000
 	maxTitleLength         = 500
