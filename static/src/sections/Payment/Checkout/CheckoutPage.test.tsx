@@ -1,11 +1,10 @@
 // src/sections/billing/__tests__/CheckoutPage.test.tsx
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { MemoryRouter } from "react-router-dom";
 
-// IMPORTANT: adjust the import to where your component lives
 import { CheckoutPage } from "../Checkout";
 
 const mockNavigate = vi.fn();
@@ -17,15 +16,16 @@ vi.mock("react-router-dom", async (importOriginal) => {
   };
 });
 
-function renderWithRouter(ui: React.ReactElement) {
+function renderAt(initialPath: string) {
   return render(
-    <MemoryRouter initialEntries={["/checkout"]}>{ui}</MemoryRouter>,
+    <MemoryRouter initialEntries={[initialPath]}>
+      <CheckoutPage />
+    </MemoryRouter>,
   );
 }
 
 // ---- Mocks ----
 
-// 1) Mock axios api used by the page
 const postMock = vi.fn();
 vi.mock("../../../api", () => {
   return {
@@ -34,9 +34,9 @@ vi.mock("../../../api", () => {
   };
 });
 
-// 2) Mock Stripe libs so loadStripe() doesn’t hit network and <Elements> just renders children
+// Mock Stripe libs so loadStripe() doesn't hit network and <Elements> just renders children
 vi.mock("@stripe/stripe-js", () => ({
-  loadStripe: vi.fn().mockResolvedValue({}), // value unused by our mocked <Elements>
+  loadStripe: vi.fn().mockResolvedValue({}),
 }));
 
 vi.mock("@stripe/react-stripe-js", async (importOriginal) => {
@@ -57,63 +57,80 @@ beforeEach(() => {
 });
 
 describe("<CheckoutPage />", () => {
-  it("shows a loader initially", () => {
-    // keep the promise pending so loader remains visible for this assertion
-    postMock.mockReturnValue(new Promise(() => {}));
+  it("renders the promo-code input on load (no auto-submit)", () => {
+    renderAt("/checkout");
 
-    renderWithRouter(<CheckoutPage />);
-    expect(screen.getByRole("progressbar")).toBeInTheDocument();
+    expect(screen.getByLabelText(/Promo code/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Continue to payment/i }),
+    ).toBeInTheDocument();
+    expect(postMock).not.toHaveBeenCalled();
   });
 
-  it("renders the payment form when clientSecret is returned", async () => {
+  it("pre-fills the promo code from the ?promo= URL query string", () => {
+    renderAt("/checkout?promo=WELCxyz");
+
+    const input = screen.getByLabelText(/Promo code/i) as HTMLInputElement;
+    expect(input.value).toBe("WELCxyz");
+  });
+
+  it("sends the typed promo code to /billing/subscribe on Continue", async () => {
     postMock.mockResolvedValueOnce({ data: { client_secret: "cs_test_123" } });
 
-    renderWithRouter(<CheckoutPage />);
+    renderAt("/checkout");
 
-    // Wait for loader to go away and the PaymentElement to appear
+    const input = screen.getByLabelText(/Promo code/i);
+    fireEvent.change(input, { target: { value: "FREE1MONTH" } });
+    fireEvent.click(
+      screen.getByRole("button", { name: /Continue to payment/i }),
+    );
+
+    await waitFor(() => {
+      expect(postMock).toHaveBeenCalledWith(
+        "/billing/subscribe",
+        { promo_code: "FREE1MONTH" },
+        { baseURL: "" },
+      );
+    });
+  });
+
+  it("transitions to the Stripe PaymentElement on successful subscribe", async () => {
+    postMock.mockResolvedValueOnce({ data: { client_secret: "cs_test_123" } });
+
+    renderAt("/checkout?promo=WELCxyz");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Continue to payment/i }),
+    );
+
     await waitFor(() =>
       expect(screen.getByTestId("payment-element")).toBeInTheDocument(),
     );
-
-    // Subtle sanity: API was called once with expected endpoint
-    expect(postMock).toHaveBeenCalledTimes(1);
-    expect(postMock).toHaveBeenCalledWith(
-      "/billing/subscribe",
-      {},
-      { baseURL: "" },
-    );
   });
 
-  it("shows an error alert if the server call fails", async () => {
-    postMock.mockRejectedValueOnce(new Error("boom"));
+  it("shows a backend error message and allows retry", async () => {
+    postMock.mockRejectedValueOnce({
+      response: { data: { error: "promo code not found" } },
+    });
 
-    renderWithRouter(<CheckoutPage />);
+    renderAt("/checkout");
 
-    await waitFor(() =>
-      expect(screen.getByRole("alert")).toHaveTextContent("boom"),
+    fireEvent.change(screen.getByLabelText(/Promo code/i), {
+      target: { value: "BOGUS" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: /Continue to payment/i }),
     );
-  });
-
-  it("shows a 'missing client secret' error if API response has none", async () => {
-    postMock.mockResolvedValueOnce({ data: {} });
-
-    renderWithRouter(<CheckoutPage />);
 
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(
-        /missing client secret/i,
+        /promo code not found/i,
       ),
     );
-  });
 
-  it("only calls the subscribe endpoint once (StrictMode guard)", async () => {
-    postMock.mockResolvedValueOnce({ data: { client_secret: "cs_123" } });
-
-    renderWithRouter(<CheckoutPage />);
-
-    await waitFor(() =>
-      expect(screen.queryByRole("progressbar")).not.toBeInTheDocument(),
-    );
-    expect(postMock).toHaveBeenCalledTimes(1);
+    // The Continue button is re-enabled so the user can fix the code and retry.
+    expect(
+      screen.getByRole("button", { name: /Continue to payment/i }),
+    ).toBeEnabled();
   });
 });
