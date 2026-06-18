@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"time"
@@ -618,6 +619,14 @@ func sendWelcomeEmail(userEmail, promoCode string, promoExpiresAt int64) error {
 	svc := sesv2.NewFromConfig(cfg)
 	logger.Debug("Created SES v2 client for welcome email", "email", userEmail)
 
+	// Subscribe URL: pre-fill the promo code via query string so the
+	// checkout page can apply it without copy-paste. Falls back to a clean
+	// /subscribe link when no code was minted.
+	subscribeURL := "https://threadr.net/subscribe"
+	if promoCode != "" {
+		subscribeURL += "?promo=" + url.QueryEscape(promoCode)
+	}
+
 	emailBody := `Welcome to Threadr!
 
 Thank you for signing up. We're excited to help you organize your story and keep track of all your characters, places, and events.
@@ -631,15 +640,17 @@ Getting Started:
 
 Visit Threadr: https://threadr.net`
 
-	// Subscription upsell: benefits copy from welcome_benefits.txt, plus
-	// a per-user promo code when one was minted.
+	// Subscription upsell: benefits copy from models.SubscriberBenefits,
+	// plus a per-user promo code when one was minted.
 	emailBody += "\n\n--\n\n" + WelcomeBenefitsCopy()
+	var promoLine string
 	if promoCode != "" {
 		expiry := time.Unix(promoExpiresAt, 0).UTC().Format("January 2, 2006")
-		emailBody += "\n\nFirst month on us: use promo code " + promoCode +
+		promoLine = "First month on us: use promo code " + promoCode +
 			" at checkout. This code is for you only and expires on " + expiry + "."
+		emailBody += "\n\n" + promoLine
 	}
-	emailBody += "\n\nSubscribe at https://threadr.net/subscribe"
+	emailBody += "\n\nSubscribe at " + subscribeURL
 
 	emailBody += `
 
@@ -649,6 +660,12 @@ Need help? Have questions or feedback? Email us at support@threadr.net - we'd lo
 
 Happy writing!
 The Threadr Team`
+
+	// HTML alternative with the requested bold treatment on the upsell
+	// heading and the promo code itself. Email clients that support HTML
+	// will render this; everyone else falls back to the plain Text body
+	// above.
+	htmlBody := buildWelcomeHTMLBody(promoCode, promoExpiresAt, subscribeURL)
 
 	input := &sesv2.SendEmailInput{
 		FromEmailAddress: aws.String("no-reply@threadr.net"),
@@ -663,6 +680,9 @@ The Threadr Team`
 				Body: &sesv2types.Body{
 					Text: &sesv2types.Content{
 						Data: aws.String(emailBody),
+					},
+					Html: &sesv2types.Content{
+						Data: aws.String(htmlBody),
 					},
 				},
 			},

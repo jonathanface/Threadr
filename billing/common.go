@@ -6,12 +6,14 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"Threadr/api"
 	"Threadr/models"
 
 	stripe "github.com/stripe/stripe-go/v79"
 	"github.com/stripe/stripe-go/v79/customer"
+	"github.com/stripe/stripe-go/v79/promotioncode"
 )
 
 func atoiDefault(s string, def int) int {
@@ -28,6 +30,31 @@ func getenv(k, def string) string {
 		return v
 	}
 	return def
+}
+
+// resolvePromoCodeID looks up a customer-facing promo code string (e.g. the
+// one we mint in daos.CreateWelcomePromoCode and include in the welcome
+// email) and returns Stripe's internal PromotionCode ID (`promo_xxx`) for
+// passing to subscription.New's Discounts field. Returns a user-facing error
+// when the code doesn't exist, is inactive, or is past its expiry.
+func resolvePromoCodeID(code string) (string, error) {
+	if code == "" {
+		return "", errors.New("promo code is required")
+	}
+	listParams := &stripe.PromotionCodeListParams{Code: stripe.String(code)}
+	listParams.Limit = stripe.Int64(1)
+	it := promotioncode.List(listParams)
+	if !it.Next() {
+		return "", errors.New("promo code not found")
+	}
+	pc := it.PromotionCode()
+	if !pc.Active {
+		return "", errors.New("promo code is no longer active")
+	}
+	if pc.ExpiresAt > 0 && pc.ExpiresAt < time.Now().Unix() {
+		return "", errors.New("promo code has expired")
+	}
+	return pc.ID, nil
 }
 
 func ensureCustomer(u *models.UserInfo, s *models.Subscription) (string, error) {

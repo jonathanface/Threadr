@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../../../api";
 import {
   Alert,
@@ -8,6 +8,7 @@ import {
   Button,
   CircularProgress,
   IconButton,
+  TextField,
   Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
@@ -45,46 +46,99 @@ const getStripeAppearance = (): import("@stripe/stripe-js").Appearance => {
 };
 
 export const CheckoutPage = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [promoCode, setPromoCode] = useState(
+    searchParams.get("promo")?.trim() ?? "",
+  );
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const requested = useRef(false); // avoid duplicate calls in React StrictMode
+  const [starting, setStarting] = useState(false);
+  const startedRef = useRef(false); // guard against React StrictMode double-fire
 
-  useEffect(() => {
-    if (requested.current) return;
-    requested.current = true;
-    (async () => {
-      try {
-        // POST body is empty; config is 3rd arg if you ever need it
-        const { data } = await api.post(
-          "/billing/subscribe",
-          {},
-          { baseURL: "" },
-        );
-        setClientSecret(data.client_secret);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (e: any) {
-        setError(e?.message || "Unable to start checkout");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+  const startCheckout = async () => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    setStarting(true);
+    setError(null);
+    try {
+      const { data } = await api.post(
+        "/billing/subscribe",
+        { promo_code: promoCode.trim() },
+        { baseURL: "" },
+      );
+      setClientSecret(data.client_secret);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+      // Allow a retry (e.g. user fixes a bad promo code).
+      startedRef.current = false;
+      const apiMsg = e?.response?.data?.error;
+      setError(apiMsg || e?.message || "Unable to start checkout");
+    } finally {
+      setStarting(false);
+    }
+  };
 
-  if (loading) {
+  // Pre-promo step: user can review the offer and apply a code before we
+  // create the Stripe Subscription. Once they continue, the Stripe Elements
+  // mount with the returned client secret.
+  if (!clientSecret) {
     return (
-      <Box sx={{ display: "grid", placeItems: "center", py: 8 }}>
-        <CircularProgress />
+      <Box
+        sx={(t) => ({
+          maxWidth: 520,
+          mx: "auto",
+          py: 6,
+          bgcolor: alpha(t.palette.background.paper, 0.96),
+          padding: { xs: "16px", sm: "24px" },
+          paddingTop: { xs: "48px", sm: "56px" },
+          borderRadius: "15px",
+          marginTop: { xs: "24px", sm: "48px" },
+          border: "1px solid",
+          borderColor: "divider",
+          backdropFilter: "blur(6px)",
+          position: "relative",
+        })}
+      >
+        <IconButton
+          onClick={() => navigate(-1)}
+          sx={{ position: "absolute", right: 8, top: 8 }}
+          aria-label="close"
+        >
+          <CloseIcon />
+        </IconButton>
+        <Typography variant="h5" gutterBottom sx={{ color: "text.primary" }}>
+          Subscribe — $10/month
+        </Typography>
+        <TextField
+          label="Promo code (optional)"
+          value={promoCode}
+          onChange={(e) => setPromoCode(e.target.value)}
+          fullWidth
+          margin="normal"
+          autoComplete="off"
+          inputProps={{ "aria-label": "Promo code" }}
+        />
+        {error && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {error}
+          </Alert>
+        )}
+        <Button
+          variant="contained"
+          fullWidth
+          sx={{ mt: 2 }}
+          onClick={startCheckout}
+          disabled={starting}
+        >
+          {starting ? (
+            <CircularProgress size={20} sx={{ color: "inherit" }} />
+          ) : (
+            "Continue to payment"
+          )}
+        </Button>
       </Box>
     );
-  }
-
-  if (error) {
-    return <Alert severity="error">{error}</Alert>;
-  }
-
-  if (!clientSecret) {
-    return <Alert severity="error">Missing client secret from server.</Alert>;
   }
 
   return (

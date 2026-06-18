@@ -3,6 +3,7 @@ package billing
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/url"
@@ -118,6 +119,16 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Optional JSON body: { "promo_code": "..." }. Body absence is fine —
+	// older clients that just POST don't send anything.
+	var reqBody struct {
+		PromoCode string `json:"promo_code"`
+	}
+	if r.Body != nil {
+		_ = json.NewDecoder(r.Body).Decode(&reqBody)
+	}
+	reqBody.PromoCode = strings.TrimSpace(reqBody.PromoCode)
+
 	var (
 		email string
 		err   error
@@ -184,6 +195,19 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 			Expand: []*string{
 				stripe.String("latest_invoice.payment_intent"),
 			},
+		}
+		// Optional promotion code from the request body. Resolve the
+		// customer-facing code string to a Stripe Promotion Code ID and
+		// attach via Discounts. Invalid/expired codes fail fast with 400.
+		if reqBody.PromoCode != "" {
+			promoID, presolveErr := resolvePromoCodeID(reqBody.PromoCode)
+			if presolveErr != nil {
+				RespondWithError(w, http.StatusBadRequest, presolveErr.Error())
+				return
+			}
+			params.Discounts = []*stripe.SubscriptionDiscountParams{
+				{PromotionCode: stripe.String(promoID)},
+			}
 		}
 		s, err = subscription.New(params)
 		if err != nil {
