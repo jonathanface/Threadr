@@ -16,15 +16,17 @@ import { api } from "../../../../api";
 
 interface ChapterMenuProps {
   onChapterSelect?: () => void;
+  isOpen?: boolean;
 }
 
-export const ChapterMenu = ({ onChapterSelect }: ChapterMenuProps) => {
+export const ChapterMenu = ({ onChapterSelect, isOpen }: ChapterMenuProps) => {
   const { story, chapter, setChapter, setStory, series, setSeries } =
     useSelections();
   const { showLoader, hideLoader } = useLoader();
   const { setAlertState } = useToaster();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const pollersRef = useRef<Record<string, number>>({});
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     return () => {
@@ -32,6 +34,21 @@ export const ChapterMenu = ({ onChapterSelect }: ChapterMenuProps) => {
       Object.values(pollersRef.current).forEach((id) => clearTimeout(id)); // eslint-disable-line react-hooks/exhaustive-deps
     };
   }, []);
+
+  // When the drawer opens (or the active chapter changes while it's open),
+  // scroll the active chapter to the top of the menu. Small timeout gives the
+  // Drawer slide animation + tree render a tick to settle before measuring.
+  useEffect(() => {
+    if (!isOpen) return;
+    const t = window.setTimeout(() => {
+      const active = containerRef.current?.querySelector<HTMLElement>(
+        '[data-active-chapter="true"]',
+      );
+      active?.scrollIntoView({ block: "start", behavior: "auto" });
+    }, 50);
+    return () => window.clearTimeout(t);
+  }, [isOpen, chapter?.id]);
+
   if (!story) return null;
 
   const checkCurrentChapterTableStatus = async (chapterID: string) => {
@@ -312,6 +329,7 @@ export const ChapterMenu = ({ onChapterSelect }: ChapterMenuProps) => {
   };
 
   return (
+    <div ref={containerRef}>
     <SimpleTreeView
       expandedItems={expandedItems}
       onExpandedItemsChange={handleItemToggle}
@@ -362,5 +380,6 @@ export const ChapterMenu = ({ onChapterSelect }: ChapterMenuProps) => {
         </Droppable>
       </DragDropContext>
     </SimpleTreeView>
+    </div>
   );
 };

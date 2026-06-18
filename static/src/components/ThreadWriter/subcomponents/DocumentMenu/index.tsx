@@ -180,6 +180,7 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
           </IconButton>
           <ChapterMenu
             onChapterSelect={() => setIsEditorChapterMenuOpen(false)}
+            isOpen={isEditorChapterMenuOpen}
           />
         </Box>
       </Drawer>
