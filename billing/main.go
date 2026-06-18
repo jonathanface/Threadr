@@ -112,6 +112,7 @@ func StripeWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+//nolint:gocognit,funlen // Linear setup → guard → existing-sub branch → new-sub branch → response; refactoring obscures the flow.
 func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 	priceID := os.Getenv("STRIPE_PRICE_ID")
 	if len(priceID) == 0 {
@@ -165,20 +166,52 @@ func SubscribeCustomerEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if there's an existing incomplete subscription for this customer
+	// Fast path: if our DB already says they're subscribed, refuse to
+	// create another subscription. Prevents duplicate-subscription bugs
+	// when the same user POSTs twice in quick succession (React StrictMode,
+	// double-click, refresh after success, etc.).
+	if user.Subscriber {
+		logger.Info("SubscribeCustomer: user already subscribed", "email", email)
+		RespondWithError(w, http.StatusConflict, "You're already subscribed")
+		return
+	}
+
+	// Check if there's an existing subscription for this customer.
+	// - Active / Trialing / PastDue: subscription is live (or about to be);
+	//   refuse rather than mint another. user.Subscriber may not be true
+	//   yet because the Stripe webhook hasn't propagated.
+	// - Incomplete: payment hasn't been confirmed yet (the typical
+	//   abandoned-checkout case); reuse so we don't pile up orphan invoices.
 	var s *stripe.Subscription
 	if sub != nil && sub.SubscriptionID != "" {
 		logger.Info("SubscribeCustomer: checking existing subscription",
 			"subscriptionID", sub.SubscriptionID, "email", email)
 		existingSub, err := subscription.Get(sub.SubscriptionID, nil) //nolint:govet
-		if err == nil && existingSub.Status == stripe.SubscriptionStatusIncomplete {
-			logger.Info("SubscribeCustomer: reusing existing incomplete subscription",
-				"subscriptionID", sub.SubscriptionID, "email", email)
-			// Reuse the existing incomplete subscription
-			s = existingSub
-		} else if err != nil {
+		if err != nil {
 			logger.Warn("SubscribeCustomer: could not fetch existing subscription",
 				"subscriptionID", sub.SubscriptionID, "error", err)
+		} else {
+			switch existingSub.Status {
+			case stripe.SubscriptionStatusActive,
+				stripe.SubscriptionStatusTrialing,
+				stripe.SubscriptionStatusPastDue:
+				logger.Info("SubscribeCustomer: subscription already live",
+					"subscriptionID", sub.SubscriptionID, "status", existingSub.Status, "email", email)
+				RespondWithError(w, http.StatusConflict, "You're already subscribed")
+				return
+			case stripe.SubscriptionStatusIncomplete:
+				logger.Info("SubscribeCustomer: reusing existing incomplete subscription",
+					"subscriptionID", sub.SubscriptionID, "email", email)
+				s = existingSub
+			case stripe.SubscriptionStatusCanceled,
+				stripe.SubscriptionStatusIncompleteExpired,
+				stripe.SubscriptionStatusPaused,
+				stripe.SubscriptionStatusUnpaid:
+				// Old/dead subscription record. Leave s nil so we mint a
+				// fresh one below.
+				logger.Info("SubscribeCustomer: existing subscription not reusable",
+					"subscriptionID", sub.SubscriptionID, "status", existingSub.Status, "email", email)
+			}
 		}
 	}
 

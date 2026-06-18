@@ -47,11 +47,14 @@ func buildWelcomeHTMLBody(promoCode string, promoExpiresAt int64, subscribeURL s
 		b.WriteString(htmlEscape(promoCode))
 		b.WriteString(`</strong> at checkout. This code is for you only and expires on `)
 		b.WriteString(htmlEscape(expiry))
-		b.WriteString(`.</p>`)
+		b.WriteString(`. <a href="`)
+		b.WriteString(htmlEscape(subscribeURL))
+		b.WriteString(`">Click here to subscribe!</a></p>`)
+	} else {
+		b.WriteString(`<p><a href="`)
+		b.WriteString(htmlEscape(subscribeURL))
+		b.WriteString(`">Subscribe</a></p>`)
 	}
-	b.WriteString(`<p><a href="`)
-	b.WriteString(htmlEscape(subscribeURL))
-	b.WriteString(`">Subscribe</a></p>`)
 	b.WriteString(`<hr>`)
 	b.WriteString(`<p>Need help? Have questions or feedback? Email us at ` +
 		`<a href="mailto:support@threadr.net">support@threadr.net</a> ` +
