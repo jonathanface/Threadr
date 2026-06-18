@@ -80,6 +80,13 @@ export const CheckoutPage = () => {
       setIntentMode(data.mode === "setup" ? "setup" : "payment");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
+      // 409 from the backend means the user is already subscribed — usually
+      // from a refresh / double-fire after a successful checkout. Send them
+      // to /success rather than showing an error they can't act on.
+      if (e?.response?.status === 409) {
+        window.location.assign("/success");
+        return;
+      }
       // Allow a retry (e.g. user fixes a bad promo code) — falls back to
       // the form with the bad code pre-filled so they can edit and try again.
       startedRef.current = false;
@@ -276,7 +283,9 @@ export const CheckoutForm = ({
         <CloseIcon />
       </IconButton>
       <Typography variant="h5" gutterBottom sx={{ color: "text.primary" }}>
-        Subscribe — $10/month
+        {mode === "setup"
+          ? "First month free — then $10/month"
+          : "Subscribe — $10/month"}
       </Typography>
       <PaymentElement />
       {errMsg && (

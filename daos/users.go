@@ -641,16 +641,18 @@ Getting Started:
 Visit Threadr: https://threadr.net`
 
 	// Subscription upsell: benefits copy from models.SubscriberBenefits,
-	// plus a per-user promo code when one was minted.
+	// plus a per-user promo code when one was minted. The subscribe link
+	// hangs off the end of the promo line in the promo case, on its own
+	// line otherwise.
 	emailBody += "\n\n--\n\n" + WelcomeBenefitsCopy()
-	var promoLine string
 	if promoCode != "" {
 		expiry := time.Unix(promoExpiresAt, 0).UTC().Format("January 2, 2006")
-		promoLine = "First month on us: use promo code " + promoCode +
-			" at checkout. This code is for you only and expires on " + expiry + "."
-		emailBody += "\n\n" + promoLine
+		emailBody += "\n\nFirst month on us: use promo code " + promoCode +
+			" at checkout. This code is for you only and expires on " + expiry +
+			". Click here to subscribe: " + subscribeURL
+	} else {
+		emailBody += "\n\nSubscribe at " + subscribeURL
 	}
-	emailBody += "\n\nSubscribe at " + subscribeURL
 
 	emailBody += `
 
