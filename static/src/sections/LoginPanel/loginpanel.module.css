@@ -52,6 +52,34 @@
     opacity: 0.8;
 }
 
+.googleButton,
+.amazonButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+    text-decoration: none;
+    box-sizing: border-box;
+}
+
+.googleButton:hover,
+.amazonButton:hover {
+    background-color: var(--bg-card-hover);
+    border-color: var(--border-dark);
+    color: var(--text-primary);
+}
+
 .divider {
     display: flex;
     align-items: center;
