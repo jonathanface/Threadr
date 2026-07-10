@@ -24,10 +24,10 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.24
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/stripe/stripe-go/v79 v79.12.0
-	golang.org/x/crypto v0.51.0
+	golang.org/x/crypto v0.52.0
 )
 
-require golang.org/x/net v0.55.0 // indirect
+require golang.org/x/net v0.54.0 // indirect
 
 require (
 	cloud.google.com/go v0.67.0 // indirect
