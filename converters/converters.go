@@ -895,7 +895,7 @@ func lineSpacingOverrideStylesXML() string {
 			id := base.alignName + line.suffix
 			fmt.Fprintf(
 				&b,
-				`<w:style w:type=tagParagraph w:styleId=%q w:customStyle="1"><w:name w:val=%q/><w:basedOn w:val=%q/><w:qFormat/><w:pPr><w:spacing w:lineRule="auto" w:line="%d"/></w:pPr></w:style>`,
+				`<w:style w:type="paragraph" w:styleId=%q w:customStyle="1"><w:name w:val=%q/><w:basedOn w:val=%q/><w:qFormat/><w:pPr><w:spacing w:lineRule="auto" w:line="%d"/></w:pPr></w:style>`,
 				id,
 				id,
 				base.baseStyle,

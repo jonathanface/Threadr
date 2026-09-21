@@ -77,8 +77,8 @@ func sendBasicEmail(toEmail, subject, body, kind string, logFields ...any) error
 func SendWelcomeEmail(toEmail string) error {
 	return sendBasicEmail(
 		toEmail,
-		"Welcome to RichThreadr",
-		"Thank you for signing up for RichThreadr. We're excited to have you on board!",
+		"Welcome to Threadr",
+		"Thank you for signing up for Threadr. We're excited to have you on board!",
 		"welcome",
 	)
 }
