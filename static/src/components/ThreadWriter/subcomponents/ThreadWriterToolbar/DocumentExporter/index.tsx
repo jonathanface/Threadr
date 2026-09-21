@@ -1,20 +1,20 @@
-import { IconButton, Tooltip } from "@mui/material";
-import { useState } from "react";
-import styles from "./documentexporter.module.css";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import { DocumentExportType } from "../../../../../types/DocumentExport";
+import { IconButton, Tooltip } from "@mui/material";
+import axios from "axios";
+import { useState } from "react";
+import { api } from "../../../../../api";
+import { useFetchUserData } from "../../../../../hooks/useFetchUserData";
 import { useSelections } from "../../../../../hooks/useSelections";
+import { useToaster } from "../../../../../hooks/useToaster";
 import {
   AlertCommandType,
   AlertFunctionCall,
   AlertToastType,
 } from "../../../../../types/AlertToasts";
+import { DocumentExportType } from "../../../../../types/DocumentExport";
 import Exporter from "../../../../../utils/Exporter";
-import { useFetchUserData } from "../../../../../hooks/useFetchUserData";
-import { useToaster } from "../../../../../hooks/useToaster";
 import { useDocumentSettings } from "../../../hooks/useDocumentSettings";
-import axios from "axios";
-import { api } from "../../../../../api";
+import styles from "./documentexporter.module.css";
 
 export const DocumentExporter = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -42,7 +42,7 @@ export const DocumentExporter = () => {
         setAlertState({
           title: "Error",
           message:
-            "Unable to export your document at this time. Please try again later, or contact support@richthreadr.net.",
+            "Unable to export your document at this time. Please try again later, or contact support@threadr.net.",
           open: true,
           severity: AlertToastType.error,
         });
@@ -108,7 +108,7 @@ export const DocumentExporter = () => {
           setAlertState({
             title: "Error",
             message:
-              "Unable to export your document at this time. Please try again later, or contact support@richthreadr.net.",
+              "Unable to export your document at this time. Please try again later, or contact support@threadr.net.",
             open: true,
             severity: AlertToastType.error,
           });
