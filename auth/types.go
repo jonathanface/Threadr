@@ -13,4 +13,7 @@ type OauthOptions struct {
 	AmazonID     string
 	AmazonSecret string
 	AmazonURL    string
+	GithubID     string
+	GithubSecret string
+	GithubURL    string
 }

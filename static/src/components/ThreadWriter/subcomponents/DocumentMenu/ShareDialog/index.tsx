@@ -47,6 +47,8 @@ export const ShareDialog = ({ open, setOpen }: ShareDialogProps) => {
   const [formError, setFormError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
+  // Narrowed to story_id so fetchLinks' identity doesn't churn when other story fields change
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const fetchLinks = useCallback(async () => {
     if (!story?.story_id) return;
     setLoading(true);
@@ -64,6 +66,8 @@ export const ShareDialog = ({ open, setOpen }: ShareDialogProps) => {
 
   useEffect(() => {
     if (open) {
+      // Data fetch when dialog opens; setState inside is intentional
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchLinks();
     }
   }, [open, fetchLinks]);

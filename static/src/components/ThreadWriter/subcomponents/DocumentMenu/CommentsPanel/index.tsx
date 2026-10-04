@@ -28,6 +28,8 @@ export const CommentsPanel = ({ onInviteReaders }: CommentsPanelProps) => {
   const [loading, setLoading] = useState(false);
   const scrollToComment = useScrollToComment();
 
+  // Narrowed to story_id so fetchComments' identity doesn't churn when other story fields change
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const fetchComments = useCallback(async () => {
     if (!story?.story_id || !chapter?.id) return;
     setLoading(true);
@@ -50,6 +52,8 @@ export const CommentsPanel = ({ onInviteReaders }: CommentsPanelProps) => {
   }, [story?.story_id, chapter, setChapter]);
 
   useEffect(() => {
+    // Data fetch on mount / when deps change; setState inside is intentional
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchComments();
   }, [fetchComments]);
 
