@@ -62,6 +62,8 @@ export const AdminArea = () => {
   }, [isAdmin, showLoader, hideLoader]);
 
   useEffect(() => {
+    // Data fetch on mount / when fetchUsers changes; setState inside is intentional
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUsers();
   }, [fetchUsers]);
 

@@ -114,6 +114,6 @@ export const useAutotabOnEnter = (
       },
       COMMAND_PRIORITY_LOW,
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/refs
   }, [editorRef.current, enabled]);
 };

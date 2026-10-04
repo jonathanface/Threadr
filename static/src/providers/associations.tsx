@@ -54,6 +54,8 @@ export const AssociationsProvider: React.FC<{
 
   useEffect(() => {
     didFetch.current = false;
+    // Data fetch on mount / storyID change; setState inside is intentional
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAssociations();
   }, [fetchAssociations, storyID]);
 

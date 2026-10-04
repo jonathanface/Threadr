@@ -353,7 +353,7 @@ export const ThreadWriterDemo = () => {
 
     fetchData();
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/refs
   }, [getBatchedStoryBlocks, editorRef.current]);
 
   const onAssociationEditCallback = useCallback(
@@ -547,6 +547,8 @@ export const ThreadWriterDemo = () => {
                 onEditCallback={onAssociationEditCallback}
                 isAssociationPanelOpen={isAssociationPanelOpen}
                 setIsAssociationPanelOpen={setIsAssociationPanelOpen}
+                // TODO: refactor to callback ref or state so this isn't read during render
+                // eslint-disable-next-line react-hooks/refs
                 selectedAssociationID={selectedAssociation.current}
               />
               <ContextMenu

@@ -44,14 +44,17 @@ export const AssociationDecoratorPlugin = ({
   const { associations } = useAssociations();
 
   const getAllDescendants = useCallback((node: LexicalNode): LexicalNode[] => {
-    const descendants: LexicalNode[] = [];
-    if (node instanceof ElementNode) {
-      for (const child of node.getChildren()) {
-        descendants.push(child);
-        descendants.push(...getAllDescendants(child));
+    const walk = (n: LexicalNode): LexicalNode[] => {
+      const descendants: LexicalNode[] = [];
+      if (n instanceof ElementNode) {
+        for (const child of n.getChildren()) {
+          descendants.push(child);
+          descendants.push(...walk(child));
+        }
       }
-    }
-    return descendants;
+      return descendants;
+    };
+    return walk(node);
   }, []);
 
   // Helper function to check for adjacent non-whitespace text nodes
@@ -405,6 +408,9 @@ export const AssociationDecoratorPlugin = ({
   );
 
   // Process associations when associations prop changes (e.g., initial load)
+  // TODO: rename `isProgrammaticChange` prop to end in "Ref" and update callers so the
+  // compiler can see it as a mutable ref instead of a modifiable prop
+  // eslint-disable-next-line react-hooks/immutability
   useEffect(() => {
     if (associations && editor && previousHashRef) {
       // Avoid processing during programmatic changes
@@ -415,6 +421,7 @@ export const AssociationDecoratorPlugin = ({
       try {
         // Indicate that a programmatic change is starting
         if (isProgrammaticChange) {
+          // eslint-disable-next-line react-hooks/immutability
           isProgrammaticChange.current = true;
         }
 
@@ -442,6 +449,7 @@ export const AssociationDecoratorPlugin = ({
   ]);
 
   // Listener function for user-initiated editor updates
+  // eslint-disable-next-line react-hooks/immutability
   const handleUserEditorUpdate = useCallback(({ tags }: { tags: Set<string> }) => {
     if (tags.has('association-processing')) {
       // This update was triggered by our own processing, skip it
@@ -467,6 +475,7 @@ export const AssociationDecoratorPlugin = ({
     try {
       // Indicate that a programmatic change is starting
       if (isProgrammaticChange) {
+        // eslint-disable-next-line react-hooks/immutability
         isProgrammaticChange.current = true;
       }
 
