@@ -50,8 +50,12 @@ export const CheckoutPage = () => {
   const [searchParams] = useSearchParams();
   // Snapshot the URL state on first render so the auto-fire effect and the
   // initial loading state agree.
+  // TODO: swap useRef for useState with lazy initializer so this snapshot is readable
+  // during render without tripping react-hooks/refs
   const urlPromoOnMountRef = useRef(searchParams.get("promo")?.trim() ?? "");
+  // eslint-disable-next-line react-hooks/refs
   const hasUrlPromo = urlPromoOnMountRef.current !== "";
+  // eslint-disable-next-line react-hooks/refs
   const [promoCode, setPromoCode] = useState(urlPromoOnMountRef.current);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   // "payment" for the typical Stripe PaymentIntent flow, "setup" when
