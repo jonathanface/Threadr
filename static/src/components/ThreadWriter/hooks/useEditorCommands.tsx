@@ -125,7 +125,7 @@ export const useEditorCommands = (
         removeTabPress();
       };
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/refs
   }, [editorRef.current, handleTabPress]);
 
   // Handle backspace when cursor is immediately after an AssociationInlineNode
@@ -209,7 +209,7 @@ export const useEditorCommands = (
     return () => {
       removeBackspaceHandler();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/refs
   }, [editorRef.current]);
 
   useEffect(() => {
@@ -378,6 +378,7 @@ export const useEditorCommands = (
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     setAlertState,
+    // eslint-disable-next-line react-hooks/refs
     editorRef.current,
     documentSettings?.autotab,
     pastedParagraphKeys,

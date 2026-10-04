@@ -86,6 +86,8 @@ export const AssociationPanelDemo: React.FC<AssociationProps> = (props) => {
 
   useEffect(() => {
     if (props.isAssociationPanelOpen && props.selectedAssociationID) {
+      // TODO: derive selectedAssociationID from props instead of mirroring in state
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedAssociationID(props.selectedAssociationID);
     }
 
@@ -265,6 +267,8 @@ export const AssociationPanelDemo: React.FC<AssociationProps> = (props) => {
           </h2>
           <PortraitDropper
             className={styles.associationPortrait}
+            // TODO: lift defaultImageURL into state or a constant so it isn't read during render
+            // eslint-disable-next-line react-hooks/refs
             imageURL={selectedAssociation?.portrait ? selectedAssociation.portrait : defaultImageURL.current}
             name={selectedAssociation ? selectedAssociation.association_name : ""}
             onComplete={processImage}
@@ -304,6 +308,8 @@ export const AssociationPanelDemo: React.FC<AssociationProps> = (props) => {
                 <CharacterLimitPlugin charset="UTF-8" maxLength={200} renderer={(obj) => {
                   return <div className={styles.remainingChars}>Remaining characters: <span className={`${styles.value} ${obj.remainingCharacters < 0 ? styles.exceeded : ""}`}>{obj.remainingCharacters}</span></div>
                 }} />
+                {/* TODO: lift exclusionList into state so it isn't read during render */}
+                {/* eslint-disable-next-line react-hooks/refs */}
                 <AssociationDecoratorPlugin isProgrammaticChange={isProgrammaticChange} customLeftClick={onAssociationClick} exclusionList={exclusionList.current} />
               </LexicalComposer>
             </div>
@@ -336,6 +342,8 @@ export const AssociationPanelDemo: React.FC<AssociationProps> = (props) => {
                   ErrorBoundary={LexicalErrorBoundary}
                 />
                 <HistoryPlugin />
+                {/* TODO: lift exclusionList into state so it isn't read during render */}
+                {/* eslint-disable-next-line react-hooks/refs */}
                 <AssociationDecoratorPlugin isProgrammaticChange={isProgrammaticChange} customLeftClick={onAssociationClick} exclusionList={exclusionList.current} />
               </LexicalComposer>
             </div>

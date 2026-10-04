@@ -54,6 +54,8 @@ export const EditSeries = () => {
 
   useEffect(() => {
     if (storiesList) {
+      // TODO: derive availableStories via useMemo from storiesList + seriesBuild.stories
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAvailableStories(
         storiesList.filter(
           (story) =>
@@ -106,13 +108,13 @@ export const EditSeries = () => {
     fetchSeries();
   }, [seriesID, showLoader, hideLoader, setAlertState]);
 
-  const seriesFormMessage: AlertState = {
+  const makeSeriesFormMessage = (): AlertState => ({
     title: "Cannot edit series",
     message: "",
     open: true,
     severity: AlertToastType.error,
     link: undefined,
-  };
+  });
 
   const handleClose = () => {
     navigate(-1);
@@ -144,12 +146,12 @@ export const EditSeries = () => {
       const updatedVolumes = newVolumes.map((vol, idx) => {
         return { ...vol, place: idx + 1 };
       });
-      seriesBuild.stories = updatedVolumes;
-      setSeriesBuild({ ...seriesBuild });
+      setSeriesBuild({ ...seriesBuild, stories: updatedVolumes });
     }
   };
 
   const handleSubmit = async () => {
+    const seriesFormMessage = makeSeriesFormMessage();
     seriesFormMessage.title = "Cannot edit series";
     seriesFormMessage.message = "";
     seriesFormMessage.severity = AlertToastType.error;
@@ -262,6 +264,7 @@ export const EditSeries = () => {
     id: string,
     selectedTitle: string,
   ) => {
+    const seriesFormMessage = makeSeriesFormMessage();
     event.stopPropagation();
     const confirmText =
       "Remove " + selectedTitle + " from " + seriesBuild.series_title + "?";

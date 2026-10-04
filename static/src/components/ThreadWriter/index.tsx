@@ -471,6 +471,8 @@ export const ThreadWriter = () => {
   useEffect(() => {
     if (!chapter) {
       // Clear storyBlocks when chapter becomes undefined (navigating away)
+      // TODO: derive storyBlocks from chapter instead of mirroring in state
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStoryBlocks(null);
       return;
     }
@@ -1217,6 +1219,8 @@ export const ThreadWriter = () => {
               onEditCallback={onAssociationEditCallback}
               isAssociationPanelOpen={isAssociationPanelOpen}
               setIsAssociationPanelOpen={setIsAssociationPanelOpen}
+              // TODO: refactor to callback ref or state so this isn't read during render
+              // eslint-disable-next-line react-hooks/refs
               selectedAssociationID={selectedAssociation.current}
             />
             <ContextMenu

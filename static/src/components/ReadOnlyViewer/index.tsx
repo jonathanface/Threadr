@@ -305,7 +305,7 @@ export const ReadOnlyViewer = ({
       chapterComments.length === 0 ||
       !editorContainerRef.current
     ) {
-      setHighlightRects([]); // eslint-disable-line react-hooks/set-state-in-effect
+      setHighlightRects([]);
       return;
     }
 

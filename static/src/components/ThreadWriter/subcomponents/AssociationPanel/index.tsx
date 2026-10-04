@@ -251,6 +251,8 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
   ]);
 
   useEffect(() => {
+    // TODO: inline clearData's resets or lift them out of this effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     clearData();
   }, [chapter?.id, story?.story_id]);
 
@@ -530,6 +532,8 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
             imageURL={
               selectedAssociation?.portrait
                 ? selectedAssociation.portrait
+                // TODO: lift defaultImageURL into state or a constant so it isn't read during render
+                // eslint-disable-next-line react-hooks/refs
                 : defaultImageURL.current
             }
             name={
@@ -598,6 +602,8 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
                 <AssociationDecoratorPlugin
                   isProgrammaticChange={isProgrammaticChange}
                   customLeftClick={onAssociationClick}
+                  // TODO: lift exclusionList into state so it isn't read during render
+                  // eslint-disable-next-line react-hooks/refs
                   exclusionList={exclusionList.current}
                 />
               </LexicalComposer>
@@ -646,6 +652,8 @@ export const AssociationPanel: FC<AssociationProps> = (props) => {
                 <AssociationDecoratorPlugin
                   isProgrammaticChange={isProgrammaticChange}
                   customLeftClick={onAssociationClick}
+                  // TODO: lift exclusionList into state so it isn't read during render
+                  // eslint-disable-next-line react-hooks/refs
                   exclusionList={exclusionList.current}
                 />
               </LexicalComposer>
