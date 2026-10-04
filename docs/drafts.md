@@ -242,25 +242,87 @@ Not in v1. Mobile subscribers transparently get the current draft because the st
 
 ## Testing
 
+Adequate test coverage is a non-negotiable deliverable, not a follow-up. The feature does not ship without:
+
+- Unit tests covering every new DAO method and endpoint handler.
+- Integration tests covering the end-to-end flows that cross service boundaries (deep-clone → read, set-current → stories-list, share-link → current-draft resolution, subscription lapse → gated endpoint).
+- A frontend test suite for `DraftsPicker` that covers both subscriber and non-subscriber paths.
+- Coverage reported via the existing `make coverage` / `make coverage-html` targets. New files should not drop total coverage below the pre-feature baseline; aim to match the coverage ratio of neighboring packages (`daos/`, `api/`) which already have `_test.go` siblings for every production file.
+
 ### Backend — Go
 
-- `CreateStoryDraft`:
+Unit tests, co-located as `_test.go` next to the production files (`daos/stories_test.go`, `api/*_test.go`, etc.) matching the repo convention:
+
+- `CreateStoryDraft` (`daos/stories_test.go`):
   - Identity isolation — new story/chapter/block IDs don't collide with source; both exist independently in the stories and blocks tables.
   - Content equivalence — new draft's blocks render the same text as source's at the moment of creation.
-  - Association sharing — writing an association against the new draft id results in it being readable from both source and the new draft.
+  - Chapter place/title preserved; chapter IDs are fresh.
+  - Associations are not copied — new draft id reads from root's association list; writes against the new draft id land on root.
   - Comments are not copied — new draft returns zero comments regardless of source comment count.
-- Transactional failure — simulate a block-batch error; verify the new story row and chapters are rolled back.
-- `rootStoryID` — resolves self for roots, resolves to the correct root for children, errors on unknown IDs.
-- Share link resolution — create share link against draft A, mark draft B current, verify reader fetches B's content.
-- "Set as current" — verify `series_id` propagates to the new current, and the previous current loses it.
-- Stories-list filter — a root with no drafts shows the root; a root with drafts shows only the current.
+  - Outline is copied as part of the story row.
+  - Non-owner rejection — a caller who doesn't own the source story gets an error, no partial writes.
+  - Transactional failure — simulate a block-batch error (`BatchWriteItem` returning `UnprocessedItems` persistently); verify the new story row and chapters are rolled back and no orphans remain.
+- `rootStoryID` (`daos/stories_test.go`):
+  - Resolves self for roots.
+  - Resolves to the correct root for children.
+  - Returns an error for unknown IDs rather than silently returning the input.
+  - Cache behavior under TTL expiry.
+- Share-link resolution (`daos/sharing_test.go`):
+  - Create link against root → reader fetches root.
+  - Create link against draft A, flip current to draft B → reader fetches B.
+  - Current pointer missing (fallback to root) → reader fetches root.
+- "Set as current" (`daos/stories_test.go`):
+  - `series_id` propagates to the new current and clears on the previous.
+  - Two-row transaction atomicity — if one update fails, neither row changes.
+  - Rejects marking a non-draft story (one with no `original_story_id` and no siblings) as current when it's already the only member — no-op rather than error, documented behavior.
+- Stories-list filter (`daos/stories_test.go`):
+  - A root with no drafts shows the root.
+  - A root with drafts shows only the current.
+  - A root whose current draft has been deleted shows the root (after promote-on-delete).
+- Delete-draft guards (`daos/deletion_operations_test.go`):
+  - Deleting a non-current draft: succeeds, cleans up its chapters and blocks table, does not touch root.
+  - Deleting the current draft: refuses with a descriptive error (handler-level), or alternately promotes root to current first — pick one and test it.
+  - Deleting the root while drafts exist: refuses with a descriptive error.
+
+Handler-level tests (`api/*_test.go`):
+
+- `POST /stories/:id/drafts` — subscriber creates successfully, non-subscriber receives 402 citing `BenefitDrafts`, auth missing returns 401, source story not owned returns 403.
+- `GET /stories/:id/drafts` — subscriber lists siblings including the row they queried from; non-subscriber receives 402.
+- `POST /stories/:id/drafts/current` — subscriber flips current; non-subscriber 402; attempting to mark a story in a different user's ancestry returns 403.
+- `PATCH /stories/:id` with `draft_name` — subscriber renames; non-subscriber receives 402 only if also attempting draft operations (plain story edits remain available).
+
+### Backend — integration tests
+
+End-to-end flows against the full DAO + handler stack (DynamoDB Local or the staging environment, consistent with how existing integration tests in the repo are wired):
+
+- **Clone → read**: create a story with chapters, blocks, outline, and associations. Call `POST /stories/:id/drafts`. GET the new draft. Assert full equivalence of chapter/block content and that associations are read-through to the root.
+- **Set current → stories list**: create a draft, mark it current, hit `GET /stories` and assert only the current is listed. Repeat for `GET /series/:id`.
+- **Share-link follows current**: author creates draft A, creates a share link, flips current to draft B, assert reader hitting the link gets B's content (same block count, text, chapter titles).
+- **Subscription lapse**: subscriber creates N drafts, then the subscription lapses (simulate via Stripe webhook or by flipping `subscriber=false`). Assert `POST /stories/:id/drafts` returns 402, existing drafts remain readable, stories list still shows the current draft of each root.
+- **Rollback on transaction failure**: with a seeded source story, inject a block-copy failure into the DAO. Call `POST /stories/:id/drafts`. Assert no new story row and no new chapter rows exist afterward (query the GSI by `original_story_id`).
+- **Delete current → promote root**: delete the current draft via `DELETE /stories/:id`, assert the root is now current and visible in the stories list.
 
 ### Frontend — Vitest
 
-- `DraftsPicker`:
-  - Subscriber: dropdown renders, create/switch/rename/delete calls dispatch correct API requests.
-  - Non-subscriber: `disabled`, tooltip reads "Drafts are only available to subscribers," opacity 0.4 (match `DocumentExporter`).
-- No regression in `LoginPanel`, `SignupPanel`, `ShareDialog`.
+Co-located under `__tests__/` matching existing conventions (`LoginPanel/__tests__/index.test.tsx`, etc.):
+
+- `DraftsPicker` (`DraftsPicker/__tests__/index.test.tsx`):
+  - Subscriber: picker renders, lists drafts from a mocked API, highlights the current one.
+  - Subscriber: clicking "Create draft…" opens the modal, submitting it POSTs with the entered name, and the UI navigates to the new story ID returned.
+  - Subscriber: per-row actions (Set as current, Rename, Delete) call the expected endpoints.
+  - Non-subscriber: button is `disabled`, tooltip reads "Drafts are only available to subscribers," opacity 0.4 — same assertion style as the existing `DocumentExporter`-related tests.
+- Non-regression: existing suites (`LoginPanel`, `SignupPanel`, `ShareDialog`, `CommentsPanel`) still pass; `DocumentMenu` snapshot updated only to add the new button, nothing else.
+
+### Running everything locally before merging
+
+```
+make lint
+make lint-ui
+make unit-test                 # Go + Vitest
+make coverage-html             # inspect that no new code is uncovered
+```
+
+CI must be green on all of the above. Any new `_test.go` or `*.test.tsx` file that uses mocks instead of real integration should be flagged in review for whether it can be elevated to an integration test — mocks are a tool, not a goal.
 
 ## Migration & rollout
 
