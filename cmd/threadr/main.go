@@ -104,6 +104,7 @@ func main() {
 	useNgrok := strings.ToLower(getenv("USE_NGROK", "false")) == "true"
 	googleURL := getenv("GOOGLE_OAUTH_REDIRECT_URL", "")
 	amazonURL := getenv("AMAZON_OAUTH_REDIRECT_URL", "")
+	githubURL := getenv("GITHUB_OAUTH_REDIRECT_URL", "")
 
 	if useNgrok {
 		if ngrokGoogle := getenv("GOOGLE_OAUTH_REDIRECT_URL_NGROK", ""); ngrokGoogle != "" {
@@ -111,6 +112,9 @@ func main() {
 		}
 		if ngrokAmazon := getenv("AMAZON_OAUTH_REDIRECT_URL_NGROK", ""); ngrokAmazon != "" {
 			amazonURL = ngrokAmazon
+		}
+		if ngrokGithub := getenv("GITHUB_OAUTH_REDIRECT_URL_NGROK", ""); ngrokGithub != "" {
+			githubURL = ngrokGithub
 		}
 	}
 
@@ -122,6 +126,9 @@ func main() {
 		AmazonID:     getenv("AMAZON_OAUTH_CLIENT_ID", ""),
 		AmazonSecret: getenv("AMAZON_OAUTH_CLIENT_SECRET", ""),
 		AmazonURL:    amazonURL,
+		GithubID:     getenv("GITHUB_OAUTH_CLIENT_ID", ""),
+		GithubSecret: getenv("GITHUB_OAUTH_CLIENT_SECRET", ""),
+		GithubURL:    githubURL,
 		FrontEndURL:  getenv("FRONTEND_URL", ""),
 	}
 

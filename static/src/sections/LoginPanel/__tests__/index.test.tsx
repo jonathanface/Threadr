@@ -69,6 +69,17 @@ describe("LoginPanel", () => {
       expect(amazonLink).toHaveAttribute("id", "LoginWithAmazon");
     });
 
+    it("should render GitHub login option", () => {
+      renderWithRouter(<LoginPanel />);
+
+      const githubLink = screen.getByRole("link", {
+        name: /sign in with github/i,
+      });
+      expect(githubLink).toBeInTheDocument();
+      expect(githubLink).toHaveAttribute("href", "/auth/github");
+      expect(githubLink).toHaveAttribute("id", "LoginWithGitHub");
+    });
+
     it("should render email/password form", () => {
       renderWithRouter(<LoginPanel />);
 
@@ -120,6 +131,19 @@ describe("LoginPanel", () => {
       );
     });
 
+    it("should preserve query string in GitHub auth link", () => {
+      mockWindowLocation("?redirect=/stories");
+      renderWithRouter(<LoginPanel />);
+
+      const githubLink = screen.getByRole("link", {
+        name: /sign in with github/i,
+      });
+      expect(githubLink).toHaveAttribute(
+        "href",
+        "/auth/github?redirect=/stories",
+      );
+    });
+
     it("should handle empty query string", () => {
       mockWindowLocation("");
       renderWithRouter(<LoginPanel />);
@@ -130,9 +154,13 @@ describe("LoginPanel", () => {
       const amazonLink = screen.getByRole("link", {
         name: /sign in with amazon/i,
       });
+      const githubLink = screen.getByRole("link", {
+        name: /sign in with github/i,
+      });
 
       expect(googleLink).toHaveAttribute("href", "/auth/google");
       expect(amazonLink).toHaveAttribute("href", "/auth/amazon");
+      expect(githubLink).toHaveAttribute("href", "/auth/github");
     });
   });
 
@@ -164,6 +192,9 @@ describe("LoginPanel", () => {
       expect(
         screen.getByRole("link", { name: /sign in with amazon/i }),
       ).toBeInTheDocument();
+      expect(
+        screen.getByRole("link", { name: /sign in with github/i }),
+      ).toBeInTheDocument();
     });
 
     it("should have proper heading structure", () => {
@@ -177,7 +208,7 @@ describe("LoginPanel", () => {
       renderWithRouter(<LoginPanel />);
 
       const links = screen.getAllByRole("link");
-      expect(links.length).toBeGreaterThanOrEqual(4); // Google, Amazon, Forgot password, Create account
+      expect(links.length).toBeGreaterThanOrEqual(5); // Google, Amazon, GitHub, Forgot password, Create account
       links.forEach((link) => {
         expect(link).toHaveAttribute("href");
       });
