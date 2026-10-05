@@ -272,7 +272,8 @@ export const HeaderMenu = () => {
                             )}
                           </span>
                         }
-                        color="primary"
+                        color={story?.is_current_draft ? "primary" : "default"}
+                        variant={story?.is_current_draft ? "filled" : "outlined"}
                         sx={{
                           ml: 1,
                           height: "auto",
