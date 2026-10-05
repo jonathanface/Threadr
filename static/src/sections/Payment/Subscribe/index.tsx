@@ -143,6 +143,7 @@ export const SubscribePage = () => {
               "Unlimited documents",
               "Unlimited associations",
               "Export to other formats",
+              "Multiple drafts per story",
               "Cancel anytime",
             ].map((text) => (
               <ListItem key={text} disableGutters sx={{ py: 0.75 }}>
