@@ -352,8 +352,21 @@ func GetSharedStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Resolve to the current draft at read time: a share link identifies
+	// an ancestry, not a specific draft. If the author promotes a different
+	// draft after creating the link, readers see the new current.
+	currentStoryID, err := dao.CurrentDraftID(r.Context(), link.StoryID)
+	if err != nil {
+		if errors.Is(err, daos.ErrStoryNotFound) || errors.Is(err, sql.ErrNoRows) {
+			RespondWithError(w, http.StatusNotFound, "story not found")
+			return
+		}
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
+		return
+	}
+
 	// Fetch story metadata using author's email (since reader doesn't own it)
-	story, err := dao.GetStoryByID(r.Context(), link.AuthorEmail, link.StoryID)
+	story, err := dao.GetStoryByID(r.Context(), link.AuthorEmail, currentStoryID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			RespondWithError(w, http.StatusNotFound, "story not found")
@@ -363,14 +376,20 @@ func GetSharedStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chapters, err := dao.GetChaptersByStoryID(r.Context(), link.StoryID)
+	chapters, err := dao.GetChaptersByStoryID(r.Context(), currentStoryID)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
 	}
 
-	// If the share link is scoped to a specific chapter, filter
-	if link.ChapterID != "" {
+	// If the share link is scoped to a specific chapter, filter — but only
+	// when the current draft is the same story the link originally pointed
+	// at. If the author has promoted a different draft, chapter_id from the
+	// old draft won't match anything in the new draft's chapter list, so
+	// drop the filter and show the whole story.
+	// TODO: offer an author control to re-pin a share link to the new draft's
+	// equivalent chapter when drafts are promoted.
+	if link.ChapterID != "" && currentStoryID == link.StoryID {
 		filtered := make([]models.Chapter, 0, 1)
 		for _, ch := range chapters {
 			if ch.ID == link.ChapterID {
@@ -437,7 +456,18 @@ func GetSharedContentEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blocks, err := staggeredStoryBlockRetrieval(r.Context(), dao, link.StoryID, chapterID, nil, nil)
+	// Resolve to the current draft of the shared ancestry.
+	currentStoryID, err := dao.CurrentDraftID(r.Context(), link.StoryID)
+	if err != nil {
+		if errors.Is(err, daos.ErrStoryNotFound) || errors.Is(err, sql.ErrNoRows) {
+			RespondWithError(w, http.StatusNotFound, "story not found")
+			return
+		}
+		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
+		return
+	}
+
+	blocks, err := staggeredStoryBlockRetrieval(r.Context(), dao, currentStoryID, chapterID, nil, nil)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return

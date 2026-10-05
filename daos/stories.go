@@ -32,11 +32,18 @@ func truncateString(s string, maxLen int) string {
 func (d *DAO) GetAllStories(ctx context.Context, email string) (stories []*models.Story, err error) {
 	logger.Debug("GetAllStories called", "email", email)
 
+	// Visibility rule for drafts (docs/drafts.md "Stories list visibility
+	// invariant"): exactly one row per ancestry is listed. A row is visible
+	// unless it has is_current_draft explicitly false — i.e., absent (no
+	// drafts yet, default-current root) or explicitly true (promoted
+	// current, root or draft). SetCurrentDraft maintains this by flipping
+	// both the previous and new current in a transaction.
 	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
 		TableName:        aws.String("stories" + GetTableSuffix()),
-		FilterExpression: aws.String("author=:eml AND attribute_not_exists(deleted_at)"),
+		FilterExpression: aws.String("author=:eml AND attribute_not_exists(deleted_at) AND (attribute_not_exists(is_current_draft) OR is_current_draft = :t)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
+			":t":   &types.AttributeValueMemberBOOL{Value: true},
 		},
 	})
 	if err != nil {

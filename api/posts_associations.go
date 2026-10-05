@@ -90,13 +90,10 @@ func CreateAssociationsEndpoint(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var storyOrSeriesID string
-	if storyOrSeriesID, err = dao.IsStoryInASeries(r.Context(), email, storyID); err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "unable to check series membership of story")
+	storyOrSeriesID, err := dao.StoryOrSeriesID(r.Context(), email, storyID)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "unable to resolve story scope for associations")
 		return
-	}
-	if storyOrSeriesID == "" {
-		storyOrSeriesID = storyID
 	}
 	if err = dao.WriteAssociations(r.Context(), email, storyOrSeriesID, associations); err != nil {
 		opErr := &smithy.OperationError{}

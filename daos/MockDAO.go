@@ -50,6 +50,13 @@ type MockDAO struct {
 	MockGetSeriesVolumes                      func(seriesID string) ([]*models.Story, error)
 	MockGetStoryOrSeriesAssociationThumbnails func(email, storyID string) ([]*models.SimplifiedAssociation, error)
 	MockIsStoryInASeries                      func(email string, storyID string) (string, error)
+	MockRootStoryID                           func(storyID string) (string, error)
+	MockStoryOrSeriesID                       func(email string, storyID string) (string, error)
+	MockCurrentDraftID                        func(storyID string) (string, error)
+	MockCreateStoryDraft                      func(email, sourceStoryID, draftName string) (*models.Story, error)
+	MockListDrafts                            func(email, storyID string) ([]*models.Story, error)
+	MockSetCurrentDraft                       func(email, targetID string) error
+	MockRenameDraft                           func(email, storyID, newName string) error
 	MockGetChapterParagraphs                  func(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error)
 	MockGetAssociationDetails                 func(email, storyID, associationID string) (*models.Association, error)
 	MockGetStorySettingsByID                  func(email string, storyID string) (*models.StorySettings, error)
@@ -536,6 +543,75 @@ func (m *MockDAO) IsStoryInASeries(ctx context.Context, email string, storyID st
 		return m.MockIsStoryInASeries(email, storyID)
 	}
 	return m.DAO.IsStoryInASeries(ctx, email, storyID)
+}
+
+func (m *MockDAO) RootStoryID(ctx context.Context, storyID string) (string, error) {
+	if m.MockRootStoryID != nil {
+		return m.MockRootStoryID(storyID)
+	}
+	return m.DAO.RootStoryID(ctx, storyID)
+}
+
+// StoryOrSeriesID matches the real DAO's resolution: if MockStoryOrSeriesID
+// is set, use it directly. Otherwise, if MockIsStoryInASeries is set (the
+// legacy pattern), compose it: resolve as that mock returns, falling back
+// to the raw storyID when it returns "". This preserves older tests that
+// predate StoryOrSeriesID without forcing them to set two mocks.
+func (m *MockDAO) StoryOrSeriesID(ctx context.Context, email string, storyID string) (string, error) {
+	if m.MockStoryOrSeriesID != nil {
+		return m.MockStoryOrSeriesID(email, storyID)
+	}
+	if m.MockIsStoryInASeries != nil {
+		seriesID, err := m.MockIsStoryInASeries(email, storyID)
+		if err != nil {
+			return "", err
+		}
+		if seriesID != "" {
+			return seriesID, nil
+		}
+		return storyID, nil
+	}
+	return m.DAO.StoryOrSeriesID(ctx, email, storyID)
+}
+
+func (m *MockDAO) CreateStoryDraft(ctx context.Context, email, sourceStoryID, draftName string) (*models.Story, error) {
+	if m.MockCreateStoryDraft != nil {
+		return m.MockCreateStoryDraft(email, sourceStoryID, draftName)
+	}
+	return m.DAO.CreateStoryDraft(ctx, email, sourceStoryID, draftName)
+}
+
+func (m *MockDAO) CurrentDraftID(ctx context.Context, storyID string) (string, error) {
+	if m.MockCurrentDraftID != nil {
+		return m.MockCurrentDraftID(storyID)
+	}
+	// Default: pass storyID through unchanged so tests that predate the
+	// drafts feature (and don't set up stories-table mocks for RootStoryID
+	// / CurrentDraftID lookups) see the "no drafts, serve as-is" behavior.
+	// Tests that exercise draft resolution should set MockCurrentDraftID.
+	_ = ctx
+	return storyID, nil
+}
+
+func (m *MockDAO) ListDrafts(ctx context.Context, email, storyID string) ([]*models.Story, error) {
+	if m.MockListDrafts != nil {
+		return m.MockListDrafts(email, storyID)
+	}
+	return m.DAO.ListDrafts(ctx, email, storyID)
+}
+
+func (m *MockDAO) SetCurrentDraft(ctx context.Context, email, targetID string) error {
+	if m.MockSetCurrentDraft != nil {
+		return m.MockSetCurrentDraft(email, targetID)
+	}
+	return m.DAO.SetCurrentDraft(ctx, email, targetID)
+}
+
+func (m *MockDAO) RenameDraft(ctx context.Context, email, storyID, newName string) error {
+	if m.MockRenameDraft != nil {
+		return m.MockRenameDraft(email, storyID, newName)
+	}
+	return m.DAO.RenameDraft(ctx, email, storyID, newName)
 }
 
 func (m *MockDAO) GetChapterParagraphs(

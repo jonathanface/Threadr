@@ -134,14 +134,11 @@ func UploadPortraitEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var storyOrSeriesID string
-	if storyOrSeriesID, err = dao.IsStoryInASeries(r.Context(), email, storyID); err != nil {
+	storyOrSeriesID, err := dao.StoryOrSeriesID(r.Context(), email, storyID)
+	if err != nil {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
-	}
-	if storyOrSeriesID == "" {
-		storyOrSeriesID = storyID
 	}
 
 	// Get the old portrait URL to delete it before uploading new one

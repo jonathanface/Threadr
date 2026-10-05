@@ -18,6 +18,8 @@ type DaoInterface interface {
 	GetChaptersByStoryIDs(ctx context.Context, storyIDs []string) (map[string][]models.Chapter, error)
 	GetStoryByID(ctx context.Context, email string, storyID string) (*models.Story, error)
 	RootStoryID(ctx context.Context, storyID string) (string, error)
+	StoryOrSeriesID(ctx context.Context, email string, storyID string) (string, error)
+	CurrentDraftID(ctx context.Context, storyID string) (string, error)
 	GetStorySettingsByID(ctx context.Context, email string, storyID string) (*models.StorySettings, error)
 	GetSeriesByID(ctx context.Context, email string, seriesID string) (*models.Series, error)
 	GetStoryCountByUser(ctx context.Context, email string) (int, error)
@@ -76,6 +78,9 @@ type DaoInterface interface {
 		sourceStoryID string,
 		draftName string,
 	) (*models.Story, error)
+	ListDrafts(ctx context.Context, email string, storyID string) ([]*models.Story, error)
+	SetCurrentDraft(ctx context.Context, email string, targetID string) error
+	RenameDraft(ctx context.Context, email string, storyID string, newName string) error
 	CreateUser(ctx context.Context, email string) (*models.UserInfo, error)
 	CreateOutline(ctx context.Context, outline models.OutlineRequest) (*models.OutlineRequest, error)
 

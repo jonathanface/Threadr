@@ -284,6 +284,240 @@ func TestCreateStoryDraft_SeriesIDInherited(t *testing.T) {
 	}
 }
 
+// -----------------------------------------------------------------------
+// CurrentDraftID tests
+// -----------------------------------------------------------------------
+
+func TestCurrentDraftID_ResolvesToFlaggedSibling(t *testing.T) {
+	mockDao := NewMockDAO()
+	mockClient := mockDao.DynamoClient.(*MockDynamoClient)
+
+	callCount := 0
+	mockClient.MockScan = func(_ context.Context, input *dynamodb.ScanInput, _ ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+		callCount++
+		// First scan is the root resolution for storyID; return root.
+		if callCount == 1 {
+			return scanOutputForStory("root-abc", ""), nil
+		}
+		// Second scan looks up the current draft.
+		item := map[string]types.AttributeValue{
+			"story_id":          &types.AttributeValueMemberS{Value: "draft-current"},
+			"original_story_id": &types.AttributeValueMemberS{Value: "root-abc"},
+			"is_current_draft":  &types.AttributeValueMemberBOOL{Value: true},
+		}
+		return &dynamodb.ScanOutput{Items: []map[string]types.AttributeValue{item}}, nil
+	}
+
+	got, err := mockDao.DAO.CurrentDraftID(context.Background(), "root-abc")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "draft-current" {
+		t.Errorf("got %q want draft-current", got)
+	}
+}
+
+func TestCurrentDraftID_FallsBackToRootWhenNoneFlagged(t *testing.T) {
+	mockDao := NewMockDAO()
+	mockClient := mockDao.DynamoClient.(*MockDynamoClient)
+
+	callCount := 0
+	mockClient.MockScan = func(_ context.Context, _ *dynamodb.ScanInput, _ ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+		callCount++
+		if callCount == 1 {
+			return scanOutputForStory("root-abc", ""), nil
+		}
+		return &dynamodb.ScanOutput{Items: nil}, nil
+	}
+
+	got, err := mockDao.DAO.CurrentDraftID(context.Background(), "root-abc")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "root-abc" {
+		t.Errorf("fallback should be root id, got %q", got)
+	}
+}
+
+// -----------------------------------------------------------------------
+// StoryOrSeriesID tests
+// -----------------------------------------------------------------------
+
+func TestStoryOrSeriesID_RootNoSeriesReturnsRoot(t *testing.T) {
+	mockDao := NewMockDAO()
+	mockClient := mockDao.DynamoClient.(*MockDynamoClient)
+	mockClient.MockScan = func(_ context.Context, _ *dynamodb.ScanInput, _ ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+		return scanOutputForStory("root-abc", ""), nil
+	}
+	// Explicitly make IsStoryInASeries return no series.
+	mockDao.MockIsStoryInASeries = func(_, _ string) (string, error) { return "", nil }
+
+	got, err := mockDao.StoryOrSeriesID(context.Background(), "user@example.com", "root-abc")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "root-abc" {
+		t.Errorf("got %q want root-abc", got)
+	}
+}
+
+// scanRouter is a mock-Scan handler that dispatches by table-name prefix
+// and (optionally) by the :s expression attribute value. Returns an empty
+// scan for anything it doesn't recognize so IsStoryInASeries's chained
+// user/stories lookups don't error out.
+func scanRouter(byTableAndStoryVal map[string]map[string][]map[string]types.AttributeValue, usersRow map[string]types.AttributeValue) func(context.Context, *dynamodb.ScanInput, ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+	return func(_ context.Context, input *dynamodb.ScanInput, _ ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+		table := ""
+		if input.TableName != nil {
+			table = *input.TableName
+		}
+		if strings.HasPrefix(table, "users") && usersRow != nil {
+			return &dynamodb.ScanOutput{Items: []map[string]types.AttributeValue{usersRow}}, nil
+		}
+		for prefix, byVal := range byTableAndStoryVal {
+			if strings.HasPrefix(table, prefix) {
+				if v, ok := input.ExpressionAttributeValues[":s"].(*types.AttributeValueMemberS); ok {
+					if rows, ok := byVal[v.Value]; ok {
+						return &dynamodb.ScanOutput{Items: rows}, nil
+					}
+				}
+			}
+		}
+		return &dynamodb.ScanOutput{Items: nil}, nil
+	}
+}
+
+func defaultUsersRow() map[string]types.AttributeValue {
+	return map[string]types.AttributeValue{
+		"email":      &types.AttributeValueMemberS{Value: "user@example.com"},
+		"admin":      &types.AttributeValueMemberBOOL{Value: false},
+		"subscriber": &types.AttributeValueMemberBOOL{Value: true},
+	}
+}
+
+func TestStoryOrSeriesID_DraftInSeriesReturnsSeries(t *testing.T) {
+	mockDao := NewMockDAO()
+	mockClient := mockDao.DynamoClient.(*MockDynamoClient)
+
+	rootRowWithSeries := storyRow("root-abc", "user@example.com", "T")
+	rootRowWithSeries["series_id"] = &types.AttributeValueMemberS{Value: "series-999"}
+
+	mockClient.MockScan = scanRouter(map[string]map[string][]map[string]types.AttributeValue{
+		"stories": {
+			"draft-xyz": {func() map[string]types.AttributeValue {
+				row := storyRow("draft-xyz", "user@example.com", "T")
+				row["original_story_id"] = &types.AttributeValueMemberS{Value: "root-abc"}
+				return row
+			}()},
+			"root-abc": {rootRowWithSeries},
+		},
+	}, defaultUsersRow())
+
+	got, err := mockDao.DAO.StoryOrSeriesID(context.Background(), "user@example.com", "draft-xyz")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "series-999" {
+		t.Errorf("got %q want series-999", got)
+	}
+}
+
+func TestStoryOrSeriesID_DraftNoSeriesReturnsRoot(t *testing.T) {
+	mockDao := NewMockDAO()
+	mockClient := mockDao.DynamoClient.(*MockDynamoClient)
+
+	mockClient.MockScan = scanRouter(map[string]map[string][]map[string]types.AttributeValue{
+		"stories": {
+			"draft-xyz": {func() map[string]types.AttributeValue {
+				row := storyRow("draft-xyz", "user@example.com", "T")
+				row["original_story_id"] = &types.AttributeValueMemberS{Value: "root-abc"}
+				return row
+			}()},
+			"root-abc": {storyRow("root-abc", "user@example.com", "T")},
+		},
+	}, defaultUsersRow())
+
+	got, err := mockDao.DAO.StoryOrSeriesID(context.Background(), "user@example.com", "draft-xyz")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "root-abc" {
+		t.Errorf("draft without series must scope to root, got %q want root-abc", got)
+	}
+}
+
+// -----------------------------------------------------------------------
+// ListDrafts / RenameDraft smoke tests
+// -----------------------------------------------------------------------
+
+func TestListDrafts_ReturnsRootFirst(t *testing.T) {
+	mockDao := NewMockDAO()
+	mockClient := mockDao.DynamoClient.(*MockDynamoClient)
+
+	callCount := 0
+	mockClient.MockScan = func(_ context.Context, _ *dynamodb.ScanInput, _ ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+		callCount++
+		if callCount == 1 {
+			// Root resolution for the input story.
+			return scanOutputForStory("root-abc", ""), nil
+		}
+		// Ancestry query: root + 2 drafts, intentionally returned in a
+		// non-root-first order to exercise the reorder.
+		return &dynamodb.ScanOutput{Items: []map[string]types.AttributeValue{
+			{
+				"story_id":          &types.AttributeValueMemberS{Value: "draft-2"},
+				"original_story_id": &types.AttributeValueMemberS{Value: "root-abc"},
+				"created_at":        &types.AttributeValueMemberN{Value: "2000"},
+			},
+			{
+				"story_id":          &types.AttributeValueMemberS{Value: "draft-1"},
+				"original_story_id": &types.AttributeValueMemberS{Value: "root-abc"},
+				"created_at":        &types.AttributeValueMemberN{Value: "1000"},
+			},
+			{
+				"story_id":   &types.AttributeValueMemberS{Value: "root-abc"},
+				"created_at": &types.AttributeValueMemberN{Value: "500"},
+			},
+		}}, nil
+	}
+
+	got, err := mockDao.DAO.ListDrafts(context.Background(), "user@example.com", "root-abc")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got) != 3 {
+		t.Fatalf("expected 3 rows, got %d", len(got))
+	}
+	if got[0].ID != "root-abc" {
+		t.Errorf("root should sort first, got %q", got[0].ID)
+	}
+	if got[1].ID != "draft-1" || got[2].ID != "draft-2" {
+		t.Errorf("drafts should be oldest-first after the root, got [%s %s]", got[1].ID, got[2].ID)
+	}
+}
+
+func TestRenameDraft_IssuesUpdate(t *testing.T) {
+	mockDao := NewMockDAO()
+	mockClient := mockDao.DynamoClient.(*MockDynamoClient)
+
+	var captured *dynamodb.UpdateItemInput
+	mockClient.MockUpdateItem = func(_ context.Context, input *dynamodb.UpdateItemInput, _ ...func(*dynamodb.Options)) (*dynamodb.UpdateItemOutput, error) {
+		captured = input
+		return &dynamodb.UpdateItemOutput{}, nil
+	}
+
+	err := mockDao.DAO.RenameDraft(context.Background(), "user@example.com", "story-1", "Alternate Ending")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if captured == nil {
+		t.Fatal("expected UpdateItem to be called")
+	}
+	if v, ok := captured.ExpressionAttributeValues[":n"].(*types.AttributeValueMemberS); !ok || v.Value != "Alternate Ending" {
+		t.Errorf("new name not plumbed through: %+v", captured.ExpressionAttributeValues[":n"])
+	}
+}
+
 func TestCreateStoryDraft_RollsBackOnBlockCopyFailure(t *testing.T) {
 	mockDao := NewMockDAO()
 	f := newDraftFixture(t)
