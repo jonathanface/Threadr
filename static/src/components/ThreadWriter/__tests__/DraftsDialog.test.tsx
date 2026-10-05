@@ -17,11 +17,26 @@ vi.mock('../../../api', () => ({
 
 vi.mock('../../../hooks/useSelections', () => ({
   useSelections: () => ({
-    story: { story_id: 'root-1' },
-    chapter: { id: 'ch1' },
+    story: {
+      story_id: 'root-1',
+      chapters: [
+        { id: 'src-ch-1', place: 1 },
+        { id: 'src-ch-2', place: 2 },
+        { id: 'src-ch-3', place: 3 },
+      ],
+    },
+    chapter: { id: 'src-ch-1' },
     setChapter: vi.fn(),
   }),
 }));
+
+// react-router-dom's useNavigate is mocked so tests can inspect where
+// the dialog tries to send the user after create / switch.
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return { ...actual, useNavigate: () => mockNavigate };
+});
 
 const makeDraft = (overrides: Partial<Story> = {}): Story => ({
   story_id: 'root-1',
@@ -50,6 +65,11 @@ describe('DraftsDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(api.get).mockResolvedValue({ data: [] });
+    // Default location: no chapter param. Tests that need one override.
+    Object.defineProperty(window, 'location', {
+      value: { search: '', pathname: '/stories/root-1', href: '/stories/root-1' },
+      writable: true,
+    });
   });
 
   it('renders the dialog title and create form', async () => {
@@ -125,6 +145,54 @@ describe('DraftsDialog', () => {
 
     await waitFor(() => {
       expect(api.post).toHaveBeenCalledWith('/stories/root-1/drafts', { draft_name: 'New' });
+    });
+  });
+
+  it('maps the current ?chapter= to the equivalent chapter in the new draft', async () => {
+    // User is viewing the middle source chapter.
+    Object.defineProperty(window, 'location', {
+      value: {
+        search: '?chapter=src-ch-2',
+        pathname: '/stories/root-1',
+        href: '/stories/root-1?chapter=src-ch-2',
+      },
+      writable: true,
+    });
+
+    // Backend response's chapters are in the same order as the source,
+    // with fresh ids — so index 1 (zero-based) is the equivalent of
+    // src-ch-2.
+    vi.mocked(api.post).mockResolvedValue({
+      data: {
+        ...makeDraft({ story_id: 'draft-new', original_story_id: 'root-1', draft_name: 'Alt' }),
+        chapters: [
+          { id: 'new-ch-1', story_id: 'draft-new', place: 1, title: '', tableNotReady: false },
+          { id: 'new-ch-2', story_id: 'draft-new', place: 2, title: '', tableNotReady: false },
+          { id: 'new-ch-3', story_id: 'draft-new', place: 3, title: '', tableNotReady: false },
+        ],
+      },
+    });
+
+    renderDialog({ open: true });
+    fireEvent.change(screen.getByLabelText(/new draft name/i), { target: { value: 'Alt' } });
+    fireEvent.click(screen.getByRole('button', { name: /create draft/i }));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/stories/draft-new?chapter=new-ch-2');
+    });
+  });
+
+  it('falls back to the base story url when no chapter is selected', async () => {
+    vi.mocked(api.post).mockResolvedValue({
+      data: makeDraft({ story_id: 'draft-new', original_story_id: 'root-1', draft_name: 'A' }),
+    });
+
+    renderDialog({ open: true });
+    fireEvent.change(screen.getByLabelText(/new draft name/i), { target: { value: 'A' } });
+    fireEvent.click(screen.getByRole('button', { name: /create draft/i }));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/stories/draft-new');
     });
   });
 

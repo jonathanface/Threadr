@@ -103,7 +103,29 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
       await fetchDrafts();
       // Jump into the new draft so the editor is pointed at it.
       if (res.data?.story_id) {
-        navigate(`/stories/${res.data.story_id}`);
+        // Preserve the user's chapter selection across the clone: the
+        // backend copies chapters in order, so the chapter at index N
+        // of the source has an equivalent chapter at index N of the
+        // new draft. Carrying the raw ?chapter= uuid across would land
+        // on a stale id that doesn't exist in the new draft and render
+        // a blank editor.
+        const params = new URLSearchParams(window.location.search);
+        const currentChapterID = params.get("chapter");
+        let destination = `/stories/${res.data.story_id}`;
+        if (
+          currentChapterID &&
+          story.chapters &&
+          res.data.chapters &&
+          res.data.chapters.length > 0
+        ) {
+          const idx = story.chapters.findIndex(
+            (c) => c.id === currentChapterID,
+          );
+          if (idx >= 0 && res.data.chapters[idx]) {
+            destination += `?chapter=${res.data.chapters[idx].id}`;
+          }
+        }
+        navigate(destination);
         setOpen(false);
       }
     } catch (err) {
