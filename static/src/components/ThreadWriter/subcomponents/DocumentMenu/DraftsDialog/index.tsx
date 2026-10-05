@@ -180,30 +180,39 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
     setError("");
     setDeleting(true);
 
-    // If the user is deleting the story they're currently viewing, we
-    // need to redirect them away first — after the soft-delete the
-    // story.story_id in context points at a row with deleted_at set
-    // and every ancestry-aware read (including fetchDrafts) will 404.
-    // Pick a sibling to land on:
-    //   - deleting a non-root draft → fall back to the root
-    //   - deleting the root with drafts → fall back to the promoted
-    //     target (same selection rule PromoteNewRoot uses server-side)
-    let fallbackStoryID: string | null = null;
-    if (story?.story_id === deleteTarget.story_id) {
-      if (deleteTarget.original_story_id) {
-        const root = drafts.find((d) => !d.original_story_id);
-        fallbackStoryID = root?.story_id ?? null;
-      } else {
-        const promoted = previewPromotionTarget(drafts);
-        fallbackStoryID = promoted?.story_id ?? null;
-      }
+    // Compute "the new current" post-delete so we can navigate the user
+    // there regardless of which draft they were viewing. Mirrors the
+    // server-side promotion rules in enforceDraftsDeleteGuards +
+    // PromoteNewRoot so the frontend lands on the same draft the
+    // backend ends up marking current.
+    const remaining = drafts.filter((d) => d.story_id !== deleteTarget.story_id);
+    let newCurrentID: string | null = null;
+    const stillCurrent = remaining.find((d) => d.is_current_draft);
+    if (stillCurrent) {
+      // Deleted a non-current row; whoever already held is_current_draft
+      // keeps it.
+      newCurrentID = stillCurrent.story_id;
+    } else if (deleteTarget.original_story_id) {
+      // Deleted the current draft (non-root): backend promotes root.
+      const root = remaining.find((d) => !d.original_story_id);
+      newCurrentID = root?.story_id ?? null;
+    } else {
+      // Deleted the root while drafts exist: backend's PromoteNewRoot
+      // picks the current draft, else the oldest non-root.
+      const promoted = previewPromotionTarget(remaining);
+      newCurrentID = promoted?.story_id ?? null;
     }
 
     try {
       await api.delete(`/stories/${deleteTarget.story_id}`);
       setDeleteTarget(null);
-      if (fallbackStoryID) {
-        navigate(`/stories/${fallbackStoryID}`);
+      if (newCurrentID && newCurrentID !== story?.story_id) {
+        // The user was elsewhere than the new current, or they were on
+        // the deleted story. Either way, land them on the new current
+        // so they're not stuck looking at a story they didn't choose
+        // (and so a stale story_id in context doesn't 404 the next
+        // ancestry-aware read).
+        navigate(`/stories/${newCurrentID}`);
         setOpen(false);
         return;
       }

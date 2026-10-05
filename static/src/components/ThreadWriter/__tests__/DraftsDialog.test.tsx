@@ -380,6 +380,32 @@ describe('DraftsDialog', () => {
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/stories/draft-a'));
   });
 
+  it('navigates to the already-current draft when deleting a non-current sibling', async () => {
+    // The user (useSelections.story.story_id='root-1') is viewing the
+    // root. Deleting a non-current draft shouldn't change what's
+    // current, so after the delete they should be redirected to
+    // whichever draft was already is_current_draft=true — not back to
+    // the root they were on.
+    vi.mocked(api.get).mockResolvedValue({
+      data: [
+        makeDraft({ story_id: 'root-1', draft_name: 'Original', is_current_draft: false }),
+        makeDraft({ story_id: 'draft-current', original_story_id: 'root-1', draft_name: 'Alt', is_current_draft: true }),
+        makeDraft({ story_id: 'draft-extra', original_story_id: 'root-1', draft_name: 'Scratch', is_current_draft: false }),
+      ],
+    });
+    vi.mocked(api.delete).mockResolvedValue({ data: null });
+    renderDialog({ open: true });
+
+    await waitFor(() => expect(screen.getByText('Scratch')).toBeInTheDocument());
+
+    const scratchRow = screen.getByText('Scratch').closest('li');
+    fireEvent.click(scratchRow!.querySelector('button[aria-label="delete"]') as HTMLButtonElement);
+    fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
+
+    await waitFor(() => expect(api.delete).toHaveBeenCalledWith('/stories/draft-extra'));
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/stories/draft-current'));
+  });
+
   it('cancels the confirm dialog without calling the API', async () => {
     vi.mocked(api.get).mockResolvedValue({
       data: [
