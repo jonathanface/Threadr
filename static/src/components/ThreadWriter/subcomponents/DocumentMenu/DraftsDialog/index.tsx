@@ -1,6 +1,8 @@
 import CheckIcon from "@mui/icons-material/Check";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
 import {
   Box,
   Button,
@@ -11,6 +13,8 @@ import {
   DialogTitle,
   IconButton,
   LinearProgress,
+  ToggleButton,
+  ToggleButtonGroup,
   Table,
   TableBody,
   TableCell,
@@ -54,6 +58,10 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
   const [error, setError] = useState("");
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
+  // 'clone' copies the current draft's chapters; 'upload' parses an
+  // uploaded .docx / .txt and uses that as the new draft's content.
+  const [createMode, setCreateMode] = useState<"clone" | "upload">("clone");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [renamingID, setRenamingID] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   // Pending delete target: null when no confirm is open.
@@ -99,14 +107,31 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
       setError("Give the draft a name before creating it.");
       return;
     }
+    if (createMode === "upload" && !uploadFile) {
+      setError("Choose a document to upload.");
+      return;
+    }
     if (!story?.story_id) return;
     setCreating(true);
     setError("");
     try {
-      const res = await api.post<Story>(`/stories/${story.story_id}/drafts`, {
-        draft_name: trimmed,
-      });
+      let res;
+      if (createMode === "upload" && uploadFile) {
+        const fd = new FormData();
+        fd.append("file", uploadFile);
+        fd.append("draft_name", trimmed);
+        res = await api.post<Story>(
+          `/stories/${story.story_id}/drafts/upload`,
+          fd,
+          { headers: { "Content-Type": "multipart/form-data" } },
+        );
+      } else {
+        res = await api.post<Story>(`/stories/${story.story_id}/drafts`, {
+          draft_name: trimmed,
+        });
+      }
       setNewName("");
+      setUploadFile(null);
       await fetchDrafts();
       // New draft is auto-promoted to current — the /stories list filter
       // now admits it and hides the previous current. Nudge the works-
@@ -142,6 +167,8 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 402) {
         setError("Drafts are only available to subscribers.");
+      } else if (axios.isAxiosError(err) && err.response?.status === 422) {
+        setError("The document couldn't be parsed. Check the file and try again.");
       } else {
         setError("Could not create draft. Please try again.");
       }
@@ -426,27 +453,79 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
             No drafts yet. Create one below to try an alternate ending or revision.
           </Typography>
         )}
-        <Box sx={{ mt: 3, display: "flex", gap: 1, alignItems: "center" }}>
-          <TextField
-            label="New draft name"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
+        <Box sx={{ mt: 3 }}>
+          <ToggleButtonGroup
+            value={createMode}
+            exclusive
             size="small"
-            fullWidth
+            onChange={(_, next) => {
+              if (next) setCreateMode(next);
+            }}
             disabled={creating}
-          />
-          <Button
-            variant="contained"
-            onClick={handleCreate}
-            disabled={creating}
-            startIcon={
-              creating ? (
-                <CircularProgress size={16} color="inherit" />
-              ) : undefined
-            }
+            sx={{ mb: 1 }}
           >
-            {creating ? "Cloning story..." : "Create draft"}
-          </Button>
+            <ToggleButton value="clone">
+              <ContentCopyIcon fontSize="small" sx={{ mr: 0.5 }} />
+              Clone current
+            </ToggleButton>
+            <ToggleButton value="upload">
+              <UploadFileIcon fontSize="small" sx={{ mr: 0.5 }} />
+              Upload document
+            </ToggleButton>
+          </ToggleButtonGroup>
+          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+            <TextField
+              label="New draft name"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              size="small"
+              fullWidth
+              disabled={creating}
+            />
+            <Button
+              variant="contained"
+              onClick={handleCreate}
+              disabled={creating}
+              startIcon={
+                creating ? (
+                  <CircularProgress size={16} color="inherit" />
+                ) : undefined
+              }
+            >
+              {creating
+                ? createMode === "upload"
+                  ? "Importing..."
+                  : "Cloning story..."
+                : "Create draft"}
+            </Button>
+          </Box>
+          {createMode === "upload" && (
+            <Box sx={{ mt: 1, display: "flex", gap: 1, alignItems: "center" }}>
+              <Button
+                variant="outlined"
+                component="label"
+                size="small"
+                disabled={creating}
+                startIcon={<UploadFileIcon />}
+              >
+                {uploadFile ? "Change file" : "Choose .docx or .txt"}
+                <input
+                  hidden
+                  type="file"
+                  accept=".docx,.txt"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] ?? null;
+                    setUploadFile(f);
+                  }}
+                />
+              </Button>
+              {uploadFile && (
+                <Typography variant="caption" color="text.secondary">
+                  {uploadFile.name}
+                </Typography>
+              )}
+            </Box>
+          )}
         </Box>
         {creating && (
           <Typography
@@ -454,8 +533,9 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
             color="text.secondary"
             sx={{ display: "block", mt: 1 }}
           >
-            Copying chapters, blocks, and outline. This can take a few
-            seconds for larger stories.
+            {createMode === "upload"
+              ? "Parsing the uploaded document and building the new draft. This can take a few seconds."
+              : "Copying chapters, blocks, and outline. This can take a few seconds for larger stories."}
           </Typography>
         )}
       </DialogContent>
