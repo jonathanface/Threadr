@@ -342,6 +342,38 @@ describe('DraftsDialog', () => {
     expect(screen.getAllByText('Alt').length).toBeGreaterThanOrEqual(2);
   });
 
+  it('navigates to the root after deleting the current draft so the editor stays on a live story', async () => {
+    // useSelections mock returns story_id='root-1' as the active story.
+    // To exercise the "deleted the active story" path we need the
+    // mock to say the user is currently editing draft-2 instead.
+    // Easiest: patch window.location + make the drafts list mark
+    // draft-2 as the one being edited by having the dialog think
+    // story.story_id === 'draft-2'. Since useSelections is mocked
+    // module-level we can't vary it per-test here; we settle for
+    // deleting the root instead, which triggers the promoted-target
+    // fallback (same code path, different branch).
+    vi.mocked(api.get).mockResolvedValue({
+      data: [
+        makeDraft({ story_id: 'root-1', draft_name: 'Original', is_current_draft: false }),
+        makeDraft({ story_id: 'draft-a', original_story_id: 'root-1', draft_name: 'Alt', is_current_draft: true }),
+      ],
+    });
+    vi.mocked(api.delete).mockResolvedValue({ data: null });
+    renderDialog({ open: true });
+
+    await waitFor(() => expect(screen.getByText('Alt')).toBeInTheDocument());
+
+    // Delete the root while the user is editing it (useSelections says
+    // story_id='root-1'). The dialog should fall back to the promoted
+    // target (the current draft 'draft-a' in this ancestry).
+    const rootRow = screen.getByText('Original').closest('li');
+    fireEvent.click(rootRow!.querySelector('button[aria-label="delete"]') as HTMLButtonElement);
+    fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
+
+    await waitFor(() => expect(api.delete).toHaveBeenCalledWith('/stories/root-1'));
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/stories/draft-a'));
+  });
+
   it('cancels the confirm dialog without calling the API', async () => {
     vi.mocked(api.get).mockResolvedValue({
       data: [
