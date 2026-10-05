@@ -213,6 +213,47 @@ func DeleteStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
+
+	// Drafts guard: if any sibling exists (including the row itself being a
+	// draft), enforce the invariant that the root isn't deleted while
+	// drafts still exist and that deleting the current draft re-promotes
+	// the root. ListDrafts is author-scoped so it doubles as an ownership
+	// check for the ancestry.
+	drafts, listErr := dao.ListDrafts(r.Context(), email, storyID)
+	if listErr == nil && len(drafts) > 1 {
+		// Find the target row inside the ancestry.
+		var target *models.Story
+		var rootID string
+		var currentID string
+		for _, s := range drafts {
+			if s.ID == storyID {
+				target = s
+			}
+			if s.OriginalStoryID == "" {
+				rootID = s.ID
+			}
+			if s.IsCurrentDraft {
+				currentID = s.ID
+			}
+		}
+		if target != nil && target.OriginalStoryID == "" {
+			// Trying to delete the root while drafts exist.
+			RespondWithError(w, http.StatusConflict,
+				"this story has drafts — delete the drafts first before deleting the original")
+			return
+		}
+		if target != nil && target.IsCurrentDraft && rootID != "" && rootID != currentID {
+			// Deleting the current draft: promote the root back to current
+			// first so the stories list and share links keep working.
+			if promoteErr := dao.SetCurrentDraft(r.Context(), email, rootID); promoteErr != nil {
+				logger.Error("promote root before delete failed",
+					"error", promoteErr, "storyId", storyID, "rootId", rootID)
+				RespondWithError(w, http.StatusInternalServerError, "unable to promote root before deleting current draft")
+				return
+			}
+		}
+	}
+
 	if err = dao.SoftDeleteStory(r.Context(), email, storyID, false); err != nil {
 		opErr := &smithy.OperationError{}
 		if errors.As(err, &opErr) {
