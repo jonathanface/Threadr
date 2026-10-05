@@ -42,6 +42,7 @@ let mockUseSelectionsReturn = {
   },
   chapter: { id: 'src-ch-1' },
   setChapter: vi.fn(),
+  deselectChapter: vi.fn(),
 };
 vi.mock('../../../hooks/useSelections', () => ({
   useSelections: () => mockUseSelectionsReturn,
@@ -95,6 +96,7 @@ describe('DraftsDialog', () => {
       },
       chapter: { id: 'src-ch-1' },
       setChapter: vi.fn(),
+      deselectChapter: vi.fn(),
     };
     // Default location: no chapter param. Tests that need one override.
     Object.defineProperty(window, 'location', {
@@ -413,6 +415,7 @@ describe('DraftsDialog', () => {
 
   it('navigates to the root when deleting the current draft while viewing it', async () => {
     // User is actively editing the current draft 'draft-current'.
+    const deselectSpy = vi.fn();
     mockUseSelectionsReturn = {
       story: {
         story_id: 'draft-current',
@@ -420,6 +423,7 @@ describe('DraftsDialog', () => {
       },
       chapter: { id: 'src-ch-1' },
       setChapter: vi.fn(),
+      deselectChapter: deselectSpy,
     };
     vi.mocked(api.get).mockResolvedValue({
       data: [
@@ -440,6 +444,9 @@ describe('DraftsDialog', () => {
     await waitFor(() => expect(api.delete).toHaveBeenCalledWith('/stories/draft-current'));
     // Backend promotes root; dialog should navigate the user there.
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/stories/root-1'));
+    // And clear the chapter so the editor's /content fetch doesn't
+    // send the deleted draft's chapter id with the new story id.
+    expect(deselectSpy).toHaveBeenCalled();
   });
 
   it('navigates to the already-current draft when deleting a non-current sibling', async () => {

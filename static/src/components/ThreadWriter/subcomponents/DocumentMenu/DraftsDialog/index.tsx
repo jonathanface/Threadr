@@ -46,7 +46,7 @@ interface DraftsDialogProps {
 
 export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
   const navigate = useNavigate();
-  const { story } = useSelections();
+  const { story, deselectChapter } = useSelections();
   const { refresh: refreshWorksList } = useWorksList();
   const [drafts, setDrafts] = useState<Story[]>([]);
   const [loading, setLoading] = useState(false);
@@ -225,6 +225,15 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
         // so they're not stuck looking at a story they didn't choose
         // (and so a stale story_id in context doesn't 404 the next
         // ancestry-aware read).
+        //
+        // Clear the chapter selection in the shared selections context
+        // first: useSelections().chapter still holds a chapter id that
+        // belonged to the deleted draft, and the editor's content
+        // fetch keys off that id — leaving it in place causes a
+        // /content?chapter=<deleted-chapter-id> request that 404s on
+        // the new story. The editor will pick a default chapter when
+        // the new story loads.
+        deselectChapter();
         navigate(`/stories/${newCurrentID}`);
         setOpen(false);
         return;
