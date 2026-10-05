@@ -44,6 +44,23 @@ header .storyInfo .titleRow {
     gap: 8px;
 }
 
+header .storyInfo .draftIndicator {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    margin-left: 8px;
+    line-height: 1;
+}
+
+header .storyInfo .draftLatest {
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary, #e3f2fd);
+    margin-top: 2px;
+    opacity: 0.85;
+}
+
 header .storyInfo img {
     max-height: 50px;
     border: 1px solid #333;
