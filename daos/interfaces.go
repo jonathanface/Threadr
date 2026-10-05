@@ -17,6 +17,7 @@ type DaoInterface interface {
 	GetChaptersByStoryID(ctx context.Context, storyID string) ([]models.Chapter, error)
 	GetChaptersByStoryIDs(ctx context.Context, storyIDs []string) (map[string][]models.Chapter, error)
 	GetStoryByID(ctx context.Context, email string, storyID string) (*models.Story, error)
+	RootStoryID(ctx context.Context, storyID string) (string, error)
 	GetStorySettingsByID(ctx context.Context, email string, storyID string) (*models.StorySettings, error)
 	GetSeriesByID(ctx context.Context, email string, seriesID string) (*models.Series, error)
 	GetStoryCountByUser(ctx context.Context, email string) (int, error)
