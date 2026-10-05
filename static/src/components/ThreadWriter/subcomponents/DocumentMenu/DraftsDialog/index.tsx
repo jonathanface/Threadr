@@ -101,7 +101,7 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
       await fetchDrafts();
       // Jump into the new draft so the editor is pointed at it.
       if (res.data?.story_id) {
-        navigate(`/story/${res.data.story_id}`);
+        navigate(`/stories/${res.data.story_id}`);
         setOpen(false);
       }
     } catch (err) {
@@ -167,7 +167,7 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
   };
 
   const handleSwitchTo = (id: string) => {
-    navigate(`/story/${id}`);
+    navigate(`/stories/${id}`);
     setOpen(false);
   };
 
