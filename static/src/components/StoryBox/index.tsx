@@ -47,7 +47,16 @@ export const StoryBox = (props: StoryBoxProps) => {
   ) => {
     event.stopPropagation();
 
-    const confirmText = "Delete story " + title + "?";
+    // The /stories list surfaces one row per logical story (either the
+    // root or the ancestry's current draft). "Delete story" from here
+    // means the whole work goes away — the backend handles the cascade
+    // via the ?cascade=true flag by soft-deleting the root plus every
+    // draft in the ancestry. Call out the drafts in the confirm so the
+    // user isn't surprised when alternate versions disappear.
+    const confirmText =
+      `Delete story "${title}"?\n\n` +
+      "This permanently removes the story along with any drafts you've " +
+      "created of it. This cannot be undone.";
 
     const conf = window.confirm(confirmText);
 
@@ -55,7 +64,7 @@ export const StoryBox = (props: StoryBoxProps) => {
       try {
         showLoader();
 
-        const res = await api.delete(`/stories/${id}`, {
+        const res = await api.delete(`/stories/${id}?cascade=true`, {
           headers: { "Content-Type": "application/json" },
         });
 

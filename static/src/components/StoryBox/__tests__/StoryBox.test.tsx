@@ -162,7 +162,13 @@ describe('StoryBox', () => {
       const deleteButton = screen.getByLabelText('delete');
       fireEvent.click(deleteButton);
 
-      expect(confirmSpy).toHaveBeenCalledWith('Delete story Test Story?');
+      expect(confirmSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Delete story "Test Story"?'),
+      );
+      // Confirm copy warns about drafts going away too.
+      expect(confirmSpy).toHaveBeenCalledWith(
+        expect.stringContaining('drafts'),
+      );
     });
 
     it('should not delete if user cancels confirmation', () => {
@@ -187,7 +193,7 @@ describe('StoryBox', () => {
 
       await waitFor(() => {
         expect(api.api.delete).toHaveBeenCalledWith(
-          '/stories/story-123',
+          '/stories/story-123?cascade=true',
           expect.objectContaining({
             headers: { 'Content-Type': 'application/json' },
           })
