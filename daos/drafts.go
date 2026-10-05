@@ -207,10 +207,12 @@ func (d *DAO) CreateStoryDraft(
 		attrOriginalStoryID: &types.AttributeValueMemberS{Value: rootID},
 		"draft_name":        &types.AttributeValueMemberS{Value: draftName},
 	}
-	if sourceStory.SeriesID != "" {
-		storyItem[attrSeriesID] = &types.AttributeValueMemberS{Value: sourceStory.SeriesID}
-		storyItem["place"] = &types.AttributeValueMemberN{Value: strconv.Itoa(sourceStory.Place)}
-	}
+	// Deliberately NOT copying series_id/place onto the new draft. The
+	// invariant for series listings is "exactly one row per ancestry
+	// carries series_id at any time" — the current draft (or the root by
+	// default). SetCurrentDraft transfers series_id/place during
+	// promotion. Inheriting at creation time would cause the series page
+	// to list the same story twice.
 
 	twii := &dynamodb.TransactWriteItemsInput{}
 	twii.TransactItems = append(twii.TransactItems, types.TransactWriteItem{

@@ -255,7 +255,7 @@ func TestCreateStoryDraft_ChildResolvesToExistingRoot(t *testing.T) {
 	}
 }
 
-func TestCreateStoryDraft_SeriesIDInherited(t *testing.T) {
+func TestCreateStoryDraft_SeriesIDNotInherited(t *testing.T) {
 	mockDao := NewMockDAO()
 	f := newDraftFixture(t)
 	f.sourceStory = storyRow("source-1", "T")
@@ -270,7 +270,11 @@ func TestCreateStoryDraft_SeriesIDInherited(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// First transaction must have series_id and place on the new story row.
+	// Series listings require exactly one row per ancestry to carry
+	// series_id — the current draft (or the root by default). Inheriting
+	// at creation time would double-list the story in its series.
+	// SetCurrentDraft transfers series_id/place during promotion; creation
+	// should leave the new draft out of the series query.
 	if len(f.transactWriteCalls) == 0 {
 		t.Fatal("expected a transaction write call")
 	}
@@ -278,11 +282,11 @@ func TestCreateStoryDraft_SeriesIDInherited(t *testing.T) {
 	if put == nil {
 		t.Fatal("first transaction item should be a Put for the new story")
 	}
-	if v, ok := put.Item["series_id"].(*types.AttributeValueMemberS); !ok || v.Value != "series-99" {
-		t.Errorf("series_id should be inherited from source, got %+v", put.Item["series_id"])
+	if _, present := put.Item["series_id"]; present {
+		t.Errorf("new draft must NOT inherit series_id, got %+v", put.Item["series_id"])
 	}
-	if v, ok := put.Item["place"].(*types.AttributeValueMemberN); !ok || v.Value != "3" {
-		t.Errorf("place should be inherited from source, got %+v", put.Item["place"])
+	if _, present := put.Item["place"]; present {
+		t.Errorf("new draft must NOT inherit place, got %+v", put.Item["place"])
 	}
 }
 
