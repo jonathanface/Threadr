@@ -307,7 +307,9 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
           </Typography>
         )}
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Keep multiple drafts of this story and switch between them. One draft is marked <strong>primary</strong> — the version your readers see on the stories list and reach through share links. Click the check in the Primary column to change which draft is primary; switching drafts here only changes which one you&apos;re editing.
+          Keep multiple drafts of this story and switch between them.
+          <br />
+          One draft is marked <strong>primary</strong> — the version your readers see on the stories list and reach through share links.
         </Typography>
         <TableContainer>
           <Table size="small">
