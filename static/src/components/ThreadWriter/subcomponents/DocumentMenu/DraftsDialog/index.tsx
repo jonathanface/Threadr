@@ -190,8 +190,29 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
     }
   };
 
-  const handleSwitchTo = (id: string) => {
-    navigate(`/stories/${id}`);
+  const handleSwitchTo = async (id: string) => {
+    // Preserve chapter position across the switch: resolve the current
+    // chapter's index in the source story and map to the chapter at the
+    // same index in the destination. If anything fails (no chapter
+    // selected, mapping can't be resolved, destination fetch errors)
+    // just navigate to the base story URL and let the editor decide.
+    const params = new URLSearchParams(window.location.search);
+    const currentChapterID = params.get("chapter");
+    let destination = `/stories/${id}`;
+    if (currentChapterID && story?.chapters) {
+      const idx = story.chapters.findIndex((c) => c.id === currentChapterID);
+      if (idx >= 0) {
+        try {
+          const res = await api.get<Story>(`/stories/${id}`);
+          if (res.data?.chapters && res.data.chapters[idx]) {
+            destination += `?chapter=${res.data.chapters[idx].id}`;
+          }
+        } catch {
+          // Fall through to the base-URL destination.
+        }
+      }
+    }
+    navigate(destination);
     setOpen(false);
   };
 
