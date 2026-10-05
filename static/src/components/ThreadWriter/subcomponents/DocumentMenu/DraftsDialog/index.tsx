@@ -175,9 +175,34 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
     if (!deleteTarget) return;
     setError("");
     setDeleting(true);
+
+    // If the user is deleting the story they're currently viewing, we
+    // need to redirect them away first — after the soft-delete the
+    // story.story_id in context points at a row with deleted_at set
+    // and every ancestry-aware read (including fetchDrafts) will 404.
+    // Pick a sibling to land on:
+    //   - deleting a non-root draft → fall back to the root
+    //   - deleting the root with drafts → fall back to the promoted
+    //     target (same selection rule PromoteNewRoot uses server-side)
+    let fallbackStoryID: string | null = null;
+    if (story?.story_id === deleteTarget.story_id) {
+      if (deleteTarget.original_story_id) {
+        const root = drafts.find((d) => !d.original_story_id);
+        fallbackStoryID = root?.story_id ?? null;
+      } else {
+        const promoted = previewPromotionTarget(drafts);
+        fallbackStoryID = promoted?.story_id ?? null;
+      }
+    }
+
     try {
       await api.delete(`/stories/${deleteTarget.story_id}`);
       setDeleteTarget(null);
+      if (fallbackStoryID) {
+        navigate(`/stories/${fallbackStoryID}`);
+        setOpen(false);
+        return;
+      }
       await fetchDrafts();
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
