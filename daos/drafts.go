@@ -29,6 +29,13 @@ var ErrStoryNotFound = errors.New("story not found")
 const (
 	attrOriginalStoryID = "original_story_id"
 	exprStoryID         = ":storyID"
+	// originalStoryIDIndex is the GSI on the stories table partitioned by
+	// original_story_id with sort key created_at. Required for every ancestry
+	// query path (CurrentDraftID, ListDrafts). See docs/drafts.md.
+	originalStoryIDIndex = "original_story_id_index"
+	// attrChaptersSet is the per-outline-section StringSet of chapter IDs
+	// assigned to that section. Not the chapters table name.
+	attrChaptersSet = "chapters"
 )
 
 // getStoryByIDUnscoped reads a story row by id without filtering on author.
@@ -67,29 +74,30 @@ func (d *DAO) getStoryByIDUnscoped(ctx context.Context, storyID string) (*models
 //
 // Resolution order:
 //  1. Resolve storyID to its root.
-//  2. If any sibling (including the root itself) has IsCurrentDraft=true,
-//     return that sibling's id.
-//  3. Otherwise fall back to the root id (handles the case where a current
-//     draft was deleted without re-promoting).
+//  2. Query the original_story_id_index GSI for a draft of that root with
+//     is_current_draft=true. If found, return it.
+//  3. Otherwise return the root id. The root is the default-current when
+//     no draft has been explicitly promoted (and when the current draft
+//     was deleted without re-promotion).
 //
-// v1 uses a filter-expression Scan on the stories table. When the
-// original_story_id_index GSI is deployed per docs/drafts.md, swap this
-// implementation for a targeted Query by original_story_id to avoid the
-// table-size cost.
+// Note: only draft rows have an original_story_id attribute, so the GSI
+// Query returns drafts only. The root itself is not in the GSI; it's
+// handled by the fallback.
 func (d *DAO) CurrentDraftID(ctx context.Context, storyID string) (string, error) {
 	rootID, err := d.RootStoryID(ctx, storyID)
 	if err != nil {
 		return "", err
 	}
-	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
-		TableName: aws.String("stories" + GetTableSuffix()),
-		FilterExpression: aws.String(
-			"(original_story_id = :rid OR story_id = :rid) AND is_current_draft = :t AND attribute_not_exists(deleted_at)",
-		),
+	out, err := d.DynamoClient.Query(ctx, &dynamodb.QueryInput{
+		TableName:              aws.String("stories" + GetTableSuffix()),
+		IndexName:              aws.String(originalStoryIDIndex),
+		KeyConditionExpression: aws.String("original_story_id = :rid"),
+		FilterExpression:       aws.String("is_current_draft = :t AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":rid": &types.AttributeValueMemberS{Value: rootID},
 			":t":   &types.AttributeValueMemberBOOL{Value: true},
 		},
+		Limit: aws.Int32(1),
 	})
 	if err != nil {
 		return "", err
@@ -350,7 +358,7 @@ func (d *DAO) copyOutlineRows(
 		maps.Copy(cloned, item)
 		cloned[attrStoryID] = &types.AttributeValueMemberS{Value: newStoryID}
 		// Remap chapter references on this section if present.
-		if ss, ok := cloned["chapters"].(*types.AttributeValueMemberSS); ok && len(ss.Value) > 0 {
+		if ss, ok := cloned[attrChaptersSet].(*types.AttributeValueMemberSS); ok && len(ss.Value) > 0 {
 			remapped := make([]string, 0, len(ss.Value))
 			for _, src := range ss.Value {
 				if dst, found := chapterIDMap[src]; found {
@@ -358,10 +366,10 @@ func (d *DAO) copyOutlineRows(
 				}
 			}
 			if len(remapped) > 0 {
-				cloned["chapters"] = &types.AttributeValueMemberSS{Value: remapped}
+				cloned[attrChaptersSet] = &types.AttributeValueMemberSS{Value: remapped}
 			} else {
 				// StringSet cannot be empty — drop the attribute instead.
-				delete(cloned, "chapters")
+				delete(cloned, attrChaptersSet)
 			}
 		}
 		twii.TransactItems = append(twii.TransactItems, types.TransactWriteItem{
@@ -384,10 +392,11 @@ func (d *DAO) copyOutlineRows(
 }
 
 // ListDrafts returns all story rows that share an ancestry with storyID
-// (the root plus every draft), sorted by created_at ascending so the root
-// comes first. Caller is expected to have confirmed ownership of storyID
-// before calling. Each returned story has its ancestry fields populated;
-// Chapters are left nil (callers hydrate on demand).
+// (the root plus every draft), sorted root-first then drafts by
+// created_at ascending so the UI picker is deterministic. Caller is
+// expected to have confirmed ownership of storyID before calling. Each
+// returned story has its ancestry fields populated; Chapters are left
+// nil (callers hydrate on demand).
 func (d *DAO) ListDrafts(
 	ctx context.Context,
 	email, storyID string,
@@ -396,46 +405,47 @@ func (d *DAO) ListDrafts(
 	if err != nil {
 		return nil, err
 	}
-	// v1 Scan — swap for Query against original_story_id_index GSI per
-	// docs/drafts.md once the GSI lands.
-	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
-		TableName: aws.String("stories" + GetTableSuffix()),
-		FilterExpression: aws.String(
-			"author=:eml AND attribute_not_exists(deleted_at) AND (story_id = :rid OR original_story_id = :rid)",
-		),
+	// Pull the drafts via the original_story_id_index GSI. The GSI's sort
+	// key is created_at so results come back oldest-first without an
+	// explicit sort. The root row itself has no original_story_id and is
+	// not in the GSI — we fetch it separately below.
+	draftsOut, err := d.DynamoClient.Query(ctx, &dynamodb.QueryInput{
+		TableName:              aws.String("stories" + GetTableSuffix()),
+		IndexName:              aws.String(originalStoryIDIndex),
+		KeyConditionExpression: aws.String("original_story_id = :rid"),
+		FilterExpression:       aws.String("author = :eml AND attribute_not_exists(deleted_at)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":eml": &types.AttributeValueMemberS{Value: email},
 			":rid": &types.AttributeValueMemberS{Value: rootID},
+			":eml": &types.AttributeValueMemberS{Value: email},
 		},
+		ScanIndexForward: aws.Bool(true),
 	})
 	if err != nil {
 		return nil, err
 	}
-	var rows []*models.Story
-	if err = attributevalue.UnmarshalListOfMaps(out.Items, &rows); err != nil {
+	var drafts []*models.Story
+	if err = attributevalue.UnmarshalListOfMaps(draftsOut.Items, &drafts); err != nil {
 		return nil, err
 	}
-	// Root first, then drafts by created_at ascending so the UI picker
-	// orders deterministically regardless of DynamoDB scan order.
-	rootIdx := -1
-	for i, r := range rows {
-		if r.OriginalStoryID == "" {
-			rootIdx = i
-			break
+
+	// Fetch the root. GetStoryByID is author-scoped so it doubles as an
+	// ownership check for the ancestry.
+	root, err := d.GetStoryByID(ctx, email, rootID)
+	if err != nil {
+		// If the root is missing (e.g. soft-deleted), still return the
+		// drafts we found so the caller can detect the broken-ancestry
+		// case rather than surfacing a misleading not-found error.
+		if errors.Is(err, ErrStoryNotFound) {
+			return drafts, nil
 		}
+		return nil, err
 	}
-	if rootIdx > 0 {
-		rows[0], rows[rootIdx] = rows[rootIdx], rows[0]
-	}
-	if len(rows) > 1 {
-		rest := rows[1:]
-		for i := 1; i < len(rest); i++ {
-			for j := i; j > 0 && rest[j].CreatedAt < rest[j-1].CreatedAt; j-- {
-				rest[j], rest[j-1] = rest[j-1], rest[j]
-			}
-		}
-	}
-	return rows, nil
+	// Strip chapters from the root so the shape matches the draft rows the
+	// GSI query returned (chapters are hydrated on demand per the doc
+	// comment).
+	rootCopy := *root
+	rootCopy.Chapters = nil
+	return append([]*models.Story{&rootCopy}, drafts...), nil
 }
 
 // SetCurrentDraft promotes targetID to be the current draft of its
