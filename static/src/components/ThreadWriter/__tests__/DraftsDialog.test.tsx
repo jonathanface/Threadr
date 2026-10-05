@@ -318,7 +318,7 @@ describe('DraftsDialog', () => {
     });
 
     // The non-current draft's star button is enabled; the current one's is disabled.
-    const stars = screen.getAllByRole('button', { name: /set as current/i });
+    const stars = screen.getAllByRole('button', { name: /set as primary/i });
     const enabled = stars.find((b) => !(b as HTMLButtonElement).disabled);
     expect(enabled).toBeDefined();
     fireEvent.click(enabled!);
@@ -441,7 +441,7 @@ describe('DraftsDialog', () => {
 
     expect(await screen.findByText(/Delete draft "Alt"/i)).toBeInTheDocument();
     expect(screen.getByText(/currently viewing this draft/i)).toBeInTheDocument();
-    expect(screen.getByText(/redirected to the current draft/i)).toBeInTheDocument();
+    expect(screen.getByText(/redirected to the primary draft/i)).toBeInTheDocument();
   });
 
   it("doesn't show the 'currently viewing' callout when deleting a non-active draft", async () => {

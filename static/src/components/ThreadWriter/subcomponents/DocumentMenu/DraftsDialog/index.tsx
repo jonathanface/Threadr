@@ -158,7 +158,7 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
       // just changed; refresh so /stories stays in sync.
       refreshWorksList();
     } catch {
-      setError("Could not set current draft. Please try again.");
+      setError("Could not set primary draft. Please try again.");
     }
   };
 
@@ -306,7 +306,7 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
           </Typography>
         )}
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Keep multiple drafts of this story and switch between them. The current draft is highlighted and is what the stories list and share links point to.
+          Keep multiple drafts of this story and switch between them. The primary draft is highlighted and is what the stories list and share links point to.
         </Typography>
         <List dense disablePadding>
           {drafts.map((d) => {
@@ -349,10 +349,10 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
                   />
                 )}
                 <ListItemSecondaryAction>
-                  <Tooltip title={isCurrent ? "Current draft" : "Set as current"}>
+                  <Tooltip title={isCurrent ? "Primary draft" : "Set as primary"}>
                     <span>
                       <IconButton
-                        aria-label="set as current"
+                        aria-label="set as primary"
                         onClick={() => !isCurrent && handleSetCurrent(d.story_id)}
                         disabled={isCurrent}
                       >
@@ -436,7 +436,7 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
             <>
               <Typography variant="body2" sx={{ mb: 2 }}>
                 This is the original of the story. Deleting it will promote
-                {" "}<strong>{promotionTarget?.draft_name || "the current draft"}</strong>{" "}
+                {" "}<strong>{promotionTarget?.draft_name || "the primary draft"}</strong>{" "}
                 to become the new original. The original's content, chapters,
                 and outline will be <strong>permanently removed</strong> and
                 cannot be restored. Associations and existing reader share
@@ -454,7 +454,7 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
                 {deleteTarget && story?.story_id === deleteTarget.story_id && (
                   <>
                     {" "}You are currently viewing this draft; after it's
-                    deleted you'll be redirected to the current draft of
+                    deleted you'll be redirected to the primary draft of
                     this story.
                   </>
                 )}

@@ -267,9 +267,6 @@ export const HeaderMenu = () => {
                                   ? "Untitled draft"
                                   : "Original"}
                             </span>
-                            {story?.is_current_draft && (
-                              <span className={styles.draftChipLatest}>current</span>
-                            )}
                           </span>
                         }
                         color={story?.is_current_draft ? "primary" : "default"}
@@ -332,7 +329,8 @@ export const HeaderMenu = () => {
                               </ListItemIcon>
                               <ListItemText
                                 primary={label}
-                                secondary={isCurrent ? "current" : undefined}
+                                secondary={isCurrent ? "primary version" : undefined}
+                                secondaryTypographyProps={{ fontSize: "0.7rem" }}
                               />
                             </MenuItem>
                           );
