@@ -4,14 +4,13 @@ import CheckIcon from "@mui/icons-material/Check";
 import HistoryEduIcon from "@mui/icons-material/HistoryEdu";
 import {
   Chip,
-  CircularProgress,
   ListItemIcon,
   ListItemText,
   Menu,
   MenuItem,
   Tooltip,
 } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useFetchUserData } from "../../hooks/useFetchUserData";
 import { useLoader } from "../../hooks/useLoader";
@@ -44,35 +43,55 @@ export const HeaderMenu = () => {
   const { showLoader, hideLoader } = useLoader();
   const navigate = useNavigate();
 
-  // Draft switcher state. The chip in the title row is clickable when the
-  // loaded story is part of an ancestry — opens an anchored menu that
-  // lists siblings so the writer can jump between drafts without going
-  // through the DocumentMenu's sidebar DraftsDialog.
+  // Draft switcher state. The chip in the title row only renders when
+  // the loaded story has siblings in its ancestry — a solo story has
+  // nothing to switch to. Fetching on story change lets us gate chip
+  // visibility on the actual sibling count rather than guessing from
+  // the story payload's flags, which can't distinguish "root of an
+  // ancestry whose drafts were all deleted" from "root with drafts".
   const [draftsAnchorEl, setDraftsAnchorEl] = useState<HTMLElement | null>(null);
-  const [draftsList, setDraftsList] = useState<Story[] | null>(null);
-  const [draftsLoading, setDraftsLoading] = useState(false);
+  // Cache keyed by the story the list belongs to; derived draftsList only
+  // reads from it when the key matches the currently loaded story, so a
+  // stale fetch from a previous story can't leak into the chip's visibility
+  // check during navigation.
+  const [draftsCache, setDraftsCache] = useState<{
+    storyID: string;
+    list: Story[];
+  } | null>(null);
 
-  const openDraftsMenu = async (e: React.MouseEvent<HTMLElement>) => {
+  const storyID = story?.story_id;
+  useEffect(() => {
+    if (!storyID) return;
+    let cancelled = false;
+    api
+      .get<Story[]>(`/stories/${storyID}/drafts`)
+      .then((res) => {
+        if (!cancelled) setDraftsCache({ storyID, list: res.data || [] });
+      })
+      .catch((err) => {
+        if (axios.isAxiosError(err)) {
+          console.error(
+            `Error loading drafts: ${err.response?.status} ${err.message}`,
+          );
+        }
+        if (!cancelled) setDraftsCache({ storyID, list: [] });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [storyID]);
+
+  const draftsList =
+    draftsCache && draftsCache.storyID === storyID ? draftsCache.list : null;
+
+  const openDraftsMenu = (e: React.MouseEvent<HTMLElement>) => {
     if (!story?.story_id) return;
     setDraftsAnchorEl(e.currentTarget);
-    if (draftsList !== null) return;
-    setDraftsLoading(true);
-    try {
-      const res = await api.get<Story[]>(`/stories/${story.story_id}/drafts`);
-      setDraftsList(res.data || []);
-    } catch (err) {
-      if (axios.isAxiosError(err)) {
-        console.error(
-          `Error loading drafts: ${err.response?.status} ${err.message}`,
-        );
-      }
-      setDraftsList([]);
-    } finally {
-      setDraftsLoading(false);
-    }
   };
 
   const closeDraftsMenu = () => setDraftsAnchorEl(null);
+
+  const hasOtherDrafts = (draftsList?.length ?? 0) > 1;
 
   // Switch to another draft of the same ancestry. Preserves chapter
   // position by mapping the current chapter's index in this story to
@@ -244,9 +263,7 @@ export const HeaderMenu = () => {
                   textValue={story?.title ? story.title : ""}
                   onTextChange={onStoryTitleEdit}
                 />
-                {(story?.draft_name ||
-                  story?.original_story_id ||
-                  story?.is_current_draft !== undefined) && (
+                {hasOtherDrafts && (
                   <>
                     <Tooltip title="Switch drafts">
                       <Chip
@@ -294,18 +311,7 @@ export const HeaderMenu = () => {
                         paper: { sx: { minWidth: 200, maxWidth: 320 } },
                       }}
                     >
-                      {draftsLoading && (
-                        <MenuItem disabled>
-                          <ListItemIcon>
-                            <CircularProgress size={16} />
-                          </ListItemIcon>
-                          <ListItemText primary="Loading drafts…" />
-                        </MenuItem>
-                      )}
-                      {!draftsLoading &&
-                        draftsList &&
-                        draftsList.length > 0 &&
-                        draftsList.map((d) => {
+                      {draftsList?.map((d) => {
                           const isActive = d.story_id === story?.story_id;
                           const isCurrent = d.is_current_draft ?? false;
                           const label =
@@ -334,14 +340,7 @@ export const HeaderMenu = () => {
                               />
                             </MenuItem>
                           );
-                        })}
-                      {!draftsLoading &&
-                        draftsList &&
-                        draftsList.length === 0 && (
-                          <MenuItem disabled>
-                            <ListItemText primary="No other drafts" />
-                          </MenuItem>
-                        )}
+                      })}
                     </Menu>
                   </>
                 )}

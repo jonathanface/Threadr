@@ -86,6 +86,7 @@ vi.mock("../../NotificationsBell", () => ({
 vi.mock("../../../api", () => ({
   api: {
     put: vi.fn(),
+    get: vi.fn().mockResolvedValue({ data: [] }),
   },
 }));
 

@@ -1,7 +1,6 @@
+import CheckIcon from "@mui/icons-material/Check";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
-import StarIcon from "@mui/icons-material/Star";
-import StarBorderIcon from "@mui/icons-material/StarBorder";
 import {
   Box,
   Button,
@@ -12,10 +11,12 @@ import {
   DialogTitle,
   IconButton,
   LinearProgress,
-  List,
-  ListItem,
-  ListItemSecondaryAction,
-  ListItemText,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   TextField,
   Tooltip,
   Typography,
@@ -306,83 +307,122 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
           </Typography>
         )}
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Keep multiple drafts of this story and switch between them. The primary draft is highlighted and is what the stories list and share links point to.
+          Keep multiple drafts of this story and switch between them. One draft is marked <strong>primary</strong> — the version your readers see on the stories list and reach through share links. Click the check in the Primary column to change which draft is primary; switching drafts here only changes which one you&apos;re editing.
         </Typography>
-        <List dense disablePadding>
-          {drafts.map((d) => {
-            const isCurrent = d.is_current_draft ?? false;
-            const label = d.draft_name && d.draft_name.trim().length > 0
-              ? d.draft_name
-              : d.original_story_id
-                ? "Untitled draft"
-                : "Original";
-            return (
-              <ListItem
-                key={d.story_id}
-                divider
-                sx={{
-                  backgroundColor: isCurrent ? "action.selected" : undefined,
-                  pr: 14,
-                }}
-              >
-                {renamingID === d.story_id ? (
-                  <TextField
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    size="small"
-                    fullWidth
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleRenameSubmit();
-                      if (e.key === "Escape") {
-                        setRenamingID(null);
-                        setRenameValue("");
-                      }
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Title</TableCell>
+                <TableCell align="center" sx={{ width: 96 }}>Primary</TableCell>
+                <TableCell align="right" sx={{ width: 104 }} />
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {drafts.map((d) => {
+                const isCurrent = d.is_current_draft ?? false;
+                const label = d.draft_name && d.draft_name.trim().length > 0
+                  ? d.draft_name
+                  : d.original_story_id
+                    ? "Untitled draft"
+                    : "Original";
+                const isActive = d.story_id === story?.story_id;
+                return (
+                  <TableRow
+                    key={d.story_id}
+                    sx={{
+                      backgroundColor: isCurrent ? "action.selected" : undefined,
                     }}
-                  />
-                ) : (
-                  <ListItemText
-                    primary={label}
-                    secondary={d.story_id === story?.story_id ? "You are editing this draft" : undefined}
-                    onClick={() => d.story_id !== story?.story_id && handleSwitchTo(d.story_id)}
-                    sx={{ cursor: d.story_id !== story?.story_id ? "pointer" : "default" }}
-                  />
-                )}
-                <ListItemSecondaryAction>
-                  <Tooltip title={isCurrent ? "Primary draft" : "Set as primary"}>
-                    <span>
-                      <IconButton
-                        aria-label="set as primary"
-                        onClick={() => !isCurrent && handleSetCurrent(d.story_id)}
-                        disabled={isCurrent}
+                  >
+                    <TableCell>
+                      {renamingID === d.story_id ? (
+                        <TextField
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          size="small"
+                          fullWidth
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleRenameSubmit();
+                            if (e.key === "Escape") {
+                              setRenamingID(null);
+                              setRenameValue("");
+                            }
+                          }}
+                        />
+                      ) : (
+                        <Box
+                          onClick={() => !isActive && handleSwitchTo(d.story_id)}
+                          sx={{ cursor: isActive ? "default" : "pointer" }}
+                        >
+                          <Typography variant="body2">{label}</Typography>
+                          {isActive && (
+                            <Typography variant="caption" color="text.secondary">
+                              You are editing this draft
+                            </Typography>
+                          )}
+                        </Box>
+                      )}
+                    </TableCell>
+                    <TableCell align="center">
+                      <Tooltip title={isCurrent ? "Primary draft" : "Set as primary"}>
+                        <span>
+                          <IconButton
+                            aria-label="set as primary"
+                            onClick={() => !isCurrent && handleSetCurrent(d.story_id)}
+                            disabled={isCurrent}
+                            size="small"
+                          >
+                            <CheckIcon
+                              fontSize="small"
+                              sx={{ opacity: isCurrent ? 1 : 0.2 }}
+                            />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Tooltip title="Rename">
+                        <IconButton
+                          aria-label="rename"
+                          onClick={() => handleRenameStart(d)}
+                          size="small"
+                        >
+                          <DriveFileRenameOutlineIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip
+                        title={
+                          drafts.length <= 1
+                            ? "A story must have at least one draft"
+                            : d.original_story_id
+                              ? "Delete draft"
+                              : "Delete original"
+                        }
                       >
-                        {isCurrent ? <StarIcon /> : <StarBorderIcon />}
-                      </IconButton>
-                    </span>
-                  </Tooltip>
-                  <Tooltip title="Rename">
-                    <IconButton aria-label="rename" onClick={() => handleRenameStart(d)}>
-                      <DriveFileRenameOutlineIcon />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title={d.original_story_id ? "Delete draft" : "Delete original"}>
-                    <IconButton
-                      aria-label="delete"
-                      onClick={() => setDeleteTarget(d)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </Tooltip>
-                </ListItemSecondaryAction>
-              </ListItem>
-            );
-          })}
-          {!loading && drafts.length === 0 && (
-            <Typography variant="body2" color="text.secondary">
-              No drafts yet. Create one below to try an alternate ending or revision.
-            </Typography>
-          )}
-        </List>
+                        <span>
+                          <IconButton
+                            aria-label="delete"
+                            onClick={() => setDeleteTarget(d)}
+                            disabled={drafts.length <= 1}
+                            size="small"
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        {!loading && drafts.length === 0 && (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            No drafts yet. Create one below to try an alternate ending or revision.
+          </Typography>
+        )}
         <Box sx={{ mt: 3, display: "flex", gap: 1, alignItems: "center" }}>
           <TextField
             label="New draft name"

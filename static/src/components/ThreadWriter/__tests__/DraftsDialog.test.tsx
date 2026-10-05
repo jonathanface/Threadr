@@ -260,10 +260,8 @@ describe('DraftsDialog', () => {
 
     await waitFor(() => expect(screen.getByText('Alt')).toBeInTheDocument());
 
-    // Click the "Alt" draft row's ListItemText to trigger switch.
-    const altRow = screen.getByText('Alt').closest('li');
-    const altTextNode = altRow!.querySelector('div.MuiListItemText-root') as HTMLElement;
-    fireEvent.click(altTextNode);
+    // Click the "Alt" draft row title cell to trigger switch.
+    fireEvent.click(screen.getByText('Alt'));
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/stories/draft-b?chapter=alt-ch-2');
@@ -341,7 +339,7 @@ describe('DraftsDialog', () => {
     await waitFor(() => expect(screen.getByText('Alt')).toBeInTheDocument());
 
     // Click delete on the "Alt" draft row (identified via its listitem).
-    const altRow = screen.getByText('Alt').closest('li');
+    const altRow = screen.getByText('Alt').closest('tr');
     const deleteBtn = altRow!.querySelector('button[aria-label="delete"]') as HTMLButtonElement;
     fireEvent.click(deleteBtn);
 
@@ -368,7 +366,7 @@ describe('DraftsDialog', () => {
 
     await waitFor(() => expect(screen.getByText('Alt')).toBeInTheDocument());
 
-    const rootRow = screen.getByText('Original').closest('li');
+    const rootRow = screen.getByText('Original').closest('tr');
     const deleteBtn = rootRow!.querySelector('button[aria-label="delete"]') as HTMLButtonElement;
     fireEvent.click(deleteBtn);
 
@@ -407,7 +405,7 @@ describe('DraftsDialog', () => {
     // Delete the root while the user is editing it (useSelections says
     // story_id='root-1'). The dialog should fall back to the promoted
     // target (the current draft 'draft-a' in this ancestry).
-    const rootRow = screen.getByText('Original').closest('li');
+    const rootRow = screen.getByText('Original').closest('tr');
     fireEvent.click(rootRow!.querySelector('button[aria-label="delete"]') as HTMLButtonElement);
     fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
 
@@ -436,7 +434,7 @@ describe('DraftsDialog', () => {
 
     await waitFor(() => expect(screen.getByText('Alt')).toBeInTheDocument());
 
-    const altRow = screen.getByText('Alt').closest('li');
+    const altRow = screen.getByText('Alt').closest('tr');
     fireEvent.click(altRow!.querySelector('button[aria-label="delete"]') as HTMLButtonElement);
 
     expect(await screen.findByText(/Delete draft "Alt"/i)).toBeInTheDocument();
@@ -455,7 +453,7 @@ describe('DraftsDialog', () => {
     renderDialog({ open: true });
     await waitFor(() => expect(screen.getByText('Alt')).toBeInTheDocument());
 
-    const altRow = screen.getByText('Alt').closest('li');
+    const altRow = screen.getByText('Alt').closest('tr');
     fireEvent.click(altRow!.querySelector('button[aria-label="delete"]') as HTMLButtonElement);
 
     expect(await screen.findByText(/Delete draft "Alt"/i)).toBeInTheDocument();
@@ -488,7 +486,7 @@ describe('DraftsDialog', () => {
     await waitFor(() => expect(screen.getByText('Alt')).toBeInTheDocument());
 
     // Click delete on 'Alt' — the row the user is currently editing.
-    const altRow = screen.getByText('Alt').closest('li');
+    const altRow = screen.getByText('Alt').closest('tr');
     fireEvent.click(altRow!.querySelector('button[aria-label="delete"]') as HTMLButtonElement);
     fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
 
@@ -522,7 +520,7 @@ describe('DraftsDialog', () => {
 
     await waitFor(() => expect(screen.getByText('Scratch')).toBeInTheDocument());
 
-    const scratchRow = screen.getByText('Scratch').closest('li');
+    const scratchRow = screen.getByText('Scratch').closest('tr');
     fireEvent.click(scratchRow!.querySelector('button[aria-label="delete"]') as HTMLButtonElement);
     fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
 
@@ -541,7 +539,7 @@ describe('DraftsDialog', () => {
 
     await waitFor(() => expect(screen.getByText('Alt')).toBeInTheDocument());
 
-    const altRow = screen.getByText('Alt').closest('li');
+    const altRow = screen.getByText('Alt').closest('tr');
     const deleteBtn = altRow!.querySelector('button[aria-label="delete"]') as HTMLButtonElement;
     fireEvent.click(deleteBtn);
 
