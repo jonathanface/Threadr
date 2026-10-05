@@ -35,7 +35,7 @@ export const SeriesBox: React.FC<SeriesBoxProps> = ({ series }) => {
     navigate(`/series/${seriesID}/edit`);
   };
 
-  const handleStoryClick = (event: React.MouseEvent, storyID: string) => {
+  const handleStoryClick = (event: React.SyntheticEvent, storyID: string) => {
     event.stopPropagation();
     navigate(`/stories/${storyID}`);
   };
