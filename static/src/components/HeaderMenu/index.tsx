@@ -1,5 +1,6 @@
 import axios from "axios";
 import HistoryEduIcon from "@mui/icons-material/HistoryEdu";
+import StarIcon from "@mui/icons-material/Star";
 import { Chip, Tooltip } from "@mui/material";
 import { useLocation } from "react-router-dom";
 import { useFetchUserData } from "../../hooks/useFetchUserData";
@@ -179,16 +180,25 @@ export const HeaderMenu = () => {
                   <Tooltip
                     title={
                       story?.is_current_draft
-                        ? "This is the current draft shown in the stories list and to readers"
-                        : "You are editing a draft of this story"
+                        ? "This is the current draft — what the stories list shows and share links serve"
+                        : "You are editing a draft of this story (not the current one)"
                     }
                   >
                     <Chip
                       icon={<HistoryEduIcon />}
-                      label={story?.draft_name || "Untitled draft"}
+                      label={
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          {story?.draft_name || "Untitled draft"}
+                          {story?.is_current_draft && (
+                            <StarIcon
+                              aria-label="current draft"
+                              sx={{ fontSize: "0.95em" }}
+                            />
+                          )}
+                        </span>
+                      }
                       size="small"
-                      color={story?.is_current_draft ? "primary" : "default"}
-                      variant={story?.is_current_draft ? "filled" : "outlined"}
+                      color="primary"
                       sx={{ ml: 1 }}
                     />
                   </Tooltip>
