@@ -190,7 +190,11 @@ func DeleteChaptersEndpoint(w http.ResponseWriter, r *http.Request) {
 // enforceDraftsDeleteGuards runs the drafts-related safety checks before a
 // SoftDeleteStory call. Returns true if deletion may proceed, false if a
 // response has already been written. Invariants enforced:
-//   - Deleting the root while drafts still exist returns 409 Conflict.
+//   - Deleting the root while drafts still exist re-roots the ancestry
+//     onto one of the remaining drafts so no draft is orphaned. The
+//     frontend prompts the user for destructive confirmation before
+//     calling this endpoint, so the handler proceeds without a second
+//     confirm step.
 //   - Deleting the current draft promotes the root back to current first
 //     so the stories list and share links continue to point somewhere.
 //
@@ -222,9 +226,18 @@ func enforceDraftsDeleteGuards(
 		}
 	}
 	if target != nil && target.OriginalStoryID == "" {
-		RespondWithError(w, http.StatusConflict,
-			"this story has drafts — delete the drafts first before deleting the original")
-		return false
+		// Re-root the ancestry: promote the current draft (or the oldest
+		// remaining if no current is set) and rewrite the rest of the
+		// siblings to point at it. Associations and share links are
+		// migrated as part of the DAO call.
+		if _, promoteErr := dao.PromoteNewRoot(r.Context(), email, storyID); promoteErr != nil {
+			logger.Error("promote new root before delete failed",
+				"error", promoteErr, "storyId", storyID)
+			RespondWithError(w, http.StatusInternalServerError,
+				"unable to promote new root before deleting the original")
+			return false
+		}
+		return true
 	}
 	if target != nil && target.IsCurrentDraft && rootID != "" && rootID != currentID {
 		if promoteErr := dao.SetCurrentDraft(r.Context(), email, rootID); promoteErr != nil {
@@ -284,6 +297,14 @@ func DeleteStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
+	}
+	// Best-effort: revoke any share links pointing at the deleted story
+	// so readers see a "revoked" signal instead of a generic 404. Only
+	// relevant when the ancestry wasn't re-rooted (PromoteNewRoot already
+	// rewrote the links in that case); harmless if no links exist.
+	if revokeErr := dao.RevokeShareLinksForStory(r.Context(), storyID); revokeErr != nil {
+		logger.Warn("post-delete share-link revocation failed",
+			"storyId", storyID, "error", revokeErr)
 	}
 	RespondWithJSON(w, http.StatusOK, nil)
 }

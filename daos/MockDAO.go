@@ -57,6 +57,8 @@ type MockDAO struct {
 	MockListDrafts                            func(email, storyID string) ([]*models.Story, error)
 	MockSetCurrentDraft                       func(email, targetID string) error
 	MockRenameDraft                           func(email, storyID, newName string) error
+	MockPromoteNewRoot                        func(email, oldRootID string) (string, error)
+	MockRevokeShareLinksForStory              func(storyID string) error
 	MockGetChapterParagraphs                  func(storyID string, chapterID string, key *map[string]types.AttributeValue) (*models.BlocksData, error)
 	MockGetAssociationDetails                 func(email, storyID, associationID string) (*models.Association, error)
 	MockGetStorySettingsByID                  func(email string, storyID string) (*models.StorySettings, error)
@@ -612,6 +614,20 @@ func (m *MockDAO) RenameDraft(ctx context.Context, email, storyID, newName strin
 		return m.MockRenameDraft(email, storyID, newName)
 	}
 	return m.DAO.RenameDraft(ctx, email, storyID, newName)
+}
+
+func (m *MockDAO) PromoteNewRoot(ctx context.Context, email, oldRootID string) (string, error) {
+	if m.MockPromoteNewRoot != nil {
+		return m.MockPromoteNewRoot(email, oldRootID)
+	}
+	return m.DAO.PromoteNewRoot(ctx, email, oldRootID)
+}
+
+func (m *MockDAO) RevokeShareLinksForStory(ctx context.Context, storyID string) error {
+	if m.MockRevokeShareLinksForStory != nil {
+		return m.MockRevokeShareLinksForStory(storyID)
+	}
+	return m.DAO.RevokeShareLinksForStory(ctx, storyID)
 }
 
 func (m *MockDAO) GetChapterParagraphs(

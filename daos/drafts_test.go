@@ -523,6 +523,197 @@ func TestListDrafts_ReturnsRootFirst(t *testing.T) {
 	}
 }
 
+// -----------------------------------------------------------------------
+// PromoteNewRoot tests
+// -----------------------------------------------------------------------
+
+// promoteFixture seeds the mock responses needed by PromoteNewRoot.
+// `scenario` tweaks what IsStoryInASeries returns and whether there's a
+// current draft among the siblings; the fixture provides a working
+// ancestry of a root plus two drafts (drafts[0]=current, drafts[1]=older
+// non-current) and no associations/share-links by default.
+type promoteFixture struct {
+	oldRootID        string
+	seriesID         string // "" means not in a series
+	currentDraftID   string // "" means neither draft is current
+	draftsOldestID   string
+	draftsNewestID   string
+	transactWrites   []*dynamodb.TransactWriteItemsInput
+	associationQuery bool
+	shareLinkQuery   bool
+}
+
+func (f *promoteFixture) wire(m *MockDAO) {
+	mc := m.DynamoClient.(*MockDynamoClient)
+
+	// Build the ancestry: root + two drafts. ListDrafts calls GetStoryByID
+	// for the root and Queries the GSI for drafts; the root-resolution
+	// path (RootStoryID -> getStoryByIDUnscoped) also lands on the
+	// stories Scan path.
+	rootRow := storyRow(f.oldRootID, "Original")
+	rootRow["created_at"] = &types.AttributeValueMemberN{Value: "100"}
+	if f.seriesID != "" {
+		rootRow["series_id"] = &types.AttributeValueMemberS{Value: f.seriesID}
+	}
+
+	oldestDraftRow := storyRow(f.draftsOldestID, "Draft old")
+	oldestDraftRow["original_story_id"] = &types.AttributeValueMemberS{Value: f.oldRootID}
+	oldestDraftRow["created_at"] = &types.AttributeValueMemberN{Value: "200"}
+	if f.currentDraftID == f.draftsOldestID {
+		oldestDraftRow["is_current_draft"] = &types.AttributeValueMemberBOOL{Value: true}
+	}
+
+	newestDraftRow := storyRow(f.draftsNewestID, "Draft new")
+	newestDraftRow["original_story_id"] = &types.AttributeValueMemberS{Value: f.oldRootID}
+	newestDraftRow["created_at"] = &types.AttributeValueMemberN{Value: "300"}
+	if f.currentDraftID == f.draftsNewestID {
+		newestDraftRow["is_current_draft"] = &types.AttributeValueMemberBOOL{Value: true}
+	}
+
+	mc.MockScan = scanRouter(map[string]map[string][]map[string]types.AttributeValue{
+		"stories": {
+			f.oldRootID: {rootRow},
+		},
+	}, defaultUsersRow())
+
+	mc.MockQuery = func(_ context.Context, input *dynamodb.QueryInput, _ ...func(*dynamodb.Options)) (*dynamodb.QueryOutput, error) {
+		if input.TableName == nil {
+			return &dynamodb.QueryOutput{}, nil
+		}
+		tbl := *input.TableName
+		switch {
+		case strings.HasPrefix(tbl, "stories") && input.IndexName != nil && *input.IndexName == "original_story_id_index":
+			return &dynamodb.QueryOutput{Items: []map[string]types.AttributeValue{oldestDraftRow, newestDraftRow}}, nil
+		case strings.HasPrefix(tbl, "associations"):
+			f.associationQuery = true
+			return &dynamodb.QueryOutput{Items: nil}, nil
+		case strings.HasPrefix(tbl, "share_links"):
+			f.shareLinkQuery = true
+			return &dynamodb.QueryOutput{Items: nil}, nil
+		case strings.HasPrefix(tbl, "outlines"):
+			return &dynamodb.QueryOutput{Items: nil}, nil
+		default:
+			return &dynamodb.QueryOutput{}, nil
+		}
+	}
+
+	mc.MockTransactWriteItems = func(_ context.Context, input *dynamodb.TransactWriteItemsInput, _ ...func(*dynamodb.Options)) (*dynamodb.TransactWriteItemsOutput, error) {
+		f.transactWrites = append(f.transactWrites, input)
+		return &dynamodb.TransactWriteItemsOutput{}, nil
+	}
+}
+
+func TestPromoteNewRoot_PrefersCurrentDraft(t *testing.T) {
+	m := NewMockDAO()
+	// Make IsStoryInASeries return "" so the association path runs.
+	m.MockIsStoryInASeries = func(_, _ string) (string, error) { return "", nil }
+
+	f := &promoteFixture{
+		oldRootID:      "root-1",
+		draftsOldestID: "draft-older",
+		draftsNewestID: "draft-newer",
+		currentDraftID: "draft-newer", // explicit current should win
+	}
+	f.wire(m)
+
+	newRootID, err := m.PromoteNewRoot(context.Background(), "user@example.com", "root-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if newRootID != "draft-newer" {
+		t.Errorf("expected the current draft to be promoted, got %q want draft-newer", newRootID)
+	}
+	if len(f.transactWrites) == 0 {
+		t.Fatal("expected a promotion transaction")
+	}
+	if !f.associationQuery {
+		t.Errorf("expected associations rekey path to run when not in a series")
+	}
+	if !f.shareLinkQuery {
+		t.Errorf("expected share-link rekey path to run")
+	}
+}
+
+func TestPromoteNewRoot_FallsBackToOldestDraft(t *testing.T) {
+	m := NewMockDAO()
+	m.MockIsStoryInASeries = func(_, _ string) (string, error) { return "", nil }
+
+	f := &promoteFixture{
+		oldRootID:      "root-1",
+		draftsOldestID: "draft-older",
+		draftsNewestID: "draft-newer",
+		// no currentDraftID → should fall back to oldest.
+	}
+	f.wire(m)
+
+	newRootID, err := m.PromoteNewRoot(context.Background(), "user@example.com", "root-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if newRootID != "draft-older" {
+		t.Errorf("fallback should pick oldest draft, got %q want draft-older", newRootID)
+	}
+}
+
+func TestPromoteNewRoot_SkipsAssociationRekeyWhenInSeries(t *testing.T) {
+	m := NewMockDAO()
+	// Series-scoped: associations keyed on series_id, which doesn't change.
+	m.MockIsStoryInASeries = func(_, _ string) (string, error) { return "series-99", nil }
+
+	f := &promoteFixture{
+		oldRootID:      "root-1",
+		seriesID:       "series-99",
+		draftsOldestID: "draft-older",
+		draftsNewestID: "draft-newer",
+	}
+	f.wire(m)
+
+	if _, err := m.PromoteNewRoot(context.Background(), "user@example.com", "root-1"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if f.associationQuery {
+		t.Errorf("expected association rekey to be skipped when the ancestry is in a series")
+	}
+	// Share-link rekey still runs regardless of series membership.
+	if !f.shareLinkQuery {
+		t.Errorf("expected share-link rekey to run")
+	}
+}
+
+func TestPromoteNewRoot_RefusesNonRoot(t *testing.T) {
+	m := NewMockDAO()
+	mc := m.DynamoClient.(*MockDynamoClient)
+	// getStoryByIDUnscoped returns a row that already has
+	// original_story_id, meaning the caller passed a draft, not a root.
+	mc.MockScan = func(_ context.Context, _ *dynamodb.ScanInput, _ ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+		return scanOutputForStory("draft-xyz", "root-abc"), nil
+	}
+
+	_, err := m.PromoteNewRoot(context.Background(), "user@example.com", "draft-xyz")
+	if err == nil || !strings.Contains(err.Error(), "not a root") {
+		t.Errorf("expected 'not a root' error, got %v", err)
+	}
+}
+
+func TestPromoteNewRoot_RefusesWhenNoDrafts(t *testing.T) {
+	m := NewMockDAO()
+	mc := m.DynamoClient.(*MockDynamoClient)
+	// Root exists, but ListDrafts returns no drafts.
+	rootRow := storyRow("root-1", "Original")
+	rootRow["created_at"] = &types.AttributeValueMemberN{Value: "100"}
+	mc.MockScan = scanRouter(map[string]map[string][]map[string]types.AttributeValue{
+		"stories": {"root-1": {rootRow}},
+	}, defaultUsersRow())
+	mc.MockQuery = func(_ context.Context, _ *dynamodb.QueryInput, _ ...func(*dynamodb.Options)) (*dynamodb.QueryOutput, error) {
+		return &dynamodb.QueryOutput{Items: nil}, nil
+	}
+
+	_, err := m.PromoteNewRoot(context.Background(), "user@example.com", "root-1")
+	if err == nil || !strings.Contains(err.Error(), "no drafts to promote") {
+		t.Errorf("expected 'no drafts to promote' error, got %v", err)
+	}
+}
+
 func TestRenameDraft_IssuesUpdate(t *testing.T) {
 	mockDao := NewMockDAO()
 	mockClient := mockDao.DynamoClient.(*MockDynamoClient)

@@ -577,6 +577,256 @@ func (d *DAO) RenameDraft(ctx context.Context, email, storyID, newName string) e
 	return err
 }
 
+// PromoteNewRoot migrates an ancestry away from oldRootID so that the old
+// root can be deleted without orphaning the remaining drafts. Picks a
+// target draft T (preferring the current draft; falling back to the
+// oldest remaining draft) and in a single stories-table transaction:
+//
+//   - clears T.original_story_id (T becomes a root) and sets
+//     T.is_current_draft = true,
+//   - rewrites every other sibling draft's original_story_id from
+//     oldRootID to T.id so the ancestry remains navigable.
+//
+// After the stories-table transaction commits, best-effort migrations
+// move associations (both associations + association_details tables,
+// since story_or_series_id is a sort key and must be rewritten via
+// delete-then-put) and share_links (via UpdateItem on the PK=token row,
+// since story_id is a non-key attribute there) from oldRootID to T.id.
+// These happen outside the main transaction; if they fail they are
+// logged and the caller continues — the ancestry is already consistent
+// and a repair pass can rekey the remaining data.
+//
+// Returns the id of the new root (T.id). Callers must have confirmed
+// ownership of oldRootID; this method does not re-check.
+func (d *DAO) PromoteNewRoot(ctx context.Context, email, oldRootID string) (string, error) {
+	oldRoot, err := d.getStoryByIDUnscoped(ctx, oldRootID)
+	if err != nil {
+		return "", err
+	}
+	if oldRoot.OriginalStoryID != "" {
+		return "", errors.New("PromoteNewRoot: given story is not a root")
+	}
+
+	siblings, err := d.ListDrafts(ctx, email, oldRootID)
+	if err != nil {
+		return "", err
+	}
+	// siblings always starts with the root (if present); need at least one
+	// additional entry — i.e. an actual draft — for promotion to make sense.
+	const minAncestryForPromotion = 2
+	if len(siblings) < minAncestryForPromotion {
+		return "", errors.New("PromoteNewRoot: no drafts to promote")
+	}
+
+	// Pick target: current draft if any, else oldest non-root (ListDrafts
+	// returns drafts in oldest-first order after the root).
+	var target *models.Story
+	for _, s := range siblings {
+		if s.ID == oldRootID {
+			continue
+		}
+		if s.IsCurrentDraft {
+			target = s
+			break
+		}
+	}
+	if target == nil {
+		for _, s := range siblings {
+			if s.ID != oldRootID {
+				target = s
+				break
+			}
+		}
+	}
+
+	tableName := "stories" + GetTableSuffix()
+	tx := &dynamodb.TransactWriteItemsInput{}
+
+	// Promote: clear original_story_id, mark current.
+	tx.TransactItems = append(tx.TransactItems, types.TransactWriteItem{
+		Update: &types.Update{
+			TableName: aws.String(tableName),
+			Key: map[string]types.AttributeValue{
+				attrStoryID: &types.AttributeValueMemberS{Value: target.ID},
+				"author":    &types.AttributeValueMemberS{Value: email},
+			},
+			UpdateExpression: aws.String("SET is_current_draft = :t REMOVE original_story_id"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":t": &types.AttributeValueMemberBOOL{Value: true},
+			},
+		},
+	})
+
+	// Re-parent every other draft onto the new root.
+	for _, s := range siblings {
+		if s.ID == oldRootID || s.ID == target.ID {
+			continue
+		}
+		tx.TransactItems = append(tx.TransactItems, types.TransactWriteItem{
+			Update: &types.Update{
+				TableName: aws.String(tableName),
+				Key: map[string]types.AttributeValue{
+					attrStoryID: &types.AttributeValueMemberS{Value: s.ID},
+					"author":    &types.AttributeValueMemberS{Value: email},
+				},
+				UpdateExpression: aws.String("SET original_story_id = :tid"),
+				ExpressionAttributeValues: map[string]types.AttributeValue{
+					":tid": &types.AttributeValueMemberS{Value: target.ID},
+				},
+			},
+		})
+	}
+
+	awsErr, err := d.awsWriteTransaction(ctx, tx)
+	if err != nil {
+		return "", fmt.Errorf("PromoteNewRoot: %w", err)
+	}
+	if !awsErr.IsNil() {
+		return "", fmt.Errorf("PromoteNewRoot: --AWSERROR-- Code:%s, Type:%s, Message:%s",
+			awsErr.Code, awsErr.ErrorType, awsErr.Text)
+	}
+
+	// Best-effort data migrations outside the main transaction.
+	// Associations only need to move if the ancestry wasn't in a series —
+	// in-series ancestries key associations by series_id, which doesn't
+	// change.
+	seriesID, serr := d.IsStoryInASeries(ctx, email, oldRootID)
+	if serr != nil {
+		logger.Warn("PromoteNewRoot: series check failed",
+			"oldRoot", oldRootID, "error", serr)
+	} else if seriesID == "" {
+		if assocErr := d.rekeyAssociationsForNewRoot(ctx, oldRootID, target.ID); assocErr != nil {
+			logger.Warn("PromoteNewRoot: association rekey failed",
+				"oldRoot", oldRootID, "newRoot", target.ID, "error", assocErr)
+		}
+	}
+
+	if linkErr := d.rekeyShareLinksForNewRoot(ctx, oldRootID, target.ID); linkErr != nil {
+		logger.Warn("PromoteNewRoot: share link rekey failed",
+			"oldRoot", oldRootID, "newRoot", target.ID, "error", linkErr)
+	}
+
+	return target.ID, nil
+}
+
+// rekeyAssociationsForNewRoot rewrites every association row keyed by
+// story_or_series_id = oldRootID so it is instead keyed by newRootID.
+// story_or_series_id is the sort key, so this is a delete-then-put, done
+// as a single TransactWriteItems batch (bounded by the number of
+// associations per root). Also migrates the matching association_details
+// row for each association.
+func (d *DAO) rekeyAssociationsForNewRoot(ctx context.Context, oldRootID, newRootID string) error {
+	assocTable := "associations" + GetTableSuffix()
+	detailsTable := "association_details" + GetTableSuffix()
+
+	out, err := d.DynamoClient.Query(ctx, &dynamodb.QueryInput{
+		TableName:              aws.String(assocTable),
+		IndexName:              aws.String("story-or-series-id-index"),
+		KeyConditionExpression: aws.String("story_or_series_id = :s"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":s": &types.AttributeValueMemberS{Value: oldRootID},
+		},
+	})
+	if err != nil {
+		return err
+	}
+	if len(out.Items) == 0 {
+		return nil
+	}
+
+	var items []types.TransactWriteItem
+	for _, item := range out.Items {
+		aid, aidOK := item[attrAssociationID].(*types.AttributeValueMemberS)
+		if !aidOK {
+			continue
+		}
+		oldKey := map[string]types.AttributeValue{
+			attrAssociationID:   aid,
+			attrStoryOrSeriesID: &types.AttributeValueMemberS{Value: oldRootID},
+		}
+		newItem := make(map[string]types.AttributeValue, len(item))
+		maps.Copy(newItem, item)
+		newItem[attrStoryOrSeriesID] = &types.AttributeValueMemberS{Value: newRootID}
+
+		items = append(items,
+			types.TransactWriteItem{Delete: &types.Delete{TableName: aws.String(assocTable), Key: oldKey}},
+			types.TransactWriteItem{Put: &types.Put{TableName: aws.String(assocTable), Item: newItem}},
+		)
+
+		// Also move the association_details row if it exists (no GSI on
+		// story_or_series_id there, but we have the association_id and
+		// can read by composite key).
+		detailOut, derr := d.DynamoClient.GetItem(ctx, &dynamodb.GetItemInput{
+			TableName: aws.String(detailsTable),
+			Key: map[string]types.AttributeValue{
+				attrAssociationID:   aid,
+				attrStoryOrSeriesID: &types.AttributeValueMemberS{Value: oldRootID},
+			},
+		})
+		if derr != nil || detailOut.Item == nil {
+			continue
+		}
+		newDetail := make(map[string]types.AttributeValue, len(detailOut.Item))
+		maps.Copy(newDetail, detailOut.Item)
+		newDetail[attrStoryOrSeriesID] = &types.AttributeValueMemberS{Value: newRootID}
+		items = append(
+			items,
+			types.TransactWriteItem{
+				Delete: &types.Delete{TableName: aws.String(detailsTable), Key: map[string]types.AttributeValue{
+					attrAssociationID:   aid,
+					attrStoryOrSeriesID: &types.AttributeValueMemberS{Value: oldRootID},
+				}},
+			},
+			types.TransactWriteItem{Put: &types.Put{TableName: aws.String(detailsTable), Item: newDetail}},
+		)
+	}
+
+	if len(items) == 0 {
+		return nil
+	}
+	return d.runTransactionBatches(ctx, items, defaultTxnBatchSize,
+		"promote: rekey associations", oldRootID, "")
+}
+
+// rekeyShareLinksForNewRoot updates every share-link row that still
+// references oldRootID in its story_id attribute so it points at
+// newRootID. share_links has PK=token with story_id as a non-key
+// attribute, so UpdateItem by token (looked up via the story_id-index
+// GSI) is sufficient — no delete+put dance.
+func (d *DAO) rekeyShareLinksForNewRoot(ctx context.Context, oldRootID, newRootID string) error {
+	linksTable := "share_links" + GetTableSuffix()
+	out, err := d.DynamoClient.Query(ctx, &dynamodb.QueryInput{
+		TableName:              aws.String(linksTable),
+		IndexName:              aws.String("story_id-index"),
+		KeyConditionExpression: aws.String("story_id = :sid"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":sid": &types.AttributeValueMemberS{Value: oldRootID},
+		},
+	})
+	if err != nil {
+		return err
+	}
+	for _, item := range out.Items {
+		tok, ok := item["token"].(*types.AttributeValueMemberS)
+		if !ok {
+			continue
+		}
+		_, uerr := d.DynamoClient.UpdateItem(ctx, &dynamodb.UpdateItemInput{
+			TableName:        aws.String(linksTable),
+			Key:              map[string]types.AttributeValue{"token": tok},
+			UpdateExpression: aws.String("SET story_id = :sid"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":sid": &types.AttributeValueMemberS{Value: newRootID},
+			},
+		})
+		if uerr != nil {
+			logger.Warn("share_link update during promotion failed",
+				"token", tok.Value, "error", uerr)
+		}
+	}
+	return nil
+}
+
 // rollbackDraftClone deletes the new story row, chapter rows, and any
 // blocks already copied to the new chapters. Best-effort — any error here
 // is logged, not returned, because the caller is already surfacing the
