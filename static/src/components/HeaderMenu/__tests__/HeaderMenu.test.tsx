@@ -66,6 +66,7 @@ vi.mock("../../../hooks/useFetchUserData", () => ({
 
 vi.mock("react-router-dom", () => ({
   useLocation: () => ({ pathname: "/stories" }),
+  useNavigate: () => vi.fn(),
 }));
 
 vi.mock("../ThemeToggle", () => ({
