@@ -19,11 +19,22 @@ import {
   Typography,
 } from "@mui/material";
 import axios from "axios";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../../../../api";
 import { useSelections } from "../../../../../hooks/useSelections";
 import { Story } from "../../../../../types/Story";
+
+// Pick the id that PromoteNewRoot would select on the backend so the
+// confirmation prompt can name it: the current draft if any, otherwise
+// the oldest non-root draft in the ancestry.
+const previewPromotionTarget = (drafts: Story[]): Story | null => {
+  const nonRoot = drafts.filter((d) => d.original_story_id);
+  if (nonRoot.length === 0) return null;
+  const current = nonRoot.find((d) => d.is_current_draft);
+  if (current) return current;
+  return nonRoot[0];
+};
 
 interface DraftsDialogProps {
   open: boolean;
@@ -40,6 +51,14 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
   const [creating, setCreating] = useState(false);
   const [renamingID, setRenamingID] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  // Pending delete target: null when no confirm is open.
+  const [deleteTarget, setDeleteTarget] = useState<Story | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const promotionTarget = useMemo(
+    () => (deleteTarget && !deleteTarget.original_story_id ? previewPromotionTarget(drafts) : null),
+    [deleteTarget, drafts],
+  );
 
   // Narrowed to story_id so fetchDrafts' identity doesn't churn.
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
@@ -128,10 +147,13 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteConfirmed = async () => {
+    if (!deleteTarget) return;
     setError("");
+    setDeleting(true);
     try {
-      await api.delete(`/stories/${id}`);
+      await api.delete(`/stories/${deleteTarget.story_id}`);
+      setDeleteTarget(null);
       await fetchDrafts();
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
@@ -139,6 +161,8 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
       } else {
         setError("Could not delete draft. Please try again.");
       }
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -216,16 +240,13 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
                       <DriveFileRenameOutlineIcon />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title={d.original_story_id ? "Delete draft" : "Delete original (unavailable while drafts exist)"}>
-                    <span>
-                      <IconButton
-                        aria-label="delete"
-                        onClick={() => d.original_story_id && handleDelete(d.story_id)}
-                        disabled={!d.original_story_id && drafts.length > 1}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </span>
+                  <Tooltip title={d.original_story_id ? "Delete draft" : "Delete original"}>
+                    <IconButton
+                      aria-label="delete"
+                      onClick={() => setDeleteTarget(d)}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
                   </Tooltip>
                 </ListItemSecondaryAction>
               </ListItem>
@@ -258,6 +279,57 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
       <DialogActions>
         <Button onClick={() => setOpen(false)}>Close</Button>
       </DialogActions>
+
+      <Dialog
+        open={deleteTarget !== null}
+        onClose={() => !deleting && setDeleteTarget(null)}
+      >
+        <DialogTitle>
+          {deleteTarget?.original_story_id
+            ? `Delete draft "${deleteTarget?.draft_name || "Untitled draft"}"?`
+            : `Delete the original of "${deleteTarget?.title ?? "this story"}"?`}
+        </DialogTitle>
+        <DialogContent>
+          {deleteTarget && !deleteTarget.original_story_id ? (
+            <>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                This is the original of the story. Deleting it will promote
+                {" "}<strong>{promotionTarget?.draft_name || "the current draft"}</strong>{" "}
+                to become the new original. The original's content, chapters,
+                and outline will be <strong>permanently removed</strong> and
+                cannot be restored. Associations and existing reader share
+                links will be transferred to the new original.
+              </Typography>
+              <Typography variant="body2" color="error">
+                This cannot be undone.
+              </Typography>
+            </>
+          ) : (
+            <>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                This draft's content, chapters, and comments will be
+                permanently removed.
+              </Typography>
+              <Typography variant="body2" color="error">
+                This cannot be undone.
+              </Typography>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteTarget(null)} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirmed}
+            color="error"
+            variant="contained"
+            disabled={deleting}
+          >
+            {deleting ? "Deleting..." : "Delete"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 };

@@ -144,6 +144,38 @@ func (d *DAO) RevokeShareLink(ctx context.Context, token string) error {
 	return nil
 }
 
+// RevokeShareLinksForStory bulk-revokes every share link whose story_id
+// matches storyID. Used by the delete-story path so a reader who still
+// has the link gets a "revoked" signal instead of a generic 404 when the
+// author soft-deletes the story. Idempotent — setting revoked=true on an
+// already-revoked row is a no-op.
+func (d *DAO) RevokeShareLinksForStory(ctx context.Context, storyID string) error {
+	out, err := d.DynamoClient.Query(ctx, &dynamodb.QueryInput{
+		TableName:              aws.String("share_links" + GetTableSuffix()),
+		IndexName:              aws.String("story_id-index"),
+		KeyConditionExpression: aws.String("story_id = :sid"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":sid": &types.AttributeValueMemberS{Value: storyID},
+		},
+	})
+	if err != nil {
+		return err
+	}
+	for _, item := range out.Items {
+		tok, ok := item["token"].(*types.AttributeValueMemberS)
+		if !ok {
+			continue
+		}
+		if rerr := d.RevokeShareLink(ctx, tok.Value); rerr != nil {
+			// Keep going so one bad row doesn't block the rest; the
+			// caller logs via the aggregated error at the end if needed.
+			logger.Warn("RevokeShareLinksForStory: single revoke failed",
+				"storyId", storyID, "token", tok.Value, "error", rerr)
+		}
+	}
+	return nil
+}
+
 func (d *DAO) RestoreShareLink(ctx context.Context, token string) error {
 	logger.Info("Restoring share link", "token", token)
 

@@ -81,6 +81,8 @@ type DaoInterface interface {
 	ListDrafts(ctx context.Context, email string, storyID string) ([]*models.Story, error)
 	SetCurrentDraft(ctx context.Context, email string, targetID string) error
 	RenameDraft(ctx context.Context, email string, storyID string, newName string) error
+	PromoteNewRoot(ctx context.Context, email string, oldRootID string) (string, error)
+	RevokeShareLinksForStory(ctx context.Context, storyID string) error
 	CreateUser(ctx context.Context, email string) (*models.UserInfo, error)
 	CreateOutline(ctx context.Context, outline models.OutlineRequest) (*models.OutlineRequest, error)
 
