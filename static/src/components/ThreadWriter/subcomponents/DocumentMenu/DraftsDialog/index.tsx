@@ -5,11 +5,13 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import {
   Box,
   Button,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   IconButton,
+  LinearProgress,
   List,
   ListItem,
   ListItemSecondaryAction,
@@ -172,8 +174,19 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
   };
 
   return (
-    <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
+    <Dialog
+      open={open}
+      onClose={() => !creating && setOpen(false)}
+      fullWidth
+      maxWidth="sm"
+    >
       <DialogTitle>Drafts</DialogTitle>
+      {creating && (
+        <LinearProgress
+          aria-label="Creating draft"
+          sx={{ height: 3 }}
+        />
+      )}
       <DialogContent>
         {error && (
           <Typography color="error" variant="body2" sx={{ mb: 2 }}>
@@ -258,7 +271,7 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
             </Typography>
           )}
         </List>
-        <Box sx={{ mt: 3, display: "flex", gap: 1 }}>
+        <Box sx={{ mt: 3, display: "flex", gap: 1, alignItems: "center" }}>
           <TextField
             label="New draft name"
             value={newName}
@@ -271,13 +284,30 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
             variant="contained"
             onClick={handleCreate}
             disabled={creating || !newName.trim()}
+            startIcon={
+              creating ? (
+                <CircularProgress size={16} color="inherit" />
+              ) : undefined
+            }
           >
-            Create draft
+            {creating ? "Cloning story..." : "Create draft"}
           </Button>
         </Box>
+        {creating && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: "block", mt: 1 }}
+          >
+            Copying chapters, blocks, and outline. This can take a few
+            seconds for larger stories.
+          </Typography>
+        )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={() => setOpen(false)}>Close</Button>
+        <Button onClick={() => setOpen(false)} disabled={creating}>
+          Close
+        </Button>
       </DialogActions>
 
       <Dialog
