@@ -2,6 +2,7 @@ import CheckIcon from "@mui/icons-material/Check";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
+import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import {
   Box,
@@ -403,10 +404,14 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
                             disabled={isCurrent}
                             size="small"
                           >
-                            <CheckIcon
-                              fontSize="small"
-                              sx={{ opacity: isCurrent ? 1 : 0.2 }}
-                            />
+                            {isCurrent ? (
+                              <CheckIcon fontSize="small" />
+                            ) : (
+                              <RadioButtonUncheckedIcon
+                                fontSize="small"
+                                sx={{ opacity: 0.5 }}
+                              />
+                            )}
                           </IconButton>
                         </span>
                       </Tooltip>
