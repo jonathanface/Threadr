@@ -33,6 +33,7 @@ vi.mock('../../../hooks/useWorksList', () => ({
   useWorksList: () => ({
     storiesList: [],
     setStoriesList: vi.fn(),
+    refresh: vi.fn(),
   }),
 }));
 

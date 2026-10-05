@@ -15,6 +15,20 @@ vi.mock('../../../api', () => ({
   },
 }));
 
+// useWorksList is called by DraftsDialog so it can nudge the /stories
+// cache after promote/create/delete; mock it so the component tree
+// doesn't need a WorksListProvider wrapper in these unit tests.
+const mockRefreshWorksList = vi.fn();
+vi.mock('../../../hooks/useWorksList', () => ({
+  useWorksList: () => ({
+    seriesList: null,
+    storiesList: null,
+    setSeriesList: vi.fn(),
+    setStoriesList: vi.fn(),
+    refresh: mockRefreshWorksList,
+  }),
+}));
+
 vi.mock('../../../hooks/useSelections', () => ({
   useSelections: () => ({
     story: {

@@ -25,6 +25,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../../../../api";
 import { useSelections } from "../../../../../hooks/useSelections";
+import { useWorksList } from "../../../../../hooks/useWorksList";
 import { Story } from "../../../../../types/Story";
 
 // Pick the id that PromoteNewRoot would select on the backend so the
@@ -46,6 +47,7 @@ interface DraftsDialogProps {
 export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
   const navigate = useNavigate();
   const { story } = useSelections();
+  const { refresh: refreshWorksList } = useWorksList();
   const [drafts, setDrafts] = useState<Story[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -105,6 +107,10 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
       });
       setNewName("");
       await fetchDrafts();
+      // New draft is auto-promoted to current — the /stories list filter
+      // now admits it and hides the previous current. Nudge the works-
+      // list cache so navigating back to /stories reflects that.
+      refreshWorksList();
       // Jump into the new draft so the editor is pointed at it.
       if (res.data?.story_id) {
         // Preserve the user's chapter selection across the clone: the
@@ -148,6 +154,9 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
     try {
       await api.post(`/stories/${id}/drafts/current`, {});
       await fetchDrafts();
+      // Which row the stories-list filter admits for this ancestry
+      // just changed; refresh so /stories stays in sync.
+      refreshWorksList();
     } catch {
       setError("Could not set current draft. Please try again.");
     }
@@ -206,6 +215,10 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
     try {
       await api.delete(`/stories/${deleteTarget.story_id}`);
       setDeleteTarget(null);
+      // The delete may have moved the current pointer (deleted current
+      // → root promoted; deleted root with drafts → PromoteNewRoot).
+      // Either way the stories-list filter sees a different row now.
+      refreshWorksList();
       if (newCurrentID && newCurrentID !== story?.story_id) {
         // The user was elsewhere than the new current, or they were on
         // the deleted story. Either way, land them on the new current

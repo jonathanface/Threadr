@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { WorksListContext } from "../contexts/worksList";
 import { Story } from "../types/Story";
 import { Series } from "../types/Series";
@@ -14,7 +14,6 @@ export const WorksListProvider: React.FC<{ children: React.ReactNode }> = ({
   const { isLoggedIn } = useFetchUserData();
   const { showLoader, hideLoader } = useLoader();
 
-  // Fetch function for series and stories
   const fetchSeries = async (): Promise<Series[]> => {
     const { data } = await api.get<Series[]>("/series", {
       withCredentials: true,
@@ -29,28 +28,40 @@ export const WorksListProvider: React.FC<{ children: React.ReactNode }> = ({
     return data;
   };
 
+  // Load both lists in parallel. Shared by the mount effect and the
+  // refresh() action exposed on the context; the loader param flips the
+  // user-visible spinner off for in-flight actions that are already
+  // signaling their own progress (e.g. the DraftsDialog's clone
+  // indicator).
+  const loadData = useCallback(async (opts?: { silent?: boolean }) => {
+    try {
+      if (!opts?.silent) showLoader();
+      const [series, stories] = await Promise.all([
+        fetchSeries(),
+        fetchStories(),
+      ]);
+      setSeriesList(series);
+      setStoriesList(stories);
+    } catch (error) {
+      console.error("Error loading works list data:", error);
+    } finally {
+      if (!opts?.silent) hideLoader();
+    }
+  }, [showLoader, hideLoader]);
+
   useEffect(() => {
-    // Fetch both series and stories when the provider mounts.
-    const loadData = async () => {
-      try {
-        showLoader();
-        const [series, stories] = await Promise.all([
-          fetchSeries(),
-          fetchStories(),
-        ]);
-        setSeriesList(series);
-        setStoriesList(stories);
-      } catch (error) {
-        console.error("Error loading works list data:", error);
-      } finally {
-        hideLoader();
-      }
-    };
     if (isLoggedIn) {
+      // Data fetch on mount / login change; setState inside is intentional
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadData();
     }
-  }, [isLoggedIn, hideLoader, showLoader]);
+  }, [isLoggedIn, loadData]);
 
+  // refresh() silently re-fetches so callers (DraftsDialog's
+  // post-create / set-current / delete handlers) can keep the list in
+  // sync without flashing the global loader on top of their own
+  // progress UI.
+  const refresh = useCallback(() => loadData({ silent: true }), [loadData]);
 
   const value = useMemo(
     () => ({
@@ -58,8 +69,9 @@ export const WorksListProvider: React.FC<{ children: React.ReactNode }> = ({
       setSeriesList,
       storiesList,
       setStoriesList,
+      refresh,
     }),
-    [seriesList, storiesList],
+    [seriesList, storiesList, refresh],
   );
 
   return (
