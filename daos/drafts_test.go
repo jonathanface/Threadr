@@ -161,10 +161,12 @@ func (f *draftTestFixture) wire(mockDao *MockDAO) {
 	}
 }
 
-func storyRow(id, author, title string) map[string]types.AttributeValue {
+// storyRow builds a stories-table row for test fixtures. All tests share
+// the same test user, so `author` is hard-coded rather than parameterized.
+func storyRow(id, title string) map[string]types.AttributeValue {
 	return map[string]types.AttributeValue{
 		"story_id":    &types.AttributeValueMemberS{Value: id},
-		"author":      &types.AttributeValueMemberS{Value: author},
+		"author":      &types.AttributeValueMemberS{Value: "user@example.com"},
 		"title":       &types.AttributeValueMemberS{Value: title},
 		"description": &types.AttributeValueMemberS{Value: "a desc"},
 		"image_url":   &types.AttributeValueMemberS{Value: "img.png"},
@@ -183,7 +185,7 @@ func chapterRow(storyID, chapterID, title string, place int) map[string]types.At
 func TestCreateStoryDraft_HappyPath(t *testing.T) {
 	mockDao := NewMockDAO()
 	f := newDraftFixture(t)
-	f.sourceStory = storyRow("source-1", "user@example.com", "Original Title")
+	f.sourceStory = storyRow("source-1", "Original Title")
 	f.sourceChapterRows = []map[string]types.AttributeValue{
 		chapterRow("source-1", "ch-1", "Chapter 1", 1),
 		chapterRow("source-1", "ch-2", "Chapter 2", 2),
@@ -237,7 +239,7 @@ func TestCreateStoryDraft_ChildResolvesToExistingRoot(t *testing.T) {
 	mockDao := NewMockDAO()
 	f := newDraftFixture(t)
 	// Source is itself a draft, pointing at root-A.
-	f.sourceStory = storyRow("draft-B", "user@example.com", "Draft B")
+	f.sourceStory = storyRow("draft-B", "Draft B")
 	f.sourceStory["original_story_id"] = &types.AttributeValueMemberS{Value: "root-A"}
 	f.sourceChapterRows = []map[string]types.AttributeValue{
 		chapterRow("draft-B", "ch-x", "A", 1),
@@ -256,7 +258,7 @@ func TestCreateStoryDraft_ChildResolvesToExistingRoot(t *testing.T) {
 func TestCreateStoryDraft_SeriesIDInherited(t *testing.T) {
 	mockDao := NewMockDAO()
 	f := newDraftFixture(t)
-	f.sourceStory = storyRow("source-1", "user@example.com", "T")
+	f.sourceStory = storyRow("source-1", "T")
 	f.sourceStory["series_id"] = &types.AttributeValueMemberS{Value: "series-99"}
 	f.sourceStory["place"] = &types.AttributeValueMemberN{Value: "3"}
 	f.sourceChapterRows = []map[string]types.AttributeValue{
@@ -293,7 +295,7 @@ func TestCurrentDraftID_ResolvesToFlaggedSibling(t *testing.T) {
 	mockClient := mockDao.DynamoClient.(*MockDynamoClient)
 
 	callCount := 0
-	mockClient.MockScan = func(_ context.Context, input *dynamodb.ScanInput, _ ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+	mockClient.MockScan = func(_ context.Context, _ *dynamodb.ScanInput, _ ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
 		callCount++
 		// First scan is the root resolution for storyID; return root.
 		if callCount == 1 {
@@ -365,7 +367,10 @@ func TestStoryOrSeriesID_RootNoSeriesReturnsRoot(t *testing.T) {
 // and (optionally) by the :s expression attribute value. Returns an empty
 // scan for anything it doesn't recognize so IsStoryInASeries's chained
 // user/stories lookups don't error out.
-func scanRouter(byTableAndStoryVal map[string]map[string][]map[string]types.AttributeValue, usersRow map[string]types.AttributeValue) func(context.Context, *dynamodb.ScanInput, ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
+func scanRouter(
+	byTableAndStoryVal map[string]map[string][]map[string]types.AttributeValue,
+	usersRow map[string]types.AttributeValue,
+) func(context.Context, *dynamodb.ScanInput, ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
 	return func(_ context.Context, input *dynamodb.ScanInput, _ ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
 		table := ""
 		if input.TableName != nil {
@@ -376,8 +381,8 @@ func scanRouter(byTableAndStoryVal map[string]map[string][]map[string]types.Attr
 		}
 		for prefix, byVal := range byTableAndStoryVal {
 			if strings.HasPrefix(table, prefix) {
-				if v, ok := input.ExpressionAttributeValues[":s"].(*types.AttributeValueMemberS); ok {
-					if rows, ok := byVal[v.Value]; ok {
+				if v, vOK := input.ExpressionAttributeValues[":s"].(*types.AttributeValueMemberS); vOK {
+					if rows, rowsOK := byVal[v.Value]; rowsOK {
 						return &dynamodb.ScanOutput{Items: rows}, nil
 					}
 				}
@@ -399,13 +404,13 @@ func TestStoryOrSeriesID_DraftInSeriesReturnsSeries(t *testing.T) {
 	mockDao := NewMockDAO()
 	mockClient := mockDao.DynamoClient.(*MockDynamoClient)
 
-	rootRowWithSeries := storyRow("root-abc", "user@example.com", "T")
+	rootRowWithSeries := storyRow("root-abc", "T")
 	rootRowWithSeries["series_id"] = &types.AttributeValueMemberS{Value: "series-999"}
 
 	mockClient.MockScan = scanRouter(map[string]map[string][]map[string]types.AttributeValue{
 		"stories": {
 			"draft-xyz": {func() map[string]types.AttributeValue {
-				row := storyRow("draft-xyz", "user@example.com", "T")
+				row := storyRow("draft-xyz", "T")
 				row["original_story_id"] = &types.AttributeValueMemberS{Value: "root-abc"}
 				return row
 			}()},
@@ -429,11 +434,11 @@ func TestStoryOrSeriesID_DraftNoSeriesReturnsRoot(t *testing.T) {
 	mockClient.MockScan = scanRouter(map[string]map[string][]map[string]types.AttributeValue{
 		"stories": {
 			"draft-xyz": {func() map[string]types.AttributeValue {
-				row := storyRow("draft-xyz", "user@example.com", "T")
+				row := storyRow("draft-xyz", "T")
 				row["original_story_id"] = &types.AttributeValueMemberS{Value: "root-abc"}
 				return row
 			}()},
-			"root-abc": {storyRow("root-abc", "user@example.com", "T")},
+			"root-abc": {storyRow("root-abc", "T")},
 		},
 	}, defaultUsersRow())
 
@@ -513,7 +518,8 @@ func TestRenameDraft_IssuesUpdate(t *testing.T) {
 	if captured == nil {
 		t.Fatal("expected UpdateItem to be called")
 	}
-	if v, ok := captured.ExpressionAttributeValues[":n"].(*types.AttributeValueMemberS); !ok || v.Value != "Alternate Ending" {
+	if v, ok := captured.ExpressionAttributeValues[":n"].(*types.AttributeValueMemberS); !ok ||
+		v.Value != "Alternate Ending" {
 		t.Errorf("new name not plumbed through: %+v", captured.ExpressionAttributeValues[":n"])
 	}
 }
@@ -521,7 +527,7 @@ func TestRenameDraft_IssuesUpdate(t *testing.T) {
 func TestCreateStoryDraft_RollsBackOnBlockCopyFailure(t *testing.T) {
 	mockDao := NewMockDAO()
 	f := newDraftFixture(t)
-	f.sourceStory = storyRow("source-1", "user@example.com", "T")
+	f.sourceStory = storyRow("source-1", "T")
 	f.sourceChapterRows = []map[string]types.AttributeValue{
 		chapterRow("source-1", "ch-1", "A", 1),
 	}
@@ -553,6 +559,9 @@ func TestCreateStoryDraft_RollsBackOnBlockCopyFailure(t *testing.T) {
 	}
 	// Rollback must at least attempt to delete the new chapter and the new story row.
 	if deleteItemCalls < 2 {
-		t.Errorf("rollback should delete the new chapter and the new story row (>=2 DeleteItem calls), got %d", deleteItemCalls)
+		t.Errorf(
+			"rollback should delete the new chapter and the new story row (>=2 DeleteItem calls), got %d",
+			deleteItemCalls,
+		)
 	}
 }

@@ -24,6 +24,13 @@ import (
 // of a generic 500.
 var ErrStoryNotFound = errors.New("story not found")
 
+// Draft row attribute names — kept in one place so the typo check lands here
+// instead of at a random DynamoDB filter that silently returns empty results.
+const (
+	attrOriginalStoryID = "original_story_id"
+	exprStoryID         = ":storyID"
+)
+
 // getStoryByIDUnscoped reads a story row by id without filtering on author.
 // Needed by paths that don't have an authenticated author binding — notably
 // the share-link reader path and the drafts root-resolution logic that may
@@ -75,8 +82,10 @@ func (d *DAO) CurrentDraftID(ctx context.Context, storyID string) (string, error
 		return "", err
 	}
 	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
-		TableName:        aws.String("stories" + GetTableSuffix()),
-		FilterExpression: aws.String("(original_story_id = :rid OR story_id = :rid) AND is_current_draft = :t AND attribute_not_exists(deleted_at)"),
+		TableName: aws.String("stories" + GetTableSuffix()),
+		FilterExpression: aws.String(
+			"(original_story_id = :rid OR story_id = :rid) AND is_current_draft = :t AND attribute_not_exists(deleted_at)",
+		),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":rid": &types.AttributeValueMemberS{Value: rootID},
 			":t":   &types.AttributeValueMemberBOOL{Value: true},
@@ -187,7 +196,7 @@ func (d *DAO) CreateStoryDraft(
 		attrDescription:     &types.AttributeValueMemberS{Value: sourceStory.Description},
 		attrCreatedAt:       &types.AttributeValueMemberN{Value: now},
 		attrImageURL:        &types.AttributeValueMemberS{Value: sourceStory.ImageURL},
-		"original_story_id": &types.AttributeValueMemberS{Value: rootID},
+		attrOriginalStoryID: &types.AttributeValueMemberS{Value: rootID},
 		"draft_name":        &types.AttributeValueMemberS{Value: draftName},
 	}
 	if sourceStory.SeriesID != "" {
@@ -325,7 +334,7 @@ func (d *DAO) copyOutlineRows(
 		TableName:              aws.String("outlines" + GetTableSuffix()),
 		KeyConditionExpression: aws.String("story_id = :storyID"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":storyID": &types.AttributeValueMemberS{Value: sourceStoryID},
+			exprStoryID: &types.AttributeValueMemberS{Value: sourceStoryID},
 		},
 	})
 	if err != nil {
@@ -581,9 +590,9 @@ func (d *DAO) rollbackDraftClone(
 				"storyId", newStoryID, "chapterId", newChID, "error", err)
 		}
 		// Delete any blocks that may have landed under this chapter.
-		if err := d.deleteAllBlocksForChapter(ctx, buildCompositeKey(newStoryID, newChID)); err != nil {
+		if blockErr := d.deleteAllBlocksForChapter(ctx, buildCompositeKey(newStoryID, newChID)); blockErr != nil {
 			logger.Error("draft clone rollback: delete blocks",
-				"storyId", newStoryID, "chapterId", newChID, "error", err)
+				"storyId", newStoryID, "chapterId", newChID, "error", blockErr)
 		}
 	}
 	// Delete the new story row.
