@@ -211,15 +211,43 @@
   padding: 4px 6px;
   border-radius: 6px;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 
-.storyStripItem:hover {
-  background: rgba(255, 255, 255, 0.12);
+.storyStripItem:hover,
+.storyStripItem:focus-visible {
+  background: rgba(255, 255, 255, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+  outline: none;
 }
 
-:global([data-theme="light"]) .storyStripItem:hover {
-  background: rgba(0, 0, 0, 0.05);
+.storyStripItem:hover .storyStripTitle,
+.storyStripItem:focus-visible .storyStripTitle {
+  text-decoration: underline;
+}
+
+.storyStripItem:hover .storyStripOpenIcon,
+.storyStripItem:focus-visible .storyStripOpenIcon {
+  opacity: 0.9;
+}
+
+:global([data-theme="light"]) .storyStripItem:hover,
+:global([data-theme="light"]) .storyStripItem:focus-visible {
+  background: rgba(0, 0, 0, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+}
+
+.storyStripOpenIcon {
+  font-size: 0.9rem !important;
+  opacity: 0;
+  margin-left: auto;
+  transition: opacity 0.15s ease;
+  color: rgba(255, 255, 255, 0.85);
+  flex-shrink: 0;
+}
+
+:global([data-theme="light"]) .storyStripOpenIcon {
+  color: rgba(0, 0, 0, 0.7);
 }
 
 .storyStripTitle {
