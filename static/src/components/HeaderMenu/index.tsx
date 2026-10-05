@@ -1,5 +1,6 @@
 import axios from "axios";
-import { Tooltip } from "@mui/material";
+import HistoryEduIcon from "@mui/icons-material/HistoryEdu";
+import { Chip, Tooltip } from "@mui/material";
 import { useLocation } from "react-router-dom";
 import { useFetchUserData } from "../../hooks/useFetchUserData";
 import { useLoader } from "../../hooks/useLoader";
@@ -169,10 +170,30 @@ export const HeaderMenu = () => {
           <span className={styles.storyInfo}>
             <img alt={story?.title} src={story?.image_url} />
             <div className={styles.storyData}>
-              <EditableText
-                textValue={story?.title ? story.title : ""}
-                onTextChange={onStoryTitleEdit}
-              />
+              <span className={styles.titleRow}>
+                <EditableText
+                  textValue={story?.title ? story.title : ""}
+                  onTextChange={onStoryTitleEdit}
+                />
+                {(story?.draft_name || story?.original_story_id) && (
+                  <Tooltip
+                    title={
+                      story?.is_current_draft
+                        ? "This is the current draft shown in the stories list and to readers"
+                        : "You are editing a draft of this story"
+                    }
+                  >
+                    <Chip
+                      icon={<HistoryEduIcon />}
+                      label={story?.draft_name || "Untitled draft"}
+                      size="small"
+                      color={story?.is_current_draft ? "primary" : "default"}
+                      variant={story?.is_current_draft ? "filled" : "outlined"}
+                      sx={{ ml: 1 }}
+                    />
+                  </Tooltip>
+                )}
+              </span>
               <div className={styles.seriesInfo}>
                 <EditableText
                   textValue={series?.series_title ? series.series_title : ""}
