@@ -415,6 +415,53 @@ describe('DraftsDialog', () => {
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/stories/draft-a'));
   });
 
+  it("mentions the active draft in the destructive confirm when deleting the one you're viewing", async () => {
+    mockUseSelectionsReturn = {
+      story: {
+        story_id: 'draft-current',
+        chapters: [{ id: 'src-ch-1', place: 1 }],
+      },
+      chapter: { id: 'src-ch-1' },
+      setChapter: vi.fn(),
+      deselectChapter: vi.fn(),
+      deselectStory: vi.fn(),
+    };
+    vi.mocked(api.get).mockResolvedValue({
+      data: [
+        makeDraft({ story_id: 'root-1', draft_name: 'Original', is_current_draft: false }),
+        makeDraft({ story_id: 'draft-current', original_story_id: 'root-1', draft_name: 'Alt', is_current_draft: true }),
+      ],
+    });
+    renderDialog({ open: true });
+
+    await waitFor(() => expect(screen.getByText('Alt')).toBeInTheDocument());
+
+    const altRow = screen.getByText('Alt').closest('li');
+    fireEvent.click(altRow!.querySelector('button[aria-label="delete"]') as HTMLButtonElement);
+
+    expect(await screen.findByText(/Delete draft "Alt"/i)).toBeInTheDocument();
+    expect(screen.getByText(/currently viewing this draft/i)).toBeInTheDocument();
+    expect(screen.getByText(/redirected to the current draft/i)).toBeInTheDocument();
+  });
+
+  it("doesn't show the 'currently viewing' callout when deleting a non-active draft", async () => {
+    // Default useSelections mock has story_id='root-1' as active.
+    vi.mocked(api.get).mockResolvedValue({
+      data: [
+        makeDraft({ story_id: 'root-1', draft_name: 'Original', is_current_draft: true }),
+        makeDraft({ story_id: 'draft-a', original_story_id: 'root-1', draft_name: 'Alt', is_current_draft: false }),
+      ],
+    });
+    renderDialog({ open: true });
+    await waitFor(() => expect(screen.getByText('Alt')).toBeInTheDocument());
+
+    const altRow = screen.getByText('Alt').closest('li');
+    fireEvent.click(altRow!.querySelector('button[aria-label="delete"]') as HTMLButtonElement);
+
+    expect(await screen.findByText(/Delete draft "Alt"/i)).toBeInTheDocument();
+    expect(screen.queryByText(/currently viewing this draft/i)).not.toBeInTheDocument();
+  });
+
   it('navigates to the root when deleting the current draft while viewing it', async () => {
     // User is actively editing the current draft 'draft-current'.
     const deselectChapterSpy = vi.fn();

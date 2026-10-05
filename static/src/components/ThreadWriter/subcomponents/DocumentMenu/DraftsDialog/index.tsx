@@ -451,6 +451,13 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
               <Typography variant="body2" sx={{ mb: 2 }}>
                 This draft's content, chapters, and comments will be
                 permanently removed.
+                {deleteTarget && story?.story_id === deleteTarget.story_id && (
+                  <>
+                    {" "}You are currently viewing this draft; after it's
+                    deleted you'll be redirected to the current draft of
+                    this story.
+                  </>
+                )}
               </Typography>
               <Typography variant="body2" color="error">
                 This cannot be undone.
