@@ -61,6 +61,7 @@ vi.mock("../../../hooks/useLoader", () => ({
 vi.mock("../../../hooks/useFetchUserData", () => ({
   useFetchUserData: () => ({
     isLoggedIn: true,
+    userDetails: { subscriber: true },
   }),
 }));
 

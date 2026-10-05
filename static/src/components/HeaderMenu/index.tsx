@@ -29,7 +29,8 @@ import styles from "./headermenu.module.css";
 export const HeaderMenu = () => {
   const location = useLocation();
   const isSharedReader = location.pathname.startsWith("/shared/");
-  const { isLoggedIn } = useFetchUserData();
+  const { isLoggedIn, userDetails } = useFetchUserData();
+  const isSubscriber = userDetails?.subscriber === true;
 
   const {
     story,
@@ -61,7 +62,7 @@ export const HeaderMenu = () => {
 
   const storyID = story?.story_id;
   useEffect(() => {
-    if (!storyID) return;
+    if (!storyID || !isSubscriber) return;
     let cancelled = false;
     api
       .get<Story[]>(`/stories/${storyID}/drafts`)
@@ -79,7 +80,7 @@ export const HeaderMenu = () => {
     return () => {
       cancelled = true;
     };
-  }, [storyID]);
+  }, [storyID, isSubscriber]);
 
   const draftsList =
     draftsCache && draftsCache.storyID === storyID ? draftsCache.list : null;
