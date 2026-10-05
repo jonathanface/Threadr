@@ -199,14 +199,14 @@ export const HeaderMenu = () => {
                       sx={{
                         ml: 1,
                         height: "auto",
-                        py: 0.75,
+                        py: 0.25,
                         alignItems: "center",
                         "& .MuiChip-label": {
-                          px: 1,
+                          px: 0.75,
                           display: "flex",
                           alignItems: "center",
                         },
-                        "& .MuiChip-icon": { my: "auto" },
+                        "& .MuiChip-icon": { my: "auto", ml: 0.75, mr: -0.25 },
                       }}
                     />
                   </Tooltip>
