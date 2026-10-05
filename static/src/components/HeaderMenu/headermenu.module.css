@@ -54,12 +54,12 @@ header .storyInfo .draftChipLabel {
 }
 
 header .storyInfo .draftChipName {
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
     line-height: 1.1;
 }
 
 header .storyInfo .draftChipLatest {
-    font-size: 0.55rem;
+    font-size: 0.5rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     opacity: 0.85;
