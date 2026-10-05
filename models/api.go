@@ -115,7 +115,11 @@ type Story struct {
 	// on first draft creation).
 	OriginalStoryID string `json:"original_story_id,omitempty" dynamodbav:"original_story_id,omitempty"`
 	DraftName       string `json:"draft_name,omitempty"        dynamodbav:"draft_name,omitempty"`
-	IsCurrentDraft  bool   `json:"is_current_draft,omitempty"  dynamodbav:"is_current_draft,omitempty"`
+	// *bool so the three states — attribute missing, explicitly true,
+	// explicitly false — all round-trip through JSON. A plain bool with
+	// omitempty would strip "false" from the response, making a demoted
+	// root indistinguishable from a never-drafted standalone.
+	IsCurrentDraft *bool `json:"is_current_draft,omitempty" dynamodbav:"is_current_draft,omitempty"`
 }
 type StorySettings struct {
 	Spellcheck  bool    `json:"spellcheck"   dynamodbav:"spellcheck"`

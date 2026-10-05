@@ -223,7 +223,7 @@ func enforceDraftsDeleteGuards(
 		if s.OriginalStoryID == "" {
 			rootID = s.ID
 		}
-		if s.IsCurrentDraft {
+		if s.IsCurrentDraft != nil && *s.IsCurrentDraft {
 			currentID = s.ID
 		}
 	}
@@ -241,7 +241,7 @@ func enforceDraftsDeleteGuards(
 		}
 		return true
 	}
-	if target != nil && target.IsCurrentDraft && rootID != "" && rootID != currentID {
+	if target != nil && target.IsCurrentDraft != nil && *target.IsCurrentDraft && rootID != "" && rootID != currentID {
 		if promoteErr := dao.SetCurrentDraft(r.Context(), email, rootID); promoteErr != nil {
 			logger.Error("promote root before delete failed",
 				"error", promoteErr, "storyId", storyID, "rootId", rootID)

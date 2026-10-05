@@ -209,7 +209,7 @@ func TestCreateStoryDraft_HappyPath(t *testing.T) {
 	if got.DraftName != "Alternate" {
 		t.Errorf("DraftName mismatch: got %q want Alternate", got.DraftName)
 	}
-	if !got.IsCurrentDraft {
+	if got.IsCurrentDraft == nil || !*got.IsCurrentDraft {
 		t.Errorf("new draft should auto-promote to IsCurrentDraft=true")
 	}
 	if got.Title != "Original Title" {
@@ -247,7 +247,7 @@ func TestCreateStoryDraft_HappyPath(t *testing.T) {
 	if !v.Value {
 		t.Errorf("new draft must auto-promote (is_current_draft=true), got false")
 	}
-	if !got.IsCurrentDraft {
+	if got.IsCurrentDraft == nil || !*got.IsCurrentDraft {
 		t.Errorf("returned story should reflect is_current_draft=true")
 	}
 	// The last transaction item should be the demote update targeting

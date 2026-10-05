@@ -38,6 +38,18 @@ const (
 	attrChaptersSet = "chapters"
 )
 
+// isCurrentDraft dereferences the tri-state Story.IsCurrentDraft safely.
+// nil (attribute absent) is treated as false; this is the right default
+// for the "is this row the ancestry's current pointer?" check — only an
+// explicit `true` qualifies.
+func isCurrentDraft(s *models.Story) bool {
+	return s != nil && s.IsCurrentDraft != nil && *s.IsCurrentDraft
+}
+
+// boolPtr returns a pointer to b. Written as a helper so Story literals
+// with IsCurrentDraft can be constructed inline without a temp var.
+func boolPtr(b bool) *bool { return &b }
+
 // getStoryByIDUnscoped reads a story row by id without filtering on author.
 // Needed by paths that don't have an authenticated author binding — notably
 // the share-link reader path and the drafts root-resolution logic that may
@@ -303,7 +315,7 @@ func (d *DAO) CreateStoryDraft(
 	newStory.ID = newStoryID
 	newStory.OriginalStoryID = rootID
 	newStory.DraftName = draftName
-	newStory.IsCurrentDraft = true
+	newStory.IsCurrentDraft = boolPtr(true)
 	// New draft inherits series_id/place from the previous current and
 	// takes over as the ancestry's current row.
 	newStory.SeriesID = previousCurrent.SeriesID
@@ -517,7 +529,7 @@ func (d *DAO) SetCurrentDraft(ctx context.Context, email, targetID string) error
 		if s.ID == targetID {
 			target = s
 		}
-		if s.IsCurrentDraft {
+		if isCurrentDraft(s) {
 			current = s
 		}
 	}
@@ -669,7 +681,7 @@ func (d *DAO) PromoteNewRoot(ctx context.Context, email, oldRootID string) (stri
 		if s.ID == oldRootID {
 			continue
 		}
-		if s.IsCurrentDraft {
+		if isCurrentDraft(s) {
 			target = s
 			break
 		}

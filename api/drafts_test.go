@@ -20,6 +20,8 @@ func init() {
 	SetupTestSession()
 }
 
+func boolPtr(b bool) *bool { return &b }
+
 // baseDraftRequest returns a request wired with a mocked DAO, a session
 // cookie for test@example.com, and the Subscriber context key set to true
 // by default. Tests exercising the subscriber gate override with the
@@ -113,7 +115,7 @@ func TestListStoryDraftsEndpoint_Success(t *testing.T) {
 			t.Errorf("unexpected storyID: %q", storyID)
 		}
 		return []*models.Story{
-			{ID: "root-1", DraftName: "Original", IsCurrentDraft: true},
+			{ID: "root-1", DraftName: "Original", IsCurrentDraft: boolPtr(true)},
 			{ID: "draft-a", OriginalStoryID: "root-1", DraftName: "Alt"},
 		}, nil
 	}
