@@ -29,19 +29,22 @@ vi.mock('../../../hooks/useWorksList', () => ({
   }),
 }));
 
+// Mutable mock so individual tests can swap out which story the user
+// is currently "viewing" via useSelections().story.
+let mockUseSelectionsReturn = {
+  story: {
+    story_id: 'root-1',
+    chapters: [
+      { id: 'src-ch-1', place: 1 },
+      { id: 'src-ch-2', place: 2 },
+      { id: 'src-ch-3', place: 3 },
+    ],
+  },
+  chapter: { id: 'src-ch-1' },
+  setChapter: vi.fn(),
+};
 vi.mock('../../../hooks/useSelections', () => ({
-  useSelections: () => ({
-    story: {
-      story_id: 'root-1',
-      chapters: [
-        { id: 'src-ch-1', place: 1 },
-        { id: 'src-ch-2', place: 2 },
-        { id: 'src-ch-3', place: 3 },
-      ],
-    },
-    chapter: { id: 'src-ch-1' },
-    setChapter: vi.fn(),
-  }),
+  useSelections: () => mockUseSelectionsReturn,
 }));
 
 // react-router-dom's useNavigate is mocked so tests can inspect where
@@ -79,6 +82,20 @@ describe('DraftsDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(api.get).mockResolvedValue({ data: [] });
+    // Reset the useSelections mock to the default "viewing root-1" story
+    // between tests so overrides don't bleed.
+    mockUseSelectionsReturn = {
+      story: {
+        story_id: 'root-1',
+        chapters: [
+          { id: 'src-ch-1', place: 1 },
+          { id: 'src-ch-2', place: 2 },
+          { id: 'src-ch-3', place: 3 },
+        ],
+      },
+      chapter: { id: 'src-ch-1' },
+      setChapter: vi.fn(),
+    };
     // Default location: no chapter param. Tests that need one override.
     Object.defineProperty(window, 'location', {
       value: { search: '', pathname: '/stories/root-1', href: '/stories/root-1' },
@@ -392,6 +409,37 @@ describe('DraftsDialog', () => {
 
     await waitFor(() => expect(api.delete).toHaveBeenCalledWith('/stories/root-1'));
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/stories/draft-a'));
+  });
+
+  it('navigates to the root when deleting the current draft while viewing it', async () => {
+    // User is actively editing the current draft 'draft-current'.
+    mockUseSelectionsReturn = {
+      story: {
+        story_id: 'draft-current',
+        chapters: [{ id: 'src-ch-1', place: 1 }],
+      },
+      chapter: { id: 'src-ch-1' },
+      setChapter: vi.fn(),
+    };
+    vi.mocked(api.get).mockResolvedValue({
+      data: [
+        makeDraft({ story_id: 'root-1', draft_name: 'Original', is_current_draft: false }),
+        makeDraft({ story_id: 'draft-current', original_story_id: 'root-1', draft_name: 'Alt', is_current_draft: true }),
+      ],
+    });
+    vi.mocked(api.delete).mockResolvedValue({ data: null });
+    renderDialog({ open: true });
+
+    await waitFor(() => expect(screen.getByText('Alt')).toBeInTheDocument());
+
+    // Click delete on 'Alt' — the row the user is currently editing.
+    const altRow = screen.getByText('Alt').closest('li');
+    fireEvent.click(altRow!.querySelector('button[aria-label="delete"]') as HTMLButtonElement);
+    fireEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
+
+    await waitFor(() => expect(api.delete).toHaveBeenCalledWith('/stories/draft-current'));
+    // Backend promotes root; dialog should navigate the user there.
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/stories/root-1'));
   });
 
   it('navigates to the already-current draft when deleting a non-current sibling', async () => {
