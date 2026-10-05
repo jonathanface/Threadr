@@ -35,6 +35,7 @@ const mockWorksListContext = {
   storiesList: null,
   setSeriesList: vi.fn(),
   setStoriesList: vi.fn(),
+  refresh: vi.fn(),
 };
 
 const mockSelectionsContext = {

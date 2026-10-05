@@ -33,15 +33,22 @@ func (d *DAO) GetAllStories(ctx context.Context, email string) (stories []*model
 	logger.Debug("GetAllStories called", "email", email)
 
 	// Visibility rule for drafts (docs/drafts.md "Stories list visibility
-	// invariant"): exactly one row per ancestry is listed. A row is visible
-	// unless it has is_current_draft explicitly false — i.e., absent (no
-	// drafts yet, default-current root) or explicitly true (promoted
-	// current, root or draft). SetCurrentDraft maintains this by flipping
-	// both the previous and new current in a transaction.
+	// invariant"): exactly one row per ancestry is listed. A row is
+	// visible if either:
+	//   (a) it is explicitly marked current (is_current_draft = true), or
+	//   (b) it is a root that has never been touched by draft logic
+	//       (no is_current_draft attribute AND no original_story_id).
+	//
+	// Branch (b) covers brand-new stories that have no drafts yet.
+	// Branch (a) covers everything after a draft has been created or a
+	// current has been explicitly set. The combined expression also
+	// filters out legacy draft rows that predate the is_current_draft
+	// write — those have original_story_id set but no is_current_draft,
+	// which neither branch admits.
 	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
 		TableName: aws.String("stories" + GetTableSuffix()),
 		FilterExpression: aws.String(
-			"author=:eml AND attribute_not_exists(deleted_at) AND (attribute_not_exists(is_current_draft) OR is_current_draft = :t)",
+			"author=:eml AND attribute_not_exists(deleted_at) AND (is_current_draft = :t OR (attribute_not_exists(is_current_draft) AND attribute_not_exists(original_story_id)))",
 		),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
@@ -116,13 +123,20 @@ func (d *DAO) GetAllStandalone(
 	ctx context.Context,
 	email string,
 ) (stories []models.Story, err error) {
+	// Same drafts visibility rule as GetAllStories (see comments there):
+	// show either the explicitly-current row (is_current_draft=true) or
+	// a brand-new root that has never been draft-touched (no
+	// is_current_draft and no original_story_id). Without this filter the
+	// /stories page lists both the demoted root and the current draft of
+	// an ancestry.
 	input := &dynamodb.ScanInput{
 		TableName: aws.String("stories" + GetTableSuffix()),
 		FilterExpression: aws.String(
-			"author=:eml AND attribute_not_exists(series_id) AND attribute_not_exists(deleted_at)",
+			"author=:eml AND attribute_not_exists(series_id) AND attribute_not_exists(deleted_at) AND (is_current_draft = :t OR (attribute_not_exists(is_current_draft) AND attribute_not_exists(original_story_id)))",
 		),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
+			":t":   &types.AttributeValueMemberBOOL{Value: true},
 		},
 	}
 

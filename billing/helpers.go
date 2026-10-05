@@ -168,7 +168,7 @@ func fireSubscriptionExpiredAlert(ctx context.Context, dao daos.DaoInterface, em
 	alert := models.Alert{
 		ID:          "sub-expired-" + email,
 		Subject:     "Subscription Expired",
-		Message:     "Your subscription has expired. Your stories are safe, but exporting, sharing with readers, and adding more than 10 associations per story are paused until you resubscribe.",
+		Message:     "Your subscription has expired. Your stories are safe, but exporting, sharing with readers, adding more than 10 associations per story, and access to alternate drafts (only the primary draft of each story stays visible) are paused until you resubscribe.",
 		Link:        "/subscribe",
 		TargetEmail: email,
 		AlertType:   models.AlertTypePersonal,

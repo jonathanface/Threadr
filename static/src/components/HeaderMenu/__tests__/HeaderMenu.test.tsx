@@ -61,11 +61,13 @@ vi.mock("../../../hooks/useLoader", () => ({
 vi.mock("../../../hooks/useFetchUserData", () => ({
   useFetchUserData: () => ({
     isLoggedIn: true,
+    userDetails: { subscriber: true },
   }),
 }));
 
 vi.mock("react-router-dom", () => ({
   useLocation: () => ({ pathname: "/stories" }),
+  useNavigate: () => vi.fn(),
 }));
 
 vi.mock("../ThemeToggle", () => ({
@@ -85,6 +87,7 @@ vi.mock("../../NotificationsBell", () => ({
 vi.mock("../../../api", () => ({
   api: {
     put: vi.fn(),
+    get: vi.fn().mockResolvedValue({ data: [] }),
   },
 }));
 

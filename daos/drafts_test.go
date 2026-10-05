@@ -209,8 +209,8 @@ func TestCreateStoryDraft_HappyPath(t *testing.T) {
 	if got.DraftName != "Alternate" {
 		t.Errorf("DraftName mismatch: got %q want Alternate", got.DraftName)
 	}
-	if got.IsCurrentDraft {
-		t.Errorf("new draft should default to IsCurrentDraft=false")
+	if got.IsCurrentDraft == nil || !*got.IsCurrentDraft {
+		t.Errorf("new draft should auto-promote to IsCurrentDraft=true")
 	}
 	if got.Title != "Original Title" {
 		t.Errorf("title should be copied from source, got %q", got.Title)
@@ -226,12 +226,40 @@ func TestCreateStoryDraft_HappyPath(t *testing.T) {
 			t.Errorf("chapter %d story_id should be the new story id", i)
 		}
 	}
-	// First TransactWrite must contain the story put + 2 chapter puts (3 items).
+	// Transaction must contain the story put + 2 chapter puts + 1 demote
+	// update for the previous current (4 items total).
 	if len(f.transactWriteCalls) < 1 {
 		t.Fatalf("expected at least 1 TransactWriteItems call, got %d", len(f.transactWriteCalls))
 	}
-	if n := len(f.transactWriteCalls[0].TransactItems); n != 3 {
-		t.Errorf("first transaction should carry story+2 chapters (3 items), got %d", n)
+	if n := len(f.transactWriteCalls[0].TransactItems); n != 4 {
+		t.Errorf("transaction should carry story+2 chapters+demote (4 items), got %d", n)
+	}
+	// The new draft row must set is_current_draft=true — auto-promotion
+	// on create.
+	put := f.transactWriteCalls[0].TransactItems[0].Put
+	if put == nil {
+		t.Fatal("first transaction item should be the new story Put")
+	}
+	v, ok := put.Item["is_current_draft"].(*types.AttributeValueMemberBOOL)
+	if !ok {
+		t.Fatalf("new draft must have is_current_draft set, got %+v", put.Item["is_current_draft"])
+	}
+	if !v.Value {
+		t.Errorf("new draft must auto-promote (is_current_draft=true), got false")
+	}
+	if got.IsCurrentDraft == nil || !*got.IsCurrentDraft {
+		t.Errorf("returned story should reflect is_current_draft=true")
+	}
+	// The last transaction item should be the demote update targeting
+	// the previous current (the source story, since nothing else exists
+	// in the ancestry at creation time).
+	last := f.transactWriteCalls[0].TransactItems[3].Update
+	if last == nil {
+		t.Fatal("last transaction item should be an Update (demote)")
+	}
+	key, ok := last.Key[attrStoryID].(*types.AttributeValueMemberS)
+	if !ok || key.Value != "source-1" {
+		t.Errorf("demote update should target source-1, got %+v", last.Key)
 	}
 }
 
@@ -255,12 +283,13 @@ func TestCreateStoryDraft_ChildResolvesToExistingRoot(t *testing.T) {
 	}
 }
 
-func TestCreateStoryDraft_SeriesIDNotInherited(t *testing.T) {
+func TestCreateStoryDraft_SeriesIDTransfersToNewCurrent(t *testing.T) {
 	mockDao := NewMockDAO()
 	f := newDraftFixture(t)
 	f.sourceStory = storyRow("source-1", "T")
 	f.sourceStory["series_id"] = &types.AttributeValueMemberS{Value: "series-99"}
 	f.sourceStory["place"] = &types.AttributeValueMemberN{Value: "3"}
+	f.sourceStory["is_current_draft"] = &types.AttributeValueMemberBOOL{Value: true}
 	f.sourceChapterRows = []map[string]types.AttributeValue{
 		chapterRow("source-1", "ch-1", "A", 1),
 	}
@@ -270,11 +299,11 @@ func TestCreateStoryDraft_SeriesIDNotInherited(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// Series listings require exactly one row per ancestry to carry
-	// series_id — the current draft (or the root by default). Inheriting
-	// at creation time would double-list the story in its series.
-	// SetCurrentDraft transfers series_id/place during promotion; creation
-	// should leave the new draft out of the series query.
+	// Auto-promotion: the new draft takes over as the ancestry's
+	// current, so series_id/place transfers from the previous current
+	// (source-1, which was in series-99 at place 3). The previous
+	// current's demote update should REMOVE them in the same
+	// transaction, keeping the series listing to one row per ancestry.
 	if len(f.transactWriteCalls) == 0 {
 		t.Fatal("expected a transaction write call")
 	}
@@ -282,11 +311,13 @@ func TestCreateStoryDraft_SeriesIDNotInherited(t *testing.T) {
 	if put == nil {
 		t.Fatal("first transaction item should be a Put for the new story")
 	}
-	if _, present := put.Item["series_id"]; present {
-		t.Errorf("new draft must NOT inherit series_id, got %+v", put.Item["series_id"])
+	v, ok := put.Item["series_id"].(*types.AttributeValueMemberS)
+	if !ok || v.Value != "series-99" {
+		t.Errorf("series_id should transfer to new draft, got %+v", put.Item["series_id"])
 	}
-	if _, present := put.Item["place"]; present {
-		t.Errorf("new draft must NOT inherit place, got %+v", put.Item["place"])
+	p, ok := put.Item["place"].(*types.AttributeValueMemberN)
+	if !ok || p.Value != "3" {
+		t.Errorf("place should transfer to new draft, got %+v", put.Item["place"])
 	}
 }
 

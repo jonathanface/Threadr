@@ -365,6 +365,19 @@
   color: var(--primary) !important;
 }
 
+/* The outlined-variant notched border is a 2px white line in dark mode;
+   when the label floats up to the top of the field, the shrunk label
+   (orange on focus, grey otherwise) can visually overlap that border
+   line and read as "orange text with a white bar through it". Give the
+   shrunk label the same background the field itself uses so it visually
+   covers the border where they overlap, with a bit of horizontal padding
+   so the gap reads cleanly. */
+.storyForm :global(.MuiInputLabel-root.MuiInputLabel-shrink) {
+  background-color: var(--bg-primary) !important;
+  padding: 0 6px !important;
+  border-radius: 2px;
+}
+
 /* Light mode - use default label colors */
 :global([data-theme="light"]) .storyForm :global(.MuiInputLabel-root) {
   color: rgba(0, 0, 0, 0.6) !important;
@@ -372,6 +385,12 @@
 
 :global([data-theme="light"]) .storyForm :global(.MuiInputLabel-root.Mui-focused) {
   color: var(--primary) !important;
+}
+
+/* Match the field's light-mode gradient end so the shrunk label's
+   background still blends with the field. */
+:global([data-theme="light"]) .storyForm :global(.MuiInputLabel-root.MuiInputLabel-shrink) {
+  background-color: #f5f9fc !important;
 }
 
 /* Input text color for dark mode */

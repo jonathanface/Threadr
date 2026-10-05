@@ -38,6 +38,18 @@ const (
 	attrChaptersSet = "chapters"
 )
 
+// isCurrentDraft dereferences the tri-state Story.IsCurrentDraft safely.
+// nil (attribute absent) is treated as false; this is the right default
+// for the "is this row the ancestry's current pointer?" check — only an
+// explicit `true` qualifies.
+func isCurrentDraft(s *models.Story) bool {
+	return s != nil && s.IsCurrentDraft != nil && *s.IsCurrentDraft
+}
+
+// boolPtr returns a pointer to b. Written as a helper so Story literals
+// with IsCurrentDraft can be constructed inline without a temp var.
+func boolPtr(b bool) *bool { return &b }
+
 // getStoryByIDUnscoped reads a story row by id without filtering on author.
 // Needed by paths that don't have an authenticated author binding — notably
 // the share-link reader path and the drafts root-resolution logic that may
@@ -187,6 +199,19 @@ func (d *DAO) CreateStoryDraft(
 		rootID = sourceStory.OriginalStoryID
 	}
 
+	// Find who holds "current" right now. The new draft will take their
+	// place, inheriting series_id/place so series listings continue to
+	// show one row per ancestry. For a never-promoted story this is the
+	// root itself (default-current).
+	previousCurrentID, err := d.CurrentDraftID(ctx, rootID)
+	if err != nil {
+		return nil, err
+	}
+	previousCurrent, err := d.getStoryByIDUnscoped(ctx, previousCurrentID)
+	if err != nil {
+		return nil, err
+	}
+
 	newStoryID := uuid.New().String()
 	now := strconv.FormatInt(time.Now().Unix(), 10)
 
@@ -195,8 +220,9 @@ func (d *DAO) CreateStoryDraft(
 		chapterIDMap[ch.ID] = uuid.New().String()
 	}
 
-	// Step 1: story row + all chapter rows in a single transaction so we
-	// never end up with a draft row that has no chapters.
+	// Step 1: story row + all chapter rows + demote-previous-current in a
+	// single transaction so no half-promoted state is visible and no draft
+	// row survives without its chapters.
 	storyItem := map[string]types.AttributeValue{
 		attrStoryID:         &types.AttributeValueMemberS{Value: newStoryID},
 		"author":            &types.AttributeValueMemberS{Value: email},
@@ -206,13 +232,16 @@ func (d *DAO) CreateStoryDraft(
 		attrImageURL:        &types.AttributeValueMemberS{Value: sourceStory.ImageURL},
 		attrOriginalStoryID: &types.AttributeValueMemberS{Value: rootID},
 		"draft_name":        &types.AttributeValueMemberS{Value: draftName},
+		// Auto-promote on creation: the new draft is marked current and
+		// the previous current is demoted below in the same transaction.
+		// Series_id/place transfer along with the current pointer so the
+		// series listing continues to show exactly one row per ancestry.
+		"is_current_draft": &types.AttributeValueMemberBOOL{Value: true},
 	}
-	// Deliberately NOT copying series_id/place onto the new draft. The
-	// invariant for series listings is "exactly one row per ancestry
-	// carries series_id at any time" — the current draft (or the root by
-	// default). SetCurrentDraft transfers series_id/place during
-	// promotion. Inheriting at creation time would cause the series page
-	// to list the same story twice.
+	if previousCurrent.SeriesID != "" {
+		storyItem[attrSeriesID] = &types.AttributeValueMemberS{Value: previousCurrent.SeriesID}
+		storyItem["place"] = &types.AttributeValueMemberN{Value: strconv.Itoa(previousCurrent.Place)}
+	}
 
 	twii := &dynamodb.TransactWriteItemsInput{}
 	twii.TransactItems = append(twii.TransactItems, types.TransactWriteItem{
@@ -232,6 +261,27 @@ func (d *DAO) CreateStoryDraft(
 		}
 		twii.TransactItems = append(twii.TransactItems, chapTwi)
 	}
+
+	// Demote the previous current. SET is_current_draft=false unseats the
+	// row from the stories-list filter; REMOVE series_id, place drops it
+	// out of series listings so the newly-promoted draft is the sole
+	// visible member. REMOVE on absent attributes is a no-op, so this is
+	// safe even when the previous "current" is a never-promoted root with
+	// no series membership.
+	twii.TransactItems = append(twii.TransactItems, types.TransactWriteItem{
+		Update: &types.Update{
+			TableName: aws.String("stories" + GetTableSuffix()),
+			Key: map[string]types.AttributeValue{
+				attrStoryID: &types.AttributeValueMemberS{Value: previousCurrent.ID},
+				"author":    &types.AttributeValueMemberS{Value: email},
+			},
+			UpdateExpression:         aws.String("SET is_current_draft = :f REMOVE series_id, #p"),
+			ExpressionAttributeNames: map[string]string{"#p": "place"},
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":f": &types.AttributeValueMemberBOOL{Value: false},
+			},
+		},
+	})
 
 	awsErr, err := d.awsWriteTransaction(ctx, twii)
 	if err != nil {
@@ -265,7 +315,11 @@ func (d *DAO) CreateStoryDraft(
 	newStory.ID = newStoryID
 	newStory.OriginalStoryID = rootID
 	newStory.DraftName = draftName
-	newStory.IsCurrentDraft = false
+	newStory.IsCurrentDraft = boolPtr(true)
+	// New draft inherits series_id/place from the previous current and
+	// takes over as the ancestry's current row.
+	newStory.SeriesID = previousCurrent.SeriesID
+	newStory.Place = previousCurrent.Place
 	newChapters := make([]models.Chapter, len(sourceStory.Chapters))
 	for i, ch := range sourceStory.Chapters {
 		newChapters[i] = ch
@@ -475,7 +529,7 @@ func (d *DAO) SetCurrentDraft(ctx context.Context, email, targetID string) error
 		if s.ID == targetID {
 			target = s
 		}
-		if s.IsCurrentDraft {
+		if isCurrentDraft(s) {
 			current = s
 		}
 	}
@@ -627,7 +681,7 @@ func (d *DAO) PromoteNewRoot(ctx context.Context, email, oldRootID string) (stri
 		if s.ID == oldRootID {
 			continue
 		}
-		if s.IsCurrentDraft {
+		if isCurrentDraft(s) {
 			target = s
 			break
 		}

@@ -59,6 +59,7 @@ describe('useWorksList', () => {
             storiesList: [mockStory1],
             setSeriesList: mockSetSeriesList,
             setStoriesList: mockSetStoriesList,
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -83,6 +84,7 @@ describe('useWorksList', () => {
             storiesList: null,
             setSeriesList: vi.fn(),
             setStoriesList: vi.fn(),
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -102,6 +104,7 @@ describe('useWorksList', () => {
             storiesList: [],
             setSeriesList: vi.fn(),
             setStoriesList: vi.fn(),
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -121,6 +124,7 @@ describe('useWorksList', () => {
             storiesList: null,
             setSeriesList: vi.fn(),
             setStoriesList: vi.fn(),
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -141,6 +145,7 @@ describe('useWorksList', () => {
             storiesList: null,
             setSeriesList: vi.fn(),
             setStoriesList: vi.fn(),
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -163,6 +168,7 @@ describe('useWorksList', () => {
             storiesList: null,
             setSeriesList: vi.fn(),
             setStoriesList: vi.fn(),
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -182,6 +188,7 @@ describe('useWorksList', () => {
             storiesList: [],
             setSeriesList: vi.fn(),
             setStoriesList: vi.fn(),
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -201,6 +208,7 @@ describe('useWorksList', () => {
             storiesList: [mockStory1],
             setSeriesList: vi.fn(),
             setStoriesList: vi.fn(),
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -221,6 +229,7 @@ describe('useWorksList', () => {
             storiesList: [mockStory1, mockStory2],
             setSeriesList: vi.fn(),
             setStoriesList: vi.fn(),
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -245,6 +254,7 @@ describe('useWorksList', () => {
             storiesList: null,
             setSeriesList: mockSetSeriesList,
             setStoriesList: vi.fn(),
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -270,6 +280,7 @@ describe('useWorksList', () => {
             storiesList: null,
             setSeriesList: mockSetSeriesList,
             setStoriesList: vi.fn(),
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -295,6 +306,7 @@ describe('useWorksList', () => {
             storiesList: null,
             setSeriesList: mockSetSeriesList,
             setStoriesList: vi.fn(),
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -320,6 +332,7 @@ describe('useWorksList', () => {
             storiesList: null,
             setSeriesList: mockSetSeriesList,
             setStoriesList: vi.fn(),
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -347,6 +360,7 @@ describe('useWorksList', () => {
             storiesList: null,
             setSeriesList: vi.fn(),
             setStoriesList: mockSetStoriesList,
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -372,6 +386,7 @@ describe('useWorksList', () => {
             storiesList: [mockStory1],
             setSeriesList: vi.fn(),
             setStoriesList: mockSetStoriesList,
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -397,6 +412,7 @@ describe('useWorksList', () => {
             storiesList: [mockStory1],
             setSeriesList: vi.fn(),
             setStoriesList: mockSetStoriesList,
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -422,6 +438,7 @@ describe('useWorksList', () => {
             storiesList: [mockStory1],
             setSeriesList: vi.fn(),
             setStoriesList: mockSetStoriesList,
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -447,6 +464,7 @@ describe('useWorksList', () => {
             storiesList: [mockStory1, mockStory2],
             setSeriesList: vi.fn(),
             setStoriesList: vi.fn(),
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -470,6 +488,7 @@ describe('useWorksList', () => {
             storiesList: [mockStory1],
             setSeriesList: mockSetSeriesList,
             setStoriesList: mockSetStoriesList,
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -505,6 +524,7 @@ describe('useWorksList', () => {
             storiesList: [mockStory1],
             setSeriesList: mockSetSeriesList,
             setStoriesList: mockSetStoriesList,
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -538,6 +558,7 @@ describe('useWorksList', () => {
             storiesList: null,
             setSeriesList: vi.fn(),
             setStoriesList: vi.fn(),
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -562,6 +583,7 @@ describe('useWorksList', () => {
             storiesList: null,
             setSeriesList: vi.fn(),
             setStoriesList: vi.fn(),
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -586,6 +608,7 @@ describe('useWorksList', () => {
             storiesList: [storyWithoutChapters],
             setSeriesList: vi.fn(),
             setStoriesList: vi.fn(),
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -607,6 +630,7 @@ describe('useWorksList', () => {
             storiesList: null,
             setSeriesList: vi.fn(),
             setStoriesList: vi.fn(),
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -621,7 +645,7 @@ describe('useWorksList', () => {
       expect(result.current).toHaveProperty('setStoriesList');
     });
 
-    it('should have exactly four properties', () => {
+    it('should have exactly five properties', () => {
       const wrapper = ({ children }: { children: ReactNode }) => (
         <WorksListContext.Provider
           value={{
@@ -629,6 +653,7 @@ describe('useWorksList', () => {
             storiesList: null,
             setSeriesList: vi.fn(),
             setStoriesList: vi.fn(),
+            refresh: vi.fn(),
           }}
         >
           {children}
@@ -637,7 +662,7 @@ describe('useWorksList', () => {
 
       const { result } = renderHook(() => useWorksList(), { wrapper });
 
-      expect(Object.keys(result.current)).toHaveLength(4);
+      expect(Object.keys(result.current)).toHaveLength(5);
     });
   });
 });

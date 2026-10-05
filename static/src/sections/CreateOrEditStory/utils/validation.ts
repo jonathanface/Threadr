@@ -2,7 +2,7 @@
 // Keep these in sync with backend validation in api/posts_story.go
 
 //eslint-disable-next-line
-const ALLOWED_PATTERN = /^[A-Za-z0-9 +\-\=\.\_\:\,\'\"\/@]*$/;
+const ALLOWED_PATTERN = /^[A-Za-z0-9 +\-\=\.\_\:\,\'\"\/@!?]*$/;
 const MAX_TITLE_LENGTH = 256;
 const MAX_DESCRIPTION_LENGTH = 5000;
 const AWS_PREFIX = "aws:";
@@ -43,7 +43,7 @@ export const validateTitle = (value: string): ValidationError | null => {
   if (!ALLOWED_PATTERN.test(trimmed)) {
     return {
       field: "title",
-      message: `Title may only contain letters, numbers, spaces, and the following characters: + - = . _ : / @ , ' "`,
+      message: `Title may only contain letters, numbers, spaces, and the following characters: + - = . _ : / @ , ' " ! ?`,
     };
   }
 
