@@ -46,7 +46,7 @@ interface DraftsDialogProps {
 
 export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
   const navigate = useNavigate();
-  const { story, deselectChapter } = useSelections();
+  const { story, deselectChapter, deselectStory } = useSelections();
   const { refresh: refreshWorksList } = useWorksList();
   const [drafts, setDrafts] = useState<Story[]>([]);
   const [loading, setLoading] = useState(false);
@@ -226,14 +226,23 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
         // (and so a stale story_id in context doesn't 404 the next
         // ancestry-aware read).
         //
-        // Clear the chapter selection in the shared selections context
-        // first: useSelections().chapter still holds a chapter id that
-        // belonged to the deleted draft, and the editor's content
-        // fetch keys off that id — leaving it in place causes a
-        // /content?chapter=<deleted-chapter-id> request that 404s on
-        // the new story. The editor will pick a default chapter when
-        // the new story loads.
+        // Clear both the story and the chapter in the shared selections
+        // context before navigating. Two effects race the navigation:
+        //   1. useFetchStoryBlocks keys off useSelections().chapter.id,
+        //      so a leftover chapter id from the deleted draft would
+        //      produce a /content?chapter=<stale-id> request against
+        //      the new story and 404.
+        //   2. DocumentEditor's "ensure chapter param exists" effect
+        //      runs with (storyID = new, story = old) during the brief
+        //      window before the new story is fetched. If story still
+        //      points at the deleted draft, that effect reads
+        //      story.chapters[0]?.id — which is a chapter id of the
+        //      deleted draft — and writes it to the URL, triggering
+        //      the same 404.
+        // Deselecting both forces the DocumentEditor to re-establish
+        // state from the new storyID without any stale carry-over.
         deselectChapter();
+        deselectStory();
         navigate(`/stories/${newCurrentID}`);
         setOpen(false);
         return;

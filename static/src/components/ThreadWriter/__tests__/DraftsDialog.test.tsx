@@ -43,6 +43,7 @@ let mockUseSelectionsReturn = {
   chapter: { id: 'src-ch-1' },
   setChapter: vi.fn(),
   deselectChapter: vi.fn(),
+  deselectStory: vi.fn(),
 };
 vi.mock('../../../hooks/useSelections', () => ({
   useSelections: () => mockUseSelectionsReturn,
@@ -97,6 +98,7 @@ describe('DraftsDialog', () => {
       chapter: { id: 'src-ch-1' },
       setChapter: vi.fn(),
       deselectChapter: vi.fn(),
+      deselectStory: vi.fn(),
     };
     // Default location: no chapter param. Tests that need one override.
     Object.defineProperty(window, 'location', {
@@ -415,7 +417,8 @@ describe('DraftsDialog', () => {
 
   it('navigates to the root when deleting the current draft while viewing it', async () => {
     // User is actively editing the current draft 'draft-current'.
-    const deselectSpy = vi.fn();
+    const deselectChapterSpy = vi.fn();
+    const deselectStorySpy = vi.fn();
     mockUseSelectionsReturn = {
       story: {
         story_id: 'draft-current',
@@ -423,7 +426,8 @@ describe('DraftsDialog', () => {
       },
       chapter: { id: 'src-ch-1' },
       setChapter: vi.fn(),
-      deselectChapter: deselectSpy,
+      deselectChapter: deselectChapterSpy,
+      deselectStory: deselectStorySpy,
     };
     vi.mocked(api.get).mockResolvedValue({
       data: [
@@ -444,9 +448,13 @@ describe('DraftsDialog', () => {
     await waitFor(() => expect(api.delete).toHaveBeenCalledWith('/stories/draft-current'));
     // Backend promotes root; dialog should navigate the user there.
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/stories/root-1'));
-    // And clear the chapter so the editor's /content fetch doesn't
-    // send the deleted draft's chapter id with the new story id.
-    expect(deselectSpy).toHaveBeenCalled();
+    // And clear both the chapter and the story so the editor's
+    // /content fetch (keyed on useSelections.chapter.id) doesn't send
+    // the deleted draft's chapter id with the new story id, and the
+    // "ensure chapter param" effect doesn't commit a stale chapter
+    // id to the URL during the window before the new story is fetched.
+    expect(deselectChapterSpy).toHaveBeenCalled();
+    expect(deselectStorySpy).toHaveBeenCalled();
   });
 
   it('navigates to the already-current draft when deleting a non-current sibling', async () => {
