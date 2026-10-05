@@ -70,6 +70,12 @@ type DaoInterface interface {
 		story models.Story,
 		newSeriesTitle string,
 	) (storyID string, err error)
+	CreateStoryDraft(
+		ctx context.Context,
+		email string,
+		sourceStoryID string,
+		draftName string,
+	) (*models.Story, error)
 	CreateUser(ctx context.Context, email string) (*models.UserInfo, error)
 	CreateOutline(ctx context.Context, outline models.OutlineRequest) (*models.OutlineRequest, error)
 
