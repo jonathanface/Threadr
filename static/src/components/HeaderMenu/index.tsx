@@ -1,5 +1,6 @@
 import axios from "axios";
-import { Tooltip } from "@mui/material";
+import HistoryEduIcon from "@mui/icons-material/HistoryEdu";
+import { Chip, Tooltip } from "@mui/material";
 import { useLocation } from "react-router-dom";
 import { useFetchUserData } from "../../hooks/useFetchUserData";
 import { useLoader } from "../../hooks/useLoader";
@@ -169,10 +170,48 @@ export const HeaderMenu = () => {
           <span className={styles.storyInfo}>
             <img alt={story?.title} src={story?.image_url} />
             <div className={styles.storyData}>
-              <EditableText
-                textValue={story?.title ? story.title : ""}
-                onTextChange={onStoryTitleEdit}
-              />
+              <span className={styles.titleRow}>
+                <EditableText
+                  textValue={story?.title ? story.title : ""}
+                  onTextChange={onStoryTitleEdit}
+                />
+                {(story?.draft_name || story?.original_story_id) && (
+                  <Tooltip
+                    title={
+                      story?.is_current_draft
+                        ? "This is the current draft — what the stories list shows and share links serve"
+                        : "You are editing a draft of this story (not the current one)"
+                    }
+                  >
+                    <Chip
+                      icon={<HistoryEduIcon />}
+                      label={
+                        <span className={styles.draftChipLabel}>
+                          <span className={styles.draftChipName}>
+                            {story?.draft_name || "Untitled draft"}
+                          </span>
+                          {story?.is_current_draft && (
+                            <span className={styles.draftChipLatest}>current</span>
+                          )}
+                        </span>
+                      }
+                      color="primary"
+                      sx={{
+                        ml: 1,
+                        height: "auto",
+                        py: 0.25,
+                        alignItems: "center",
+                        "& .MuiChip-label": {
+                          px: 0.75,
+                          display: "flex",
+                          alignItems: "center",
+                        },
+                        "& .MuiChip-icon": { my: "auto", ml: 0.75, mr: -0.25 },
+                      }}
+                    />
+                  </Tooltip>
+                )}
+              </span>
               <div className={styles.seriesInfo}>
                 <EditableText
                   textValue={series?.series_title ? series.series_title : ""}

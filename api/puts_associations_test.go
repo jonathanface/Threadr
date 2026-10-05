@@ -204,8 +204,8 @@ func TestWriteAssocationsEndpoint_IsStoryInASeriesError(t *testing.T) {
 
 	var response map[string]string
 	json.NewDecoder(w.Body).Decode(&response)
-	if response["error"] != "unable to check series membership of story" {
-		t.Errorf("Expected series membership error, got: %s", response["error"])
+	if response["error"] != "unable to resolve story scope for associations" {
+		t.Errorf("Expected scope-resolution error, got: %s", response["error"])
 	}
 }
 

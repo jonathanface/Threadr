@@ -160,10 +160,10 @@ func (d *DAO) generateStoryChapterTransaction(
 	}
 	chapterNumStr := strconv.Itoa(chapter)
 	attributes := map[string]types.AttributeValue{
-		attrStoryID:   &types.AttributeValueMemberS{Value: storyID},
-		attrChapterID: &types.AttributeValueMemberS{Value: chapterID},
-		"chapter_num": &types.AttributeValueMemberN{Value: chapterNumStr},
-		"title":       &types.AttributeValueMemberS{Value: chapterTitle},
+		attrStoryID:    &types.AttributeValueMemberS{Value: storyID},
+		attrChapterID:  &types.AttributeValueMemberS{Value: chapterID},
+		attrChapterNum: &types.AttributeValueMemberN{Value: chapterNumStr},
+		"title":        &types.AttributeValueMemberS{Value: chapterTitle},
 	}
 	input := types.TransactWriteItem{
 		Put: &types.Put{

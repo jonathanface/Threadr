@@ -38,6 +38,34 @@ header .storyInfo .storyData {
     margin-left: 10px;
 }
 
+header .storyInfo .titleRow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+header .storyInfo .draftChipLabel {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+header .storyInfo .draftChipName {
+    font-size: 0.75rem;
+    line-height: 1.1;
+}
+
+header .storyInfo .draftChipLatest {
+    font-size: 0.5rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.85;
+    line-height: 1.1;
+    margin-top: 2px;
+}
+
 header .storyInfo img {
     max-height: 50px;
     border: 1px solid #333;
