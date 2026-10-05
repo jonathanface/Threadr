@@ -182,6 +182,53 @@ describe('DraftsDialog', () => {
     });
   });
 
+  it('maps the chapter when switching to another draft', async () => {
+    // User is viewing the middle source chapter.
+    Object.defineProperty(window, 'location', {
+      value: {
+        search: '?chapter=src-ch-2',
+        pathname: '/stories/root-1',
+        href: '/stories/root-1?chapter=src-ch-2',
+      },
+      writable: true,
+    });
+    vi.mocked(api.get).mockImplementation(async (url: string) => {
+      if (url === '/stories/root-1/drafts') {
+        return {
+          data: [
+            makeDraft({ story_id: 'root-1', draft_name: 'Original', is_current_draft: true }),
+            makeDraft({ story_id: 'draft-b', original_story_id: 'root-1', draft_name: 'Alt' }),
+          ],
+        };
+      }
+      if (url === '/stories/draft-b') {
+        return {
+          data: {
+            ...makeDraft({ story_id: 'draft-b', original_story_id: 'root-1', draft_name: 'Alt' }),
+            chapters: [
+              { id: 'alt-ch-1', story_id: 'draft-b', place: 1, title: '', tableNotReady: false },
+              { id: 'alt-ch-2', story_id: 'draft-b', place: 2, title: '', tableNotReady: false },
+              { id: 'alt-ch-3', story_id: 'draft-b', place: 3, title: '', tableNotReady: false },
+            ],
+          },
+        };
+      }
+      return { data: [] };
+    });
+    renderDialog({ open: true });
+
+    await waitFor(() => expect(screen.getByText('Alt')).toBeInTheDocument());
+
+    // Click the "Alt" draft row's ListItemText to trigger switch.
+    const altRow = screen.getByText('Alt').closest('li');
+    const altTextNode = altRow!.querySelector('div.MuiListItemText-root') as HTMLElement;
+    fireEvent.click(altTextNode);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/stories/draft-b?chapter=alt-ch-2');
+    });
+  });
+
   it('falls back to the base story url when no chapter is selected', async () => {
     vi.mocked(api.post).mockResolvedValue({
       data: makeDraft({ story_id: 'draft-new', original_story_id: 'root-1', draft_name: 'A' }),
