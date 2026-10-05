@@ -82,6 +82,36 @@ describe('DraftsDialog', () => {
     expect(createBtn).toBeDisabled();
   });
 
+  it('shows a loading indicator while the clone is in-flight', async () => {
+    // Pending promise so the "creating" state stays visible long enough
+    // to assert against.
+    let resolve: (v: { data: Story }) => void;
+    vi.mocked(api.post).mockReturnValue(
+      new Promise((r) => {
+        resolve = r;
+      }) as unknown as ReturnType<typeof api.post>,
+    );
+    renderDialog({ open: true });
+
+    const nameInput = screen.getByLabelText(/new draft name/i);
+    fireEvent.change(nameInput, { target: { value: 'Alt ending' } });
+    fireEvent.click(screen.getByRole('button', { name: /create draft/i }));
+
+    // Button swaps to "Cloning story..." and the auxiliary status copy
+    // appears.
+    expect(await screen.findByRole('button', { name: /cloning story/i })).toBeInTheDocument();
+    expect(screen.getByText(/copying chapters, blocks, and outline/i)).toBeInTheDocument();
+    // Close is disabled during the clone so the user can't dismiss and
+    // lose the in-flight state visually.
+    expect(screen.getByRole('button', { name: /close/i })).toBeDisabled();
+
+    // Let the promise resolve so the test cleans up.
+    resolve!({ data: makeDraft({ story_id: 'new-draft' }) });
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalled();
+    });
+  });
+
   it('POSTs to create-draft endpoint when Create draft is clicked', async () => {
     vi.mocked(api.post).mockResolvedValue({
       data: makeDraft({ story_id: 'draft-new', original_story_id: 'root-1', draft_name: 'New' }),
