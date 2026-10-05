@@ -92,7 +92,11 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
 
   const handleCreate = async () => {
     const trimmed = newName.trim();
-    if (!trimmed || !story?.story_id) return;
+    if (!trimmed) {
+      setError("Give the draft a name before creating it.");
+      return;
+    }
+    if (!story?.story_id) return;
     setCreating(true);
     setError("");
     try {
@@ -351,7 +355,7 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
           <Button
             variant="contained"
             onClick={handleCreate}
-            disabled={creating || !newName.trim()}
+            disabled={creating}
             startIcon={
               creating ? (
                 <CircularProgress size={16} color="inherit" />

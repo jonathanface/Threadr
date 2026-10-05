@@ -96,10 +96,16 @@ describe('DraftsDialog', () => {
     expect(api.get).toHaveBeenCalledWith('/stories/root-1/drafts');
   });
 
-  it('disables Create draft when name is blank', async () => {
+  it('surfaces an inline error when Create draft is clicked without a name', async () => {
     renderDialog({ open: true });
     const createBtn = screen.getByRole('button', { name: /create draft/i });
-    expect(createBtn).toBeDisabled();
+    // Button stays clickable so hover shows a pointer cursor; the
+    // validation surfaces as an inline error on click instead of
+    // disabling the button.
+    expect(createBtn).not.toBeDisabled();
+    fireEvent.click(createBtn);
+    expect(await screen.findByText(/give the draft a name/i)).toBeInTheDocument();
+    expect(api.post).not.toHaveBeenCalled();
   });
 
   it('shows a loading indicator while the clone is in-flight', async () => {
