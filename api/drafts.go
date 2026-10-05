@@ -29,29 +29,33 @@ type draftRenameRequest struct {
 // + dao-pull steps shared by every draft handler. On any failure it emits
 // the appropriate HTTP response and returns ok=false; callers should just
 // return.
-func loadDraftsPreamble(w http.ResponseWriter, r *http.Request) (dao daos.DaoInterface, email, storyID string, ok bool) {
-	if email, err := getUserEmail(r); err == nil {
-		if !RequireSubscriber(w, r, models.BenefitDrafts) {
-			return nil, "", "", false
-		}
-		rawStoryID, err := url.PathUnescape(mux.Vars(r)["storyID"])
-		if err != nil {
-			RespondWithError(w, http.StatusBadRequest, "Invalid story ID")
-			return nil, "", "", false
-		}
-		if rawStoryID == "" {
-			RespondWithError(w, http.StatusBadRequest, "Missing story ID")
-			return nil, "", "", false
-		}
-		d, dOK := r.Context().Value(ctxkey.DAO).(daos.DaoInterface)
-		if !dOK {
-			RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
-			return nil, "", "", false
-		}
-		return d, email, rawStoryID, true
+func loadDraftsPreamble(
+	w http.ResponseWriter,
+	r *http.Request,
+) (dao daos.DaoInterface, email, storyID string, ok bool) {
+	userEmail, authErr := getUserEmail(r)
+	if authErr != nil {
+		RespondWithError(w, http.StatusUnauthorized, "Authentication failed")
+		return nil, "", "", false
 	}
-	RespondWithError(w, http.StatusUnauthorized, "Authentication failed")
-	return nil, "", "", false
+	if !RequireSubscriber(w, r, models.BenefitDrafts) {
+		return nil, "", "", false
+	}
+	rawStoryID, parseErr := url.PathUnescape(mux.Vars(r)["storyID"])
+	if parseErr != nil {
+		RespondWithError(w, http.StatusBadRequest, "Invalid story ID")
+		return nil, "", "", false
+	}
+	if rawStoryID == "" {
+		RespondWithError(w, http.StatusBadRequest, "Missing story ID")
+		return nil, "", "", false
+	}
+	d, dOK := r.Context().Value(ctxkey.DAO).(daos.DaoInterface)
+	if !dOK {
+		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
+		return nil, "", "", false
+	}
+	return d, userEmail, rawStoryID, true
 }
 
 // CreateStoryDraftEndpoint handles POST /stories/{storyID}/drafts. The

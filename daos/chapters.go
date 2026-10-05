@@ -260,7 +260,7 @@ func (d *DAO) EditChapter(
 	item := map[string]types.AttributeValue{
 		attrStoryID:    &types.AttributeValueMemberS{Value: storyID},
 		attrChapterID:  &types.AttributeValueMemberS{Value: chapter.ID},
-		"chapter_num":  &types.AttributeValueMemberN{Value: strconv.Itoa(chapter.Place)},
+		attrChapterNum: &types.AttributeValueMemberN{Value: strconv.Itoa(chapter.Place)},
 		"title":        &types.AttributeValueMemberS{Value: chapter.Title},
 		attrModifiedAt: &types.AttributeValueMemberN{Value: modifiedAtStr},
 	}

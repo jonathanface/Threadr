@@ -39,6 +39,8 @@ const (
 	// would silently produce empty Query/Scan results, so they live here.
 	attrStoryID         = "story_id"
 	attrChapterID       = "chapter_id"
+	attrChapterNum      = "chapter_num"
+	attrSubscriber      = "subscriber"
 	attrSeriesID        = "series_id"
 	attrCompositeKey    = "composite_key"
 	attrStoryOrSeriesID = "story_or_series_id"

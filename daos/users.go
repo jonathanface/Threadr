@@ -43,7 +43,7 @@ func (d *DAO) CreateUser(ctx context.Context, email string) (*models.UserInfo, e
 	attributes := map[string]types.AttributeValue{
 		"email":             &types.AttributeValueMemberS{Value: email},
 		"admin":             &types.AttributeValueMemberBOOL{Value: false},
-		"subscriber":        &types.AttributeValueMemberBOOL{Value: false},
+		attrSubscriber:      &types.AttributeValueMemberBOOL{Value: false},
 		attrCreatedAt:       &types.AttributeValueMemberN{Value: now},
 		"terms_accepted_at": &types.AttributeValueMemberN{Value: now},
 		"terms_version":     &types.AttributeValueMemberS{Value: models.CurrentTermsVersion},
@@ -250,7 +250,7 @@ func (d *DAO) GetUserDetails(ctx context.Context, email string) (user *models.Us
 
 	logger.Info("GetUserDetails result",
 		"email", email,
-		"subscriber", userFromMap[0].Subscriber,
+		attrSubscriber, userFromMap[0].Subscriber,
 		"admin", userFromMap[0].Admin,
 		"firstName", userFromMap[0].FirstName,
 		"lastName", userFromMap[0].LastName)

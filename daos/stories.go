@@ -39,8 +39,10 @@ func (d *DAO) GetAllStories(ctx context.Context, email string) (stories []*model
 	// current, root or draft). SetCurrentDraft maintains this by flipping
 	// both the previous and new current in a transaction.
 	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
-		TableName:        aws.String("stories" + GetTableSuffix()),
-		FilterExpression: aws.String("author=:eml AND attribute_not_exists(deleted_at) AND (attribute_not_exists(is_current_draft) OR is_current_draft = :t)"),
+		TableName: aws.String("stories" + GetTableSuffix()),
+		FilterExpression: aws.String(
+			"author=:eml AND attribute_not_exists(deleted_at) AND (attribute_not_exists(is_current_draft) OR is_current_draft = :t)",
+		),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":eml": &types.AttributeValueMemberS{Value: email},
 			":t":   &types.AttributeValueMemberBOOL{Value: true},
