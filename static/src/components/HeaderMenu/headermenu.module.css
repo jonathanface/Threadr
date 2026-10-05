@@ -50,7 +50,6 @@ header .storyInfo .draftChipLabel {
     align-items: center;
     justify-content: center;
     line-height: 1;
-    padding: 2px 0;
 }
 
 header .storyInfo .draftChipName {
