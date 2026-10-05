@@ -44,21 +44,27 @@ header .storyInfo .titleRow {
     gap: 8px;
 }
 
-header .storyInfo .draftIndicator {
+header .storyInfo .draftChipLabel {
     display: inline-flex;
     flex-direction: column;
     align-items: center;
-    margin-left: 8px;
+    justify-content: center;
     line-height: 1;
+    padding: 2px 0;
 }
 
-header .storyInfo .draftLatest {
-    font-size: 0.65rem;
-    letter-spacing: 0.08em;
+header .storyInfo .draftChipName {
+    font-size: 0.8125rem;
+    line-height: 1.1;
+}
+
+header .storyInfo .draftChipLatest {
+    font-size: 0.55rem;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--text-secondary, #e3f2fd);
-    margin-top: 2px;
     opacity: 0.85;
+    line-height: 1.1;
+    margin-top: 2px;
 }
 
 header .storyInfo img {
