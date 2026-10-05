@@ -54,6 +54,74 @@ func (d *DAO) getStoryByIDUnscoped(ctx context.Context, storyID string) (*models
 	return &rows[0], nil
 }
 
+// CurrentDraftID returns the story id that reader-facing paths (share
+// links, future dashboards) should serve for the ancestry group that
+// storyID belongs to.
+//
+// Resolution order:
+//  1. Resolve storyID to its root.
+//  2. If any sibling (including the root itself) has IsCurrentDraft=true,
+//     return that sibling's id.
+//  3. Otherwise fall back to the root id (handles the case where a current
+//     draft was deleted without re-promoting).
+//
+// v1 uses a filter-expression Scan on the stories table. When the
+// original_story_id_index GSI is deployed per docs/drafts.md, swap this
+// implementation for a targeted Query by original_story_id to avoid the
+// table-size cost.
+func (d *DAO) CurrentDraftID(ctx context.Context, storyID string) (string, error) {
+	rootID, err := d.RootStoryID(ctx, storyID)
+	if err != nil {
+		return "", err
+	}
+	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
+		TableName:        aws.String("stories" + GetTableSuffix()),
+		FilterExpression: aws.String("(original_story_id = :rid OR story_id = :rid) AND is_current_draft = :t AND attribute_not_exists(deleted_at)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":rid": &types.AttributeValueMemberS{Value: rootID},
+			":t":   &types.AttributeValueMemberBOOL{Value: true},
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+	var rows []models.Story
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &rows); err != nil {
+		return "", err
+	}
+	if len(rows) > 0 {
+		return rows[0].ID, nil
+	}
+	return rootID, nil
+}
+
+// StoryOrSeriesID returns the id used to scope associations for a story.
+// If the story's root is in a series, returns the series id. Otherwise
+// returns the root story id — so all drafts of a root share one
+// association list even when the story isn't in a series.
+//
+// Replaces the per-call-site pattern:
+//
+//	storyOrSeries, _ := d.IsStoryInASeries(ctx, email, storyID)
+//	if storyOrSeries == "" { storyOrSeries = storyID }
+//
+// which doesn't account for drafts (it would scope to the draft's own id
+// instead of the root's).
+func (d *DAO) StoryOrSeriesID(ctx context.Context, email, storyID string) (string, error) {
+	rootID, err := d.RootStoryID(ctx, storyID)
+	if err != nil {
+		return "", err
+	}
+	seriesID, err := d.IsStoryInASeries(ctx, email, rootID)
+	if err != nil {
+		return "", err
+	}
+	if seriesID != "" {
+		return seriesID, nil
+	}
+	return rootID, nil
+}
+
 // RootStoryID resolves any story id to the id of the root in its drafts
 // ancestry. If the given id is already a root (no OriginalStoryID), it is
 // returned unchanged.
@@ -304,6 +372,190 @@ func (d *DAO) copyOutlineRows(
 			awsErr.Code, awsErr.ErrorType, awsErr.Text)
 	}
 	return nil
+}
+
+// ListDrafts returns all story rows that share an ancestry with storyID
+// (the root plus every draft), sorted by created_at ascending so the root
+// comes first. Caller is expected to have confirmed ownership of storyID
+// before calling. Each returned story has its ancestry fields populated;
+// Chapters are left nil (callers hydrate on demand).
+func (d *DAO) ListDrafts(
+	ctx context.Context,
+	email, storyID string,
+) ([]*models.Story, error) {
+	rootID, err := d.RootStoryID(ctx, storyID)
+	if err != nil {
+		return nil, err
+	}
+	// v1 Scan — swap for Query against original_story_id_index GSI per
+	// docs/drafts.md once the GSI lands.
+	out, err := d.DynamoClient.Scan(ctx, &dynamodb.ScanInput{
+		TableName: aws.String("stories" + GetTableSuffix()),
+		FilterExpression: aws.String(
+			"author=:eml AND attribute_not_exists(deleted_at) AND (story_id = :rid OR original_story_id = :rid)",
+		),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":eml": &types.AttributeValueMemberS{Value: email},
+			":rid": &types.AttributeValueMemberS{Value: rootID},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	var rows []*models.Story
+	if err = attributevalue.UnmarshalListOfMaps(out.Items, &rows); err != nil {
+		return nil, err
+	}
+	// Root first, then drafts by created_at ascending so the UI picker
+	// orders deterministically regardless of DynamoDB scan order.
+	rootIdx := -1
+	for i, r := range rows {
+		if r.OriginalStoryID == "" {
+			rootIdx = i
+			break
+		}
+	}
+	if rootIdx > 0 {
+		rows[0], rows[rootIdx] = rows[rootIdx], rows[0]
+	}
+	if len(rows) > 1 {
+		rest := rows[1:]
+		for i := 1; i < len(rest); i++ {
+			for j := i; j > 0 && rest[j].CreatedAt < rest[j-1].CreatedAt; j-- {
+				rest[j], rest[j-1] = rest[j-1], rest[j]
+			}
+		}
+	}
+	return rows, nil
+}
+
+// SetCurrentDraft promotes targetID to be the current draft of its
+// ancestry. In one transaction:
+//   - the previously-current row's is_current_draft is set to false,
+//   - the target's is_current_draft is set to true,
+//   - the previously-current row's series_id (if any) is cleared and
+//     applied to the target, so series-filtered views continue to show
+//     exactly one member per root.
+//
+// Caller must have verified ownership of targetID.
+func (d *DAO) SetCurrentDraft(ctx context.Context, email, targetID string) error {
+	rootID, err := d.RootStoryID(ctx, targetID)
+	if err != nil {
+		return err
+	}
+	siblings, err := d.ListDrafts(ctx, email, targetID)
+	if err != nil {
+		return err
+	}
+
+	var current *models.Story
+	var target *models.Story
+	for _, s := range siblings {
+		if s.ID == targetID {
+			target = s
+		}
+		if s.IsCurrentDraft {
+			current = s
+		}
+	}
+	if target == nil {
+		return ErrStoryNotFound
+	}
+	// Idempotent: already current.
+	if current != nil && current.ID == targetID {
+		return nil
+	}
+	// If no row is currently flagged, treat the root as the implicit current
+	// (first-draft-promotion case). The root may have no is_current_draft
+	// attribute yet.
+	if current == nil {
+		for _, s := range siblings {
+			if s.OriginalStoryID == "" {
+				current = s
+				break
+			}
+		}
+	}
+
+	tableName := "stories" + GetTableSuffix()
+	tx := &dynamodb.TransactWriteItemsInput{}
+
+	// Clear the previous current. If it had a series_id we're moving the
+	// membership to the target; otherwise just flip the flag.
+	if current != nil && current.ID != targetID {
+		clearUpdate := &types.Update{
+			TableName: aws.String(tableName),
+			Key: map[string]types.AttributeValue{
+				attrStoryID: &types.AttributeValueMemberS{Value: current.ID},
+				"author":    &types.AttributeValueMemberS{Value: email},
+			},
+			UpdateExpression: aws.String("SET is_current_draft = :f REMOVE series_id, #p"),
+			ExpressionAttributeNames: map[string]string{
+				"#p": "place",
+			},
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":f": &types.AttributeValueMemberBOOL{Value: false},
+			},
+		}
+		// If the previous current had no series_id, we don't need REMOVE
+		// series_id/place to error out — DynamoDB tolerates REMOVE of
+		// missing attributes.
+		tx.TransactItems = append(tx.TransactItems, types.TransactWriteItem{Update: clearUpdate})
+	}
+
+	// Promote the target. If the previous current had series_id/place, copy
+	// to target.
+	setExpr := "SET is_current_draft = :t"
+	exprVals := map[string]types.AttributeValue{
+		":t": &types.AttributeValueMemberBOOL{Value: true},
+	}
+	if current != nil && current.SeriesID != "" {
+		setExpr = "SET is_current_draft = :t, series_id = :sid, #p = :place"
+		exprVals[":sid"] = &types.AttributeValueMemberS{Value: current.SeriesID}
+		exprVals[":place"] = &types.AttributeValueMemberN{Value: strconv.Itoa(current.Place)}
+	}
+	promoteUpdate := &types.Update{
+		TableName: aws.String(tableName),
+		Key: map[string]types.AttributeValue{
+			attrStoryID: &types.AttributeValueMemberS{Value: targetID},
+			"author":    &types.AttributeValueMemberS{Value: email},
+		},
+		UpdateExpression:          aws.String(setExpr),
+		ExpressionAttributeValues: exprVals,
+	}
+	if current != nil && current.SeriesID != "" {
+		promoteUpdate.ExpressionAttributeNames = map[string]string{"#p": "place"}
+	}
+	tx.TransactItems = append(tx.TransactItems, types.TransactWriteItem{Update: promoteUpdate})
+
+	awsErr, err := d.awsWriteTransaction(ctx, tx)
+	if err != nil {
+		return fmt.Errorf("set current draft: %w", err)
+	}
+	if !awsErr.IsNil() {
+		return fmt.Errorf("set current draft: --AWSERROR-- Code:%s, Type: %s, Message: %s",
+			awsErr.Code, awsErr.ErrorType, awsErr.Text)
+	}
+	_ = rootID
+	return nil
+}
+
+// RenameDraft updates the draft_name on a single story row. Does not
+// validate ancestry — any owned story row can be renamed, which also lets
+// the user label the root (e.g. "Original").
+func (d *DAO) RenameDraft(ctx context.Context, email, storyID, newName string) error {
+	_, err := d.DynamoClient.UpdateItem(ctx, &dynamodb.UpdateItemInput{
+		TableName: aws.String("stories" + GetTableSuffix()),
+		Key: map[string]types.AttributeValue{
+			attrStoryID: &types.AttributeValueMemberS{Value: storyID},
+			"author":    &types.AttributeValueMemberS{Value: email},
+		},
+		UpdateExpression: aws.String("SET draft_name = :n"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":n": &types.AttributeValueMemberS{Value: newName},
+		},
+	})
+	return err
 }
 
 // rollbackDraftClone deletes the new story row, chapter rows, and any

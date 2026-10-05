@@ -174,12 +174,9 @@ func (d *DAO) DeleteAssociations(
 		batches = append(batches, associations[i:end])
 	}
 
-	var storyOrSeriesID string
-	if storyOrSeriesID, err = d.IsStoryInASeries(ctx, email, storyID); err != nil {
+	storyOrSeriesID, err := d.StoryOrSeriesID(ctx, email, storyID)
+	if err != nil {
 		return err
-	}
-	if storyOrSeriesID == "" {
-		storyOrSeriesID = storyID
 	}
 
 	// Loop through the items and create the transaction write items.
@@ -274,12 +271,9 @@ func (d *DAO) GetAssociationDetails(
 	if len(storyObj) == 0 {
 		return nil, fmt.Errorf("no story found for id: %s", storyID)
 	}
-	var storyOrSeries string
-	if storyOrSeries, err = d.IsStoryInASeries(ctx, email, storyID); err != nil {
+	storyOrSeries, err := d.StoryOrSeriesID(ctx, email, storyID)
+	if err != nil {
 		return association, err
-	}
-	if storyOrSeries == "" {
-		storyOrSeries = storyID
 	}
 	outAssociation, err := d.DynamoClient.Query(ctx, &dynamodb.QueryInput{
 		TableName:              aws.String("associations" + GetTableSuffix()),
@@ -343,12 +337,9 @@ func (d *DAO) GetStoryOrSeriesAssociationThumbnails(
 	if err = attributevalue.UnmarshalListOfMaps(outStory.Items, &storyObj); err != nil {
 		return associations, err
 	}
-	var storyOrSeries string
-	if storyOrSeries, err = d.IsStoryInASeries(ctx, email, storyID); err != nil {
+	storyOrSeries, err := d.StoryOrSeriesID(ctx, email, storyID)
+	if err != nil {
 		return associations, err
-	}
-	if storyOrSeries == "" {
-		storyOrSeries = storyID
 	}
 	filterString := "author=:eml AND story_or_series_id=:s"
 	expressionValues := map[string]types.AttributeValue{
