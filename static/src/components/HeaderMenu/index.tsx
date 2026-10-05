@@ -191,7 +191,7 @@ export const HeaderMenu = () => {
                             {story?.draft_name || "Untitled draft"}
                           </span>
                           {story?.is_current_draft && (
-                            <span className={styles.draftChipLatest}>latest</span>
+                            <span className={styles.draftChipLatest}>current</span>
                           )}
                         </span>
                       }
