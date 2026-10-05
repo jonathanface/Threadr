@@ -101,7 +101,7 @@ func parseOutlineSection(
 			out.Template = models.OutlineTemplate(v.Value)
 		}
 	}
-	if v, ok := item["chapters"].(*types.AttributeValueMemberSS); ok {
+	if v, ok := item[attrChaptersSet].(*types.AttributeValueMemberSS); ok {
 		s.Chapters = v.Value
 		for _, id := range v.Value {
 			assigned[id] = struct{}{}
@@ -180,11 +180,11 @@ func (d *DAO) UpdateOutline(ctx context.Context, outline models.OutlineRequest) 
 		if len(section.Chapters) > 0 {
 			expressionValues[":chapters"] = &types.AttributeValueMemberSS{Value: section.Chapters}
 			updateExpression += ", #chapters = :chapters"
-			expressionAttributeNames["#chapters"] = "chapters"
+			expressionAttributeNames["#chapters"] = attrChaptersSet
 		} else {
 			// Instead of setting an empty SS (which causes an error), REMOVE the attribute
 			updateExpression += " REMOVE #chapters"
-			expressionAttributeNames["#chapters"] = "chapters"
+			expressionAttributeNames["#chapters"] = attrChaptersSet
 		}
 
 		twi := types.TransactWriteItem{

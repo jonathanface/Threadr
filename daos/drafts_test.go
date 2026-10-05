@@ -294,20 +294,23 @@ func TestCurrentDraftID_ResolvesToFlaggedSibling(t *testing.T) {
 	mockDao := NewMockDAO()
 	mockClient := mockDao.DynamoClient.(*MockDynamoClient)
 
-	callCount := 0
+	// RootStoryID (via getStoryByIDUnscoped) still issues a Scan.
 	mockClient.MockScan = func(_ context.Context, _ *dynamodb.ScanInput, _ ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
-		callCount++
-		// First scan is the root resolution for storyID; return root.
-		if callCount == 1 {
-			return scanOutputForStory("root-abc", ""), nil
+		return scanOutputForStory("root-abc", ""), nil
+	}
+	// The current-draft lookup now uses a Query against the GSI.
+	queryCount := 0
+	mockClient.MockQuery = func(_ context.Context, input *dynamodb.QueryInput, _ ...func(*dynamodb.Options)) (*dynamodb.QueryOutput, error) {
+		queryCount++
+		if input.IndexName == nil || *input.IndexName != "original_story_id_index" {
+			t.Errorf("expected Query against original_story_id_index, got IndexName=%v", input.IndexName)
 		}
-		// Second scan looks up the current draft.
 		item := map[string]types.AttributeValue{
 			"story_id":          &types.AttributeValueMemberS{Value: "draft-current"},
 			"original_story_id": &types.AttributeValueMemberS{Value: "root-abc"},
 			"is_current_draft":  &types.AttributeValueMemberBOOL{Value: true},
 		}
-		return &dynamodb.ScanOutput{Items: []map[string]types.AttributeValue{item}}, nil
+		return &dynamodb.QueryOutput{Items: []map[string]types.AttributeValue{item}}, nil
 	}
 
 	got, err := mockDao.DAO.CurrentDraftID(context.Background(), "root-abc")
@@ -317,19 +320,20 @@ func TestCurrentDraftID_ResolvesToFlaggedSibling(t *testing.T) {
 	if got != "draft-current" {
 		t.Errorf("got %q want draft-current", got)
 	}
+	if queryCount != 1 {
+		t.Errorf("expected one GSI Query, got %d", queryCount)
+	}
 }
 
 func TestCurrentDraftID_FallsBackToRootWhenNoneFlagged(t *testing.T) {
 	mockDao := NewMockDAO()
 	mockClient := mockDao.DynamoClient.(*MockDynamoClient)
 
-	callCount := 0
 	mockClient.MockScan = func(_ context.Context, _ *dynamodb.ScanInput, _ ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
-		callCount++
-		if callCount == 1 {
-			return scanOutputForStory("root-abc", ""), nil
-		}
-		return &dynamodb.ScanOutput{Items: nil}, nil
+		return scanOutputForStory("root-abc", ""), nil
+	}
+	mockClient.MockQuery = func(_ context.Context, _ *dynamodb.QueryInput, _ ...func(*dynamodb.Options)) (*dynamodb.QueryOutput, error) {
+		return &dynamodb.QueryOutput{Items: nil}, nil
 	}
 
 	got, err := mockDao.DAO.CurrentDraftID(context.Background(), "root-abc")
@@ -459,42 +463,60 @@ func TestListDrafts_ReturnsRootFirst(t *testing.T) {
 	mockDao := NewMockDAO()
 	mockClient := mockDao.DynamoClient.(*MockDynamoClient)
 
-	callCount := 0
-	mockClient.MockScan = func(_ context.Context, _ *dynamodb.ScanInput, _ ...func(*dynamodb.Options)) (*dynamodb.ScanOutput, error) {
-		callCount++
-		if callCount == 1 {
-			// Root resolution for the input story.
-			return scanOutputForStory("root-abc", ""), nil
-		}
-		// Ancestry query: root + 2 drafts, intentionally returned in a
-		// non-root-first order to exercise the reorder.
-		return &dynamodb.ScanOutput{Items: []map[string]types.AttributeValue{
-			{
-				"story_id":          &types.AttributeValueMemberS{Value: "draft-2"},
-				"original_story_id": &types.AttributeValueMemberS{Value: "root-abc"},
-				"created_at":        &types.AttributeValueMemberN{Value: "2000"},
-			},
-			{
-				"story_id":          &types.AttributeValueMemberS{Value: "draft-1"},
-				"original_story_id": &types.AttributeValueMemberS{Value: "root-abc"},
-				"created_at":        &types.AttributeValueMemberN{Value: "1000"},
-			},
-			{
+	// RootStoryID: lookup via Scan (first call), then GetStoryByID
+	// re-reads the root (second call) + GetUserDetails + chapters.
+	// scanRouter dispatches by table name so each read lands in the
+	// right branch.
+	mockClient.MockScan = scanRouter(map[string]map[string][]map[string]types.AttributeValue{
+		"stories": {
+			"root-abc": {{
 				"story_id":   &types.AttributeValueMemberS{Value: "root-abc"},
+				"author":     &types.AttributeValueMemberS{Value: "user@example.com"},
+				"title":      &types.AttributeValueMemberS{Value: "Original"},
 				"created_at": &types.AttributeValueMemberN{Value: "500"},
-			},
-		}}, nil
+			}},
+		},
+		"chapters": {},
+	}, defaultUsersRow())
+
+	// ListDrafts' main query hits the GSI; return drafts oldest-first
+	// (GSI SK=created_at ascending, so this mirrors real behavior).
+	gsiHit := false
+	mockClient.MockQuery = func(_ context.Context, input *dynamodb.QueryInput, _ ...func(*dynamodb.Options)) (*dynamodb.QueryOutput, error) {
+		if input.IndexName != nil && *input.IndexName == "original_story_id_index" {
+			gsiHit = true
+			return &dynamodb.QueryOutput{Items: []map[string]types.AttributeValue{
+				{
+					"story_id":          &types.AttributeValueMemberS{Value: "draft-1"},
+					"original_story_id": &types.AttributeValueMemberS{Value: "root-abc"},
+					"author":            &types.AttributeValueMemberS{Value: "user@example.com"},
+					"created_at":        &types.AttributeValueMemberN{Value: "1000"},
+				},
+				{
+					"story_id":          &types.AttributeValueMemberS{Value: "draft-2"},
+					"original_story_id": &types.AttributeValueMemberS{Value: "root-abc"},
+					"author":            &types.AttributeValueMemberS{Value: "user@example.com"},
+					"created_at":        &types.AttributeValueMemberN{Value: "2000"},
+				},
+			}}, nil
+		}
+		// Non-GSI query (e.g. a block-paragraphs query triggered by
+		// GetStoryByID's lazy first-chapter creation path): return empty.
+		return &dynamodb.QueryOutput{Items: nil}, nil
 	}
 
 	got, err := mockDao.DAO.ListDrafts(context.Background(), "user@example.com", "root-abc")
+	if !gsiHit {
+		t.Errorf("expected the GSI to be queried, but no Query hit original_story_id_index")
+	}
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(got) != 3 {
-		t.Fatalf("expected 3 rows, got %d", len(got))
+		t.Fatalf("expected 3 rows (root + 2 drafts), got %d", len(got))
 	}
 	if got[0].ID != "root-abc" {
-		t.Errorf("root should sort first, got %q", got[0].ID)
+		t.Errorf("root should come first, got %q", got[0].ID)
 	}
 	if got[1].ID != "draft-1" || got[2].ID != "draft-2" {
 		t.Errorf("drafts should be oldest-first after the root, got [%s %s]", got[1].ID, got[2].ID)
