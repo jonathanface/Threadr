@@ -38,6 +38,12 @@ header .storyInfo .storyData {
     margin-left: 10px;
 }
 
+header .storyInfo .titleRow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
 header .storyInfo img {
     max-height: 50px;
     border: 1px solid #333;

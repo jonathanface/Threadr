@@ -7,9 +7,7 @@ import FormatAlignCenterIcon from "@mui/icons-material/FormatAlignCenter";
 import FormatAlignJustifyIcon from "@mui/icons-material/FormatAlignJustify";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import FormatAlignRightIcon from "@mui/icons-material/FormatAlignRight";
-import HistoryEduIcon from "@mui/icons-material/HistoryEdu";
 import {
-  Chip,
   MenuItem,
   Select,
   SelectChangeEvent,
@@ -495,24 +493,6 @@ export const Toolbar = () => {
             inputTextAlign={direction}
           />
         </span>
-        {(story?.draft_name || story?.original_story_id) && (
-          <Tooltip
-            title={
-              story?.is_current_draft
-                ? "This is the current draft shown in the stories list and to readers"
-                : "You are editing a draft of this story"
-            }
-          >
-            <Chip
-              icon={<HistoryEduIcon />}
-              label={story.draft_name || "Untitled draft"}
-              size="small"
-              color={story?.is_current_draft ? "primary" : "default"}
-              variant={story?.is_current_draft ? "filled" : "outlined"}
-              sx={{ ml: 1 }}
-            />
-          </Tooltip>
-        )}
         <DocumentExporter />
       </div>
     </div>
