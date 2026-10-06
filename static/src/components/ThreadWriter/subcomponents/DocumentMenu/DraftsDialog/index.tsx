@@ -13,6 +13,8 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  Chip,
+  Divider,
   LinearProgress,
   ToggleButton,
   ToggleButtonGroup,
@@ -319,9 +321,11 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
       open={open}
       onClose={() => !creating && setOpen(false)}
       fullWidth
-      maxWidth="sm"
+      maxWidth="md"
     >
-      <DialogTitle>Drafts</DialogTitle>
+      <DialogTitle>
+        {story?.title ? `Drafts of "${story.title}"` : "Drafts"}
+      </DialogTitle>
       {creating && (
         <LinearProgress
           aria-label="Creating draft"
@@ -384,13 +388,39 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
                       ) : (
                         <Box
                           onClick={() => !isActive && handleSwitchTo(d.story_id)}
-                          sx={{ cursor: isActive ? "default" : "pointer" }}
+                          sx={{
+                            cursor: isActive ? "default" : "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            "&:hover .draft-title": !isActive
+                              ? { textDecoration: "underline" }
+                              : undefined,
+                          }}
                         >
-                          <Typography variant="body2">{label}</Typography>
+                          <Typography
+                            variant="body2"
+                            className="draft-title"
+                            sx={{
+                              fontFamily:
+                                '"Source Serif Pro", "Charter", Georgia, serif',
+                              fontSize: "1rem",
+                            }}
+                          >
+                            {label}
+                          </Typography>
                           {isActive && (
-                            <Typography variant="caption" color="text.secondary">
-                              You are editing this draft
-                            </Typography>
+                            <Chip
+                              label="editing"
+                              size="small"
+                              variant="outlined"
+                              color="primary"
+                              sx={{
+                                height: 20,
+                                fontSize: "0.7rem",
+                                "& .MuiChip-label": { px: 0.75 },
+                              }}
+                            />
                           )}
                         </Box>
                       )}
@@ -458,7 +488,15 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
             No drafts yet. Create one below to try an alternate ending or revision.
           </Typography>
         )}
+        <Divider sx={{ mt: 4 }} />
         <Box sx={{ mt: 3 }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: "block", mb: 0.5, textTransform: "none" }}
+          >
+            Create from
+          </Typography>
           <ToggleButtonGroup
             value={createMode}
             exclusive
@@ -467,7 +505,7 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
               if (next) setCreateMode(next);
             }}
             disabled={creating}
-            sx={{ mb: 1 }}
+            sx={{ mb: 1.5 }}
           >
             <ToggleButton value="clone">
               <ContentCopyIcon fontSize="small" sx={{ mr: 0.5 }} />
@@ -478,32 +516,17 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
               Upload document
             </ToggleButton>
           </ToggleButtonGroup>
-          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-            <TextField
-              label="New draft name"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              size="small"
-              fullWidth
-              disabled={creating}
-            />
-            <Button
-              variant="contained"
-              onClick={handleCreate}
-              disabled={creating}
-              startIcon={
-                creating ? (
-                  <CircularProgress size={16} color="inherit" />
-                ) : undefined
-              }
-            >
-              {creating
-                ? createMode === "upload"
-                  ? "Importing..."
-                  : "Cloning story..."
-                : "Create draft"}
-            </Button>
-          </Box>
+          <TextField
+            label="New draft name"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !creating) handleCreate();
+            }}
+            size="small"
+            fullWidth
+            disabled={creating}
+          />
           {createMode === "upload" && (
             <Box sx={{ mt: 1, display: "flex", gap: 1, alignItems: "center" }}>
               <Button
@@ -547,6 +570,22 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
       <DialogActions>
         <Button onClick={() => setOpen(false)} disabled={creating}>
           Close
+        </Button>
+        <Button
+          variant="contained"
+          onClick={handleCreate}
+          disabled={creating}
+          startIcon={
+            creating ? (
+              <CircularProgress size={16} color="inherit" />
+            ) : undefined
+          }
+        >
+          {creating
+            ? createMode === "upload"
+              ? "Importing..."
+              : "Cloning story..."
+            : "Create draft"}
         </Button>
       </DialogActions>
 
