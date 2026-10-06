@@ -2,6 +2,7 @@ import { Settings } from "@mui/icons-material";
 import CancelPresentationIcon from "@mui/icons-material/CancelPresentation";
 import CloseIcon from "@mui/icons-material/Close";
 import FormatListNumberedIcon from "@mui/icons-material/FormatListNumbered";
+import HistoryEduIcon from "@mui/icons-material/HistoryEdu";
 import MenuBookTwoToneIcon from "@mui/icons-material/MenuBookTwoTone";
 import ShareIcon from "@mui/icons-material/Share";
 import CommentIcon from "@mui/icons-material/Comment";
@@ -14,6 +15,7 @@ import type { ClickData } from "../../plugins/DocumentClickPlugin";
 import { ChapterMenu } from "../ChapterMenu";
 import { OutlineMenu } from "../OutlineMenu";
 import { DocumentSettingsModal } from "./DocumentSettingsModal";
+import { DraftsDialog } from "./DraftsDialog";
 import { ShareDialog } from "./ShareDialog";
 import { CommentsPanel } from "./CommentsPanel";
 import styles from "./settingsmenu.module.css";
@@ -29,6 +31,7 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
   const [isEditorOutlineMenuOpen, setIsEditorOutlineMenuOpen] = useState(false);
   const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [isDraftsDialogOpen, setIsDraftsDialogOpen] = useState(false);
   const [isCommentsDrawerOpen, setIsCommentsDrawerOpen] = useState(false);
   const userSettings = useFetchUserData();
 
@@ -50,6 +53,11 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
   const shareTooltip = shareDisabled
     ? "Sharing with readers is only available to subscribers"
     : "Share";
+
+  const draftsDisabled = !userSettings.userDetails.subscriber;
+  const draftsTooltip = draftsDisabled
+    ? "Drafts are only available to subscribers"
+    : "Drafts";
 
   return (
     <div>
@@ -116,6 +124,27 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
             </IconButton>
           </span>
         </Tooltip>
+        <Tooltip title={draftsTooltip} placement="right">
+          <span>
+            <IconButton
+              aria-label="drafts"
+              onClick={() => {
+                if (draftsDisabled) return;
+                setIsDraftsDialogOpen(true);
+              }}
+              disabled={draftsDisabled}
+              sx={{
+                color: "var(--text-primary)",
+                "&.Mui-disabled": {
+                  color: "var(--text-primary)",
+                  opacity: 0.4,
+                },
+              }}
+            >
+              <HistoryEduIcon />
+            </IconButton>
+          </span>
+        </Tooltip>
         <Tooltip title="Reader Comments" placement="right">
           <IconButton
             onClick={() => {
@@ -141,6 +170,10 @@ export const DocumentMenu = (props: DocumentMenuProps) => {
       <ShareDialog
         open={isShareDialogOpen}
         setOpen={setIsShareDialogOpen}
+      />
+      <DraftsDialog
+        open={isDraftsDialogOpen}
+        setOpen={setIsDraftsDialogOpen}
       />
       <Drawer
         variant="temporary"

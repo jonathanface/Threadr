@@ -11,12 +11,16 @@ export const ImportDraftPage = () => {
   const { setAlertState } = useToaster();
   const { convert } = useDemoConversion();
 
+  // TODO: swap useRef(readDraft()) for useState(() => readDraft()) so the once-at-mount
+  // value is readable during render without tripping react-hooks/refs
   const initialDraft = useRef(readDraft());
+  // eslint-disable-next-line react-hooks/refs
   const savedTitle = initialDraft.current?.title?.trim() ?? "";
   const initialTitle = savedTitle.length > 0 ? savedTitle : "Untitled story";
 
   const [title, setTitle] = useState<string>(initialTitle);
   const [submitting, setSubmitting] = useState<boolean>(
+    // eslint-disable-next-line react-hooks/refs
     Boolean(initialDraft.current),
   );
   const [error, setError] = useState<string | null>(null);

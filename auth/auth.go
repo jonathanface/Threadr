@@ -23,6 +23,7 @@ import (
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/amazon"
+	gothgithub "github.com/markbates/goth/providers/github"
 	"github.com/markbates/goth/providers/google"
 )
 
@@ -116,6 +117,7 @@ func New(options OauthOptions) {
 	goth.UseProviders(
 		google.New(options.GoogleID, options.GoogleSecret, options.GoogleURL, "email", "profile"),
 		amazon.New(options.AmazonID, options.AmazonSecret, options.AmazonURL),
+		gothgithub.New(options.GithubID, options.GithubSecret, options.GithubURL, "user:email"),
 	)
 }
 

@@ -107,6 +107,14 @@ func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.OauthOptio
 	apiRtr.HandleFunc("/outline", api.CreateOutlineEndpoint).Methods("POST", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/import", api.ImportDocumentEndpoint).Methods("POST", "OPTIONS")
 
+	// Drafts (subscriber-only; enforcement lives in each handler via
+	// RequireSubscriber + models.BenefitDrafts).
+	apiRtr.HandleFunc("/stories/{storyID}/drafts", api.CreateStoryDraftEndpoint).Methods("POST", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/drafts/upload", api.CreateDraftFromImportEndpoint).Methods("POST", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/drafts", api.ListStoryDraftsEndpoint).Methods("GET", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/drafts/current", api.SetCurrentDraftEndpoint).Methods("POST", "OPTIONS")
+	apiRtr.HandleFunc("/stories/{storyID}/draft-name", api.RenameStoryDraftEndpoint).Methods("PUT", "OPTIONS")
+
 	// PUTs
 	apiRtr.HandleFunc("/stories/{story}", api.WriteBlocksToStoryEndpoint).Methods("PUT", "OPTIONS")
 	apiRtr.HandleFunc("/stories/{storyID}/settings", api.EditStorySettingsEndPoint).Methods("PUT", "OPTIONS")

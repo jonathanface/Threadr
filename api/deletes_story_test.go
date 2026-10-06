@@ -9,6 +9,7 @@ import (
 
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
+	"Threadr/models"
 
 	"github.com/aws/smithy-go"
 	"github.com/gorilla/mux"
@@ -122,5 +123,52 @@ func TestDeleteStoryEndpoint_AWSError(t *testing.T) {
 
 	if rr.Code != http.StatusInternalServerError {
 		t.Errorf("Expected status 500, got %d. Body: %s", rr.Code, rr.Body.String())
+	}
+}
+
+func TestDeleteStoryEndpoint_CascadeDeletesAncestry(t *testing.T) {
+	mockDAO := daos.NewMockDAO()
+	mockDAO.MockListDrafts = func(_, storyID string) ([]*models.Story, error) {
+		if storyID != "root-1" {
+			t.Errorf("expected ListDrafts called with root-1, got %s", storyID)
+		}
+		return []*models.Story{
+			{ID: "root-1"},
+			{ID: "draft-a", OriginalStoryID: "root-1"},
+			{ID: "draft-b", OriginalStoryID: "root-1"},
+		}, nil
+	}
+	var deleted []string
+	mockDAO.MockSoftDeleteStory = func(_, storyID string, _ bool) error {
+		deleted = append(deleted, storyID)
+		return nil
+	}
+	var revoked []string
+	mockDAO.MockRevokeShareLinksForStory = func(storyID string) error {
+		revoked = append(revoked, storyID)
+		return nil
+	}
+
+	req := createTestRequestWithSession("DELETE", "/story/root-1?cascade=true", nil)
+	req = mux.SetURLVars(req, map[string]string{"story": "root-1"})
+	req = req.WithContext(context.WithValue(req.Context(), ctxkey.DAO, mockDAO))
+
+	rr := httptest.NewRecorder()
+	DeleteStoryEndpoint(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d. body=%s", rr.Code, rr.Body.String())
+	}
+	if len(deleted) != 3 {
+		t.Errorf("expected 3 SoftDeleteStory calls (root + 2 drafts), got %d: %v", len(deleted), deleted)
+	}
+	expected := map[string]bool{"root-1": true, "draft-a": true, "draft-b": true}
+	for _, id := range deleted {
+		if !expected[id] {
+			t.Errorf("unexpected id in deleted set: %s", id)
+		}
+	}
+	if len(revoked) != 3 {
+		t.Errorf("expected 3 share-link revocations, got %d: %v", len(revoked), revoked)
 	}
 }

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"slices"
+	"strings"
 
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
@@ -187,6 +189,123 @@ func DeleteChaptersEndpoint(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, nil)
 }
 
+// enforceDraftsDeleteGuards runs the drafts-related safety checks before a
+// SoftDeleteStory call. Returns true if deletion may proceed, false if a
+// response has already been written. Invariants enforced:
+//   - Deleting the root while drafts still exist re-roots the ancestry
+//     onto one of the remaining drafts so no draft is orphaned. The
+//     frontend prompts the user for destructive confirmation before
+//     calling this endpoint, so the handler proceeds without a second
+//     confirm step.
+//   - Deleting the current draft promotes the root back to current first
+//     so the stories list and share links continue to point somewhere.
+//
+// ListDrafts is author-scoped and doubles as an ownership check for the
+// ancestry; if the lookup errors out (missing/stale draft, non-owner) the
+// guard silently falls through and the standard SoftDeleteStory ownership
+// check in the caller does the authoritative work.
+func enforceDraftsDeleteGuards(
+	w http.ResponseWriter,
+	r *http.Request,
+	dao daos.DaoInterface,
+	email, storyID string,
+) bool {
+	drafts, listErr := dao.ListDrafts(r.Context(), email, storyID)
+	if listErr != nil || len(drafts) <= 1 {
+		return true
+	}
+	var target *models.Story
+	var rootID, currentID string
+	for _, s := range drafts {
+		if s.ID == storyID {
+			target = s
+		}
+		if s.OriginalStoryID == "" {
+			rootID = s.ID
+		}
+		if s.IsCurrentDraft != nil && *s.IsCurrentDraft {
+			currentID = s.ID
+		}
+	}
+	if target != nil && target.OriginalStoryID == "" {
+		// Re-root the ancestry: promote the current draft (or the oldest
+		// remaining if no current is set) and rewrite the rest of the
+		// siblings to point at it. Associations and share links are
+		// migrated as part of the DAO call.
+		if _, promoteErr := dao.PromoteNewRoot(r.Context(), email, storyID); promoteErr != nil {
+			logger.Error("promote new root before delete failed",
+				"error", promoteErr, "storyId", storyID)
+			RespondWithError(w, http.StatusInternalServerError,
+				"unable to promote new root before deleting the original")
+			return false
+		}
+		return true
+	}
+	if target != nil && target.IsCurrentDraft != nil && *target.IsCurrentDraft && rootID != "" && rootID != currentID {
+		if promoteErr := dao.SetCurrentDraft(r.Context(), email, rootID); promoteErr != nil {
+			logger.Error("promote root before delete failed",
+				"error", promoteErr, "storyId", storyID, "rootId", rootID)
+			RespondWithError(w, http.StatusInternalServerError,
+				"unable to promote root before deleting current draft")
+			return false
+		}
+	}
+	return true
+}
+
+// cascadeDeleteAncestry soft-deletes every story row in the ancestry
+// of storyID (root + all drafts) and revokes share links pointing at
+// any of them. Called by DeleteStoryEndpoint when ?cascade=true. On
+// any per-row delete failure we still try to delete the rest — the
+// user's intent is "wipe this logical work" and partial survival is
+// worse than a successful cleanup pass with one logged error.
+func cascadeDeleteAncestry(
+	w http.ResponseWriter,
+	r *http.Request,
+	dao daos.DaoInterface,
+	email, storyID string,
+) {
+	drafts, err := dao.ListDrafts(r.Context(), email, storyID)
+	if err != nil {
+		// If ancestry lookup fails (missing story, non-owner), fall
+		// through to the single-row path so the user still gets a
+		// clean "not found / forbidden" response from SoftDeleteStory.
+		if sdErr := dao.SoftDeleteStory(r.Context(), email, storyID, false); sdErr != nil {
+			logger.Error("cascade delete fallback single-row failed", "error", sdErr, "storyId", storyID)
+			RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
+			return
+		}
+		if revokeErr := dao.RevokeShareLinksForStory(r.Context(), storyID); revokeErr != nil {
+			logger.Warn("cascade delete fallback share-link revoke failed", "storyId", storyID, "error", revokeErr)
+		}
+		RespondWithJSON(w, http.StatusOK, nil)
+		return
+	}
+	// Delete each row (root + drafts). Collect ids first so iteration
+	// is independent of ListDrafts' return ordering.
+	ids := make([]string, 0, len(drafts))
+	for _, s := range drafts {
+		ids = append(ids, s.ID)
+	}
+	// Guarantee the target id is covered even if, for any reason, it
+	// isn't present in the ancestry list.
+	if !slices.Contains(ids, storyID) {
+		ids = append(ids, storyID)
+	}
+	for _, id := range ids {
+		if sdErr := dao.SoftDeleteStory(r.Context(), email, id, false); sdErr != nil {
+			logger.Error("cascade delete: SoftDeleteStory failed",
+				"error", sdErr, "storyId", id, "ancestryTarget", storyID)
+			continue
+		}
+		if revokeErr := dao.RevokeShareLinksForStory(r.Context(), id); revokeErr != nil {
+			logger.Warn("cascade delete: share-link revoke failed",
+				"storyId", id, "ancestryTarget", storyID, "error", revokeErr)
+		}
+	}
+	RespondWithJSON(w, http.StatusOK, nil)
+}
+
 func DeleteStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 	var (
 		email   string
@@ -213,6 +332,22 @@ func DeleteStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusInternalServerError, "unable to parse or retrieve dao from context")
 		return
 	}
+
+	// Cascade mode: delete every story in the ancestry (root + all
+	// drafts). The /stories list page uses this when a user clicks
+	// "delete story" on a card, which represents the whole logical
+	// work rather than one specific draft. The DraftsDialog uses the
+	// default (non-cascade) mode when deleting a single draft, which
+	// preserves siblings and re-roots as needed.
+	if strings.EqualFold(r.URL.Query().Get("cascade"), "true") {
+		cascadeDeleteAncestry(w, r, dao, email, storyID)
+		return
+	}
+
+	if !enforceDraftsDeleteGuards(w, r, dao, email, storyID) {
+		return
+	}
+
 	if err = dao.SoftDeleteStory(r.Context(), email, storyID, false); err != nil {
 		opErr := &smithy.OperationError{}
 		if errors.As(err, &opErr) {
@@ -228,6 +363,14 @@ func DeleteStoryEndpoint(w http.ResponseWriter, r *http.Request) {
 		logger.Error("Internal error", "error", err)
 		RespondWithError(w, http.StatusInternalServerError, "An internal error occurred")
 		return
+	}
+	// Best-effort: revoke any share links pointing at the deleted story
+	// so readers see a "revoked" signal instead of a generic 404. Only
+	// relevant when the ancestry wasn't re-rooted (PromoteNewRoot already
+	// rewrote the links in that case); harmless if no links exist.
+	if revokeErr := dao.RevokeShareLinksForStory(r.Context(), storyID); revokeErr != nil {
+		logger.Warn("post-delete share-link revocation failed",
+			"storyId", storyID, "error", revokeErr)
 	}
 	RespondWithJSON(w, http.StatusOK, nil)
 }

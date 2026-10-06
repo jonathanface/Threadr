@@ -34,9 +34,12 @@ const mockSeries: Series = {
   stories: [],
 };
 
+// Mutable so chip tests can toggle story.is_current_draft between
+// primary and non-primary without re-mocking per case.
+let mockUseSelectionsStory: Story | null = mockStory;
 vi.mock("../../../hooks/useSelections", () => ({
   useSelections: () => ({
-    story: mockStory,
+    story: mockUseSelectionsStory,
     series: mockSeries,
     setStory: mockSetStory,
     setSeries: mockSetSeries,
@@ -61,11 +64,36 @@ vi.mock("../../../hooks/useLoader", () => ({
 vi.mock("../../../hooks/useFetchUserData", () => ({
   useFetchUserData: () => ({
     isLoggedIn: true,
+    userDetails: { subscriber: true },
   }),
 }));
 
 vi.mock("react-router-dom", () => ({
   useLocation: () => ({ pathname: "/stories" }),
+  useNavigate: () => vi.fn(),
+}));
+
+// Mutable so individual tests can seed a specific drafts list to drive
+// the chip's visibility gate and the color/variant it picks.
+let mockUseDraftsReturn: {
+  list: Story[] | null;
+  storyID: string | null;
+  loading: boolean;
+  errorStatus: number | null;
+  fetch: ReturnType<typeof vi.fn>;
+  refresh: ReturnType<typeof vi.fn>;
+  clear: ReturnType<typeof vi.fn>;
+} = {
+  list: null,
+  storyID: null,
+  loading: false,
+  errorStatus: null,
+  fetch: vi.fn(),
+  refresh: vi.fn(),
+  clear: vi.fn(),
+};
+vi.mock("../../../hooks/useDrafts", () => ({
+  useDrafts: () => mockUseDraftsReturn,
 }));
 
 vi.mock("../ThemeToggle", () => ({
@@ -85,12 +113,23 @@ vi.mock("../../NotificationsBell", () => ({
 vi.mock("../../../api", () => ({
   api: {
     put: vi.fn(),
+    get: vi.fn().mockResolvedValue({ data: [] }),
   },
 }));
 
 describe("HeaderMenu", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseSelectionsStory = mockStory;
+    mockUseDraftsReturn = {
+      list: null,
+      storyID: null,
+      loading: false,
+      errorStatus: null,
+      fetch: vi.fn(),
+      refresh: vi.fn(),
+      clear: vi.fn(),
+    };
   });
 
   describe("Rendering", () => {
@@ -517,6 +556,92 @@ describe("HeaderMenu", () => {
 
       const storyImage = screen.getByAltText("Test Story");
       expect(storyImage).toBeInTheDocument();
+    });
+  });
+
+  // Chip switcher — rendered only when the current story has siblings
+  // in its ancestry. Visibility is driven off the shared DraftsProvider
+  // list, not from flags on the Story payload (which can't distinguish
+  // "root of ancestry whose drafts were all deleted" from "root with
+  // drafts"). Primary vs non-primary flips the chip's color/variant.
+  describe("Drafts chip switcher", () => {
+    const makeDraft = (overrides: Partial<Story> = {}): Story => ({
+      story_id: "root-1",
+      title: "T",
+      description: "",
+      chapters: [],
+      image_url: "",
+      ...overrides,
+    });
+
+    it("hides the chip when the ancestry has only one row", () => {
+      // Solo story: list has exactly the current row and nothing else.
+      mockUseDraftsReturn.list = [makeDraft({ story_id: "story-123" })];
+      mockUseDraftsReturn.storyID = "story-123";
+      render(<HeaderMenu />);
+      expect(screen.queryByLabelText("Switch drafts")).not.toBeInTheDocument();
+    });
+
+    it("hides the chip when the drafts cache is still null", () => {
+      // No fetch resolved yet — can't know yet whether siblings exist.
+      // Err on the side of not showing a potentially-misleading chip.
+      render(<HeaderMenu />);
+      expect(screen.queryByLabelText("Switch drafts")).not.toBeInTheDocument();
+    });
+
+    it("shows the chip when the ancestry has multiple drafts", () => {
+      mockUseDraftsReturn.list = [
+        makeDraft({ story_id: "story-123", is_current_draft: true }),
+        makeDraft({
+          story_id: "draft-2",
+          original_story_id: "story-123",
+          draft_name: "Alt",
+        }),
+      ];
+      mockUseDraftsReturn.storyID = "story-123";
+      render(<HeaderMenu />);
+      expect(screen.getByLabelText("Switch drafts")).toBeInTheDocument();
+    });
+
+    it("styles the chip as filled primary when viewing the primary draft", () => {
+      mockUseSelectionsStory = { ...mockStory, is_current_draft: true };
+      mockUseDraftsReturn.list = [
+        makeDraft({ story_id: "story-123", is_current_draft: true }),
+        makeDraft({
+          story_id: "draft-2",
+          original_story_id: "story-123",
+          draft_name: "Alt",
+        }),
+      ];
+      mockUseDraftsReturn.storyID = "story-123";
+      render(<HeaderMenu />);
+      // MUI applies `MuiChip-colorPrimary` and `MuiChip-filled` classes
+      // when color="primary" + variant="filled". These classes are the
+      // user-facing styling signal, so assert on them directly.
+      const chip = screen.getByLabelText("Switch drafts");
+      expect(chip.className).toMatch(/MuiChip-colorPrimary/);
+      expect(chip.className).toMatch(/MuiChip-filled/);
+    });
+
+    it("styles the chip as outlined default when viewing a non-primary draft", () => {
+      mockUseSelectionsStory = { ...mockStory, is_current_draft: false };
+      mockUseDraftsReturn.list = [
+        makeDraft({ story_id: "story-123", is_current_draft: false }),
+        makeDraft({
+          story_id: "draft-2",
+          original_story_id: "story-123",
+          draft_name: "Alt",
+          is_current_draft: true,
+        }),
+      ];
+      mockUseDraftsReturn.storyID = "story-123";
+      render(<HeaderMenu />);
+      const chip = screen.getByLabelText("Switch drafts");
+      // Outlined variant drops the colorPrimary class and adds
+      // MuiChip-outlined; color="default" means no colorPrimary even
+      // in filled mode.
+      expect(chip.className).not.toMatch(/MuiChip-colorPrimary/);
+      expect(chip.className).toMatch(/MuiChip-outlined/);
     });
   });
 });

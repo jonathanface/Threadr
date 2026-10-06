@@ -1,6 +1,18 @@
 import axios from "axios";
-import { Tooltip } from "@mui/material";
-import { useLocation } from "react-router-dom";
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
+import CheckIcon from "@mui/icons-material/Check";
+import HistoryEduIcon from "@mui/icons-material/HistoryEdu";
+import {
+  Chip,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Tooltip,
+} from "@mui/material";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useDrafts } from "../../hooks/useDrafts";
 import { useFetchUserData } from "../../hooks/useFetchUserData";
 import { useLoader } from "../../hooks/useLoader";
 import { useSelections } from "../../hooks/useSelections";
@@ -18,7 +30,8 @@ import styles from "./headermenu.module.css";
 export const HeaderMenu = () => {
   const location = useLocation();
   const isSharedReader = location.pathname.startsWith("/shared/");
-  const { isLoggedIn } = useFetchUserData();
+  const { isLoggedIn, userDetails } = useFetchUserData();
+  const isSubscriber = userDetails?.subscriber === true;
 
   const {
     story,
@@ -30,6 +43,67 @@ export const HeaderMenu = () => {
   } = useSelections();
   const { setAlertState } = useToaster();
   const { showLoader, hideLoader } = useLoader();
+  const navigate = useNavigate();
+
+  // The chip in the title row only renders when the loaded story has
+  // siblings in its ancestry — a solo story has nothing to switch to.
+  // The drafts list comes from the shared DraftsProvider so mutations
+  // issued from the DraftsDialog (rename, create, set-primary, delete)
+  // propagate here without a refresh.
+  const [draftsAnchorEl, setDraftsAnchorEl] = useState<HTMLElement | null>(null);
+  const drafts = useDrafts();
+
+  const storyID = story?.story_id;
+  useEffect(() => {
+    if (!storyID || !isSubscriber) return;
+    drafts.fetch(storyID);
+  }, [storyID, isSubscriber, drafts]);
+
+  const draftsList =
+    drafts.list && drafts.storyID === storyID ? drafts.list : null;
+
+  const openDraftsMenu = (e: React.MouseEvent<HTMLElement>) => {
+    if (!story?.story_id) return;
+    setDraftsAnchorEl(e.currentTarget);
+  };
+
+  const closeDraftsMenu = () => setDraftsAnchorEl(null);
+
+  const hasOtherDrafts = (draftsList?.length ?? 0) > 1;
+
+  // Switch to another draft of the same ancestry. Preserves chapter
+  // position by mapping the current chapter's index in this story to
+  // the chapter at the same index of the destination (clones are
+  // place-preserving). Falls back to the base URL if the mapping
+  // can't be resolved.
+  const switchToDraft = async (id: string) => {
+    closeDraftsMenu();
+    if (!story?.story_id || id === story.story_id) return;
+    const params = new URLSearchParams(window.location.search);
+    const currentChapterID = params.get("chapter");
+    let destination = `/stories/${id}`;
+    if (currentChapterID && story.chapters) {
+      const idx = story.chapters.findIndex((c) => c.id === currentChapterID);
+      if (idx >= 0) {
+        try {
+          const res = await api.get<Story>(`/stories/${id}`);
+          const destChapters = res.data?.chapters;
+          if (destChapters && destChapters.length > 0) {
+            // Clamp the source index into the destination's range. A
+            // writer deep in draft 2's chapter 40 who switches to a
+            // 30-chapter draft 1 lands on chapter 30, not chapter 1 —
+            // the closest-to-where-they-were geometric fallback,
+            // without heuristics that break when chapters are renamed.
+            const clamped = Math.min(idx, destChapters.length - 1);
+            destination += `?chapter=${destChapters[clamped].id}`;
+          }
+        } catch {
+          // Fall through — the editor will pick a default chapter.
+        }
+      }
+    }
+    navigate(destination);
+  };
 
   const onStoryTitleEdit = async (event: React.SyntheticEvent) => {
     if (story) {
@@ -169,10 +243,93 @@ export const HeaderMenu = () => {
           <span className={styles.storyInfo}>
             <img alt={story?.title} src={story?.image_url} />
             <div className={styles.storyData}>
-              <EditableText
-                textValue={story?.title ? story.title : ""}
-                onTextChange={onStoryTitleEdit}
-              />
+              <span className={styles.titleRow}>
+                <EditableText
+                  textValue={story?.title ? story.title : ""}
+                  onTextChange={onStoryTitleEdit}
+                />
+                {hasOtherDrafts && (
+                  <>
+                    <Tooltip title="Switch drafts">
+                      <Chip
+                        aria-label="Switch drafts"
+                        aria-haspopup="menu"
+                        aria-expanded={Boolean(draftsAnchorEl)}
+                        onClick={openDraftsMenu}
+                        clickable
+                        icon={<HistoryEduIcon />}
+                        deleteIcon={<ArrowDropDownIcon />}
+                        onDelete={openDraftsMenu}
+                        label={
+                          <span className={styles.draftChipLabel}>
+                            <span className={styles.draftChipName}>
+                              {story?.draft_name && story.draft_name.trim().length > 0
+                                ? story.draft_name
+                                : story?.original_story_id
+                                  ? "Untitled draft"
+                                  : "Original"}
+                            </span>
+                          </span>
+                        }
+                        color={story?.is_current_draft ? "primary" : "default"}
+                        variant={story?.is_current_draft ? "filled" : "outlined"}
+                        sx={{
+                          ml: 1,
+                          height: "auto",
+                          py: 0.25,
+                          alignItems: "center",
+                          "& .MuiChip-label": {
+                            px: 0.75,
+                            display: "flex",
+                            alignItems: "center",
+                          },
+                          "& .MuiChip-icon": { my: "auto", ml: 0.75, mr: -0.25 },
+                          "& .MuiChip-deleteIcon": { my: "auto", ml: -0.25, mr: 0.5 },
+                        }}
+                      />
+                    </Tooltip>
+                    <Menu
+                      anchorEl={draftsAnchorEl}
+                      open={Boolean(draftsAnchorEl)}
+                      onClose={closeDraftsMenu}
+                      slotProps={{
+                        paper: { sx: { minWidth: 200, maxWidth: 320 } },
+                      }}
+                    >
+                      {draftsList?.map((d) => {
+                          const isActive = d.story_id === story?.story_id;
+                          const isCurrent = d.is_current_draft ?? false;
+                          const label =
+                            d.draft_name && d.draft_name.trim().length > 0
+                              ? d.draft_name
+                              : d.original_story_id
+                                ? "Untitled draft"
+                                : "Original";
+                          return (
+                            <MenuItem
+                              key={d.story_id}
+                              selected={isActive}
+                              onClick={() => switchToDraft(d.story_id)}
+                            >
+                              <ListItemIcon>
+                                {isActive ? (
+                                  <CheckIcon fontSize="small" />
+                                ) : (
+                                  <span style={{ width: 20 }} />
+                                )}
+                              </ListItemIcon>
+                              <ListItemText
+                                primary={label}
+                                secondary={isCurrent ? "primary version" : undefined}
+                                secondaryTypographyProps={{ fontSize: "0.7rem" }}
+                              />
+                            </MenuItem>
+                          );
+                      })}
+                    </Menu>
+                  </>
+                )}
+              </span>
               <div className={styles.seriesInfo}>
                 <EditableText
                   textValue={series?.series_title ? series.series_title : ""}

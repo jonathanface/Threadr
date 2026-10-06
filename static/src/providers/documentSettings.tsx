@@ -100,6 +100,8 @@ export const DocumentSettingsProvider: React.FC<{
   };
 
   useEffect(() => {
+    // Data fetch on mount / storyID change; setState inside is intentional
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchDocumentSettings();
   }, [fetchDocumentSettings, storyID]);
 

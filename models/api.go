@@ -107,6 +107,19 @@ type Story struct {
 	Place       int              `json:"place"`
 	ImageURL    string           `json:"image_url"   dynamodbav:"image_url"`
 	Inactive    bool             `json:"inactive"    dynamodbav:"inactive"`
+	// Drafts: a draft is a sibling Story row with OriginalStoryID = root.id.
+	// The root row has OriginalStoryID = "". Exactly one row across an
+	// ancestry group has IsCurrentDraft = true at a given time; it is the
+	// row shown in the stories list and resolved by share links.
+	// DraftName is user-facing; the root defaults to "Original" (set lazily
+	// on first draft creation).
+	OriginalStoryID string `json:"original_story_id,omitempty" dynamodbav:"original_story_id,omitempty"`
+	DraftName       string `json:"draft_name,omitempty"        dynamodbav:"draft_name,omitempty"`
+	// *bool so the three states — attribute missing, explicitly true,
+	// explicitly false — all round-trip through JSON. A plain bool with
+	// omitempty would strip "false" from the response, making a demoted
+	// root indistinguishable from a never-drafted standalone.
+	IsCurrentDraft *bool `json:"is_current_draft,omitempty" dynamodbav:"is_current_draft,omitempty"`
 }
 type StorySettings struct {
 	Spellcheck  bool    `json:"spellcheck"   dynamodbav:"spellcheck"`

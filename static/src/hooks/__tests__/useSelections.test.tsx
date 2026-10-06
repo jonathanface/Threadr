@@ -61,6 +61,7 @@ describe('useSelections', () => {
     vi.spyOn(useWorksListModule, 'useWorksList').mockReturnValue({
       storiesList: [mockStory],
       setStoriesList: mockSetStoriesList,
+      refresh: vi.fn(),
       seriesList: [mockSeries],
       setSeriesList: mockSetSeriesList,
     });
@@ -706,6 +707,7 @@ describe('useSelections', () => {
       vi.spyOn(useWorksListModule, 'useWorksList').mockReturnValue({
         storiesList: null,
         setStoriesList: mockSetStoriesList,
+        refresh: vi.fn(),
         seriesList: null,
         setSeriesList: mockSetSeriesList,
       });
@@ -864,6 +866,7 @@ describe('useSelections', () => {
       vi.spyOn(useWorksListModule, 'useWorksList').mockReturnValue({
         storiesList: null,
         setStoriesList: mockSetStoriesList,
+        refresh: vi.fn(),
         seriesList: null,
         setSeriesList: mockSetSeriesList,
       });

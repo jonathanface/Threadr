@@ -6,6 +6,7 @@ import { Avatar, Box, Chip, CircularProgress, IconButton, Tooltip } from "@mui/m
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import LaunchIcon from "@mui/icons-material/Launch";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import { useNavigate } from "react-router-dom";
 import { useLoader } from "../../hooks/useLoader";
@@ -34,7 +35,7 @@ export const SeriesBox: React.FC<SeriesBoxProps> = ({ series }) => {
     navigate(`/series/${seriesID}/edit`);
   };
 
-  const handleStoryClick = (event: React.MouseEvent, storyID: string) => {
+  const handleStoryClick = (event: React.SyntheticEvent, storyID: string) => {
     event.stopPropagation();
     navigate(`/stories/${storyID}`);
   };
@@ -210,18 +211,34 @@ export const SeriesBox: React.FC<SeriesBoxProps> = ({ series }) => {
       {/* Story list strip — always visible at bottom */}
       <div className={styles.storyStrip}>
         {storyCount > 0 && series.stories.map((story) => (
-          <div
+          <Tooltip
             key={story.story_id}
-            className={styles.storyStripItem}
-            onClick={(event) => handleStoryClick(event, story.story_id)}
+            title={`Open "${story.title}"`}
+            placement="top"
+            arrow
           >
-            <Avatar
-              alt={story.title}
-              src={story.image_url}
-              sx={{ width: 24, height: 24, flexShrink: 0 }}
-            />
-            <span className={styles.storyStripTitle}>{story.title}</span>
-          </div>
+            <div
+              className={styles.storyStripItem}
+              role="button"
+              tabIndex={0}
+              aria-label={`Open ${story.title}`}
+              onClick={(event) => handleStoryClick(event, story.story_id)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  handleStoryClick(event, story.story_id);
+                }
+              }}
+            >
+              <Avatar
+                alt={story.title}
+                src={story.image_url}
+                sx={{ width: 24, height: 24, flexShrink: 0 }}
+              />
+              <span className={styles.storyStripTitle}>{story.title}</span>
+              <LaunchIcon className={styles.storyStripOpenIcon} />
+            </div>
+          </Tooltip>
         ))}
         <div
           className={styles.storyStripItem}

@@ -1,0 +1,707 @@
+import CheckIcon from "@mui/icons-material/Check";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import DeleteIcon from "@mui/icons-material/Delete";
+import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
+import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
+import {
+  Box,
+  Button,
+  Checkbox,
+  Chip,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  FormControlLabel,
+  IconButton,
+  LinearProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import axios from "axios";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { api } from "../../../../../api";
+import { useDrafts } from "../../../../../hooks/useDrafts";
+import { useSelections } from "../../../../../hooks/useSelections";
+import { useWorksList } from "../../../../../hooks/useWorksList";
+import { Story } from "../../../../../types/Story";
+
+// Pick the id that PromoteNewRoot would select on the backend so the
+// confirmation prompt can name it: the current draft if any, otherwise
+// the oldest non-root draft in the ancestry.
+const previewPromotionTarget = (drafts: Story[]): Story | null => {
+  const nonRoot = drafts.filter((d) => d.original_story_id);
+  if (nonRoot.length === 0) return null;
+  const current = nonRoot.find((d) => d.is_current_draft);
+  if (current) return current;
+  return nonRoot[0];
+};
+
+interface DraftsDialogProps {
+  open: boolean;
+  setOpen: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
+  const navigate = useNavigate();
+  const { story, setStory, propagateStoryUpdates, deselectChapter, deselectStory } =
+    useSelections();
+  const { refresh: refreshWorksList } = useWorksList();
+  const draftsCtx = useDrafts();
+  // The context's cache is for whichever story was last fetched. When
+  // the dialog opens for a different story (or opens for the first
+  // time), kick off a fetch. refresh() handles the "same id, refetch
+  // after a mutation" case; both of them funnel into the shared cache
+  // that the HeaderMenu chip reads from too.
+  const drafts = useMemo(
+    () =>
+      draftsCtx.storyID === story?.story_id ? draftsCtx.list ?? [] : [],
+    [draftsCtx.storyID, draftsCtx.list, story?.story_id],
+  );
+  const loading = draftsCtx.loading;
+  const [localError, setLocalError] = useState("");
+  const error = useMemo(() => {
+    if (localError) return localError;
+    if (draftsCtx.errorStatus === 402) {
+      return "Drafts are only available to subscribers.";
+    }
+    if (draftsCtx.errorStatus) {
+      return "Could not load drafts. Please try again.";
+    }
+    return "";
+  }, [localError, draftsCtx.errorStatus]);
+  const setError = setLocalError;
+  const [newName, setNewName] = useState("");
+  const [creating, setCreating] = useState(false);
+  // 'clone' copies the current draft's chapters; 'upload' parses an
+  // uploaded .docx / .txt and uses that as the new draft's content.
+  const [createMode, setCreateMode] = useState<"clone" | "upload">("clone");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  // Mirrors the Create Story upload flow: when the uploaded manuscript
+  // leads with a title/cover page, drop that first page before splitting
+  // into chapters so the writer doesn't get a "Title Page" sibling at
+  // the top of their draft.
+  const [skipFirstPage, setSkipFirstPage] = useState(false);
+  const [renamingID, setRenamingID] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  // Pending delete target: null when no confirm is open.
+  const [deleteTarget, setDeleteTarget] = useState<Story | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const promotionTarget = useMemo(
+    () => (deleteTarget && !deleteTarget.original_story_id ? previewPromotionTarget(drafts) : null),
+    [deleteTarget, drafts],
+  );
+
+  const sid = story?.story_id;
+  useEffect(() => {
+    if (!open || !sid) return;
+    // Open → refetch for the current story. refresh() if we already
+    // hold the list for this id (so the dialog reflects any mutations
+    // from a prior session); fetch() for a cold cache.
+    if (draftsCtx.storyID === sid) {
+      draftsCtx.refresh();
+    } else {
+      draftsCtx.fetch(sid);
+    }
+    // Reset error state on open — fine to run during the effect; the
+    // dialog hasn't rendered anything yet that depends on this.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLocalError("");
+  }, [open, sid, draftsCtx]);
+
+  const handleCreate = async () => {
+    const trimmed = newName.trim();
+    if (!trimmed) {
+      setError("Give the draft a name before creating it.");
+      return;
+    }
+    if (createMode === "upload" && !uploadFile) {
+      setError("Choose a document to upload.");
+      return;
+    }
+    if (!story?.story_id) return;
+    setCreating(true);
+    setError("");
+    try {
+      let res;
+      if (createMode === "upload" && uploadFile) {
+        const fd = new FormData();
+        fd.append("file", uploadFile);
+        fd.append("draft_name", trimmed);
+        if (skipFirstPage) fd.append("skip_first_page", "true");
+        res = await api.post<Story>(
+          `/stories/${story.story_id}/drafts/upload`,
+          fd,
+          { headers: { "Content-Type": "multipart/form-data" } },
+        );
+      } else {
+        res = await api.post<Story>(`/stories/${story.story_id}/drafts`, {
+          draft_name: trimmed,
+        });
+      }
+      setNewName("");
+      setUploadFile(null);
+      draftsCtx.refresh();
+      // New draft is auto-promoted to current — the /stories list filter
+      // now admits it and hides the previous current. Nudge the works-
+      // list cache so navigating back to /stories reflects that.
+      refreshWorksList();
+      // Jump into the new draft so the editor is pointed at it.
+      if (res.data?.story_id) {
+        // Preserve the user's chapter selection across the clone: the
+        // backend copies chapters in order, so the chapter at index N
+        // of the source has an equivalent chapter at index N of the
+        // new draft. Carrying the raw ?chapter= uuid across would land
+        // on a stale id that doesn't exist in the new draft and render
+        // a blank editor.
+        const params = new URLSearchParams(window.location.search);
+        const currentChapterID = params.get("chapter");
+        let destination = `/stories/${res.data.story_id}`;
+        if (
+          currentChapterID &&
+          story.chapters &&
+          res.data.chapters &&
+          res.data.chapters.length > 0
+        ) {
+          const idx = story.chapters.findIndex(
+            (c) => c.id === currentChapterID,
+          );
+          if (idx >= 0) {
+            // Clamp into the destination's range so an upload-based
+            // draft with a different chapter count doesn't drop the
+            // writer out of their working position.
+            const clamped = Math.min(idx, res.data.chapters.length - 1);
+            destination += `?chapter=${res.data.chapters[clamped].id}`;
+          }
+        }
+        navigate(destination);
+        setOpen(false);
+      }
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 402) {
+        setError("Drafts are only available to subscribers.");
+      } else if (axios.isAxiosError(err) && err.response?.status === 422) {
+        setError("The document couldn't be parsed. Check the file and try again.");
+      } else {
+        setError("Could not create draft. Please try again.");
+      }
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleSetCurrent = async (id: string) => {
+    setError("");
+    try {
+      await api.post(`/stories/${id}/drafts/current`, {});
+      draftsCtx.refresh();
+      // Which row the stories-list filter admits for this ancestry
+      // just changed; refresh so /stories stays in sync.
+      refreshWorksList();
+    } catch {
+      setError("Could not set primary draft. Please try again.");
+    }
+  };
+
+  const handleRenameStart = (d: Story) => {
+    setRenamingID(d.story_id);
+    setRenameValue(d.draft_name ?? "");
+  };
+
+  const handleRenameSubmit = async () => {
+    if (!renamingID) return;
+    const trimmed = renameValue.trim();
+    if (!trimmed) return;
+    setError("");
+    try {
+      await api.put(`/stories/${renamingID}/draft-name`, {
+        draft_name: trimmed,
+      });
+      // If the renamed row is the one the user is currently editing,
+      // mirror the new name into the shared selection so the chip
+      // label (which reads story.draft_name) updates immediately
+      // without waiting for a story refetch.
+      if (story && renamingID === story.story_id) {
+        const updated: Story = { ...story, draft_name: trimmed };
+        setStory(updated);
+        propagateStoryUpdates(updated);
+      }
+      setRenamingID(null);
+      setRenameValue("");
+      draftsCtx.refresh();
+    } catch {
+      setError("Could not rename draft. Please try again.");
+    }
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (!deleteTarget) return;
+    setError("");
+    setDeleting(true);
+
+    // Compute "the new current" post-delete so we can navigate the user
+    // there regardless of which draft they were viewing. Mirrors the
+    // server-side promotion rules in enforceDraftsDeleteGuards +
+    // PromoteNewRoot so the frontend lands on the same draft the
+    // backend ends up marking current.
+    const remaining = drafts.filter((d) => d.story_id !== deleteTarget.story_id);
+    let newCurrentID: string | null = null;
+    const stillCurrent = remaining.find((d) => d.is_current_draft);
+    if (stillCurrent) {
+      // Deleted a non-current row; whoever already held is_current_draft
+      // keeps it.
+      newCurrentID = stillCurrent.story_id;
+    } else if (deleteTarget.original_story_id) {
+      // Deleted the current draft (non-root): backend promotes root.
+      const root = remaining.find((d) => !d.original_story_id);
+      newCurrentID = root?.story_id ?? null;
+    } else {
+      // Deleted the root while drafts exist: backend's PromoteNewRoot
+      // picks the current draft, else the oldest non-root.
+      const promoted = previewPromotionTarget(remaining);
+      newCurrentID = promoted?.story_id ?? null;
+    }
+
+    try {
+      await api.delete(`/stories/${deleteTarget.story_id}`);
+      setDeleteTarget(null);
+      // The delete may have moved the current pointer (deleted current
+      // → root promoted; deleted root with drafts → PromoteNewRoot).
+      // Either way the stories-list filter sees a different row now.
+      refreshWorksList();
+      if (newCurrentID && newCurrentID !== story?.story_id) {
+        // The user was elsewhere than the new current, or they were on
+        // the deleted story. Either way, land them on the new current
+        // so they're not stuck looking at a story they didn't choose
+        // (and so a stale story_id in context doesn't 404 the next
+        // ancestry-aware read).
+        //
+        // Clear both the story and the chapter in the shared selections
+        // context before navigating. Two effects race the navigation:
+        //   1. useFetchStoryBlocks keys off useSelections().chapter.id,
+        //      so a leftover chapter id from the deleted draft would
+        //      produce a /content?chapter=<stale-id> request against
+        //      the new story and 404.
+        //   2. DocumentEditor's "ensure chapter param exists" effect
+        //      runs with (storyID = new, story = old) during the brief
+        //      window before the new story is fetched. If story still
+        //      points at the deleted draft, that effect reads
+        //      story.chapters[0]?.id — which is a chapter id of the
+        //      deleted draft — and writes it to the URL, triggering
+        //      the same 404.
+        // Deselecting both forces the DocumentEditor to re-establish
+        // state from the new storyID without any stale carry-over.
+        deselectChapter();
+        deselectStory();
+        navigate(`/stories/${newCurrentID}`);
+        setOpen(false);
+        return;
+      }
+      draftsCtx.refresh();
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
+        setError(err.response.data?.error || "Delete the drafts first before deleting the original.");
+      } else {
+        setError("Could not delete draft. Please try again.");
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleSwitchTo = async (id: string) => {
+    // Preserve chapter position across the switch: resolve the current
+    // chapter's index in the source story and map to the chapter at the
+    // same index in the destination. If anything fails (no chapter
+    // selected, mapping can't be resolved, destination fetch errors)
+    // just navigate to the base story URL and let the editor decide.
+    const params = new URLSearchParams(window.location.search);
+    const currentChapterID = params.get("chapter");
+    let destination = `/stories/${id}`;
+    if (currentChapterID && story?.chapters) {
+      const idx = story.chapters.findIndex((c) => c.id === currentChapterID);
+      if (idx >= 0) {
+        try {
+          const res = await api.get<Story>(`/stories/${id}`);
+          const destChapters = res.data?.chapters;
+          if (destChapters && destChapters.length > 0) {
+            // Clamp into the destination's range: switching from a
+            // 40-chapter draft at chapter 40 to a 30-chapter draft
+            // lands on chapter 30, not chapter 1.
+            const clamped = Math.min(idx, destChapters.length - 1);
+            destination += `?chapter=${destChapters[clamped].id}`;
+          }
+        } catch {
+          // Fall through to the base-URL destination.
+        }
+      }
+    }
+    navigate(destination);
+    setOpen(false);
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onClose={() => !creating && setOpen(false)}
+      fullWidth
+      maxWidth="md"
+    >
+      <DialogTitle>
+        {story?.title ? `Drafts of "${story.title}"` : "Drafts"}
+      </DialogTitle>
+      {creating && (
+        <LinearProgress
+          aria-label="Creating draft"
+          sx={{ height: 3 }}
+        />
+      )}
+      <DialogContent>
+        {error && (
+          <Typography color="error" variant="body2" sx={{ mb: 2 }}>
+            {error}
+          </Typography>
+        )}
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Keep multiple drafts of this story and switch between them.
+          <br />
+          <br />
+          One draft is marked <strong>primary</strong> — the version your readers see on the stories list and reach through share links.
+        </Typography>
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Title</TableCell>
+                <TableCell align="center" sx={{ width: 96 }}>Primary</TableCell>
+                <TableCell align="right" sx={{ width: 104 }} />
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {drafts.map((d) => {
+                const isCurrent = d.is_current_draft ?? false;
+                const label = d.draft_name && d.draft_name.trim().length > 0
+                  ? d.draft_name
+                  : d.original_story_id
+                    ? "Untitled draft"
+                    : "Original";
+                const isActive = d.story_id === story?.story_id;
+                return (
+                  <TableRow
+                    key={d.story_id}
+                    sx={{
+                      backgroundColor: isCurrent ? "action.selected" : undefined,
+                    }}
+                  >
+                    <TableCell>
+                      {renamingID === d.story_id ? (
+                        <TextField
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          size="small"
+                          fullWidth
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleRenameSubmit();
+                            if (e.key === "Escape") {
+                              setRenamingID(null);
+                              setRenameValue("");
+                            }
+                          }}
+                        />
+                      ) : (
+                        <Box
+                          onClick={() => !isActive && handleSwitchTo(d.story_id)}
+                          sx={{
+                            cursor: isActive ? "default" : "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            "&:hover .draft-title": !isActive
+                              ? { textDecoration: "underline" }
+                              : undefined,
+                          }}
+                        >
+                          <Typography
+                            variant="body2"
+                            className="draft-title"
+                            sx={{
+                              fontFamily:
+                                '"Source Serif Pro", "Charter", Georgia, serif',
+                              fontSize: "1rem",
+                            }}
+                          >
+                            {label}
+                          </Typography>
+                          {isActive && (
+                            <Chip
+                              label="editing"
+                              size="small"
+                              variant="outlined"
+                              color="primary"
+                              sx={{
+                                height: 20,
+                                fontSize: "0.7rem",
+                                "& .MuiChip-label": { px: 0.75 },
+                              }}
+                            />
+                          )}
+                        </Box>
+                      )}
+                    </TableCell>
+                    <TableCell align="center">
+                      <Tooltip title={isCurrent ? "Primary draft" : "Set as primary"}>
+                        <span>
+                          <IconButton
+                            aria-label="set as primary"
+                            onClick={() => !isCurrent && handleSetCurrent(d.story_id)}
+                            disabled={isCurrent}
+                            size="small"
+                          >
+                            {isCurrent ? (
+                              <CheckIcon fontSize="small" />
+                            ) : (
+                              <RadioButtonUncheckedIcon
+                                fontSize="small"
+                                sx={{ opacity: 0.5 }}
+                              />
+                            )}
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Tooltip title="Rename">
+                        <IconButton
+                          aria-label="rename"
+                          onClick={() => handleRenameStart(d)}
+                          size="small"
+                        >
+                          <DriveFileRenameOutlineIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip
+                        title={
+                          drafts.length <= 1
+                            ? "A story must have at least one draft"
+                            : d.original_story_id
+                              ? "Delete draft"
+                              : "Delete original"
+                        }
+                      >
+                        <span>
+                          <IconButton
+                            aria-label="delete"
+                            onClick={() => setDeleteTarget(d)}
+                            disabled={drafts.length <= 1}
+                            size="small"
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        {!loading && drafts.length === 0 && (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            No drafts yet. Create one below to try an alternate ending or revision.
+          </Typography>
+        )}
+        <Divider sx={{ mt: 4 }} />
+        <Box sx={{ mt: 3 }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: "block", mb: 0.5, textTransform: "none" }}
+          >
+            Create from
+          </Typography>
+          <ToggleButtonGroup
+            value={createMode}
+            exclusive
+            size="small"
+            onChange={(_, next) => {
+              if (next) setCreateMode(next);
+            }}
+            disabled={creating}
+            sx={{ mb: 1.5 }}
+          >
+            <ToggleButton value="clone">
+              <ContentCopyIcon fontSize="small" sx={{ mr: 0.5 }} />
+              Clone current
+            </ToggleButton>
+            <ToggleButton value="upload">
+              <UploadFileIcon fontSize="small" sx={{ mr: 0.5 }} />
+              Upload document
+            </ToggleButton>
+          </ToggleButtonGroup>
+          <TextField
+            label="New draft name"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !creating) handleCreate();
+            }}
+            size="small"
+            fullWidth
+            disabled={creating}
+          />
+          {createMode === "upload" && (
+            <Box sx={{ mt: 1 }}>
+              <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                <Button
+                  variant="outlined"
+                  component="label"
+                  size="small"
+                  disabled={creating}
+                  startIcon={<UploadFileIcon />}
+                >
+                  {uploadFile ? "Change file" : "Choose .docx or .txt"}
+                  <input
+                    hidden
+                    type="file"
+                    accept=".docx,.txt"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] ?? null;
+                      setUploadFile(f);
+                    }}
+                  />
+                </Button>
+                {uploadFile && (
+                  <Typography variant="caption" color="text.secondary">
+                    {uploadFile.name}
+                  </Typography>
+                )}
+              </Box>
+              <FormControlLabel
+                sx={{ mt: 0.5 }}
+                control={
+                  <Checkbox
+                    size="small"
+                    checked={skipFirstPage}
+                    onChange={(e) => setSkipFirstPage(e.target.checked)}
+                    disabled={creating}
+                  />
+                }
+                label={
+                  <Typography variant="body2">
+                    Skip first page (title / cover)
+                  </Typography>
+                }
+              />
+            </Box>
+          )}
+        </Box>
+        {creating && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: "block", mt: 1 }}
+          >
+            {createMode === "upload"
+              ? "Parsing the uploaded document and building the new draft. This can take a few seconds."
+              : "Copying chapters, blocks, and outline. This can take a few seconds for larger stories."}
+          </Typography>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setOpen(false)} disabled={creating}>
+          Close
+        </Button>
+        <Button
+          variant="contained"
+          onClick={handleCreate}
+          disabled={creating}
+          startIcon={
+            creating ? (
+              <CircularProgress size={16} color="inherit" />
+            ) : undefined
+          }
+        >
+          {creating
+            ? createMode === "upload"
+              ? "Importing..."
+              : "Cloning story..."
+            : "Create draft"}
+        </Button>
+      </DialogActions>
+
+      <Dialog
+        open={deleteTarget !== null}
+        onClose={() => !deleting && setDeleteTarget(null)}
+      >
+        <DialogTitle>
+          {deleteTarget?.original_story_id
+            ? `Delete draft "${deleteTarget?.draft_name || "Untitled draft"}"?`
+            : `Delete the original of "${deleteTarget?.title ?? "this story"}"?`}
+        </DialogTitle>
+        <DialogContent>
+          {deleteTarget && !deleteTarget.original_story_id ? (
+            <>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                This is the original of the story. Deleting it will promote
+                {" "}<strong>{promotionTarget?.draft_name || "the primary draft"}</strong>{" "}
+                to become the new original. The original's content, chapters,
+                and outline will be <strong>permanently removed</strong> and
+                cannot be restored. Associations and existing reader share
+                links will be transferred to the new original.
+              </Typography>
+              <Typography variant="body2" color="error">
+                This cannot be undone.
+              </Typography>
+            </>
+          ) : (
+            <>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                This draft's content, chapters, and comments will be
+                permanently removed.
+                {deleteTarget && story?.story_id === deleteTarget.story_id && (
+                  <>
+                    {" "}You are currently viewing this draft; after it's
+                    deleted you'll be redirected to the primary draft of
+                    this story.
+                  </>
+                )}
+              </Typography>
+              <Typography variant="body2" color="error">
+                This cannot be undone.
+              </Typography>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteTarget(null)} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirmed}
+            color="error"
+            variant="contained"
+            disabled={deleting}
+          >
+            {deleting ? "Deleting..." : "Delete"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Dialog>
+  );
+};

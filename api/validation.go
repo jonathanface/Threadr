@@ -9,7 +9,7 @@ import (
 )
 
 // Keep this pattern in sync with frontend validation in CreateOrEditStory/utils/validation.ts.
-var allowedPattern = regexp.MustCompile(`^[A-Za-z0-9 +\-\=\.\_\:\,\'\"\/@]*$`)
+var allowedPattern = regexp.MustCompile(`^[A-Za-z0-9 +\-\=\.\_\:\,\'\"\/@!?]*$`)
 
 // ValidationError represents a validation failure.
 type ValidationError struct {
@@ -53,7 +53,7 @@ func ValidateStoryTitle(title string) *ValidationError {
 	if !allowedPattern.MatchString(trimmed) {
 		return &ValidationError{
 			Field:   "title",
-			Message: `Title may only contain letters, numbers, spaces, and the following characters: + - = . _ : / @ , ' "`,
+			Message: `Title may only contain letters, numbers, spaces, and the following characters: + - = . _ : / @ , ' " ! ?`,
 		}
 	}
 

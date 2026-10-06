@@ -8,6 +8,7 @@ import { LoaderProvider } from "./providers/loader";
 import { UserProvider } from "./providers/user";
 import { SelectionsProvider } from "./providers/selections";
 import { WorksListProvider } from "./providers/worksList";
+import { DraftsProvider } from "./providers/drafts";
 import { NotificationsProvider } from "./providers/notifications";
 import { AlertProvider } from "./providers/alert";
 import { AuthProvider } from "react-oidc-context";
@@ -103,9 +104,11 @@ const AppWithTheme = () => {
                     <NotificationsProvider>
                       <SelectionsProvider>
                         <WorksListProvider>
-                          <Toaster />
-                          <Loader />
-                          <Threadr />
+                          <DraftsProvider>
+                            <Toaster />
+                            <Loader />
+                            <Threadr />
+                          </DraftsProvider>
                         </WorksListProvider>
                       </SelectionsProvider>
                     </NotificationsProvider>

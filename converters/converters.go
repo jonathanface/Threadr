@@ -515,16 +515,10 @@ a { text-decoration: underline; }
 	return outName, nil
 }
 
-func HTMLToDOCX(export models.DocumentExportRequest) (string, error) {
-	if err := os.MkdirAll("./tmp", tmpDirPerm); err != nil {
-		return "", err
-	}
-
-	typo := resolveTypography(export)
-	// DOCX exports always use 12pt body text regardless of editor preference —
-	// it's the manuscript-standard size, and Word readers expect it.
-	typo.SizePx = models.DefaultExportFontSize
-
+// buildDocxExportHTML renders the HTML body pandoc converts into the final
+// DOCX. Pulled out so the chapter-boundary structure (h1 + explicit
+// page-break-before div) can be tested without a real pandoc binary.
+func buildDocxExportHTML(export models.DocumentExportRequest, typo typography) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, `
 		<html>
@@ -538,19 +532,42 @@ func HTMLToDOCX(export models.DocumentExportRequest) (string, error) {
 	sanitizer := bluemonday.UGCPolicy()
 	sanitizer.AllowAttrs("style", "custom-style").OnElements("div", "p")
 
-	for _, htmlData := range export.HTMLByChapter {
+	for i, htmlData := range export.HTMLByChapter {
 		title := html.EscapeString(htmlData.Chapter)
+		// Emit a real DOCX page break between chapters, not just an h1.
+		// Pandoc converts "page-break-before: always" into a <w:br
+		// w:type="page"/> in the DOCX output, which is the signal every
+		// downstream importer (Threadr's own, Word, Google Docs, etc.)
+		// recognizes. Previously the only chapter boundary was Heading 1's
+		// style-level "page break before" setting, which looks like a
+		// break in Word but is invisible to tools that treat <h1> as
+		// generic section markup.
+		if i > 0 {
+			b.WriteString(`<div style="page-break-before: always"></div>`)
+		}
 		b.WriteString(`<h1>` + title + `</h1>`)
 		b.WriteString(sanitizer.Sanitize(mapParagraphTypographyToCustomStyle(stripDocxNoise(htmlData.HTML))))
 	}
 	b.WriteString(`</body></html>`)
+	return b.String()
+}
+
+func HTMLToDOCX(export models.DocumentExportRequest) (string, error) {
+	if err := os.MkdirAll("./tmp", tmpDirPerm); err != nil {
+		return "", err
+	}
+
+	typo := resolveTypography(export)
+	// DOCX exports always use 12pt body text regardless of editor preference —
+	// it's the manuscript-standard size, and Word readers expect it.
+	typo.SizePx = models.DefaultExportFontSize
 
 	tmpHTML, err := os.CreateTemp("", "html_to_docx_*.html")
 	if err != nil {
 		return "", err
 	}
 	defer os.Remove(tmpHTML.Name())
-	if _, err = tmpHTML.WriteString(b.String()); err != nil {
+	if _, err = tmpHTML.WriteString(buildDocxExportHTML(export, typo)); err != nil {
 		return "", err
 	}
 	_ = tmpHTML.Close()

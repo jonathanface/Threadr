@@ -19,6 +19,7 @@ const (
 	BenefitAssociations    = "associations"
 	BenefitExport          = "export"
 	BenefitShare           = "share"
+	BenefitDrafts          = "drafts"
 	BenefitPrioritySupport = "priority_support"
 )
 
@@ -49,6 +50,11 @@ var SubscriberBenefits = []SubscriberBenefit{
 		ID:          BenefitShare,
 		Title:       "Share with readers",
 		Description: "Send your story to early readers with a unique share link and collect their feedback in-app.",
+	},
+	{
+		ID:          BenefitDrafts,
+		Title:       "Story drafts",
+		Description: "Keep multiple drafts of the same story and switch between them any time.",
 	},
 	{
 		ID:          BenefitPrioritySupport,

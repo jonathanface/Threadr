@@ -168,21 +168,18 @@ describe('validation', () => {
 
         expect(result).toEqual({
           field: 'title',
-          message: 'Title may only contain letters, numbers, spaces, and the following characters: + - = . _ : / @ , \' "',
+          message: 'Title may only contain letters, numbers, spaces, and the following characters: + - = . _ : / @ , \' " ! ?',
         });
       });
 
-      it('should return error for title with exclamation mark', () => {
+      it('should allow exclamation marks in title', () => {
         const result = validateTitle('Story Title!');
-
-        expect(result?.field).toBe('title');
-        expect(result?.message).toContain('may only contain');
+        expect(result).toBeNull();
       });
 
-      it('should return error for title with question mark', () => {
+      it('should allow question marks in title', () => {
         const result = validateTitle('Story Title?');
-
-        expect(result?.field).toBe('title');
+        expect(result).toBeNull();
       });
 
       it('should return error for title with ampersand', () => {

@@ -117,7 +117,7 @@ export const useEditorCommandsDemo = (
         removeTabPress();
       };
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/refs
   }, [editorRef.current, handleTabPress]);
 
   useEffect(() => {
@@ -227,6 +227,6 @@ export const useEditorCommandsDemo = (
         removeListener();
       };
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/refs
   }, [editorRef.current, pastedParagraphKeys]);
 };
