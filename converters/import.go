@@ -190,6 +190,18 @@ func SplitHTMLIntoChapters(htmlContent string, autotab bool, skipFirstPage bool)
 	sanitizer.AllowAttrs("style").OnElements("p", "div", "span")
 	htmlContent = sanitizer.Sanitize(htmlContent)
 
+	// A DOCX with a hard page break inside a Heading 1 paragraph (the
+	// pattern Threadr's own exporter produces, and the pattern the
+	// retrofit script generates) renders in pandoc as
+	//   <h1>SENTINELChapter Title</h1>
+	// Strip stray sentinels from inside headings before anything else so
+	// the title extraction below gets a clean title and the splitter
+	// doesn't fire twice at the same boundary.
+	h1Scrub := regexp.MustCompile(`(?is)(<h1[^>]*>)(.*?)(</h1>)`)
+	htmlContent = h1Scrub.ReplaceAllStringFunc(htmlContent, func(m string) string {
+		return strings.ReplaceAll(m, pageBreakMarker, "")
+	})
+
 	// Writers delimit chapters two ways: hard page breaks (<w:br
 	// w:type="page"/>, caught upstream by the sentinel injector) and the
 	// Heading 1 paragraph style (which pandoc renders as <h1>). Treat
