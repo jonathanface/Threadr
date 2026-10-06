@@ -190,8 +190,19 @@ func SplitHTMLIntoChapters(htmlContent string, autotab bool, skipFirstPage bool)
 	sanitizer.AllowAttrs("style").OnElements("p", "div", "span")
 	htmlContent = sanitizer.Sanitize(htmlContent)
 
-	// If we have page break markers, split on those (preferred over headings)
-	// Split on page break markers
+	// Writers delimit chapters two ways: hard page breaks (<w:br
+	// w:type="page"/>, caught upstream by the sentinel injector) and the
+	// Heading 1 paragraph style (which pandoc renders as <h1>). Treat
+	// both as section boundaries so a 50-chapter manuscript that uses
+	// Heading 1 for titles doesn't collapse to one or two chunks.
+	// Prepend the sentinel before every <h1 ...> so a single Split call
+	// handles both. The h1 itself stays in the section — we extract its
+	// text below as the chapter title.
+	h1Open := regexp.MustCompile(`(?i)<h1[\s>]`)
+	htmlContent = h1Open.ReplaceAllStringFunc(htmlContent, func(match string) string {
+		return pageBreakMarker + match
+	})
+
 	sections := strings.Split(htmlContent, pageBreakMarker)
 
 	// Skip the first page (title page) if requested
@@ -203,11 +214,23 @@ func SplitHTMLIntoChapters(htmlContent string, autotab bool, skipFirstPage bool)
 	// (caused by markers landing inside HTML elements)
 	danglingCloseTag := regexp.MustCompile(`^(\s*</\w+>\s*)+`)
 
+	// Pull a leading <h1>...</h1> off a section — its text becomes the
+	// chapter title and must not re-appear in the body.
+	leadingH1 := regexp.MustCompile(`(?is)^\s*<h1[^>]*>(.*?)</h1>\s*`)
+
 	var chapters []ImportedChapter
 	for _, section := range sections {
 		section = strings.TrimSpace(section)
 		section = danglingCloseTag.ReplaceAllString(section, "")
 		section = strings.TrimSpace(section)
+
+		titleFromHeading := ""
+		if m := leadingH1.FindStringSubmatch(section); m != nil {
+			titleFromHeading = strings.TrimSpace(stripHTMLTags(m[1]))
+			section = leadingH1.ReplaceAllString(section, "")
+			section = strings.TrimSpace(section)
+		}
+
 		// Strip all HTML tags and check if any real text remains
 		plainText := strings.TrimSpace(stripHTMLTags(section))
 		if plainText == "" {
@@ -217,14 +240,20 @@ func SplitHTMLIntoChapters(htmlContent string, autotab bool, skipFirstPage bool)
 		if len(blocks) == 0 {
 			continue
 		}
-		title := fmt.Sprintf("Chapter %d", len(chapters)+1)
+		title := titleFromHeading
+		if title == "" {
+			title = fmt.Sprintf("Chapter %d", len(chapters)+1)
+		}
+		if len(title) > 256 { //nolint:mnd
+			title = title[:256]
+		}
 		chapters = append(chapters, ImportedChapter{
 			Title:  title,
 			Blocks: blocks,
 		})
 	}
 	if len(chapters) == 0 {
-		// No page breaks found — single chapter
+		// No breaks or headings — single chapter
 		return []ImportedChapter{{
 			Title:  firstChapterTitle,
 			Blocks: htmlToLexicalBlocks(htmlContent, autotab),
