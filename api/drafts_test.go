@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -220,5 +221,103 @@ func TestRenameStoryDraftEndpoint_NonSubscriberGets402(t *testing.T) {
 	RenameStoryDraftEndpoint(w, req)
 	if w.Code != http.StatusPaymentRequired {
 		t.Errorf("expected 402, got %d. body=%s", w.Code, w.Body.String())
+	}
+}
+
+// uploadTestStoryID is the id every upload test uses — the endpoint's
+// behavior under test doesn't depend on which story id the URL carries,
+// so pinning this constant keeps the helper signature small and keeps
+// the unparam linter happy.
+const uploadTestStoryID = "src-1"
+
+// buildUploadRequest wires a multipart body with optional file + form
+// fields. The file arg is a tuple so individual tests can omit the file
+// to exercise the "no file provided" branch.
+func buildUploadRequest(
+	t *testing.T,
+	mockDAO *daos.MockDAO,
+	subscriber bool,
+	file *struct{ name, body string },
+	fields map[string]string,
+) *http.Request {
+	t.Helper()
+	var buf bytes.Buffer
+	w := multipart.NewWriter(&buf)
+	if file != nil {
+		fw, err := w.CreateFormFile("file", file.name)
+		if err != nil {
+			t.Fatalf("create form file: %v", err)
+		}
+		if _, err = fw.Write([]byte(file.body)); err != nil {
+			t.Fatalf("write form file: %v", err)
+		}
+	}
+	for k, v := range fields {
+		if err := w.WriteField(k, v); err != nil {
+			t.Fatalf("write field %s: %v", k, err)
+		}
+	}
+	_ = w.Close()
+	req := httptest.NewRequest(http.MethodPost,
+		"/api/v1/stories/"+uploadTestStoryID+"/drafts/upload", &buf)
+	req.Header.Set("Content-Type", w.FormDataContentType())
+	req = AddSessionCookieToRequest(req, "test@example.com")
+	ctx := context.WithValue(req.Context(), ctxkey.DAO, mockDAO)
+	ctx = context.WithValue(ctx, ctxkey.Subscriber, subscriber)
+	req = req.WithContext(ctx)
+	return mux.SetURLVars(req, map[string]string{"storyID": uploadTestStoryID})
+}
+
+func TestCreateDraftFromImportEndpoint_NonSubscriberGets402(t *testing.T) {
+	req := buildUploadRequest(t, daos.NewMockDAO(), false,
+		&struct{ name, body string }{"foo.txt", "hello"},
+		map[string]string{"draft_name": "Alt"})
+	w := httptest.NewRecorder()
+	CreateDraftFromImportEndpoint(w, req)
+	if w.Code != http.StatusPaymentRequired {
+		t.Errorf("expected 402, got %d. body=%s", w.Code, w.Body.String())
+	}
+}
+
+func TestCreateDraftFromImportEndpoint_MissingDraftNameReturns400(t *testing.T) {
+	req := buildUploadRequest(t, daos.NewMockDAO(), true,
+		&struct{ name, body string }{"foo.txt", "hello"},
+		map[string]string{"draft_name": "   "})
+	w := httptest.NewRecorder()
+	CreateDraftFromImportEndpoint(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d. body=%s", w.Code, w.Body.String())
+	}
+}
+
+func TestCreateDraftFromImportEndpoint_MissingFileReturns400(t *testing.T) {
+	req := buildUploadRequest(t, daos.NewMockDAO(), true, nil,
+		map[string]string{"draft_name": "Alt"})
+	w := httptest.NewRecorder()
+	CreateDraftFromImportEndpoint(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d. body=%s", w.Code, w.Body.String())
+	}
+}
+
+func TestCreateDraftFromImportEndpoint_UnsupportedFormatReturns400(t *testing.T) {
+	// A .pdf extension isn't in the allowed set — endpoint should reject
+	// before touching the DAO or shelling out to pandoc.
+	daoCalled := false
+	mockDAO := daos.NewMockDAO()
+	mockDAO.MockCreateStoryDraft = func(_, _, _ string) (*models.Story, error) {
+		daoCalled = true
+		return nil, errors.New("should not be called")
+	}
+	req := buildUploadRequest(t, mockDAO, true,
+		&struct{ name, body string }{"foo.pdf", "pdf bytes"},
+		map[string]string{"draft_name": "Alt"})
+	w := httptest.NewRecorder()
+	CreateDraftFromImportEndpoint(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d. body=%s", w.Code, w.Body.String())
+	}
+	if daoCalled {
+		t.Error("DAO must not be called for unsupported formats")
 	}
 }

@@ -223,6 +223,33 @@ func TestHTMLToDOCX_UsesPandocStub_WritesFile(t *testing.T) {
 	_ = os.Remove(outPath) // clean
 }
 
+func TestBuildDocxExportHTML_InsertsPageBreakBetweenChapters(t *testing.T) {
+	exp := toRealExport(testExport{
+		Title: "Breakable",
+		HTMLByChapter: []testChapter{
+			{Chapter: "Chapter 1", HTML: "<p>One.</p>"},
+			{Chapter: "Chapter 2", HTML: "<p>Two.</p>"},
+			{Chapter: "Chapter 3", HTML: "<p>Three.</p>"},
+		},
+	})
+	typo := resolveTypography(exp)
+	typo.SizePx = models.DefaultExportFontSize
+	out := buildDocxExportHTML(exp, typo)
+
+	// Three chapters, two inter-chapter boundaries.
+	breaks := strings.Count(out, `page-break-before: always`)
+	if breaks != 2 {
+		t.Errorf("expected 2 page-break divs between 3 chapters, got %d\nhtml=%s", breaks, out)
+	}
+	// No break before the first chapter — would push the h1 to page 2
+	// and leave page 1 blank.
+	firstH1 := strings.Index(out, `<h1>Chapter 1</h1>`)
+	firstBreak := strings.Index(out, `page-break-before: always`)
+	if firstH1 < 0 || firstBreak < 0 || firstBreak < firstH1 {
+		t.Errorf("page break must come after the first h1; firstH1=%d firstBreak=%d", firstH1, firstBreak)
+	}
+}
+
 func TestHTMLToEPUB_UsesPandocStub_WritesFile(t *testing.T) {
 	// Arrange: fake pandoc
 	fakeDir := mustTempDir(t)

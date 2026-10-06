@@ -1,14 +1,21 @@
 import CheckIcon from "@mui/icons-material/Check";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
+import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
 import {
   Box,
   Button,
+  Checkbox,
+  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
+  FormControlLabel,
   IconButton,
   LinearProgress,
   Table,
@@ -18,13 +25,16 @@ import {
   TableHead,
   TableRow,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Tooltip,
   Typography,
 } from "@mui/material";
 import axios from "axios";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../../../../api";
+import { useDrafts } from "../../../../../hooks/useDrafts";
 import { useSelections } from "../../../../../hooks/useSelections";
 import { useWorksList } from "../../../../../hooks/useWorksList";
 import { Story } from "../../../../../types/Story";
@@ -47,13 +57,44 @@ interface DraftsDialogProps {
 
 export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
   const navigate = useNavigate();
-  const { story, deselectChapter, deselectStory } = useSelections();
+  const { story, setStory, propagateStoryUpdates, deselectChapter, deselectStory } =
+    useSelections();
   const { refresh: refreshWorksList } = useWorksList();
-  const [drafts, setDrafts] = useState<Story[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const draftsCtx = useDrafts();
+  // The context's cache is for whichever story was last fetched. When
+  // the dialog opens for a different story (or opens for the first
+  // time), kick off a fetch. refresh() handles the "same id, refetch
+  // after a mutation" case; both of them funnel into the shared cache
+  // that the HeaderMenu chip reads from too.
+  const drafts = useMemo(
+    () =>
+      draftsCtx.storyID === story?.story_id ? draftsCtx.list ?? [] : [],
+    [draftsCtx.storyID, draftsCtx.list, story?.story_id],
+  );
+  const loading = draftsCtx.loading;
+  const [localError, setLocalError] = useState("");
+  const error = useMemo(() => {
+    if (localError) return localError;
+    if (draftsCtx.errorStatus === 402) {
+      return "Drafts are only available to subscribers.";
+    }
+    if (draftsCtx.errorStatus) {
+      return "Could not load drafts. Please try again.";
+    }
+    return "";
+  }, [localError, draftsCtx.errorStatus]);
+  const setError = setLocalError;
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
+  // 'clone' copies the current draft's chapters; 'upload' parses an
+  // uploaded .docx / .txt and uses that as the new draft's content.
+  const [createMode, setCreateMode] = useState<"clone" | "upload">("clone");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  // Mirrors the Create Story upload flow: when the uploaded manuscript
+  // leads with a title/cover page, drop that first page before splitting
+  // into chapters so the writer doesn't get a "Title Page" sibling at
+  // the top of their draft.
+  const [skipFirstPage, setSkipFirstPage] = useState(false);
   const [renamingID, setRenamingID] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   // Pending delete target: null when no confirm is open.
@@ -65,33 +106,22 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
     [deleteTarget, drafts],
   );
 
-  // Narrowed to story_id so fetchDrafts' identity doesn't churn.
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
-  const fetchDrafts = useCallback(async () => {
-    if (!story?.story_id) return;
-    setLoading(true);
-    setError("");
-    try {
-      const res = await api.get<Story[]>(`/stories/${story.story_id}/drafts`);
-      setDrafts(res.data || []);
-    } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 402) {
-        setError("Drafts are only available to subscribers.");
-      } else {
-        setError("Could not load drafts. Please try again.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [story?.story_id]);
-
+  const sid = story?.story_id;
   useEffect(() => {
-    if (open) {
-      // Data fetch when dialog opens
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      fetchDrafts();
+    if (!open || !sid) return;
+    // Open → refetch for the current story. refresh() if we already
+    // hold the list for this id (so the dialog reflects any mutations
+    // from a prior session); fetch() for a cold cache.
+    if (draftsCtx.storyID === sid) {
+      draftsCtx.refresh();
+    } else {
+      draftsCtx.fetch(sid);
     }
-  }, [open, fetchDrafts]);
+    // Reset error state on open — fine to run during the effect; the
+    // dialog hasn't rendered anything yet that depends on this.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLocalError("");
+  }, [open, sid, draftsCtx]);
 
   const handleCreate = async () => {
     const trimmed = newName.trim();
@@ -99,15 +129,33 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
       setError("Give the draft a name before creating it.");
       return;
     }
+    if (createMode === "upload" && !uploadFile) {
+      setError("Choose a document to upload.");
+      return;
+    }
     if (!story?.story_id) return;
     setCreating(true);
     setError("");
     try {
-      const res = await api.post<Story>(`/stories/${story.story_id}/drafts`, {
-        draft_name: trimmed,
-      });
+      let res;
+      if (createMode === "upload" && uploadFile) {
+        const fd = new FormData();
+        fd.append("file", uploadFile);
+        fd.append("draft_name", trimmed);
+        if (skipFirstPage) fd.append("skip_first_page", "true");
+        res = await api.post<Story>(
+          `/stories/${story.story_id}/drafts/upload`,
+          fd,
+          { headers: { "Content-Type": "multipart/form-data" } },
+        );
+      } else {
+        res = await api.post<Story>(`/stories/${story.story_id}/drafts`, {
+          draft_name: trimmed,
+        });
+      }
       setNewName("");
-      await fetchDrafts();
+      setUploadFile(null);
+      draftsCtx.refresh();
       // New draft is auto-promoted to current — the /stories list filter
       // now admits it and hides the previous current. Nudge the works-
       // list cache so navigating back to /stories reflects that.
@@ -132,8 +180,12 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
           const idx = story.chapters.findIndex(
             (c) => c.id === currentChapterID,
           );
-          if (idx >= 0 && res.data.chapters[idx]) {
-            destination += `?chapter=${res.data.chapters[idx].id}`;
+          if (idx >= 0) {
+            // Clamp into the destination's range so an upload-based
+            // draft with a different chapter count doesn't drop the
+            // writer out of their working position.
+            const clamped = Math.min(idx, res.data.chapters.length - 1);
+            destination += `?chapter=${res.data.chapters[clamped].id}`;
           }
         }
         navigate(destination);
@@ -142,6 +194,8 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 402) {
         setError("Drafts are only available to subscribers.");
+      } else if (axios.isAxiosError(err) && err.response?.status === 422) {
+        setError("The document couldn't be parsed. Check the file and try again.");
       } else {
         setError("Could not create draft. Please try again.");
       }
@@ -154,7 +208,7 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
     setError("");
     try {
       await api.post(`/stories/${id}/drafts/current`, {});
-      await fetchDrafts();
+      draftsCtx.refresh();
       // Which row the stories-list filter admits for this ancestry
       // just changed; refresh so /stories stays in sync.
       refreshWorksList();
@@ -177,9 +231,18 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
       await api.put(`/stories/${renamingID}/draft-name`, {
         draft_name: trimmed,
       });
+      // If the renamed row is the one the user is currently editing,
+      // mirror the new name into the shared selection so the chip
+      // label (which reads story.draft_name) updates immediately
+      // without waiting for a story refetch.
+      if (story && renamingID === story.story_id) {
+        const updated: Story = { ...story, draft_name: trimmed };
+        setStory(updated);
+        propagateStoryUpdates(updated);
+      }
       setRenamingID(null);
       setRenameValue("");
-      await fetchDrafts();
+      draftsCtx.refresh();
     } catch {
       setError("Could not rename draft. Please try again.");
     }
@@ -248,7 +311,7 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
         setOpen(false);
         return;
       }
-      await fetchDrafts();
+      draftsCtx.refresh();
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
         setError(err.response.data?.error || "Delete the drafts first before deleting the original.");
@@ -274,8 +337,13 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
       if (idx >= 0) {
         try {
           const res = await api.get<Story>(`/stories/${id}`);
-          if (res.data?.chapters && res.data.chapters[idx]) {
-            destination += `?chapter=${res.data.chapters[idx].id}`;
+          const destChapters = res.data?.chapters;
+          if (destChapters && destChapters.length > 0) {
+            // Clamp into the destination's range: switching from a
+            // 40-chapter draft at chapter 40 to a 30-chapter draft
+            // lands on chapter 30, not chapter 1.
+            const clamped = Math.min(idx, destChapters.length - 1);
+            destination += `?chapter=${destChapters[clamped].id}`;
           }
         } catch {
           // Fall through to the base-URL destination.
@@ -291,9 +359,11 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
       open={open}
       onClose={() => !creating && setOpen(false)}
       fullWidth
-      maxWidth="sm"
+      maxWidth="md"
     >
-      <DialogTitle>Drafts</DialogTitle>
+      <DialogTitle>
+        {story?.title ? `Drafts of "${story.title}"` : "Drafts"}
+      </DialogTitle>
       {creating && (
         <LinearProgress
           aria-label="Creating draft"
@@ -356,13 +426,39 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
                       ) : (
                         <Box
                           onClick={() => !isActive && handleSwitchTo(d.story_id)}
-                          sx={{ cursor: isActive ? "default" : "pointer" }}
+                          sx={{
+                            cursor: isActive ? "default" : "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            "&:hover .draft-title": !isActive
+                              ? { textDecoration: "underline" }
+                              : undefined,
+                          }}
                         >
-                          <Typography variant="body2">{label}</Typography>
+                          <Typography
+                            variant="body2"
+                            className="draft-title"
+                            sx={{
+                              fontFamily:
+                                '"Source Serif Pro", "Charter", Georgia, serif',
+                              fontSize: "1rem",
+                            }}
+                          >
+                            {label}
+                          </Typography>
                           {isActive && (
-                            <Typography variant="caption" color="text.secondary">
-                              You are editing this draft
-                            </Typography>
+                            <Chip
+                              label="editing"
+                              size="small"
+                              variant="outlined"
+                              color="primary"
+                              sx={{
+                                height: 20,
+                                fontSize: "0.7rem",
+                                "& .MuiChip-label": { px: 0.75 },
+                              }}
+                            />
                           )}
                         </Box>
                       )}
@@ -376,10 +472,14 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
                             disabled={isCurrent}
                             size="small"
                           >
-                            <CheckIcon
-                              fontSize="small"
-                              sx={{ opacity: isCurrent ? 1 : 0.2 }}
-                            />
+                            {isCurrent ? (
+                              <CheckIcon fontSize="small" />
+                            ) : (
+                              <RadioButtonUncheckedIcon
+                                fontSize="small"
+                                sx={{ opacity: 0.5 }}
+                              />
+                            )}
                           </IconButton>
                         </span>
                       </Tooltip>
@@ -426,27 +526,90 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
             No drafts yet. Create one below to try an alternate ending or revision.
           </Typography>
         )}
-        <Box sx={{ mt: 3, display: "flex", gap: 1, alignItems: "center" }}>
+        <Divider sx={{ mt: 4 }} />
+        <Box sx={{ mt: 3 }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: "block", mb: 0.5, textTransform: "none" }}
+          >
+            Create from
+          </Typography>
+          <ToggleButtonGroup
+            value={createMode}
+            exclusive
+            size="small"
+            onChange={(_, next) => {
+              if (next) setCreateMode(next);
+            }}
+            disabled={creating}
+            sx={{ mb: 1.5 }}
+          >
+            <ToggleButton value="clone">
+              <ContentCopyIcon fontSize="small" sx={{ mr: 0.5 }} />
+              Clone current
+            </ToggleButton>
+            <ToggleButton value="upload">
+              <UploadFileIcon fontSize="small" sx={{ mr: 0.5 }} />
+              Upload document
+            </ToggleButton>
+          </ToggleButtonGroup>
           <TextField
             label="New draft name"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !creating) handleCreate();
+            }}
             size="small"
             fullWidth
             disabled={creating}
           />
-          <Button
-            variant="contained"
-            onClick={handleCreate}
-            disabled={creating}
-            startIcon={
-              creating ? (
-                <CircularProgress size={16} color="inherit" />
-              ) : undefined
-            }
-          >
-            {creating ? "Cloning story..." : "Create draft"}
-          </Button>
+          {createMode === "upload" && (
+            <Box sx={{ mt: 1 }}>
+              <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                <Button
+                  variant="outlined"
+                  component="label"
+                  size="small"
+                  disabled={creating}
+                  startIcon={<UploadFileIcon />}
+                >
+                  {uploadFile ? "Change file" : "Choose .docx or .txt"}
+                  <input
+                    hidden
+                    type="file"
+                    accept=".docx,.txt"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] ?? null;
+                      setUploadFile(f);
+                    }}
+                  />
+                </Button>
+                {uploadFile && (
+                  <Typography variant="caption" color="text.secondary">
+                    {uploadFile.name}
+                  </Typography>
+                )}
+              </Box>
+              <FormControlLabel
+                sx={{ mt: 0.5 }}
+                control={
+                  <Checkbox
+                    size="small"
+                    checked={skipFirstPage}
+                    onChange={(e) => setSkipFirstPage(e.target.checked)}
+                    disabled={creating}
+                  />
+                }
+                label={
+                  <Typography variant="body2">
+                    Skip first page (title / cover)
+                  </Typography>
+                }
+              />
+            </Box>
+          )}
         </Box>
         {creating && (
           <Typography
@@ -454,14 +617,31 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
             color="text.secondary"
             sx={{ display: "block", mt: 1 }}
           >
-            Copying chapters, blocks, and outline. This can take a few
-            seconds for larger stories.
+            {createMode === "upload"
+              ? "Parsing the uploaded document and building the new draft. This can take a few seconds."
+              : "Copying chapters, blocks, and outline. This can take a few seconds for larger stories."}
           </Typography>
         )}
       </DialogContent>
       <DialogActions>
         <Button onClick={() => setOpen(false)} disabled={creating}>
           Close
+        </Button>
+        <Button
+          variant="contained"
+          onClick={handleCreate}
+          disabled={creating}
+          startIcon={
+            creating ? (
+              <CircularProgress size={16} color="inherit" />
+            ) : undefined
+          }
+        >
+          {creating
+            ? createMode === "upload"
+              ? "Importing..."
+              : "Cloning story..."
+            : "Create draft"}
         </Button>
       </DialogActions>
 

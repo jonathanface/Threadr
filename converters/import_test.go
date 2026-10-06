@@ -86,6 +86,100 @@ func TestSplitHTMLIntoChapters(t *testing.T) {
 			t.Fatalf("Expected 3 chapters, got %d", len(chapters))
 		}
 	})
+
+	// Pandoc converts Word's Heading 1 paragraphs to <h1> tags. A DOCX
+	// that uses Heading 1 as the only chapter delimiter (the common
+	// case — many manuscripts never insert hard page breaks) should
+	// split correctly, and the h1 text should become the chapter title.
+	t.Run("splits on h1 and uses h1 text as the title", func(t *testing.T) {
+		html := `<h1>Prologue</h1><p>Before everything.</p>` +
+			`<h1>Chapter 1: Dawn</h1><p>Something happens.</p>` +
+			`<h1>Chapter 2: Dusk</h1><p>Something else happens.</p>`
+		chapters := SplitHTMLIntoChapters(html, false, false)
+		if len(chapters) != 3 {
+			t.Fatalf("Expected 3 chapters, got %d", len(chapters))
+		}
+		wantTitles := []string{"Prologue", "Chapter 1: Dawn", "Chapter 2: Dusk"}
+		for i, want := range wantTitles {
+			if chapters[i].Title != want {
+				t.Errorf("chapter %d title: got %q, want %q", i, chapters[i].Title, want)
+			}
+		}
+	})
+
+	// Pandoc preserves <h1 id="..."> attributes on heading tags
+	// (anchor ids). The splitter must still recognize them as chapter
+	// boundaries and extract the inner text as the title.
+	t.Run("handles h1 tags with attributes", func(t *testing.T) {
+		html := `<h1 id="prologue">Prologue</h1><p>a</p>` +
+			`<h1 id="chapter-1">Chapter 1</h1><p>b</p>`
+		chapters := SplitHTMLIntoChapters(html, false, false)
+		if len(chapters) != 2 {
+			t.Fatalf("Expected 2 chapters, got %d", len(chapters))
+		}
+		if chapters[0].Title != "Prologue" {
+			t.Errorf("got %q, want %q", chapters[0].Title, "Prologue")
+		}
+	})
+
+	// Threadr's own DOCX exporter emits a <w:br w:type="page"/>
+	// INSIDE the Heading 1 paragraph, so after pre-processing +
+	// pandoc the HTML has the sentinel bled into the <h1>'s text:
+	//     <h1>SENTINELChapter Title</h1>
+	// The splitter must scrub the sentinel out of the h1 content so
+	// (a) the chapter title doesn't carry the sentinel garbage, and
+	// (b) the split fires exactly once at that boundary — not twice
+	// (once at the natural sentinel, once at the prepended one).
+	t.Run("scrubs stray page-break sentinel inside h1 and keeps the title clean", func(t *testing.T) {
+		html := `<p>First body.</p>` +
+			`<h1>` + pageBreakMarker + `Chapter 2: Second Round</h1><p>Second body.</p>`
+		chapters := SplitHTMLIntoChapters(html, false, false)
+		if len(chapters) != 2 {
+			t.Fatalf("Expected exactly 2 chapters (one h1 boundary), got %d", len(chapters))
+		}
+		if chapters[1].Title != "Chapter 2: Second Round" {
+			t.Errorf("title not scrubbed: got %q", chapters[1].Title)
+		}
+		if strings.Contains(chapters[1].Title, pageBreakMarker) {
+			t.Errorf("sentinel leaked into title: %q", chapters[1].Title)
+		}
+	})
+
+	// Mixed page-break + Heading 1 content (what the Threadr exporter
+	// generates): the hard break lands between content paragraphs and
+	// each chapter begins with an <h1>. The split should fire once per
+	// chapter and titles should come from the h1 text.
+	t.Run("mixed page-break and h1 split once per chapter", func(t *testing.T) {
+		html := `<h1>Chapter 1</h1><p>Body 1.</p>` + pageBreakMarker +
+			`<h1>Chapter 2</h1><p>Body 2.</p>` + pageBreakMarker +
+			`<h1>Chapter 3</h1><p>Body 3.</p>`
+		chapters := SplitHTMLIntoChapters(html, false, false)
+		if len(chapters) != 3 {
+			t.Fatalf("Expected 3 chapters, got %d", len(chapters))
+		}
+		for i, c := range chapters {
+			wantTitle := "Chapter " + strconv.Itoa(i+1)
+			if c.Title != wantTitle {
+				t.Errorf("chapter %d: got %q, want %q", i, c.Title, wantTitle)
+			}
+		}
+	})
+
+	// Headings without any body content should still produce a chapter
+	// title, falling back to "Chapter N" if the h1 scrub left nothing.
+	t.Run("falls back to Chapter N when a section lacks a heading", func(t *testing.T) {
+		html := `<p>Standalone body.</p>` + pageBreakMarker + `<p>Second body.</p>`
+		chapters := SplitHTMLIntoChapters(html, false, false)
+		if len(chapters) != 2 {
+			t.Fatalf("Expected 2 chapters, got %d", len(chapters))
+		}
+		for i, c := range chapters {
+			wantTitle := "Chapter " + strconv.Itoa(i+1)
+			if c.Title != wantTitle {
+				t.Errorf("chapter %d: got %q, want %q", i, c.Title, wantTitle)
+			}
+		}
+	})
 }
 
 func TestHtmlToLexicalBlocks(t *testing.T) {

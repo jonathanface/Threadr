@@ -3,15 +3,20 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 
+	"Threadr/converters"
 	ctxkey "Threadr/ctxkeys"
 	"Threadr/daos"
 	"Threadr/logger"
 	"Threadr/models"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 )
 
@@ -170,4 +175,135 @@ func RenameStoryDraftEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	RespondWithJSON(w, http.StatusOK, nil)
+}
+
+// CreateDraftFromImportEndpoint handles POST /stories/{storyID}/drafts/upload.
+// Creates a new draft of the ancestry containing storyID, replacing the
+// cloned chapters with the contents of an uploaded document (.docx / .txt).
+// Reuses CreateStoryDraft to get the demotion of the previous current and
+// the series_id/place transfer for free, then swaps the cloned chapters
+// for the parsed ones using the same chapter-replacement pattern the
+// /import endpoint uses.
+func CreateDraftFromImportEndpoint(w http.ResponseWriter, r *http.Request) {
+	dao, email, storyID, ok := loadDraftsPreamble(w, r)
+	if !ok {
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxImportFileSize)
+	if err := r.ParseMultipartForm(maxImportFileSize); err != nil { //nolint:gosec // body bounded above
+		RespondWithError(w, http.StatusBadRequest, "File too large. Maximum size is 20MB.")
+		return
+	}
+
+	draftName := strings.TrimSpace(r.FormValue("draft_name"))
+	if draftName == "" {
+		RespondWithError(w, http.StatusBadRequest, "draft_name is required")
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, "No file provided")
+		return
+	}
+	defer file.Close()
+
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	format, formatOK := allowedImportFormats[ext]
+	if !formatOK {
+		RespondWithError(w, http.StatusBadRequest, "Unsupported file format. Allowed: .docx, .txt")
+		return
+	}
+
+	tmpFile, err := os.CreateTemp("", "draft_import_*"+ext)
+	if err != nil {
+		logger.Error("Failed to create temp file for draft import", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "Failed to process file")
+		return
+	}
+	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
+
+	if _, err = io.Copy(tmpFile, file); err != nil {
+		logger.Error("Failed to write temp file for draft import", "error", err)
+		RespondWithError(w, http.StatusInternalServerError, "Failed to process file")
+		return
+	}
+	_ = tmpFile.Close()
+
+	skipFirstPage := r.FormValue("skip_first_page") == "true"
+	importedChapters, err := converters.ImportDocument(tmpFile.Name(), format, true, skipFirstPage)
+	if err != nil {
+		logger.Error("Draft import conversion failed",
+			"error", err, "storyId", storyID, "filename", header.Filename, "format", format)
+		RespondWithError(
+			w,
+			http.StatusUnprocessableEntity,
+			"Failed to import document. The file may be corrupted or in an unsupported format.",
+		)
+		return
+	}
+
+	// Clone the source: this gives us demotion of the previous current,
+	// series_id/place transfer, and a new story row with a (soon-to-be-
+	// discarded) chapter set. Chapters will be replaced below.
+	draft, err := dao.CreateStoryDraft(r.Context(), email, storyID, draftName)
+	if err != nil {
+		if errors.Is(err, daos.ErrStoryNotFound) {
+			RespondWithError(w, http.StatusNotFound, "story not found")
+			return
+		}
+		logger.Error("CreateStoryDraft failed (upload path)", "error", err, "storyId", storyID)
+		RespondWithError(w, http.StatusInternalServerError, "unable to create draft")
+		return
+	}
+
+	// Replace the cloned chapter rows with the imported ones. Mirrors
+	// ImportDocumentEndpoint; orphan content blocks from the clone fall
+	// out of scope with the chapters that referenced them.
+	clonedChapters, cerr := dao.GetChaptersByStoryID(r.Context(), draft.ID)
+	if cerr == nil && len(clonedChapters) > 0 {
+		if delErr := dao.DeleteChapters(r.Context(), draft.ID, clonedChapters); delErr != nil {
+			logger.Warn("Failed to delete cloned chapters before draft import",
+				"error", delErr, "storyId", draft.ID, "chapterCount", len(clonedChapters))
+		}
+	}
+
+	createdChapters := make([]models.Chapter, 0, len(importedChapters))
+	for i, imported := range importedChapters {
+		chapter := models.Chapter{
+			ID:      uuid.New().String(),
+			StoryID: draft.ID,
+			Title:   imported.Title,
+			Place:   i + 1,
+		}
+		created, chErr := dao.CreateChapter(r.Context(), draft.ID, chapter)
+		if chErr != nil {
+			logger.Error("Failed to create chapter during draft import",
+				"error", chErr, "storyId", draft.ID, "chapterIndex", i)
+			RespondWithError(w, http.StatusInternalServerError, "Failed to create chapter during import")
+			return
+		}
+		if len(imported.Blocks) > 0 {
+			storyBlocks := models.StoryBlocks{StoryID: draft.ID, ChapterID: created.ID}
+			for _, block := range imported.Blocks {
+				storyBlocks.Blocks = append(storyBlocks.Blocks, models.StoryBlock{
+					KeyID: block.KeyID,
+					Chunk: block.Chunk,
+					Place: block.Place,
+				})
+			}
+			if wErr := dao.WriteBlocks(r.Context(), draft.ID, &storyBlocks); wErr != nil {
+				logger.Error("Failed to write blocks during draft import",
+					"error", wErr, "storyId", draft.ID, "chapterId", created.ID)
+				RespondWithError(w, http.StatusInternalServerError, "Failed to write content during import")
+				return
+			}
+		}
+		createdChapters = append(createdChapters, created)
+	}
+
+	draft.Chapters = createdChapters
+	RespondWithJSON(w, http.StatusOK, draft)
 }
