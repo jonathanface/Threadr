@@ -87,8 +87,15 @@ export const HeaderMenu = () => {
       if (idx >= 0) {
         try {
           const res = await api.get<Story>(`/stories/${id}`);
-          if (res.data?.chapters && res.data.chapters[idx]) {
-            destination += `?chapter=${res.data.chapters[idx].id}`;
+          const destChapters = res.data?.chapters;
+          if (destChapters && destChapters.length > 0) {
+            // Clamp the source index into the destination's range. A
+            // writer deep in draft 2's chapter 40 who switches to a
+            // 30-chapter draft 1 lands on chapter 30, not chapter 1 —
+            // the closest-to-where-they-were geometric fallback,
+            // without heuristics that break when chapters are renamed.
+            const clamped = Math.min(idx, destChapters.length - 1);
+            destination += `?chapter=${destChapters[clamped].id}`;
           }
         } catch {
           // Fall through — the editor will pick a default chapter.

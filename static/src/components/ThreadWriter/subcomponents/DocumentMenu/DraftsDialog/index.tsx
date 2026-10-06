@@ -180,8 +180,12 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
           const idx = story.chapters.findIndex(
             (c) => c.id === currentChapterID,
           );
-          if (idx >= 0 && res.data.chapters[idx]) {
-            destination += `?chapter=${res.data.chapters[idx].id}`;
+          if (idx >= 0) {
+            // Clamp into the destination's range so an upload-based
+            // draft with a different chapter count doesn't drop the
+            // writer out of their working position.
+            const clamped = Math.min(idx, res.data.chapters.length - 1);
+            destination += `?chapter=${res.data.chapters[clamped].id}`;
           }
         }
         navigate(destination);
@@ -333,8 +337,13 @@ export const DraftsDialog = ({ open, setOpen }: DraftsDialogProps) => {
       if (idx >= 0) {
         try {
           const res = await api.get<Story>(`/stories/${id}`);
-          if (res.data?.chapters && res.data.chapters[idx]) {
-            destination += `?chapter=${res.data.chapters[idx].id}`;
+          const destChapters = res.data?.chapters;
+          if (destChapters && destChapters.length > 0) {
+            // Clamp into the destination's range: switching from a
+            // 40-chapter draft at chapter 40 to a 30-chapter draft
+            // lands on chapter 30, not chapter 1.
+            const clamped = Math.min(idx, destChapters.length - 1);
+            destination += `?chapter=${destChapters[clamped].id}`;
           }
         } catch {
           // Fall through to the base-URL destination.
