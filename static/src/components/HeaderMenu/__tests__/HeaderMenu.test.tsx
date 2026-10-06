@@ -70,6 +70,18 @@ vi.mock("react-router-dom", () => ({
   useNavigate: () => vi.fn(),
 }));
 
+vi.mock("../../../hooks/useDrafts", () => ({
+  useDrafts: () => ({
+    list: null,
+    storyID: null,
+    loading: false,
+    errorStatus: null,
+    fetch: vi.fn(),
+    refresh: vi.fn(),
+    clear: vi.fn(),
+  }),
+}));
+
 vi.mock("../ThemeToggle", () => ({
   ThemeToggle: () => <div data-testid="theme-toggle">Theme Toggle</div>,
 }));

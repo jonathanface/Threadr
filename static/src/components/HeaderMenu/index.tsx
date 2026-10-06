@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useDrafts } from "../../hooks/useDrafts";
 import { useFetchUserData } from "../../hooks/useFetchUserData";
 import { useLoader } from "../../hooks/useLoader";
 import { useSelections } from "../../hooks/useSelections";
@@ -44,46 +45,22 @@ export const HeaderMenu = () => {
   const { showLoader, hideLoader } = useLoader();
   const navigate = useNavigate();
 
-  // Draft switcher state. The chip in the title row only renders when
-  // the loaded story has siblings in its ancestry — a solo story has
-  // nothing to switch to. Fetching on story change lets us gate chip
-  // visibility on the actual sibling count rather than guessing from
-  // the story payload's flags, which can't distinguish "root of an
-  // ancestry whose drafts were all deleted" from "root with drafts".
+  // The chip in the title row only renders when the loaded story has
+  // siblings in its ancestry — a solo story has nothing to switch to.
+  // The drafts list comes from the shared DraftsProvider so mutations
+  // issued from the DraftsDialog (rename, create, set-primary, delete)
+  // propagate here without a refresh.
   const [draftsAnchorEl, setDraftsAnchorEl] = useState<HTMLElement | null>(null);
-  // Cache keyed by the story the list belongs to; derived draftsList only
-  // reads from it when the key matches the currently loaded story, so a
-  // stale fetch from a previous story can't leak into the chip's visibility
-  // check during navigation.
-  const [draftsCache, setDraftsCache] = useState<{
-    storyID: string;
-    list: Story[];
-  } | null>(null);
+  const drafts = useDrafts();
 
   const storyID = story?.story_id;
   useEffect(() => {
     if (!storyID || !isSubscriber) return;
-    let cancelled = false;
-    api
-      .get<Story[]>(`/stories/${storyID}/drafts`)
-      .then((res) => {
-        if (!cancelled) setDraftsCache({ storyID, list: res.data || [] });
-      })
-      .catch((err) => {
-        if (axios.isAxiosError(err)) {
-          console.error(
-            `Error loading drafts: ${err.response?.status} ${err.message}`,
-          );
-        }
-        if (!cancelled) setDraftsCache({ storyID, list: [] });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [storyID, isSubscriber]);
+    drafts.fetch(storyID);
+  }, [storyID, isSubscriber, drafts]);
 
   const draftsList =
-    draftsCache && draftsCache.storyID === storyID ? draftsCache.list : null;
+    drafts.list && drafts.storyID === storyID ? drafts.list : null;
 
   const openDraftsMenu = (e: React.MouseEvent<HTMLElement>) => {
     if (!story?.story_id) return;

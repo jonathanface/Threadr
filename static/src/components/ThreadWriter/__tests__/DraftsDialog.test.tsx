@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import { DraftsDialog } from '../subcomponents/DocumentMenu/DraftsDialog';
+import { DraftsProvider } from '../../../providers/drafts';
 import { api } from '../../../api';
 import { Story } from '../../../types/Story';
 
@@ -41,9 +42,11 @@ let mockUseSelectionsReturn = {
     ],
   },
   chapter: { id: 'src-ch-1' },
+  setStory: vi.fn(),
   setChapter: vi.fn(),
   deselectChapter: vi.fn(),
   deselectStory: vi.fn(),
+  propagateStoryUpdates: vi.fn(),
 };
 vi.mock('../../../hooks/useSelections', () => ({
   useSelections: () => mockUseSelectionsReturn,
@@ -74,7 +77,9 @@ const renderDialog = (props: { open: boolean }) => {
     setOpen,
     ...render(
       <MemoryRouter>
-        <DraftsDialog open={props.open} setOpen={setOpen} />
+        <DraftsProvider>
+          <DraftsDialog open={props.open} setOpen={setOpen} />
+        </DraftsProvider>
       </MemoryRouter>,
     ),
   };
