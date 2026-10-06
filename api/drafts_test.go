@@ -224,6 +224,12 @@ func TestRenameStoryDraftEndpoint_NonSubscriberGets402(t *testing.T) {
 	}
 }
 
+// uploadTestStoryID is the id every upload test uses — the endpoint's
+// behavior under test doesn't depend on which story id the URL carries,
+// so pinning this constant keeps the helper signature small and keeps
+// the unparam linter happy.
+const uploadTestStoryID = "src-1"
+
 // buildUploadRequest wires a multipart body with optional file + form
 // fields. The file arg is a tuple so individual tests can omit the file
 // to exercise the "no file provided" branch.
@@ -231,7 +237,6 @@ func buildUploadRequest(
 	t *testing.T,
 	mockDAO *daos.MockDAO,
 	subscriber bool,
-	storyID string,
 	file *struct{ name, body string },
 	fields map[string]string,
 ) *http.Request {
@@ -254,17 +259,17 @@ func buildUploadRequest(
 	}
 	_ = w.Close()
 	req := httptest.NewRequest(http.MethodPost,
-		"/api/v1/stories/"+storyID+"/drafts/upload", &buf)
+		"/api/v1/stories/"+uploadTestStoryID+"/drafts/upload", &buf)
 	req.Header.Set("Content-Type", w.FormDataContentType())
 	req = AddSessionCookieToRequest(req, "test@example.com")
 	ctx := context.WithValue(req.Context(), ctxkey.DAO, mockDAO)
 	ctx = context.WithValue(ctx, ctxkey.Subscriber, subscriber)
 	req = req.WithContext(ctx)
-	return mux.SetURLVars(req, map[string]string{"storyID": storyID})
+	return mux.SetURLVars(req, map[string]string{"storyID": uploadTestStoryID})
 }
 
 func TestCreateDraftFromImportEndpoint_NonSubscriberGets402(t *testing.T) {
-	req := buildUploadRequest(t, daos.NewMockDAO(), false, "src-1",
+	req := buildUploadRequest(t, daos.NewMockDAO(), false,
 		&struct{ name, body string }{"foo.txt", "hello"},
 		map[string]string{"draft_name": "Alt"})
 	w := httptest.NewRecorder()
@@ -275,7 +280,7 @@ func TestCreateDraftFromImportEndpoint_NonSubscriberGets402(t *testing.T) {
 }
 
 func TestCreateDraftFromImportEndpoint_MissingDraftNameReturns400(t *testing.T) {
-	req := buildUploadRequest(t, daos.NewMockDAO(), true, "src-1",
+	req := buildUploadRequest(t, daos.NewMockDAO(), true,
 		&struct{ name, body string }{"foo.txt", "hello"},
 		map[string]string{"draft_name": "   "})
 	w := httptest.NewRecorder()
@@ -286,7 +291,7 @@ func TestCreateDraftFromImportEndpoint_MissingDraftNameReturns400(t *testing.T) 
 }
 
 func TestCreateDraftFromImportEndpoint_MissingFileReturns400(t *testing.T) {
-	req := buildUploadRequest(t, daos.NewMockDAO(), true, "src-1", nil,
+	req := buildUploadRequest(t, daos.NewMockDAO(), true, nil,
 		map[string]string{"draft_name": "Alt"})
 	w := httptest.NewRecorder()
 	CreateDraftFromImportEndpoint(w, req)
@@ -304,7 +309,7 @@ func TestCreateDraftFromImportEndpoint_UnsupportedFormatReturns400(t *testing.T)
 		daoCalled = true
 		return nil, errors.New("should not be called")
 	}
-	req := buildUploadRequest(t, mockDAO, true, "src-1",
+	req := buildUploadRequest(t, mockDAO, true,
 		&struct{ name, body string }{"foo.pdf", "pdf bytes"},
 		map[string]string{"draft_name": "Alt"})
 	w := httptest.NewRecorder()
