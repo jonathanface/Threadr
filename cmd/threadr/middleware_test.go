@@ -55,6 +55,28 @@ func createRequestWithSession(method, url, email string) *http.Request {
 	return req
 }
 
+func TestAIOptOutMiddleware(t *testing.T) {
+	called := false
+	handler := aiOptOutMiddleware()(createTestHandler(&called))
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/stories", nil)
+
+	handler.ServeHTTP(w, req)
+
+	if !called {
+		t.Error("next handler was not called")
+	}
+	// Header must be present and name the directives both AI training
+	// crawlers and image-training crawlers recognize.
+	got := w.Header().Get("X-Robots-Tag")
+	if got != "noai, noimageai" {
+		t.Errorf("X-Robots-Tag: got %q, want %q", got, "noai, noimageai")
+	}
+	if w.Code != http.StatusOK {
+		t.Errorf("status: got %d, want %d", w.Code, http.StatusOK)
+	}
+}
+
 // Tests for looseMiddleware.
 func TestLooseMiddleware(t *testing.T) {
 	mockDAO := daos.NewMockDAO()

@@ -29,6 +29,11 @@ func setupRouter(mode models.AppMode, dao *daos.DAO, authOptions auth.OauthOptio
 	// Apply CORS middleware first (must be before other middleware to handle preflight)
 	rtr.Use(corsMiddleware(authOptions.FrontEndURL))
 
+	// Stamp X-Robots-Tag: noai, noimageai on every response. The frontend
+	// HTML already carries the same directive as a <meta> tag; this
+	// covers API responses that have no HTML head.
+	rtr.Use(aiOptOutMiddleware())
+
 	// Apply maintenance mode middleware (allows /health to pass through)
 	rtr.Use(maintenanceModeMiddleware(maintenanceMode))
 
