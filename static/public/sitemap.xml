@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://docter.io/</loc>
+    <loc>https://threadr.net/</loc>
     <priority>1.0</priority>
     <changefreq>weekly</changefreq>
   </url>
   <url>
-    <loc>https://docter.io/signin</loc>
+    <loc>https://threadr.net/signin</loc>
     <priority>0.6</priority>
     <changefreq>monthly</changefreq>
   </url>
   <url>
-    <loc>https://docter.io/privacy.html</loc>
+    <loc>https://threadr.net/privacy.html</loc>
     <priority>0.3</priority>
     <changefreq>yearly</changefreq>
   </url>
   <url>
-    <loc>https://docter.io/terms.html</loc>
+    <loc>https://threadr.net/terms.html</loc>
     <priority>0.3</priority>
     <changefreq>yearly</changefreq>
   </url>
