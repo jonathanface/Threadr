@@ -47,6 +47,22 @@ func corsMiddleware(allowedOrigin string) func(http.Handler) http.Handler {
 	}
 }
 
+// aiOptOutMiddleware stamps every response with an X-Robots-Tag directive
+// asking well-behaved crawlers to exclude the content from AI training,
+// AI image training, and AI-powered summarization. Mirrors the <meta
+// name="robots" content="noai, noimageai"> tag the frontend HTML already
+// carries, but covers API responses (JSON, exports) that have no HTML
+// head to put a meta tag in. Honoring the directive is on the crawler;
+// publishing it is the signal.
+func aiOptOutMiddleware() func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("X-Robots-Tag", "noai, noimageai")
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // maintenanceModeMiddleware returns a maintenance page when enabled
 // Set MAINTENANCE_MODE=true environment variable to enable.
 func maintenanceModeMiddleware(enabled bool) func(http.Handler) http.Handler {
