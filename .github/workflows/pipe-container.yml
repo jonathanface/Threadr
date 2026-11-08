@@ -11,6 +11,9 @@ env:
   ECR_REPOSITORY: richdocter
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
+permissions:
+  contents: read
+
 jobs:
   check_merge:
     name: Check if PR was merged
