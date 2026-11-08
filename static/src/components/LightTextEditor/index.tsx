@@ -28,13 +28,10 @@ export function LightTextEditor({
     ref.current?.focus();
   };
   // Helpers
-  const isEmptyHtml = (html: string) => {
-    const normalized = html
-      .replace(/<br\s*\/?>/gi, "")
-      .replace(/&nbsp;/gi, " ")
-      .replace(/<[^>]+>/g, "")
-      .trim();
-    return normalized.length === 0;
+  const isEffectivelyEmpty = (html: string) => {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const text = (doc.body.textContent ?? "").replace(/\u00a0/g, " ").trim();
+    return text.length === 0;
   };
 
   const unwrapMuiTypographyP = (root: HTMLDivElement) => {
@@ -79,7 +76,7 @@ export function LightTextEditor({
     if (!el) return;
 
     // If external value is empty, show placeholder (unless focused)
-    if (isEmptyHtml(text)) {
+    if (isEffectivelyEmpty(text)) {
       if (document.activeElement !== el) setPlaceholder();
       return;
     }
@@ -164,7 +161,7 @@ export function LightTextEditor({
             const html = unwrapMuiTypographyP(
               e.currentTarget as HTMLDivElement,
             );
-            if (isEmptyHtml(html)) {
+            if (isEffectivelyEmpty(html)) {
               setPlaceholder();
               // Do NOT emit the placeholder; emit empty string to caller.
               onChange?.("");
@@ -196,7 +193,7 @@ export function LightTextEditor({
             });
 
             // Emit empty string if effectively empty (so parent can treat as no content)
-            onChange?.(isEmptyHtml(sanitized) ? "" : sanitized);
+            onChange?.(isEffectivelyEmpty(sanitized) ? "" : sanitized);
           }}
           onPaste={(e) => {
             // Optional: paste as plain text to avoid odd wrappers.

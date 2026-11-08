@@ -242,6 +242,13 @@ func safeRedirect(dest, defaultURL string, allowed []string) string {
 		logger.Debug("safeRedirect: dest is empty, returning default")
 		return defaultURL
 	}
+	// Reject URLs whose second byte is '/' or '\'. Both can be interpreted
+	// as the start of a protocol-relative URL (e.g. "//evil.com" or
+	// "/\evil.com") by some browsers and URL parsers.
+	if len(dest) >= 2 && (dest[1] == '/' || dest[1] == '\\') {
+		logger.Debug("safeRedirect: rejecting URL with suspicious second character", "dest", dest)
+		return defaultURL
+	}
 	if strings.HasPrefix(dest, "/") {
 		base, _ := url.Parse(defaultURL)
 		rel, _ := url.Parse(dest)
